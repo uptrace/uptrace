@@ -2,7 +2,11 @@
 
 set -euxo pipefail
 
-/uptrace --config /etc/uptrace/uptrace.yml ch wait
-/uptrace --config /etc/uptrace/uptrace.yml ch init
-/uptrace --config /etc/uptrace/uptrace.yml ch migrate
-/uptrace --config /etc/uptrace/uptrace.yml serve
+if [ $# -eq 0 ]; then
+    /uptrace --config=/etc/uptrace/uptrace.yml ch wait
+    /uptrace --config=/etc/uptrace/uptrace.yml ch init
+    /uptrace --config=/etc/uptrace/uptrace.yml ch migrate
+    /uptrace --config=/etc/uptrace/uptrace.yml serve
+else
+    /uptrace --config=/etc/uptrace/uptrace.yml $@
+fi

@@ -1,4 +1,4 @@
-#!/bin/shell
+#!/bin/bash
 
 TAG="${GITHUB_REF##*/}"
 if [[ $TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+.* ]]

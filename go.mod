@@ -4,8 +4,6 @@ go 1.18
 
 replace github.com/uptrace/go-clickhouse/ch => ./pkg/ch
 
-replace github.com/uptrace/uptrace-go => /home/vmihailenco/workspace/uptrace-go
-
 require (
 	github.com/bradleyjkemp/cupaloy v2.3.0+incompatible
 	github.com/cespare/xxhash/v2 v2.1.2
@@ -19,7 +17,7 @@ require (
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.8
 	github.com/uptrace/go-clickhouse/ch v0.0.0-00010101000000-000000000000
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.7
-	github.com/uptrace/uptrace-go v1.3.0
+	github.com/uptrace/uptrace-go v1.3.1-0.20211222105436-75b898dfb3dd
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/vmihailenco/tagparser v0.1.2
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.27.0
@@ -52,9 +50,6 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.11 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/segmentio/asm v1.1.1 // indirect
-	github.com/segmentio/encoding v0.3.2 // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.7 // indirect
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.27.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.3.0 // indirect

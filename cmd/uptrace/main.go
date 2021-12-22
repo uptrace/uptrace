@@ -15,6 +15,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch/migrate"
 	"github.com/uptrace/uptrace"
+	"github.com/uptrace/uptrace/pkg"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunapp/migrations"
 	"github.com/uptrace/uptrace/pkg/httputil"
@@ -39,6 +40,7 @@ func main() {
 		},
 
 		Commands: []*cli.Command{
+			versionCommand,
 			serveCommand,
 			newCHCommand(migrations.Migrations),
 		},
@@ -47,6 +49,15 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
+}
+
+var versionCommand = &cli.Command{
+	Name:  "version",
+	Usage: "print Uptrace version",
+	Action: func(c *cli.Context) error {
+		fmt.Println(pkg.Version())
+		return nil
+	},
 }
 
 var serveCommand = &cli.Command{

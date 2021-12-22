@@ -4,6 +4,11 @@ services:
     image: 'yandex/clickhouse-server:21.12'
     environment:
       - CLICKHOUSE_DB=uptrace
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'localhost:8123/ping']
+      interval: 30s
+      timeout: 5s
+      retries: 3
   uptrace:
     image: 'uptrace/uptrace:latest'
     volumes:
@@ -12,4 +17,5 @@ services:
       - '4317:4317' # OTLP
       - '15678:15678' # UI and HTTP API
     depends_on:
-      - clickhouse
+      clickhouse:
+        condition: service_healthy
