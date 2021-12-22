@@ -1,0 +1,11 @@
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.container--fixed-sm {
+  & .container {
+    max-width: 800px;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}

@@ -1,0 +1,389 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/klauspost/compress/gzhttp"
+	"github.com/rs/cors"
+	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch/migrate"
+	"github.com/uptrace/uptrace"
+	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunapp/migrations"
+	"github.com/uptrace/uptrace/pkg/httputil"
+	_ "github.com/uptrace/uptrace/pkg/tracing"
+	"github.com/urfave/cli/v2"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.uber.org/zap"
+)
+
+func main() {
+	app := &cli.App{
+		Name:  "uptrace",
+		Usage: "Uptrace CLI",
+
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "config",
+				Value:   "uptrace.yml",
+				Usage:   "load YAML configuration from `FILE`",
+				EnvVars: []string{"UPTRACE_CONFIG"},
+			},
+		},
+
+		Commands: []*cli.Command{
+			serveCommand,
+			newCHCommand(migrations.Migrations),
+		},
+	}
+
+	if err := app.Run(os.Args); err != nil {
+		log.Fatal(err)
+	}
+}
+
+var serveCommand = &cli.Command{
+	Name:  "serve",
+	Usage: "run HTTP and gRPC APIs",
+	Action: func(c *cli.Context) error {
+		ctx, app, err := bunapp.StartCLI(c)
+		if err != nil {
+			return err
+		}
+		defer app.Stop()
+
+		cfg := app.Config()
+
+		httpLn, err := net.Listen("tcp", cfg.Listen.HTTP)
+		if err != nil {
+			return err
+		}
+
+		grpcLn, err := net.Listen("tcp", cfg.Listen.GRPC)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("reading config from %s\n", cfg.Filepath)
+		log.Printf("serving on %s UPTRACE_DSN=%s OTEL_EXPORTER_OTLP_ENDPOINT=%s\n",
+			cfg.SiteAddr(), cfg.UptraceDSN(), cfg.OTLPEndpoint())
+
+		if err := app.CH().Ping(ctx); err != nil {
+			return fmt.Errorf("ClickHouse ping failed (dsn=%q): %w", app.Config().CH.DSN, err)
+		}
+
+		serveVueApp(app)
+		handler := app.HTTPHandler()
+		handler = gzhttp.GzipHandler(handler)
+		handler = otelhttp.NewHandler(handler, "")
+		handler = cors.AllowAll().Handler(handler)
+		handler = httputil.PanicHandler{Next: handler}
+
+		httpServer := &http.Server{
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 5 * time.Second,
+			IdleTimeout:  60 * time.Second,
+			Handler:      handler,
+		}
+
+		var wg sync.WaitGroup
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			if err := httpServer.Serve(httpLn); err != nil && err.Error() != "http: Server closed" {
+				app.Zap(ctx).Error("httpServer.Serve failed", zap.Error(err))
+			}
+		}()
+
+		go func() {
+			if err := app.GRPCServer().Serve(grpcLn); err != nil {
+				app.Zap(ctx).Error("grpcServer.Serve failed", zap.Error(err))
+			}
+		}()
+
+		fmt.Println(bunapp.WaitExitSignal())
+
+		if err := httpServer.Shutdown(ctx); err != nil {
+			return err
+		}
+
+		wg.Wait()
+		return nil
+	},
+}
+
+func serveVueApp(app *bunapp.App) {
+	router := app.Router()
+	fsys := http.FS(uptrace.DistFS())
+	fileServer := http.FileServer(fsys)
+
+	notFoundMiddleware := func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
+		return func(w http.ResponseWriter, req bunrouter.Request) error {
+			path := req.URL.Path
+			if path == "/" || strings.Contains(path, "/api/") {
+				return next(w, req)
+			}
+
+			if _, err := fsys.Open(req.URL.Path); err != nil {
+				req.URL.Path = "/"
+				router.ServeHTTP(w, req.Request)
+				return nil
+			}
+
+			return next(w, req)
+		}
+	}
+
+	router.NewGroup("/*path",
+		bunrouter.WithMiddleware(notFoundMiddleware),
+		bunrouter.WithGroup(func(group *bunrouter.Group) {
+			group.GET("", bunrouter.HTTPHandler(fileServer))
+		}))
+}
+
+func newCHCommand(migrations *migrate.Migrations) *cli.Command {
+	return &cli.Command{
+		Name:  "ch",
+		Usage: "ClickHouse management commands",
+		Subcommands: []*cli.Command{
+			{
+				Name:  "wait",
+				Usage: "wait until ClickHouse is up and running",
+				Action: func(c *cli.Context) error {
+					ctx, app, err := bunapp.StartCLI(c)
+					if err != nil {
+						return err
+					}
+					defer app.Stop()
+
+					db := app.CH()
+					for i := 0; i < 30; i++ {
+						if err := db.Ping(ctx); err != nil {
+							app.Zap(ctx).Info("ClickHouse is down",
+								zap.Error(err), zap.String("dsn", app.Config().CH.DSN))
+							time.Sleep(time.Second)
+							continue
+						}
+
+						app.Zap(ctx).Info("ClickHouse is up and runnining")
+						break
+					}
+
+					return nil
+				},
+			},
+			{
+				Name:  "init",
+				Usage: "create migration tables",
+				Action: func(c *cli.Context) error {
+					ctx, app, err := bunapp.StartCLI(c)
+					if err != nil {
+						return err
+					}
+					defer app.Stop()
+
+					migrator := migrate.NewMigrator(app.CH(), migrations)
+					return migrator.Init(ctx)
+				},
+			},
+			{
+				Name:  "migrate",
+				Usage: "migrate database",
+				Action: func(c *cli.Context) error {
+					ctx, app, err := bunapp.StartCLI(c)
+					if err != nil {
+						return err
+					}
+					defer app.Stop()
+
+					migrator := migrate.NewMigrator(app.CH(), migrations)
+
+					group, err := migrator.Migrate(ctx)
+					if err != nil {
+						return err
+					}
+
+					if group.ID == 0 {
+						fmt.Printf("there are no new migrations to run\n")
+						return nil
+					}
+
+					fmt.Printf("migrated to %s\n", group)
+					return nil
+				},
+			},
+			{
+				Name:  "rollback",
+				Usage: "rollback the last migration group",
+				Action: func(c *cli.Context) error {
+					ctx, app, err := bunapp.StartCLI(c)
+					if err != nil {
+						return err
+					}
+					defer app.Stop()
+
+					migrator := migrate.NewMigrator(app.CH(), migrations)
+
+					group, err := migrator.Rollback(ctx)
+					if err != nil {
+						return err
+					}
+
+					if group.ID == 0 {
+						fmt.Printf("there are no groups to roll back\n")
+						return nil
+					}
+
+					fmt.Printf("rolled back %s\n", group)
+					return nil
+				},
+			},
+			{
+				Name:  "reset",
+				Usage: "reset ClickHouse schema",
+				Action: func(c *cli.Context) error {
+					ctx, app, err := bunapp.StartCLI(c)
+					if err != nil {
+						return err
+					}
+					defer app.Stop()
+
+					migrator := migrate.NewMigrator(app.CH(), migrations)
+
+					if err := migrator.Init(ctx); err != nil {
+						return err
+					}
+
+					for {
+						group, err := migrator.Rollback(ctx)
+						if err != nil {
+							return err
+						}
+						if group.ID == 0 {
+							break
+						}
+					}
+
+					group, err := migrator.Migrate(ctx)
+					if err != nil {
+						return err
+					}
+
+					if group.ID == 0 {
+						fmt.Printf("there are no new migrations to run\n")
+						return nil
+					}
+
+					return nil
+				},
+			},
+			{
+				Name:  "lock",
+				Usage: "lock migrations",
+				Action: func(c *cli.Context) error {
+					ctx, app, err := bunapp.StartCLI(c)
+					if err != nil {
+						return err
+					}
+					defer app.Stop()
+
+					migrator := migrate.NewMigrator(app.CH(), migrations)
+					return migrator.Lock(ctx)
+				},
+			},
+			{
+				Name:  "unlock",
+				Usage: "unlock migrations",
+				Action: func(c *cli.Context) error {
+					ctx, app, err := bunapp.StartCLI(c)
+					if err != nil {
+						return err
+					}
+					defer app.Stop()
+
+					migrator := migrate.NewMigrator(app.CH(), migrations)
+					return migrator.Unlock(ctx)
+				},
+			},
+			{
+				Name:  "create_go",
+				Usage: "create Go migration",
+				Action: func(c *cli.Context) error {
+					ctx, app, err := bunapp.StartCLI(c)
+					if err != nil {
+						return err
+					}
+					defer app.Stop()
+
+					migrator := migrate.NewMigrator(app.CH(), migrations)
+
+					name := strings.Join(c.Args().Slice(), "_")
+					mf, err := migrator.CreateGoMigration(ctx, name)
+					if err != nil {
+						return err
+					}
+					fmt.Printf("created migration %s (%s)\n", mf.Name, mf.Path)
+
+					return nil
+				},
+			},
+			{
+				Name:  "create_sql",
+				Usage: "create up and down SQL migrations",
+				Action: func(c *cli.Context) error {
+					ctx, app, err := bunapp.StartCLI(c)
+					if err != nil {
+						return err
+					}
+					defer app.Stop()
+
+					migrator := migrate.NewMigrator(app.CH(), migrations)
+
+					name := strings.Join(c.Args().Slice(), "_")
+					files, err := migrator.CreateSQLMigrations(ctx, name)
+					if err != nil {
+						return err
+					}
+
+					for _, mf := range files {
+						fmt.Printf("created migration %s (%s)\n", mf.Name, mf.Path)
+					}
+
+					return nil
+				},
+			},
+			{
+				Name:  "status",
+				Usage: "print migrations status",
+				Action: func(c *cli.Context) error {
+					ctx, app, err := bunapp.StartCLI(c)
+					if err != nil {
+						return err
+					}
+					defer app.Stop()
+
+					migrator := migrate.NewMigrator(app.CH(), migrations)
+
+					ms, err := migrator.MigrationsWithStatus(ctx)
+					if err != nil {
+						return err
+					}
+					fmt.Printf("migrations: %s\n", ms)
+					fmt.Printf("unapplied migrations: %s\n", ms.Unapplied())
+					fmt.Printf("last migration group: %s\n", ms.LastGroup())
+
+					return nil
+				},
+			},
+		},
+	}
+}

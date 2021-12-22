@@ -1,0 +1,21 @@
+debug: true
+
+site:
+  scheme: 'http'
+  host: 'localhost'
+
+listen:
+  # HTTP API and Vue app.
+  http: ':15678'
+  # GRPC API for OpenTelemetry protocol.
+  grpc: ':14317'
+
+ch:
+  # Connection string for ClickHouse database.
+  # clickhouse://<user>:<password>@<host>:<port>/<database>?sslmode=disable
+  dsn: 'clickhouse://default:@clickhouse:9000/default?sslmode=disable'
+
+retention:
+  # Tell ClickHouse to delete data after 30 days.
+  # Supports SQL interval syntax, for example, INTERVAL 30 DAY.
+  ttl: 30 DAY

@@ -1,0 +1,15 @@
+version: '2'
+services:
+  clickhouse:
+    image: 'yandex/clickhouse-server:21.12'
+    environment:
+      - CLICKHOUSE_DB=uptrace
+  uptrace:
+    image: 'uptrace/uptrace:latest'
+    volumes:
+      - ./uptrace.yml:/etc/uptrace/uptrace.yml
+    ports:
+      - '14317:4317' # OTLP
+      - '15678:15678' # UI and HTTP API
+    depends_on:
+      - clickhouse

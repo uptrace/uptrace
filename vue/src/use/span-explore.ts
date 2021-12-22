@@ -1,0 +1,118 @@
+import { orderBy } from 'lodash'
+import { computed, watch, proxyRefs } from '@vue/composition-api'
+
+// Composables
+import { usePager, PagerConfig } from '@/use/pager'
+import { useOrder, Order } from '@/use/order'
+import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
+import { QueryPart } from '@/use/uql'
+
+// Utilities
+import { xkey } from '@/models/otelattr'
+
+export interface ColumnInfo {
+  name: string
+  isNum: boolean
+  isGroup: boolean
+}
+
+export interface ExploreItem extends Record<string, any> {}
+
+export type UseSpanExplore = ReturnType<typeof useSpanExplore>
+
+interface SpanExploreConfig {
+  pager?: PagerConfig
+  order?: Order
+}
+
+export function useSpanExplore(reqSource: AxiosRequestSource, cfg: SpanExploreConfig = {}) {
+  const pager = usePager(cfg.pager ?? { perPage: 9 })
+  const order = useOrder(
+    cfg.order ?? {
+      column: xkey.spanCountPerMin,
+      desc: true,
+    },
+  )
+
+  const axiosReq = computed(() => {
+    return reqSource()
+  })
+
+  const { loading, data } = useWatchAxios(() => {
+    return reqSource()
+  })
+
+  const items = computed((): ExploreItem[] => {
+    return data.value?.groups ?? []
+  })
+
+  const sortedItems = computed((): ExploreItem[] => {
+    if (!order.column) {
+      return items.value
+    }
+
+    const isDate = isDateField(order.column)
+    return orderBy(
+      items.value,
+      (item: ExploreItem) => {
+        const val = item[order.column!]
+        return isDate ? new Date(val) : val
+      },
+      order.desc ? 'desc' : 'asc',
+    )
+  })
+
+  const pageItems = computed((): ExploreItem[] => {
+    const pageItems = sortedItems.value.slice(pager.pos.start, pager.pos.end)
+    return pageItems
+  })
+
+  const queryParts = computed((): QueryPart[] => {
+    return data.value?.queryParts
+  })
+
+  const columns = computed((): ColumnInfo[] => {
+    let columns: ColumnInfo[] = data.value?.columns ?? []
+    return columns
+  })
+
+  const groupColumns = computed((): ColumnInfo[] => {
+    return columns.value.filter((col) => col.isGroup)
+  })
+
+  const plotColumns = computed((): ColumnInfo[] => {
+    return columns.value.filter((col) => col.isNum)
+  })
+
+  watch(
+    items,
+    (items) => {
+      pager.numItem = items.length
+    },
+    { immediate: true, flush: 'pre' },
+  )
+
+  return proxyRefs({
+    pager,
+    order,
+
+    axiosReq,
+    loading,
+
+    items: sortedItems,
+    pageItems,
+
+    queryParts,
+    columns,
+    groupColumns,
+    plotColumns,
+  })
+}
+
+function isDateField(s: string): boolean {
+  return s === xkey.spanTime || hasField(s, 'time') || hasField(s, 'date')
+}
+
+function hasField(s: string, field: string): boolean {
+  return s.endsWith('.' + field) || s.endsWith('_' + field)
+}
