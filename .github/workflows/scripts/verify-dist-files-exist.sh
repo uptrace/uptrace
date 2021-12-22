@@ -1,3 +1,5 @@
+#!/bin/bash
+
 files=(
     bin/uptrace_darwin_arm64
     bin/uptrace_darwin_amd64

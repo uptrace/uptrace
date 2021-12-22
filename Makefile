@@ -1,4 +1,5 @@
 VERSION=$(shell git describe --always --match "v[0-9]*" HEAD)
+BUILD_INFO_IMPORT_PATH=github.com/uptrace/uptrace/pkg/internal/version
 BUILD_INFO=-ldflags "-X $(BUILD_INFO_IMPORT_PATH).Version=$(VERSION)"
 GO_BUILD_TAGS=""
 
@@ -40,3 +41,8 @@ docker-uptrace:
 	cp ./bin/uptrace_linux_amd64 ./cmd/uptrace/uptrace
 	docker build -t uptrace ./cmd/uptrace/
 	rm ./cmd/uptrace/uptrace
+
+TOOLS_MOD_DIR := ./pkg/internal/tools
+.PHONY: install-tools
+install-tools:
+	cd $(TOOLS_MOD_DIR) && go install github.com/tcnksm/ghr

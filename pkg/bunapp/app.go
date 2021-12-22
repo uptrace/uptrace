@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/pprof"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -45,9 +44,6 @@ func Start(ctx context.Context, configFile, service string) (context.Context, *A
 		configFile,
 		"/etc/uptrace/uptrace.yml",
 		"uptrace.yml",
-	}
-	if s := os.Getenv("UPTRACE_CONFIG"); s != "" {
-		files = append(files, s)
 	}
 
 	var firstErr error
