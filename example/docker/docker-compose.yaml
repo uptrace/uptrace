@@ -6,9 +6,9 @@ services:
       - CLICKHOUSE_DB=uptrace
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'localhost:8123/ping']
-      interval: 30s
-      timeout: 5s
-      retries: 3
+      interval: 1s
+      timeout: 1s
+      retries: 30
   uptrace:
     image: 'uptrace/uptrace:latest'
     volumes:

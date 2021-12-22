@@ -140,6 +140,9 @@ import SpanListInline from '@/components/SpanListInline.vue'
 import { xkey, isDummySystem } from '@/models/otelattr'
 import { quote } from '@/util/string'
 
+// Styles
+import 'vuetify/src/components/VDataTable/VDataTable.sass'
+
 export default defineComponent({
   name: 'GroupTable',
   components: {
