@@ -5,4 +5,4 @@ COPY uptrace /
 COPY entrypoint.sh /entrypoint.sh
 
 EXPOSE 4317 15678
-CMD ["/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]

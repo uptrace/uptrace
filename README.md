@@ -17,6 +17,8 @@ Roadmap:
 
 - Errors/logs support
 - More dashboards for services and hosts
+- ReplicatedMergeTree support
+- TLS support
 - Improved SQL support using CockroachDB SQL parser (if license permits)
 
 ## Getting started
