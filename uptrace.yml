@@ -8,7 +8,7 @@ listen:
   # HTTP API and Vue app.
   http: ':15678'
   # GRPC API for OpenTelemetry protocol.
-  grpc: ':14317'
+  grpc: ':4317'
 
 ch:
   # Connection string for ClickHouse database.

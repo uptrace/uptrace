@@ -45,7 +45,7 @@ go run cmd/uptrace/main.go ch reset
 ```
 $ go run cmd/uptrace/main.go serve
 reading config from ./uptrace.yml
-serving on http://localhost:15678/ UPTRACE_DSN=http://localhost:14317 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:14317
+serving on http://localhost:15678/ UPTRACE_DSN=http://localhost:4317 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ```
 
 **Step 4**. Open Uptrace UI at http://localhost:15678
