@@ -7,7 +7,7 @@ _Screenshot goes here_
 
 Features:
 
-- OpenTelemetry traces via OTLP
+- OpenTelemetry protocol via gRPC (`:14317`) and HTTP (`:14318`)
 - Span/Trace grouping
 - SQL-like query language
 - Percentiles
@@ -44,13 +44,13 @@ go run cmd/uptrace/main.go ch reset
 
 **Step 3**. Start Uptrace:
 
-```
+```shell
 $ go run cmd/uptrace/main.go serve
 reading config from ./uptrace.yml
-serving on http://localhost:15678/ UPTRACE_DSN=http://localhost:4317 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+serving on http://localhost:14318/ OTLP/gRPC=http://localhost:14317 OTLP/HTTP=http://localhost:14318
 ```
 
-**Step 4**. Open Uptrace UI at http://localhost:15678
+**Step 4**. Open Uptrace UI at http://localhost:14318
 
 Uptrace will monitor itself using [uptrace-go](https://github.com/uptrace/uptrace-go) OpenTelemetry
 distro. To get some test data, just reload the UI few times.

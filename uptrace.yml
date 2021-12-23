@@ -5,10 +5,10 @@ site:
   host: 'localhost'
 
 listen:
-  # HTTP API and Vue app.
-  http: ':15678'
-  # GRPC API for OpenTelemetry protocol.
-  grpc: ':4317'
+  # OTLP/gRPC
+  grpc: ':14317'
+  # OTLP/HTTP and Uptrace API
+  http: ':14318'
 
 ch:
   # Connection string for ClickHouse database.

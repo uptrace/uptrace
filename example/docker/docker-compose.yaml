@@ -14,8 +14,8 @@ services:
     volumes:
       - ./uptrace.yml:/etc/uptrace/uptrace.yml
     ports:
-      - '4317:4317' # OTLP
-      - '15678:15678' # UI and HTTP API
+      - '14317:14317' # OTLP
+      - '14318:14318' # UI and HTTP API
     depends_on:
       clickhouse:
         condition: service_healthy

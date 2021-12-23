@@ -165,6 +165,7 @@ func (app *App) initZap() {
 	}
 
 	app.logger = otelzap.New(zapLogger)
+	otelzap.ReplaceGlobals(app.logger)
 
 	app.OnStopped("zap", func(ctx context.Context, _ *App) error {
 		_ = app.logger.Sync()

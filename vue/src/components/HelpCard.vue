@@ -15,11 +15,29 @@
       <v-row>
         <v-col class="text-body-1">
           <p>
-            To start sending data to Uptrace, you need to install Uptrace client. Use the following
-            DSN to configure Uptrace client by following instructions for your programming language:
+            To start sending data to Uptrace, you need to install Uptrace client and configure it
+            using the provided DSN (connection string).
           </p>
 
-          <XCode :code="dsn" />
+          <p>For Go and .NET use <strong>OTLP/gRPC</strong>:</p>
+
+          <XCode :code="otlpGrpc" class="mb-4" />
+
+          <p>For Python, Ruby, and Node.JS use <strong>OTLP/HTTP</strong>:</p>
+
+          <XCode :code="otlpHttp" class="mb-4" />
+
+          <p>
+            For example, to run Go
+            <a
+              href="https://github.com/uptrace/uptrace-go/tree/master/example/basic"
+              target="_blank"
+              >basic</a
+            >
+            example:
+          </p>
+
+          <XCode :code="goCmd" language="go" class="mb-4" />
         </v-col>
       </v-row>
 
@@ -44,7 +62,7 @@
 
       <v-row>
         <v-col>
-          <CollectorTabs :otlp="otlp" :dsn="dsn" />
+          <CollectorTabs :http="otlpHttp" :grpc="otlpGrpc" />
         </v-col>
       </v-row>
     </v-container>
@@ -87,17 +105,27 @@ export default defineComponent({
       }
     })
 
-    const otlp = computed(() => {
-      return data.value?.otlp ?? 'localhost:4317'
+    const otlpGrpc = computed(() => {
+      return data.value?.grpc ?? 'http://localhost:4317'
     })
 
-    const dsn = computed(() => {
-      return data.value?.dsn ?? 'http://localhost:4317'
+    const otlpHttp = computed(() => {
+      return data.value?.http ?? 'http://localhost:14318'
     })
 
-    return { otlp, dsn }
+    const goCmd = computed(() => {
+      return formatTemplate('UPTRACE_DSN={0} go run .', otlpGrpc.value)
+    })
+
+    return { otlpGrpc, otlpHttp, goCmd }
   },
 })
+
+function formatTemplate(format: string, ...args: any[]) {
+  return format.replace(/{(\d+)}/g, function (match, number) {
+    return typeof args[number] !== 'undefined' ? args[number] : match
+  })
+}
 </script>
 
 <style lang="scss" scoped></style>

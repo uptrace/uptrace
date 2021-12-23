@@ -57,8 +57,12 @@ func (s *TraceServiceServer) Export(
 	if ctx.Err() == context.Canceled {
 		return nil, status.Error(codes.Canceled, "Client cancelled, abandoning.")
 	}
+	s.process(req.ResourceSpans)
+	return &collectortrace.ExportTraceServiceResponse{}, nil
+}
 
-	for _, rss := range req.ResourceSpans {
+func (s *TraceServiceServer) process(resourceSpans []*tracepb.ResourceSpans) {
+	for _, rss := range resourceSpans {
 		resource := otlpAttrs(rss.Resource.Attributes)
 
 		for _, ils := range rss.InstrumentationLibrarySpans {
@@ -76,8 +80,6 @@ func (s *TraceServiceServer) Export(
 			}
 		}
 	}
-
-	return &collectortrace.ExportTraceServiceResponse{}, nil
 }
 
 func (s *TraceServiceServer) processLoop(ctx context.Context) {

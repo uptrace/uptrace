@@ -14,6 +14,7 @@ import (
 	"github.com/rs/cors"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch/migrate"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace"
 	"github.com/uptrace/uptrace/pkg"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -71,28 +72,36 @@ var serveCommand = &cli.Command{
 		defer app.Stop()
 
 		cfg := app.Config()
+		otelzap.S().Infof("reading YAML config from %s", cfg.Filepath)
 
 		httpLn, err := net.Listen("tcp", cfg.Listen.HTTP)
 		if err != nil {
+			otelzap.L().Error("net.Listen failed",
+				zap.Error(err), zap.String("addr", cfg.Listen.HTTP))
+			otelzap.L().Info("to change HTTP address, edit listen.http option in the YAML")
 			return err
 		}
 
 		grpcLn, err := net.Listen("tcp", cfg.Listen.GRPC)
 		if err != nil {
+			otelzap.L().Error("net.Listen failed",
+				zap.Error(err), zap.String("addr", cfg.Listen.GRPC))
+			otelzap.L().Info("to change gRPC address, edit listen.grpc option in the YAML")
 			return err
 		}
 
-		log.Printf("reading config from %s\n", cfg.Filepath)
-		log.Printf("serving on %s UPTRACE_DSN=%s OTEL_EXPORTER_OTLP_ENDPOINT=%s\n",
-			cfg.SiteAddr(), cfg.UptraceDSN(), cfg.OTLPEndpoint())
+		otelzap.S().Infof("serving on %s OTLP/gRPC=%s OTLP/HTTP=%s",
+			cfg.SiteAddr(), cfg.OTLPGrpc(), cfg.OTLPHttp())
 
 		if err := app.CH().Ping(ctx); err != nil {
-			return fmt.Errorf("ClickHouse ping failed (dsn=%q): %w", app.Config().CH.DSN, err)
+			otelzap.L().Error("ClickHouse ping failed",
+				zap.Error(err), zap.String("dsn", app.Config().CH.DSN))
 		}
 
 		serveVueApp(app)
 		handler := app.HTTPHandler()
 		handler = gzhttp.GzipHandler(handler)
+		handler = httputil.DecompressHandler{Next: handler}
 		handler = otelhttp.NewHandler(handler, "")
 		handler = cors.AllowAll().Handler(handler)
 		handler = httputil.PanicHandler{Next: handler}

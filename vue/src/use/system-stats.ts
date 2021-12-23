@@ -18,7 +18,6 @@ export interface OverviewItem {
   p50: number
   p90: number
   p99: number
-  rate: number
 
   stats: Stats
 }

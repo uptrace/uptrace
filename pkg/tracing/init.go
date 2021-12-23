@@ -15,7 +15,12 @@ func init() {
 }
 
 func initGRPC(ctx context.Context, app *bunapp.App) error {
-	collectortrace.RegisterTraceServiceServer(app.GRPCServer(), NewTraceServiceServer(app))
+	traceService := NewTraceServiceServer(app)
+	collectortrace.RegisterTraceServiceServer(app.GRPCServer(), traceService)
+
+	router := app.Router()
+	router.POST("/v1/traces", traceService.httpTraces)
+
 	return nil
 }
 
@@ -44,8 +49,8 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 
 	g.GET("/conn-info", func(w http.ResponseWriter, req bunrouter.Request) error {
 		return bunrouter.JSON(w, bunrouter.H{
-			"dsn":  app.Config().UptraceDSN(),
-			"otlp": app.Config().OTLPEndpoint(),
+			"grpc": app.Config().OTLPGrpc(),
+			"http": app.Config().OTLPHttp(),
 		})
 	})
 

@@ -23,11 +23,11 @@ export default defineComponent({
   name: 'CollectorTabs',
 
   props: {
-    otlp: {
+    grpc: {
       type: String,
       default: '',
     },
-    dsn: {
+    http: {
       type: String,
       default: '',
     },
@@ -37,11 +37,11 @@ export default defineComponent({
     const tabs = ref()
 
     const otlpGrpc = computed(() => {
-      return formatTemplate(otlpGrpcTpl.trim(), props.otlp, props.dsn)
+      return formatTemplate(otlpGrpcTpl, props.grpc)
     })
 
     const otlpHttp = computed(() => {
-      return formatTemplate(otlpHttpTpl.trim(), props.otlp, props.dsn)
+      return formatTemplate(otlpHttpTpl, props.http)
     })
 
     return { tabs, otlpGrpc, otlpHttp }
@@ -58,19 +58,17 @@ const otlpGrpcTpl = `
 exporters:
   otlp:
     endpoint: {0}
-    headers: {"uptrace-dsn": "{1}"}
     tls:
       insecure: true
-`
+`.trim()
 
 const otlpHttpTpl = `
 exporters:
   otlphttp:
     endpoint: {0}
-    headers: {"uptrace-dsn": "{1}"}
     tls:
       insecure: true
-`
+`.trim()
 </script>
 
 <style lang="scss" scoped></style>

@@ -8,6 +8,7 @@ require (
 	github.com/bradleyjkemp/cupaloy v2.3.0+incompatible
 	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/codemodus/kace v0.5.1
+	github.com/gogo/protobuf v1.3.2
 	github.com/google/uuid v1.3.0
 	github.com/klauspost/compress v1.13.6
 	github.com/rs/cors v1.8.0
@@ -29,6 +30,7 @@ require (
 	go4.org v0.0.0-20201209231011-d4a079459e60
 	golang.org/x/exp v0.0.0-20211210185655-e05463a05a18
 	google.golang.org/grpc v1.42.0
+	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
 
@@ -69,5 +71,4 @@ require (
 	golang.org/x/sys v0.0.0-20211210111614-af8b64212486 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
 )

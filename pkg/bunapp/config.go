@@ -86,12 +86,12 @@ func (c *AppConfig) SiteAddr() string {
 	return fmt.Sprintf("%s://%s:%s/", c.Site.Scheme, c.Listen.HTTPHost, c.Listen.HTTPPort)
 }
 
-func (c *AppConfig) OTLPEndpoint() string {
+func (c *AppConfig) OTLPGrpc() string {
 	return fmt.Sprintf("%s://%s:%s", c.Site.Scheme, c.Listen.GRPCHost, c.Listen.GRPCPort)
 }
 
-func (c *AppConfig) UptraceDSN() string {
-	return fmt.Sprintf("%s://%s:%s", c.Site.Scheme, c.Listen.GRPCHost, c.Listen.GRPCPort)
+func (c *AppConfig) OTLPHttp() string {
+	return fmt.Sprintf("%s://%s:%s", c.Site.Scheme, c.Listen.HTTPHost, c.Listen.HTTPPort)
 }
 
 type BunConfig struct {

@@ -12,7 +12,7 @@ var Tracer = otel.Tracer("github.com/uptrace/uptrace")
 func setupOpentelemetry(app *App) {
 	uptrace.ConfigureOpentelemetry(
 		uptrace.WithMetricsEnabled(false),
-		uptrace.WithDSN(app.cfg.UptraceDSN()),
+		uptrace.WithDSN(app.cfg.OTLPGrpc()),
 		uptrace.WithServiceName(app.cfg.Service),
 	)
 
