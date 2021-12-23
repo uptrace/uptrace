@@ -12,9 +12,9 @@ require (
 	github.com/klauspost/compress v1.13.6
 	github.com/rs/cors v1.8.0
 	github.com/stretchr/testify v1.7.0
-	github.com/uptrace/bunrouter v1.0.8
-	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.8
-	github.com/uptrace/bunrouter/extra/reqlog v1.0.8
+	github.com/uptrace/bunrouter v1.0.9
+	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.9
+	github.com/uptrace/bunrouter/extra/reqlog v1.0.9
 	github.com/uptrace/go-clickhouse/ch v0.0.0-00010101000000-000000000000
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.7
 	github.com/uptrace/uptrace-go v1.3.1-0.20211222105436-75b898dfb3dd

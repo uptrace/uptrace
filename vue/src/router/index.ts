@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import VueRouter, { RouteConfig } from 'vue-router'
 
+import Overview from '@/views/Overview.vue'
 import Tracing from '@/views/Tracing.vue'
 import TraceShow from '@/views/TraceShow.vue'
 import SpanShow from '@/views/SpanShow.vue'
@@ -13,6 +14,11 @@ const routes: Array<RouteConfig> = [
     name: 'Home',
     path: '/',
     redirect: { name: 'GroupList' },
+  },
+  {
+    name: 'Overview',
+    path: '/overview',
+    component: Overview,
   },
   {
     name: 'GroupList',

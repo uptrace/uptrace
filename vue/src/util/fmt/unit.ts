@@ -14,6 +14,18 @@ export function unitFromName(name: string, value?: unknown): Unit {
     return Unit.None
   }
 
+  switch (name) {
+    case 'count':
+    case 'rate':
+      return Unit.None
+    case 'errorPct':
+      return Unit.Percents
+    case 'p50':
+    case 'p90':
+    case 'p99':
+      return Unit.Nanoseconds
+  }
+
   let key = ''
 
   const m = name.match(/(\S+)\((\S+)\)/)

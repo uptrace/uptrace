@@ -12,6 +12,7 @@
 
           <v-col cols="auto">
             <v-tabs optional class="ml-8">
+              <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
               <v-tab :to="{ name: 'GroupList' }">Explore</v-tab>
               <v-tab :to="{ name: 'Help' }">Help</v-tab>
               <v-tab href="https://github.com/uptrace/uptrace/releases/latest" target="_blank">

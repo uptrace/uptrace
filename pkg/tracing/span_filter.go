@@ -417,7 +417,7 @@ func tablePeriod(f *TimeFilter) time.Duration {
 }
 
 func tableGroupPeriod(f *TimeFilter) (tablePeriod, groupPeriod time.Duration) {
-	groupPeriod = calcGroupPeriod(f, 300)
+	groupPeriod = calcGroupPeriod(f, 200)
 	if groupPeriod >= time.Hour {
 		tablePeriod = time.Hour
 	} else {

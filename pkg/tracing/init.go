@@ -28,6 +28,7 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 	g := app.APIGroup().NewGroup("/tracing")
 
 	g.GET("/systems", sysHandler.List)
+	g.GET("/systems-stats", sysHandler.Stats)
 	g.GET("/groups", spanHandler.ListGroups)
 	g.GET("/spans", spanHandler.ListSpans)
 	g.GET("/percentiles", spanHandler.Percentiles)
