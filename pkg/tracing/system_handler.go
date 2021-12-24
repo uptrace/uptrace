@@ -87,6 +87,7 @@ func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 	}
 
 	tableName, groupPeriod := spanSystemTableForGroup(&f.TimeFilter)
+	minutes := groupPeriod.Minutes()
 
 	subq := h.CH().NewSelect().
 		WithAlias("tdigest", "quantilesTDigestMergeState(0.5, 0.9, 0.99)(s.tdigest)").
@@ -101,8 +102,7 @@ func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 		ColumnExpr("qs[1] AS stats__p50").
 		ColumnExpr("qs[2] AS stats__p90").
 		ColumnExpr("qs[3] AS stats__p99").
-		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time",
-			groupPeriod.Minutes()).
+		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time", minutes).
 		TableExpr(tableName).
 		Where("s.system != ?", internalSpanType).
 		Apply(f.whereClause).
@@ -117,7 +117,7 @@ func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 		WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
 		ColumnExpr("system").
 		ColumnExpr("sum(s.stats__count) AS count").
-		ColumnExpr("count / ? AS rate", f.Duration().Minutes()).
+		ColumnExpr("count / ? AS rate", minutes).
 		ColumnExpr("sum(s.stats__errorCount) AS errorCount").
 		ColumnExpr("errorCount / count AS errorPct").
 		ColumnExpr("qs[1] AS p50").

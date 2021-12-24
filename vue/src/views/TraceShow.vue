@@ -136,7 +136,7 @@ export default defineComponent({
         query: {
           ...dateRange.queryParams(),
           system: trace.root.system,
-          where: `${xkey.spanGroupId} = ${trace.root.groupId}`,
+          where: `${xkey.spanGroupId} = "${trace.root.groupId}"`,
         },
       }
     })
@@ -219,7 +219,7 @@ function useMeta(dateRange: UseDateRange, trace: UseTrace) {
           query: {
             ...dateRange.queryParams(),
             system: root.system,
-            where: `${xkey.spanGroupId} = ${root.groupId}`,
+            where: `${xkey.spanGroupId} = "${root.groupId}"`,
           },
         },
         exact: true,

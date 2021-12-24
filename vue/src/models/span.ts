@@ -71,7 +71,7 @@ export function groupShowLink(attrs: AttrMap) {
       name: 'GroupList',
       query: {
         time: attrs[xkey.spanTime],
-        where: `${xkey.spanGroupId} = ${attrs[xkey.spanGroupId]}`,
+        where: `${xkey.spanGroupId} = "${attrs[xkey.spanGroupId]}"`,
       },
     },
   }

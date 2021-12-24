@@ -201,7 +201,7 @@ function useMeta(props: Props) {
       query: {
         ...props.dateRange.queryParams(),
         system: props.span.system,
-        where: `${xkey.spanGroupId} = ${props.span.groupId}`,
+        where: `${xkey.spanGroupId} = "${props.span.groupId}"`,
       },
     }
   })
@@ -228,7 +228,7 @@ function useMeta(props: Props) {
         query: {
           ...props.dateRange.queryParams(),
           system: props.span.system,
-          where: `${xkey.spanGroupId} = ${props.span.groupId}`,
+          where: `${xkey.spanGroupId} = "${props.span.groupId}"`,
         },
       },
       exact: true,

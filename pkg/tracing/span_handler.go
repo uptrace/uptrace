@@ -116,7 +116,13 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		ColumnExpr("toStartOfInterval(`span.time`, INTERVAL ? minute) AS time", minutes).
 		Apply(f.whereClause).
 		GroupExpr("time").
-		OrderExpr("time ASC").
+		OrderExpr(
+			"time ASC WITH FILL "+
+				"FROM toStartOfInterval(toDateTime(?), toIntervalMinute(?)) "+
+				"TO toStartOfInterval(toDateTime(?), toIntervalMinute(?)) "+
+				"STEP toIntervalMinute(?)",
+			f.TimeGTE, minutes, f.TimeLT, minutes, minutes,
+		).
 		Limit(10000)
 
 	if err := h.CH().NewSelect().
