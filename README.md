@@ -1,4 +1,4 @@
-# Distributed tracing using OpenTelemetry and ClickHouse
+# Distributed tracing backend using OpenTelemetry and ClickHouse
 
 Uptrace Open Source version is a distributed tracing system that uses OpenTelemetry to collect data
 and ClickHouse database to store it. ClickHouse is the only dependency.
@@ -19,14 +19,14 @@ Roadmap:
 - More dashboards for services and hosts
 - ReplicatedMergeTree support
 - TLS support
-- Improved SQL support using CockroachDB SQL parser (if license permits)
+- Improved SQL support using CockroachDB SQL parser
 
 ## Getting started
 
 - [Docker example](example/docker) allows to run Uptrace with a single command.
 - [Installation]() guide with pre-compiled binaries for Linux, MacOS, and Windows.
 
-## Running locally
+## Running Uptrace locally
 
 To run Uptrace locally, you need Go **1.18** and ClickHouse.
 
@@ -54,3 +54,15 @@ serving on http://localhost:14318/ OTLP/gRPC=http://localhost:14317 OTLP/HTTP=ht
 
 Uptrace will monitor itself using [uptrace-go](https://github.com/uptrace/uptrace-go) OpenTelemetry
 distro. To get some test data, just reload the UI few times.
+
+## Running UI locally
+
+You can also start the UI locally:
+
+```shell
+cd vue
+pnpm install
+pnpm serve
+```
+
+And open http://localhost:19876
