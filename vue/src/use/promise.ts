@@ -81,7 +81,11 @@ export function usePromise(fn: AsyncFunc) {
     if (!error || !errorMessage.value) {
       return
     }
-    snackbar.notifyError(errorMessage.value)
+    switch (error.response?.status) {
+      case 400:
+      case 500:
+        snackbar.notifyError(errorMessage.value)
+    }
   })
 
   return {
