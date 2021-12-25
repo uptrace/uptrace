@@ -20,9 +20,5 @@ docker-compose logs uptrace
 Uptrace will monitor itself using [uptrace-go](https://github.com/uptrace/uptrace-go) OpenTelemetry
 distro. To get some test data, just reload the UI few times.
 
-You can also run the [basic](https://github.com/uptrace/uptrace-go/tree/master/example/basic)
-example:
-
-```go
-UPTRACE_DSN=http://localhost:14317 go run .
-```
+See the [documentation](https://docs.uptrace.dev/guide/os.html#otlp) for configuring Uptrace client
+for your programming language.

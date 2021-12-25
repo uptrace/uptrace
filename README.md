@@ -24,7 +24,8 @@ Roadmap:
 ## Getting started
 
 - [Docker example](example/docker) allows to run Uptrace with a single command.
-- [Installation]() guide with pre-compiled binaries for Linux, MacOS, and Windows.
+- [Installation](https://docs.uptrace.dev/guide/os.html) guide with pre-compiled binaries for Linux,
+  MacOS, and Windows.
 
 ## Running Uptrace locally
 
