@@ -72,29 +72,30 @@ var serveCommand = &cli.Command{
 		defer app.Stop()
 
 		cfg := app.Config()
-		otelzap.S().Infof("reading YAML config from %s", cfg.Filepath)
+
+		fmt.Printf("reading YAML config from    %s\n", cfg.Filepath)
+		fmt.Printf("read the docs at            https://docs.uptrace.dev/guide/os.html#otlp\n")
+		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", cfg.OTLPGrpc())
+		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", cfg.OTLPHttp())
+		fmt.Printf("UI (listen.http)            %s\n", cfg.SiteAddr())
+		fmt.Println()
 
 		httpLn, err := net.Listen("tcp", cfg.Listen.HTTP)
 		if err != nil {
-			otelzap.L().Error("net.Listen failed",
+			otelzap.L().Error("net.Listen failed (edit listen.http YAML option)",
 				zap.Error(err), zap.String("addr", cfg.Listen.HTTP))
-			otelzap.L().Info("to change HTTP address, edit listen.http option in the YAML")
 			return err
 		}
 
 		grpcLn, err := net.Listen("tcp", cfg.Listen.GRPC)
 		if err != nil {
-			otelzap.L().Error("net.Listen failed",
+			otelzap.L().Error("net.Listen failed (edit listen.grpc YAML option)",
 				zap.Error(err), zap.String("addr", cfg.Listen.GRPC))
-			otelzap.L().Info("to change gRPC address, edit listen.grpc option in the YAML")
 			return err
 		}
 
-		otelzap.S().Infof("serving on %s OTLP/gRPC=%s OTLP/HTTP=%s",
-			cfg.SiteAddr(), cfg.OTLPGrpc(), cfg.OTLPHttp())
-
 		if err := app.CH().Ping(ctx); err != nil {
-			otelzap.L().Error("ClickHouse ping failed",
+			otelzap.L().Error("ClickHouse ping failed (edit ch.dsn YAML option)",
 				zap.Error(err), zap.String("dsn", app.Config().CH.DSN))
 		}
 

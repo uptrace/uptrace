@@ -12,10 +12,7 @@ docker-compose up -d
 **Step 2**. Make sure Uptrace is running:
 
 ```shell
-$ docker-compose logs uptrace
-
-reading config from ~/uptrace/uptrace.yml
-serving on http://localhost:14318/ OTLP/gRPC=http://localhost:14317 OTLP/HTTP=http://localhost:14318
+docker-compose logs uptrace
 ```
 
 **Step 3**. Open Uptrace UI at http://localhost:14318
@@ -27,5 +24,5 @@ You can also run the [basic](https://github.com/uptrace/uptrace-go/tree/master/e
 example:
 
 ```go
-UPTRACE_DSN= go run .
+UPTRACE_DSN=http://localhost:14317 go run .
 ```
