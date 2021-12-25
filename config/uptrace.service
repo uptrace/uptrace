@@ -1,0 +1,14 @@
+[Unit]
+Description=Uptrace
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/uptrace --config=/etc/uptrace/uptrace.yml
+KillMode=mixed
+Restart=on-failure
+Type=simple
+User=uptrace
+Group=uptrace
+
+[Install]
+WantedBy=multi-user.target

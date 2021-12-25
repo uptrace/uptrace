@@ -34,7 +34,7 @@ func main() {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "config",
-				Value:   "uptrace.yml",
+				Value:   "config/uptrace.yml",
 				Usage:   "load YAML configuration from `FILE`",
 				EnvVars: []string{"UPTRACE_CONFIG"},
 			},
