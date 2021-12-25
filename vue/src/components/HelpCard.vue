@@ -28,22 +28,10 @@
           <XCode :code="otlpHttp" class="mb-4" />
 
           <p>
-            For example, to run Go
-            <a
-              href="https://github.com/uptrace/uptrace-go/tree/master/example/basic"
-              target="_blank"
-              >basic</a
-            >
-            example:
+            See
+            <a href="https://docs.uptrace.dev/guide/os.html#otlp" target="_blank">documentation</a>
+            for instructions for your programming language.
           </p>
-
-          <XCode :code="goCmd" language="go" class="mb-4" />
-        </v-col>
-      </v-row>
-
-      <v-row>
-        <v-col>
-          <DistroList />
         </v-col>
       </v-row>
     </v-container>
@@ -79,13 +67,12 @@ import { UseDateRange } from '@/use/date-range'
 import { useWatchAxios } from '@/use/watch-axios'
 
 // Components
-import DistroList from '@/components/DistroList.vue'
 import CollectorTabs from '@/components/CollectorTabs.vue'
 import HelpLinks from '@/components/HelpLinks.vue'
 
 export default defineComponent({
   name: 'HelpCard',
-  components: { DistroList, CollectorTabs, HelpLinks },
+  components: { CollectorTabs, HelpLinks },
 
   props: {
     loading: {
@@ -113,19 +100,9 @@ export default defineComponent({
       return data.value?.http ?? 'http://localhost:14318'
     })
 
-    const goCmd = computed(() => {
-      return formatTemplate('UPTRACE_DSN={0} go run .', otlpGrpc.value)
-    })
-
-    return { otlpGrpc, otlpHttp, goCmd }
+    return { otlpGrpc, otlpHttp }
   },
 })
-
-function formatTemplate(format: string, ...args: any[]) {
-  return format.replace(/{(\d+)}/g, function (match, number) {
-    return typeof args[number] !== 'undefined' ? args[number] : match
-  })
-}
 </script>
 
 <style lang="scss" scoped></style>
