@@ -70,3 +70,16 @@ pnpm serve
 ```
 
 And open http://localhost:19876
+
+## FAQ
+
+**What is the license?**
+
+The [license](LICENSE) is identical to Apache 2.0 with the only exception being that you can't use
+the code to create a cloud service. You can learn more about BSL
+[here](https://mariadb.com/bsl-faq-adopting/).
+
+**Are there 2 versions of Uptrace?**
+
+Yes, having 2 separate versions allows us to have minimal number of dependencies (ClickHouse) and
+keep the codebase small and fun to work with.
