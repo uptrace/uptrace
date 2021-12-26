@@ -77,7 +77,7 @@ var serveCommand = &cli.Command{
 		fmt.Printf("read the docs at            https://docs.uptrace.dev/guide/os.html#otlp\n")
 		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", cfg.OTLPGrpc())
 		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", cfg.OTLPHttp())
-		fmt.Printf("UI (listen.http)            %s\n", cfg.SiteAddr())
+		fmt.Printf("Open UI (listen.http)       %s\n", cfg.SiteAddr())
 		fmt.Println()
 
 		httpLn, err := net.Listen("tcp", cfg.Listen.HTTP)

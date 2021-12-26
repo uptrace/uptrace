@@ -3,7 +3,11 @@
 Uptrace is a distributed tracing system that uses OpenTelemetry to collect data and ClickHouse
 database to store it. ClickHouse is the only dependency.
 
-_Screenshot goes here_
+<p align="center">
+  <a href="https://uptrace.dev/open-source/?autoplay">
+    <img src="https://uptrace.dev/uptrace-os/poster.png" alt="Distributed tracing, errors, and logs">
+  </a>
+</p>
 
 Features:
 
@@ -19,6 +23,7 @@ Roadmap:
 - More dashboards for services and hosts
 - ClickHouse cluster support
 - TLS support
+- Sampling/adjusted counts support
 - Improved SQL support using CockroachDB SQL parser
 
 ## Getting started
@@ -27,9 +32,9 @@ Roadmap:
 - [Installation](https://docs.uptrace.dev/guide/os.html) guide with pre-compiled binaries for Linux,
   MacOS, and Windows.
 
-## Running Uptrace locally
+## Compiling Uptrace manually
 
-To run Uptrace locally, you need Go **1.18** and ClickHouse.
+To compile and run Uptrace locally, you need Go **1.18** and ClickHouse.
 
 **Step 1**. Create `uptrace` ClickHouse database:
 
@@ -54,7 +59,7 @@ go run cmd/uptrace/main.go serve
 Uptrace will monitor itself using [uptrace-go](https://github.com/uptrace/uptrace-go) OpenTelemetry
 distro. To get some test data, just reload the UI few times.
 
-## Running UI locally
+## Compiling UI manually
 
 You can also start the UI locally:
 
