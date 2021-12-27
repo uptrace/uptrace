@@ -46,3 +46,7 @@ TOOLS_MOD_DIR := ./pkg/internal/tools
 .PHONY: install-tools
 install-tools:
 	cd $(TOOLS_MOD_DIR) && go install github.com/tcnksm/ghr
+
+.PHONY: clean-repo
+clean-repo:
+	git filter-repo --path vue/dist --invert-paths
