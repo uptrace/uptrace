@@ -25,6 +25,10 @@ const (
 	SpanErrorCount  = "span.error_count"
 	SpanErrorPct    = "span.error_pct"
 
+	SpanEventCount      = "span.event_count"
+	SpanEventErrorCount = "span.event_error_count"
+	SpanEventLogCount   = "span.event_log_count"
+
 	ServiceName = "service.name"
 	HostName    = "host.name"
 	RPCSystem   = "rpc.system"

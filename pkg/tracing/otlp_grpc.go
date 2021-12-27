@@ -132,8 +132,14 @@ func (s *TraceServiceServer) flushSpans(ctx context.Context, spans []otlpSpan) {
 
 		for i, span := range spans {
 			spanIndex := s.newSpanIndex(span)
+			spanData := s.newSpanData(span, spanIndex)
+
+			spanIndex.EventCount = uint8(len(spanData.Events))
+			spanIndex.EventErrorCount = 0
+			spanIndex.EventLogCount = 0
+
 			index[i] = spanIndex
-			data[i] = s.newSpanData(span, spanIndex)
+			data[i] = spanData
 		}
 
 		if _, err := s.CH().NewInsert().Model(&data).Exec(ctx); err != nil {

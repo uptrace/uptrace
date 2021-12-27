@@ -33,6 +33,10 @@ type SpanIndex struct {
 	StatusCode    string `ch:"span.status_code,lc"`
 	StatusMessage string `ch:"span.status_message"`
 
+	EventCount      uint8 `ch:"span.event_count"`
+	EventErrorCount uint8 `ch:"span.event_error_count"`
+	EventLogCount   uint8 `ch:"span.event_log_count"`
+
 	Attrs      AttrMap  `ch:"-"`
 	AttrKeys   []string `ch:",lc"`
 	AttrValues []string `ch:",lc"`

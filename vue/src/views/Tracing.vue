@@ -55,7 +55,14 @@ import { xkey } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'Tracing',
-  components: { DateRangePicker, SystemPicker, HelpCard, UptraceQuery, SpanFilters, GroupList },
+  components: {
+    DateRangePicker,
+    SystemPicker,
+    HelpCard,
+    UptraceQuery,
+    SpanFilters,
+    GroupList,
+  },
 
   setup() {
     useTitle('Explore spans')

@@ -8,9 +8,7 @@
       </v-col>
 
       <v-col cols="auto">
-        <div v-if="false">
-          <SpanQueryHelpDialog :uql="uql" class="mr-2" />
-        </div>
+        <SpanQueryHelpDialog :uql="uql" class="mr-2" />
       </v-col>
       <v-col cols="auto">
         <v-btn v-if="uql.rawMode" icon title="Apply filters" @click="exitRawMode(true)">
@@ -82,8 +80,12 @@ import { defineComponent, shallowRef, watch, PropType } from '@vue/composition-a
 // Composables
 import { UseUql } from '@/use/uql'
 
+// Components
+import SpanQueryHelpDialog from '@/components/SpanQueryHelpDialog.vue'
+
 export default defineComponent({
   name: 'UptraceQuery',
+  components: { SpanQueryHelpDialog },
 
   props: {
     uql: {

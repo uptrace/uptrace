@@ -83,7 +83,6 @@ export default defineComponent({
       }
 
       pushHttpStatusChip(chips, props.attrs)
-      pushSqlTable(chips, props.attrs)
 
       return chips
     })
@@ -98,7 +97,6 @@ function traceChips(attrs: AttrMap): SpanChip[] {
   pushSystemChip(chips, attrs)
   pushKindChip(chips, attrs)
   pushHttpStatusChip(chips, attrs)
-  pushSqlTable(chips, attrs)
 
   return chips
 }
@@ -121,13 +119,6 @@ function pushHttpStatusChip(chips: SpanChip[], attrs: AttrMap) {
   const httpCode = attrs[xkey.httpStatusCode]
   if (typeof httpCode === 'number' && httpCode != 0 && (httpCode < 200 || httpCode >= 300)) {
     chips.push({ key: xkey.httpStatusCode, value: httpCode, text: String(httpCode) })
-  }
-}
-
-function pushSqlTable(chips: SpanChip[], attrs: AttrMap) {
-  const table = attrs[xkey.dbSqlTable]
-  if (table) {
-    chips.push({ key: xkey.dbSqlTable, value: table, text: table })
   }
 }
 

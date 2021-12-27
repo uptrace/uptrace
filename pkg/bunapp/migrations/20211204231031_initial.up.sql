@@ -12,6 +12,10 @@ CREATE TABLE spans_index (
   "span.status_code" LowCardinality(String),
   "span.status_message" String,
 
+  "span.event_count" UInt8,
+  "span.event_error_count" UInt8,
+  "span.event_log_count" UInt8,
+
   attr_keys Array(LowCardinality(String)),
   attr_values Array(String),
 

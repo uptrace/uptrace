@@ -16,10 +16,8 @@
     <AggFilterMenu :uql="uql" :axios-params="axiosParams" />
     <GroupByMenu :uql="uql" :axios-params="axiosParams" />
 
-    <template>
-      <v-divider vertical class="mx-2" />
-      <v-btn text class="v-btn--filter" @click="reset">Reset</v-btn>
-    </template>
+    <v-divider vertical class="mx-2" />
+    <v-btn text class="v-btn--filter" @click="reset">Reset</v-btn>
   </div>
 </template>
 

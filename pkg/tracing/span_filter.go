@@ -303,7 +303,8 @@ func appendCHColumn(b []byte, key string) []byte {
 	case xattr.SpanSystem, xattr.SpanGroupID, xattr.SpanTraceID,
 		xattr.SpanName, xattr.SpanKind, xattr.SpanDuration,
 		xattr.SpanStatusCode, xattr.SpanStatusMessage,
-		xattr.ServiceName, xattr.HostName:
+		xattr.ServiceName, xattr.HostName,
+		xattr.SpanEventCount, xattr.SpanEventErrorCount, xattr.SpanEventLogCount:
 		b = append(b, "s."...)
 		b = chschema.AppendIdent(b, key)
 		return b
