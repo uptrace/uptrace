@@ -9,6 +9,11 @@
         <v-card-text class="text-subtitle-1">
           <ul>
             <li>
+              <a href="https://github.com/uptrace/uptrace/releases/latest" target="_blank"
+                >Latest release</a
+              >
+            </li>
+            <li>
               <a href="https://docs.uptrace.dev/" target="_blank">Uptrace documentation</a>
             </li>
             <li>

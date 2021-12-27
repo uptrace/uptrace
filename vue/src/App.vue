@@ -2,7 +2,7 @@
   <v-app>
     <v-app-bar app elevation="1" color="white">
       <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pa-0 fill-height">
-        <v-row align="center">
+        <v-row align="center" class="flex-nowrap">
           <v-col cols="auto">
             <div class="mt-2">
               <UptraceLogoLarge v-if="$vuetify.breakpoint.lgAndUp" :to="{ name: 'Home' }" />
@@ -15,10 +15,6 @@
               <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
               <v-tab :to="{ name: 'GroupList' }">Explore</v-tab>
               <v-tab :to="{ name: 'Help' }">Help</v-tab>
-              <v-tab href="https://github.com/uptrace/uptrace/releases/latest" target="_blank">
-                <span>Latest Release</span>
-                <v-icon right>mdi-open-in-new</v-icon>
-              </v-tab>
             </v-tabs>
           </v-col>
 

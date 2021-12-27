@@ -40,23 +40,11 @@ func StartCLI(c *cli.Context) (context.Context, *App, error) {
 }
 
 func Start(ctx context.Context, configFile, service string) (context.Context, *App, error) {
-	files := []string{
-		configFile,
-		"/etc/uptrace/uptrace.yml",
-		"uptrace.yml",
+	cfg, err := ReadConfig(configFile, service)
+	if err != nil {
+		return context.TODO(), nil, err
 	}
-
-	var firstErr error
-
-	for _, configFile := range files {
-		cfg, err := ReadConfig(configFile, service)
-		if err == nil {
-			return StartConfig(ctx, cfg)
-		}
-		firstErr = err
-	}
-
-	return context.TODO(), nil, firstErr
+	return StartConfig(ctx, cfg)
 }
 
 func StartConfig(ctx context.Context, cfg *AppConfig) (context.Context, *App, error) {
@@ -191,7 +179,7 @@ func (app *App) initRouter() {
 func (app *App) newRouter(opts ...bunrouter.Option) *bunrouter.Router {
 	opts = append(opts,
 		bunrouter.WithMiddleware(reqlog.NewMiddleware(
-			reqlog.WithEnabled(app.Debug()),
+			reqlog.WithVerbose(app.Debug()),
 			reqlog.FromEnv("DEBUG"),
 		)),
 	)
@@ -279,6 +267,7 @@ func (app *App) initCH() {
 	db = db.WithFormatter(fmter)
 
 	db.AddQueryHook(chdebug.NewQueryHook(
+		chdebug.WithVerbose(app.Debug()),
 		chdebug.FromEnv("DEBUG"),
 	))
 	db.AddQueryHook(chotel.NewQueryHook())

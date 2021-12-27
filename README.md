@@ -9,7 +9,7 @@ database to store it. ClickHouse is the only dependency.
   </a>
 </p>
 
-Features:
+**Features**:
 
 - OpenTelemetry protocol via gRPC (`:14317`) and HTTP (`:14318`)
 - Span/Trace grouping
@@ -17,7 +17,7 @@ Features:
 - Percentiles
 - Systems dashboard
 
-Roadmap:
+**Roadmap**:
 
 - Errors/logs support
 - More dashboards for services and hosts
