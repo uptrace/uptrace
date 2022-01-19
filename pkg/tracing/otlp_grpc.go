@@ -67,9 +67,9 @@ func (s *TraceServiceServer) process(resourceSpans []*tracepb.ResourceSpans) {
 
 		for _, ils := range rss.InstrumentationLibrarySpans {
 			lib := ils.InstrumentationLibrary
-			resource[xattr.OtelLibraryName] = lib.Name
-			if lib.Version != "" {
-				resource[xattr.OtelLibraryVersion] = lib.Version
+			resource[xattr.OtelLibraryName] = lib.GetName()
+			if lib.GetVersion() != "" {
+				resource[xattr.OtelLibraryVersion] = lib.GetVersion()
 			}
 
 			for _, span := range ils.Spans {
