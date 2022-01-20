@@ -11,6 +11,10 @@
           </v-col>
 
           <v-col cols="auto">
+            <ProjectPicker />
+          </v-col>
+
+          <v-col cols="auto">
             <v-tabs optional class="ml-8">
               <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
               <v-tab :to="{ name: 'GroupList' }">Explore</v-tab>
@@ -62,11 +66,12 @@ import { useRouter, useQuery } from '@/use/router'
 // Components
 import UptraceLogoLarge from '@/components/UptraceLogoLarge.vue'
 import UptraceLogoSmall from '@/components/UptraceLogoSmall.vue'
+import ProjectPicker from '@/components/ProjectPicker.vue'
 import XSnackbar from '@/components/XSnackbar.vue'
 
 export default defineComponent({
   name: 'App',
-  components: { UptraceLogoLarge, UptraceLogoSmall, XSnackbar },
+  components: { UptraceLogoLarge, UptraceLogoSmall, ProjectPicker, XSnackbar },
 
   setup() {
     const { router } = useRouter()

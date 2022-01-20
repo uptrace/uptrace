@@ -6,6 +6,7 @@
 import { defineComponent, computed, PropType } from '@vue/composition-api'
 
 // Composables
+import { useRouter } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
 
 // Components
@@ -31,10 +32,13 @@ export default defineComponent({
   },
 
   setup(props) {
+    const { route } = useRouter()
+
     const { data } = useWatchAxios(() => {
+      const { projectId } = route.value.params
       const query = props.where + ' | ' + props.axiosParams.query
       return {
-        url: `/api/tracing/stats`,
+        url: `/api/tracing/${projectId}/stats`,
         params: {
           ...props.axiosParams,
           query,

@@ -18,6 +18,7 @@
 import { defineComponent, computed, PropType } from '@vue/composition-api'
 
 // Composables
+import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseUql } from '@/use/uql'
 import { useSpans } from '@/use/spans'
@@ -53,11 +54,14 @@ export default defineComponent({
   },
 
   setup(props) {
+    const { route } = useRouter()
+
     const spans = useSpans(
       () => {
+        const { projectId } = route.value.params
         const query = props.where + ' | ' + props.axiosParams.query
         return {
-          url: `/api/tracing/spans`,
+          url: `/api/tracing/${projectId}/spans`,
           params: {
             ...props.axiosParams,
             query,

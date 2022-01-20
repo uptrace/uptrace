@@ -78,7 +78,6 @@ export default defineComponent({
 
     function systemRoute(system: string) {
       return {
-        name: 'GroupList',
         query: {
           ...props.dateRange.queryParams(),
           system,

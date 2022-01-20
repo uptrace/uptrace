@@ -1,6 +1,9 @@
 import axios from 'axios'
 import axiosRetry from 'axios-retry'
 
+// Utilities
+import { redirectToLogin } from '@/use/org'
+
 axiosRetry(axios, { retries: 2, retryDelay: axiosRetry.exponentialDelay })
 
 axios.interceptors.request.use((config) => {
@@ -8,3 +11,13 @@ axios.interceptors.request.use((config) => {
   config.withCredentials = true
   return config
 })
+
+axios.interceptors.response.use(
+  (resp) => resp,
+  (error) => {
+    if (error.response?.status === 401) {
+      redirectToLogin()
+    }
+    return Promise.reject(error)
+  },
+)

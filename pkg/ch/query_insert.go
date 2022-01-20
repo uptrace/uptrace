@@ -10,15 +10,17 @@ import (
 )
 
 type InsertQuery struct {
-	baseQuery
+	whereBaseQuery
 }
 
 var _ Query = (*InsertQuery)(nil)
 
 func NewInsertQuery(db *DB) *InsertQuery {
 	return &InsertQuery{
-		baseQuery: baseQuery{
-			db: db,
+		whereBaseQuery: whereBaseQuery{
+			baseQuery: baseQuery{
+				db: db,
+			},
 		},
 	}
 }
@@ -47,6 +49,11 @@ func (q *InsertQuery) ModelTableExpr(query string, args ...any) *InsertQuery {
 	return q
 }
 
+func (q *InsertQuery) Setting(query string, args ...any) *InsertQuery {
+	q.settings = append(q.settings, chschema.SafeQuery(query, args))
+	return q
+}
+
 //------------------------------------------------------------------------------
 
 func (q *InsertQuery) Column(columns ...string) *InsertQuery {
@@ -68,6 +75,23 @@ func (q *InsertQuery) ExcludeColumn(columns ...string) *InsertQuery {
 
 //------------------------------------------------------------------------------
 
+func (q *InsertQuery) Where(query string, args ...any) *InsertQuery {
+	q.addWhere(chschema.SafeQueryWithSep(query, args, " AND "))
+	return q
+}
+
+func (q *InsertQuery) WhereOr(query string, args ...any) *InsertQuery {
+	q.addWhere(chschema.SafeQueryWithSep(query, args, " OR "))
+	return q
+}
+
+func (q *InsertQuery) WhereGroup(sep string, fn func(*WhereQuery)) *InsertQuery {
+	q.addWhereGroup(sep, fn)
+	return q
+}
+
+//------------------------------------------------------------------------------
+
 func (q *InsertQuery) Operation() string {
 	return "INSERT"
 }
@@ -84,21 +108,63 @@ func (q *InsertQuery) AppendQuery(fmter chschema.Formatter, b []byte) (_ []byte,
 	if err != nil {
 		return nil, err
 	}
-	b = append(b, " ("...)
 
 	fields, err := q.getFields()
 	if err != nil {
 		return nil, err
 	}
-
-	for i, f := range fields {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-		b = append(b, f.Column...)
+	if len(fields) > 0 {
+		b = append(b, " ("...)
+		b = appendColumns(b, "", fields)
+		b = append(b, ")"...)
 	}
 
-	b = append(b, ") VALUES"...)
+	b, err = q.appendValues(fmter, b)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err = q.appendSettings(fmter, b)
+	if err != nil {
+		return nil, err
+	}
+
+	return b, nil
+}
+
+func (q *InsertQuery) appendValues(
+	fmter chschema.Formatter, b []byte,
+) (_ []byte, err error) {
+	if !q.hasMultiTables() {
+		return append(b, " VALUES"...), nil
+	}
+
+	b = append(b, " SELECT "...)
+
+	fields, err := q.getFields()
+	if err != nil {
+		return nil, err
+	}
+	if len(fields) > 0 {
+		b = appendColumns(b, "", fields)
+	} else {
+		b = append(b, "*"...)
+	}
+
+	b = append(b, " FROM "...)
+	b, err = q.appendOtherTables(fmter, b)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(q.where) > 0 {
+		b = append(b, " WHERE "...)
+
+		b, err = appendWhere(fmter, b, q.where)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return b, nil
 }

@@ -2,6 +2,7 @@ import { orderBy } from 'lodash'
 import { ref, computed, watch, proxyRefs } from '@vue/composition-api'
 
 // Composables
+import { useRouter } from '@/use/router'
 import { usePager } from '@/use/pager'
 import { useOrder } from '@/use/order'
 import { UseDateRange } from '@/use/date-range'
@@ -34,13 +35,15 @@ interface Stats {
 export type UseSystemStats = ReturnType<typeof useSystemStats>
 
 export function useSystemStats(dateRange: UseDateRange) {
+  const { route } = useRouter()
   const pager = usePager({ perPage: 15 })
   const order = useOrder({ column: 'system', desc: false })
   const filter = ref('')
 
   const { loading, data } = useWatchAxios(() => {
+    const { projectId } = route.value.params
     return {
-      url: `/api/tracing/systems-stats`,
+      url: `/api/tracing/${projectId}/systems-stats`,
       params: {
         ...dateRange.axiosParams(),
       },

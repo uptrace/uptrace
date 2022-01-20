@@ -20,11 +20,11 @@ const (
 )
 
 var (
-	baseModelType      = reflect.TypeOf((*BaseModel)(nil)).Elem()
+	chModelType        = reflect.TypeOf((*CHModel)(nil)).Elem()
 	tableNameInflector = inflection.Plural
 )
 
-type BaseModel struct{}
+type CHModel struct{}
 
 // SetTableNameInflector overrides the default func that pluralizes
 // model name to get table name, e.g. my_article becomes my_articles.
@@ -118,9 +118,9 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 		copy(index, baseIndex)
 
 		if f.Anonymous {
-			if f.Name == "BaseModel" && f.Type == baseModelType {
+			if f.Name == "CHModel" && f.Type == chModelType {
 				if len(index) == 0 {
-					t.processBaseModelField(f)
+					t.processCHModelField(f)
 				}
 				continue
 			}
@@ -161,7 +161,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 	}
 }
 
-func (t *Table) processBaseModelField(f reflect.StructField) {
+func (t *Table) processCHModelField(f reflect.StructField) {
 	tag := tagparser.Parse(f.Tag.Get("ch"))
 
 	if tag.Name != "" {
@@ -258,7 +258,8 @@ func (t *Table) addField(field *Field) {
 func (t *Table) NewColumn(colName, colType string, numRow int) *Column {
 	field, ok := t.FieldMap[colName]
 	if !ok {
-		panic(fmt.Errorf("%s has no column=%q", t, colName))
+		internal.Logger.Printf("ch: %s has no column=%q", t, colName)
+		return nil
 	}
 
 	if colType != field.CHType {

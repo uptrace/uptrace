@@ -6,6 +6,13 @@
 
     <v-container class="mb-6">
       <v-card flat>
+        <v-card-text class="text-body-1 text--primary">
+          Found a bug? Create an
+          <a href="https://github.com/uptrace/uptrace/issues" target="_blank">issue</a>. Have a
+          question? Start a
+          <a href="https://github.com/uptrace/uptrace/discussions" target="_blank">discussion</a>.
+        </v-card-text>
+
         <v-card-text class="text-subtitle-1">
           <ul>
             <li>
@@ -40,11 +47,6 @@
               <a href="https://github.com/uptrace" target="_blank">GitHub</a>
             </li>
           </ul>
-        </v-card-text>
-
-        <v-card-text class="text-body-1 text--primary">
-          Have questions? Don't hesitate to <a href="mailto:support@uptrace.dev">email</a> us. We
-          reply as soon as possible.
         </v-card-text>
       </v-card>
     </v-container>

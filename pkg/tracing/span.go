@@ -2,59 +2,42 @@ package tracing
 
 import (
 	"context"
-	"encoding/json"
 	"math"
 	"math/rand"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/vmihailenco/msgpack"
 	"golang.org/x/exp/slices"
 )
 
-type SpanIndex struct {
-	ch.BaseModel `ch:"table:spans_index_buffer,alias:s"`
+type Span struct {
+	ProjectID uint32 `json:"projectId"`
+	System    string `json:"system" ch:"span.system,lc"`
+	GroupID   uint64 `json:"groupId,string" ch:"span.group_id"`
 
-	System  string `ch:"span.system,lc"`
-	GroupID uint64 `ch:"span.group_id"`
+	TraceID  uuid.UUID `json:"traceId" ch:"span.trace_id,type:UUID"`
+	ID       uint64    `json:"id,string" ch:"span.id"`
+	ParentID uint64    `json:"parentId,string,omitempty" ch:"-"`
 
-	ID       uint64    `ch:"span.id"`
-	ParentID uint64    `ch:"-"`
-	TraceID  uuid.UUID `ch:"span.trace_id,type:UUID"`
-	Name     string    `ch:"span.name,lc"`
-	Kind     string    `ch:"span.kind,lc"`
+	Name string `json:"name" ch:"span.name,lc"`
+	Kind string `json:"kind" ch:"span.kind,lc"`
 
-	Time     time.Time     `ch:"span.time"`
-	Duration time.Duration `ch:"span.duration"`
+	Time         time.Time     `json:"time" ch:"span.time"`
+	Duration     time.Duration `json:"duration" ch:"span.duration"`
+	DurationSelf time.Duration `json:"durationSelf" ch:"-"`
+	StartPct     float64       `json:"startPct" ch:"-"`
 
-	StatusCode    string `ch:"span.status_code,lc"`
-	StatusMessage string `ch:"span.status_message"`
+	StatusCode    string `json:"statusCode" ch:"span.status_code,lc"`
+	StatusMessage string `json:"statusMessage" ch:"span.status_message"`
 
-	EventCount      uint8 `ch:"span.event_count"`
-	EventErrorCount uint8 `ch:"span.event_error_count"`
-	EventLogCount   uint8 `ch:"span.event_log_count"`
+	Attrs  AttrMap      `json:"attrs" ch:"-"`
+	Events []*SpanEvent `json:"events" ch:"-"`
+	Links  []*SpanLink  `json:"links" ch:"-"`
 
-	Attrs      AttrMap  `ch:"-"`
-	AttrKeys   []string `ch:",lc"`
-	AttrValues []string `ch:",lc"`
-
-	ServiceName string `ch:"service.name,lc"`
-	HostName    string `ch:"host.name,lc"`
-}
-
-type SpanData struct {
-	ch.BaseModel `ch:"table:spans_data_buffer,alias:s"`
-
-	TraceID  uuid.UUID    `json:"traceId"`
-	ID       uint64       `json:"id,string"`
-	ParentID uint64       `json:"parentId,string,omitempty"`
-	Time     time.Time    `json:"time"`
-	Attrs    AttrMap      `json:"attrs"`
-	Events   []*SpanEvent `json:"events"`
-	Links    []*SpanLink  `json:"links"`
+	Children []*Span `json:"children,omitempty" msgpack:"-" ch:"-"`
 }
 
 type SpanLink struct {
@@ -69,131 +52,9 @@ type SpanEvent struct {
 	Attrs AttrMap   `json:"attrs"`
 }
 
-type AttrMap map[string]any
-
-func (m AttrMap) Clone() AttrMap {
-	clone := make(AttrMap, len(m))
-	for k, v := range m {
-		clone[k] = v
-	}
-	return clone
-}
-
-func (m AttrMap) Has(key string) bool {
-	_, ok := m[key]
-	return ok
-}
-
-func (m AttrMap) Text(key string) string {
-	s, _ := m[key].(string)
-	return s
-}
-
-func (m AttrMap) Int64(key string) int64 {
-	switch v := m[key].(type) {
-	case int64:
-		return v
-	case json.Number:
-		n, _ := v.Int64()
-		return n
-	default:
-		return 0
-	}
-}
-
-func (m AttrMap) Uint64(key string) uint64 {
-	switch v := m[key].(type) {
-	case uint64:
-		return v
-	case json.Number:
-		n, _ := strconv.ParseUint(string(v), 10, 64)
-		return n
-	default:
-		return 0
-	}
-}
-
-func (m AttrMap) Time(key string) time.Time {
-	switch v := m[key].(type) {
-	case time.Time:
-		return v
-	case string:
-		tm, _ := time.Parse(time.RFC3339Nano, v)
-		return tm
-	default:
-		return time.Time{}
-	}
-}
-
-func (m AttrMap) Duration(key string) time.Duration {
-	switch v := m[key].(type) {
-	case time.Duration:
-		return v
-	case json.Number:
-		n, _ := strconv.ParseInt(string(v), 10, 64)
-		return time.Duration(n)
-	case string:
-		dur, _ := time.ParseDuration(v)
-		return dur
-	default:
-		return 0
-	}
-}
-
-func (m AttrMap) ServiceName() string {
-	return m.Text(xattr.ServiceName)
-}
-
-func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
-	if err := app.CH().NewSelect().
-		Model(span).
-		Column("parent_id", "attrs", "events", "links").
-		Where("trace_id = ?", span.TraceID).
-		Where("id = ?", span.ID).
-		Limit(1).
-		Scan(ctx); err != nil {
-		return err
-	}
-	return nil
-}
-
-//------------------------------------------------------------------------------
-
-type Span struct {
-	SpanData `ch:",inherit"`
-
-	System  string `json:"system"`
-	GroupID uint64 `json:"groupId,string"`
-
-	Name string `json:"name"`
-	Kind string `json:"kind"`
-
-	StatusCode    string `json:"statusCode"`
-	StatusMessage string `json:"statusMessage"`
-
-	Duration     time.Duration `json:"duration"`
-	DurationSelf time.Duration `json:"durationSelf"`
-	StartPct     float64       `json:"startPct"`
-
-	parent   *Span
-	Children []*Span `json:"children,omitempty"`
-}
-
 var _ ch.AfterScanRowHook = (*Span)(nil)
 
 func (s *Span) AfterScanRow(ctx context.Context) error {
-	s.System = s.Attrs.Text(xattr.SpanSystem)
-	s.GroupID = s.Attrs.Uint64(xattr.SpanGroupID)
-
-	s.Name = s.Attrs.Text(xattr.SpanName)
-	s.Kind = s.Attrs.Text(xattr.SpanKind)
-
-	s.StatusCode = s.Attrs.Text(xattr.SpanStatusCode)
-	s.StatusMessage = s.Attrs.Text(xattr.SpanStatusMessage)
-
-	s.Duration = s.Attrs.Duration(xattr.SpanDuration)
-	s.Time = s.Attrs.Time(xattr.SpanTime)
-
 	return nil
 }
 
@@ -312,7 +173,6 @@ func BuildSpanTree(spansPtr *[]*Span) *Span {
 			parent = root
 		}
 
-		s.parent = parent
 		parent.AddChild(s)
 		parent.AdjustDurationSelf(s)
 	}
@@ -338,4 +198,18 @@ func newFakeRoot(spans []*Span) *Span {
 		xattr.SpanStatusCode: okStatusCode,
 	}
 	return span
+}
+
+//------------------------------------------------------------------------------
+
+func marshalSpan(span *Span) []byte {
+	b, err := msgpack.Marshal(span)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func unmarshalSpan(b []byte, span *Span) error {
+	return msgpack.Unmarshal(b, span)
 }

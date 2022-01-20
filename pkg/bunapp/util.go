@@ -1,6 +1,7 @@
 package bunapp
 
 import (
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -32,4 +33,18 @@ func UnmarshalValues(req bunrouter.Request, filter any) error {
 	}
 
 	return urlstruct.Unmarshal(req.Context(), values, filter)
+}
+
+func NewCookie(app *App, req bunrouter.Request) *http.Cookie {
+	cookie := &http.Cookie{
+		Path:     "/",
+		HttpOnly: true,
+	}
+
+	if false {
+		cookie.Secure = true
+		cookie.SameSite = http.SameSiteLaxMode
+	}
+
+	return cookie
 }

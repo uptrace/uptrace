@@ -9,7 +9,7 @@ import {
   onBeforeUnmount,
 } from '@vue/composition-api'
 
-import { useGlobalStore } from '@/use/store'
+import { defineStore } from '@/use/store'
 
 export function useRouter() {
   const vm = getCurrentInstance()
@@ -36,7 +36,7 @@ interface QueryItem {
 
 type OnRouteUpdatedHook = (route: Route) => void
 
-export const useQuery = useGlobalStore('useQuery', () => {
+export const useQuery = defineStore('useQuery', () => {
   const { router, route } = useRouter()
   const lastRoute = shallowRef<Route>()
 

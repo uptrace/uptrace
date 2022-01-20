@@ -43,6 +43,10 @@ func NotFound(msg string, args ...any) *Error {
 	return New(http.StatusNotFound, "not_found", msg, args...)
 }
 
+func Unauthorized(msg string, args ...any) *Error {
+	return New(http.StatusUnauthorized, "unauthorized", msg, args...)
+}
+
 func Forbidden(msg string, args ...any) *Error {
 	return New(http.StatusForbidden, "forbidden", msg, args...)
 }
@@ -51,8 +55,8 @@ func BadRequest(code, msg string, args ...any) *Error {
 	return New(http.StatusBadRequest, code, msg, args...)
 }
 
-func InternalServerError(code, msg string, args ...any) *Error {
-	return New(http.StatusInternalServerError, code, msg, args...)
+func InternalServerError(msg string, args ...any) *Error {
+	return New(http.StatusInternalServerError, "internal", msg, args...)
 }
 
 //------------------------------------------------------------------------------

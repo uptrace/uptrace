@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/uql"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -75,14 +76,14 @@ func (h *SuggestionHandler) Attributes(w http.ResponseWriter, req bunrouter.Requ
 	}
 	suggestions = sortSuggestions(suggestions)
 
-	return bunrouter.JSON(w, bunrouter.H{
+	return httputil.JSON(w, bunrouter.H{
 		"suggestions": suggestions,
 	})
 }
 
 func selectAttrKeys(ctx context.Context, f *SpanFilter) ([]string, error) {
 	keys := make([]string, 0)
-	if err := buildSpanIndexQuerySlow(f, 0).
+	if err := buildSpanIndexQuery(f, 0).
 		ColumnExpr("groupUniqArrayArray(1000)(attr_keys)").
 		Scan(ctx, &keys); err != nil {
 		return nil, err
@@ -107,8 +108,8 @@ func (h *SuggestionHandler) Values(w http.ResponseWriter, req bunrouter.Request)
 		return err
 	}
 
-	q := buildSpanIndexQuerySlow(f, 0)
-	q = uqlColumnSlow(q, colName, 0).Group(f.Column)
+	q := buildSpanIndexQuery(f, 0)
+	q = uqlColumn(q, colName, 0).Group(f.Column)
 	if !strings.HasPrefix(f.Column, "span.") {
 		q = q.Where("has(attr_keys, ?)", f.Column)
 	}
@@ -125,7 +126,7 @@ func (h *SuggestionHandler) Values(w http.ResponseWriter, req bunrouter.Request)
 		}
 	}
 
-	return bunrouter.JSON(w, bunrouter.H{
+	return httputil.JSON(w, bunrouter.H{
 		"suggestions": suggestions,
 	})
 }

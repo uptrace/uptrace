@@ -7,6 +7,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/uql"
 	"go4.org/syncutil"
 )
@@ -31,9 +32,9 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 	ctx := req.Context()
 	spans := make([]*Span, 0)
 
-	q := buildSpanIndexQuerySlow(f, f.Duration().Minutes()).
-		ColumnExpr("`span.id` AS id").
-		ColumnExpr("`span.trace_id` AS trace_id").
+	q := buildSpanIndexQuery(f, f.Duration().Minutes()).
+		ColumnExpr("`span.id`").
+		ColumnExpr("`span.trace_id`").
 		Apply(f.CHOrder).
 		Limit(10).
 		Offset(f.Pager.GetOffset())
@@ -56,7 +57,7 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 		return err
 	}
 
-	return bunrouter.JSON(w, bunrouter.H{
+	return httputil.JSON(w, bunrouter.H{
 		"spans": spans,
 		"count": count,
 	})
@@ -82,7 +83,7 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 		fixJSBigInt(m)
 	}
 
-	return bunrouter.JSON(w, bunrouter.H{
+	return httputil.JSON(w, bunrouter.H{
 		"groups":     groups,
 		"queryParts": f.parts,
 		"columns":    f.columns(groups),
@@ -116,13 +117,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		ColumnExpr("toStartOfInterval(`span.time`, INTERVAL ? minute) AS time", minutes).
 		Apply(f.whereClause).
 		GroupExpr("time").
-		OrderExpr(
-			"time ASC WITH FILL "+
-				"FROM toStartOfInterval(toDateTime(?), toIntervalMinute(?)) "+
-				"TO toStartOfInterval(toDateTime(?), toIntervalMinute(?)) "+
-				"STEP toIntervalMinute(?)",
-			f.TimeGTE, minutes, f.TimeLT, minutes, minutes,
-		).
+		OrderExpr("time ASC").
 		Limit(10000)
 
 	if err := h.CH().NewSelect().
@@ -141,7 +136,9 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	return bunrouter.JSON(w, m)
+	fillHoles(m, f.TimeGTE, f.TimeLT, groupPeriod)
+
+	return httputil.JSON(w, m)
 }
 
 func (h *SpanHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error {
@@ -165,8 +162,8 @@ func (h *SpanHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error 
 	minutes := calcGroupPeriod(&f.TimeFilter, 300).Minutes()
 	m := make(map[string]interface{})
 
-	subq := buildSpanIndexQuerySlow(f, minutes)
-	subq = uqlColumnSlow(subq, colName, minutes).
+	subq := buildSpanIndexQuery(f, minutes)
+	subq = uqlColumn(subq, colName, minutes).
 		ColumnExpr("toStartOfInterval(`span.time`, toIntervalMinute(?)) AS time", minutes).
 		GroupExpr("time").
 		OrderExpr(
@@ -187,5 +184,5 @@ func (h *SpanHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	return bunrouter.JSON(w, m)
+	return httputil.JSON(w, m)
 }

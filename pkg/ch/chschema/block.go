@@ -38,7 +38,8 @@ func (b *Block) Column(colName, colType string) *Column {
 	var col *Column
 	if b.Table != nil {
 		col = b.Table.NewColumn(colName, colType, b.NumRow)
-	} else {
+	}
+	if col == nil {
 		col = &Column{
 			Name:     colName,
 			Type:     colType,

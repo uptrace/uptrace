@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/uptrace/go-clickhouse/ch/chproto"
+	"github.com/uptrace/go-clickhouse/ch/internal"
 )
 
 type Column struct {
@@ -638,10 +639,17 @@ func (c StringColumn) ConvertAssign(idx int, v reflect.Value) error {
 	switch v.Kind() {
 	case reflect.String:
 		v.SetString(c.Column[idx])
+		return nil
+	case reflect.Slice:
+		if v.Type() == bytesType {
+			v.SetBytes(internal.Bytes(c.Column[idx]))
+			return nil
+		}
 	default:
 		v.Set(reflect.ValueOf(c.Column[idx]))
+		return nil
 	}
-	return nil
+	return fmt.Errorf("ch: can't scan %s into %s", "string", v.Type())
 }
 
 func (c *StringColumn) AppendValue(v reflect.Value) {
