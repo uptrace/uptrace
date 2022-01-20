@@ -15,6 +15,7 @@ import (
 type SelectQuery struct {
 	whereBaseQuery
 
+	sample     chschema.QueryWithArgs
 	distinctOn []chschema.QueryWithArgs
 	joins      []joinQuery
 	group      []chschema.QueryWithArgs
@@ -106,6 +107,11 @@ func (q *SelectQuery) TableExpr(query string, args ...any) *SelectQuery {
 
 func (q *SelectQuery) ModelTableExpr(query string, args ...any) *SelectQuery {
 	q.modelTableName = chschema.SafeQuery(query, args)
+	return q
+}
+
+func (q *SelectQuery) Sample(query string, args ...any) *SelectQuery {
+	q.sample = chschema.SafeQuery(query, args)
 	return q
 }
 
@@ -241,6 +247,11 @@ func (q *SelectQuery) Final() *SelectQuery {
 	return q
 }
 
+func (q *SelectQuery) Setting(query string, args ...any) *SelectQuery {
+	q.settings = append(q.settings, chschema.SafeQuery(query, args))
+	return q
+}
+
 //------------------------------------------------------------------------------
 
 func (q *SelectQuery) String() string {
@@ -301,6 +312,13 @@ func (q *SelectQuery) appendQuery(
 	if q.tableModel != nil || len(q.tables) > 0 {
 		b = append(b, " FROM "...)
 		b, err = q.appendTablesWithAlias(fmter, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if !q.sample.IsZero() {
+		b = append(b, " SAMPLE "...)
+		b, err = q.sample.AppendQuery(fmter, b)
 		if err != nil {
 			return nil, err
 		}
@@ -376,6 +394,11 @@ func (q *SelectQuery) appendQuery(
 		b = append(b, `) SELECT `...)
 		b = append(b, "count()"...)
 		b = append(b, ` FROM "_count_wrapper"`...)
+	}
+
+	b, err = q.appendSettings(fmter, b)
+	if err != nil {
+		return nil, err
 	}
 
 	return b, nil

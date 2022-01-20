@@ -70,8 +70,9 @@ type SpanFilter struct {
 	urlstruct.Pager
 	TimeFilter
 
-	System  string
-	GroupID uint64
+	ProjectID uint32
+	System    string
+	GroupID   uint64
 
 	Query  string
 	Column string
@@ -107,21 +108,22 @@ func (f *SpanFilter) UnmarshalValues(ctx context.Context, values url.Values) err
 }
 
 func (f *SpanFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
-	q = q.Where("s.`span.time` >= ?", f.TimeGTE).
-		Where("s.`span.time` < ?", f.TimeLT)
+	q = q.Where("project_id = ?", f.ProjectID).
+		Where("`span.time` >= ?", f.TimeGTE).
+		Where("`span.time` < ?", f.TimeLT)
 
 	switch {
 	case f.System == allSpanType:
-		q = q.Where("s.`span.system` != ?", internalSpanType)
+		q = q.Where("`span.system` != ?", internalSpanType)
 	case strings.HasSuffix(f.System, ":all"):
 		system := strings.TrimSuffix(f.System, ":all")
-		q = q.Where("startsWith(s.`span.system`, ?)", system)
+		q = q.Where("startsWith(`span.system`, ?)", system)
 	default:
-		q = q.Where("s.`span.system` = ?", f.System)
+		q = q.Where("`span.system` = ?", f.System)
 	}
 
 	if f.GroupID != 0 {
-		q = q.Where("s.`span.group_id` = ?", f.GroupID)
+		q = q.Where("`span.group_id` = ?", f.GroupID)
 	}
 
 	return q
@@ -179,17 +181,25 @@ func isNumColumn(v any) bool {
 //------------------------------------------------------------------------------
 
 func buildSpanIndexQuery(f *SpanFilter, minutes float64) *ch.SelectQuery {
-	return buildSpanIndexQuerySlow(f, minutes)
-}
-
-func buildSpanIndexQuerySlow(f *SpanFilter, minutes float64) *ch.SelectQuery {
-	q := f.CH().NewSelect().Model((*SpanIndex)(nil))
+	limits := f.Config().CHSelectLimits
+	q := f.CH().NewSelect().
+		Model((*SpanIndex)(nil)).
+		Setting("read_overflow_mode = 'break'")
+	if limits.SampleRows != 0 {
+		q = q.Sample("?", limits.SampleRows)
+	}
+	if limits.MaxRowsToRead != 0 {
+		q = q.Setting("max_rows_to_read = ?", limits.MaxRowsToRead)
+	}
+	if limits.MaxBytesToRead != 0 {
+		q = q.Setting("max_bytes_to_read = ?", limits.MaxBytesToRead)
+	}
 	q = f.whereClause(q)
-	q, f.columnMap = compileUQLSlow(q, f.parts, minutes)
+	q, f.columnMap = compileUQL(q, f.parts, minutes)
 	return q
 }
 
-func compileUQLSlow(
+func compileUQL(
 	q *ch.SelectQuery, parts []*uql.Part, minutes float64,
 ) (*ch.SelectQuery, map[uql.Name]bool) {
 	columnMap := make(map[uql.Name]bool)
@@ -204,7 +214,7 @@ func compileUQLSlow(
 		switch ast := part.AST.(type) {
 		case *uql.Columns:
 			for _, name := range ast.Names {
-				q = uqlColumnSlow(q, name, minutes)
+				q = uqlColumn(q, name, minutes)
 				columnMap[name] = true
 			}
 		case *uql.Group:
@@ -216,7 +226,7 @@ func compileUQLSlow(
 
 	for _, name := range groups {
 		if !columnMap[name] {
-			q = uqlColumnSlow(q, name, minutes)
+			q = uqlColumn(q, name, minutes)
 			columnMap[name] = true
 		}
 		q = q.Group(name.String())
@@ -226,7 +236,7 @@ func compileUQLSlow(
 		for _, key := range []string{xattr.SpanSystem, xattr.SpanName} {
 			name := uql.Name{FuncName: "any", AttrKey: key}
 			if !columnMap[name] {
-				q = uqlColumnSlow(q, name, minutes)
+				q = uqlColumn(q, name, minutes)
 				columnMap[name] = true
 			}
 		}
@@ -240,7 +250,7 @@ func compileUQLSlow(
 	return q, columnMap
 }
 
-func uqlColumnSlow(q *ch.SelectQuery, name uql.Name, minutes float64) *ch.SelectQuery {
+func uqlColumn(q *ch.SelectQuery, name uql.Name, minutes float64) *ch.SelectQuery {
 	switch name.FuncName {
 	case "p50":
 		return q.ColumnExpr("quantileTDigest(0.5)(toFloat64OrDefault(?)) AS ?",
@@ -404,6 +414,29 @@ func spanSystemTable(period time.Duration) string {
 	}
 	panic("not reached")
 }
+
+//------------------------------------------------------------------------------
+
+func spanServiceTableForWhere(f *TimeFilter) string {
+	return spanServiceTable(tablePeriod(f))
+}
+
+func spanServiceTableForGroup(f *TimeFilter) (string, time.Duration) {
+	tablePeriod, groupPeriod := tableGroupPeriod(f)
+	return spanServiceTable(tablePeriod), groupPeriod
+}
+
+func spanServiceTable(period time.Duration) string {
+	switch period {
+	case time.Minute:
+		return "span_service_minutes AS s"
+	case time.Hour:
+		return "span_service_hours AS s"
+	}
+	panic("not reached")
+}
+
+//------------------------------------------------------------------------------
 
 func tablePeriod(f *TimeFilter) time.Duration {
 	var period time.Duration

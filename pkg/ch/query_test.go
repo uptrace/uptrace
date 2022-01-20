@@ -36,6 +36,31 @@ func TestQuery(t *testing.T) {
 		func(db *ch.DB) chschema.QueryAppender {
 			return db.NewTruncateTable().Model(new(Model))
 		},
+		func(db *ch.DB) chschema.QueryAppender {
+			return db.NewSelect().
+				Model((*Model)(nil)).
+				Setting("max_rows_to_read = 100")
+		},
+		func(db *ch.DB) chschema.QueryAppender {
+			return db.NewSelect().
+				Model((*Model)(nil)).
+				Setting("max_rows_to_read = 100").
+				Setting("read_overflow_mode = 'break'")
+		},
+		func(db *ch.DB) chschema.QueryAppender {
+			return db.NewInsert().
+				TableExpr("dest").
+				TableExpr("src").
+				Where("_part = ?", "part_name").
+				Setting("max_threads = 1").
+				Setting("max_insert_threads = 1").
+				Setting("max_execution_time = 0")
+		},
+		func(db *ch.DB) chschema.QueryAppender {
+			return db.NewSelect().
+				Model((*Model)(nil)).
+				Sample("?", 1000)
+		},
 	}
 
 	db := chDB()

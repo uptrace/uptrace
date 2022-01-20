@@ -1,35 +1,17 @@
-interface GlobalModel<A extends unknown[], R> {
-  (...args: A): R
-  inject(): R | undefined
+interface Store<R> {
+  (): R
 }
 
-export function useGlobalStore<A extends any[], R extends Record<string, unknown>>(
+export function defineStore<T extends Record<string, unknown>>(
   stateName: string,
-  _create: (...args: A) => R,
-): GlobalModel<A, R> {
-  let state: R | undefined
+  _create: Store<T>,
+): Store<T> {
+  let store: T | undefined
 
-  model.inject = _inject
-
-  function create(...args: A): R {
-    if (state === undefined) {
-      try {
-        state = _create(...args)
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error(err)
-      }
+  return function create(): T {
+    if (store === undefined) {
+      store = _create()
     }
-    return state as R
+    return store as T
   }
-
-  function model(...args: A): R {
-    return create(...args)
-  }
-
-  function _inject(): R | undefined {
-    return state
-  }
-
-  return model
 }

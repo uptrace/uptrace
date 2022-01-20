@@ -1,8 +1,8 @@
 import { ref, proxyRefs } from '@vue/composition-api'
 
-import { useGlobalStore } from '@/use/store'
+import { defineStore } from '@/use/store'
 
-export const useSnackbar = useGlobalStore('useSnackbar', () => {
+export const useSnackbar = defineStore('useSnackbar', () => {
   const notification = ref('')
   const active = ref(false)
   const color = ref('')

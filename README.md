@@ -16,6 +16,7 @@ database to store it. ClickHouse is the only dependency.
 - SQL-like query language
 - Percentiles
 - Systems dashboard
+- Multiple users/projects via YAML config
 
 **Roadmap**:
 
@@ -34,7 +35,7 @@ database to store it. ClickHouse is the only dependency.
 
 ## Compiling Uptrace manually
 
-To compile and run Uptrace locally, you need Go **1.18** and ClickHouse.
+To compile and run Uptrace locally, you need Go **1.18** and ClickHouse 21.11+.
 
 **Step 1**. Create `uptrace` ClickHouse database:
 
@@ -59,6 +60,12 @@ go run cmd/uptrace/main.go serve
 Uptrace will monitor itself using [uptrace-go](https://github.com/uptrace/uptrace-go) OpenTelemetry
 distro. To get some test data, just reload the UI few times.
 
+You can run Uptrace in debug mode by providing an environment variable:
+
+```shell
+DEBUG=2 go run cmd/uptrace/main.go serve
+```
+
 ## Compiling UI manually
 
 You can also start the UI locally:
@@ -75,9 +82,11 @@ And open http://localhost:19876
 
 **What is the license?**
 
-The [license](LICENSE) is identical to Apache 2.0 with the only exception being that you can't use
-the code to create a cloud service. You can learn more about BSL
-[here](https://mariadb.com/bsl-faq-adopting/).
+The Business Source License [license](LICENSE) is identical to Apache 2.0 with the only exception
+being that you can't use the code to create a cloud service. It is a more permissive license than,
+for example, AGPL, because it allows private changes to the code.
+
+You can learn more about BSL [here](https://mariadb.com/bsl-faq-adopting/).
 
 **Are there 2 versions of Uptrace?**
 

@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -18,6 +19,16 @@ const (
 )
 
 func (s *TraceServiceServer) httpTraces(w http.ResponseWriter, req bunrouter.Request) error {
+	dsn := req.Header.Get("uptrace-dsn")
+	if dsn == "" {
+		return errors.New("uptrace-dsn header is required")
+	}
+
+	project, err := s.findProjectByDSN(dsn)
+	if err != nil {
+		return err
+	}
+
 	switch contentType := req.Header.Get("content-type"); contentType {
 	case jsonContentType:
 		body, err := ioutil.ReadAll(req.Body)
@@ -30,7 +41,7 @@ func (s *TraceServiceServer) httpTraces(w http.ResponseWriter, req bunrouter.Req
 			return err
 		}
 
-		s.process(td.ResourceSpans)
+		s.process(project, td.ResourceSpans)
 
 		resp := new(collectortrace.ExportTraceServiceResponse)
 		b, err := protojson.Marshal(resp)
@@ -54,7 +65,7 @@ func (s *TraceServiceServer) httpTraces(w http.ResponseWriter, req bunrouter.Req
 			return err
 		}
 
-		s.process(td.ResourceSpans)
+		s.process(project, td.ResourceSpans)
 
 		resp := new(collectortrace.ExportTraceServiceResponse)
 		b, err := proto.Marshal(resp)

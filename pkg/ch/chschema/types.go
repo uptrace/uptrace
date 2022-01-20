@@ -166,7 +166,9 @@ func ColumnFactory(typ reflect.Type, chType string) NewColumnFunc {
 				return NewJSONColumn
 			}
 		case reflect.Uint8:
-			return NewBytesColumn
+			if chType == chtype.String {
+				return NewBytesColumn
+			}
 		case reflect.String:
 			return NewStringArrayColumn
 		case reflect.Struct:

@@ -1,4 +1,5 @@
 CREATE TABLE spans_index (
+  project_id UInt32 Codec(DoubleDelta, Default),
   "span.system" LowCardinality(String),
   "span.group_id" UInt64 Codec(Delta, Default),
 
@@ -7,7 +8,8 @@ CREATE TABLE spans_index (
   "span.name" LowCardinality(String),
   "span.kind" LowCardinality(String),
   "span.time" DateTime Codec(Delta, Default),
-  "span.duration" Int64,
+  "span.duration" Int64 Codec(Delta, Default),
+  "span.count" Float32,
 
   "span.status_code" LowCardinality(String),
   "span.status_message" String,
@@ -25,26 +27,27 @@ CREATE TABLE spans_index (
   INDEX idx_attr_keys attr_keys TYPE bloom_filter(0.01) GRANULARITY 64
 )
 ENGINE = MergeTree()
-ORDER BY ("span.system", "span.group_id", "span.time")
+SAMPLE BY intHash32("span.id")
+ORDER BY (project_id, "span.system", "span.group_id", intHash32("span.id"))
 PARTITION BY toDate("span.time")
 TTL toDate("span.time") + INTERVAL ?TTL DELETE;
 
 --migrate:split
 
 CREATE TABLE spans_data (
+  project_id UInt32 Codec(Delta, Default),
+  trace_id UUID,
+
   id UInt64,
   parent_id UInt64,
-  trace_id UUID,
-  time DateTime,
-  attrs String,
-  events String,
-  links String
+  time DateTime Codec(Delta, Default),
+  data String
 )
 ENGINE = MergeTree()
 ORDER BY (trace_id)
 PARTITION BY toDate(time)
 TTL toDate(time) + INTERVAL ?TTL DELETE
-SETTINGS index_granularity = 64;
+SETTINGS index_granularity = 128;
 
 --migrate:split
 
@@ -56,18 +59,20 @@ ENGINE = Buffer(currentDatabase(), spans_index, 5, 10, 30, 10000, 1000000, 10000
 CREATE TABLE spans_data_buffer AS spans_data
 ENGINE = Buffer(currentDatabase(), spans_data, 5, 10, 30, 10000, 1000000, 10000000, 100000000)
 
+--------------------------------------------------------------------------------
 --migrate:split
 
 CREATE TABLE span_system_minutes (
+  project_id UInt32,
   system LowCardinality(String),
   time DateTime Codec(Delta, Default),
-  tdigest AggregateFunction(quantilesTDigest(0.5, 0.9, 0.99), Int64),
+  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32),
   count UInt64 Codec(Delta, Default),
   error_count UInt64 Codec(Delta, Default)
 )
 ENGINE = SummingMergeTree()
 PARTITION BY toDate(time)
-ORDER BY (time, system)
+ORDER BY (project_id, time, system)
 TTL toDate(time) + INTERVAL ?TTL DELETE
 SETTINGS index_granularity = 128;
 
@@ -76,26 +81,28 @@ SETTINGS index_granularity = 128;
 CREATE MATERIALIZED VIEW span_system_minutes_mv
 TO span_system_minutes AS
 SELECT
+  project_id,
   "span.system" AS system,
   toStartOfMinute("span.time") AS time,
-  quantilesTDigestState(0.5, 0.9, 0.99)("span.duration") AS tdigest,
-  count() AS count,
+  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32("span.duration"), toUInt32("span.count")) AS tdigest,
+  toUInt64(sum("span.count")) AS count,
   countIf("span.status_code" = 'error') AS error_count
-FROM spans_index AS s
-GROUP BY time, system
+FROM spans_index
+GROUP BY project_id, time, system
 
 --migrate:split
 
 CREATE TABLE span_system_hours (
+  project_id UInt32,
   system LowCardinality(String),
   time DateTime Codec(Delta, Default),
-  tdigest AggregateFunction(quantilesTDigest(0.5, 0.9, 0.99), Int64),
+  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32),
   count UInt64 Codec(Delta, Default),
   error_count UInt64 Codec(Delta, Default)
 )
 ENGINE = SummingMergeTree()
 PARTITION BY toDate(time)
-ORDER BY (time, system)
+ORDER BY (project_id, time, system)
 TTL toDate(time) + INTERVAL ?TTL DELETE
 SETTINGS index_granularity = 128;
 
@@ -104,10 +111,76 @@ SETTINGS index_granularity = 128;
 CREATE MATERIALIZED VIEW span_system_hours_mv
 TO span_system_hours AS
 SELECT
+  project_id,
   system,
   toStartOfHour(time) AS time,
-  quantilesTDigestMergeState(0.5, 0.9, 0.99)(tdigest) AS tdigest,
+  quantilesTDigestWeightedMergeState(0.5, 0.9, 0.99)(tdigest) AS tdigest,
   sum(count) AS count,
   sum(error_count) AS error_count
-FROM span_system_minutes AS s
-GROUP BY time, system
+FROM span_system_minutes
+GROUP BY project_id, toStartOfHour(time), system
+
+--------------------------------------------------------------------------------
+--migrate:split
+
+CREATE TABLE span_service_minutes (
+  project_id UInt32,
+  system LowCardinality(String),
+  service LowCardinality(String),
+  time DateTime Codec(Delta, Default),
+  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32),
+  count UInt64 Codec(Delta, Default),
+  error_count UInt64 Codec(Delta, Default)
+)
+ENGINE = SummingMergeTree()
+PARTITION BY toDate(time)
+ORDER BY (project_id, time, system, service)
+TTL toDate(time) + INTERVAL ?TTL DELETE
+SETTINGS index_granularity = 128;
+
+--migrate:split
+
+CREATE MATERIALIZED VIEW span_service_minutes_mv
+TO span_service_minutes AS
+SELECT
+  project_id,
+  "span.system" AS system,
+  "service.name" AS service,
+  toStartOfMinute("span.time") AS time,
+  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32("span.duration"), toUInt32("span.count")) AS tdigest,
+  toUInt64(sum("span.count")) AS count,
+  countIf("span.status_code" = 'error') AS error_count
+FROM spans_index
+GROUP BY project_id, time, system, service
+
+--migrate:split
+
+CREATE TABLE span_service_hours (
+  project_id UInt32,
+  system LowCardinality(String),
+  service LowCardinality(String),
+  time DateTime Codec(Delta, Default),
+  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32),
+  count UInt64 Codec(Delta, Default),
+  error_count UInt64 Codec(Delta, Default)
+)
+ENGINE = SummingMergeTree()
+PARTITION BY toDate(time)
+ORDER BY (project_id, time, system, service)
+TTL toDate(time) + INTERVAL ?TTL DELETE
+SETTINGS index_granularity = 128;
+
+--migrate:split
+
+CREATE MATERIALIZED VIEW span_service_hours_mv
+TO span_service_hours AS
+SELECT
+  project_id,
+  system,
+  service,
+  toStartOfHour(time) AS time,
+  quantilesTDigestWeightedMergeState(0.5, 0.9, 0.99)(tdigest) AS tdigest,
+  sum(count) AS count,
+  sum(error_count) AS error_count
+FROM span_service_minutes
+GROUP BY project_id, toStartOfHour(time), system, service

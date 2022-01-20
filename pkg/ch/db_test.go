@@ -157,8 +157,23 @@ func TestScanNaN(t *testing.T) {
 	})
 }
 
+func TestScanArrayUint8(t *testing.T) {
+	ctx := context.Background()
+
+	db := chDB()
+	defer db.Close()
+
+	var m map[string]any
+	err := db.NewSelect().
+		ColumnExpr("topK(3)(toUInt8(number)) AS ns").
+		TableExpr("numbers(10)").
+		Scan(ctx, &m)
+	require.NoError(t, err)
+	require.Equal(t, map[string]any{"ns": []uint8{0, 1, 2}}, m)
+}
+
 type Event struct {
-	ch.BaseModel `ch:"goch_events,partition:toYYYYMM(created_at)"`
+	ch.CHModel `ch:"goch_events,partition:toYYYYMM(created_at)"`
 
 	ID        uint64
 	Name      string `ch:",lc"`
@@ -170,7 +185,7 @@ type Event struct {
 }
 
 type EventColumnar struct {
-	ch.BaseModel `ch:"goch_events,columnar"`
+	ch.CHModel `ch:"goch_events,columnar"`
 
 	ID        []uint64
 	Name      []string `ch:",lc"`

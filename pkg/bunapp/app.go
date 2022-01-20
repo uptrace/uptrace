@@ -91,7 +91,7 @@ func New(ctx context.Context, cfg *AppConfig) *App {
 	}
 
 	app.undoneCtx = ContextWithApp(ctx, app)
-	app.ctx, app.ctxCancel = context.WithCancel(ctx)
+	app.ctx, app.ctxCancel = context.WithCancel(app.undoneCtx)
 
 	app.initZap()
 	app.initRouter()
@@ -173,6 +173,7 @@ func (app *App) Zap(ctx context.Context) otelzap.LoggerWithCtx {
 
 func (app *App) initRouter() {
 	app.router = app.newRouter()
+
 	app.apiGroup = app.router.NewGroup("/api")
 }
 
@@ -260,7 +261,12 @@ func (app *App) GRPCServer() *grpc.Server {
 //------------------------------------------------------------------------------
 
 func (app *App) initCH() {
-	db := ch.Connect(ch.WithDSN(app.cfg.CH.DSN))
+	db := ch.Connect(
+		ch.WithDSN(app.cfg.CH.DSN),
+		ch.WithQuerySettings(map[string]any{
+			"prefer_column_name_to_alias": 1,
+		}),
+	)
 
 	fmter := db.Formatter().
 		WithNamedArg("TTL", ch.Safe(app.cfg.Retention.TTL))

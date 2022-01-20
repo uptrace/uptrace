@@ -8,6 +8,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
+	"github.com/uptrace/uptrace/pkg/httputil"
 )
 
 type TraceHandler struct {
@@ -28,14 +29,8 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	spans := make([]*Span, 0)
-
-	if err := h.CH().NewSelect().
-		Model(&spans).
-		Column("id", "trace_id", "parent_id", "attrs", "events", "links").
-		Where("trace_id = ?", traceID).
-		Limit(10000).
-		Scan(ctx); err != nil {
+	spans, err := SelectTraceSpans(ctx, h.App, traceID)
+	if err != nil {
 		return err
 	}
 
@@ -51,7 +46,7 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 		return nil
 	})
 
-	return bunrouter.JSON(w, bunrouter.H{
+	return httputil.JSON(w, bunrouter.H{
 		"trace": bunrouter.H{
 			"id":       traceID,
 			"time":     root.Time,
@@ -91,7 +86,7 @@ func (h *TraceHandler) ShowSpan(w http.ResponseWriter, req bunrouter.Request) er
 		return err
 	}
 
-	return bunrouter.JSON(w, bunrouter.H{
+	return httputil.JSON(w, bunrouter.H{
 		"span": span,
 	})
 }

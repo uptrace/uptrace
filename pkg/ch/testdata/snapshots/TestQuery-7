@@ -1,0 +1,1 @@
+SELECT "model"."id", "model"."string", "model"."bytes" FROM "models" AS "model" SETTINGS max_rows_to_read = 100, read_overflow_mode = 'break'

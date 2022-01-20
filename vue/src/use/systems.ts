@@ -2,6 +2,7 @@ import { clone, orderBy } from 'lodash'
 import { shallowRef, computed, proxyRefs } from '@vue/composition-api'
 
 // Composables
+import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { useWatchAxios } from '@/use/watch-axios'
 
@@ -19,9 +20,12 @@ export interface SystemTree extends System {
 export type UseSystems = ReturnType<typeof useSystems>
 
 export function useSystems(dateRange: UseDateRange) {
+  const { route } = useRouter()
+
   const { loading, data } = useWatchAxios(() => {
+    const { projectId } = route.value.params
     return {
-      url: `/api/tracing/systems`,
+      url: `/api/tracing/${projectId}/systems`,
       params: {
         ...dateRange.axiosParams(),
       },

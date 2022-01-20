@@ -10,7 +10,7 @@ import (
 )
 
 type Model struct {
-	ch.BaseModel `ch:"partition:toYYYYMM(time)"`
+	ch.CHModel `ch:"partition:toYYYYMM(time)"`
 
 	ID   uint64
 	Text string

@@ -63,6 +63,7 @@
 import { defineComponent, computed, PropType } from '@vue/composition-api'
 
 // Composables
+import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { useWatchAxios } from '@/use/watch-axios'
 
@@ -86,9 +87,12 @@ export default defineComponent({
   },
 
   setup() {
+    const { route } = useRouter()
+
     const { data } = useWatchAxios(() => {
+      const { projectId } = route.value.params
       return {
-        url: '/api/tracing/conn-info',
+        url: `/api/tracing/${projectId}/conn-info`,
       }
     })
 

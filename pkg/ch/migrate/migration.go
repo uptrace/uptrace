@@ -14,7 +14,7 @@ import (
 )
 
 type Migration struct {
-	ch.BaseModel `ch:"engine:CollapsingMergeTree(sign)"`
+	ch.CHModel `ch:"engine:CollapsingMergeTree(sign)"`
 
 	Name       string `ch:",pk"`
 	GroupID    int64

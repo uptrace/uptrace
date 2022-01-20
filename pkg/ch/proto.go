@@ -187,6 +187,8 @@ func (db *DB) writeSettings(wr *chproto.Writer) {
 		switch value := value.(type) {
 		case string:
 			wr.String(value)
+		case int:
+			wr.Uvarint(uint64(value))
 		case int64:
 			wr.Uvarint(uint64(value))
 		case uint64:

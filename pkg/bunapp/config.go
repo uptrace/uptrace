@@ -28,9 +28,16 @@ func ReadConfig(configFile, service string) (*AppConfig, error) {
 	cfg.Filepath = configFile
 	cfg.Service = service
 
+	if len(cfg.Users) == 0 {
+		return nil, fmt.Errorf("config must contain at least one user")
+	}
+	if len(cfg.Projects) == 0 {
+		return nil, fmt.Errorf("config must contain at least one project")
+	}
+
 	httpHost, httpPort, err := net.SplitHostPort(cfg.Listen.HTTP)
 	if err != nil {
-		return nil, fmt.Errorf("can't parse HTTP addr: %w", err)
+		return nil, fmt.Errorf("can't parse option listen.http addr: %w", err)
 	}
 	if httpHost == "" {
 		httpHost = cfg.Site.Host
@@ -40,7 +47,7 @@ func ReadConfig(configFile, service string) (*AppConfig, error) {
 
 	grpcHost, grpcPort, err := net.SplitHostPort(cfg.Listen.GRPC)
 	if err != nil {
-		return nil, fmt.Errorf("can't parse GRPC addr: %w", err)
+		return nil, fmt.Errorf("can't parse option listen.grpc addr: %w", err)
 	}
 	if grpcHost == "" {
 		grpcHost = cfg.Site.Host
@@ -80,18 +87,41 @@ type AppConfig struct {
 	Retention struct {
 		TTL string `yaml:"ttl"`
 	} `yaml:"retention"`
+
+	Users    []User    `yaml:"users"`
+	Projects []Project `yaml:"projects"`
+
+	CHSelectLimits struct {
+		SampleRows     int64 `yaml:"sample_rows"`
+		MaxRowsToRead  int64 `yaml:"max_rows_to_read"`
+		MaxBytesToRead int64 `yaml:"max_bytes_to_read"`
+	} `yaml:"ch_select_limits"`
+}
+
+type User struct {
+	ID       uint64 `yaml:"id" json:"id"`
+	Username string `yaml:"username" json:"username"`
+	Password string `yaml:"password" json:"-"`
+}
+
+type Project struct {
+	ID    uint32 `yaml:"id" json:"id"`
+	Name  string `yaml:"name" json:"name"`
+	Token string `yaml:"token" json:"token"`
 }
 
 func (c *AppConfig) SiteAddr() string {
 	return fmt.Sprintf("%s://%s:%s/", c.Site.Scheme, c.Listen.HTTPHost, c.Listen.HTTPPort)
 }
 
-func (c *AppConfig) OTLPGrpc() string {
-	return fmt.Sprintf("%s://%s:%s", c.Site.Scheme, c.Listen.GRPCHost, c.Listen.GRPCPort)
+func (c *AppConfig) OTLPGrpc(project *Project) string {
+	return fmt.Sprintf("%s://%s@%s:%s/%d",
+		c.Site.Scheme, project.Token, c.Listen.GRPCHost, c.Listen.GRPCPort, project.ID)
 }
 
-func (c *AppConfig) OTLPHttp() string {
-	return fmt.Sprintf("%s://%s:%s", c.Site.Scheme, c.Listen.HTTPHost, c.Listen.HTTPPort)
+func (c *AppConfig) OTLPHttp(project *Project) string {
+	return fmt.Sprintf("%s://%s@%s:%s/%d",
+		c.Site.Scheme, project.Token, c.Listen.HTTPHost, c.Listen.HTTPPort, project.ID)
 }
 
 type BunConfig struct {

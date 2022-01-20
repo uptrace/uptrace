@@ -23,9 +23,9 @@ export function useTrace() {
   const { isVisible, isExpanded, toggleTree, showTree } = useHiddenSpans()
 
   const { loading, data, error } = useWatchAxios(() => {
-    const { traceId } = route.value.params
+    const { projectId, traceId } = route.value.params
     return {
-      url: `/api/tracing/traces/${traceId}`,
+      url: `/api/tracing/${projectId}/traces/${traceId}`,
       params: {
         ...forceReloadParams.value,
       },

@@ -8,6 +8,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
 
@@ -15,6 +16,8 @@ type SystemFilter struct {
 	*bunapp.App `urlstruct:"-"`
 
 	TimeFilter
+
+	ProjectID uint32
 }
 
 func DecodeSystemFilter(app *bunapp.App, req bunrouter.Request) (*SystemFilter, error) {
@@ -35,7 +38,8 @@ func (f *SystemFilter) UnmarshalValues(ctx context.Context, values url.Values) e
 }
 
 func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
-	return q.Where("time >= ?", f.TimeGTE).
+	return q.Where("project_id = ?", f.ProjectID).
+		Where("time >= ?", f.TimeGTE).
 		Where("time < ?", f.TimeLT)
 }
 
@@ -73,7 +77,7 @@ func (h *SystemHandler) List(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	return bunrouter.JSON(w, bunrouter.H{
+	return httputil.JSON(w, bunrouter.H{
 		"systems": systems,
 	})
 }
@@ -89,21 +93,21 @@ func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 	tableName, groupPeriod := spanSystemTableForGroup(&f.TimeFilter)
 
 	subq := h.CH().NewSelect().
-		WithAlias("tdigest", "quantilesTDigestMergeState(0.5, 0.9, 0.99)(s.tdigest)").
-		WithAlias("qsNaN", "finalizeAggregation(tdigest)").
+		WithAlias("tdigest_state", "quantilesTDigestWeightedMergeState(0.5, 0.9, 0.99)(tdigest)").
+		WithAlias("qsNaN", "finalizeAggregation(tdigest_state)").
 		WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
 		ColumnExpr("system").
 		ColumnExpr("sum(count) AS stats__count").
-		ColumnExpr("stats__count / ? AS stats__rate", groupPeriod.Minutes()).
+		ColumnExpr("sum(count) / ? AS stats__rate", groupPeriod.Minutes()).
 		ColumnExpr("sum(error_count) AS stats__errorCount").
-		ColumnExpr("stats__errorCount / stats__count AS stats__errorPct").
-		ColumnExpr("tdigest").
+		ColumnExpr("sum(error_count) / sum(count) AS stats__errorPct").
+		ColumnExpr("tdigest_state").
 		ColumnExpr("qs[1] AS stats__p50").
 		ColumnExpr("qs[2] AS stats__p90").
 		ColumnExpr("qs[3] AS stats__p99").
 		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time", groupPeriod.Minutes()).
 		TableExpr(tableName).
-		Where("s.system != ?", internalSpanType).
+		Where("system != ?", internalSpanType).
 		Apply(f.whereClause).
 		GroupExpr("system, time").
 		OrderExpr("system ASC, time ASC").
@@ -112,13 +116,13 @@ func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 	systems := make([]map[string]any, 0)
 
 	if err := h.CH().NewSelect().
-		WithAlias("qsNaN", "quantilesTDigestMerge(0.5, 0.9, 0.99)(tdigest)").
+		WithAlias("qsNaN", "quantilesTDigestWeightedMerge(0.5, 0.9, 0.99)(tdigest_state)").
 		WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
 		ColumnExpr("system").
-		ColumnExpr("sum(s.stats__count) AS count").
-		ColumnExpr("count / ? AS rate", f.Duration().Minutes()).
-		ColumnExpr("sum(s.stats__errorCount) AS errorCount").
-		ColumnExpr("errorCount / count AS errorPct").
+		ColumnExpr("sum(stats__count) AS count").
+		ColumnExpr("sum(stats__count) / ? AS rate", f.Duration().Minutes()).
+		ColumnExpr("sum(stats__errorCount) AS errorCount").
+		ColumnExpr("sum(stats__errorCount) / sum(stats__count) AS errorPct").
 		ColumnExpr("qs[1] AS p50").
 		ColumnExpr("qs[2] AS p90").
 		ColumnExpr("qs[3] AS p99").
@@ -130,7 +134,7 @@ func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 		ColumnExpr("groupArray(stats__p90) AS stats__p90").
 		ColumnExpr("groupArray(stats__p99) AS stats__p99").
 		ColumnExpr("groupArray(time) AS stats__time").
-		TableExpr("(?) AS s", subq).
+		TableExpr("(?)", subq).
 		GroupExpr("system").
 		OrderExpr("system ASC").
 		Limit(1000).
@@ -138,7 +142,12 @@ func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	return bunrouter.JSON(w, bunrouter.H{
+	for _, system := range systems {
+		stats := system["stats"].(map[string]any)
+		fillHoles(stats, f.TimeGTE, f.TimeLT, groupPeriod)
+	}
+
+	return httputil.JSON(w, bunrouter.H{
 		"systems": systems,
 	})
 }

@@ -27,6 +27,7 @@ type baseQuery struct {
 	modelTableName chschema.QueryWithArgs
 	tables         []chschema.QueryWithArgs
 	columns        []chschema.QueryWithArgs
+	settings       []chschema.QueryWithArgs
 
 	flags internal.Flag
 }
@@ -53,13 +54,16 @@ func (q *baseQuery) GetTableName() string {
 	}
 
 	if q.modelTableName.Query != "" {
-		b, _ := q.modelTableName.AppendQuery(q.db.fmter, nil)
-		return string(b)
+		return q.modelTableName.Query
 	}
+
 	if len(q.tables) > 0 {
 		b, _ := q.tables[0].AppendQuery(q.db.fmter, nil)
-		return string(b)
+		if len(b) < 64 {
+			return string(b)
+		}
 	}
+
 	return ""
 }
 
@@ -117,7 +121,7 @@ func appendColumns(b []byte, table Safe, fields []*chschema.Field) []byte {
 			b = append(b, table...)
 			b = append(b, '.')
 		}
-		b = append(b, f.CHName...)
+		b = append(b, f.Column...)
 	}
 	return b
 }
@@ -219,6 +223,30 @@ func (q *baseQuery) _appendFirstTable(
 	return nil, errors.New("ch: query does not have a table")
 }
 
+func (q *baseQuery) hasMultiTables() bool {
+	if q.modelHasTableName() {
+		return len(q.tables) >= 1
+	}
+	return len(q.tables) >= 2
+}
+
+func (q *baseQuery) appendOtherTables(fmter chschema.Formatter, b []byte) (_ []byte, err error) {
+	tables := q.tables
+	if !q.modelHasTableName() {
+		tables = tables[1:]
+	}
+	for i, table := range tables {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b, err = table.AppendQuery(fmter, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return b, nil
+}
+
 //------------------------------------------------------------------------------
 
 func (q *baseQuery) addColumn(column chschema.QueryWithArgs) {
@@ -257,6 +285,9 @@ func (q *baseQuery) _excludeColumn(column string) bool {
 
 func (q *baseQuery) getFields() ([]*chschema.Field, error) {
 	if len(q.columns) == 0 {
+		if q.table == nil {
+			return nil, nil
+		}
 		return q.table.Fields, nil
 	}
 
@@ -276,20 +307,26 @@ func (q *baseQuery) getFields() ([]*chschema.Field, error) {
 	return fields, nil
 }
 
+func (q *baseQuery) appendSettings(fmter chschema.Formatter, b []byte) (_ []byte, err error) {
+	if len(q.settings) > 0 {
+		b = append(b, " SETTINGS "...)
+		for i, opt := range q.settings {
+			if i > 0 {
+				b = append(b, ", "...)
+			}
+			b, err = opt.AppendQuery(fmter, b)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return b, nil
+}
+
 //------------------------------------------------------------------------------
 
 type WhereQuery struct {
 	where []chschema.QueryWithSep
-}
-
-func (q *WhereQuery) Where(query string, args ...any) *WhereQuery {
-	q.addWhere(chschema.SafeQueryWithSep(query, args, " AND "))
-	return q
-}
-
-func (q *WhereQuery) WhereOr(query string, args ...any) *WhereQuery {
-	q.addWhere(chschema.SafeQueryWithSep(query, args, " OR "))
-	return q
 }
 
 func (q *WhereQuery) addWhere(where chschema.QueryWithSep) {

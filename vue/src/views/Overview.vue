@@ -16,10 +16,21 @@
       </v-container>
     </div>
 
-    <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pt-2">
+    <div class="border">
+      <div class="grey lighten-5">
+        <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
+          <v-tabs background-color="transparent">
+            <v-tab :to="{ name: 'Overview' }">Systems</v-tab>
+            <v-tab :to="{ name: 'ServiceOverview' }">Services</v-tab>
+          </v-tabs>
+        </v-container>
+      </div>
+    </div>
+
+    <v-container :fluid="$vuetify.breakpoint.mdAndDown">
       <v-row>
         <v-col>
-          <SystemOverview :date-range="dateRange" :systems="systems" />
+          <router-view :date-range="dateRange" :systems="systems" />
         </v-col>
       </v-row>
     </v-container>
@@ -37,11 +48,10 @@ import { useSystems } from '@/use/systems'
 // Components
 import DateRangePicker from '@/components/DateRangePicker.vue'
 import HelpCard from '@/components/HelpCard.vue'
-import SystemOverview from '@/components/SystemOverview.vue'
 
 export default defineComponent({
   name: 'Overview',
-  components: { DateRangePicker, HelpCard, SystemOverview },
+  components: { DateRangePicker, HelpCard },
 
   setup() {
     useTitle('Overview')
@@ -53,4 +63,9 @@ export default defineComponent({
 })
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.border {
+  overflow: auto;
+  border-bottom: thin rgba(0, 0, 0, 0.12) solid;
+}
+</style>

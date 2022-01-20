@@ -6,6 +6,7 @@
 import { defineComponent, PropType } from '@vue/composition-api'
 
 // Composables
+import { useRouter } from '@/use/router'
 import { usePercentiles } from '@/use/percentiles'
 
 // Components
@@ -23,9 +24,12 @@ export default defineComponent({
   },
 
   setup(props) {
+    const { route } = useRouter()
+
     const percentiles = usePercentiles(() => {
+      const { projectId } = route.value.params
       return {
-        url: `/api/tracing/percentiles`,
+        url: `/api/tracing/${projectId}/percentiles`,
         params: props.axiosParams,
       }
     })

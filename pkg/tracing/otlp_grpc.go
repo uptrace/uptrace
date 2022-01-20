@@ -2,6 +2,8 @@ package tracing
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"runtime"
 	"strings"
@@ -9,6 +11,7 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/sqlparser"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	collectortrace "go.opentelemetry.io/proto/otlp/collector/trace/v1"
@@ -16,6 +19,7 @@ import (
 	"go.uber.org/zap"
 	"go4.org/syncutil"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -57,11 +61,54 @@ func (s *TraceServiceServer) Export(
 	if ctx.Err() == context.Canceled {
 		return nil, status.Error(codes.Canceled, "Client cancelled, abandoning.")
 	}
-	s.process(req.ResourceSpans)
+
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errors.New("metadata is empty")
+	}
+
+	dsn := md.Get("uptrace-dsn")
+	if len(dsn) == 0 {
+		return nil, errors.New("uptrace-dsn header is required")
+	}
+
+	project, err := s.findProjectByDSN(dsn[0])
+	if err != nil {
+		return nil, err
+	}
+
+	s.process(project, req.ResourceSpans)
+
 	return &collectortrace.ExportTraceServiceResponse{}, nil
 }
 
-func (s *TraceServiceServer) process(resourceSpans []*tracepb.ResourceSpans) {
+func (s *TraceServiceServer) findProjectByDSN(dsnStr string) (*bunapp.Project, error) {
+	if dsnStr == "" {
+		return nil, errors.New("uptrace-dsn header can't be empty")
+	}
+
+	dsn, err := org.ParseDSN(dsnStr)
+	if err != nil {
+		return nil, err
+	}
+
+	if dsn.Token == "" {
+		return nil, fmt.Errorf("dsn %q does not contain a token", dsnStr)
+	}
+
+	projects := s.Config().Projects
+	for i := range projects {
+		project := &projects[i]
+		if project.Token == dsn.Token {
+			return project, nil
+		}
+	}
+	return nil, fmt.Errorf("project with token %q not found", dsn.Token)
+}
+
+func (s *TraceServiceServer) process(
+	project *bunapp.Project, resourceSpans []*tracepb.ResourceSpans,
+) {
 	for _, rss := range resourceSpans {
 		resource := otlpAttrs(rss.Resource.Attributes)
 
@@ -74,6 +121,7 @@ func (s *TraceServiceServer) process(resourceSpans []*tracepb.ResourceSpans) {
 
 			for _, span := range ils.Spans {
 				s.ch <- otlpSpan{
+					project:  project,
 					Span:     span,
 					resource: resource,
 				}
@@ -83,7 +131,7 @@ func (s *TraceServiceServer) process(resourceSpans []*tracepb.ResourceSpans) {
 }
 
 func (s *TraceServiceServer) processLoop(ctx context.Context) {
-	const timeout = 5 * time.Second
+	const timeout = time.Second
 
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
@@ -116,7 +164,7 @@ loop:
 	}
 }
 
-func (s *TraceServiceServer) flushSpans(ctx context.Context, spans []otlpSpan) {
+func (s *TraceServiceServer) flushSpans(ctx context.Context, otlpSpans []otlpSpan) {
 	ctx, span := bunapp.Tracer.Start(ctx, "flush-spans")
 
 	s.WaitGroup().Add(1)
@@ -127,19 +175,18 @@ func (s *TraceServiceServer) flushSpans(ctx context.Context, spans []otlpSpan) {
 		defer s.gate.Done()
 		defer s.WaitGroup().Done()
 
-		index := make([]*SpanIndex, len(spans))
-		data := make([]*SpanData, len(spans))
+		spans := make([]Span, len(otlpSpans))
+		index := make([]SpanIndex, len(otlpSpans))
+		data := make([]SpanData, len(otlpSpans))
 
-		for i, span := range spans {
-			spanIndex := s.newSpanIndex(span)
-			spanData := s.newSpanData(span, spanIndex)
+		for i := range otlpSpans {
+			otlpSpan := &otlpSpans[i]
+			span := &spans[i]
 
-			spanIndex.EventCount = uint8(len(spanData.Events))
-			spanIndex.EventErrorCount = 0
-			spanIndex.EventLogCount = 0
-
-			index[i] = spanIndex
-			data[i] = spanData
+			span.ProjectID = otlpSpan.project.ID
+			s.newSpan(otlpSpan, span)
+			s.newSpanIndex(span, &index[i])
+			s.newSpanData(span, &data[i])
 		}
 
 		if _, err := s.CH().NewInsert().Model(&data).Exec(ctx); err != nil {
@@ -153,40 +200,55 @@ func (s *TraceServiceServer) flushSpans(ctx context.Context, spans []otlpSpan) {
 	}()
 }
 
-func (s *TraceServiceServer) newSpanIndex(span otlpSpan) *SpanIndex {
-	index := new(SpanIndex)
+func (s *TraceServiceServer) newSpan(span *otlpSpan, out *Span) {
+	out.ID = otlpSpanID(span.SpanId)
+	out.ParentID = otlpSpanID(span.ParentSpanId)
+	out.TraceID = otlpTraceID(span.TraceId)
+	out.Name = span.Name
+	out.Kind = otlpSpanKind(span.Kind)
 
-	index.ID = otlpSpanID(span.SpanId)
-	index.ParentID = otlpSpanID(span.ParentSpanId)
-	index.TraceID = otlpTraceID(span.TraceId)
-	index.Name = span.Name
-	index.Kind = otlpSpanKind(span.Kind)
-
-	index.Time = time.Unix(0, int64(span.StartTimeUnixNano))
-	index.Duration = time.Duration(span.EndTimeUnixNano - span.StartTimeUnixNano)
+	out.Time = time.Unix(0, int64(span.StartTimeUnixNano))
+	out.Duration = time.Duration(span.EndTimeUnixNano - span.StartTimeUnixNano)
 
 	if span.Status != nil {
-		index.StatusCode = otlpStatusCode(span.Status.Code)
-		index.StatusMessage = span.Status.Message
+		out.StatusCode = otlpStatusCode(span.Status.Code)
+		out.StatusMessage = span.Status.Message
 	}
 
-	index.Attrs = make(AttrMap, len(span.resource)+len(span.Attributes))
+	out.Attrs = make(AttrMap, len(span.resource)+len(span.Attributes))
 	for k, v := range span.resource {
-		index.Attrs[k] = v
+		out.Attrs[k] = v
 	}
-	otlpSetAttrs(index.Attrs, span.Attributes)
+	otlpSetAttrs(out.Attrs, span.Attributes)
+
+	out.Events = make([]*SpanEvent, len(span.Events))
+	for i, event := range span.Events {
+		out.Events[i] = s.newSpanEvent(out, event)
+	}
+
+	out.Links = make([]*SpanLink, len(span.Links))
+	for i, link := range span.Links {
+		out.Links[i] = s.newSpanLink(link)
+	}
+
+	digest := xxhash.New()
+	digest.WriteString(out.Kind)
+	digest.WriteString(out.Name)
+	assignSystemAndGroupID(out, digest)
+	out.GroupID = digest.Sum64()
+}
+
+func (s *TraceServiceServer) newSpanIndex(span *Span, index *SpanIndex) {
+	index.Span = span
+	index.Count = 1
 
 	index.AttrKeys, index.AttrValues = attrKeysAndValues(index.Attrs)
 	index.ServiceName = index.Attrs.Text(xattr.ServiceName)
 	index.HostName = index.Attrs.Text(xattr.HostName)
 
-	digest := xxhash.New()
-	digest.WriteString(index.Kind)
-	digest.WriteString(index.Name)
-	assignSystemAndGroupID(index, digest)
-	index.GroupID = digest.Sum64()
-
-	return index
+	index.EventCount = uint8(len(span.Events))
+	index.EventErrorCount = 0
+	index.EventLogCount = 0
 }
 
 func attrKeysAndValues(m AttrMap) ([]string, []string) {
@@ -199,43 +261,15 @@ func attrKeysAndValues(m AttrMap) ([]string, []string) {
 	return keys, values
 }
 
-func (s *TraceServiceServer) newSpanData(span otlpSpan, index *SpanIndex) *SpanData {
-	attrs := index.Attrs.Clone()
-
-	attrs[xattr.SpanSystem] = index.System
-	attrs[xattr.SpanGroupID] = index.GroupID
-
-	attrs[xattr.SpanName] = index.Name
-	attrs[xattr.SpanKind] = index.Kind
-	attrs[xattr.SpanTime] = index.Time
-	attrs[xattr.SpanDuration] = index.Duration
-
-	attrs[xattr.SpanStatusCode] = index.StatusCode
-	if index.StatusMessage != "" {
-		attrs[xattr.SpanStatusMessage] = index.StatusMessage
-	}
-
-	data := new(SpanData)
-	data.TraceID = index.TraceID
-	data.ID = index.ID
-	data.ParentID = index.ParentID
-	data.Time = index.Time
-	data.Attrs = attrs
-
-	data.Events = make([]*SpanEvent, len(span.Events))
-	for i, event := range span.Events {
-		data.Events[i] = s.newSpanEvent(index, event)
-	}
-
-	data.Links = make([]*SpanLink, len(span.Links))
-	for i, link := range span.Links {
-		data.Links[i] = s.newSpanLink(link)
-	}
-
-	return data
+func (s *TraceServiceServer) newSpanData(span *Span, data *SpanData) {
+	data.TraceID = span.TraceID
+	data.ID = span.ID
+	data.ParentID = span.ParentID
+	data.Time = span.Time
+	data.Data = marshalSpan(span)
 }
 
-func (s *TraceServiceServer) newSpanEvent(span *SpanIndex, in *tracepb.Span_Event) *SpanEvent {
+func (s *TraceServiceServer) newSpanEvent(span *Span, in *tracepb.Span_Event) *SpanEvent {
 	event := &SpanEvent{
 		Name:  in.Name,
 		Attrs: otlpAttrs(in.Attributes),
@@ -247,7 +281,7 @@ func (s *TraceServiceServer) newSpanEvent(span *SpanIndex, in *tracepb.Span_Even
 	return event
 }
 
-func eventName(span *SpanIndex, event *SpanEvent) string {
+func eventName(span *Span, event *SpanEvent) string {
 	switch event.Name {
 	case logEventType:
 		if msg := event.Attrs.Text(xattr.LogMessage); msg != "" {
@@ -287,6 +321,7 @@ func (s *TraceServiceServer) newSpanLink(link *tracepb.Span_Link) *SpanLink {
 }
 
 type otlpSpan struct {
+	project *bunapp.Project
 	*tracepb.Span
 	resource AttrMap
 }
@@ -307,7 +342,7 @@ const (
 	eventType          = "event"
 )
 
-func assignSystemAndGroupID(span *SpanIndex, digest *xxhash.Digest) {
+func assignSystemAndGroupID(span *Span, digest *xxhash.Digest) {
 	if s := span.Attrs.Text(xattr.RPCSystem); s != "" {
 		span.System = rpcSpanType + ":" + span.Attrs.ServiceName()
 		digest.WriteString(span.System)

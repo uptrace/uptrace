@@ -61,6 +61,7 @@
 import { defineComponent, shallowRef, watch, PropType } from '@vue/composition-api'
 
 // Composables
+import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/use/systems'
 import { UseUql } from '@/use/uql'
@@ -93,11 +94,13 @@ export default defineComponent({
   },
 
   setup(props) {
+    const { route } = useRouter()
     const activeColumns = shallowRef<string[]>([])
 
     const explore = useSpanExplore(() => {
+      const { projectId } = route.value.params
       return {
-        url: `/api/tracing/groups`,
+        url: `/api/tracing/${projectId}/groups`,
         params: props.axiosParams,
       }
     })

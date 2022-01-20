@@ -2,23 +2,28 @@ module github.com/uptrace/uptrace
 
 go 1.18
 
+replace github.com/segmentio/encoding => github.com/vmihailenco/encoding v0.3.4-0.20220121071420-f96fbbb25975
+
 replace github.com/uptrace/go-clickhouse/ch => ./pkg/ch
 
 require (
 	github.com/bradleyjkemp/cupaloy v2.3.0+incompatible
 	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/codemodus/kace v0.5.1
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/klauspost/compress v1.13.6
 	github.com/rs/cors v1.8.0
+	github.com/segmentio/encoding v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.7.0
-	github.com/uptrace/bunrouter v1.0.9
-	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.9
-	github.com/uptrace/bunrouter/extra/reqlog v1.0.9
+	github.com/uptrace/bunrouter v1.0.11-0.20220115092510-53fd3217e9fb
+	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.11-0.20220115092510-53fd3217e9fb
+	github.com/uptrace/bunrouter/extra/reqlog v1.0.11-0.20220115092510-53fd3217e9fb
 	github.com/uptrace/go-clickhouse/ch v0.0.0-00010101000000-000000000000
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.7
 	github.com/uptrace/uptrace-go v1.3.1-0.20211222105436-75b898dfb3dd
 	github.com/urfave/cli/v2 v2.3.0
+	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	github.com/vmihailenco/tagparser v0.1.2
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.27.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.27.0
@@ -51,6 +56,7 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.11 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.7 // indirect
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.27.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.3.0 // indirect
@@ -67,7 +73,8 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect
-	golang.org/x/sys v0.0.0-20211210111614-af8b64212486 // indirect
+	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect
 	golang.org/x/text v0.3.7 // indirect
+	google.golang.org/appengine v1.6.5 // indirect
 	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
 )
