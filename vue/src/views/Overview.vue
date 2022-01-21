@@ -22,6 +22,7 @@
           <v-tabs background-color="transparent">
             <v-tab :to="{ name: 'Overview' }">Systems</v-tab>
             <v-tab :to="{ name: 'ServiceOverview' }">Services</v-tab>
+            <v-tab :to="{ name: 'HostOverview' }">Hosts</v-tab>
           </v-tabs>
         </v-container>
       </div>

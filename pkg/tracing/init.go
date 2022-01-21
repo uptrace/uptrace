@@ -29,6 +29,7 @@ func initGRPC(ctx context.Context, app *bunapp.App) error {
 func registerRoutes(ctx context.Context, app *bunapp.App) error {
 	sysHandler := NewSystemHandler(app)
 	serviceHandler := NewServiceHandler(app)
+	hostHandler := NewHostHandler(app)
 	spanHandler := NewSpanHandler(app)
 	traceHandler := NewTraceHandler(app)
 	suggestionHandler := NewSuggestionHandler(app)
@@ -40,6 +41,7 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 	g.GET("/systems", sysHandler.List)
 	g.GET("/systems-stats", sysHandler.Stats)
 	g.GET("/services", serviceHandler.List)
+	g.GET("/hosts", hostHandler.List)
 	g.GET("/groups", spanHandler.ListGroups)
 	g.GET("/spans", spanHandler.ListSpans)
 	g.GET("/percentiles", spanHandler.Percentiles)
@@ -54,7 +56,16 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 	})
 
 	g.GET("/conn-info", func(w http.ResponseWriter, req bunrouter.Request) error {
-		project := &app.Config().Projects[0]
+		projectID, err := req.Params().Uint32("project_id")
+		if err != nil {
+			return err
+		}
+
+		project, err := org.SelectProjectByID(ctx, app, projectID)
+		if err != nil {
+			return err
+		}
+
 		return httputil.JSON(w, bunrouter.H{
 			"grpc": app.Config().OTLPGrpc(project),
 			"http": app.Config().OTLPHttp(project),

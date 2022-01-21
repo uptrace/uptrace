@@ -7,6 +7,7 @@ import { useUser } from '@/use/org'
 import Overview from '@/views/Overview.vue'
 import SystemOverview from '@/components/SystemOverview.vue'
 import ServiceOverview from '@/components/ServiceOverview.vue'
+import HostOverview from '@/components/HostOverview.vue'
 
 import Tracing from '@/views/Tracing.vue'
 import TraceShow from '@/views/TraceShow.vue'
@@ -73,6 +74,17 @@ const routes: Array<RouteConfig> = [
         name: 'ServiceOverview',
         path: '',
         component: ServiceOverview,
+      },
+    ],
+  },
+  {
+    path: '/hosts/:projectId(\\d+)',
+    component: Overview,
+    children: [
+      {
+        name: 'HostOverview',
+        path: '',
+        component: HostOverview,
       },
     ],
   },

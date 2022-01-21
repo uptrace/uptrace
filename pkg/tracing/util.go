@@ -58,26 +58,12 @@ func truncate(s string, n int) string {
 	return utf8string.NewString(s).Slice(0, n)
 }
 
-const jsMaxSafeInt = 1<<53 - 1
-
-func fixJSBigInt(m map[string]any) {
-	for k, v := range m {
-		switch v := v.(type) {
-		case json.Number:
-			n, err := v.Int64()
-			if err == nil && n > jsMaxSafeInt {
-				m[k] = strconv.FormatInt(n, 10)
-			}
-		case int64:
-			if v > jsMaxSafeInt {
-				m[k] = strconv.FormatInt(v, 10)
-			}
-		case uint64:
-			if v > jsMaxSafeInt {
-				m[k] = strconv.FormatUint(v, 10)
-			}
-		}
+func listToSet(ss []string) map[string]struct{} {
+	m := make(map[string]struct{}, len(ss))
+	for _, s := range ss {
+		m[s] = struct{}{}
 	}
+	return m
 }
 
 //------------------------------------------------------------------------------

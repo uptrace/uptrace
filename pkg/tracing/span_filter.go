@@ -313,12 +313,12 @@ func appendCHColumn(b []byte, key string) []byte {
 	case xattr.SpanSystem, xattr.SpanGroupID, xattr.SpanTraceID,
 		xattr.SpanName, xattr.SpanKind, xattr.SpanDuration,
 		xattr.SpanStatusCode, xattr.SpanStatusMessage,
-		xattr.ServiceName, xattr.HostName,
 		xattr.SpanEventCount, xattr.SpanEventErrorCount, xattr.SpanEventLogCount:
-		b = append(b, "s."...)
-		b = chschema.AppendIdent(b, key)
-		return b
+		return chschema.AppendIdent(b, key)
 	default:
+		if _, ok := indexedAttrSet[key]; ok {
+			return chschema.AppendIdent(b, key)
+		}
 		return chschema.AppendQuery(b, "attr_values[indexOf(attr_keys, ?)]", key)
 	}
 }
@@ -432,6 +432,27 @@ func spanServiceTable(period time.Duration) string {
 		return "span_service_minutes AS s"
 	case time.Hour:
 		return "span_service_hours AS s"
+	}
+	panic("not reached")
+}
+
+//------------------------------------------------------------------------------
+
+func spanHostTableForWhere(f *TimeFilter) string {
+	return spanHostTable(tablePeriod(f))
+}
+
+func spanHostTableForGroup(f *TimeFilter) (string, time.Duration) {
+	tablePeriod, groupPeriod := tableGroupPeriod(f)
+	return spanHostTable(tablePeriod), groupPeriod
+}
+
+func spanHostTable(period time.Duration) string {
+	switch period {
+	case time.Minute:
+		return "span_host_minutes AS s"
+	case time.Hour:
+		return "span_host_hours AS s"
 	}
 	panic("not reached")
 }
