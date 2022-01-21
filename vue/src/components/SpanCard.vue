@@ -12,7 +12,7 @@
     </PageToolbar>
 
     <v-container :fluid="fluid" class="py-4">
-      <v-row class="px-4 text-body-2">
+      <v-row class="px-4 text-subtitle-1">
         <v-col>{{ span.name }}</v-col>
       </v-row>
 
