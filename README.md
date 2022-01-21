@@ -60,10 +60,16 @@ go run cmd/uptrace/main.go serve
 Uptrace will monitor itself using [uptrace-go](https://github.com/uptrace/uptrace-go) OpenTelemetry
 distro. To get some test data, just reload the UI few times.
 
-You can run Uptrace in debug mode by providing an environment variable:
+You can also run Uptrace in debug mode by providing an environment variable:
 
 ```shell
 DEBUG=2 go run cmd/uptrace/main.go serve
+```
+
+TO learn about available commands:
+
+```shell
+go run cmd/uptrace/main.go help
 ```
 
 ## Compiling UI manually
