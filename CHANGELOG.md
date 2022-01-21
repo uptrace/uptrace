@@ -10,6 +10,8 @@
 - Require user authentication. Users are defined in the YAML config.
 - Added support for having multiple isolated projects in the same database. Projects are defined in
   the YAML config.
+- Added ability to filter query results, for example,
+  `group by span.group_id | p50(span.duration) | where p50(span.duration) > 10ms`.
 - Added `SAMPLE BY` to `spans_index` table.
 - Added query limits to `spans_index` queries to better support large datasets.
 - Improved error handling on invalid Uptrace queries.

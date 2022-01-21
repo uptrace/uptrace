@@ -27,7 +27,7 @@ interface SpanExploreConfig {
 }
 
 export function useSpanExplore(reqSource: AxiosRequestSource, cfg: SpanExploreConfig = {}) {
-  const pager = usePager(cfg.pager ?? { perPage: 9 })
+  const pager = usePager(cfg.pager ?? { perPage: 10 })
   const order = useOrder(
     cfg.order ?? {
       column: xkey.spanCountPerMin,

@@ -52,9 +52,9 @@ function useSpan() {
   const { route } = useRouter()
 
   const { loading, data } = useWatchAxios(() => {
-    const { traceId, spanId } = route.value.params
+    const { projectId, traceId, spanId } = route.value.params
     return {
-      url: `/api/tracing/traces/${traceId}/${spanId}`,
+      url: `/api/tracing/${projectId}/traces/${traceId}/${spanId}`,
     }
   })
 

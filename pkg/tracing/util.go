@@ -67,6 +67,14 @@ func listToSet(ss []string) map[string]struct{} {
 	return m
 }
 
+func quantileLevel(fn string) float64 {
+	n, err := strconv.ParseInt(fn[1:], 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	return float64(n) / 100
+}
+
 //------------------------------------------------------------------------------
 
 func fillHoles(m map[string]any, gte, lt time.Time, interval time.Duration) {

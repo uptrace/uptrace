@@ -78,7 +78,7 @@ type SpanFilter struct {
 	Column string
 
 	parts     []*uql.Part
-	columnMap map[uql.Name]bool
+	columnMap map[string]bool
 }
 
 func DecodeSpanFilter(app *bunapp.App, req bunrouter.Request) (*SpanFilter, error) {
@@ -201,10 +201,26 @@ func buildSpanIndexQuery(f *SpanFilter, minutes float64) *ch.SelectQuery {
 
 func compileUQL(
 	q *ch.SelectQuery, parts []*uql.Part, minutes float64,
-) (*ch.SelectQuery, map[uql.Name]bool) {
-	columnMap := make(map[uql.Name]bool)
-	var groups []uql.Name
-	var where []*uql.Part
+) (*ch.SelectQuery, map[string]bool) {
+	groupSet := make(map[string]bool)
+	columnSet := make(map[string]bool)
+
+	for _, part := range parts {
+		if part.Disabled || part.Error != "" {
+			continue
+		}
+
+		switch ast := part.AST.(type) {
+		case *uql.Group:
+			for _, name := range ast.Names {
+				q = uqlColumn(q, name, minutes)
+				columnSet[name.String()] = true
+
+				q = q.Group(name.String())
+				groupSet[name.String()] = true
+			}
+		}
+	}
 
 	for _, part := range parts {
 		if part.Disabled || part.Error != "" {
@@ -214,45 +230,34 @@ func compileUQL(
 		switch ast := part.AST.(type) {
 		case *uql.Columns:
 			for _, name := range ast.Names {
-				if !isAggColumn(name) {
+				if !groupSet[name.String()] && !isAggColumn(name) {
 					part.SetError("must be an agg or a group-by")
 					continue
 				}
 
+				if columnSet[name.String()] {
+					continue
+				}
+
 				q = uqlColumn(q, name, minutes)
-				columnMap[name] = true
+				columnSet[name.String()] = true
 			}
-		case *uql.Group:
-			groups = append(groups, ast.Names...)
 		case *uql.Where:
-			where = append(where, part)
+			q = uqlWhere(q, ast, minutes)
 		}
 	}
 
-	for _, name := range groups {
-		if !columnMap[name] {
-			q = uqlColumn(q, name, minutes)
-			columnMap[name] = true
-		}
-		q = q.Group(name.String())
-	}
-
-	if columnMap[uql.Name{AttrKey: xattr.SpanGroupID}] {
+	if columnSet[uql.Name{AttrKey: xattr.SpanGroupID}.String()] {
 		for _, key := range []string{xattr.SpanSystem, xattr.SpanName} {
 			name := uql.Name{FuncName: "any", AttrKey: key}
-			if !columnMap[name] {
+			if !columnSet[name.String()] {
 				q = uqlColumn(q, name, minutes)
-				columnMap[name] = true
+				columnSet[name.String()] = true
 			}
 		}
 	}
 
-	for _, part := range where {
-		ast := part.AST.(*uql.Where)
-		q = uqlWhere(q, ast)
-	}
-
-	return q, columnMap
+	return q, columnSet
 }
 
 func isAggColumn(col uql.Name) bool {
@@ -268,39 +273,36 @@ func isAggColumn(col uql.Name) bool {
 }
 
 func uqlColumn(q *ch.SelectQuery, name uql.Name, minutes float64) *ch.SelectQuery {
+	var b []byte
+	b = appendUQLColumn(b, name, minutes)
+	b = append(b, " AS "...)
+	b = append(b, '"')
+	b = name.Append(b)
+	b = append(b, '"')
+	return q.ColumnExpr(string(b))
+}
+
+func appendUQLColumn(b []byte, name uql.Name, minutes float64) []byte {
 	switch name.FuncName {
-	case "p50":
-		return q.ColumnExpr("quantileTDigest(0.5)(toFloat64OrDefault(?)) AS ?",
-			chColumn(name.AttrKey), ch.Ident(name.String()))
-	case "p75":
-		return q.ColumnExpr("quantileTDigest(0.75)(toFloat64OrDefault(?)) AS ?",
-			chColumn(name.AttrKey), ch.Ident(name.String()))
-	case "p90":
-		return q.ColumnExpr("quantileTDigest(0.9)(toFloat64OrDefault(?)) AS ?",
-			chColumn(name.AttrKey), ch.Ident(name.String()))
-	case "p99":
-		return q.ColumnExpr("quantileTDigest(0.99)(toFloat64OrDefault(?)) AS ?",
-			chColumn(name.AttrKey), ch.Ident(name.String()))
+	case "p50", "p75", "p90", "p99":
+		return chschema.AppendQuery(b, "quantileTDigest(?)(toFloat64OrDefault(?))",
+			quantileLevel(name.FuncName), chColumn(name.AttrKey))
 	case "top3":
-		return q.ColumnExpr("topK(3)(?) AS ?", chColumn(name.AttrKey), ch.Ident(name.String()))
+		return chschema.AppendQuery(b, "topK(3)(?)", chColumn(name.AttrKey))
 	case "top10":
-		return q.ColumnExpr("topK(10)(?) AS ?", chColumn(name.AttrKey), ch.Ident(name.String()))
+		return chschema.AppendQuery(b, "topK(10)(?)", chColumn(name.AttrKey))
 	}
 
 	switch name.String() {
 	case xattr.SpanCount:
-		return q.ColumnExpr("count() AS ?", ch.Ident(xattr.SpanCount))
+		return chschema.AppendQuery(b, "count()")
 	case xattr.SpanCountPerMin:
-		return q.ColumnExpr("count() / ? AS ?", minutes, ch.Ident(xattr.SpanCountPerMin))
+		return chschema.AppendQuery(b, "count() / ?", minutes)
 	case xattr.SpanErrorCount:
-		return q.ColumnExpr("countIf(`span.status_code` = 'error') AS ?",
-			ch.Ident(xattr.SpanErrorCount))
+		return chschema.AppendQuery(b, "countIf(`span.status_code` = 'error')", minutes)
 	case xattr.SpanErrorPct:
-		return q.ColumnExpr("countIf(`span.status_code` = 'error') / count() AS ?",
-			ch.Ident(xattr.SpanErrorPct))
+		return chschema.AppendQuery(b, "countIf(`span.status_code` = 'error') / count()", minutes)
 	default:
-		var b []byte
-
 		if name.FuncName != "" {
 			b = append(b, name.FuncName...)
 			b = append(b, '(')
@@ -312,12 +314,7 @@ func uqlColumn(q *ch.SelectQuery, name uql.Name, minutes float64) *ch.SelectQuer
 			b = append(b, ')')
 		}
 
-		b = append(b, " AS "...)
-		b = append(b, '"')
-		b = name.Append(b)
-		b = append(b, '"')
-
-		return q.ColumnExpr(string(b))
+		return b
 	}
 }
 
@@ -340,30 +337,48 @@ func appendCHColumn(b []byte, key string) []byte {
 	}
 }
 
-func uqlWhere(q *ch.SelectQuery, ast *uql.Where) *ch.SelectQuery {
-	var b []byte
+func uqlWhere(q *ch.SelectQuery, ast *uql.Where, minutes float64) *ch.SelectQuery {
+	var where []byte
+	var having []byte
 
-	for i, cond := range ast.Conds {
-		if cond.Sep.Negate {
-			b = append(b, "NOT "...)
+	for _, cond := range ast.Conds {
+		bb, isAgg := uqlWhereCond(cond, minutes)
+		if bb == nil {
+			continue
 		}
-		if i > 0 {
-			b = append(b, cond.Sep.Op...)
-			b = append(b, ' ')
+
+		if isAgg {
+			having = appendCond(having, cond, bb)
+		} else {
+			where = appendCond(where, cond, bb)
 		}
-		b = uqlWhereCond(b, cond)
 	}
 
-	return q.Where(string(b))
+	if len(where) > 0 {
+		q = q.Where(string(where))
+	}
+	if len(having) > 0 {
+		q = q.Having(string(having))
+	}
+
+	return q
 }
 
-func uqlWhereCond(b []byte, cond uql.Cond) []byte {
+func uqlWhereCond(cond uql.Cond, minutes float64) (b []byte, isAgg bool) {
+	isAgg = isAggColumn(cond.Left)
+
 	switch cond.Op {
 	case uql.ExistsOp, uql.DoesNotExistOp:
-		if strings.HasPrefix(cond.Left.AttrKey, "span.") {
-			return append(b, '1')
+		if isAgg {
+			return nil, false
 		}
-		return chschema.AppendQuery(b, "has(attr_keys, ?)", cond.Left.AttrKey)
+
+		if strings.HasPrefix(cond.Left.AttrKey, "span.") {
+			b = append(b, '1')
+			return b, false
+		}
+		b = chschema.AppendQuery(b, "has(attr_keys, ?)", cond.Left.AttrKey)
+		return b, false
 	case uql.ContainsOp, uql.DoesNotContainOp:
 		if cond.Op == uql.DoesNotContainOp {
 			b = append(b, "NOT "...)
@@ -371,18 +386,18 @@ func uqlWhereCond(b []byte, cond uql.Cond) []byte {
 
 		values := strings.Split(cond.Right.Text, "|")
 		b = append(b, "multiSearchAnyCaseInsensitiveUTF8("...)
-		b = appendCHColumn(b, cond.Left.AttrKey)
+		b = appendUQLColumn(b, cond.Left, minutes)
 		b = append(b, ", "...)
 		b = chschema.AppendQuery(b, "[?]", ch.In(values))
 		b = append(b, ")"...)
 
-		return b
+		return b, isAgg
 	}
 
 	if cond.Right.Kind == uql.NumberValue {
 		b = append(b, "toFloat64OrDefault("...)
 	}
-	b = appendCHColumn(b, cond.Left.AttrKey)
+	b = appendUQLColumn(b, cond.Left, minutes)
 	if cond.Right.Kind == uql.NumberValue {
 		b = append(b, ")"...)
 	}
@@ -393,7 +408,18 @@ func uqlWhereCond(b []byte, cond uql.Cond) []byte {
 
 	b = cond.Right.Append(b)
 
-	return b
+	return b, isAgg
+}
+
+func appendCond(b []byte, cond uql.Cond, bb []byte) []byte {
+	if len(b) > 0 {
+		b = append(b, cond.Sep.Op...)
+		b = append(b, ' ')
+	}
+	if cond.Sep.Negate {
+		b = append(b, "NOT "...)
+	}
+	return append(b, bb...)
 }
 
 func disableColumnsAndGroups(parts []*uql.Part) {

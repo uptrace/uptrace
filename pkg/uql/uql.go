@@ -13,9 +13,9 @@ type Part struct {
 	AST any `json:"-"`
 }
 
-func (p *Part) SetError(s string) {
+func (p *Part) SetError(s string, args ...any) {
 	if p.Error == "" {
-		p.Error = s
+		p.Error = fmt.Sprintf(s, args...)
 	}
 }
 
