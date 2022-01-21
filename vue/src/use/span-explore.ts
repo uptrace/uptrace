@@ -1,3 +1,4 @@
+import { format } from 'sql-formatter'
 import { orderBy } from 'lodash'
 import { computed, watch, proxyRefs } from '@vue/composition-api'
 
@@ -34,13 +35,12 @@ export function useSpanExplore(reqSource: AxiosRequestSource, cfg: SpanExploreCo
     },
   )
 
-  const axiosReq = computed(() => {
-    return reqSource()
-  })
-
-  const { loading, data } = useWatchAxios(() => {
-    return reqSource()
-  })
+  const { loading, error, data } = useWatchAxios(
+    () => {
+      return reqSource()
+    },
+    { ignoreErrors: true },
+  )
 
   const items = computed((): ExploreItem[] => {
     return data.value?.groups ?? []
@@ -84,6 +84,18 @@ export function useSpanExplore(reqSource: AxiosRequestSource, cfg: SpanExploreCo
     return columns.value.filter((col) => col.isNum)
   })
 
+  const errorMessage = computed(() => {
+    return error.value?.response?.data?.message ?? ''
+  })
+
+  const errorCode = computed(() => {
+    return error.value?.response?.data?.code ?? ''
+  })
+
+  const query = computed((): string => {
+    return format(error.value?.response?.data?.query ?? '')
+  })
+
   watch(
     items,
     (items) => {
@@ -96,7 +108,6 @@ export function useSpanExplore(reqSource: AxiosRequestSource, cfg: SpanExploreCo
     pager,
     order,
 
-    axiosReq,
     loading,
 
     items: sortedItems,
@@ -106,6 +117,11 @@ export function useSpanExplore(reqSource: AxiosRequestSource, cfg: SpanExploreCo
     columns,
     groupColumns,
     plotColumns,
+
+    error,
+    errorCode,
+    errorMessage,
+    query,
   })
 }
 

@@ -34,6 +34,7 @@ specifiers:
   prismjs: ^1.25.0
   sass: 1.32.8
   sass-loader: 10.1.1
+  sql-formatter: ^4.0.2
   typescript: ~4.5.3
   vue: ^2.6.14
   vue-cli-plugin-vuetify: ~2.4.5
@@ -55,6 +56,7 @@ dependencies:
   lodash: 4.17.21
   numbro: 2.3.5
   prismjs: 1.25.0
+  sql-formatter: 4.0.2
   vue: 2.6.14
   vue-frag: 1.3.1_vue@2.6.14
   vue-prism-component: 1.2.0
@@ -2532,6 +2534,10 @@ packages:
     dependencies:
       sprintf-js: 1.0.3
     dev: true
+
+  /argparse/2.0.1:
+    resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
+    dev: false
 
   /arr-diff/4.0.0:
     resolution: {integrity: sha1-1kYQdP6/7HHn4VI1dhoyml3HxSA=}
@@ -9406,6 +9412,13 @@ packages:
   /sprintf-js/1.0.3:
     resolution: {integrity: sha1-BOaSb2YolTVPPdAVIDYzuFcpfiw=}
     dev: true
+
+  /sql-formatter/4.0.2:
+    resolution: {integrity: sha512-R6u9GJRiXZLr/lDo8p56L+OyyN2QFJPCDnsyEOsbdIpsnDKL8gubYFo7lNR7Zx7hfdWT80SfkoVS0CMaF/DE2w==}
+    hasBin: true
+    dependencies:
+      argparse: 2.0.1
+    dev: false
 
   /sshpk/1.16.1:
     resolution: {integrity: sha512-HXXqVUq7+pcKeLqqZj6mHFUMvXtOJt1uoUx09pFW6011inTMxqI8BA8PM95myrIyyKwdnzjdFjLiE6KBPVtJIg==}

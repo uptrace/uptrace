@@ -35,6 +35,7 @@ export enum xkey {
 
   rpcMethod = 'rpc.method',
   dbStatement = 'db.statement',
+  dbStatementPretty = '_db.statement_pretty',
   dbSqlTable = 'db.sql.table',
 
   exceptionStacktrace = 'exception.stacktrace',

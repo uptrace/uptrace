@@ -214,6 +214,11 @@ func compileUQL(
 		switch ast := part.AST.(type) {
 		case *uql.Columns:
 			for _, name := range ast.Names {
+				if !isAggColumn(name) {
+					part.SetError("must be an agg or a group-by")
+					continue
+				}
+
 				q = uqlColumn(q, name, minutes)
 				columnMap[name] = true
 			}
@@ -248,6 +253,18 @@ func compileUQL(
 	}
 
 	return q, columnMap
+}
+
+func isAggColumn(col uql.Name) bool {
+	if col.FuncName != "" {
+		return true
+	}
+	switch col.AttrKey {
+	case xattr.SpanCount, xattr.SpanCountPerMin, xattr.SpanErrorCount, xattr.SpanErrorPct:
+		return true
+	default:
+		return false
+	}
 }
 
 func uqlColumn(q *ch.SelectQuery, name uql.Name, minutes float64) *ch.SelectQuery {

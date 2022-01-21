@@ -2,11 +2,13 @@ import axios, { AxiosRequestConfig, CancelTokenSource, AxiosResponse } from 'axi
 import { computed } from '@vue/composition-api'
 
 // Composables
-import { usePromise } from '@/use/promise'
+import { usePromise, Config } from '@/use/promise'
+
+export type { Config }
 
 export type AxiosParams = Record<string, string | undefined>
 
-export function useAxios() {
+export function useAxios(cfg: Config = {}) {
   let cancelToken: CancelTokenSource | null = null
 
   const {
@@ -33,7 +35,7 @@ export function useAxios() {
     }
 
     return axios.request(config!)
-  })
+  }, cfg)
 
   const data = computed(() => {
     return result.value?.data

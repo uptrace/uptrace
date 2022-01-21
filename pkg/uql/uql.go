@@ -13,6 +13,12 @@ type Part struct {
 	AST any `json:"-"`
 }
 
+func (p *Part) SetError(s string) {
+	if p.Error == "" {
+		p.Error = s
+	}
+}
+
 func Parse(s string) []*Part {
 	ss := splitQuery(s)
 	parts := make([]*Part, len(ss))

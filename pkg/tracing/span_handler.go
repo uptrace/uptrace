@@ -76,6 +76,14 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 		Limit(1000)
 
 	if err := q.Scan(ctx, &groups); err != nil {
+		if cherr, ok := err.(*ch.Error); ok {
+			w.WriteHeader(http.StatusBadRequest)
+			return httputil.JSON(w, bunrouter.H{
+				"query":   q.String(),
+				"code":    "invalid_query",
+				"message": cherr.Error(),
+			})
+		}
 		return err
 	}
 
@@ -155,20 +163,15 @@ func (h *SpanHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	minutes := calcGroupPeriod(&f.TimeFilter, 300).Minutes()
+	groupPeriod := calcGroupPeriod(&f.TimeFilter, 300)
+	minutes := groupPeriod.Minutes()
 	m := make(map[string]interface{})
 
 	subq := buildSpanIndexQuery(f, minutes)
 	subq = uqlColumn(subq, colName, minutes).
 		ColumnExpr("toStartOfInterval(`span.time`, toIntervalMinute(?)) AS time", minutes).
 		GroupExpr("time").
-		OrderExpr(
-			"time ASC WITH FILL "+
-				"FROM toStartOfInterval(toDateTime(?), toIntervalMinute(?)) "+
-				"TO toStartOfInterval(toDateTime(?), toIntervalMinute(?)) "+
-				"STEP toIntervalMinute(?)",
-			f.TimeGTE, minutes, f.TimeLT, minutes, minutes,
-		)
+		OrderExpr("time ASC")
 
 	if err := h.CH().NewSelect().
 		ColumnExpr("groupArray(?) AS ?", ch.Ident(f.Column), ch.Ident(f.Column)).
@@ -179,6 +182,8 @@ func (h *SpanHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error 
 		Scan(ctx, &m); err != nil {
 		return err
 	}
+
+	fillHoles(m, f.TimeGTE, f.TimeLT, groupPeriod)
 
 	return httputil.JSON(w, m)
 }

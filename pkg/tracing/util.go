@@ -4,6 +4,7 @@ import (
 	"constraints"
 	"encoding/json"
 	"fmt"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"time"
@@ -154,4 +155,28 @@ func fillTime(
 
 func numItem(gte, lt time.Time, interval time.Duration) int {
 	return int(lt.Sub(gte) / interval)
+}
+
+//------------------------------------------------------------------------------
+
+func formatSQL(query string) string {
+	cmd := exec.Command("clickhouse-format")
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return ""
+	}
+
+	if _, err := stdin.Write([]byte(query)); err != nil {
+		stdin.Close()
+		return ""
+	}
+	stdin.Close()
+
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+
+	return string(out)
 }
