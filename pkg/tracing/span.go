@@ -136,6 +136,8 @@ func (s *Span) subtractDurationSelf(dur time.Duration) {
 	}
 }
 
+//------------------------------------------------------------------------------
+
 func BuildSpanTree(spansPtr *[]*Span) *Span {
 	spans := *spansPtr
 	m := make(map[uint64]*Span, len(spans))

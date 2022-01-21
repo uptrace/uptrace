@@ -1,60 +1,74 @@
 <template>
-  <v-row>
-    <v-col>
-      <v-card rounded="lg" outlined class="mb-4">
-        <v-toolbar flat color="light-blue lighten-5">
-          <v-toolbar-title>
-            <span>Groups</span>
-          </v-toolbar-title>
+  <XPlaceholder>
+    <template v-if="explore.errorCode === 'invalid_query'" #placeholder>
+      <v-row>
+        <v-col>
+          <v-banner>
+            <v-icon slot="icon" color="error" size="36">mdi-alert-circle</v-icon>
+            <span class="subtitle-1 text--secondary">{{ explore.errorMessage }}</span>
+          </v-banner>
 
-          <v-spacer />
+          <XCode v-if="explore.query" :code="explore.query" language="sql" />
+        </v-col>
+      </v-row>
+    </template>
+    <v-row>
+      <v-col>
+        <v-card rounded="lg" outlined class="mb-4">
+          <v-toolbar flat color="light-blue lighten-5">
+            <v-toolbar-title>
+              <span>Groups</span>
+            </v-toolbar-title>
 
-          <div class="text-body-2 blue-grey--text text--darken-3">
-            <strong><XNum :value="explore.pager.numItem" verbose /></strong> groups
-          </div>
-        </v-toolbar>
+            <v-spacer />
 
-        <v-card-text>
-          <v-slide-group v-model="activeColumns" multiple center-active show-arrows class="mb-4">
-            <v-slide-item
-              v-for="(col, i) in explore.plotColumns"
-              :key="col.name"
-              :value="col.name"
-              v-slot="{ active, toggle }"
-            >
-              <v-btn
-                :input-value="active"
-                active-class="blue white--text"
-                small
-                depressed
-                rounded
-                :class="{ 'ml-1': i > 0 }"
-                style="text-transform: none"
-                @click="toggle"
+            <div class="text-body-2 blue-grey--text text--darken-3">
+              <strong><XNum :value="explore.pager.numItem" verbose /></strong> groups
+            </div>
+          </v-toolbar>
+
+          <v-card-text>
+            <v-slide-group v-model="activeColumns" multiple center-active show-arrows class="mb-4">
+              <v-slide-item
+                v-for="(col, i) in explore.plotColumns"
+                :key="col.name"
+                :value="col.name"
+                v-slot="{ active, toggle }"
               >
-                {{ col.name }}
-              </v-btn>
-            </v-slide-item>
-          </v-slide-group>
+                <v-btn
+                  :input-value="active"
+                  active-class="blue white--text"
+                  small
+                  depressed
+                  rounded
+                  :class="{ 'ml-1': i > 0 }"
+                  style="text-transform: none"
+                  @click="toggle"
+                >
+                  {{ col.name }}
+                </v-btn>
+              </v-slide-item>
+            </v-slide-group>
 
-          <GroupTable
-            :date-range="dateRange"
-            :systems="systems"
-            :uql="uql"
-            :loading="explore.loading"
-            :items="explore.pageItems"
-            :columns="explore.columns"
-            :group-columns="explore.groupColumns"
-            :plot-columns="activeColumns"
-            :order="explore.order"
-            :axios-params="axiosParams"
-          />
-        </v-card-text>
-      </v-card>
+            <GroupTable
+              :date-range="dateRange"
+              :systems="systems"
+              :uql="uql"
+              :loading="explore.loading"
+              :items="explore.pageItems"
+              :columns="explore.columns"
+              :group-columns="explore.groupColumns"
+              :plot-columns="activeColumns"
+              :order="explore.order"
+              :axios-params="axiosParams"
+            />
+          </v-card-text>
+        </v-card>
 
-      <XPagination :pager="explore.pager" />
-    </v-col>
-  </v-row>
+        <XPagination :pager="explore.pager" />
+      </v-col>
+    </v-row>
+  </XPlaceholder>
 </template>
 
 <script lang="ts">

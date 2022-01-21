@@ -6,7 +6,11 @@ import { useSnackbar } from '@/use/snackbar'
 
 type AsyncFunc = (...args: any[]) => Promise<any>
 
-export function usePromise(fn: AsyncFunc) {
+export interface Config {
+  ignoreErrors?: boolean
+}
+
+export function usePromise(fn: AsyncFunc, cfg: Config = {}) {
   const snackbar = useSnackbar()
 
   const result = shallowRef<any>()
@@ -67,31 +71,31 @@ export function usePromise(fn: AsyncFunc) {
   }
 
   const errorMessage = computed(() => {
-    if (!error.value) {
-      return ''
-    }
-    const msg = error.value.response?.data?.message
+    const msg = error.value?.response?.data?.message
     if (msg) {
-      return asString(msg)
+      return msg
     }
     return asString(error.value)
   })
 
-  watch(error, (error) => {
-    if (!error || !errorMessage.value) {
-      return
-    }
-    switch (error.response?.status) {
-      case 400:
-      case 500:
-        snackbar.notifyError(errorMessage.value)
-    }
-  })
+  if (!cfg.ignoreErrors) {
+    watch(error, (error) => {
+      if (!error || !errorMessage.value) {
+        return
+      }
+      switch (error.response?.status) {
+        case 400:
+        case 500:
+          snackbar.notifyError(errorMessage.value)
+      }
+    })
+  }
 
   return {
     promised,
     result,
     error,
+    errorMessage,
     pending,
 
     cancel,

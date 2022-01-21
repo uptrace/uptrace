@@ -4,15 +4,19 @@
 
 ### 💡 Enhancements 💡
 
-- Added support for having multiple isolated projects. Projects are defined in the YAML config.
-- Added basic authorization. Users are defined in the YAML config.
-- Added `SAMPLE BY` to `spans_index` table.
-- Added query limits to most queries to better support large datasets.
-- Improved error handling on invalid queries.
+- Added support for exceptions and in-app logs.
 - Added services and hostnames overview.
-- Use MessagePack to store spans in `spans_data` table.
+- Added SQL query formatting when viewing spans.
+- Require user authentication. Users are defined in the YAML config.
+- Added support for having multiple isolated projects in the same database. Projects are defined in
+  the YAML config.
+- Added `SAMPLE BY` to `spans_index` table.
+- Added query limits to `spans_index` queries to better support large datasets.
+- Improved error handling on invalid Uptrace queries.
+- Use faster and more compact MessagePack encoding to store spans in `spans_data` table.
+- Add more attributes to ClickHouse index.
 
-To upgrade, reset CH schema with the following command:
+To upgrade, reset ClickHouse schema with the following command (existing data will be lost):
 
 ```go
 # Using binary

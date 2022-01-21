@@ -1,4 +1,4 @@
-import { useAxios } from '@/use/axios'
+import { useAxios, Config } from '@/use/axios'
 import {
   useWatchAxiosConfig,
   AxiosRequestSource,
@@ -7,14 +7,14 @@ import {
 
 export type { AxiosRequestSource, AxiosRequestConfig }
 
-export function useWatchAxios(source: AxiosRequestSource) {
+export function useWatchAxios(source: AxiosRequestSource, cfg: Config = {}) {
   const {
     loading,
     data,
     error,
 
     request,
-  } = useAxios()
+  } = useAxios(cfg)
 
   const { reload, abort } = useWatchAxiosConfig(
     source,

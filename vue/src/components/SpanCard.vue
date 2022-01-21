@@ -63,7 +63,8 @@
           <v-sheet outlined rounded="lg">
             <v-tabs v-model="activeTab" background-color="transparent" class="light-blue lighten-5">
               <v-tab href="#attrs">Attrs</v-tab>
-              <v-tab v-if="dbStmt" href="#dbStmt">SQL</v-tab>
+              <v-tab v-if="dbStatement" href="#dbStatement">SQL</v-tab>
+              <v-tab v-if="dbStatementPretty" href="#dbStatementPretty">SQL pretty</v-tab>
               <v-tab v-if="excStacktrace" href="#excStacktrace">Stacktrace</v-tab>
               <v-tab v-if="span.events && span.events.length" href="#events">
                 Events ({{ span.events.length }})
@@ -76,8 +77,11 @@
                 <AttrTable :date-range="dateRange" :attrs="span.attrs" />
               </v-tab-item>
 
-              <v-tab-item value="dbStmt">
-                <XCode :code="dbStmt" language="sql" />
+              <v-tab-item value="dbStatement">
+                <XCode :code="dbStatement" language="sql" />
+              </v-tab-item>
+              <v-tab-item value="dbStatementPretty">
+                <XCode :code="dbStatementPretty" language="sql" />
               </v-tab-item>
 
               <v-tab-item value="excStacktrace">
@@ -100,6 +104,7 @@
 </template>
 
 <script lang="ts">
+import { format } from 'sql-formatter'
 import { truncate } from 'lodash'
 import { defineComponent, ref, computed, proxyRefs, PropType } from '@vue/composition-api'
 
@@ -155,8 +160,12 @@ export default defineComponent({
       }
     })
 
-    const dbStmt = computed((): string => {
+    const dbStatement = computed((): string => {
       return props.span.attrs[xkey.dbStatement] ?? ''
+    })
+
+    const dbStatementPretty = computed((): string => {
+      return format(dbStatement.value)
     })
 
     const excStacktrace = computed((): string => {
@@ -170,7 +179,8 @@ export default defineComponent({
 
       axiosParams,
 
-      dbStmt,
+      dbStatement,
+      dbStatementPretty,
       excStacktrace,
     }
   },

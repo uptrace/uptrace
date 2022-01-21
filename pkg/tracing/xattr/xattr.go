@@ -36,10 +36,11 @@ const (
 	MessagingSystem    = "messaging.system"
 	MessagingOperation = "messaging.operation"
 
-	DBSystem    = "db.system"
-	DBStatement = "db.statement"
-	DBOperation = "db.operation"
-	DBSqlTable  = "db.sql.table"
+	DBSystem          = "db.system"
+	DBStatement       = "db.statement"
+	DBStatementPretty = "_db.statement_pretty"
+	DBOperation       = "db.operation"
+	DBSqlTable        = "db.sql.table"
 
 	HTTPRoute  = "http.route"
 	HTTPTarget = "http.target"
