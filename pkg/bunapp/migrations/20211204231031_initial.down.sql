@@ -1,3 +1,20 @@
+DROP VIEW IF EXISTS span_host_minutes_mv;
+
+--migrate:split
+
+DROP TABLE IF EXISTS span_host_minutes;
+
+--migrate:split
+
+DROP VIEW IF EXISTS span_host_hours_mv;
+
+--migrate:split
+
+DROP TABLE IF EXISTS span_host_hours;
+
+--------------------------------------------------------------------------------
+--migrate:split
+
 DROP VIEW IF EXISTS span_service_minutes_mv;
 
 --migrate:split

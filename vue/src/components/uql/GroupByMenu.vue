@@ -59,6 +59,7 @@
 import { defineComponent, shallowRef, PropType } from '@vue/composition-api'
 
 // Composables
+import { useRouter } from '@/use/router'
 import { AxiosParams } from '@/use/axios'
 import { useSuggestions, Suggestion } from '@/use/suggestions'
 import { UseUql } from '@/use/uql'
@@ -93,6 +94,7 @@ export default defineComponent({
   },
 
   setup(props) {
+    const { route } = useRouter()
     const menu = shallowRef(false)
     const column = shallowRef<Suggestion>()
 
@@ -108,8 +110,9 @@ export default defineComponent({
           return null
         }
 
+        const { projectId } = route.value.params
         return {
-          url: `/api/tracing/suggestions/attributes`,
+          url: `/api/tracing/${projectId}/suggestions/attributes`,
           params: props.axiosParams,
         }
       },

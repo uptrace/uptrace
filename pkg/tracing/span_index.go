@@ -20,4 +20,15 @@ type SpanIndex struct {
 
 	ServiceName string `ch:"service.name,lc"`
 	HostName    string `ch:"host.name,lc"`
+
+	DBSystem    string `ch:"db.system,lc"`
+	DBStatement string `ch:"db.statement"`
+	DBOperation string `ch:"db.operation,lc"`
+	DBSqlTable  string `ch:"db.sql.table,lc"`
+
+	LogSeverity string `ch:"log.severity,lc"`
+	LogMessage  string `ch:"log.message"`
+
+	ExceptionType    string `ch:"exception.type,lc"`
+	ExceptionMessage string `ch:"exception.message"`
 }

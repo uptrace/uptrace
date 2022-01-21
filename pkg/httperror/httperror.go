@@ -104,5 +104,5 @@ func From(err error) *Error {
 
 func internalError(err error) *Error {
 	typ := reflect.TypeOf(err).String()
-	return InternalServerError("internal", typ+": "+err.Error())
+	return InternalServerError(typ + ": " + err.Error())
 }

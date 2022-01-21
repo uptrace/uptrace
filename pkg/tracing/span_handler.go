@@ -79,10 +79,6 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	for _, m := range groups {
-		fixJSBigInt(m)
-	}
-
 	return httputil.JSON(w, bunrouter.H{
 		"groups":     groups,
 		"queryParts": f.parts,

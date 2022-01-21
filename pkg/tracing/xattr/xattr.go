@@ -38,6 +38,7 @@ const (
 
 	DBSystem    = "db.system"
 	DBStatement = "db.statement"
+	DBOperation = "db.operation"
 	DBSqlTable  = "db.sql.table"
 
 	HTTPRoute  = "http.route"
@@ -52,4 +53,8 @@ const (
 
 	OtelLibraryName    = "otel.library.name"
 	OtelLibraryVersion = "otel.library.version"
+
+	TelemetrySDKName     = "telemetry.sdk.name"
+	TelemetrySDKVersion  = "telemetry.sdk.version"
+	TelemetrySDKLanguage = "telemetry.sdk.language"
 )

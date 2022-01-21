@@ -37,6 +37,7 @@ import { truncate } from 'lodash'
 import { defineComponent, shallowRef, PropType } from '@vue/composition-api'
 
 // Composables
+import { useRouter } from '@/use/router'
 import { AxiosParams } from '@/use/axios'
 import { UseUql } from '@/use/uql'
 import { useSuggestions } from '@/use/suggestions'
@@ -68,6 +69,7 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
+    const { route } = useRouter()
     const menu = shallowRef(false)
 
     const suggestions = useSuggestions(() => {
@@ -75,8 +77,9 @@ export default defineComponent({
         return null
       }
 
+      const { projectId } = route.value.params
       return {
-        url: `/api/tracing/suggestions/values`,
+        url: `/api/tracing/${projectId}/suggestions/values`,
         params: {
           ...props.axiosParams,
           column: props.attrKey,
