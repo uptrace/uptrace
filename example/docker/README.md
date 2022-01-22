@@ -1,8 +1,10 @@
 # Uptrace Open Source demo
 
-This example demonstrates how to start Uptrace and ClickHouse using Docker images. It uses
-[uptrace.yml](uptrace.yml) to configure Uptrace. To run Uptrace permanently, we recommend using
-pre-compiled [binaries](https://docs.uptrace.dev/guide/os.html#installation).
+This example demonstrates how to quickly start Uptrace and ClickHouse using Docker images. It uses
+[uptrace.yml](uptrace.yml) to configure Uptrace.
+
+To run Uptrace permanently, we recommend using pre-compiled
+[binaries](https://docs.uptrace.dev/guide/os.html#installation).
 
 **Step 1**. Start the services:
 
