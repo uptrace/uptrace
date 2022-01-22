@@ -1,15 +1,15 @@
-# Secret key is used to sign JWT tokens.
+# Secret key that is used to sign JWT tokens.
 secret_key: changeme
 
-# Public URL to Vue-powered UI.
+# Public URL for Vue-powered UI.
 site:
   scheme: 'http'
   host: 'localhost'
 
 listen:
-  # OTLP/gRPC
+  # OTLP/gRPC API
   grpc: ':14317'
-  # OTLP/HTTP and Uptrace API
+  # OTLP/HTTP API and Uptrace API
   http: ':14318'
 
 ch:
@@ -28,16 +28,20 @@ users:
     password: uptrace
 
 projects:
+  # First project is used for self-monitoring.
   - id: 1
-    name: My project
-    token: secret_token
-  - id: 2
-    name: Another project
+    name: Uptrace
     token: secret_token
 
-# https://clickhouse.com/docs/en/operations/settings/query-complexity/
-# https://clickhouse.com/docs/en/sql-reference/statements/select/sample/
+  - id: 2
+    name: My project
+    token: secret_token
+
+# Various limits we apply to queries on spans_index table.
+#
+# - https://clickhouse.com/docs/en/operations/settings/query-complexity/
+# - https://clickhouse.com/docs/en/sql-reference/statements/select/sample/
 ch_select_limits:
   sample_rows: 10e6 # sample 10 million rows
   max_rows_to_read: 12e6 # read at most 12 million rows
-  max_bytes_to_read: 4e9 # read at most 4 gigabytes
+  max_bytes_to_read: 4e9 # read at most 4 gigabytes of data
