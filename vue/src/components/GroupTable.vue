@@ -48,7 +48,7 @@
         <template v-for="(item, itemId) in items">
           <tr :key="itemId" class="cursor-pointer" @click="groupViewer.toggle(itemId)">
             <td v-if="hasGroupName" class="target">
-              <span>{{ truncate(item[xkey.spanName], { length: 100 }) }}</span>
+              <span>{{ itemName(item) }}</span>
             </td>
             <td v-if="showSystemColumn">
               <router-link :to="systemRoute(item)" @click.native.stop>{{
@@ -313,7 +313,7 @@ export default defineComponent({
       spanListRoute,
       groupBasedWhere,
       systemRoute,
-      truncate,
+      itemName,
     }
   },
 })
@@ -342,6 +342,16 @@ function useGroupViewer() {
   }
 
   return { visible, show, hide, toggle }
+}
+
+function itemName(item: Record<string, any>, maxLength = 120): string {
+  const eventName = item[xkey.spanEventName]
+  if (eventName) {
+    return truncate(eventName, { length: maxLength })
+  }
+
+  const name = item[xkey.spanName]
+  return truncate(name, { length: maxLength })
 }
 </script>
 

@@ -14,6 +14,7 @@ export enum xkey {
   spanGroupId = 'span.group_id',
 
   spanName = 'span.name',
+  spanEventName = 'span.event_name',
   spanKind = 'span.kind',
   spanTime = 'span.time',
   spanDuration = 'span.duration',

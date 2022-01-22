@@ -14,7 +14,7 @@ export function durationFixed(n: number | undefined, cfg = {}): string {
   if (Math.abs(n) < 100) {
     return fixedMantissa(n, 1, cfg) + 'µs'
   }
-  if (Math.abs(n) < 10000) {
+  if (Math.abs(n) < 1000) {
     return fixedMantissa(n, 0, cfg) + 'µs'
   }
 

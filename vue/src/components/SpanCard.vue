@@ -13,7 +13,16 @@
 
     <v-container :fluid="fluid" class="py-4">
       <v-row class="px-4 text-subtitle-1">
-        <v-col>{{ span.name }}</v-col>
+        <v-col>
+          <template v-if="span.eventName">
+            <span>{{ span.eventName }}</span>
+            <template v-if="span.name">
+              <span class="mx-2"> &bull; </span>
+              <span>{{ spanName(span) }}</span>
+            </template>
+          </template>
+          <span v-else>{{ spanName(span) }}</span>
+        </v-col>
       </v-row>
 
       <v-row align="end" class="px-4 text-subtitle-2 text-center">
@@ -119,7 +128,7 @@ import EventPanels from '@/components/EventPanels.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
-import { Span } from '@/models/span'
+import { spanName, Span } from '@/models/span'
 
 interface Props {
   dateRange: UseDateRange
@@ -182,6 +191,8 @@ export default defineComponent({
       dbStatement,
       dbStatementPretty,
       excStacktrace,
+
+      spanName,
     }
   },
 })

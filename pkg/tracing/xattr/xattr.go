@@ -12,6 +12,7 @@ const (
 	SpanTraceID  = "span.trace_id"
 
 	SpanName         = "span.name"
+	SpanEventName    = "span.event_name"
 	SpanKind         = "span.kind"
 	SpanTime         = "span.time"
 	SpanDuration     = "span.duration"
@@ -31,22 +32,29 @@ const (
 
 	ServiceName = "service.name"
 	HostName    = "host.name"
-	RPCSystem   = "rpc.system"
 
-	MessagingSystem    = "messaging.system"
-	MessagingOperation = "messaging.operation"
+	RPCSystem  = "rpc.system"
+	RPCService = "rpc.service"
+	RPCMethod  = "rpc.method"
 
-	DBSystem          = "db.system"
-	DBStatement       = "db.statement"
-	DBStatementPretty = "_db.statement_pretty"
-	DBOperation       = "db.operation"
-	DBSqlTable        = "db.sql.table"
+	MessagingSystem          = "messaging.system"
+	MessagingOperation       = "messaging.operation"
+	MessagingDestination     = "messaging.destination"
+	MessagingDestinationKind = "messaging.destination_kind"
 
+	DBSystem    = "db.system"
+	DBStatement = "db.statement"
+	DBOperation = "db.operation"
+	DBSqlTable  = "db.sql.table"
+
+	HTTPMethod = "http.method" // GET
 	HTTPRoute  = "http.route"
 	HTTPTarget = "http.target"
 
 	LogMessage  = "log.message"
 	LogSeverity = "log.severity"
+	LogSource   = "log.source"
+	LogFilepath = "log.filepath"
 
 	ExceptionType       = "exception.type"
 	ExceptionMessage    = "exception.message"
@@ -58,4 +66,6 @@ const (
 	TelemetrySDKName     = "telemetry.sdk.name"
 	TelemetrySDKVersion  = "telemetry.sdk.version"
 	TelemetrySDKLanguage = "telemetry.sdk.language"
+
+	DeploymentEnvironment = "deployment.environment"
 )

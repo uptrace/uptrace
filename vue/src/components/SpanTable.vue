@@ -41,11 +41,11 @@
         <template v-for="span in spans">
           <tr :key="`a-${span.id}`" class="cursor-pointer" @click="dialog.showSpan(span)">
             <td>
-              <span>{{ truncate(span.name, { length: 100 }) }}</span>
+              <span>{{ eventOrSpanName(span) }}</span>
             </td>
             <td>
               <SpanChips
-                :attrs="span.attrs"
+                :span="span"
                 :clickable="'click:chip' in $listeners"
                 @click:chip="$emit('click:chip', $event)"
               />
@@ -75,7 +75,6 @@
 </template>
 
 <script lang="ts">
-import { truncate } from 'lodash'
 import { defineComponent, shallowRef, nextTick, proxyRefs, PropType } from '@vue/composition-api'
 
 // Composables
@@ -90,7 +89,7 @@ import SpanChips from '@/components/SpanChips.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
-import { traceShowRoute, Span } from '@/models/span'
+import { eventOrSpanName, Span } from '@/models/span'
 
 export default defineComponent({
   name: 'SpansTable',
@@ -138,8 +137,7 @@ export default defineComponent({
       xkey,
       dialog: useDialog(),
 
-      traceShowRoute,
-      truncate,
+      eventOrSpanName,
       onSortBy,
     }
   },

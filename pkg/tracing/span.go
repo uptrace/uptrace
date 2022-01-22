@@ -1,13 +1,12 @@
 package tracing
 
 import (
-	"context"
 	"math"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"github.com/vmihailenco/msgpack"
 	"golang.org/x/exp/slices"
@@ -20,22 +19,23 @@ type Span struct {
 
 	TraceID  uuid.UUID `json:"traceId" ch:"span.trace_id,type:UUID"`
 	ID       uint64    `json:"id,string" ch:"span.id"`
-	ParentID uint64    `json:"parentId,string,omitempty" ch:"-"`
+	ParentID uint64    `json:"parentId,string,omitempty" ch:"span.parent_id"`
 
-	Name string `json:"name" ch:"span.name,lc"`
-	Kind string `json:"kind" ch:"span.kind,lc"`
+	Name      string `json:"name" ch:"span.name,lc"`
+	EventName string `json:"eventName,omitempty" ch:"span.event_name,lc"`
+	Kind      string `json:"kind" ch:"span.kind,lc"`
 
 	Time         time.Time     `json:"time" ch:"span.time"`
 	Duration     time.Duration `json:"duration" ch:"span.duration"`
-	DurationSelf time.Duration `json:"durationSelf" ch:"-"`
-	StartPct     float64       `json:"startPct" ch:"-"`
+	DurationSelf time.Duration `json:"durationSelf" msgpack:"-" ch:"-"`
+	StartPct     float64       `json:"startPct" msgpack:"-" ch:"-"`
 
 	StatusCode    string `json:"statusCode" ch:"span.status_code,lc"`
 	StatusMessage string `json:"statusMessage" ch:"span.status_message"`
 
-	Attrs  AttrMap      `json:"attrs" ch:"-"`
-	Events []*SpanEvent `json:"events" ch:"-"`
-	Links  []*SpanLink  `json:"links" ch:"-"`
+	Attrs  AttrMap     `json:"attrs" ch:"-"`
+	Events []*Span     `json:"events,omitempty" msgpack:"-" ch:"-"`
+	Links  []*SpanLink `json:"links" ch:"-"`
 
 	Children []*Span `json:"children,omitempty" msgpack:"-" ch:"-"`
 }
@@ -46,16 +46,8 @@ type SpanLink struct {
 	Attrs   AttrMap   `json:"attrs"`
 }
 
-type SpanEvent struct {
-	Name  string    `json:"name"`
-	Time  time.Time `json:"time"`
-	Attrs AttrMap   `json:"attrs"`
-}
-
-var _ ch.AfterScanRowHook = (*Span)(nil)
-
-func (s *Span) AfterScanRow(ctx context.Context) error {
-	return nil
+func (s *Span) IsEvent() bool {
+	return isEventSystem(s.System)
 }
 
 func (s *Span) EndTime() time.Time {
@@ -104,6 +96,10 @@ func addSpanSorted(a []*Span, x *Span) []*Span {
 	return slices.Insert(a, 0, x)
 }
 
+func (s *Span) AddEvent(event *Span) {
+	s.Events = addSpanSorted(s.Events, event)
+}
+
 func (s *Span) AdjustDurationSelf(child *Span) {
 	if child.Attrs.Text(xattr.SpanKind) == consumerSpanKind { // async span
 		return
@@ -144,6 +140,10 @@ func BuildSpanTree(spansPtr *[]*Span) *Span {
 	var root *Span
 
 	for _, s := range spans {
+		if s.IsEvent() {
+			continue
+		}
+
 		if s.ParentID == 0 {
 			root = s
 		}
@@ -157,6 +157,17 @@ func BuildSpanTree(spansPtr *[]*Span) *Span {
 	}
 
 	if len(m) != len(spans) {
+		for _, s := range spans {
+			if !s.IsEvent() {
+				continue
+			}
+			if span, ok := m[s.ParentID]; ok {
+				span.AddEvent(s)
+			} else {
+				root.AddEvent(s)
+			}
+		}
+
 		spans = spans[:0]
 		for _, s := range m {
 			spans = append(spans, s)
@@ -203,6 +214,21 @@ func newFakeRoot(spans []*Span) *Span {
 }
 
 //------------------------------------------------------------------------------
+
+func isEventSystem(s string) bool {
+	if idx := strings.IndexByte(s, ':'); idx >= 0 {
+		s = s[:idx]
+	}
+	switch s {
+	case eventType,
+		logEventType,
+		exceptionEventType,
+		messageEventType:
+		return true
+	default:
+		return false
+	}
+}
 
 func marshalSpan(span *Span) []byte {
 	b, err := msgpack.Marshal(span)

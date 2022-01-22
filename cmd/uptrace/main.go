@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -23,6 +25,8 @@ import (
 	_ "github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -131,6 +135,8 @@ var serveCommand = &cli.Command{
 				app.Zap(ctx).Error("grpcServer.Serve failed", zap.Error(err))
 			}
 		}()
+
+		genSampleTrace()
 
 		fmt.Println(bunapp.WaitExitSignal())
 
@@ -408,4 +414,22 @@ func newCHCommand(migrations *migrate.Migrations) *cli.Command {
 			},
 		},
 	}
+}
+
+func genSampleTrace() {
+	ctx := context.Background()
+
+	tracer := otel.Tracer("github.com/uptrace/uptrace")
+
+	ctx, main := tracer.Start(ctx, "sample-trace")
+	defer main.End()
+
+	_, child1 := tracer.Start(ctx, "child1-of-main")
+	child1.SetAttributes(attribute.String("key1", "value1"))
+	child1.RecordError(errors.New("error1"))
+	child1.End()
+
+	_, child2 := tracer.Start(ctx, "child2-of-main")
+	child2.SetAttributes(attribute.Int("key2", 42), attribute.Float64("key3", 123.456))
+	child2.End()
 }

@@ -48,22 +48,7 @@ export default defineComponent({
 
   setup(props) {
     const attrKeys = computed((): string[] => {
-      const keys = Object.keys(props.attrs).filter((key) => {
-        switch (key) {
-          case xkey.spanId:
-          case xkey.spanTraceId:
-          case xkey.spanGroupId:
-          case xkey.spanSystem:
-          case xkey.spanName:
-          case xkey.spanKind:
-          case xkey.spanTime:
-          case xkey.spanDuration:
-          case xkey.spanStatusCode:
-            return false
-          default:
-            return true
-        }
-      })
+      const keys = Object.keys(props.attrs)
       keys.sort()
       return keys
     })
