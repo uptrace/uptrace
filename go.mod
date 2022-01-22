@@ -29,11 +29,11 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.27.0
 	go.opentelemetry.io/otel v1.3.0
 	go.opentelemetry.io/otel/trace v1.3.0
-	go.opentelemetry.io/proto/otlp v0.11.0
+	go.opentelemetry.io/proto/otlp v0.12.0
 	go.uber.org/zap v1.19.1
 	go4.org v0.0.0-20201209231011-d4a079459e60
 	golang.org/x/exp v0.0.0-20211210185655-e05463a05a18
-	google.golang.org/grpc v1.42.0
+	google.golang.org/grpc v1.43.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )

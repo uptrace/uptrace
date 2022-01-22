@@ -4,7 +4,7 @@
       <v-expansion-panel-header class="user-select-text">
         <span>
           <XDate :date="event.time" format="time" class="mr-5 text-caption" />
-          <span>{{ event.name }}</span>
+          <span>{{ event.eventName }}</span>
         </span>
       </v-expansion-panel-header>
       <v-expansion-panel-content>
@@ -25,7 +25,7 @@ import EventPanelContent from '@/components/EventPanelContent.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
-import { SpanEvent } from '@/models/span'
+import { Span } from '@/models/span'
 
 export default defineComponent({
   name: 'EventPanels',
@@ -37,7 +37,7 @@ export default defineComponent({
       required: true,
     },
     events: {
-      type: Array as PropType<SpanEvent[]>,
+      type: Array as PropType<Span[]>,
       required: true,
     },
     flat: {

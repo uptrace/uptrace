@@ -1,7 +1,10 @@
 package tracing
 
 import (
+	"strings"
+
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 )
 
 type SpanIndex struct {
@@ -31,4 +34,79 @@ type SpanIndex struct {
 
 	ExceptionType    string `ch:"exception.type,lc"`
 	ExceptionMessage string `ch:"exception.message"`
+}
+
+func newSpanIndex(index *SpanIndex, span *Span) {
+	index.Span = span
+	index.Count = 1
+
+	index.ServiceName, _ = span.Attrs[xattr.ServiceName].(string)
+	index.HostName, _ = span.Attrs[xattr.HostName].(string)
+
+	index.DBSystem, _ = span.Attrs[xattr.DBSystem].(string)
+	index.DBStatement, _ = span.Attrs[xattr.DBStatement].(string)
+	index.DBOperation, _ = span.Attrs[xattr.DBOperation].(string)
+	index.DBSqlTable, _ = span.Attrs[xattr.DBSqlTable].(string)
+
+	index.LogSeverity, _ = span.Attrs[xattr.LogSeverity].(string)
+	index.LogMessage, _ = span.Attrs[xattr.LogMessage].(string)
+
+	index.ExceptionType, _ = span.Attrs[xattr.ExceptionType].(string)
+	index.ExceptionMessage, _ = span.Attrs[xattr.ExceptionMessage].(string)
+
+	index.EventCount = uint8(len(span.Events))
+	index.EventErrorCount = 0
+	index.EventLogCount = 0
+
+	index.AttrKeys, index.AttrValues = attrKeysAndValues(span.Attrs)
+}
+
+var (
+	indexedAttrs = []string{
+		xattr.ServiceName,
+		xattr.HostName,
+
+		xattr.DBSystem,
+		xattr.DBStatement,
+		xattr.DBOperation,
+		xattr.DBSqlTable,
+
+		xattr.LogSeverity,
+		xattr.LogMessage,
+
+		xattr.ExceptionType,
+		xattr.ExceptionMessage,
+	}
+	indexedAttrSet = listToSet(indexedAttrs)
+)
+
+var (
+	ignoredAttrs = []string{
+		xattr.TelemetrySDKName,
+		xattr.TelemetrySDKVersion,
+		xattr.TelemetrySDKLanguage,
+
+		xattr.OtelLibraryName,
+		xattr.OtelLibraryVersion,
+	}
+	ignoredAttrSet = listToSet(ignoredAttrs)
+)
+
+func attrKeysAndValues(m AttrMap) ([]string, []string) {
+	keys := make([]string, 0, len(m))
+	values := make([]string, 0, len(m))
+	for k, v := range m {
+		if strings.HasPrefix(k, "_") {
+			continue
+		}
+		if _, ok := indexedAttrSet[k]; ok {
+			continue
+		}
+		if _, ok := ignoredAttrSet[k]; ok {
+			continue
+		}
+		keys = append(keys, k)
+		values = append(values, truncate(asString(v), 200))
+	}
+	return keys, values
 }

@@ -248,7 +248,7 @@ func compileUQL(
 	}
 
 	if columnSet[uql.Name{AttrKey: xattr.SpanGroupID}.String()] {
-		for _, key := range []string{xattr.SpanSystem, xattr.SpanName} {
+		for _, key := range []string{xattr.SpanSystem, xattr.SpanName, xattr.SpanEventName} {
 			name := uql.Name{FuncName: "any", AttrKey: key}
 			if !columnSet[name.String()] {
 				q = uqlColumn(q, name, minutes)
@@ -295,13 +295,14 @@ func appendUQLColumn(b []byte, name uql.Name, minutes float64) []byte {
 
 	switch name.String() {
 	case xattr.SpanCount:
-		return chschema.AppendQuery(b, "count()")
+		return chschema.AppendQuery(b, "sum(`span.count`)")
 	case xattr.SpanCountPerMin:
-		return chschema.AppendQuery(b, "count() / ?", minutes)
+		return chschema.AppendQuery(b, "sum(`span.count`) / ?", minutes)
 	case xattr.SpanErrorCount:
-		return chschema.AppendQuery(b, "countIf(`span.status_code` = 'error')", minutes)
+		return chschema.AppendQuery(b, "sumIf(`span.count`, `span.status_code` = 'error')", minutes)
 	case xattr.SpanErrorPct:
-		return chschema.AppendQuery(b, "countIf(`span.status_code` = 'error') / count()", minutes)
+		return chschema.AppendQuery(
+			b, "sumIf(`span.count`, `span.status_code` = 'error') / sum(`span.count`)", minutes)
 	default:
 		if name.FuncName != "" {
 			b = append(b, name.FuncName...)
@@ -325,7 +326,7 @@ func chColumn(key string) ch.Safe {
 func appendCHColumn(b []byte, key string) []byte {
 	switch key {
 	case xattr.SpanSystem, xattr.SpanGroupID, xattr.SpanTraceID,
-		xattr.SpanName, xattr.SpanKind, xattr.SpanDuration,
+		xattr.SpanName, xattr.SpanEventName, xattr.SpanKind, xattr.SpanDuration,
 		xattr.SpanStatusCode, xattr.SpanStatusMessage,
 		xattr.SpanEventCount, xattr.SpanEventErrorCount, xattr.SpanEventLogCount:
 		return chschema.AppendIdent(b, key)

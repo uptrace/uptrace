@@ -17,7 +17,7 @@ import PctileChart from '@/components/PctileChart.vue'
 import AttrTable from '@/components/AttrTable.vue'
 
 // Utilities
-import { SpanEvent } from '@/models/span'
+import { Span } from '@/models/span'
 
 export default defineComponent({
   name: 'EventPanelContent',
@@ -29,7 +29,7 @@ export default defineComponent({
       required: true,
     },
     event: {
-      type: Object as PropType<SpanEvent>,
+      type: Object as PropType<Span>,
       required: true,
     },
   },

@@ -3,9 +3,11 @@ CREATE TABLE spans_index (
   "span.system" LowCardinality(String),
   "span.group_id" UInt64 Codec(Delta, Default),
 
-  "span.id" UInt64,
   "span.trace_id" UUID,
+  "span.id" UInt64,
+  "span.parent_id" UInt64,
   "span.name" LowCardinality(String),
+  "span.event_name" String,
   "span.kind" LowCardinality(String),
   "span.time" DateTime Codec(Delta, Default),
   "span.duration" Int64 Codec(Delta, Default),
@@ -46,16 +48,14 @@ TTL toDate("span.time") + INTERVAL ?TTL DELETE
 --migrate:split
 
 CREATE TABLE spans_data (
-  project_id UInt32 Codec(Delta, Default),
   trace_id UUID,
-
   id UInt64,
   parent_id UInt64,
   time DateTime Codec(Delta, Default),
   data String
 )
 ENGINE = MergeTree()
-ORDER BY (trace_id)
+ORDER BY (trace_id, id)
 PARTITION BY toDate(time)
 TTL toDate(time) + INTERVAL ?TTL DELETE
 SETTINGS index_granularity = 128
@@ -63,12 +63,12 @@ SETTINGS index_granularity = 128
 --migrate:split
 
 CREATE TABLE spans_index_buffer AS spans_index
-ENGINE = Buffer(currentDatabase(), spans_index, 5, 10, 30, 10000, 1000000, 10000000, 100000000)
+ENGINE = Buffer(currentDatabase(), spans_index, 5, 10, 15, 10000, 1000000, 10000000, 100000000)
 
 --migrate:split
 
 CREATE TABLE spans_data_buffer AS spans_data
-ENGINE = Buffer(currentDatabase(), spans_data, 5, 10, 30, 10000, 1000000, 10000000, 100000000)
+ENGINE = Buffer(currentDatabase(), spans_data, 5, 10, 15, 10000, 1000000, 10000000, 100000000)
 
 --------------------------------------------------------------------------------
 --migrate:split

@@ -1,7 +1,7 @@
 <template>
   <span>
     <v-btn
-      v-if="attrs[xkey.spanStatusCode] === 'error'"
+      v-if="span.statusCode === 'error'"
       icon
       :title="`${xkey.spanStatusCode} = 'error'`"
       class="mr-1"
@@ -23,6 +23,11 @@
     >
       {{ chip.text }}
     </v-chip>
+
+    <v-chip v-if="events.length" color="blue lighten-5" label small class="ml-1">
+      <strong class="mr-1">{{ events.length }}</strong>
+      <span>{{ events.length === 1 ? 'event' : 'events' }}</span>
+    </v-chip>
   </span>
 </template>
 
@@ -32,7 +37,7 @@ import { defineComponent, computed, PropType } from '@vue/composition-api'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
-import { AttrMap } from '@/models/span'
+import { AttrMap, Span } from '@/models/span'
 
 export interface SpanChip {
   key: string
@@ -44,8 +49,8 @@ export default defineComponent({
   name: 'SpanChips',
 
   props: {
-    attrs: {
-      type: Object as PropType<AttrMap>,
+    span: {
+      type: Object as PropType<Span>,
       required: true,
     },
     showOperation: {
@@ -63,31 +68,35 @@ export default defineComponent({
   },
 
   setup(props) {
+    const events = computed((): Span[] => {
+      return props.span?.events ?? []
+    })
+
     const chips = computed(() => {
       if (props.traceMode) {
-        return traceChips(props.attrs)
+        return traceChips(props.span.attrs)
       }
 
       const chips: SpanChip[] = []
 
-      const service = props.attrs[xkey.serviceName]
+      const service = props.span.attrs[xkey.serviceName]
       if (service) {
         chips.push({ key: xkey.serviceName, value: service, text: service })
       }
 
-      pushKindChip(chips, props.attrs)
+      pushKindChip(chips, props.span.attrs)
 
-      const file = props.attrs[xkey.codeFilepath]
+      const file = props.span.attrs[xkey.codeFilepath]
       if (file) {
         chips.push({ key: xkey.codeFilepath, value: file, text: shortFile(file) })
       }
 
-      pushHttpStatusChip(chips, props.attrs)
+      pushHttpStatusChip(chips, props.span.attrs)
 
       return chips
     })
 
-    return { xkey, chips }
+    return { xkey, events, chips }
   },
 })
 

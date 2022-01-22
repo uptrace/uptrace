@@ -38,7 +38,7 @@
               <span class="cursor-pointer span-name">{{
                 truncate(span.name, { length: 100 })
               }}</span>
-              <SpanChips :attrs="span.attrs" trace-mode class="ml-2" />
+              <SpanChips :span="span" trace-mode class="ml-2" />
             </td>
 
             <td class="text-caption" style="position: relative">
