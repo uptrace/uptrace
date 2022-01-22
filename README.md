@@ -14,18 +14,16 @@ database to store it. ClickHouse is the only dependency.
 - OpenTelemetry protocol via gRPC (`:14317`) and HTTP (`:14318`)
 - Span/Trace grouping
 - SQL-like query language
+- Errors/logs support
 - Percentiles
-- Systems dashboard
+- Systems, services, and hostnames dashboards
 - Multiple users/projects via YAML config
+- Sampling/adjusted counts support
 
 **Roadmap**:
 
-- Errors/logs support
-- More dashboards for services and hosts
-- ClickHouse cluster support
+- ClickHouse cluster support in the database schema
 - TLS support
-- Sampling/adjusted counts support
-- Improved SQL support using CockroachDB SQL parser
 
 ## Getting started
 
@@ -88,9 +86,9 @@ And open http://localhost:19876
 
 **What is the license?**
 
-The Business Source License [license](LICENSE) is identical to Apache 2.0 with the only exception
-being that you can't use the code to create a cloud service. It is a more permissive license than,
-for example, AGPL, because it allows private changes to the code.
+The Business Source [License](LICENSE) is identical to Apache 2.0 with the only exception being that
+you can't use the code to create a cloud service. It is a more permissive license than, for example,
+AGPL, because it allows private changes to the code.
 
 You can learn more about BSL [here](https://mariadb.com/bsl-faq-adopting/).
 
@@ -98,3 +96,9 @@ You can learn more about BSL [here](https://mariadb.com/bsl-faq-adopting/).
 
 Yes, having 2 separate versions allows us to have minimal number of dependencies (ClickHouse) and
 keep the codebase small and fun to work with.
+
+**Is database schema stable?**
+
+No, we are still making changes to the database schema and hoping to switch to
+[ClickHouse dynamic subcolumns](https://github.com/ClickHouse/ClickHouse/pull/23932) when that
+feature is available.

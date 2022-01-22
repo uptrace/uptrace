@@ -4,7 +4,9 @@
 
 ### 💡 Enhancements 💡
 
-- Added support for exceptions and in-app logs.
+- Added support for exceptions and in-app logs. See
+  [Zap](https://github.com/uptrace/opentelemetry-go-extra/tree/main/otelzap) and
+  [logrus](https://github.com/uptrace/opentelemetry-go-extra/tree/main/otellogrus) integrations.
 - Added services and hostnames overview.
 - Added SQL query formatting when viewing spans.
 - Require user authentication. Users are defined in the YAML config.
@@ -25,5 +27,5 @@ To upgrade, reset ClickHouse schema with the following command (existing data wi
 ./uptrace --config=/etc/uptrace/uptrace.yml ch reset
 
 # Using sources
-go run --config=config/uptrace.yml cmd/uptrace/main.go ch reset
+go run cmd/uptrace/main.go --config=config/uptrace.yml ch reset
 ```
