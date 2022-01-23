@@ -23,11 +23,19 @@ export default defineComponent({
   name: 'CollectorTabs',
 
   props: {
-    grpc: {
+    grpcEndpoint: {
       type: String,
       default: '',
     },
-    http: {
+    httpEndpoint: {
+      type: String,
+      default: '',
+    },
+    grpcDsn: {
+      type: String,
+      default: '',
+    },
+    httpDsn: {
       type: String,
       default: '',
     },
@@ -37,11 +45,11 @@ export default defineComponent({
     const tabs = ref()
 
     const otlpGrpc = computed(() => {
-      return formatTemplate(otlpGrpcTpl, props.grpc)
+      return formatTemplate(otlpGrpcTpl, props.grpcEndpoint, props.grpcDsn)
     })
 
     const otlpHttp = computed(() => {
-      return formatTemplate(otlpHttpTpl, props.http)
+      return formatTemplate(otlpHttpTpl, props.httpEndpoint, props.httpDsn)
     })
 
     return { tabs, otlpGrpc, otlpHttp }
@@ -60,6 +68,8 @@ exporters:
     endpoint: {0}
     tls:
       insecure: true
+    headers:
+      uptrace-dsn: '{1}'
 `.trim()
 
 const otlpHttpTpl = `
@@ -68,6 +78,8 @@ exporters:
     endpoint: {0}
     tls:
       insecure: true
+    headers:
+      uptrace-dsn: '{1}'
 `.trim()
 </script>
 

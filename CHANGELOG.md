@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.2.0
+## v0.2.0 - Jan 25 2022
 
 ### 💡 Enhancements 💡
 
@@ -29,3 +29,7 @@ To upgrade, reset ClickHouse schema with the following command (existing data wi
 # Using sources
 go run cmd/uptrace/main.go --config=config/uptrace.yml ch reset
 ```
+
+## v0.1.0 - Dec 27 2021
+
+Initial release.

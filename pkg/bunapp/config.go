@@ -114,12 +114,20 @@ func (c *AppConfig) SiteAddr() string {
 	return fmt.Sprintf("%s://%s:%s/", c.Site.Scheme, c.Listen.HTTPHost, c.Listen.HTTPPort)
 }
 
-func (c *AppConfig) OTLPGrpc(project *Project) string {
+func (c *AppConfig) GRPCEndpoint(project *Project) string {
+	return fmt.Sprintf("%s://%s:%s", c.Site.Scheme, c.Listen.GRPCHost, c.Listen.GRPCPort)
+}
+
+func (c *AppConfig) HTTPEndpoint(project *Project) string {
+	return fmt.Sprintf("%s://%s:%s", c.Site.Scheme, c.Listen.HTTPHost, c.Listen.HTTPPort)
+}
+
+func (c *AppConfig) GRPCDsn(project *Project) string {
 	return fmt.Sprintf("%s://%s@%s:%s/%d",
 		c.Site.Scheme, project.Token, c.Listen.GRPCHost, c.Listen.GRPCPort, project.ID)
 }
 
-func (c *AppConfig) OTLPHttp(project *Project) string {
+func (c *AppConfig) HTTPDsn(project *Project) string {
 	return fmt.Sprintf("%s://%s@%s:%s/%d",
 		c.Site.Scheme, project.Token, c.Listen.HTTPHost, c.Listen.HTTPPort, project.ID)
 }

@@ -21,11 +21,11 @@
 
           <p>For Go and .NET use <strong>OTLP/gRPC</strong>:</p>
 
-          <XCode :code="otlpGrpc" class="mb-4" />
+          <XCode :code="grpcDsn" class="mb-4" />
 
           <p>For Python, Ruby, and Node.JS use <strong>OTLP/HTTP</strong>:</p>
 
-          <XCode :code="otlpHttp" class="mb-4" />
+          <XCode :code="httpDsn" class="mb-4" />
 
           <p>
             See
@@ -44,13 +44,23 @@
       <v-row>
         <v-col class="text-body-1">
           Uptrace natively supports OpenTelemetry Protocol (OTLP) in case you are already using
-          OpenTelemetry Collector. Use the following OTLP exporter config:
+          OpenTelemetry Collector. Use the following OTLP exporter
+          <a
+            href="https://opentelemetry.uptrace.dev/guide/collector.html#configuration"
+            target="_blank"
+            >config</a
+          >:
         </v-col>
       </v-row>
 
       <v-row>
         <v-col>
-          <CollectorTabs :http="otlpHttp" :grpc="otlpGrpc" />
+          <CollectorTabs
+            :http-endpoint="httpEndpoint"
+            :grpc-endpoint="grpcEndpoint"
+            :http-dsn="httpDsn"
+            :grpc-dsn="grpcDsn"
+          />
         </v-col>
       </v-row>
     </v-container>
@@ -96,15 +106,23 @@ export default defineComponent({
       }
     })
 
-    const otlpGrpc = computed(() => {
-      return data.value?.grpc ?? 'http://localhost:4317'
+    const grpcEndpoint = computed(() => {
+      return data.value?.grpc?.endpoint ?? 'http://localhost:14317'
     })
 
-    const otlpHttp = computed(() => {
-      return data.value?.http ?? 'http://localhost:14318'
+    const httpEndpoint = computed(() => {
+      return data.value?.http?.endpoint ?? 'http://localhost:14318'
     })
 
-    return { otlpGrpc, otlpHttp }
+    const grpcDsn = computed(() => {
+      return data.value?.grpc?.dsn ?? 'http://localhost:14317'
+    })
+
+    const httpDsn = computed(() => {
+      return data.value?.http?.dsn ?? 'http://localhost:14318'
+    })
+
+    return { grpcEndpoint, httpEndpoint, grpcDsn, httpDsn }
   },
 })
 </script>

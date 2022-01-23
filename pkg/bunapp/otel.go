@@ -14,7 +14,7 @@ func setupOpentelemetry(app *App) {
 
 	uptrace.ConfigureOpentelemetry(
 		uptrace.WithMetricsEnabled(false),
-		uptrace.WithDSN(app.cfg.OTLPGrpc(project)),
+		uptrace.WithDSN(app.cfg.GRPCDsn(project)),
 		uptrace.WithServiceName(app.cfg.Service),
 	)
 
