@@ -67,8 +67,14 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 		}
 
 		return httputil.JSON(w, bunrouter.H{
-			"grpc": app.Config().OTLPGrpc(project),
-			"http": app.Config().OTLPHttp(project),
+			"grpc": map[string]any{
+				"endpoint": app.Config().GRPCEndpoint(project),
+				"dsn":      app.Config().GRPCDsn(project),
+			},
+			"http": map[string]any{
+				"endpoint": app.Config().HTTPEndpoint(project),
+				"dsn":      app.Config().HTTPDsn(project),
+			},
 		})
 	})
 

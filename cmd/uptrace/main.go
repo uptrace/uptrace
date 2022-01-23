@@ -80,8 +80,8 @@ var serveCommand = &cli.Command{
 
 		fmt.Printf("reading YAML config from    %s\n", cfg.Filepath)
 		fmt.Printf("read the docs at            https://docs.uptrace.dev/guide/os.html#otlp\n")
-		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", cfg.OTLPGrpc(project))
-		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", cfg.OTLPHttp(project))
+		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", cfg.GRPCDsn(project))
+		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", cfg.HTTPDsn(project))
 		fmt.Printf("Open UI (listen.http)       %s\n", cfg.SiteAddr())
 		fmt.Println()
 
