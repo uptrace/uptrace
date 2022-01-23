@@ -37,6 +37,7 @@ export enum xkey {
   rpcMethod = 'rpc.method',
   dbStatement = 'db.statement',
   dbStatementPretty = '_db.statement_pretty',
+  dbOperation = 'db.operation',
   dbSqlTable = 'db.sql.table',
 
   exceptionStacktrace = 'exception.stacktrace',
@@ -45,9 +46,54 @@ export enum xkey {
   codeFilepath = 'code.filepath',
 }
 
+export enum xsys {
+  all = 'all',
+  internal = 'internal',
+
+  error = 'error',
+  exception = 'exception',
+  logWarn = 'log:warn',
+  logError = 'log:error',
+  logFatal = 'log:fatal',
+  logPanic = 'log:panic',
+
+  event = 'event',
+
+  logPrefix = 'log:',
+  messagePrefix = 'message:',
+}
+
 export function isDummySystem(system: string | undefined): boolean {
   const [type, sys] = splitTypeSystem(system)
   return type === xkey.allSystem || sys === xkey.allSystem
+}
+
+export function isEventSystem(system: string | undefined): boolean {
+  if (!system) {
+    return false
+  }
+  return (
+    isErrorSystem(system) ||
+    system === xsys.event ||
+    system.startsWith(xsys.logPrefix) ||
+    system.startsWith(xsys.messagePrefix)
+  )
+}
+
+export function isErrorSystem(system: string | undefined): boolean {
+  if (!system) {
+    return false
+  }
+  switch (system) {
+    case xsys.error:
+    case xsys.exception:
+    case xsys.logError:
+    case xsys.logFatal:
+    case xsys.logPanic:
+      return true
+    default:
+      return false
+  }
 }
 
 export function splitTypeSystem(s: string | undefined): [string, string] {

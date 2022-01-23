@@ -64,11 +64,15 @@ func (h *SystemHandler) List(w http.ResponseWriter, req bunrouter.Request) error
 	}
 
 	tableName := spanSystemTableForWhere(&f.TimeFilter)
+	minutes := f.TimeFilter.Duration().Minutes()
 	systems := make([]map[string]any, 0)
 
 	if err := h.CH().NewSelect().
 		TableExpr(tableName).
 		ColumnExpr("system").
+		ColumnExpr("sum(count) AS count").
+		ColumnExpr("sum(count) / ? AS countPerMin", minutes).
+		ColumnExpr("sum(error_count) AS errorCount").
 		Apply(f.whereClause).
 		GroupExpr("system").
 		OrderExpr("system ASC").

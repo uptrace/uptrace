@@ -9,6 +9,10 @@ import { useWatchAxios } from '@/use/watch-axios'
 export interface System {
   system: string
 
+  count: number
+  countPerMin: number
+  errorCount: number
+
   dummy?: boolean
   numChild?: number
 }
@@ -112,18 +116,23 @@ function addDummySystems(systems: System[]): System[] {
     }
     const typ = sys.system.slice(0, i)
 
-    const typeSys = typeMap[typ]
-    if (typeSys) {
-      typeSys.numChild!++
-      continue
+    let typeSys = typeMap[typ]
+    if (!typeSys) {
+      typeSys = {
+        system: typ,
+        count: 0,
+        countPerMin: 0,
+        errorCount: 0,
+        dummy: true,
+        numChild: 0,
+      }
+      typeMap[typ] = typeSys
     }
 
-    typeMap[typ] = {
-      ...sys,
-      system: typ,
-      dummy: true,
-      numChild: 1,
-    }
+    typeSys.count += sys.count
+    typeSys.countPerMin += sys.countPerMin
+    typeSys.errorCount += sys.errorCount
+    typeSys.numChild!++
   }
 
   for (let sysType in typeMap) {
@@ -146,6 +155,9 @@ function addDummySystems(systems: System[]): System[] {
 
   systems.unshift({
     system: 'all',
+    count: 0,
+    countPerMin: 0,
+    errorCount: 0,
 
     dummy: true,
     numChild: 0,

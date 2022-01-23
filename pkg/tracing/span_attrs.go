@@ -136,13 +136,18 @@ func assignSpanSystemAndGroupID(ctx *spanContext, span *Span) {
 
 	if s := span.Attrs.Text(xattr.DBSystem); s != "" {
 		span.System = dbSpanType + ":" + s
+		stmt, _ := span.Attrs[xattr.DBStatement].(string)
 
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span, xattr.DBOperation, xattr.DBSqlTable)
-			if s, _ := span.Attrs[xattr.DBStatement].(string); s != "" {
-				hashDBStmt(digest, s)
+			if stmt != "" {
+				hashDBStmt(digest, stmt)
 			}
 		})
+		if stmt != "" {
+			span.Name = stmt
+		}
+		return
 	}
 
 	if span.Attrs.Has(xattr.HTTPRoute) || span.Attrs.Has(xattr.HTTPTarget) {

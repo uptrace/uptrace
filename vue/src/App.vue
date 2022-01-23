@@ -54,6 +54,19 @@
       <XSnackbar />
       <router-view />
     </v-main>
+
+    <v-footer app absolute color="grey lighten-5">
+      <v-container fluid>
+        <v-row justify="center" align="center">
+          <v-col cols="auto">
+            Found a bug? Create an
+            <a href="https://github.com/uptrace/uptrace/issues" target="_blank">issue</a>. Have a
+            question? Start a
+            <a href="https://github.com/uptrace/uptrace/discussions" target="_blank">discussion</a>.
+          </v-col>
+        </v-row>
+      </v-container>
+    </v-footer>
   </v-app>
 </template>
 
