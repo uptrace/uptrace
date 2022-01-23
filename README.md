@@ -3,6 +3,9 @@
 Uptrace is a distributed tracing system that uses OpenTelemetry to collect data and ClickHouse
 database to store it. ClickHouse is the only dependency.
 
+> :heart: Looking for a ClickHouse client? Check out
+> [go-clickhouse](https://github.com/uptrace/go-clickhouse).
+
 <p align="center">
   <a href="https://uptrace.dev/open-source/?autoplay">
     <img src="https://uptrace.dev/uptrace-os/poster.png" alt="Distributed tracing, errors, and logs">
@@ -97,7 +100,7 @@ You can learn more about BSL [here](https://mariadb.com/bsl-faq-adopting/).
 Yes, having 2 separate versions allows us to have minimal number of dependencies (ClickHouse) and
 keep the codebase small and fun to work with.
 
-**Is database schema stable?**
+**Is the database schema stable?**
 
 No, we are still making changes to the database schema and hoping to switch to
 [ClickHouse dynamic subcolumns](https://github.com/ClickHouse/ClickHouse/pull/23932) when that

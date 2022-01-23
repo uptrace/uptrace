@@ -1,11 +1,11 @@
 <template>
-  <v-sheet color="grey lighten-5" class="my-0 x-code">
+  <v-sheet color="grey lighten-5" class="my-0 x-code" :class="{ 'x-code--wrap': wrap }">
     <prism :code="code" :inline="inline" :language="language" />
   </v-sheet>
 </template>
 
 <script lang="ts">
-import { defineComponent } from '@vue/composition-api'
+import { defineComponent, computed } from '@vue/composition-api'
 
 import Prism from 'vue-prism-component'
 
@@ -28,8 +28,12 @@ export default defineComponent({
     },
   },
 
-  setup() {
-    return {}
+  setup(props) {
+    const wrap = computed((): boolean => {
+      return !props.code.includes('\n')
+    })
+
+    return { wrap }
   },
 })
 </script>
@@ -50,6 +54,13 @@ export default defineComponent({
 
   > pre {
     border-radius: inherit;
+  }
+
+  &.x-code--wrap {
+    & code[class*='language'],
+    & pre[class*='language'] {
+      white-space: pre-wrap;
+    }
   }
 
   code[class*='language'],

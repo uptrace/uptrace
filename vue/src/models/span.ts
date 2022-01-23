@@ -1,8 +1,5 @@
 import { truncate } from 'lodash'
 
-// Utilities
-import { xkey } from '@/models/otelattr'
-
 export type AttrMap = { [key: string]: any }
 
 export interface Span {
@@ -38,11 +35,5 @@ export function eventOrSpanName(span: Span, maxLength = 200): string {
 }
 
 export function spanName(span: Span, maxLength = 200): string {
-  if (span.system === 'db:redis') {
-    const stmt = span.attrs[xkey.dbStatement]
-    if (stmt) {
-      return truncate(stmt, { length: maxLength })
-    }
-  }
-  return span.name
+  return truncate(span.name, { length: maxLength })
 }

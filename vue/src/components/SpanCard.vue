@@ -18,10 +18,10 @@
             <span>{{ span.eventName }}</span>
             <template v-if="span.name">
               <span class="mx-2"> &bull; </span>
-              <span>{{ spanName(span) }}</span>
+              <span>{{ spanName(span, 1000) }}</span>
             </template>
           </template>
-          <span v-else>{{ spanName(span) }}</span>
+          <span v-else>{{ spanName(span, 1000) }}</span>
         </v-col>
       </v-row>
 

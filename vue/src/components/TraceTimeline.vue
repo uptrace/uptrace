@@ -35,9 +35,7 @@
                 }}</v-icon>
               </v-btn>
 
-              <span class="cursor-pointer span-name">{{
-                truncate(span.name, { length: 100 })
-              }}</span>
+              <span class="cursor-pointer span-name">{{ spanName(span, 100) }}</span>
               <SpanChips :span="span" trace-mode class="ml-2" />
             </td>
 
@@ -53,7 +51,7 @@
               <span
                 v-for="(bar, i) in span.bars"
                 :key="i"
-                :title="`${durationFixed(bar.duration)} ${span.name}`"
+                :title="`${durationFixed(bar.duration)} ${spanName(span)}`"
                 class="span-bar"
                 :style="bar.coloredStyle"
               ></span>
@@ -86,7 +84,6 @@
 </template>
 
 <script lang="ts">
-import { truncate } from 'lodash'
 import { defineComponent, shallowRef, PropType } from '@vue/composition-api'
 
 // Composables
@@ -99,6 +96,7 @@ import SpanChips from '@/components/SpanChips.vue'
 import TraceTimelineChildrenBars from '@/components/TraceTimelineChildrenBars.vue'
 
 // Utilities
+import { spanName } from '@/models/span'
 import { durationFixed } from '@/util/fmt/duration'
 
 export default defineComponent({
@@ -124,7 +122,7 @@ export default defineComponent({
       props.trace.activeSpanId = span.id
     }
 
-    return { dialog, showSpan, truncate, durationFixed }
+    return { dialog, showSpan, spanName, durationFixed }
   },
 })
 </script>

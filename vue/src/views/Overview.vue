@@ -4,20 +4,17 @@
       <HelpCard :date-range="dateRange" :loading="systems.loading" />
     </template>
 
-    <div>
-      <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
-        <v-row align="center" class="mb-4">
-          <v-spacer />
-
-          <v-col cols="auto">
-            <DateRangePicker :date-range="dateRange" />
-          </v-col>
-        </v-row>
-      </v-container>
-    </div>
+    <PageToolbar :loading="systems.loading">
+      <v-spacer />
+      <DateRangePicker :date-range="dateRange" />
+    </PageToolbar>
 
     <div class="border">
       <div class="grey lighten-5">
+        <v-container fluid class="mb-2">
+          <SystemQuickMetrics :loading="systems.loading" :systems="systems.list" />
+        </v-container>
+
         <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
           <v-tabs background-color="transparent">
             <v-tab :to="{ name: 'Overview' }">Systems</v-tab>
@@ -49,10 +46,11 @@ import { useSystems } from '@/use/systems'
 // Components
 import DateRangePicker from '@/components/DateRangePicker.vue'
 import HelpCard from '@/components/HelpCard.vue'
+import SystemQuickMetrics from '@/components/SystemQuickMetrics.vue'
 
 export default defineComponent({
   name: 'Overview',
-  components: { DateRangePicker, HelpCard },
+  components: { DateRangePicker, HelpCard, SystemQuickMetrics },
 
   setup() {
     useTitle('Overview')

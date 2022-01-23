@@ -72,7 +72,7 @@ import UqlChip from '@/components/UqlChip.vue'
 import { xkey } from '@/models/otelattr'
 import { requiredRule } from '@/util/validation'
 
-const groupColumns = [xkey.spanGroupId, xkey.serviceName, xkey.hostName]
+const groupColumns = [xkey.spanGroupId, xkey.serviceName, xkey.hostName, xkey.dbOperation]
 
 export default defineComponent({
   name: 'GroupByMenu',
