@@ -45,8 +45,12 @@
       </tbody>
 
       <tbody>
-        <template v-for="(item, itemId) in items">
-          <tr :key="itemId" class="cursor-pointer" @click="groupViewer.toggle(itemId)">
+        <template v-for="item in items">
+          <tr
+            :key="item[xkey.itemId]"
+            class="cursor-pointer"
+            @click="groupViewer.toggle(item[xkey.itemId])"
+          >
             <td v-if="hasGroupName" class="target">
               <span>{{ itemName(item) }}</span>
             </td>
@@ -86,21 +90,26 @@
               </v-btn>
 
               <v-btn
-                v-if="groupViewer.visible(itemId)"
+                v-if="groupViewer.visible(item[xkey.itemId])"
                 icon
                 title="Hide spans"
-                @click.stop="groupViewer.hide(itemId)"
+                @click.stop="groupViewer.hide(item[xkey.itemId])"
               >
                 <v-icon size="30">mdi-chevron-up</v-icon>
               </v-btn>
-              <v-btn v-else icon title="View spans" @click.stop="groupViewer.show(itemId)">
+              <v-btn
+                v-else
+                icon
+                title="View spans"
+                @click.stop="groupViewer.show(item[xkey.itemId])"
+              >
                 <v-icon size="30">mdi-chevron-down</v-icon>
               </v-btn>
             </td>
           </tr>
           <tr
-            v-if="groupViewer.visible(itemId)"
-            :key="`${itemId}-spans`"
+            v-if="groupViewer.visible(item[xkey.itemId])"
+            :key="`${item[xkey.itemId]}-spans`"
             class="v-data-table__expanded v-data-table__expanded__content"
           >
             <td colspan="99" class="px-6 pt-3 pb-4">
@@ -121,7 +130,7 @@
 
 <script lang="ts">
 import { truncate } from 'lodash'
-import { defineComponent, shallowRef, computed, PropType } from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, watch, PropType } from '@vue/composition-api'
 
 // Composables
 import { useRouter } from '@/use/router'
@@ -204,6 +213,7 @@ export default defineComponent({
 
   setup(props) {
     const { route } = useRouter()
+    const groupViewer = useGroupViewer()
 
     const hasGroupName = computed((): boolean => {
       return hasColumn(xkey.spanName)
@@ -234,6 +244,16 @@ export default defineComponent({
       return columns
     })
 
+    watch(
+      () => props.items,
+      (items) => {
+        if (items.length === 1) {
+          groupViewer.show(items[0][xkey.itemId])
+        }
+      },
+      { immediate: true },
+    )
+
     function hasColumn(name: string): boolean {
       if (!props.items.length) {
         return false
@@ -263,9 +283,9 @@ export default defineComponent({
     function columnHeader(col: ColumnInfo) {
       switch (col.name) {
         case xkey.spanErrorCount:
-          return 'Errors'
+          return 'errors'
         case xkey.spanErrorPct:
-          return 'Err%'
+          return 'err%'
       }
 
       const m = col.name.match(/^([0-9a-z]+)\(span\.duration\)$/)
@@ -301,7 +321,7 @@ export default defineComponent({
 
     return {
       xkey,
-      groupViewer: useGroupViewer(),
+      groupViewer,
 
       hasGroupName,
       hasDetails,

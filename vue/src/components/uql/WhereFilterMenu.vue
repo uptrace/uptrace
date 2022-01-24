@@ -11,6 +11,37 @@
         <v-col cols="auto">
           <v-form ref="form" v-model="isValid" class="pa-3" style="width: 400px">
             <v-row>
+              <v-col class="space-around">
+                <UqlChip
+                  :uql="uql"
+                  column="span.event_count"
+                  op=">"
+                  value="0"
+                  tooltip="Filter spans with events"
+                  @click="menu = false"
+                />
+                <UqlChip
+                  :uql="uql"
+                  column="span.event_log_count"
+                  op=">"
+                  value="0"
+                  tooltip="Filter spans with logs"
+                  @click="menu = false"
+                />
+                <UqlChip
+                  :uql="uql"
+                  column="span.event_error_count"
+                  op=">"
+                  value="0"
+                  tooltip="Filter spans with errors"
+                  @click="menu = false"
+                />
+              </v-col>
+            </v-row>
+
+            <v-divider class="my-6" />
+
+            <v-row>
               <v-col class="grey--text text--darken-3"
                 >For example, <strong>where span.duration > 100ms</strong>.</v-col
               >
@@ -121,6 +152,7 @@ import { UseUql } from '@/use/uql'
 // Components
 import SimpleSuggestions from '@/components/SimpleSuggestions.vue'
 import AttrFilterMenu from '@/components/uql/AttrFilterMenu.vue'
+import UqlChip from '@/components/UqlChip.vue'
 
 // Utilities
 import { requiredRule } from '@/util/validation'
@@ -140,7 +172,7 @@ const compOp = {
 
 export default defineComponent({
   name: 'WhereFilterMenu',
-  components: { AttrFilterMenu, SimpleSuggestions },
+  components: { AttrFilterMenu, SimpleSuggestions, UqlChip },
 
   props: {
     systems: {

@@ -14,6 +14,7 @@ type SpanIndex struct {
 
 	Count float32 `ch:"span.count"` // sampling adjusted count
 
+	LinkCount       uint8 `ch:"span.link_count"`
 	EventCount      uint8 `ch:"span.event_count"`
 	EventErrorCount uint8 `ch:"span.event_error_count"`
 	EventLogCount   uint8 `ch:"span.event_log_count"`
@@ -53,10 +54,6 @@ func newSpanIndex(index *SpanIndex, span *Span) {
 
 	index.ExceptionType, _ = span.Attrs[xattr.ExceptionType].(string)
 	index.ExceptionMessage, _ = span.Attrs[xattr.ExceptionMessage].(string)
-
-	index.EventCount = uint8(len(span.Events))
-	index.EventErrorCount = 0
-	index.EventLogCount = 0
 
 	index.AttrKeys, index.AttrValues = attrKeysAndValues(span.Attrs)
 }

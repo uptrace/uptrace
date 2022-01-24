@@ -328,7 +328,7 @@ func appendCHColumn(b []byte, key string) []byte {
 	case xattr.SpanSystem, xattr.SpanGroupID, xattr.SpanTraceID,
 		xattr.SpanName, xattr.SpanEventName, xattr.SpanKind, xattr.SpanDuration,
 		xattr.SpanStatusCode, xattr.SpanStatusMessage,
-		xattr.SpanEventCount, xattr.SpanEventErrorCount, xattr.SpanEventLogCount:
+		xattr.SpanLinkCount, xattr.SpanEventCount, xattr.SpanEventErrorCount, xattr.SpanEventLogCount:
 		return chschema.AppendIdent(b, key)
 	default:
 		if _, ok := indexedAttrSet[key]; ok {
