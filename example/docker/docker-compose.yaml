@@ -9,6 +9,8 @@ services:
       interval: 1s
       timeout: 1s
       retries: 30
+    ports:
+      - 9000:9000
   uptrace:
     image: 'uptrace/uptrace:latest'
     volumes:
@@ -16,6 +18,8 @@ services:
     ports:
       - '14317:14317' # OTLP
       - '14318:14318' # UI and HTTP API
+    environment:
+      - DEBUG=2
     depends_on:
       clickhouse:
         condition: service_healthy
