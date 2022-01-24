@@ -9,8 +9,6 @@ services:
       interval: 1s
       timeout: 1s
       retries: 30
-    ports:
-      - 9000:9000
   uptrace:
     image: 'uptrace/uptrace:latest'
     volumes:
