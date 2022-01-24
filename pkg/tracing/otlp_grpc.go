@@ -213,7 +213,6 @@ func (s *TraceServiceServer) flushSpans(ctx context.Context, otlpSpans []otlpSpa
 				newSpanData(&dataSpans[len(dataSpans)-1], eventSpan)
 
 				if isErrorSystem(eventSpan.System) {
-					fmt.Println("AAAAAAAAAAAAA")
 					errorCount++
 				}
 				if isLogSystem(eventSpan.System) {
