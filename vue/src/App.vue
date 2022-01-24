@@ -61,7 +61,7 @@
           <v-col cols="auto">
             Found a bug? Create an
             <a href="https://github.com/uptrace/uptrace/issues" target="_blank">issue</a>. Have a
-            question? Start a
+            suggestion? Start a
             <a href="https://github.com/uptrace/uptrace/discussions" target="_blank">discussion</a>.
           </v-col>
         </v-row>

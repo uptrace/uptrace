@@ -1,14 +1,6 @@
 <template>
   <div>
-    <v-simple-table class="table-truncate-first">
-      <colgroup>
-        <col />
-        <col />
-        <col v-for="col in columns" :key="col" />
-        <col />
-        <col />
-      </colgroup>
-
+    <v-simple-table>
       <thead class="v-data-table-header">
         <tr>
           <th>Span Name</th>

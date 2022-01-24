@@ -2,12 +2,16 @@ package tracing
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"github.com/uptrace/uptrace/pkg/uql"
 	"go4.org/syncutil"
 )
@@ -87,10 +91,23 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
+	columns := f.columns(groups)
+
+	digest := xxhash.New()
+	for _, group := range groups {
+		for _, col := range columns {
+			if col.IsGroup {
+				digest.WriteString(fmt.Sprint(group[col.Name]))
+			}
+		}
+
+		group[xattr.ItemID] = strconv.FormatUint(digest.Sum64(), 10)
+	}
+
 	return httputil.JSON(w, bunrouter.H{
 		"groups":     groups,
 		"queryParts": f.parts,
-		"columns":    f.columns(groups),
+		"columns":    columns,
 	})
 }
 

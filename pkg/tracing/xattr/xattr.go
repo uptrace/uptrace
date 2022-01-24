@@ -26,6 +26,7 @@ const (
 	SpanErrorCount  = "span.error_count"
 	SpanErrorPct    = "span.error_pct"
 
+	SpanLinkCount       = "span.link_count"
 	SpanEventCount      = "span.event_count"
 	SpanEventErrorCount = "span.event_error_count"
 	SpanEventLogCount   = "span.event_log_count"

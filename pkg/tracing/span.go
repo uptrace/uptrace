@@ -230,6 +230,19 @@ func isEventSystem(s string) bool {
 	}
 }
 
+func isLogSystem(s string) bool {
+	return strings.HasPrefix(s, "log:")
+}
+
+func isErrorSystem(s string) bool {
+	switch s {
+	case exceptionEventType, "log:error", "log:fatal", "log:panic":
+		return true
+	default:
+		return false
+	}
+}
+
 func marshalSpan(span *Span) []byte {
 	b, err := msgpack.Marshal(span)
 	if err != nil {

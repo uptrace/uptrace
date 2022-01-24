@@ -178,8 +178,8 @@ func (s *TraceServiceServer) flushSpans(ctx context.Context, otlpSpans []otlpSpa
 		defer s.WaitGroup().Done()
 
 		spans := make([]Span, 0, numSpan)
-		index := make([]SpanIndex, 0, numSpan)
-		data := make([]SpanData, 0, numSpan)
+		indexedSpans := make([]SpanIndex, 0, numSpan)
+		dataSpans := make([]SpanData, 0, numSpan)
 
 		ctx := newSpanContext(ctx)
 		for i := range otlpSpans {
@@ -191,31 +191,48 @@ func (s *TraceServiceServer) flushSpans(ctx context.Context, otlpSpans []otlpSpa
 			span.ProjectID = otlpSpan.project.ID
 			newSpan(ctx, span, otlpSpan)
 
-			index = append(index, SpanIndex{})
-			newSpanIndex(&index[len(index)-1], span)
+			indexedSpans = append(indexedSpans, SpanIndex{})
+			index := &indexedSpans[len(indexedSpans)-1]
+			newSpanIndex(index, span)
 
-			data = append(data, SpanData{})
-			newSpanData(&data[len(data)-1], span)
+			dataSpans = append(dataSpans, SpanData{})
+			newSpanData(&dataSpans[len(dataSpans)-1], span)
+
+			var errorCount int
+			var logCount int
 
 			for _, otlpEvent := range otlpSpan.Events {
 				spans = append(spans, Span{})
 				eventSpan := &spans[len(spans)-1]
 				newSpanFromEvent(ctx, eventSpan, span, otlpEvent)
 
-				index = append(index, SpanIndex{})
-				newSpanIndex(&index[len(index)-1], eventSpan)
+				indexedSpans = append(indexedSpans, SpanIndex{})
+				newSpanIndex(&indexedSpans[len(indexedSpans)-1], eventSpan)
 
-				data = append(data, SpanData{})
-				newSpanData(&data[len(data)-1], eventSpan)
+				dataSpans = append(dataSpans, SpanData{})
+				newSpanData(&dataSpans[len(dataSpans)-1], eventSpan)
+
+				if isErrorSystem(eventSpan.System) {
+					fmt.Println("AAAAAAAAAAAAA")
+					errorCount++
+				}
+				if isLogSystem(eventSpan.System) {
+					logCount++
+				}
 			}
+
+			index.LinkCount = uint8(len(otlpSpan.Links))
+			index.EventCount = uint8(len(otlpSpan.Events))
+			index.EventErrorCount = uint8(errorCount)
+			index.EventLogCount = uint8(logCount)
 		}
 
-		if _, err := s.CH().NewInsert().Model(&data).Exec(ctx); err != nil {
+		if _, err := s.CH().NewInsert().Model(&dataSpans).Exec(ctx); err != nil {
 			s.Zap(ctx).Error("ch.Insert failed",
 				zap.Error(err), zap.String("table", "spans_data"))
 		}
 
-		if _, err := s.CH().NewInsert().Model(&index).Exec(ctx); err != nil {
+		if _, err := s.CH().NewInsert().Model(&indexedSpans).Exec(ctx); err != nil {
 			s.Zap(ctx).Error("ch.Insert failed",
 				zap.Error(err), zap.String("table", "spans_index"))
 		}
