@@ -101,6 +101,7 @@ SELECT
   countIf("span.status_code" = 'error') AS error_count
 FROM spans_index
 GROUP BY project_id, time, system
+SETTINGS prefer_column_name_to_alias = 1
 
 --migrate:split
 
@@ -131,6 +132,7 @@ SELECT
   sum(error_count) AS error_count
 FROM span_system_minutes
 GROUP BY project_id, toStartOfHour(time), system
+SETTINGS prefer_column_name_to_alias = 1
 
 --------------------------------------------------------------------------------
 --migrate:split
@@ -164,6 +166,7 @@ SELECT
   countIf("span.status_code" = 'error') AS error_count
 FROM spans_index
 GROUP BY project_id, time, system, service
+SETTINGS prefer_column_name_to_alias = 1
 
 --migrate:split
 
@@ -196,6 +199,7 @@ SELECT
   sum(error_count) AS error_count
 FROM span_service_minutes
 GROUP BY project_id, toStartOfHour(time), system, service
+SETTINGS prefer_column_name_to_alias = 1
 
 --------------------------------------------------------------------------------
 --migrate:split
@@ -229,6 +233,7 @@ SELECT
   countIf("span.status_code" = 'error') AS error_count
 FROM spans_index
 GROUP BY project_id, time, system, host
+SETTINGS prefer_column_name_to_alias = 1
 
 --migrate:split
 
@@ -261,3 +266,4 @@ SELECT
   sum(error_count) AS error_count
 FROM span_host_minutes
 GROUP BY project_id, toStartOfHour(time), system, host
+SETTINGS prefer_column_name_to_alias = 1
