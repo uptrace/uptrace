@@ -15,6 +15,7 @@ export enum xkey {
 
   spanName = 'span.name',
   spanEventName = 'span.event_name',
+  spanIsEvent = 'span.is_event',
   spanKind = 'span.kind',
   spanTime = 'span.time',
   spanDuration = 'span.duration',
@@ -39,8 +40,14 @@ export enum xkey {
   dbStatementPretty = '_db.statement_pretty',
   dbOperation = 'db.operation',
   dbSqlTable = 'db.sql.table',
+  dbSqlTables = 'db.sql.tables',
 
+  exceptionType = 'exception.type',
+  exceptionMessage = 'exception.message',
   exceptionStacktrace = 'exception.stacktrace',
+
+  logSeverity = 'log.severity',
+  logMessage = 'log.message',
 
   codeFunction = 'code.function',
   codeFilepath = 'code.filepath',
