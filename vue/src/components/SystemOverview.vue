@@ -10,16 +10,17 @@
       <v-card-text class="pb-0">
         <v-slide-group
           v-if="systems.types.length >= 3"
-          v-model="systems.filter"
+          v-model="systems.filters"
           center-active
           show-arrows
           class="ml-2"
+          multiple
         >
           <v-slide-item
-            v-for="(type, i) in systems.types"
-            :key="type"
+            v-for="(item, i) in systems.types"
+            :key="item.type"
             v-slot="{ active, toggle }"
-            :value="type"
+            :value="item.type"
           >
             <v-btn
               :input-value="active"
@@ -30,7 +31,7 @@
               :class="{ 'ml-1': i > 0 }"
               @click="toggle"
             >
-              {{ type }}
+              {{ item.type }} ({{ item.numSystem }})
             </v-btn>
           </v-slide-item>
         </v-slide-group>
