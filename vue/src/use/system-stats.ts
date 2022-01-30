@@ -8,6 +8,9 @@ import { useOrder } from '@/use/order'
 import { UseDateRange } from '@/use/date-range'
 import { useWatchAxios } from '@/use/watch-axios'
 
+// Utilities
+import { splitTypeSystem } from '@/models/otelattr'
+
 export interface OverviewItem {
   system: string
 
@@ -32,13 +35,18 @@ interface Stats {
   time: string[]
 }
 
+interface TypeItem {
+  type: string
+  numSystem: number
+}
+
 export type UseSystemStats = ReturnType<typeof useSystemStats>
 
 export function useSystemStats(dateRange: UseDateRange) {
   const { route } = useRouter()
   const pager = usePager({ perPage: 15 })
   const order = useOrder({ column: 'system', desc: false })
-  const filter = ref('')
+  const filters = ref([])
 
   const { loading, data } = useWatchAxios(() => {
     const { projectId } = route.value.params
@@ -65,12 +73,18 @@ export function useSystemStats(dateRange: UseDateRange) {
   })
 
   const filteredSystems = computed((): OverviewItem[] => {
-    if (!filter.value) {
+    if (!filters.value.length) {
       return sortedSystems.value
     }
 
     return sortedSystems.value.filter((sys) => {
-      return sys.system.startsWith(filter.value)
+      for (let filter of filters.value) {
+        if (sys.system.startsWith(filter)) {
+          return true
+        }
+      }
+
+      return false
     })
   })
 
@@ -79,23 +93,31 @@ export function useSystemStats(dateRange: UseDateRange) {
     return pageSystems
   })
 
-  const types = computed(() => {
-    const types = []
+  const types = computed((): TypeItem[] => {
+    const typeMap: Record<string, TypeItem> = {}
 
     for (let sys of systems.value) {
-      let typ = sys.system
-
-      const i = typ.indexOf(':')
-      if (i >= 0) {
-        typ = typ.slice(0, i)
+      const [type] = splitTypeSystem(sys.system)
+      let typeItem = typeMap[type]
+      if (!typeItem) {
+        typeItem = {
+          type,
+          numSystem: 0,
+        }
+        typeMap[type] = typeItem
       }
 
-      if (types.indexOf(typ) === -1) {
-        types.push(typ)
-      }
+      typeItem.numSystem++
     }
 
-    return types.sort()
+    const types: TypeItem[] = []
+
+    for (let type in typeMap) {
+      types.push(typeMap[type])
+    }
+
+    orderBy(types, 'type')
+    return types
   })
 
   watch(
@@ -109,7 +131,7 @@ export function useSystemStats(dateRange: UseDateRange) {
   return proxyRefs({
     pager,
     order,
-    filter,
+    filters,
 
     loading,
     list: filteredSystems,
