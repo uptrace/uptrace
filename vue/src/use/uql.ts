@@ -49,6 +49,26 @@ export function useUql(cfg: UqlConfig = {}) {
     },
   })
 
+  const editing = computed(() => {
+    for (let part of parts.value) {
+      if (part.editMode) {
+        return true
+      }
+    }
+
+    return false
+  })
+
+  function addPart() {
+    const part = createPart()
+
+    parts.value.push(createPart())
+    // eslint-disable-next-line no-self-assign
+    parts.value = parts.value
+
+    enterEditMode(part)
+  }
+
   function removeAt(index: number) {
     parts.value.splice(index, 1)
     // eslint-disable-next-line no-self-assign
@@ -146,7 +166,9 @@ export function useUql(cfg: UqlConfig = {}) {
     rawMode,
     parts,
     query,
+    editing,
 
+    addPart,
     removeAt,
     toggle,
 
@@ -175,7 +197,7 @@ export function parseUql(q: any): Part[] {
     })
 }
 
-function createPart(query: string): Part {
+function createPart(query = ''): Part {
   return {
     query: query,
     error: '',
