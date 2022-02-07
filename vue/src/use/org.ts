@@ -47,6 +47,14 @@ export const useUser = defineStore('useUser', () => {
     return await req
   }
 
+  function logout() {
+    return request({ method: 'POST', url: '/api/users/logout' }).then(() => {
+      reload().finally(() => {
+        redirectToLogin()
+      })
+    })
+  }
+
   return proxyRefs({
     loading,
     current: user,
@@ -55,6 +63,7 @@ export const useUser = defineStore('useUser', () => {
 
     reload,
     getOrLoad,
+    logout,
   })
 })
 

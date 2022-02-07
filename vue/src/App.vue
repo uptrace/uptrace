@@ -46,6 +46,31 @@
               >Upgrade</v-btn
             >
           </v-col>
+          <v-col cols="auto" class="d-none d-md-inline-block">
+            <v-menu v-if="user.isAuth" bottom offset-y>
+              <template #activator="{ on }">
+                <v-btn icon v-on="on">
+                  <v-icon>mdi-dots-vertical</v-icon>
+                </v-btn>
+              </template>
+
+              <v-list>
+                <v-list-item>
+                  <v-list-item-content>
+                    <v-list-item-title class="font-weight-bold">{{
+                      user.current.username || 'Anonymous'
+                    }}</v-list-item-title>
+                  </v-list-item-content>
+                </v-list-item>
+
+                <v-divider></v-divider>
+
+                <v-list-item @click="user.logout">
+                  <v-list-item-title>Sign out</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </v-col>
         </v-row>
       </v-container>
     </v-app-bar>
@@ -75,6 +100,7 @@ import { defineComponent, shallowRef } from '@vue/composition-api'
 
 // Composables
 import { useRouter, useQuery } from '@/use/router'
+import { useUser } from '@/use/org'
 
 // Components
 import UptraceLogoLarge from '@/components/UptraceLogoLarge.vue'
@@ -87,6 +113,8 @@ export default defineComponent({
   components: { UptraceLogoLarge, UptraceLogoSmall, ProjectPicker, XSnackbar },
 
   setup() {
+    const user = useUser()
+
     const { router } = useRouter()
     useQuery()
     const traceId = shallowRef('')
@@ -98,7 +126,12 @@ export default defineComponent({
       }
     }
 
-    return { traceId, jumpToTrace }
+    return {
+      user,
+      traceId,
+
+      jumpToTrace,
+    }
   },
 })
 </script>
