@@ -17,9 +17,9 @@ require (
 	github.com/uptrace/bunrouter v1.0.11-0.20220115092510-53fd3217e9fb
 	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.11-0.20220115092510-53fd3217e9fb
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.11-0.20220115092510-53fd3217e9fb
-	github.com/uptrace/go-clickhouse/ch v0.0.0-20220123124944-5d0bd306583b
-	github.com/uptrace/go-clickhouse/extra/chdebug v0.0.0-20220123124944-5d0bd306583b
-	github.com/uptrace/go-clickhouse/extra/chotel v0.0.0-20220123124944-5d0bd306583b
+	github.com/uptrace/go-clickhouse/ch v0.0.0-20220221114618-8d84bf5087c9
+	github.com/uptrace/go-clickhouse/extra/chdebug v0.0.0-20220221114618-8d84bf5087c9
+	github.com/uptrace/go-clickhouse/extra/chotel v0.0.0-20220221114618-8d84bf5087c9
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.7
 	github.com/uptrace/uptrace-go v1.3.1-0.20211222105436-75b898dfb3dd
 	github.com/urfave/cli/v2 v2.3.0
@@ -32,7 +32,7 @@ require (
 	go.opentelemetry.io/proto/otlp v0.12.0
 	go.uber.org/zap v1.19.1
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/exp v0.0.0-20211210185655-e05463a05a18
+	golang.org/x/exp v0.0.0-20220218215828-6cf2b201936e
 	google.golang.org/grpc v1.43.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b

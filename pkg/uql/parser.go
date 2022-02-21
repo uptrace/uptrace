@@ -9,7 +9,6 @@ import (
 var errAlias = errors.New("alias is required: expr AS alias")
 
 func (p *queryParser) parseQuery() (any, error) {
-
 	{
 		var conds []Cond
 		_pos1 := p.Pos()
@@ -106,7 +105,7 @@ func (p *queryParser) parseQuery() (any, error) {
 	}
 
 	{
-		var names []Name
+		var columns []Name
 		_pos1 := p.Pos()
 		{
 			_tok, _err := p.NextToken()
@@ -121,7 +120,7 @@ func (p *queryParser) parseQuery() (any, error) {
 		}
 		{
 			var _err error
-			names, _err = p.names()
+			columns, _err = p.columns()
 			if _err != nil && _err != errBacktrack {
 				return nil, _err
 			}
@@ -139,19 +138,19 @@ func (p *queryParser) parseQuery() (any, error) {
 			_match := _tok.ID == EOF_TOKEN
 			if !_match {
 				p.ResetPos(_pos1)
-				names = nil
+				columns = nil
 				goto r2_i0_group_end
 			}
 		}
-		return &Columns{Names: names}, nil
+		return &Columns{Names: columns}, nil
 	r2_i0_group_end:
 	}
 
-	var names []Name
+	var columns []Name
 
 	{
 		var _err error
-		names, _err = p.names()
+		columns, _err = p.columns()
 		if _err != nil && _err != errBacktrack {
 			return nil, _err
 		}
@@ -170,13 +169,94 @@ func (p *queryParser) parseQuery() (any, error) {
 			return nil, errBacktrack
 		}
 	}
-	return &Columns{Names: names}, nil
+	return &Columns{Names: columns}, nil
 }
 
 //------------------------------------------------------------------------------
 
 func (p *queryParser) conds() ([]Cond, error) {
 	var conds []Cond
+
+	{
+		var compOp string
+		var simples []string
+		var value Value
+		_pos1 := p.Pos()
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return nil, _err
+			}
+			_match := _tok.Text == "{"
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+		}
+		{
+			var _err error
+			simples, _err = p.simples()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return nil, _err
+			}
+			_match := _tok.Text == "}"
+			if !_match {
+				p.ResetPos(_pos1)
+				simples = nil
+				goto i0_group_end
+			}
+		}
+		{
+			var _err error
+			compOp, _err = p.compOp()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				simples = nil
+				goto i0_group_end
+			}
+		}
+		{
+			var _err error
+			value, _err = p.value()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				simples = nil
+				compOp = ""
+				goto i0_group_end
+			}
+		}
+		{
+			for _, attrKey := range simples {
+				conds = append(conds, Cond{
+					Sep:   CondSep{Op: OrOp},
+					Left:  Name{AttrKey: attrKey},
+					Op:    compOp,
+					Right: value,
+				})
+			}
+			return conds, nil
+		}
+	i0_group_end:
+	}
 
 	var cond Cond
 	var not *Token
@@ -228,7 +308,7 @@ func (p *queryParser) conds() ([]Cond, error) {
 				_match := _err == nil
 				if !_match {
 					p.ResetPos(_pos1)
-					goto r1_i0_no_match
+					goto r2_i0_no_match
 				}
 			}
 			{
@@ -241,7 +321,7 @@ func (p *queryParser) conds() ([]Cond, error) {
 				if !_match {
 					p.ResetPos(_pos1)
 					condSep = CondSep{}
-					goto r1_i0_no_match
+					goto r2_i0_no_match
 				}
 			}
 			_matchCount = _matchCount + 1
@@ -251,7 +331,7 @@ func (p *queryParser) conds() ([]Cond, error) {
 				p.cut()
 			}
 			continue
-		r1_i0_no_match:
+		r2_i0_no_match:
 			p.ResetPos(_pos1)
 			if _matchCount >= 0 {
 				break
@@ -319,7 +399,6 @@ func (p *queryParser) condSep() (CondSep, error) {
 }
 
 func (p *queryParser) cond() (Cond, error) {
-
 	{
 		var compOp string
 		var name Name
@@ -534,7 +613,6 @@ func (p *queryParser) cond() (Cond, error) {
 }
 
 func (p *queryParser) compOp() (string, error) {
-
 	{
 		_pos1 := p.Pos()
 		{
@@ -883,7 +961,6 @@ r11_i2_has_match:
 }
 
 func (p *queryParser) value() (Value, error) {
-
 	{
 		var t *Token
 		_pos1 := p.Pos()
@@ -973,8 +1050,74 @@ r2_i0_has_match:
 
 //------------------------------------------------------------------------------
 
-func (p *queryParser) name() (Name, error) {
+func (p *queryParser) names() ([]Name, error) {
+	var names []Name
 
+	var name Name
+
+	{
+		var _err error
+		name, _err = p.name()
+		if _err != nil && _err != errBacktrack {
+			return nil, _err
+		}
+		_match := _err == nil
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	{
+		names = append(names, name)
+		p.cut()
+	}
+
+	{
+		var name Name
+		var _matchCount int
+		for {
+			_pos1 := p.Pos()
+			{
+				_tok, _err := p.NextToken()
+				if _err != nil {
+					return nil, _err
+				}
+				_match := _tok.Text == ","
+				if !_match {
+					p.ResetPos(_pos1)
+					goto r1_i0_no_match
+				}
+			}
+			{
+				var _err error
+				name, _err = p.name()
+				if _err != nil && _err != errBacktrack {
+					return nil, _err
+				}
+				_match := _err == nil
+				if !_match {
+					p.ResetPos(_pos1)
+					goto r1_i0_no_match
+				}
+			}
+			_matchCount = _matchCount + 1
+			{
+				names = append(names, name)
+				p.cut()
+			}
+			continue
+		r1_i0_no_match:
+			p.ResetPos(_pos1)
+			if _matchCount >= 0 {
+				break
+			}
+			return nil, errBacktrack
+		}
+	}
+
+	return names, nil
+}
+
+func (p *queryParser) name() (Name, error) {
 	{
 		var attr *Token
 		var fn *Token
@@ -1066,7 +1209,6 @@ func (p *queryParser) name() (Name, error) {
 }
 
 func (p *queryParser) alias() (string, error) {
-
 	{
 		_tok, _err := p.NextToken()
 		if _err != nil {
@@ -1089,14 +1231,75 @@ func (p *queryParser) alias() (string, error) {
 
 //------------------------------------------------------------------------------
 
-func (p *queryParser) names() ([]Name, error) {
-	var names []Name
+func (p *queryParser) simples() ([]string, error) {
+	var ss []string
 
-	var name Name
+	var t *Token
+
+	{
+		_tok, _err := p.NextToken()
+		if _err != nil {
+			return nil, _err
+		}
+		_match := _tok.ID == IDENT_TOKEN
+		if !_match {
+			return nil, errBacktrack
+		}
+		t = _tok
+	}
+	ss = append(ss, t.Text)
+
+	{
+		var t *Token
+		var _matchCount int
+		for {
+			_pos1 := p.Pos()
+			{
+				_tok, _err := p.NextToken()
+				if _err != nil {
+					return nil, _err
+				}
+				_match := _tok.Text == ","
+				if !_match {
+					p.ResetPos(_pos1)
+					goto r1_i0_no_match
+				}
+			}
+			{
+				_tok, _err := p.NextToken()
+				if _err != nil {
+					return nil, _err
+				}
+				_match := _tok.ID == IDENT_TOKEN
+				if !_match {
+					p.ResetPos(_pos1)
+					goto r1_i0_no_match
+				}
+				t = _tok
+			}
+			_matchCount = _matchCount + 1
+			ss = append(ss, t.Text)
+			continue
+		r1_i0_no_match:
+			p.ResetPos(_pos1)
+			if _matchCount >= 0 {
+				break
+			}
+			return nil, errBacktrack
+		}
+	}
+
+	return ss, nil
+}
+
+func (p *queryParser) columns() ([]Name, error) {
+	var columns []Name
+
+	var column []Name
 
 	{
 		var _err error
-		name, _err = p.name()
+		column, _err = p.column()
 		if _err != nil && _err != errBacktrack {
 			return nil, _err
 		}
@@ -1106,12 +1309,12 @@ func (p *queryParser) names() ([]Name, error) {
 		}
 	}
 	{
-		names = append(names, name)
+		columns = append(columns, column...)
 		p.cut()
 	}
 
 	{
-		var name Name
+		var column []Name
 		var _matchCount int
 		for {
 			_pos1 := p.Pos()
@@ -1128,7 +1331,7 @@ func (p *queryParser) names() ([]Name, error) {
 			}
 			{
 				var _err error
-				name, _err = p.name()
+				column, _err = p.column()
 				if _err != nil && _err != errBacktrack {
 					return nil, _err
 				}
@@ -1140,7 +1343,7 @@ func (p *queryParser) names() ([]Name, error) {
 			}
 			_matchCount = _matchCount + 1
 			{
-				names = append(names, name)
+				columns = append(columns, column...)
 				p.cut()
 			}
 			continue
@@ -1153,5 +1356,112 @@ func (p *queryParser) names() ([]Name, error) {
 		}
 	}
 
-	return names, nil
+	return columns, nil
+}
+
+func (p *queryParser) column() ([]Name, error) {
+	{
+		var attr *Token
+		var simples []string
+		_pos1 := p.Pos()
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return nil, _err
+			}
+			_match := _tok.Text == "{"
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+		}
+		{
+			var _err error
+			simples, _err = p.simples()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return nil, _err
+			}
+			_match := _tok.Text == "}"
+			if !_match {
+				p.ResetPos(_pos1)
+				simples = nil
+				goto i0_group_end
+			}
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return nil, _err
+			}
+			_match := _tok.Text == "("
+			if !_match {
+				p.ResetPos(_pos1)
+				simples = nil
+				goto i0_group_end
+			}
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return nil, _err
+			}
+			_match := _tok.ID == IDENT_TOKEN
+			if !_match {
+				p.ResetPos(_pos1)
+				simples = nil
+				goto i0_group_end
+			}
+			attr = _tok
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return nil, _err
+			}
+			_match := _tok.Text == ")"
+			if !_match {
+				p.ResetPos(_pos1)
+				simples = nil
+				attr = nil
+				goto i0_group_end
+			}
+		}
+		{
+			columns := make([]Name, len(simples))
+			for i, funcName := range simples {
+				columns[i] = Name{
+					FuncName: funcName,
+					AttrKey:  attr.Text,
+				}
+			}
+			return columns, nil
+		}
+	i0_group_end:
+	}
+
+	var name Name
+
+	{
+		var _err error
+		name, _err = p.name()
+		if _err != nil && _err != errBacktrack {
+			return nil, _err
+		}
+		_match := _err == nil
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	return []Name{name}, nil
 }

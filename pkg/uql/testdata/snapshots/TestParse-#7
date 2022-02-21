@@ -1,0 +1,31 @@
+(map[string]interface {}) (len=2) {
+  (string) (len=3) "err": (string) (len=5) "<nil>",
+  (string) (len=3) "uql": (*uql.Where)({
+    Conds: ([]uql.Cond) (len=2) {
+      (uql.Cond) {
+        Sep: (uql.CondSep) {
+          Op: (string) (len=4) " OR ",
+          Negate: (bool) false
+        },
+        Left: (uql.Name) foo,
+        Op: (string) (len=8) "contains",
+        Right: (uql.Value) {
+          Kind: (uql.ValueKind) string,
+          Text: (string) (len=9) "something"
+        }
+      },
+      (uql.Cond) {
+        Sep: (uql.CondSep) {
+          Op: (string) (len=4) " OR ",
+          Negate: (bool) false
+        },
+        Left: (uql.Name) bar,
+        Op: (string) (len=8) "contains",
+        Right: (uql.Value) {
+          Kind: (uql.ValueKind) string,
+          Text: (string) (len=9) "something"
+        }
+      }
+    }
+  })
+}

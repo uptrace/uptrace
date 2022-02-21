@@ -2,8 +2,6 @@ package uql
 
 import (
 	"errors"
-	"fmt"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -101,24 +99,28 @@ func (l *tokenizer) readToken() (*Token, error) {
 		return l.quotedValue(c)
 	case '-', '+':
 		return l.number()
-	case '(', ')', ',', '|':
+	case '(', ')', '{', '}', ',', '|':
 		start := l.lex.Pos() - 1
-		l.tokens = append(l.tokens, Token{
-			ID:    BYTE_TOKEN,
-			Text:  l.lex.Slice(start, start+1),
-			Start: start,
-		})
-		return &l.tokens[len(l.tokens)-1], nil
+		return l.token(BYTE_TOKEN, l.lex.Slice(start, start+1), start), nil
 	}
 
 	if isWhitespace(c) {
 		return l.readToken()
 	}
+
+	if isAlpha(c) {
+		return l.ident(l.lex.Pos() - 1)
+	}
 	if isDigit(c) {
 		return l.number()
 	}
 
-	return l.value()
+	return l.charToken(BYTE_TOKEN), nil
+}
+
+func (l *tokenizer) charToken(id TokenID) *Token {
+	pos := l.lex.Pos()
+	return l.token(id, l.lex.Slice(pos-1, pos), pos-1)
 }
 
 func (l *tokenizer) quotedValue(end byte) (*Token, error) {
@@ -151,19 +153,16 @@ func (l *tokenizer) number() (*Token, error) {
 	return l.token(NUMBER_TOKEN, s, start), nil
 }
 
-func (l *tokenizer) value() (*Token, error) {
-	start := l.lex.Pos() - 1
-	s, _ := l.lex.ReadSepFunc(start, l.isWordSep)
-	id, s := valueToken(s)
-	return l.token(id, s, start), nil
-}
-
-func (l *tokenizer) simple() (*Token, error) {
-	start := l.lex.Pos()
-	s, _ := l.lex.ReadSepFunc(start, l.isWordSep)
-	if !isIdent(s) {
-		return nil, fmt.Errorf("invalid indentifier: %q", s)
+func (l *tokenizer) ident(start int) (*Token, error) {
+	for l.lex.Valid() {
+		c := l.lex.PeekByte()
+		if !isIdent(c) {
+			break
+		}
+		l.lex.Advance()
 	}
+
+	s := l.lex.Slice(start, l.lex.Pos())
 	return l.token(IDENT_TOKEN, s, start), nil
 }
 
@@ -176,20 +175,13 @@ func (l *tokenizer) token(id TokenID, s string, start int) *Token {
 	return &l.tokens[len(l.tokens)-1]
 }
 
-func valueToken(s string) (TokenID, string) {
-	if isIdent(s) {
-		return IDENT_TOKEN, s
-	}
-	return VALUE_TOKEN, s
-}
-
 func (l *tokenizer) isWordSep(c byte) bool {
 	if isWhitespace(c) {
 		return true
 	}
 
 	switch c {
-	case '(', ')', ',', '|':
+	case '(', ')', '{', '}', ',', '|':
 		return true
 	case ':':
 		return isWhitespace(l.lex.PeekByte())
@@ -213,8 +205,10 @@ func isDigit(c byte) bool {
 	return c >= '0' && c <= '9'
 }
 
-var identRE = regexp.MustCompile(`^[[:alnum:]]+([._][[:alnum:]]+)*$`)
+func isAlpha(c byte) bool {
+	return c >= 'a' && c <= 'z'
+}
 
-func isIdent(s string) bool {
-	return identRE.MatchString(s)
+func isIdent(c byte) bool {
+	return isAlpha(c) || isDigit(c) || c == '_' || c == '.'
 }
