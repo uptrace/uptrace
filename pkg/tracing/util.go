@@ -1,7 +1,6 @@
 package tracing
 
 import (
-	"constraints"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -9,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/utf8string"
 )
 
