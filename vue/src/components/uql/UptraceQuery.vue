@@ -44,15 +44,15 @@
       <v-col v-else class="d-flex flex-wrap align-start">
         <template v-for="(part, i) in uql.parts">
           <div v-if="!part.editMode" :key="part.query" class="mr-2 mb-1 d-inline-block">
-            <v-chip label color="grey lighten-4" @click="uql.enterEditMode(part)">
-              <slot name="part" :part="part">
-                <span>{{ part.query }}</span>
-                <v-icon right @click="uql.removeAt(i)">mdi-close</v-icon>
-              </slot>
-            </v-chip>
-            <div v-if="part.error" class="text-caption text-no-wrap red--text text--darken-2">
-              {{ part.error }}
-            </div>
+            <UptraceQueryChip
+              :key="i"
+              :query="part.query"
+              :error="part.error"
+              :disabled="part.disabled || disabled"
+              class="mr-2 mb-1"
+              @click:edit="uql.enterEditMode(part)"
+              @click:delete="uql.removeAt(i)"
+            />
           </div>
           <div v-else :key="part.query" class="mr-2 d-inline-block">
             <v-text-field
@@ -69,6 +69,15 @@
             />
           </div>
         </template>
+        <v-btn
+          v-if="!uql.editing"
+          color="text--secondary"
+          fab
+          elevation="0"
+          class="btn--add"
+          @click="uql.addPart"
+          ><v-icon>mdi-plus</v-icon></v-btn
+        >
       </v-col>
     </v-row>
   </div>
@@ -82,20 +91,26 @@ import { UseUql } from '@/use/uql'
 
 // Components
 import SpanQueryHelpDialog from '@/components/SpanQueryHelpDialog.vue'
+import UptraceQueryChip from '@/components/UptraceQueryChip.vue'
 
 export default defineComponent({
   name: 'UptraceQuery',
-  components: { SpanQueryHelpDialog },
+  components: { SpanQueryHelpDialog, UptraceQueryChip },
 
   props: {
     uql: {
       type: Object as PropType<UseUql>,
       required: true,
     },
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   setup(props) {
     const query = shallowRef('')
+    const editor = props.uql.createEditor()
 
     function exitRawMode(save: boolean) {
       props.uql.rawMode = false
@@ -112,7 +127,12 @@ export default defineComponent({
       { immediate: true },
     )
 
-    return { query, exitRawMode }
+    return {
+      query,
+      editor,
+
+      exitRawMode,
+    }
   },
 })
 </script>
@@ -122,6 +142,11 @@ export default defineComponent({
   font-size: 20px;
   width: 20px;
   height: 20px;
+}
+
+.btn--add {
+  height: 32px !important;
+  width: 32px !important;
 }
 </style>
 
