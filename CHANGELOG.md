@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.2.2 - Feb 22 2022
+
+### 💡 Enhancements 💡
+
+- Added log out button.
+- Added more concise syntax support to Uptrace query language, for example,
+  `{p50,p90,p99}(span.duration)` instead of
+  `p50(span.duration), p90(span.duration), p99(span.duration)`.
+- Improved Uptrace query parsing.
+
 ## v0.2.0 - Jan 25 2022
 
 ### 💡 Enhancements 💡

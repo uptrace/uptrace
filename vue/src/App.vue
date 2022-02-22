@@ -5,7 +5,10 @@
         <v-row align="center" class="flex-nowrap">
           <v-col cols="auto">
             <div class="mt-2">
-              <UptraceLogoLarge v-if="$vuetify.breakpoint.lgAndUp" :to="{ name: 'Home' }" />
+              <UptraceLogoLarge
+                v-if="!user.isAuth || $vuetify.breakpoint.lgAndUp"
+                :to="{ name: 'Home' }"
+              />
               <UptraceLogoSmall v-else :to="{ name: 'Home' }" />
             </div>
           </v-col>
@@ -16,9 +19,12 @@
 
           <v-col cols="auto">
             <v-tabs optional class="ml-8">
-              <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
-              <v-tab :to="{ name: 'GroupList' }">Explore</v-tab>
-              <v-tab :to="{ name: 'Help' }">Help</v-tab>
+              <template v-if="user.isAuth">
+                <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
+                <v-tab :to="{ name: 'GroupList' }">Explore</v-tab>
+                <v-tab :to="{ name: 'Help' }">Help</v-tab>
+              </template>
+              <v-tab v-else :to="{ name: 'Login' }">Login</v-tab>
             </v-tabs>
           </v-col>
 
@@ -46,8 +52,8 @@
               >Upgrade</v-btn
             >
           </v-col>
-          <v-col cols="auto" class="d-none d-md-inline-block">
-            <v-menu v-if="user.isAuth" bottom offset-y>
+          <v-col v-if="user.isAuth" cols="auto" class="d-none d-md-inline-block">
+            <v-menu bottom offset-y>
               <template #activator="{ on }">
                 <v-btn icon v-on="on">
                   <v-icon>mdi-dots-vertical</v-icon>

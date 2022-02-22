@@ -75,7 +75,7 @@ export default defineComponent({
       () => user.current,
       () => {
         if (user.isAuth) {
-          router.push({ name: 'Home' })
+          router.push({ name: 'Home' }).catch(() => {})
         }
       },
     )
