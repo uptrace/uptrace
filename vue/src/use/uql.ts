@@ -16,13 +16,10 @@ export interface QueryPart {
   disabled?: boolean
 }
 
-interface Part {
+export interface Part {
   query: string
   error: string
   disabled: boolean
-
-  editMode: boolean
-  editQuery: string
 }
 
 interface UqlConfig {
@@ -42,65 +39,35 @@ export function useUql(cfg: UqlConfig = {}) {
 
   const query = computed({
     set(s: string) {
-      parts.value = parseUql(s).map((part) => reactive(part))
+      parts.value = parseParts(s).map((part) => reactive(part))
     },
     get(): string {
-      return formatUql(parts.value)
+      return formatParts(parts.value)
     },
   })
 
-  const editing = computed(() => {
-    for (let part of parts.value) {
-      if (part.editMode) {
-        return true
-      }
-    }
-
-    return false
-  })
-
-  function addPart() {
-    const part = createPart()
-
-    parts.value.push(createPart())
+  function addPart(part: Part) {
+    parts.value.push(reactive(part))
     // eslint-disable-next-line no-self-assign
     parts.value = parts.value
-
-    enterEditMode(part)
   }
 
-  function removeAt(index: number) {
+  function removePart(index: number) {
     parts.value.splice(index, 1)
     // eslint-disable-next-line no-self-assign
     parts.value = parts.value
   }
 
-  function toggle(part: Part) {
-    part.disabled = !part.disabled
-  }
-
-  function enterEditMode(part: Part) {
-    part.editQuery = part.query
-    part.editMode = true
-  }
-
-  function exitEditMode(part: Part, save: boolean) {
-    if (save) {
-      if (part.editQuery !== part.query) {
-        part.error = ''
-      }
-      part.query = part.editQuery
-    }
-    part.editMode = false
+  function cleanup() {
+    parts.value = parts.value.filter((part) => part.query.length > 0)
   }
 
   function syncParts(other: QueryPart[]) {
-    if (parts.value.length !== other.length) {
-      return
-    }
-
     parts.value.forEach((part: QueryPart, i: number) => {
       const otherPart = other[i]
+      if (!otherPart) {
+        return
+      }
       part.query = otherPart.query
       part.error = otherPart.error ?? ''
       part.disabled = otherPart.disabled ?? false
@@ -164,16 +131,12 @@ export function useUql(cfg: UqlConfig = {}) {
 
   return proxyRefs({
     rawMode,
-    parts,
     query,
-    editing,
+    parts,
 
     addPart,
-    removeAt,
-    toggle,
-
-    enterEditMode,
-    exitEditMode,
+    removePart,
+    cleanup,
 
     syncParts,
     axiosParams,
@@ -183,12 +146,12 @@ export function useUql(cfg: UqlConfig = {}) {
   })
 }
 
-export function parseUql(q: any): Part[] {
-  if (!q || typeof q !== 'string') {
+export function parseParts(query: any): Part[] {
+  if (typeof query !== 'string' || !query) {
     return []
   }
 
-  return q
+  return query
     .split(QUERY_PART_SEP)
     .map((s) => s.trim())
     .filter((s) => s.length)
@@ -197,30 +160,30 @@ export function parseUql(q: any): Part[] {
     })
 }
 
-function createPart(query = ''): Part {
+export function createPart(query = ''): Part {
   return {
-    query: query,
+    query,
     error: '',
     disabled: false,
-
-    editMode: false,
-    editQuery: '',
   }
 }
 
-export function formatUql(parts: Part[]): string {
-  return parts.map((part) => part.query).join(QUERY_PART_SEP)
+export function formatParts(parts: Part[]): string {
+  return parts
+    .filter((part) => part.query.length > 0)
+    .map((part) => part.query)
+    .join(QUERY_PART_SEP)
 }
 
 export class UqlEditor {
   parts: Part[]
 
   constructor(s: any = '') {
-    this.parts = parseUql(s)
+    this.parts = parseParts(s)
   }
 
   toString() {
-    return formatUql(this.parts)
+    return formatParts(this.parts)
   }
 
   reset() {
@@ -230,7 +193,7 @@ export class UqlEditor {
   }
 
   add(query: string) {
-    for (let part of parseUql(query)) {
+    for (let part of parseParts(query)) {
       const i = this.parts.findIndex((p) => p.query === part.query)
       if (i === -1) {
         this.parts.push(part)
@@ -321,9 +284,7 @@ export function buildGroupBy(column: string) {
     `group by ${column}`,
     xkey.spanCountPerMin,
     xkey.spanErrorPct,
-    `p50(${xkey.spanDuration})`,
-    `p90(${xkey.spanDuration})`,
-    `p99(${xkey.spanDuration})`,
+    `{p50,p90,p99}(${xkey.spanDuration})`,
   ]
   return ss.join(QUERY_PART_SEP)
 }

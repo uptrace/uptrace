@@ -11,71 +11,87 @@
         <SpanQueryHelpDialog :uql="uql" class="mr-2" />
       </v-col>
       <v-col cols="auto">
-        <v-btn v-if="uql.rawMode" icon title="Apply filters" @click="exitRawMode(true)">
-          <v-icon size="26" color="success">mdi-check</v-icon>
-        </v-btn>
-        <v-btn icon title="Cancel editing" @click="uql.rawMode = !uql.rawMode">
-          <v-icon v-if="uql.rawMode" size="22">mdi-pencil-off-outline</v-icon>
-          <v-icon v-else size="22">mdi-pencil-outline</v-icon>
+        <v-btn v-if="!uql.rawMode" icon title="Edit query" @click="uql.rawMode = true">
+          <v-icon size="22">mdi-pencil-outline</v-icon>
         </v-btn>
       </v-col>
     </v-row>
 
-    <v-row align="center" dense>
-      <v-col v-if="uql.rawMode">
-        <v-textarea
-          v-model="query"
-          hint="Press ENTER to apply filters and ESC to cancel editing"
-          permanent-hint
-          rows="1"
-          outlined
-          clearable
-          auto-grow
-          autofocus
-          @keyup.enter.stop.prevent
-          @keydown.enter.stop.prevent="exitRawMode(true)"
-          @keydown.esc.stop.prevent="exitRawMode(false)"
-        >
-        </v-textarea>
+    <template v-if="uql.rawMode">
+      <v-row align="center" dense>
+        <v-col>
+          <v-textarea
+            v-model="query"
+            rows="1"
+            outlined
+            clearable
+            auto-grow
+            autofocus
+            hide-details="auto"
+            @keyup.enter.stop.prevent
+            @keydown.enter.stop.prevent="exitRawMode(true)"
+            @keydown.esc.stop.prevent="exitRawMode(false)"
+          >
+          </v-textarea>
+        </v-col>
+      </v-row>
+      <v-row no-gutters class="mt-1">
+        <v-col class="text-caption grey--text text--darken-2">
+          Press ENTER to apply and ESC to cancel
+        </v-col>
+        <v-spacer />
+        <v-col cols="auto">
+          <v-btn text small @click="exitRawMode(false)">Cancel</v-btn>
+          <v-btn small color="primary" class="ml-2" @click="exitRawMode(true)">OK</v-btn>
+        </v-col>
+      </v-row>
+    </template>
+
+    <v-row v-else-if="!uql.parts.length" align="center" dense>
+      <v-col class="mb-1 px-3 text-body-2">
+        <div v-if="disabled" class="text--disabled">The query is empty...</div>
+        <div v-else class="text--secondary cursor-pointer" @click="uql.rawMode = true">
+          Click to edit the query...
+        </div>
       </v-col>
-      <v-col v-else-if="!uql.parts.length" class="mb-1 px-3 text-body-2 grey--text text--darken-2">
-        Empty query...
-      </v-col>
-      <v-col v-else class="d-flex flex-wrap align-start">
+    </v-row>
+
+    <v-row v-else align="center" dense>
+      <v-col class="d-flex flex-wrap align-start">
         <template v-for="(part, i) in uql.parts">
-          <div v-if="!part.editMode" :key="part.query" class="mr-2 mb-1 d-inline-block">
-            <UptraceQueryChip
-              :key="i"
-              :query="part.query"
-              :error="part.error"
-              :disabled="part.disabled || disabled"
-              class="mr-2 mb-1"
-              @click:edit="uql.enterEditMode(part)"
-              @click:delete="uql.removeAt(i)"
-            />
-          </div>
-          <div v-else :key="part.query" class="mr-2 d-inline-block">
+          <div v-if="i === partEditor.index" :key="i" class="mr-2 d-inline-block">
             <v-text-field
-              v-model="part.editQuery"
+              v-model="partEditor.query"
+              v-autowidth="{ minWidth: '40px' }"
               :error-messages="part.error"
               outlined
               dense
               hide-details="auto"
               autofocus
               @keyup.enter.stop.prevent
-              @keydown.enter.stop.prevent="uql.exitEditMode(part, true)"
-              @keydown.esc.stop.prevent="uql.exitEditMode(part, false)"
-              @blur="uql.exitEditMode(part, true)"
+              @keydown.enter.stop.prevent="partEditor.applyEdits(part)"
+              @keydown.esc.stop.prevent="partEditor.cancelEdits(part)"
+              @blur="partEditor.cancelEdits(part)"
             />
           </div>
+          <UptraceQueryChip
+            v-else
+            :key="i"
+            :query="part.query"
+            :error="part.error"
+            :disabled="part.disabled || disabled"
+            class="mr-2 mb-1"
+            @click:edit="partEditor.startEditing(i, part)"
+            @click:delete="uql.removePart(i)"
+          />
         </template>
         <v-btn
-          v-if="!uql.editing"
+          v-if="!partEditor.editing"
           color="text--secondary"
           fab
           elevation="0"
           class="btn--add"
-          @click="uql.addPart"
+          @click="partEditor.add"
           ><v-icon>mdi-plus</v-icon></v-btn
         >
       </v-col>
@@ -84,10 +100,17 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, watch, PropType } from '@vue/composition-api'
+import {
+  defineComponent,
+  shallowRef,
+  computed,
+  watch,
+  proxyRefs,
+  PropType,
+} from '@vue/composition-api'
 
 // Composables
-import { UseUql } from '@/use/uql'
+import { createPart, Part, UseUql } from '@/use/uql'
 
 // Components
 import SpanQueryHelpDialog from '@/components/SpanQueryHelpDialog.vue'
@@ -110,7 +133,6 @@ export default defineComponent({
 
   setup(props) {
     const query = shallowRef('')
-    const editor = props.uql.createEditor()
 
     function exitRawMode(save: boolean) {
       props.uql.rawMode = false
@@ -129,12 +151,59 @@ export default defineComponent({
 
     return {
       query,
-      editor,
 
       exitRawMode,
+      partEditor: usePartEditor(props.uql),
     }
   },
 })
+
+function usePartEditor(uql: UseUql) {
+  const partIndex = shallowRef<number>()
+  const partQuery = shallowRef('')
+
+  const editing = computed(() => {
+    return partIndex.value !== undefined
+  })
+
+  function addPart() {
+    const part = createPart()
+    uql.addPart(part)
+
+    startEditing(uql.parts.length - 1, part)
+  }
+
+  function startEditing(i: number, part: Part) {
+    partIndex.value = i
+    partQuery.value = part.query
+  }
+
+  function applyEdits(part: Part) {
+    if (partQuery.value !== part.query) {
+      part.error = ''
+    }
+    part.query = partQuery.value
+
+    cancelEdits()
+  }
+
+  function cancelEdits() {
+    partIndex.value = undefined
+    partQuery.value = ''
+    uql.cleanup()
+  }
+
+  return proxyRefs({
+    index: partIndex,
+    query: partQuery,
+    editing,
+
+    add: addPart,
+    startEditing,
+    applyEdits,
+    cancelEdits,
+  })
+}
 </script>
 
 <style lang="scss" scoped>

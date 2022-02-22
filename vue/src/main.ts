@@ -7,6 +7,7 @@ import App from '@/App.vue'
 import router from '@/router'
 import '@/styles/index.scss'
 
+import '@/plugins/directives'
 import '@/plugins/frag'
 import '@/plugins/axios'
 import '@/plugins/prism'
