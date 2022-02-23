@@ -42,6 +42,8 @@ projects:
 # - https://clickhouse.com/docs/en/operations/settings/query-complexity/
 # - https://clickhouse.com/docs/en/sql-reference/statements/select/sample/
 ch_select_limits:
-  sample_rows: 10e6 # sample 10 million rows
+  # ClickHouse sampling is disabled by default,
+  # because it only makes queries faster with big ClickHouse clusters
+  sample_rows: 0
   max_rows_to_read: 12e6 # read at most 12 million rows
   max_bytes_to_read: 4e9 # read at most 4 gigabytes of data
