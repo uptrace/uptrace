@@ -22,10 +22,12 @@ retention:
   # Supports SQL interval syntax, for example, INTERVAL 30 DAY.
   ttl: 30 DAY
 
-users:
-  - id: 1
-    username: uptrace
-    password: uptrace
+# Uncomment this section to require authentication.
+#
+# users:
+#   - id: 1
+#     username: uptrace
+#     password: uptrace
 
 projects:
   # First project is used for self-monitoring.

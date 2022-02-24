@@ -26,6 +26,11 @@ var (
 	ErrAccessedDenied = httperror.Forbidden("access denied")
 )
 
+var GuestUser = &bunapp.User{
+	ID:       1,
+	Username: "guest",
+}
+
 type userCtxKey struct{}
 
 func UserFromContext(ctx context.Context) (*bunapp.User, error) {
@@ -63,6 +68,11 @@ func findUserByPassword(app *bunapp.App, username string, password string) *buna
 func userFromRequest(app *bunapp.App, req bunrouter.Request) *bunapp.User {
 	ctx := req.Context()
 
+	users := app.Config().Users
+	if len(users) == 0 {
+		return GuestUser
+	}
+
 	cookie, err := req.Cookie(tokenCookieName)
 	if err != nil {
 		return nil
@@ -77,7 +87,6 @@ func userFromRequest(app *bunapp.App, req bunrouter.Request) *bunapp.User {
 		return nil
 	}
 
-	users := app.Config().Users
 	for i := range users {
 		user := &users[i]
 		if user.ID == userID {

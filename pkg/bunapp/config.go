@@ -28,9 +28,6 @@ func ReadConfig(configFile, service string) (*AppConfig, error) {
 	cfg.Filepath = configFile
 	cfg.Service = service
 
-	if len(cfg.Users) == 0 {
-		return nil, fmt.Errorf("config must contain at least one user")
-	}
 	if err := validateProjects(cfg.Projects); err != nil {
 		return nil, err
 	}
