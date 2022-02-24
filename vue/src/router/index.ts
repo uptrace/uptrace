@@ -11,6 +11,7 @@ import HostOverview from '@/components/HostOverview.vue'
 
 import Tracing from '@/views/Tracing.vue'
 import TraceShow from '@/views/TraceShow.vue'
+import TraceFind from '@/views/TraceFind.vue'
 import SpanShow from '@/views/SpanShow.vue'
 
 import Login from '@/views/Login.vue'
@@ -103,6 +104,11 @@ const routes: Array<RouteConfig> = [
     name: 'SpanShow',
     path: '/traces/:projectId(\\d+)/:traceId/:spanId',
     component: SpanShow,
+  },
+  {
+    path: '/traces/:traceId',
+    name: 'TraceFind',
+    component: TraceFind,
   },
 ]
 

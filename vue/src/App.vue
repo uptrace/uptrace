@@ -19,12 +19,12 @@
 
           <v-col cols="auto">
             <v-tabs optional class="ml-8">
-              <template v-if="user.isAuth">
+              <template v-if="user.isAuth && $route.params.projectId">
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
                 <v-tab :to="{ name: 'GroupList' }">Explore</v-tab>
                 <v-tab :to="{ name: 'Help' }">Help</v-tab>
               </template>
-              <v-tab v-else :to="{ name: 'Login' }">Login</v-tab>
+              <v-tab v-if="!user.isAuth" :to="{ name: 'Login' }">Login</v-tab>
             </v-tabs>
           </v-col>
 
@@ -33,6 +33,7 @@
           <v-col cols="auto">
             <v-text-field
               v-model="traceId"
+              loading="traceSearch.loading"
               prepend-inner-icon="mdi-magnify"
               placeholder="Jump to trace id..."
               hide-details
@@ -102,11 +103,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef } from '@vue/composition-api'
+import { defineComponent, shallowRef, watch } from '@vue/composition-api'
 
 // Composables
 import { useRouter, useQuery } from '@/use/router'
 import { useUser } from '@/use/org'
+import { useTraceSearch } from '@/use/trace-search'
 
 // Components
 import UptraceLogoLarge from '@/components/UptraceLogoLarge.vue'
@@ -119,23 +121,34 @@ export default defineComponent({
   components: { UptraceLogoLarge, UptraceLogoSmall, ProjectPicker, XSnackbar },
 
   setup() {
-    const user = useUser()
+    useQuery()
 
     const { router } = useRouter()
-    useQuery()
+    const user = useUser()
+    const traceSearch = useTraceSearch()
     const traceId = shallowRef('')
 
+    watch(
+      () => traceSearch.trace,
+      (trace) => {
+        if (trace) {
+          router.push({
+            name: 'TraceShow',
+            params: { projectId: String(trace.projectId), traceId: trace.id },
+          })
+          traceId.value = ''
+        }
+      },
+    )
+
     function jumpToTrace() {
-      if (traceId.value) {
-        router.push({ name: 'TraceShow', params: { traceId: traceId.value } })
-        traceId.value = ''
-      }
+      traceSearch.find(traceId.value)
     }
 
     return {
       user,
+      traceSearch,
       traceId,
-
       jumpToTrace,
     }
   },

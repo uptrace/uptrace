@@ -21,6 +21,29 @@ func NewTraceHandler(app *bunapp.App) *TraceHandler {
 	}
 }
 
+func (h *TraceHandler) FindTrace(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	traceID, err := uuid.Parse(req.Param("trace_id"))
+	if err != nil {
+		return err
+	}
+
+	span := &Span{
+		TraceID: traceID,
+	}
+	if err := SelectSpan(ctx, h.App, span); err != nil {
+		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"trace": map[string]any{
+			"id":        span.TraceID,
+			"projectId": span.ProjectID,
+		},
+	})
+}
+
 func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 

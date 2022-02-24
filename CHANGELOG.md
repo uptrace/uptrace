@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.4 - Feb 24 2022
+
+### 💡 Enhancements 💡
+
+- Make sure projects have unique tokens.
+- Make user authentication optional by commenting out users section in the YAML config.
+- Fix jumping to a trace to account for the project id.
+- Added missing trace find route.
+
 ## v0.2.2 - Feb 22 2022
 
 ### 💡 Enhancements 💡

@@ -30,13 +30,17 @@ func newSpanData(data *SpanData, span *Span) {
 func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 	var data []byte
 
-	if err := app.CH().NewSelect().
+	q := app.CH().NewSelect().
 		Model((*SpanData)(nil)).
 		Column("data").
 		Where("trace_id = ?", span.TraceID).
-		Where("id = ?", span.ID).
-		Limit(1).
-		Scan(ctx, &data); err != nil {
+		Limit(1)
+
+	if span.ID != 0 {
+		q = q.Where("id = ?", span.ID)
+	}
+
+	if err := q.Scan(ctx, &data); err != nil {
 		return err
 	}
 

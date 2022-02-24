@@ -34,7 +34,11 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 	traceHandler := NewTraceHandler(app)
 	suggestionHandler := NewSuggestionHandler(app)
 
-	g := app.APIGroup().
+	api := app.APIGroup()
+
+	api.GET("/traces/:trace_id", traceHandler.FindTrace)
+
+	g := api.
 		Use(org.NewAuthMiddleware(app)).
 		NewGroup("/tracing/:project_id")
 
