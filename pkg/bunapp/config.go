@@ -31,8 +31,8 @@ func ReadConfig(configFile, service string) (*AppConfig, error) {
 	if len(cfg.Users) == 0 {
 		return nil, fmt.Errorf("config must contain at least one user")
 	}
-	if len(cfg.Projects) == 0 {
-		return nil, fmt.Errorf("config must contain at least one project")
+	if err := validateProjects(cfg.Projects); err != nil {
+		return nil, err
 	}
 
 	httpHost, httpPort, err := net.SplitHostPort(cfg.Listen.HTTP)
@@ -56,6 +56,22 @@ func ReadConfig(configFile, service string) (*AppConfig, error) {
 	cfg.Listen.GRPCPort = grpcPort
 
 	return cfg, nil
+}
+
+func validateProjects(projects []Project) error {
+	if len(projects) == 0 {
+		return fmt.Errorf("config must contain at least one project")
+	}
+
+	seen := make(map[string]bool, len(projects))
+	for i := range projects {
+		project := &projects[i]
+		if seen[project.Token] {
+			return fmt.Errorf("project %d has a duplicate token %q", project.ID, project.Token)
+		}
+	}
+
+	return nil
 }
 
 type AppConfig struct {

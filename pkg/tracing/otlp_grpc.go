@@ -3,13 +3,14 @@ package tracing
 import (
 	"context"
 	"errors"
-	"fmt"
 	"runtime"
 	"time"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	collectortrace "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"go.uber.org/zap"
@@ -74,7 +75,12 @@ func (s *TraceServiceServer) Export(
 		return nil, errors.New("uptrace-dsn header is required")
 	}
 
-	project, err := s.findProjectByDSN(dsn[0])
+	span := trace.SpanFromContext(ctx)
+	if span.IsRecording() {
+		span.SetAttributes(attribute.String("dsn", dsn[0]))
+	}
+
+	project, err := org.SelectProjectByDSN(ctx, s.App, dsn[0])
 	if err != nil {
 		return nil, err
 	}
@@ -82,26 +88,6 @@ func (s *TraceServiceServer) Export(
 	s.process(project, req.ResourceSpans)
 
 	return &collectortrace.ExportTraceServiceResponse{}, nil
-}
-
-func (s *TraceServiceServer) findProjectByDSN(dsnStr string) (*bunapp.Project, error) {
-	dsn, err := org.ParseDSN(dsnStr)
-	if err != nil {
-		return nil, err
-	}
-
-	if dsn.Token == "" {
-		return nil, fmt.Errorf("dsn %q does not contain a token", dsnStr)
-	}
-
-	projects := s.Config().Projects
-	for i := range projects {
-		project := &projects[i]
-		if project.Token == dsn.Token {
-			return project, nil
-		}
-	}
-	return nil, fmt.Errorf("project with token %q not found", dsn.Token)
 }
 
 func (s *TraceServiceServer) process(

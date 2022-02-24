@@ -31,11 +31,11 @@ projects:
   # First project is used for self-monitoring.
   - id: 1
     name: Uptrace
-    token: secret_token
+    token: project1_secret_token
 
   - id: 2
     name: My project
-    token: secret_token
+    token: project2_secret_token
 
 # Various limits we apply to queries on spans_index table.
 #

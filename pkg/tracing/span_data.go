@@ -43,6 +43,7 @@ func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 	return unmarshalSpan(data, span)
 }
 
+// TODO: add project id filtering
 func SelectTraceSpans(ctx context.Context, app *bunapp.App, traceID uuid.UUID) ([]*Span, error) {
 	var data []SpanData
 
