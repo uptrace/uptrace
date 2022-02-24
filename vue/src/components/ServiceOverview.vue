@@ -76,6 +76,7 @@ export default defineComponent({
       return {
         name: 'GroupList',
         query: {
+          ...props.dateRange.queryParams(),
           ...props.systems.axiosParams(),
           query: query.value,
         },

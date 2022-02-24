@@ -84,6 +84,7 @@ export default defineComponent({
       return {
         name: 'GroupList',
         query: {
+          ...props.dateRange.queryParams(),
           system: xkey.allSystem,
           query: buildGroupBy(xkey.spanSystem),
         },

@@ -66,7 +66,10 @@ export default defineComponent({
 
   setup() {
     useTitle('Explore spans')
+
     const dateRange = useDateRange()
+    dateRange.syncQuery()
+
     const systems = useSystems(dateRange)
     const uql = useUql({
       query: buildGroupBy(xkey.spanGroupId),

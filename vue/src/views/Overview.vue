@@ -54,7 +54,10 @@ export default defineComponent({
 
   setup() {
     useTitle('Overview')
+
     const dateRange = useDateRange()
+    dateRange.syncQuery()
+
     const systems = useSystems(dateRange)
 
     return { dateRange, systems }

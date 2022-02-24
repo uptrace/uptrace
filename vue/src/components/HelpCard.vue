@@ -5,10 +5,7 @@
 
       <v-spacer />
 
-      <v-btn v-if="dateRange" small outlined @click="dateRange.reload">
-        <v-icon small>mdi-refresh</v-icon>
-        <span class="ml-1">Reload</span>
-      </v-btn>
+      <DateRangePicker v-if="dateRange" :date-range="dateRange" />
     </PageToolbar>
 
     <v-container class="mb-6 px-4 py-6">
@@ -78,12 +75,13 @@ import { UseDateRange } from '@/use/date-range'
 import { useWatchAxios } from '@/use/watch-axios'
 
 // Components
+import DateRangePicker from '@/components/DateRangePicker.vue'
 import CollectorTabs from '@/components/CollectorTabs.vue'
 import HelpLinks from '@/components/HelpLinks.vue'
 
 export default defineComponent({
   name: 'HelpCard',
-  components: { CollectorTabs, HelpLinks },
+  components: { DateRangePicker, CollectorTabs, HelpLinks },
 
   props: {
     loading: {
