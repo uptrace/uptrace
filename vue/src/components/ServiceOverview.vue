@@ -25,6 +25,7 @@
           :items="services.pageServices"
           :order="services.order"
           column="service"
+          :attribute="xkey.serviceName"
           :base-column-route="groupListRoute"
         />
       </v-card-text>

@@ -25,6 +25,7 @@
           :items="hosts.pageHosts"
           :order="hosts.order"
           column="host"
+          :attribute="xkey.hostName"
           :base-column-route="groupListRoute"
         />
       </v-card-text>

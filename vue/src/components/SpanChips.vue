@@ -32,7 +32,6 @@
 </template>
 
 <script lang="ts">
-import { truncate } from 'lodash'
 import { defineComponent, computed, PropType } from '@vue/composition-api'
 
 // Utilities
@@ -85,12 +84,6 @@ export default defineComponent({
       }
 
       pushKindChip(chips, props.span.attrs)
-
-      const file = props.span.attrs[xkey.codeFilepath]
-      if (file) {
-        chips.push({ key: xkey.codeFilepath, value: file, text: shortFile(file) })
-      }
-
       pushHttpStatusChip(chips, props.span.attrs)
 
       return chips
@@ -129,14 +122,6 @@ function pushHttpStatusChip(chips: SpanChip[], attrs: AttrMap) {
   if (typeof httpCode === 'number' && httpCode != 0 && (httpCode < 200 || httpCode >= 300)) {
     chips.push({ key: xkey.httpStatusCode, value: httpCode, text: String(httpCode) })
   }
-}
-
-function shortFile(s: string): string {
-  let ind = s.lastIndexOf('/')
-  if (ind !== -1) {
-    s = s.slice(ind + 1)
-  }
-  return truncate(s)
 }
 </script>
 

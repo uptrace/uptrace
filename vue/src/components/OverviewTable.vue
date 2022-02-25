@@ -134,6 +134,10 @@ export default defineComponent({
       type: String,
       default: '',
     },
+    attribute: {
+      type: String,
+      default: '',
+    },
     baseColumnRoute: {
       type: Object as PropType<Route>,
       default: undefined,
@@ -145,9 +149,9 @@ export default defineComponent({
       let where: string
 
       if (value === '') {
-        where = `${props.column} does not exist`
+        where = `${props.attribute} does not exist`
       } else {
-        where = `${props.column} = ${quote(value)}`
+        where = `${props.attribute} = ${quote(value)}`
       }
 
       const route = { ...props.baseColumnRoute }
