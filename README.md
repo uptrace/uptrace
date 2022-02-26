@@ -90,8 +90,9 @@ And open http://localhost:19876
 **What is the license?**
 
 The Business Source [License](LICENSE) is identical to Apache 2.0 with the only exception being that
-you can't use the code to create a cloud service. It is a more permissive license than, for example,
-AGPL, because it allows private changes to the code.
+you can't use the code to create a cloud service or, in other words, resell it to others as a
+product. It is a more permissive license than, for example, AGPL, because it allows private changes
+to the code.
 
 You can learn more about BSL [here](https://mariadb.com/bsl-faq-adopting/).
 
