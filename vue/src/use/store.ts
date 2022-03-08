@@ -2,10 +2,7 @@ interface Store<R> {
   (): R
 }
 
-export function defineStore<T extends Record<string, unknown>>(
-  stateName: string,
-  _create: Store<T>,
-): Store<T> {
+export function defineStore<T extends Record<string, unknown>>(_create: Store<T>): Store<T> {
   let store: T | undefined
 
   return function create(): T {

@@ -15,7 +15,7 @@ import (
 	"github.com/klauspost/compress/gzhttp"
 	"github.com/rs/cors"
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/go-clickhouse/ch/migrate"
+	"github.com/uptrace/go-clickhouse/chmigrate"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace"
 	"github.com/uptrace/uptrace/pkg"
@@ -183,7 +183,7 @@ func serveVueApp(app *bunapp.App) {
 		}))
 }
 
-func newCHCommand(migrations *migrate.Migrations) *cli.Command {
+func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 	return &cli.Command{
 		Name:  "ch",
 		Usage: "ClickHouse management commands",
@@ -224,7 +224,7 @@ func newCHCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH(), migrations)
 					return migrator.Init(ctx)
 				},
 			},
@@ -238,7 +238,7 @@ func newCHCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH(), migrations)
 
 					group, err := migrator.Migrate(ctx)
 					if err != nil {
@@ -264,7 +264,7 @@ func newCHCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH(), migrations)
 
 					group, err := migrator.Rollback(ctx)
 					if err != nil {
@@ -290,7 +290,7 @@ func newCHCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH(), migrations)
 
 					if err := migrator.Init(ctx); err != nil {
 						return err
@@ -329,7 +329,7 @@ func newCHCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH(), migrations)
 					return migrator.Lock(ctx)
 				},
 			},
@@ -343,7 +343,7 @@ func newCHCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH(), migrations)
 					return migrator.Unlock(ctx)
 				},
 			},
@@ -357,7 +357,7 @@ func newCHCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH(), migrations)
 
 					name := strings.Join(c.Args().Slice(), "_")
 					mf, err := migrator.CreateGoMigration(ctx, name)
@@ -379,7 +379,7 @@ func newCHCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH(), migrations)
 
 					name := strings.Join(c.Args().Slice(), "_")
 					files, err := migrator.CreateSQLMigrations(ctx, name)
@@ -404,7 +404,7 @@ func newCHCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH(), migrations)
 
 					ms, err := migrator.MigrationsWithStatus(ctx)
 					if err != nil {
