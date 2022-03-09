@@ -46,7 +46,7 @@ ORDER BY (project_id, "span.system", "span.group_id", intHash32("span.id"))
 PARTITION BY toDate("span.time")
 TTL toDate("span.time") + INTERVAL ?TTL DELETE
 
---migrate:split
+--migration:split
 
 CREATE TABLE spans_data (
   trace_id UUID,
@@ -61,18 +61,18 @@ PARTITION BY toDate(time)
 TTL toDate(time) + INTERVAL ?TTL DELETE
 SETTINGS index_granularity = 128
 
---migrate:split
+--migration:split
 
 CREATE TABLE spans_index_buffer AS spans_index
 ENGINE = Buffer(currentDatabase(), spans_index, 5, 10, 15, 10000, 1000000, 10000000, 100000000)
 
---migrate:split
+--migration:split
 
 CREATE TABLE spans_data_buffer AS spans_data
 ENGINE = Buffer(currentDatabase(), spans_data, 5, 10, 15, 10000, 1000000, 10000000, 100000000)
 
 --------------------------------------------------------------------------------
---migrate:split
+--migration:split
 
 CREATE TABLE span_system_minutes (
   project_id UInt32,
@@ -88,7 +88,7 @@ ORDER BY (project_id, time, system)
 TTL toDate(time) + INTERVAL ?TTL DELETE
 SETTINGS index_granularity = 128;
 
---migrate:split
+--migration:split
 
 CREATE MATERIALIZED VIEW span_system_minutes_mv
 TO span_system_minutes AS
@@ -103,7 +103,7 @@ FROM spans_index
 GROUP BY project_id, time, system
 SETTINGS prefer_column_name_to_alias = 1
 
---migrate:split
+--migration:split
 
 CREATE TABLE span_system_hours (
   project_id UInt32,
@@ -119,7 +119,7 @@ ORDER BY (project_id, time, system)
 TTL toDate(time) + INTERVAL ?TTL DELETE
 SETTINGS index_granularity = 128;
 
---migrate:split
+--migration:split
 
 CREATE MATERIALIZED VIEW span_system_hours_mv
 TO span_system_hours AS
@@ -135,7 +135,7 @@ GROUP BY project_id, toStartOfHour(time), system
 SETTINGS prefer_column_name_to_alias = 1
 
 --------------------------------------------------------------------------------
---migrate:split
+--migration:split
 
 CREATE TABLE span_service_minutes (
   project_id UInt32,
@@ -152,7 +152,7 @@ ORDER BY (project_id, time, system, service)
 TTL toDate(time) + INTERVAL ?TTL DELETE
 SETTINGS index_granularity = 128;
 
---migrate:split
+--migration:split
 
 CREATE MATERIALIZED VIEW span_service_minutes_mv
 TO span_service_minutes AS
@@ -168,7 +168,7 @@ FROM spans_index
 GROUP BY project_id, time, system, service
 SETTINGS prefer_column_name_to_alias = 1
 
---migrate:split
+--migration:split
 
 CREATE TABLE span_service_hours (
   project_id UInt32,
@@ -185,7 +185,7 @@ ORDER BY (project_id, time, system, service)
 TTL toDate(time) + INTERVAL ?TTL DELETE
 SETTINGS index_granularity = 128;
 
---migrate:split
+--migration:split
 
 CREATE MATERIALIZED VIEW span_service_hours_mv
 TO span_service_hours AS
@@ -202,7 +202,7 @@ GROUP BY project_id, toStartOfHour(time), system, service
 SETTINGS prefer_column_name_to_alias = 1
 
 --------------------------------------------------------------------------------
---migrate:split
+--migration:split
 
 CREATE TABLE span_host_minutes (
   project_id UInt32,
@@ -219,7 +219,7 @@ ORDER BY (project_id, time, system, host)
 TTL toDate(time) + INTERVAL ?TTL DELETE
 SETTINGS index_granularity = 128;
 
---migrate:split
+--migration:split
 
 CREATE MATERIALIZED VIEW span_host_minutes_mv
 TO span_host_minutes AS
@@ -235,7 +235,7 @@ FROM spans_index
 GROUP BY project_id, time, system, host
 SETTINGS prefer_column_name_to_alias = 1
 
---migrate:split
+--migration:split
 
 CREATE TABLE span_host_hours (
   project_id UInt32,
@@ -252,7 +252,7 @@ ORDER BY (project_id, time, system, host)
 TTL toDate(time) + INTERVAL ?TTL DELETE
 SETTINGS index_granularity = 128;
 
---migrate:split
+--migration:split
 
 CREATE MATERIALIZED VIEW span_host_hours_mv
 TO span_host_hours AS
