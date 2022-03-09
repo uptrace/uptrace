@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.5 - Mar 09 2022
+
+- Add list of spans.
+- Fix links to services and hostnames.
+- Fix SQL grouping.
+
 ## v0.2.4 - Feb 24 2022
 
 ### 💡 Enhancements 💡
