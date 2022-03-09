@@ -10,6 +10,9 @@ import ServiceOverview from '@/components/ServiceOverview.vue'
 import HostOverview from '@/components/HostOverview.vue'
 
 import Tracing from '@/views/Tracing.vue'
+import GroupList from '@/views/GroupList.vue'
+import SpanList from '@/views/SpanList.vue'
+
 import TraceShow from '@/views/TraceShow.vue'
 import TraceFind from '@/views/TraceFind.vue'
 import SpanShow from '@/views/SpanShow.vue'
@@ -91,10 +94,26 @@ const routes: Array<RouteConfig> = [
   },
 
   {
-    name: 'GroupList',
     path: '/explore/:projectId(\\d+)',
     component: Tracing,
+    children: [
+      {
+        name: 'GroupList',
+        path: 'groups',
+        component: GroupList,
+      },
+      {
+        name: 'SpanList',
+        path: 'spans',
+        component: SpanList,
+      },
+      {
+        path: '',
+        redirect: { name: 'GroupList' },
+      },
+    ],
   },
+
   {
     name: 'TraceShow',
     path: '/traces/:projectId(\\d+)/:traceId',

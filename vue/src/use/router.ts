@@ -36,7 +36,7 @@ interface QueryItem {
 
 type OnRouteUpdatedHook = (route: Route) => void
 
-export const useQuery = defineStore('useQuery', () => {
+export const useQuery = defineStore(() => {
   const { router, route } = useRouter()
   const lastRoute = shallowRef<Route>()
 

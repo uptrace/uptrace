@@ -16,7 +16,7 @@ export interface Project {
   name: string
 }
 
-export const useUser = defineStore('useUser', () => {
+export const useUser = defineStore(() => {
   const { loading, data, request } = useAxios()
 
   const user = computed((): User => {

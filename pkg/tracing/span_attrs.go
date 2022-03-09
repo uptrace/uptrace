@@ -85,7 +85,6 @@ func newSpanLink(link *tracepb.Span_Link) *SpanLink {
 
 func hashDBStmt(digest *xxhash.Digest, s string) uint64 {
 	tok := sqlparser.NewTokenizer(s)
-	digest.Reset()
 	for {
 		token, err := tok.NextToken()
 		if err == io.EOF {

@@ -2,7 +2,7 @@ import { ref, computed } from '@vue/composition-api'
 
 import { defineStore } from '@/use/store'
 
-export const useForceReload = defineStore('useForceReload', () => {
+export const useForceReload = defineStore(() => {
   const token = ref(0)
 
   function forceReload() {

@@ -50,7 +50,7 @@
               </v-slide-item>
             </v-slide-group>
 
-            <GroupTable
+            <GroupsTable
               :date-range="dateRange"
               :systems="systems"
               :uql="uql"
@@ -82,11 +82,11 @@ import { UseUql } from '@/use/uql'
 import { useSpanExplore } from '@/use/span-explore'
 
 // Components
-import GroupTable from '@/components/GroupTable.vue'
+import GroupsTable from '@/components/GroupsTable.vue'
 
 export default defineComponent({
   name: 'GroupList',
-  components: { GroupTable },
+  components: { GroupsTable },
 
   props: {
     dateRange: {

@@ -4,7 +4,7 @@
       <HelpCard :date-range="dateRange" :loading="systems.loading" />
     </template>
 
-    <div>
+    <div class="border">
       <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
         <v-row align="center" justify="space-between" class="mb-4">
           <v-col cols="auto">
@@ -15,6 +15,15 @@
             <DateRangePicker :date-range="dateRange" />
           </v-col>
         </v-row>
+
+        <v-row align="end" no-gutters>
+          <v-col>
+            <v-tabs :key="$route.fullPath" background-color="transparent">
+              <v-tab :to="{ name: 'GroupList' }" exact-path>Groups</v-tab>
+              <v-tab :to="{ name: 'SpanList' }" exact-path>Spans</v-tab>
+            </v-tabs>
+          </v-col>
+        </v-row>
       </v-container>
     </div>
 
@@ -23,7 +32,7 @@
         <SpanFilters :uql="uql" :systems="systems" :axios-params="axiosParams" />
       </UptraceQuery>
 
-      <GroupList
+      <router-view
         :date-range="dateRange"
         :systems="systems"
         :uql="uql"
@@ -48,7 +57,6 @@ import SystemPicker from '@/components/SystemPicker.vue'
 import HelpCard from '@/components/HelpCard.vue'
 import UptraceQuery from '@/components/uql/UptraceQuery.vue'
 import SpanFilters from '@/components/uql/SpanFilters.vue'
-import GroupList from '@/components/GroupList.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
@@ -61,7 +69,6 @@ export default defineComponent({
     HelpCard,
     UptraceQuery,
     SpanFilters,
-    GroupList,
   },
 
   setup() {
@@ -89,4 +96,8 @@ export default defineComponent({
 })
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.border {
+  border-bottom: thin rgba(0, 0, 0, 0.12) solid;
+}
+</style>

@@ -8,6 +8,7 @@ import { useWatchAxios } from '@/use/watch-axios'
 
 export interface System {
   system: string
+  isEvent: boolean
 
   count: number
   countPerMin: number
@@ -71,6 +72,10 @@ export function useSystems(dateRange: UseDateRange) {
     return system
   })
 
+  const isEvent = computed((): boolean => {
+    return system.value?.isEvent ?? false
+  })
+
   function axiosParams() {
     return {
       system: system.value?.system,
@@ -94,6 +99,7 @@ export function useSystems(dateRange: UseDateRange) {
 
     activeValue: systemValue,
     activeItem: system,
+    isEvent,
 
     axiosParams,
     change,
@@ -120,6 +126,7 @@ function addDummySystems(systems: System[]): System[] {
     if (!typeSys) {
       typeSys = {
         system: typ,
+        isEvent: false,
         count: 0,
         countPerMin: 0,
         errorCount: 0,
@@ -155,6 +162,7 @@ function addDummySystems(systems: System[]): System[] {
 
   systems.unshift({
     system: 'all',
+    isEvent: false,
     count: 0,
     countPerMin: 0,
     errorCount: 0,

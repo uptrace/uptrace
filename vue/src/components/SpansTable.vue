@@ -8,8 +8,8 @@
           <ThOrder v-for="col in columns" :key="col" :value="col" :order="order">
             <span>{{ col }}</span>
           </ThOrder>
-          <ThOrder value="span.time" :order="order">Time</ThOrder>
-          <ThOrder value="span.duration" :order="order" align="end">
+          <ThOrder :value="xkey.spanTime" :order="order">Time</ThOrder>
+          <ThOrder :value="xkey.spanDuration" :order="order" align="end">
             <span>Dur.</span>
           </ThOrder>
         </tr>
@@ -42,7 +42,7 @@
                 @click:chip="$emit('click:chip', $event)"
               />
             </td>
-            <td><XDate :date="span.time" format="relative" /></td>
+            <td class="text-no-wrap"><XDate :date="span.time" format="relative" /></td>
             <td class="text-right">
               <XDuration :duration="span.duration" fixed />
             </td>

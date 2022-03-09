@@ -1,6 +1,6 @@
 <template>
   <div>
-    <SpanTable
+    <SpansTable
       :date-range="dateRange"
       :loading="spans.loading"
       :spans="spans.items"
@@ -24,7 +24,7 @@ import { UseUql } from '@/use/uql'
 import { useSpans } from '@/use/spans'
 
 // Components
-import SpanTable from '@/components/SpanTable.vue'
+import SpansTable from '@/components/SpansTable.vue'
 import { SpanChip } from '@/components/SpanChips.vue'
 
 // Utilities
@@ -32,7 +32,7 @@ import { xkey } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'SpanListInline',
-  components: { SpanTable },
+  components: { SpansTable },
 
   props: {
     dateRange: {

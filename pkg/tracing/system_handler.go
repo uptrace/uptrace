@@ -81,6 +81,11 @@ func (h *SystemHandler) List(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
+	for _, sys := range systems {
+		sys["projectId"] = f.ProjectID
+		sys["isEvent"] = isEventSystem(sys["system"].(string))
+	}
+
 	return httputil.JSON(w, bunrouter.H{
 		"systems": systems,
 	})
