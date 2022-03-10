@@ -3,6 +3,11 @@
 Uptrace is a distributed tracing system that uses OpenTelemetry to collect data and ClickHouse
 database to store it. ClickHouse is the only dependency.
 
+Uptrace comes in 2 versions:
+
+- This open source version which only supports distributed tracing.
+- [Cloud](https://uptrace.dev/) version that supports both tracing and metrics.
+
 > :star: Looking for a ClickHouse client? Uptrace uses
 > [go-clickhouse](https://github.com/uptrace/go-clickhouse).
 
