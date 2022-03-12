@@ -620,7 +620,18 @@ func (p *queryParser) compOp() (string, error) {
 			if _err != nil {
 				return "", _err
 			}
-			_match := len(_tok.Text) == 2 && _tok.Text[0] == '>' && _tok.Text[1] == '='
+			_match := _tok.Text == ">"
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return "", _err
+			}
+			_match := _tok.Text == "="
 			if !_match {
 				p.ResetPos(_pos1)
 				goto i0_group_end
@@ -637,7 +648,18 @@ func (p *queryParser) compOp() (string, error) {
 			if _err != nil {
 				return "", _err
 			}
-			_match := len(_tok.Text) == 2 && _tok.Text[0] == '<' && _tok.Text[1] == '='
+			_match := _tok.Text == "<"
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r1_i0_group_end
+			}
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return "", _err
+			}
+			_match := _tok.Text == "="
 			if !_match {
 				p.ResetPos(_pos1)
 				goto r1_i0_group_end
@@ -654,7 +676,18 @@ func (p *queryParser) compOp() (string, error) {
 			if _err != nil {
 				return "", _err
 			}
-			_match := len(_tok.Text) == 2 && _tok.Text[0] == '=' && _tok.Text[1] == '='
+			_match := _tok.Text == "="
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r2_i0_group_end
+			}
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return "", _err
+			}
+			_match := _tok.Text == "="
 			if !_match {
 				p.ResetPos(_pos1)
 				goto r2_i0_group_end
@@ -666,14 +699,25 @@ func (p *queryParser) compOp() (string, error) {
 
 	{
 		_pos1 := p.Pos()
-		// "!="
+		// '!' '='
 		{
 			{
 				_tok, _err := p.NextToken()
 				if _err != nil {
 					return "", _err
 				}
-				_match := len(_tok.Text) == 2 && _tok.Text[0] == '!' && _tok.Text[1] == '='
+				_match := _tok.Text == "!"
+				if !_match {
+					p.ResetPos(_pos1)
+					goto r3_i0_alt1
+				}
+			}
+			{
+				_tok, _err := p.NextToken()
+				if _err != nil {
+					return "", _err
+				}
+				_match := _tok.Text == "="
 				if !_match {
 					p.ResetPos(_pos1)
 					goto r3_i0_alt1
@@ -683,14 +727,25 @@ func (p *queryParser) compOp() (string, error) {
 		}
 
 	r3_i0_alt1:
-		// "<>"
+		// '<' '>'
 		{
 			{
 				_tok, _err := p.NextToken()
 				if _err != nil {
 					return "", _err
 				}
-				_match := len(_tok.Text) == 2 && _tok.Text[0] == '<' && _tok.Text[1] == '>'
+				_match := _tok.Text == "<"
+				if !_match {
+					p.ResetPos(_pos1)
+					goto r3_i0_group_end
+				}
+			}
+			{
+				_tok, _err := p.NextToken()
+				if _err != nil {
+					return "", _err
+				}
+				_match := _tok.Text == ">"
 				if !_match {
 					p.ResetPos(_pos1)
 					goto r3_i0_group_end
@@ -710,7 +765,18 @@ func (p *queryParser) compOp() (string, error) {
 			if _err != nil {
 				return "", _err
 			}
-			_match := len(_tok.Text) == 2 && _tok.Text[0] == '!' && _tok.Text[1] == '~'
+			_match := _tok.Text == "!"
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r4_i0_group_end
+			}
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return "", _err
+			}
+			_match := _tok.Text == "~"
 			if !_match {
 				p.ResetPos(_pos1)
 				goto r4_i0_group_end

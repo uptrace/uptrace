@@ -25,6 +25,7 @@ func TestParse(t *testing.T) {
 		{in: `{p50,p90,p99}(span.duration)`},
 		{in: `where {foo,bar} contains something`},
 		{in: "where span.duration>100ms"},
+		{in: "where span.duration >= 100ms"},
 	}
 
 	snapshotsDir := filepath.Join("testdata", "snapshots")

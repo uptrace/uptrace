@@ -1,0 +1,4 @@
+(map[string]interface {}) (len=2) {
+  (string) (len=3) "err": (string) (len=50) "unexpected \">\" in \"where span.duration ><-= 100ms\"",
+  (string) (len=3) "uql": (interface {}) <nil>
+}
