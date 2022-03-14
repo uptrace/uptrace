@@ -76,7 +76,9 @@ var serveCommand = &cli.Command{
 		defer app.Stop()
 
 		cfg := app.Config()
-		project := &app.Config().Projects[0]
+
+		projects := app.Config().Projects
+		project := &projects[len(projects)-1]
 
 		fmt.Printf("reading YAML config from    %s\n", cfg.Filepath)
 		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", cfg.GRPCDsn(project))
