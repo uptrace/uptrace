@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.8 - Mar 15 2022
+
+- Fixed duration filter.
+- Added chart resizing when window size is changed.
+- Added GRPC metrics stub to remove errors from logs.
+
 ## v0.2.5 - Mar 09 2022
 
 - Add list of spans.
