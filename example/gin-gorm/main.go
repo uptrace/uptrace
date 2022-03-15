@@ -91,7 +91,7 @@ func (h *Handler) Hello(c *gin.Context) {
 
 	username := c.Param("username")
 	user := new(User)
-	if err := h.db.WithContext(ctx).Where("username = ?", username).First(&user).Error; err != nil {
+	if err := h.db.WithContext(ctx).Where("username = ?", username).First(user).Error; err != nil {
 		_ = c.Error(err)
 		return
 	}
