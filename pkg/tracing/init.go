@@ -8,7 +8,8 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
-	collectortrace "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
+	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 )
 
 func init() {
@@ -18,7 +19,10 @@ func init() {
 
 func initGRPC(ctx context.Context, app *bunapp.App) error {
 	traceService := NewTraceServiceServer(app)
-	collectortrace.RegisterTraceServiceServer(app.GRPCServer(), traceService)
+	collectortracepb.RegisterTraceServiceServer(app.GRPCServer(), traceService)
+
+	metricsService := NewMetricsServiceServer(app)
+	collectormetricspb.RegisterMetricsServiceServer(app.GRPCServer(), metricsService)
 
 	router := app.Router()
 	router.POST("/v1/traces", traceService.httpTraces)
