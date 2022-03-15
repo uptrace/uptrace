@@ -1,5 +1,5 @@
 <template>
-  <div ref="container">
+  <div ref="container" v-element-resize @resize="onResize">
     <v-sheet :width="width" :height="height" class="mx-auto echart"></v-sheet>
   </div>
 </template>
@@ -116,7 +116,13 @@ export default defineComponent({
       }
     })
 
-    return { container }
+    const onResize = debounce(() => {
+      if (echart) {
+        echart.resize()
+      }
+    }, 50)
+
+    return { container, onResize }
   },
 })
 

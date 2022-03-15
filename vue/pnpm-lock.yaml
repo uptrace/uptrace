@@ -25,6 +25,7 @@ specifiers:
   core-js: ^3.19.3
   date-fns: ^2.27.0
   echarts: ^5.3.1
+  element-resize-detector: ^1.2.4
   eslint: ^7.32.0
   eslint-plugin-prettier: ^4.0.0
   eslint-plugin-vue: ^8.2.0
@@ -53,6 +54,7 @@ dependencies:
   core-js: 3.19.3
   date-fns: 2.27.0
   echarts: 5.3.1
+  element-resize-detector: 1.2.4
   lodash: 4.17.21
   numbro: 2.3.5
   prismjs: 1.25.0
@@ -2787,6 +2789,10 @@ packages:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
     dev: true
 
+  /batch-processor/1.0.0:
+    resolution: {integrity: sha1-dclcMrdI4IUNEMKxaPa9vpiRrOg=}
+    dev: false
+
   /batch/0.6.1:
     resolution: {integrity: sha1-3DQxT05nkxgJP8dgJyUl+UvyXBY=}
     dev: true
@@ -4382,6 +4388,12 @@ packages:
     resolution: {integrity: sha1-2wQ1IcldfjA/2PNFvtwzSc+wcp4=}
     engines: {node: '>=0.10.0'}
     dev: true
+
+  /element-resize-detector/1.2.4:
+    resolution: {integrity: sha512-Fl5Ftk6WwXE0wqCgNoseKWndjzZlDCwuPTcoVZfCP9R3EHQF8qUtr3YUPNETegRBOKqQKPW3n4kiIWngGi8tKg==}
+    dependencies:
+      batch-processor: 1.0.0
+    dev: false
 
   /elliptic/6.5.4:
     resolution: {integrity: sha512-iLhC6ULemrljPZb+QutR5TQGB+pdW6KGD5RSegS+8sorOZT+rdQFbsQFJgvN3eRqNALqJer4oQ16YvJHlU8hzQ==}
