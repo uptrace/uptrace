@@ -1,3 +1,4 @@
+import { orderBy } from 'lodash'
 import { ref, computed, watch, proxyRefs, shallowReactive, set } from '@vue/composition-api'
 
 // Composables
@@ -5,6 +6,7 @@ import { useRouter } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
 import { useForceReload } from '@/use/force-reload'
 import { traceSpans, Trace, TraceSpan } from '@/models/trace-span'
+import { Span } from '@/models/span'
 import { spanColoredSystems, ColoredSystem } from '@/models/colored-system'
 
 // Utilities
@@ -61,6 +63,32 @@ export function useTrace() {
     return spans.value.find((span) => span.id === activeSpanId.value)
   })
 
+  const events = computed((): Record<string, Span[]> => {
+    const eventMap: Record<string, Span[]> = {}
+
+    for (let span of spans.value) {
+      if (!span.events) {
+        continue
+      }
+
+      for (let event of span.events) {
+        let arr = eventMap[event.system]
+        if (!arr) {
+          arr = []
+          eventMap[event.system] = arr
+        }
+
+        arr.push(event)
+      }
+    }
+
+    for (let system in eventMap) {
+      eventMap[system] = orderBy(eventMap[system], (event) => event.time)
+    }
+
+    return eventMap
+  })
+
   watch(
     spans,
     (spans) => {
@@ -109,6 +137,7 @@ export function useTrace() {
     spans,
     id,
     trace,
+    events,
 
     isVisible,
     isExpanded,

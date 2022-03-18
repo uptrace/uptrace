@@ -79,9 +79,7 @@
 
       <v-row>
         <v-col>
-          <v-sheet outlined rounded="lg" class="pa-4">
-            <TraceTimeline :date-range="dateRange" :trace="trace" />
-          </v-sheet>
+          <TraceTabs :date-range="dateRange" :trace="trace" />
         </v-col>
       </v-row>
     </v-container>
@@ -94,7 +92,7 @@ import { defineComponent, computed, watch, proxyRefs } from '@vue/composition-ap
 // Components
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 import SystemBarChart from '@/components/SystemBarChart.vue'
-import TraceTimeline from '@/components/TraceTimeline.vue'
+import TraceTabs from '@/components/TraceTabs.vue'
 import TraceError from '@/components/TraceError.vue'
 
 // Composables
@@ -108,7 +106,12 @@ import { hour } from '@/util/date'
 
 export default defineComponent({
   name: 'TraceShow',
-  components: { LoadPctileChart, SystemBarChart, TraceTimeline, TraceError },
+  components: {
+    LoadPctileChart,
+    SystemBarChart,
+    TraceTabs,
+    TraceError,
+  },
 
   setup() {
     useTitle('View trace')
