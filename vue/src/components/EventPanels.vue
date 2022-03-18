@@ -46,7 +46,7 @@ export default defineComponent({
     },
   },
 
-  setup(props, { emit }) {
+  setup(props) {
     const panels = ref<number[]>([])
 
     watch(
@@ -61,7 +61,7 @@ export default defineComponent({
       { immediate: true },
     )
 
-    return { xkey, panels, emit }
+    return { xkey, panels }
   },
 })
 </script>
