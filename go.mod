@@ -20,7 +20,7 @@ require (
 	github.com/uptrace/go-clickhouse v0.1.0
 	github.com/uptrace/go-clickhouse/chdebug v0.1.0
 	github.com/uptrace/go-clickhouse/chotel v0.1.0
-	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.7
+	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.9
 	github.com/uptrace/uptrace-go v1.3.1-0.20211222105436-75b898dfb3dd
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
@@ -56,7 +56,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
-	github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.7 // indirect
+	github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.9 // indirect
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.27.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.3.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.26.0 // indirect

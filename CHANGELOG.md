@@ -8,9 +8,9 @@
 
 ## v0.2.5 - Mar 09 2022
 
-- Add list of spans.
-- Fix links to services and hostnames.
-- Fix SQL grouping.
+- Added list of spans.
+- Fixed links to services and hostnames.
+- Fixed SQL grouping.
 
 ## v0.2.4 - Feb 24 2022
 
@@ -18,7 +18,7 @@
 
 - Make sure projects have unique tokens.
 - Make user authentication optional by commenting out users section in the YAML config.
-- Fix jumping to a trace to account for the project id.
+- Fixed jumping to a trace to account for the project id.
 - Added missing trace find route.
 
 ## v0.2.2 - Feb 22 2022
