@@ -107,6 +107,10 @@ func (f *SpanFilter) UnmarshalValues(ctx context.Context, values url.Values) err
 	return nil
 }
 
+func (f *SpanFilter) IsEvent() bool {
+	return isEventSystem(f.System)
+}
+
 func (f *SpanFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 	q = q.Where("project_id = ?", f.ProjectID).
 		Where("`span.time` >= ?", f.TimeGTE).
@@ -181,20 +185,9 @@ func isNumColumn(v any) bool {
 //------------------------------------------------------------------------------
 
 func buildSpanIndexQuery(f *SpanFilter, minutes float64) *ch.SelectQuery {
-	limits := f.Config().CHSelectLimits
 	q := f.CH().NewSelect().
 		Model((*SpanIndex)(nil)).
-		Setting("read_overflow_mode = 'break'")
-	if limits.SampleRows != 0 {
-		q = q.Sample("?", limits.SampleRows)
-	}
-	if limits.MaxRowsToRead != 0 {
-		q = q.Setting("max_rows_to_read = ?", limits.MaxRowsToRead)
-	}
-	if limits.MaxBytesToRead != 0 {
-		q = q.Setting("max_bytes_to_read = ?", limits.MaxBytesToRead)
-	}
-	q = f.whereClause(q)
+		Apply(f.whereClause)
 	q, f.columnMap = compileUQL(q, f.parts, minutes)
 	return q
 }

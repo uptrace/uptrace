@@ -103,12 +103,6 @@ type AppConfig struct {
 
 	Users    []User    `yaml:"users"`
 	Projects []Project `yaml:"projects"`
-
-	CHSelectLimits struct {
-		SampleRows     int64 `yaml:"sample_rows"`
-		MaxRowsToRead  int64 `yaml:"max_rows_to_read"`
-		MaxBytesToRead int64 `yaml:"max_bytes_to_read"`
-	} `yaml:"ch_select_limits"`
 }
 
 type User struct {

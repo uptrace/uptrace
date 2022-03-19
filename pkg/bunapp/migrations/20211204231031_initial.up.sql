@@ -41,8 +41,7 @@ CREATE TABLE spans_index (
   INDEX idx_attr_keys attr_keys TYPE bloom_filter(0.01) GRANULARITY 64
 )
 ENGINE = MergeTree()
-SAMPLE BY intHash32("span.id")
-ORDER BY (project_id, "span.system", "span.group_id", intHash32("span.id"))
+ORDER BY (project_id, "span.system", "span.group_id", time)
 PARTITION BY toDate("span.time")
 TTL toDate("span.time") + INTERVAL ?TTL DELETE
 

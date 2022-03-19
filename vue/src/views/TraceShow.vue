@@ -52,10 +52,7 @@
 
         <v-col cols="auto">
           <v-btn v-if="groupRoute" depressed small :to="groupRoute" exact>View group</v-btn>
-        </v-col>
-
-        <v-col cols="auto">
-          <v-btn v-if="exploreTraceRoute" depressed small :to="exploreTraceRoute" exact
+          <v-btn v-if="exploreTraceRoute" depressed small :to="exploreTraceRoute" exact class="ml-2"
             >Explore trace</v-btn
           >
         </v-col>

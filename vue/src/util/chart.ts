@@ -1,28 +1,8 @@
 import { truncate } from 'lodash'
-import {
-  EChartsOption as BaseEChartsOption,
-  LegendComponentOption,
-  GridComponentOption,
-  XAXisComponentOption,
-  YAXisComponentOption,
-  DatasetComponentOption,
-  SeriesOption,
-  TooltipComponentOption,
-} from 'echarts'
+import * as echarts from 'echarts'
 
-export interface EChartsOption extends BaseEChartsOption {
-  legend: LegendComponentOption[]
-  grid: GridComponentOption[]
-  xAxis: XAXisComponentOption[]
-  yAxis: YAXisComponentOption[]
-  dataset: DatasetComponentOption[]
-  series: SeriesOption[]
-  tooltip: TooltipComponentOption[]
-}
-
-export function baseChartConfig(): EChartsOption {
+export function baseChartConfig(): any {
   return {
-    animation: false,
     textStyle: {
       fontFamily: '"Roboto", sans-serif',
     },
@@ -45,10 +25,7 @@ export function baseChartConfig(): EChartsOption {
   }
 }
 
-export function addChartTooltip(
-  cfg: EChartsOption,
-  tooltipCfg: echarts.TooltipComponentOption = {},
-) {
+export function addChartTooltip(cfg: any, tooltipCfg: echarts.TooltipComponentOption = {}) {
   cfg.tooltip.push({
     trigger: 'axis',
     appendToBody: true,

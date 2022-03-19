@@ -20,13 +20,8 @@ import colors from 'vuetify/lib/util/colors'
 import EChart, { EChartProps } from '@/components/EChart.vue'
 
 // Utilities
-import {
-  baseChartConfig,
-  addChartTooltip,
-  createTooltipFormatter,
-  EChartsOption,
-} from '@/util/chart'
-import { durationShort } from '@/util/fmt'
+import { baseChartConfig, addChartTooltip, createTooltipFormatter } from '@/util/chart'
+import { num, durationShort } from '@/util/fmt'
 import { datetime } from '@/util/date'
 
 interface ChartData extends Record<string, unknown> {
@@ -75,7 +70,7 @@ export default defineComponent({
 
       if (props.data && props.data.p50) {
         charts.push(pctilesChart(props.data))
-        charts.push(rateFailuresChart(props.data))
+        charts.push(countAndErrorRateChart(props.data))
       } else {
         charts.push(rateOnlyChart(props.data))
       }
@@ -114,7 +109,6 @@ function pctilesChart(data: ChartData) {
         formatter: (params: any) => durationShort(params.value),
       },
     },
-    splitNumber: 4,
     splitLine: { show: false },
   })
 
@@ -174,7 +168,7 @@ function pctilesChart(data: ChartData) {
   }
 }
 
-function rateFailuresChart(data: ChartData | undefined) {
+function countAndErrorRateChart(data: ChartData | undefined) {
   const cfg = baseChartConfig()
   addChartTooltip(cfg, {
     formatter: createTooltipFormatter((v: any) => String(v)),
@@ -187,20 +181,18 @@ function rateFailuresChart(data: ChartData | undefined) {
         formatter: (params: any) => datetime(params.value),
       },
     },
-    splitNumber: 5, // TODO: remove when echarts is updated
   })
 
   cfg.yAxis.push({
     type: 'value',
     axisLabel: {
-      //formatter: axisLabelFormatter(),
+      formatter: num,
     },
     axisPointer: {
       label: {
-        //formatter: axisPointerFormatter(),
+        formatter: (params: any) => num(params.value),
       },
     },
-    splitNumber: 4,
     splitLine: { show: false },
   })
 
@@ -227,7 +219,21 @@ function rateFailuresChart(data: ChartData | undefined) {
       encode: { x: 'time', y: 'rate' },
     })
 
-    addErrorRateSeries(cfg, data)
+    cfg.dataset.push({
+      source: {
+        time: data.time,
+        errorRate: data.errorRate,
+      },
+    })
+
+    cfg.series.push({
+      datasetIndex: cfg.dataset.length - 1,
+      name: 'errors per min',
+      type: 'line',
+      symbol: 'none',
+      itemStyle: { color: colorSet.errorCount },
+      encode: { x: 'time', y: 'errorRate' },
+    })
   }
 
   cfg.grid.push({
@@ -244,24 +250,6 @@ function rateFailuresChart(data: ChartData | undefined) {
   }
 }
 
-function addErrorRateSeries(cfg: EChartsOption, data: ChartData) {
-  cfg.dataset.push({
-    source: {
-      time: data.time,
-      errorRate: data.errorRate,
-    },
-  })
-
-  cfg.series.push({
-    datasetIndex: cfg.dataset.length - 1,
-    name: 'errors per min',
-    type: 'line',
-    symbol: 'none',
-    itemStyle: { color: colorSet.errorCount },
-    encode: { x: 'time', y: 'errorRate' },
-  })
-}
-
 //------------------------------------------------------------------------------
 
 function rateOnlyChart(data: ChartData | undefined) {
@@ -275,12 +263,18 @@ function rateOnlyChart(data: ChartData | undefined) {
         formatter: (params: any) => datetime(params.value),
       },
     },
-    splitNumber: 5,
   })
 
   cfg.yAxis.push({
     type: 'value',
-    splitNumber: 4,
+    axisLabel: {
+      formatter: num,
+    },
+    axisPointer: {
+      label: {
+        formatter: (params: any) => num(params.value),
+      },
+    },
     splitLine: { show: false },
   })
 

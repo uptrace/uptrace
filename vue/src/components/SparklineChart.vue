@@ -12,12 +12,7 @@ import EChart, { EChartProps } from '@/components/EChart.vue'
 
 // Utilities
 import { createFormatter, unitFromName } from '@/util/fmt'
-import {
-  baseChartConfig,
-  addChartTooltip,
-  createTooltipFormatter,
-  EChartsOption,
-} from '@/util/chart'
+import { baseChartConfig, addChartTooltip, createTooltipFormatter } from '@/util/chart'
 
 export default defineComponent({
   name: 'SparklineChart',
@@ -84,7 +79,7 @@ export default defineComponent({
   },
 })
 
-function plotLine(cfg: EChartsOption, name: string, line: number[], time: string[]) {
+function plotLine(cfg: any, name: string, line: number[], time: string[]) {
   cfg.dataset.push({
     source: {
       time,

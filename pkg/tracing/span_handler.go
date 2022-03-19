@@ -128,29 +128,40 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		Model((*SpanIndex)(nil)).
 		WithAlias("qsNaN", "quantilesTDigest(0.5, 0.9, 0.99)(`span.duration`)").
 		WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
-		ColumnExpr("count() AS count").
-		ColumnExpr("count() / ? AS rate", minutes).
-		ColumnExpr("countIf(`span.status_code` = 'error') AS errorCount").
-		ColumnExpr("countIf(`span.status_code` = 'error') / ? AS errorRate", minutes).
-		ColumnExpr("round(qs[1]) AS p50").
-		ColumnExpr("round(qs[2]) AS p90").
-		ColumnExpr("round(qs[3]) AS p99").
+		ColumnExpr("sum(`span.count`) AS count").
+		ColumnExpr("sum(`span.count`) / ? AS rate", minutes).
 		ColumnExpr("toStartOfInterval(`span.time`, INTERVAL ? minute) AS time", minutes).
+		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
+			if f.IsEvent() {
+				return q
+			}
+			return q.ColumnExpr("sumIf(`span.count`, `span.status_code` = 'error') AS errorCount").
+				ColumnExpr("sumIf(`span.count`, `span.status_code` = 'error') / ? AS errorRate",
+					minutes).
+				ColumnExpr("round(qs[1]) AS p50").
+				ColumnExpr("round(qs[2]) AS p90").
+				ColumnExpr("round(qs[3]) AS p99")
+		}).
 		Apply(f.whereClause).
 		GroupExpr("time").
 		OrderExpr("time ASC").
 		Limit(10000)
 
 	if err := h.CH().NewSelect().
-		ColumnExpr("groupArray(s.count) AS count").
-		ColumnExpr("groupArray(s.rate) AS rate").
-		ColumnExpr("groupArray(s.errorCount) AS errorCount").
-		ColumnExpr("groupArray(s.errorRate) AS errorRate").
-		ColumnExpr("groupArray(s.p50) AS p50").
-		ColumnExpr("groupArray(s.p90) AS p90").
-		ColumnExpr("groupArray(s.p99) AS p99").
-		ColumnExpr("groupArray(s.time) AS time").
-		TableExpr("(?) AS s", subq).
+		ColumnExpr("groupArray(count) AS count").
+		ColumnExpr("groupArray(rate) AS rate").
+		ColumnExpr("groupArray(time) AS time").
+		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
+			if f.IsEvent() {
+				return q
+			}
+			return q.ColumnExpr("groupArray(errorCount) AS errorCount").
+				ColumnExpr("groupArray(errorRate) AS errorRate").
+				ColumnExpr("groupArray(p50) AS p50").
+				ColumnExpr("groupArray(p90) AS p90").
+				ColumnExpr("groupArray(p99) AS p99")
+		}).
+		TableExpr("(?)", subq).
 		GroupExpr("tuple()").
 		Limit(1000).
 		Scan(ctx, &m); err != nil {
