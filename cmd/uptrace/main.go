@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/klauspost/compress/gzhttp"
+	_ "github.com/mostynb/go-grpc-compression/snappy"
+	_ "github.com/mostynb/go-grpc-compression/zstd"
 	"github.com/rs/cors"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/chmigrate"
