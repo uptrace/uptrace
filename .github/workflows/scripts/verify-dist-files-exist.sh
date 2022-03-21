@@ -6,6 +6,10 @@ files=(
     bin/uptrace_linux_arm64
     bin/uptrace_linux_amd64
     bin/uptrace_windows_amd64.exe
+    dist/uptrace-*.aarch64.rpm
+    dist/uptrace-*.x86_64.rpm
+    dist/uptrace_*_amd64.deb
+    dist/uptrace_*_arm64.deb
 );
 
 for f in "${files[@]}"
