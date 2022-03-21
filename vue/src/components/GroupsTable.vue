@@ -130,7 +130,7 @@
 
 <script lang="ts">
 import { truncate } from 'lodash'
-import { defineComponent, shallowRef, computed, watch, PropType } from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, PropType } from '@vue/composition-api'
 
 // Composables
 import { useRouter } from '@/use/router'
@@ -243,16 +243,6 @@ export default defineComponent({
 
       return columns
     })
-
-    watch(
-      () => props.items,
-      (items) => {
-        if (items.length === 1) {
-          groupViewer.show(items[0][xkey.itemId])
-        }
-      },
-      { immediate: true },
-    )
 
     function hasColumn(name: string): boolean {
       if (!props.items.length) {
