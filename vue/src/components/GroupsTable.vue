@@ -81,7 +81,7 @@
             <td class="text-center text-no-wrap">
               <v-btn
                 icon
-                title="Focus on this group"
+                title="Filter spans for this group"
                 :to="spanListRoute(item)"
                 exact
                 @click.native.stop
@@ -271,7 +271,7 @@ export default defineComponent({
       }
 
       return {
-        name: 'GroupList',
+        name: 'SpanList',
         query: {
           ...route.value.query,
           ...props.systems.axiosParams(),
