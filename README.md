@@ -43,57 +43,6 @@ Uptrace comes in 2 versions:
 - [Installation](https://get.uptrace.dev/guide/) guide with pre-compiled binaries for Linux, MacOS,
   and Windows.
 
-## Compiling Uptrace manually
-
-To compile and run Uptrace locally, you need Go **1.18** and ClickHouse 21.11+.
-
-**Step 1**. Create `uptrace` ClickHouse database:
-
-```shell
-clickhouse-client -q "CREATE DATABASE uptrace"
-```
-
-**Step 2**. Reset ClickHouse database schema:
-
-```shell
-go run cmd/uptrace/main.go ch reset
-```
-
-**Step 3**. Start Uptrace:
-
-```shell
-go run cmd/uptrace/main.go serve
-```
-
-**Step 4**. Open Uptrace UI at http://localhost:14318
-
-Uptrace will monitor itself using [uptrace-go](https://github.com/uptrace/uptrace-go) OpenTelemetry
-distro. To get some test data, just reload the UI few times.
-
-You can also run Uptrace in debug mode by providing an environment variable:
-
-```shell
-DEBUG=2 go run cmd/uptrace/main.go serve
-```
-
-TO learn about available commands:
-
-```shell
-go run cmd/uptrace/main.go help
-```
-
-## Compiling UI manually
-
-You can also start the UI locally:
-
-```shell
-cd vue
-pnpm install
-pnpm serve
-```
-
-And open http://localhost:19876
-
 ## FAQ
 
 **What is the license?**
