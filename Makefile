@@ -3,6 +3,10 @@ BUILD_INFO_IMPORT_PATH=github.com/uptrace/uptrace/pkg/internal/version
 BUILD_INFO=-ldflags "-X $(BUILD_INFO_IMPORT_PATH).Version=$(VERSION)"
 GO_BUILD_TAGS=""
 
+.PHONY: uptrace-vue
+uptrace-vue:
+	cd vue && pnpm build
+
 .PHONY: gomoddownload
 gomoddownload:
 	go mod download

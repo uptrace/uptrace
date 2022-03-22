@@ -1,8 +1,12 @@
 /bin/
 /dist/
 /cmd/uptrace/uptrace
+
+/vue/dist/
 /vue/node_modules/
+
 *.db
 *.sqlite3
+
 .venv
 __pycache__
