@@ -26,7 +26,7 @@
 
           <p>
             See
-            <a href="https://docs.uptrace.dev/guide/os.html#otlp" target="_blank">documentation</a>
+            <a href="https://get.uptrace.dev/guide/#otlp" target="_blank">documentation</a>
             for instructions for your programming language.
           </p>
         </v-col>

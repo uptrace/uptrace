@@ -87,7 +87,7 @@ var serveCommand = &cli.Command{
 		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", cfg.HTTPDsn(project))
 		fmt.Println()
 
-		fmt.Printf("read the docs at            https://docs.uptrace.dev/guide/os.html#otlp\n")
+		fmt.Printf("read the docs at            https://get.uptrace.dev/guide/#otlp#otlp\n")
 		fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
 		fmt.Println()
 
