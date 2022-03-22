@@ -69,6 +69,8 @@ jobs:
           path: |
             /home/runner/go/pkg/mod
           key: v1-go-pkg-mod-${{ runner.os }}-${{ hashFiles('**/go.mod', '**/go.sum') }}
+      - name: Compile Vue
+        run: make uptrace-vue
       - name: Build Binaries for ${{ matrix.binary }}
         run: make uptrace-${{ matrix.binary }}
       - name: Upload Binaries
