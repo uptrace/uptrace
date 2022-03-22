@@ -39,7 +39,8 @@ Uptrace comes in 2 versions:
 ## Getting started
 
 - [Docker example](example/docker) allows to run Uptrace with a single command.
-- [Gin+GORM example](example/gin-gorm) shows how to instrument Gin and GORM.
+- [Gin+GORM example](example/gin-gorm)
+- [Django example](example/django)
 - [Installation](https://get.uptrace.dev/guide/) guide with pre-compiled binaries for Linux, MacOS,
   and Windows.
 

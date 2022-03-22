@@ -73,6 +73,9 @@ func newSpan(ctx *spanContext, dest *Span, src *otlpSpan) {
 	}
 
 	assignSpanSystemAndGroupID(ctx, dest)
+	if dest.Name == "" {
+		dest.Name = "<empty>"
+	}
 }
 
 func newSpanLink(link *tracepb.Span_Link) *SpanLink {

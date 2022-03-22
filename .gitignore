@@ -3,3 +3,6 @@
 /cmd/uptrace/uptrace
 /vue/node_modules/
 *.db
+*.sqlite3
+.venv
+__pycache__
