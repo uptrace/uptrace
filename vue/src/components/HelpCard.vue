@@ -16,11 +16,11 @@
             using the provided DSN (connection string).
           </p>
 
-          <p>For Go and .NET use <strong>OTLP/gRPC</strong>:</p>
+          <p>For Go, Python, and .NET use <strong>OTLP/gRPC</strong>:</p>
 
           <XCode :code="grpcDsn" class="mb-4" />
 
-          <p>For Python, Ruby, and Node.JS use <strong>OTLP/HTTP</strong>:</p>
+          <p>For Ruby and Node.JS use <strong>OTLP/HTTP</strong>:</p>
 
           <XCode :code="httpDsn" class="mb-4" />
 

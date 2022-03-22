@@ -115,7 +115,7 @@ func parseTemplates() *template.Template {
 			<li><a href="/hello/world">Hello world</a></li>
 			<li><a href="/hello/foo-bar">Hello foo-bar</a></li>
 		</ul>
-		<p><a href="{{ .traceURL }}" target="_blank">{{ .traceURL }}</a></p>
+		<p>View trace: <a href="{{ .traceURL }}" target="_blank">{{ .traceURL }}</a></p>
 		</html>
 	`
 	t := template.Must(template.New(indexTmpl).Parse(indexTemplate))
@@ -123,7 +123,7 @@ func parseTemplates() *template.Template {
 	profileTemplate := `
 		<html>
 		<h3>Hello {{ .username }}</h3>
-		<p><a href="{{ .traceURL }}" target="_blank">{{ .traceURL }}</a></p>
+		<p>View trace: <a href="{{ .traceURL }}" target="_blank">{{ .traceURL }}</a></p>
 		</html>
 	`
 	return template.Must(t.New(profileTmpl).Parse(profileTemplate))
