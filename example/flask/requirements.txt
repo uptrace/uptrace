@@ -1,0 +1,6 @@
+uptrace==1.10.1
+flask==1.1.2
+flask_sqlalchemy==2.5.1
+itsdangerous==2.0.1
+opentelemetry-instrumentation-flask==0.29b0
+opentelemetry-instrumentation-sqlalchemy==0.29b0
