@@ -1,10 +1,10 @@
-# Distributed tracing backend using OpenTelemetry and ClickHouse
+# OpenTelemetry tracing backend that monitors performance, errors, and logs
 
 [![build workflow](https://github.com/uptrace/uptrace/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/uptrace/uptrace/actions)
 [![Chat](https://discordapp.com/api/guilds/752070105847955518/widget.png)](https://discord.gg/rWtp5Aj)
 
-Uptrace is a distributed tracing system that uses OpenTelemetry to collect data and ClickHouse
-database to store it. ClickHouse is the only dependency.
+Uptrace is an OpenTelemetry tracing backend that monitors performance, errors, and logs. It uses
+OpenTelelemetry to collect data and ClickHouse database to store it.
 
 Uptrace comes in 2 versions:
 
