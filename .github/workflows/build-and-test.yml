@@ -40,9 +40,31 @@ jobs:
         if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
 
-  cross-compile:
+  build-vue:
     runs-on: ubuntu-latest
     needs: [setup-environment]
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2.1.0
+        with:
+          version: 6.x.x
+      - name: Compile Vue
+        run: make uptrace-vue
+      - name: Upload Vue Dist
+        uses: actions/upload-artifact@v2
+        with:
+          name: uptrace-vue
+          path: ./vue/dist/*
+
+  cross-compile:
+    runs-on: ubuntu-latest
+    needs: [build-vue]
     strategy:
       matrix:
         binary:
@@ -54,14 +76,14 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v2
-      - name: Setup Go
-        uses: actions/setup-go@v2.1.4
-        with:
-          go-version: 1.18
       - name: Setup Go Environment
         run: |
           echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+      - name: Setup Go
+        uses: actions/setup-go@v2.1.4
+        with:
+          go-version: 1.18
       - name: Cache Go
         id: module-cache
         uses: actions/cache@v2
@@ -69,8 +91,11 @@ jobs:
           path: |
             /home/runner/go/pkg/mod
           key: v1-go-pkg-mod-${{ runner.os }}-${{ hashFiles('**/go.mod', '**/go.sum') }}
-      - name: Compile Vue
-        run: make uptrace-vue
+      - name: Download Vue Dist
+        uses: actions/download-artifact@v2
+        with:
+          name: uptrace-vue
+          path: ./vue/dist/
       - name: Build Binaries for ${{ matrix.binary }}
         run: make uptrace-${{ matrix.binary }}
       - name: Upload Binaries
