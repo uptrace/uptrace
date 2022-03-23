@@ -14,27 +14,27 @@ require (
 	github.com/mostynb/go-grpc-compression v1.1.16
 	github.com/rs/cors v1.8.0
 	github.com/segmentio/encoding v0.0.0-00010101000000-000000000000
-	github.com/stretchr/testify v1.7.0
-	github.com/uptrace/bunrouter v1.0.11-0.20220115092510-53fd3217e9fb
-	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.11-0.20220115092510-53fd3217e9fb
-	github.com/uptrace/bunrouter/extra/reqlog v1.0.11-0.20220115092510-53fd3217e9fb
-	github.com/uptrace/go-clickhouse v0.2.2
-	github.com/uptrace/go-clickhouse/chdebug v0.2.1
-	github.com/uptrace/go-clickhouse/chotel v0.2.2
+	github.com/stretchr/testify v1.7.1
+	github.com/uptrace/bunrouter v1.0.13
+	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.13
+	github.com/uptrace/bunrouter/extra/reqlog v1.0.13
+	github.com/uptrace/go-clickhouse v0.2.3-0.20220323085359-f43cf1a82ef5
+	github.com/uptrace/go-clickhouse/chdebug v0.2.3-0.20220323085359-f43cf1a82ef5
+	github.com/uptrace/go-clickhouse/chotel v0.2.3-0.20220323085359-f43cf1a82ef5
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.9
-	github.com/uptrace/uptrace-go v1.3.1-0.20211222105436-75b898dfb3dd
+	github.com/uptrace/uptrace-go v1.5.0
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	github.com/vmihailenco/tagparser v0.1.2
-	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.27.0
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.27.0
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.29.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.29.0
 	go.opentelemetry.io/otel v1.5.0
 	go.opentelemetry.io/otel/trace v1.5.0
 	go.opentelemetry.io/proto/otlp v0.12.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
 	golang.org/x/exp v0.0.0-20220318154914-8dddf5d87bd8
-	google.golang.org/grpc v1.43.0
+	google.golang.org/grpc v1.45.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
@@ -58,23 +58,22 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.9 // indirect
-	go.opentelemetry.io/contrib/instrumentation/runtime v0.27.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.3.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.26.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.26.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.3.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.3.0 // indirect
-	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.3.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/runtime v0.30.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.5.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.27.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.27.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.5.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.5.0 // indirect
+	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.5.0 // indirect
 	go.opentelemetry.io/otel/internal/metric v0.27.0 // indirect
 	go.opentelemetry.io/otel/metric v0.27.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.3.0 // indirect
-	go.opentelemetry.io/otel/sdk/export/metric v0.26.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v0.26.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.5.0 // indirect
+	go.opentelemetry.io/otel/sdk/metric v0.27.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/net v0.0.0-20211209124913-491a49abca63 // indirect
+	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.5 // indirect
-	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
+	google.golang.org/genproto v0.0.0-20220317150908-0efb43f6373e // indirect
 )
