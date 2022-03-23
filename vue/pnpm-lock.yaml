@@ -33,6 +33,7 @@ specifiers:
   numbro: ^2.3.5
   prettier: ^2.5.1
   prismjs: ^1.25.0
+  regenerator-runtime: ^0.13.9
   sass: 1.32.8
   sass-loader: 10.1.1
   sql-formatter: ^4.0.2
@@ -87,6 +88,7 @@ devDependencies:
   eslint-plugin-prettier: 4.0.0_eslint@7.32.0+prettier@2.5.1
   eslint-plugin-vue: 8.2.0_eslint@7.32.0
   prettier: 2.5.1
+  regenerator-runtime: 0.13.9
   sass: 1.32.8
   sass-loader: 10.1.1_sass@1.32.8
   typescript: 4.5.3

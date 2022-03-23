@@ -5,7 +5,7 @@ GO_BUILD_TAGS=""
 
 .PHONY: uptrace-vue
 uptrace-vue:
-	cd vue && pnpm build
+	cd vue && pnpm install && pnpm build
 
 .PHONY: gomoddownload
 gomoddownload:
@@ -41,7 +41,6 @@ uptrace-windows_amd64:
 
 .PHONY: docker-uptrace
 docker-uptrace:
-	GOOS=linux GOARCH=amd64 $(MAKE) uptrace
 	cp ./bin/uptrace_linux_amd64 ./cmd/uptrace/uptrace
 	docker build -t uptrace ./cmd/uptrace/
 	rm ./cmd/uptrace/uptrace
