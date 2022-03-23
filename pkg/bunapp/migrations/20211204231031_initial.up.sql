@@ -63,12 +63,12 @@ SETTINGS index_granularity = 128
 --migration:split
 
 CREATE TABLE spans_index_buffer AS spans_index
-ENGINE = Buffer(currentDatabase(), spans_index, 5, 10, 15, 10000, 1000000, 10000000, 100000000)
+ENGINE = Buffer(currentDatabase(), spans_index, 5, 10, 30, 10000, 1000000, 10000000, 100000000)
 
 --migration:split
 
 CREATE TABLE spans_data_buffer AS spans_data
-ENGINE = Buffer(currentDatabase(), spans_data, 5, 10, 15, 10000, 1000000, 10000000, 100000000)
+ENGINE = Buffer(currentDatabase(), spans_data, 5, 10, 30, 10000, 1000000, 10000000, 100000000)
 
 --------------------------------------------------------------------------------
 --migration:split
