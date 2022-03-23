@@ -1,4 +1,4 @@
-# Instrumenting Django with OpenTelemetry
+# Instrumenting Flask with OpenTelemetry
 
 Install dependencies:
 
@@ -11,12 +11,10 @@ and run:
 
 ```shell
 export UPTRACE_DSN=http://project2_secret_token@localhost:14317/2
-./manage.py migrate
-./manage.py runserver
+python3 main.py
 ```
 
 And open http://localhost:8000
 
-See
-[Getting started with Django, PostgreSQL/MySQL, and OpenTelemetry](https://get.uptrace.dev/opentelemetry/django.html)
+See [Getting started with Flask and SQLAlchemy](https://get.uptrace.dev/opentelemetry/flask.html)
 for details.
