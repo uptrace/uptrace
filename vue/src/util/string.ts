@@ -24,3 +24,20 @@ export function quote(s: any): number | string {
 
   return JSON.stringify(s)
 }
+
+export function truncateMiddle<T>(s: T, maxLen = 32, separator = '...'): T {
+  if (typeof s !== 'string') {
+    return s
+  }
+  if (s.length <= maxLen) {
+    return s
+  }
+
+  const sepLen = separator.length,
+    charsToShow = maxLen - sepLen,
+    frontChars = Math.ceil(charsToShow / 2),
+    backChars = Math.floor(charsToShow / 2)
+
+  const truncated = s.substr(0, frontChars) + separator + s.substr(s.length - backChars)
+  return truncated as any
+}
