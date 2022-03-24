@@ -80,8 +80,5 @@ func (m AttrMap) Duration(key string) time.Duration {
 }
 
 func (m AttrMap) ServiceName() string {
-	if s := m.Text(xattr.ServiceName); s != "" {
-		return s
-	}
-	return "unknown_service"
+	return m.Text(xattr.ServiceName)
 }
