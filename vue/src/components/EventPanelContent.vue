@@ -25,7 +25,7 @@
 
     <v-row>
       <v-col>
-        <AttrTable :date-range="dateRange" :attrs="event.attrs" />
+        <AttrTable :date-range="dateRange" :span="event" />
       </v-col>
     </v-row>
   </div>
