@@ -8,6 +8,8 @@ import Overview from '@/views/Overview.vue'
 import SystemOverview from '@/components/SystemOverview.vue'
 import ServiceOverview from '@/components/ServiceOverview.vue'
 import HostOverview from '@/components/HostOverview.vue'
+import SlowestGroups from '@/components/SlowestGroups.vue'
+import SystemGroupList from '@/components/SystemGroupList.vue'
 
 import Tracing from '@/views/Tracing.vue'
 import GroupList from '@/views/GroupList.vue'
@@ -89,6 +91,28 @@ const routes: Array<RouteConfig> = [
         name: 'HostOverview',
         path: '',
         component: HostOverview,
+      },
+    ],
+  },
+  {
+    path: '/slowest-groups/:projectId(\\d+)',
+    component: Overview,
+    children: [
+      {
+        name: 'SlowestGroups',
+        path: '',
+        component: SlowestGroups,
+      },
+    ],
+  },
+  {
+    path: '/overview/:projectId(\\d+)/:system',
+    component: Overview,
+    children: [
+      {
+        name: 'SystemGroupList',
+        path: '',
+        component: SystemGroupList,
       },
     ],
   },
