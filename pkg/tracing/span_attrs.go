@@ -61,11 +61,17 @@ func newSpan(ctx *spanContext, dest *Span, src *otlpSpan) {
 		dest.StatusMessage = src.Status.Message
 	}
 
-	dest.Attrs = make(AttrMap, len(src.resource)+len(src.Attributes))
-	for k, v := range src.resource {
-		dest.Attrs[k] = v
+	{
+		dest.Attrs = make(AttrMap, len(src.resource)+len(src.Attributes))
+		for k, v := range src.resource {
+			dest.Attrs[k] = v
+		}
+		otlpSetAttrs(dest.Attrs, src.Attributes)
+
+		if dest.Attrs[xattr.ServiceName] == "" {
+			dest.Attrs[xattr.ServiceName] = "unknown_service"
+		}
 	}
-	otlpSetAttrs(dest.Attrs, src.Attributes)
 
 	dest.Links = make([]*SpanLink, len(src.Links))
 	for i, link := range src.Links {
