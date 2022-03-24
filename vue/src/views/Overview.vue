@@ -4,7 +4,7 @@
       <HelpCard :date-range="dateRange" :loading="systems.loading" />
     </template>
 
-    <PageToolbar :loading="systems.loading">
+    <PageToolbar :loading="systems.loading" :fluid="$vuetify.breakpoint.mdAndDown">
       <v-spacer />
       <DateRangePicker :date-range="dateRange" />
     </PageToolbar>
