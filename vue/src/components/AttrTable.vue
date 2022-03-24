@@ -22,7 +22,17 @@
       <tbody>
         <tr v-for="key in attrKeys" :key="key">
           <th>{{ key }}</th>
-          <td><XText :name="key" :value="attrs[key]" /></td>
+          <td>
+            <KeyValueFilterLink
+              :date-range="dateRange"
+              :name="key"
+              :value="span.attrs[key]"
+              :project-id="span.projectId"
+              :system="span.system"
+              :group-id="span.groupId"
+              :is-event="isEvent"
+            />
+          </td>
         </tr>
       </tbody>
     </v-simple-table>
@@ -32,30 +42,46 @@
 <script lang="ts">
 import { defineComponent, computed, PropType } from '@vue/composition-api'
 
-// Utitlies
-import { xkey } from '@/models/otelattr'
-import { AttrMap } from '@/models/span'
+// Utilities
+import { xkey, isEventSystem } from '@/models/otelattr'
+import { Span } from '@/models/span'
+
+// Composables
+import { UseDateRange } from '@/use/date-range'
+
+// Components
+import KeyValueFilterLink from '@/components/KeyValueFilterLink.vue'
 
 export default defineComponent({
   name: 'AttrTable',
+  components: { KeyValueFilterLink },
 
   props: {
-    attrs: {
-      type: Object as PropType<AttrMap>,
+    dateRange: {
+      type: Object as PropType<UseDateRange>,
+      required: true,
+    },
+    span: {
+      type: Object as PropType<Span>,
       required: true,
     },
   },
 
   setup(props) {
     const attrKeys = computed((): string[] => {
-      const keys = Object.keys(props.attrs)
+      const keys = Object.keys(props.span.attrs)
       keys.sort()
       return keys
+    })
+
+    const isEvent = computed((): boolean => {
+      return isEventSystem(props.span.system)
     })
 
     return {
       xkey,
       attrKeys,
+      isEvent,
     }
   },
 })

@@ -274,9 +274,9 @@ export class UqlEditor {
 
 export function buildWhere(column: string, op: string, value?: any) {
   if (value === undefined) {
-    return `${column} ${op}`
+    return `where ${column} ${op}`
   }
-  return `${column} ${op} ${quote(value)}`
+  return `where ${column} ${op} ${quote(value)}`
 }
 
 export function buildGroupBy(column: string) {
