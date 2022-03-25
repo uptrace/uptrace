@@ -78,8 +78,9 @@
                 <XDate :date="item[`max(${xkey.spanTime})`]" format="relative" />
               </slot>
             </td>
-            <td v-if="showDetails" class="text-center text-no-wrap">
+            <td class="text-center text-no-wrap">
               <v-btn
+                v-if="showDetails"
                 icon
                 title="Filter spans for this group"
                 :to="spanListRoute(item)"
