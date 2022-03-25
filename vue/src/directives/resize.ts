@@ -2,7 +2,9 @@ import { DirectiveOptions } from 'vue'
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const elementResizeDetectorMaker = require('element-resize-detector')
 
-const erd = elementResizeDetectorMaker()
+const erd = elementResizeDetectorMaker({
+  strategy: 'scroll',
+})
 
 const directive: DirectiveOptions = {
   bind(el, binding, vnode) {
