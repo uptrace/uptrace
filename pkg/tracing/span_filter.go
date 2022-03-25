@@ -371,7 +371,7 @@ func uqlWhereCond(cond uql.Cond, minutes float64) (b []byte, isAgg bool) {
 			b = append(b, '1')
 			return b, false
 		}
-		b = chschema.AppendQuery(b, "has(attr_keys, ?)", cond.Left.AttrKey)
+		b = chschema.AppendQuery(b, "has(all_keys, ?)", cond.Left.AttrKey)
 		return b, false
 	case uql.ContainsOp, uql.DoesNotContainOp:
 		if cond.Op == uql.DoesNotContainOp {
