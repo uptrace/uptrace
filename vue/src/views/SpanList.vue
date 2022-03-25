@@ -24,6 +24,7 @@
                 :order="spans.order"
                 :pager="spans.pager"
                 :system="systems.activeValue"
+                @click:chip="onChipClick"
               />
             </v-col>
           </v-row>
@@ -47,6 +48,7 @@ import { useSpans } from '@/use/spans'
 
 // Components
 import SpansTable from '@/components/SpansTable.vue'
+import { SpanChip } from '@/components/SpanChips.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
@@ -85,6 +87,12 @@ export default defineComponent({
       }
     })
 
+    function onChipClick(chip: SpanChip) {
+      const editor = props.uql.createEditor()
+      editor.where(chip.key, '=', chip.value)
+      props.uql.commitEdits(editor)
+    }
+
     watch(
       () => props.systems.isEvent,
       (isEvent) => {
@@ -103,7 +111,11 @@ export default defineComponent({
       },
     )
 
-    return { spans }
+    return {
+      spans,
+
+      onChipClick,
+    }
   },
 })
 </script>
