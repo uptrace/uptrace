@@ -70,6 +70,7 @@
 import { defineComponent, shallowRef, nextTick, proxyRefs, PropType } from '@vue/composition-api'
 
 // Composables
+import { useQuery } from '@/use/router'
 import { UsePager } from '@/use/pager'
 import { UseOrder } from '@/use/order'
 import { UseDateRange } from '@/use/date-range'
@@ -125,9 +126,15 @@ export default defineComponent({
       })
     }
 
+    const dialog = useDialog()
+
+    useQuery().onRouteUpdated(() => {
+      dialog.close()
+    })
+
     return {
       xkey,
-      dialog: useDialog(),
+      dialog,
 
       eventOrSpanName,
       onSortBy,
@@ -144,7 +151,17 @@ function useDialog() {
     dialog.value = true
   }
 
-  return proxyRefs({ dialog, activeSpan, showSpan })
+  function close() {
+    dialog.value = false
+  }
+
+  return proxyRefs({
+    dialog,
+    activeSpan,
+
+    showSpan,
+    close,
+  })
 }
 </script>
 
