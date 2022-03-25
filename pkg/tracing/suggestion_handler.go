@@ -84,7 +84,7 @@ func (h *SuggestionHandler) Attributes(w http.ResponseWriter, req bunrouter.Requ
 func selectAttrKeys(ctx context.Context, f *SpanFilter) ([]string, error) {
 	keys := make([]string, 0)
 	if err := buildSpanIndexQuery(f, 0).
-		ColumnExpr("groupUniqArrayArray(1000)(attr_keys)").
+		ColumnExpr("groupUniqArrayArray(1000)(all_keys)").
 		Scan(ctx, &keys); err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (h *SuggestionHandler) Values(w http.ResponseWriter, req bunrouter.Request)
 	q := buildSpanIndexQuery(f, 0)
 	q = uqlColumn(q, colName, 0).Group(f.Column)
 	if !strings.HasPrefix(f.Column, "span.") {
-		q = q.Where("has(attr_keys, ?)", f.Column)
+		q = q.Where("has(all_keys, ?)", f.Column)
 	}
 
 	var items []map[string]interface{}
