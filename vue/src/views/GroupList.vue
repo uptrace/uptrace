@@ -61,7 +61,6 @@
               :plot-columns="activeColumns"
               :order="explore.order"
               :axios-params="axiosParams"
-              show-details
             />
           </v-card-text>
         </v-card>
