@@ -80,7 +80,6 @@
             </td>
             <td class="text-center text-no-wrap">
               <v-btn
-                v-if="showDetails"
                 icon
                 title="Filter spans for this group"
                 :to="spanListRoute(item)"
