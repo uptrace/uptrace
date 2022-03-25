@@ -2,7 +2,7 @@ import { computed, watch, proxyRefs } from '@vue/composition-api'
 
 // Composables
 import { usePager, PagerConfig } from '@/use/pager'
-import { useOrder, Order } from '@/use/order'
+import { useOrder, OrderConfig } from '@/use/order'
 import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
 import { QueryPart } from '@/use/uql'
 
@@ -11,7 +11,7 @@ import { Span } from '@/models/span'
 
 interface SpansConfig {
   pager?: PagerConfig
-  order?: Order
+  order?: OrderConfig
 }
 
 export type UseSpans = ReturnType<typeof useSpans>

@@ -72,6 +72,7 @@ export default defineComponent({
         order: {
           column: xkey.spanDuration,
           desc: true,
+          syncQuery: true,
         },
       },
     )

@@ -32,6 +32,7 @@ export function useSpanExplore(reqSource: AxiosRequestSource, cfg: SpanExploreCo
     cfg.order ?? {
       column: xkey.spanCountPerMin,
       desc: true,
+      syncQuery: true,
     },
   )
 
