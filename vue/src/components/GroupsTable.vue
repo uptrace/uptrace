@@ -201,10 +201,6 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
-    showDetails: {
-      type: Boolean,
-      default: false,
-    },
     axiosParams: {
       type: Object as PropType<Record<string, any>>,
       default: undefined,
@@ -217,10 +213,6 @@ export default defineComponent({
 
     const hasGroupName = computed((): boolean => {
       return hasColumn(xkey.spanName)
-    })
-
-    const hasDetails = computed((): boolean => {
-      return Boolean(props.showDetails && props.uql)
     })
 
     const showSystemColumn = computed((): boolean => {
@@ -314,7 +306,6 @@ export default defineComponent({
       groupViewer,
 
       hasGroupName,
-      hasDetails,
       showSystemColumn,
       hasTimeColumn,
       customColumns,
