@@ -171,7 +171,7 @@ export default defineComponent({
     },
     uql: {
       type: Object as PropType<UseUql>,
-      default: undefined,
+      required: true,
     },
     loading: {
       type: Boolean,
