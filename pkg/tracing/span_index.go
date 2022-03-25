@@ -19,6 +19,7 @@ type SpanIndex struct {
 	EventErrorCount uint8 `ch:"span.event_error_count"`
 	EventLogCount   uint8 `ch:"span.event_log_count"`
 
+	AllKeys    []string `ch:",lc"`
 	AttrKeys   []string `ch:",lc"`
 	AttrValues []string `ch:",lc"`
 
@@ -55,7 +56,16 @@ func newSpanIndex(index *SpanIndex, span *Span) {
 	index.ExceptionType, _ = span.Attrs[xattr.ExceptionType].(string)
 	index.ExceptionMessage, _ = span.Attrs[xattr.ExceptionMessage].(string)
 
+	index.AllKeys = mapKeys(span.Attrs)
 	index.AttrKeys, index.AttrValues = attrKeysAndValues(span.Attrs)
+}
+
+func mapKeys(m AttrMap) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+	return keys
 }
 
 var (
@@ -77,18 +87,6 @@ var (
 	indexedAttrSet = listToSet(indexedAttrs)
 )
 
-var (
-	ignoredAttrs = []string{
-		xattr.TelemetrySDKName,
-		xattr.TelemetrySDKVersion,
-		xattr.TelemetrySDKLanguage,
-
-		xattr.OtelLibraryName,
-		xattr.OtelLibraryVersion,
-	}
-	ignoredAttrSet = listToSet(ignoredAttrs)
-)
-
 func attrKeysAndValues(m AttrMap) ([]string, []string) {
 	keys := make([]string, 0, len(m))
 	values := make([]string, 0, len(m))
@@ -97,9 +95,6 @@ func attrKeysAndValues(m AttrMap) ([]string, []string) {
 			continue
 		}
 		if _, ok := indexedAttrSet[k]; ok {
-			continue
-		}
-		if _, ok := ignoredAttrSet[k]; ok {
 			continue
 		}
 		keys = append(keys, k)
