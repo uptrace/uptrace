@@ -34,9 +34,8 @@ import { defineComponent, shallowRef, watch, computed, PropType } from '@vue/com
 import { UseSystems } from '@/use/systems'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { buildGroupBy } from '@/use/uql'
+import { buildGroupBy, useUql } from '@/use/uql'
 import { useSpanExplore } from '@/use/span-explore'
-import { useUql } from '@/use/uql'
 
 // Components
 import GroupsTable from '@/components/GroupsTable.vue'

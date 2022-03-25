@@ -10,6 +10,7 @@
       <GroupsTable
         :date-range="dateRange"
         :systems="systems"
+        :uql="uql"
         :loading="explore.loading"
         :items="explore.pageItems"
         :columns="explore.columns"
@@ -29,7 +30,7 @@ import { defineComponent, computed, PropType } from '@vue/composition-api'
 import { UseSystems } from '@/use/systems'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { buildGroupBy } from '@/use/uql'
+import { useUql, buildGroupBy } from '@/use/uql'
 import { useSpanExplore } from '@/use/span-explore'
 
 // Components
@@ -55,6 +56,11 @@ export default defineComponent({
 
   setup(props) {
     const { route } = useRouter()
+
+    const uql = useUql({
+      query: buildGroupBy(xkey.spanGroupId),
+      syncQuery: true,
+    })
 
     const plottableColumns = computed(() => {
       return [xkey.spanCountPerMin]
@@ -92,10 +98,11 @@ export default defineComponent({
     })
 
     return {
-      plottableColumns,
+      uql,
 
       system,
       axiosParams,
+      plottableColumns,
       explore,
       exploreRoute,
     }
