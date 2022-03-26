@@ -1,4 +1,4 @@
-# Instrumenting Flask with OpenTelemetry
+# Instrumenting Flask with OpenTelemetry example
 
 Install dependencies:
 
@@ -10,11 +10,11 @@ To run this example, [start](https://github.com/uptrace/uptrace/tree/master/exam
 and run:
 
 ```shell
-export UPTRACE_DSN=http://project2_secret_token@localhost:14317/2
-python3 main.py
+UPTRACE_DSN=http://project2_secret_token@localhost:14317/2 python3 main.py
 ```
 
 And open http://localhost:8000
 
-See [Getting started with Flask and SQLAlchemy](https://get.uptrace.dev/opentelemetry/flask.html)
+See
+[Getting started with Flask, SQLAlchemy, and OpenTelemetry](https://get.uptrace.dev/opentelemetry/flask.html)
 for details.

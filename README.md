@@ -42,6 +42,7 @@ Uptrace comes in 2 versions:
 - [Gin+GORM example](example/gin-gorm)
 - [Django example](example/django)
 - [Flask example](example/flask)
+- [Rails example](example/rails)
 - [Installation](https://get.uptrace.dev/guide/) guide with pre-compiled binaries for Linux, MacOS,
   and Windows.
 
