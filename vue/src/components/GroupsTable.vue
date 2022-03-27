@@ -138,7 +138,7 @@ import { UseDateRange } from '@/use/date-range'
 import { UseOrder } from '@/use/order'
 import { UseSystems } from '@/use/systems'
 import { ExploreItem, ColumnInfo } from '@/use/span-explore'
-import { UseUql } from '@/use/uql'
+import { createUqlEditor, UseUql } from '@/use/uql'
 
 // Components
 import ThOrder from '@/components/ThOrder.vue'
@@ -245,7 +245,7 @@ export default defineComponent({
     }
 
     function spanListRoute(item: ExploreItem) {
-      const editor = props.uql.createEditor()
+      const editor = props.uql ? props.uql.createEditor() : createUqlEditor().reset()
 
       for (let col of props.groupColumns) {
         const value = item[col.name]

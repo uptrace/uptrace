@@ -51,7 +51,7 @@ func (s *TraceServiceServer) httpTraces(w http.ResponseWriter, req bunrouter.Req
 			return err
 		}
 
-		s.process(project, td.ResourceSpans)
+		s.process(ctx, project, td.ResourceSpans)
 
 		resp := new(collectortrace.ExportTraceServiceResponse)
 		b, err := protojson.Marshal(resp)
@@ -75,7 +75,7 @@ func (s *TraceServiceServer) httpTraces(w http.ResponseWriter, req bunrouter.Req
 			return err
 		}
 
-		s.process(project, td.ResourceSpans)
+		s.process(ctx, project, td.ResourceSpans)
 
 		resp := new(collectortrace.ExportTraceServiceResponse)
 		b, err := proto.Marshal(resp)

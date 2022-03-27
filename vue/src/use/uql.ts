@@ -175,6 +175,10 @@ export function formatParts(parts: Part[]): string {
     .join(QUERY_PART_SEP)
 }
 
+export function createUqlEditor() {
+  return new UqlEditor()
+}
+
 export class UqlEditor {
   parts: Part[]
 

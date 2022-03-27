@@ -39,12 +39,12 @@ type otlpSpan struct {
 var _ collectortrace.TraceServiceServer = (*TraceServiceServer)(nil)
 
 func NewTraceServiceServer(app *bunapp.App) *TraceServiceServer {
-	batchSize := scaleWithCPU(2000, 32000)
+	batchSize := scaleWithCPU(1000, 32000)
 	s := &TraceServiceServer{
 		App: app,
 
 		batchSize: batchSize,
-		ch:        make(chan otlpSpan, batchSize),
+		ch:        make(chan otlpSpan, runtime.GOMAXPROCS(0)*batchSize),
 		gate:      syncutil.NewGate(runtime.GOMAXPROCS(0)),
 	}
 
@@ -85,13 +85,13 @@ func (s *TraceServiceServer) Export(
 		return nil, err
 	}
 
-	s.process(project, req.ResourceSpans)
+	s.process(ctx, project, req.ResourceSpans)
 
 	return &collectortrace.ExportTraceServiceResponse{}, nil
 }
 
 func (s *TraceServiceServer) process(
-	project *bunapp.Project, resourceSpans []*tracepb.ResourceSpans,
+	ctx context.Context, project *bunapp.Project, resourceSpans []*tracepb.ResourceSpans,
 ) {
 	for _, rss := range resourceSpans {
 		resource := otlpAttrs(rss.Resource.Attributes)
@@ -106,10 +106,14 @@ func (s *TraceServiceServer) process(
 			}
 
 			for _, span := range ils.Spans {
-				s.ch <- otlpSpan{
+				select {
+				case s.ch <- otlpSpan{
 					project:  project,
 					Span:     span,
 					resource: resource,
+				}:
+				default:
+					s.Zap(ctx).Error("span buffer is full (span is dropped)")
 				}
 			}
 		}

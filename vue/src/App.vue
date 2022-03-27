@@ -107,6 +107,7 @@ import { defineComponent, shallowRef, watch } from '@vue/composition-api'
 
 // Composables
 import { useRouter, useQuery } from '@/use/router'
+import { useForceReload } from '@/use/force-reload'
 import { useUser } from '@/use/org'
 import { useTraceSearch } from '@/use/trace-search'
 
@@ -124,6 +125,7 @@ export default defineComponent({
     useQuery()
 
     const { router } = useRouter()
+    useForceReload()
     const user = useUser()
     const traceSearch = useTraceSearch()
     const traceId = shallowRef('')
