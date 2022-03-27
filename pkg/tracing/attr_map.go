@@ -80,5 +80,11 @@ func (m AttrMap) Duration(key string) time.Duration {
 }
 
 func (m AttrMap) ServiceName() string {
-	return m.Text(xattr.ServiceName)
+	s, _ := m[xattr.ServiceName].(string)
+	return s
+}
+
+func (m AttrMap) HostName() string {
+	s, _ := m[xattr.HostName].(string)
+	return s
 }

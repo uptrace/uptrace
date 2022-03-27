@@ -42,8 +42,8 @@ func newSpanIndex(index *SpanIndex, span *Span) {
 	index.Span = span
 	index.Count = 1
 
-	index.ServiceName, _ = span.Attrs[xattr.ServiceName].(string)
-	index.HostName, _ = span.Attrs[xattr.HostName].(string)
+	index.ServiceName = span.Attrs.ServiceName()
+	index.HostName = span.Attrs.HostName()
 
 	index.DBSystem, _ = span.Attrs[xattr.DBSystem].(string)
 	index.DBStatement, _ = span.Attrs[xattr.DBStatement].(string)

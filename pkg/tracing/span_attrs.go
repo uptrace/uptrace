@@ -68,8 +68,11 @@ func newSpan(ctx *spanContext, dest *Span, src *otlpSpan) {
 		}
 		otlpSetAttrs(dest.Attrs, src.Attributes)
 
-		if dest.Attrs[xattr.ServiceName] == "" {
+		if dest.Attrs.ServiceName() == "" {
 			dest.Attrs[xattr.ServiceName] = "unknown_service"
+		}
+		if dest.Attrs.HostName() == "" {
+			dest.Attrs[xattr.HostName] = "unknown_host"
 		}
 	}
 
