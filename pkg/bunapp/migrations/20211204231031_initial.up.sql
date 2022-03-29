@@ -38,7 +38,8 @@ CREATE TABLE spans_index (
   "exception.type" LowCardinality(String),
   "exception.message" String,
 
-  INDEX idx_attr_keys attr_keys TYPE bloom_filter(0.01) GRANULARITY 64
+  INDEX idx_attr_keys attr_keys TYPE bloom_filter(0.01) GRANULARITY 8,
+  INDEX idx_duration "span.duration" TYPE minmax GRANULARITY 1
 )
 ENGINE = MergeTree()
 ORDER BY (project_id, "span.system", "span.group_id", "span.time")
