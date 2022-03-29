@@ -87,7 +87,7 @@ var serveCommand = &cli.Command{
 		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", cfg.HTTPDsn(project))
 		fmt.Println()
 
-		fmt.Printf("read the docs at            https://get.uptrace.dev/guide/#otlp\n")
+		fmt.Printf("read the docs at            https://get.uptrace.dev/guide/\n")
 		fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
 		fmt.Println()
 
@@ -113,6 +113,7 @@ var serveCommand = &cli.Command{
 				zap.Error(err), zap.String("dsn", app.Config().CH.DSN))
 		}
 
+		checkMigrations(ctx, app)
 		serveVueApp(app)
 		handler := app.HTTPHandler()
 		handler = gzhttp.GzipHandler(handler)
@@ -156,6 +157,23 @@ var serveCommand = &cli.Command{
 		wg.Wait()
 		return nil
 	},
+}
+
+func checkMigrations(ctx context.Context, app *bunapp.App) {
+	migrator := chmigrate.NewMigrator(app.CH(), migrations.Migrations)
+
+	ms, err := migrator.MigrationsWithStatus(ctx)
+	if err != nil {
+		app.Zap(ctx).Error("MigrationsWithStatus failed", zap.Error(err))
+		return
+	}
+
+	if unapplied := ms.Unapplied(); len(unapplied) > 0 {
+		fmt.Println()
+		fmt.Printf("You have unapplied migrations: %s\n", unapplied)
+		fmt.Println("To apply migrations, run `uptrace ch migrate`")
+		fmt.Println()
+	}
 }
 
 func serveVueApp(app *bunapp.App) {
