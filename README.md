@@ -33,8 +33,10 @@ Uptrace comes in 2 versions:
 
 **Roadmap**:
 
+- OpenTelemetry Logs
 - ClickHouse cluster support in the database schema
-- TLS support
+- ClickHouse S3 storage
+- mTLS support
 
 ## Getting started
 

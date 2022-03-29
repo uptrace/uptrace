@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.11 - Mar 29 2022
+
+- Added ability to filter spans by clicking on a chip.
+- Added explore menu for each span attribute.
+- Better handle situations when `service.name` or `host.name` attributes are not available.
+- Support ZSTD and snappy decompression in OTLP.
+
 ## v0.2.8 - Mar 15 2022
 
 - Fixed duration filter.
