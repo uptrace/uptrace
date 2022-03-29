@@ -144,7 +144,7 @@ export default defineComponent({
     )
 
     function jumpToTrace() {
-      traceSearch.find(traceId.value)
+      traceSearch.find(traceId.value.trim())
     }
 
     return {

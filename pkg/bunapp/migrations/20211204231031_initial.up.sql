@@ -21,7 +21,6 @@ CREATE TABLE spans_index (
   "span.event_error_count" UInt8,
   "span.event_log_count" UInt8,
 
-  all_keys Array(LowCardinality(String)),
   attr_keys Array(LowCardinality(String)),
   attr_values Array(String),
 
