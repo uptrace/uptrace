@@ -3,6 +3,7 @@
 ## v0.2.12 - Mar 30 2022
 
 - Automatically run ClickHouse migrations when Uptrace is started.
+- Added 15 and 30 minutes periods.
 
 ## v0.2.11 - Mar 29 2022
 

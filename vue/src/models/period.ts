@@ -1,4 +1,4 @@
-import { hour, day } from '@/util/date'
+import { minute, hour, day } from '@/util/date'
 
 export interface Period {
   text: string
@@ -7,6 +7,13 @@ export interface Period {
 
 export function periodsForDays(days: number): Period[] {
   const periods = []
+
+  for (let n of [15, 30]) {
+    periods.push({
+      text: `${n} ${n === 1 ? 'minute' : 'minutes'}`,
+      ms: n * minute,
+    })
+  }
 
   for (let n of [1, 3, 6, 12, 24]) {
     periods.push({
