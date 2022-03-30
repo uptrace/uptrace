@@ -10,27 +10,35 @@
 
     <v-container class="mb-6 px-4 py-6">
       <v-row>
-        <v-col class="text-body-1">
+        <v-col class="text-subtitle-1">
           <p>
-            To start sending data to Uptrace, you need to install Uptrace client and configure it
-            using the provided DSN (connection string).
+            To start sending data to Uptrace, you need to install OpenTelemetry distro for Uptrace
+            and configure it using the provided DSN (connection string).
           </p>
 
           <p>For Go, Python, and .NET use <strong>OTLP/gRPC</strong>:</p>
 
-          <XCode :code="grpcDsn" class="mb-4" />
+          <XCode :code="`UPTRACE_DSN=${grpcDsn}`" class="mb-4" />
 
           <p>For Ruby and Node.JS use <strong>OTLP/HTTP</strong>:</p>
 
-          <XCode :code="httpDsn" class="mb-4" />
-
-          <p>
-            See
-            <a href="https://get.uptrace.dev/guide/" target="_blank">documentation</a>
-            for instructions for your programming language.
-          </p>
+          <XCode :code="`UPTRACE_DSN=${httpDsn}`" class="mb-4" />
         </v-col>
       </v-row>
+
+      <v-row>
+        <v-col>
+          <UptraceDistroIcons />
+        </v-col>
+      </v-row>
+    </v-container>
+
+    <PageToolbar :loading="loading">
+      <v-toolbar-title>Quickstart</v-toolbar-title>
+    </PageToolbar>
+
+    <v-container class="mb-6 px-4 py-6">
+      <FrameworkIcons />
     </v-container>
 
     <PageToolbar :loading="loading">
@@ -39,7 +47,7 @@
 
     <v-container class="mb-6 px-4 py-6">
       <v-row>
-        <v-col class="text-body-1">
+        <v-col class="text-subtitle-1">
           Uptrace natively supports OpenTelemetry Protocol (OTLP) in case you are already using
           OpenTelemetry Collector. Use the following OTLP exporter
           <a
@@ -77,11 +85,19 @@ import { useWatchAxios } from '@/use/watch-axios'
 // Components
 import DateRangePicker from '@/components/DateRangePicker.vue'
 import CollectorTabs from '@/components/CollectorTabs.vue'
+import UptraceDistroIcons from '@/components/UptraceDistroIcons.vue'
+import FrameworkIcons from '@/components/FrameworkIcons.vue'
 import HelpLinks from '@/components/HelpLinks.vue'
 
 export default defineComponent({
   name: 'HelpCard',
-  components: { DateRangePicker, CollectorTabs, HelpLinks },
+  components: {
+    DateRangePicker,
+    CollectorTabs,
+    UptraceDistroIcons,
+    FrameworkIcons,
+    HelpLinks,
+  },
 
   props: {
     loading: {
