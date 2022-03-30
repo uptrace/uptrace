@@ -113,7 +113,11 @@ var serveCommand = &cli.Command{
 				zap.Error(err), zap.String("dsn", app.Config().CH.DSN))
 		}
 
-		checkMigrations(ctx, app)
+		if err := runMigrations(ctx, app); err != nil {
+			otelzap.L().Error("ClickHouse migrations failed",
+				zap.Error(err))
+		}
+
 		serveVueApp(app)
 		handler := app.HTTPHandler()
 		handler = gzhttp.GzipHandler(handler)
@@ -159,21 +163,24 @@ var serveCommand = &cli.Command{
 	},
 }
 
-func checkMigrations(ctx context.Context, app *bunapp.App) {
+func runMigrations(ctx context.Context, app *bunapp.App) error {
 	migrator := chmigrate.NewMigrator(app.CH(), migrations.Migrations)
 
-	ms, err := migrator.MigrationsWithStatus(ctx)
-	if err != nil {
-		app.Zap(ctx).Error("MigrationsWithStatus failed", zap.Error(err))
-		return
+	if err := migrator.Init(ctx); err != nil {
+		return err
 	}
 
-	if unapplied := ms.Unapplied(); len(unapplied) > 0 {
-		fmt.Println()
-		fmt.Printf("You have unapplied migrations: %s\n", unapplied)
-		fmt.Println("To apply migrations, run `uptrace ch migrate`")
-		fmt.Println()
+	group, err := migrator.Migrate(ctx)
+	if err != nil {
+		return err
 	}
+
+	if group.ID == 0 { // no migrations
+		return nil
+	}
+
+	fmt.Printf("migrated to %s\n", group)
+	return nil
 }
 
 func serveVueApp(app *bunapp.App) {
