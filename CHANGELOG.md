@@ -57,8 +57,6 @@
   the YAML config.
 - Added ability to filter query results, for example,
   `group by span.group_id | p50(span.duration) | where p50(span.duration) > 10ms`.
-- Added `SAMPLE BY` to `spans_index` table.
-- Added query limits to `spans_index` queries to better support large datasets.
 - Improved error handling on invalid Uptrace queries.
 - Use faster and more compact MessagePack encoding to store spans in `spans_data` table.
 - Add more attributes to ClickHouse index.

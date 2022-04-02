@@ -33,6 +33,7 @@ Uptrace comes in 2 versions:
 
 **Roadmap**:
 
+- Notifications using Prometheus Alertmanager
 - OpenTelemetry Logs
 - ClickHouse cluster support in the database schema
 - ClickHouse S3 storage
