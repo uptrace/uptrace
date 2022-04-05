@@ -3,6 +3,7 @@ import * as echarts from 'echarts'
 
 export function baseChartConfig(): any {
   return {
+    animation: false,
     textStyle: {
       fontFamily: '"Roboto", sans-serif',
     },
