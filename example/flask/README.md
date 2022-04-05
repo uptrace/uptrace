@@ -16,5 +16,5 @@ UPTRACE_DSN=http://project2_secret_token@localhost:14317/2 python3 main.py
 And open http://localhost:8000
 
 See
-[Getting started with Flask, SQLAlchemy, and OpenTelemetry](https://get.uptrace.dev/opentelemetry/flask.html)
+[Getting started with Flask, SQLAlchemy, and OpenTelemetry](https://get.uptrace.dev/opentelemetry/flask-sqlalchemy.html)
 for details.
