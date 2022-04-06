@@ -33,7 +33,7 @@ Uptrace comes in 2 versions:
 
 **Roadmap**:
 
-- Notifications using Prometheus Alertmanager
+- Email notifications
 - OpenTelemetry Logs
 - ClickHouse cluster support in the database schema
 - ClickHouse S3 storage
@@ -41,13 +41,16 @@ Uptrace comes in 2 versions:
 
 ## Getting started
 
-- [Docker example](example/docker) allows to run Uptrace with a single command.
+- [Docker example](example/docker) to try Uptrace with a single command
+- [Installation](https://get.uptrace.dev/guide/) guide with pre-compiled binaries for Linux, MacOS,
+  and Windows
+
+We also provide guides for the most popular frameworks:
+
 - [Gin+GORM example](example/gin-gorm)
 - [Django example](example/django)
 - [Flask example](example/flask)
 - [Rails example](example/rails)
-- [Installation](https://get.uptrace.dev/guide/) guide with pre-compiled binaries for Linux, MacOS,
-  and Windows.
 
 ## FAQ
 

@@ -27,9 +27,6 @@ import { useSpans } from '@/use/spans'
 import SpansTable from '@/components/SpansTable.vue'
 import { SpanChip } from '@/components/SpanChips.vue'
 
-// Utilities
-import { xkey } from '@/models/otelattr'
-
 export default defineComponent({
   name: 'SpanListInline',
   components: { SpansTable },
@@ -56,26 +53,17 @@ export default defineComponent({
   setup(props) {
     const { route } = useRouter()
 
-    const spans = useSpans(
-      () => {
-        const { projectId } = route.value.params
-        const query = props.where + ' | ' + props.axiosParams.query
-        return {
-          url: `/api/tracing/${projectId}/spans`,
-          params: {
-            ...props.axiosParams,
-            query,
-          },
-        }
-      },
-      {
-        order: {
-          column: xkey.spanDuration,
-          desc: true,
-          syncQuery: true,
+    const spans = useSpans(() => {
+      const { projectId } = route.value.params
+      const query = props.where + ' | ' + props.axiosParams.query
+      return {
+        url: `/api/tracing/${projectId}/spans`,
+        params: {
+          ...props.axiosParams,
+          query,
         },
-      },
-    )
+      }
+    })
 
     const listeners = computed(() => {
       if (!props.uql) {

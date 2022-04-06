@@ -79,13 +79,22 @@ export default defineComponent({
   setup(props) {
     const { route } = useRouter()
 
-    const spans = useSpans(() => {
-      const { projectId } = route.value.params
-      return {
-        url: `/api/tracing/${projectId}/spans`,
-        params: props.axiosParams,
-      }
-    })
+    const spans = useSpans(
+      () => {
+        const { projectId } = route.value.params
+        return {
+          url: `/api/tracing/${projectId}/spans`,
+          params: props.axiosParams,
+        }
+      },
+      {
+        order: {
+          column: xkey.spanDuration,
+          desc: true,
+          syncQuery: true,
+        },
+      },
+    )
 
     function onChipClick(chip: SpanChip) {
       const editor = props.uql.createEditor()

@@ -8,6 +8,7 @@ import { QueryPart } from '@/use/uql'
 
 // Utilities
 import { Span } from '@/models/span'
+import { xkey } from '@/models/otelattr'
 
 interface SpansConfig {
   pager?: PagerConfig
@@ -18,7 +19,12 @@ export type UseSpans = ReturnType<typeof useSpans>
 
 export function useSpans(reqSource: AxiosRequestSource, cfg: SpansConfig = {}) {
   const pager = usePager(cfg.pager)
-  const order = useOrder(cfg.order)
+  const order = useOrder(
+    cfg.order ?? {
+      column: xkey.spanDuration,
+      desc: true,
+    },
+  )
 
   const { loading, data } = useWatchAxios(() => {
     const req = reqSource()
