@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.13 - Apr 7 2022
+
+- Fix incorrect `ORDER BY` when viewing spans.
+- Improve config file auto-discovery.
+- Update msgpack library.
+
 ## v0.2.12 - Mar 30 2022
 
 - Automatically run ClickHouse migrations when Uptrace is started.

@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
-	"github.com/vmihailenco/msgpack"
+	"github.com/vmihailenco/msgpack/v5"
 	"golang.org/x/exp/slices"
 )
 

@@ -40,11 +40,24 @@ func StartCLI(c *cli.Context) (context.Context, *App, error) {
 }
 
 func Start(ctx context.Context, configFile, service string) (context.Context, *App, error) {
-	cfg, err := ReadConfig(configFile, service)
-	if err != nil {
-		return context.TODO(), nil, err
+	files := []string{
+		configFile,
+		"uptrace.yml",
+		"config/uptrace.yml",
+		"/etc/uptrace/uptrace.yml",
 	}
-	return StartConfig(ctx, cfg)
+
+	var firstErr error
+
+	for _, configFile := range files {
+		cfg, err := ReadConfig(configFile, service)
+		if err == nil {
+			return StartConfig(ctx, cfg)
+		}
+		firstErr = err
+	}
+
+	return context.TODO(), nil, firstErr
 }
 
 func StartConfig(ctx context.Context, cfg *AppConfig) (context.Context, *App, error) {

@@ -83,14 +83,12 @@ var serveCommand = &cli.Command{
 		project := &projects[len(projects)-1]
 
 		fmt.Printf("reading YAML config from    %s\n", cfg.Filepath)
-		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", cfg.GRPCDsn(project))
-		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", cfg.HTTPDsn(project))
-		fmt.Println()
-
 		fmt.Printf("read the docs at            https://get.uptrace.dev/guide/\n")
 		fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
 		fmt.Println()
 
+		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", cfg.GRPCDsn(project))
+		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", cfg.HTTPDsn(project))
 		fmt.Printf("Open UI (listen.http)       %s\n", cfg.SiteAddr())
 		fmt.Println()
 
@@ -439,9 +437,16 @@ func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					if err != nil {
 						return err
 					}
-					fmt.Printf("migrations: %s\n", ms)
-					fmt.Printf("unapplied migrations: %s\n", ms.Unapplied())
-					fmt.Printf("last migration group: %s\n", ms.LastGroup())
+
+					unapplied := ms.Unapplied()
+					if len(unapplied) > 0 {
+						fmt.Printf("You have %d unapplied migrations\n", len(unapplied))
+					} else {
+						fmt.Printf("The database is up to date\n")
+					}
+					fmt.Printf("Migrations: %s\n", ms)
+					fmt.Printf("Unapplied migrations: %s\n", ms.Unapplied())
+					fmt.Printf("Last migration group: %s\n", ms.LastGroup())
 
 					return nil
 				},
