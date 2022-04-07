@@ -16,11 +16,11 @@
             and configure it using the provided DSN (connection string).
           </p>
 
-          <p>For Go, Python, and .NET use <strong>OTLP/gRPC</strong>:</p>
+          <p>For Go, Python, and .NET use <strong>OTLP/gRPC</strong> (port 14317):</p>
 
           <XCode :code="`UPTRACE_DSN=${grpcDsn}`" class="mb-4" />
 
-          <p>For Ruby and Node.JS use <strong>OTLP/HTTP</strong>:</p>
+          <p>For Ruby and Node.JS use <strong>OTLP/HTTP</strong> (port 14318):</p>
 
           <XCode :code="`UPTRACE_DSN=${httpDsn}`" class="mb-4" />
         </v-col>
