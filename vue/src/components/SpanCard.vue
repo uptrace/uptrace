@@ -9,6 +9,10 @@
           </v-breadcrumbs-item>
         </template>
       </v-breadcrumbs>
+
+      <v-spacer />
+
+      <FixedDatePeriodPicker :date="span.time" :date-range="dateRange" />
     </PageToolbar>
 
     <v-container :fluid="fluid" class="py-4">
@@ -125,6 +129,7 @@ import { UseDateRange } from '@/use/date-range'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 import AttrTable from '@/components/AttrTable.vue'
 import EventPanels from '@/components/EventPanels.vue'
+import FixedDatePeriodPicker from '@/components/FixedDatePeriodPicker.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
@@ -138,6 +143,7 @@ interface Props {
 export default defineComponent({
   name: 'SpanCard',
   components: {
+    FixedDatePeriodPicker,
     AttrTable,
     EventPanels,
     LoadPctileChart,
