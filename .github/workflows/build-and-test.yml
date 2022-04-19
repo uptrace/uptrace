@@ -217,7 +217,7 @@ jobs:
         run: |
           cp bin/* dist/
           cd bin && shasum -a 256 * > checksums.txt && cd ../
-          ghr -b 'To get started, see https://get.uptrace.dev/guide/' -t $GITHUB_TOKEN -u uptrace -r uptrace --replace $RELEASE_TAG dist/
+          ghr -b '[CHANGELOG](https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md)' -t $GITHUB_TOKEN -u uptrace -r uptrace --replace $RELEASE_TAG dist/
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ steps.github_tag.outputs.tag }}
