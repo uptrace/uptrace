@@ -181,6 +181,8 @@ github.com/mattn/go-colorable v0.1.12/go.mod h1:u5H1YNBxpqRaxsYJYSkiCWKzEfiAb1Gb
 github.com/mattn/go-isatty v0.0.12/go.mod h1:cbi8OIDigv2wuxKPP5vlRcQ1OAZbq2CE4Kysco4FUpU=
 github.com/mattn/go-isatty v0.0.14 h1:yVuAays6BHfxijgZPzw+3Zlu5yQgKGP2/hcQbHb7S9Y=
 github.com/mattn/go-isatty v0.0.14/go.mod h1:7GGIvUiUoEMVVmxf/4nioHXj79iQHKdU27kJ6hsGG94=
+github.com/mileusna/useragent v1.0.2 h1:DgVKtiPnjxlb73z9bCwgdUvU2nQNQ97uhgfO8l9uz/w=
+github.com/mileusna/useragent v1.0.2/go.mod h1:3d8TOmwL/5I8pJjyVDteHtgDGcefrFUX4ccGOMKNYYc=
 github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db/go.mod h1:l0dey0ia/Uv7NcFFVbCLtqEBQbrT4OCwCSKTEv6enCw=
 github.com/mostynb/go-grpc-compression v1.1.16 h1:D9tGUINmcII049pxOj9dl32Fzhp26TrDVQXECoKJqQg=
 github.com/mostynb/go-grpc-compression v1.1.16/go.mod h1:xxa6UoYynYS2h+5HB/Hglu81iYAp87ARaNmhhwi0s1s=

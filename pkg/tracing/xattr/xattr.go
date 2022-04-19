@@ -52,6 +52,14 @@ const (
 	HTTPRoute  = "http.route"
 	HTTPTarget = "http.target"
 
+	HTTPUserAgent          = "http.user_agent"
+	HTTPUserAgentName      = "http.user_agent.name"
+	HTTPUserAgentVersion   = "http.user_agent.version"
+	HTTPUserAgentOS        = "http.user_agent.os"
+	HTTPUserAgentOSVersion = "http.user_agent.os_version"
+	HTTPUserAgentDevice    = "http.user_agent.device"
+	HTTPUserAgentBot       = "http.user_agent.bot"
+
 	LogMessage  = "log.message"
 	LogSeverity = "log.severity"
 	LogSource   = "log.source"
