@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash/v2"
+	ua "github.com/mileusna/useragent"
 	"github.com/uptrace/uptrace/pkg/logparser"
 	"github.com/uptrace/uptrace/pkg/sqlparser"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
@@ -61,20 +62,7 @@ func newSpan(ctx *spanContext, dest *Span, src *otlpSpan) {
 		dest.StatusMessage = src.Status.Message
 	}
 
-	{
-		dest.Attrs = make(AttrMap, len(src.resource)+len(src.Attributes))
-		for k, v := range src.resource {
-			dest.Attrs[k] = v
-		}
-		otlpSetAttrs(dest.Attrs, src.Attributes)
-
-		if dest.Attrs.ServiceName() == "" {
-			dest.Attrs[xattr.ServiceName] = "unknown_service"
-		}
-		if dest.Attrs.HostName() == "" {
-			dest.Attrs[xattr.HostName] = "unknown_host"
-		}
-	}
+	initSpanAttrs(ctx, dest, src)
 
 	dest.Links = make([]*SpanLink, len(src.Links))
 	for i, link := range src.Links {
@@ -84,6 +72,50 @@ func newSpan(ctx *spanContext, dest *Span, src *otlpSpan) {
 	assignSpanSystemAndGroupID(ctx, dest)
 	if dest.Name == "" {
 		dest.Name = "<empty>"
+	}
+}
+
+func initSpanAttrs(ctx *spanContext, dest *Span, src *otlpSpan) {
+	dest.Attrs = make(AttrMap, len(src.resource)+len(src.Attributes))
+	for k, v := range src.resource {
+		dest.Attrs[k] = v
+	}
+	otlpSetAttrs(dest.Attrs, src.Attributes)
+
+	if dest.Attrs.ServiceName() == "" {
+		dest.Attrs[xattr.ServiceName] = "unknown_service"
+	}
+	if dest.Attrs.HostName() == "" {
+		dest.Attrs[xattr.HostName] = "unknown_host"
+	}
+	if s, _ := dest.Attrs[xattr.HTTPUserAgent].(string); s != "" {
+		initHTTPUserAgent(dest.Attrs, s)
+	}
+}
+
+func initHTTPUserAgent(attrs AttrMap, str string) {
+	agent := ua.Parse(str)
+
+	if agent.Name != "" {
+		attrs[xattr.HTTPUserAgentName] = agent.Name
+	}
+	if agent.Version != "" {
+		attrs[xattr.HTTPUserAgentVersion] = agent.Version
+	}
+
+	if agent.OS != "" {
+		attrs[xattr.HTTPUserAgentOS] = agent.OS
+	}
+	if agent.OSVersion != "" {
+		attrs[xattr.HTTPUserAgentOSVersion] = agent.OSVersion
+	}
+
+	if agent.Device != "" {
+		attrs[xattr.HTTPUserAgentDevice] = agent.Device
+	}
+
+	if agent.Bot {
+		attrs[xattr.HTTPUserAgentBot] = 1
 	}
 }
 

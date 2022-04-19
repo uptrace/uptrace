@@ -13,6 +13,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/klauspost/compress v1.15.1
+	github.com/mileusna/useragent v1.0.2
 	github.com/mostynb/go-grpc-compression v1.1.16
 	github.com/rs/cors v1.8.2
 	github.com/segmentio/encoding v0.3.4
