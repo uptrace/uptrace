@@ -15,7 +15,7 @@
         </v-toolbar-items>
 
         <v-spacer />
-        <v-btn :to="groupListRoute" small class="primary">Open explorer</v-btn>
+        <v-btn :to="groupListRoute" small class="primary">View in explorer</v-btn>
       </v-toolbar>
 
       <v-card-text>

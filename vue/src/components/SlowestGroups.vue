@@ -4,7 +4,7 @@
       <v-toolbar flat color="light-blue lighten-5">
         <v-toolbar-title>Slowest groups</v-toolbar-title>
         <v-spacer />
-        <v-btn :to="groupRoute" small class="primary">Open explorer</v-btn>
+        <v-btn :to="groupRoute" small class="primary">View in explorer</v-btn>
       </v-toolbar>
 
       <v-card-text>

@@ -3,7 +3,7 @@
     <v-toolbar flat color="light-blue lighten-5">
       <v-toolbar-title>{{ system }} groups</v-toolbar-title>
       <v-spacer />
-      <v-btn :to="exploreRoute" small class="primary">Open explorer</v-btn>
+      <v-btn :to="exploreRoute" small class="primary">View in explorer</v-btn>
     </v-toolbar>
 
     <v-card-text>
