@@ -129,7 +129,7 @@
 </template>
 
 <script lang="ts">
-import { truncate } from 'lodash'
+import { omit, truncate } from 'lodash'
 import { defineComponent, shallowRef, computed, PropType } from '@vue/composition-api'
 
 // Composables
@@ -255,7 +255,7 @@ export default defineComponent({
       return {
         name: 'SpanList',
         query: {
-          ...route.value.query,
+          ...omit(route.value.query, 'sort_by', 'sort_dir'),
           ...props.systems.axiosParams(),
           query: editor.toString(),
         },
