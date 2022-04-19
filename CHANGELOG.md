@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.14 - Apr 19 2022
+
+- Fix incorrect `ORDER BY` when focusing on spans.
+- Parse HTTP user agent into smaller parts.
+- Always show `service.name` attribute when viewing traces.
+
 ## v0.2.13 - Apr 7 2022
 
 - Fix incorrect `ORDER BY` when viewing spans.

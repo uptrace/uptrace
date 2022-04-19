@@ -85,7 +85,6 @@ export default defineComponent({
         }
       }
 
-      pushKindChip(chips, props.span.attrs)
       pushHttpStatusChip(chips, props.span.attrs)
 
       return chips
@@ -94,13 +93,6 @@ export default defineComponent({
     return { xkey, events, chips }
   },
 })
-
-function pushKindChip(chips: SpanChip[], attrs: AttrMap) {
-  const kind = attrs[xkey.spanKind]
-  if (kind && kind !== 'internal') {
-    chips.push({ key: xkey.spanKind, value: kind, text: kind })
-  }
-}
 
 function pushHttpStatusChip(chips: SpanChip[], attrs: AttrMap) {
   const httpCode = attrs[xkey.httpStatusCode]
