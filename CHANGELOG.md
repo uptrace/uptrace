@@ -1,5 +1,7 @@
 # Changelog
 
+To get started with Uptrace, see https://get.uptrace.dev/guide/
+
 ## v0.2.14 - Apr 19 2022
 
 - Fix incorrect `ORDER BY` when focusing on spans.
