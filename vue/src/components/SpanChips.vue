@@ -17,8 +17,9 @@
       color="light-blue lighten-5"
       label
       small
-      :class="{ 'ml-1': i > 0, 'mb-1': i > 0, 'cursor-default': !clickable }"
       :title="`${chip.key}: ${chip.value}`"
+      class="mb-1"
+      :class="{ 'ml-1': i > 0, 'cursor-default': !clickable }"
       @click.stop="$emit('click:chip', chip)"
     >
       {{ chip.text }}
@@ -72,15 +73,16 @@ export default defineComponent({
     })
 
     const chips = computed(() => {
-      if (props.traceMode) {
-        return traceChips(props.span.attrs)
-      }
-
       const chips: SpanChip[] = []
 
       const service = props.span.attrs[xkey.serviceName]
-      if (service) {
-        chips.push({ key: xkey.serviceName, value: service, text: service })
+      chips.push({ key: xkey.serviceName, value: service, text: service })
+
+      if (props.traceMode) {
+        const spanSystem = props.span.system
+        if (!spanSystem.endsWith(`:${service}`)) {
+          chips.push({ key: xkey.spanSystem, value: spanSystem, text: spanSystem })
+        }
       }
 
       pushKindChip(chips, props.span.attrs)
@@ -92,23 +94,6 @@ export default defineComponent({
     return { xkey, events, chips }
   },
 })
-
-function traceChips(attrs: AttrMap): SpanChip[] {
-  const chips: SpanChip[] = []
-
-  pushSystemChip(chips, attrs)
-  pushKindChip(chips, attrs)
-  pushHttpStatusChip(chips, attrs)
-
-  return chips
-}
-
-function pushSystemChip(chips: SpanChip[], attrs: AttrMap) {
-  const spanSystem = attrs[xkey.spanSystem]
-  if (spanSystem && spanSystem !== xkey.internalSystem) {
-    chips.push({ key: xkey.spanSystem, value: spanSystem, text: spanSystem })
-  }
-}
 
 function pushKindChip(chips: SpanChip[], attrs: AttrMap) {
   const kind = attrs[xkey.spanKind]
