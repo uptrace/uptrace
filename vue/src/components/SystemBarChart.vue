@@ -1,15 +1,16 @@
 <template>
   <div>
     <v-sheet outlined rounded="t-lg">
-      <v-row>
+      <v-row dense justify="space-around" class="pa-2">
         <v-col
           v-for="sys in styledSystems"
           :key="sys.system"
           justify="space-around"
-          class="py-5 text-center text-subtitle-2"
+          cols="auto"
+          class="text-center text-subtitle-2"
         >
           <v-avatar :color="sys.color.base" size="12" class="mr-2"></v-avatar>
-          <span class="d-inline-flex mr-1">{{ truncate(sys.system, { length: 30 }) }}</span>
+          <span class="d-inline-flex mr-1">{{ truncate(sys.system, { length: 32 }) }}</span>
           <span class="d-inline-flex blue-grey--text">{{
             percent(sys.duration / totalDuration)
           }}</span>
