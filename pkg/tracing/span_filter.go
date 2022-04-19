@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -22,6 +23,15 @@ type OrderByMixin struct {
 	SortDir string
 }
 
+var _ json.Marshaler = (*OrderByMixin)(nil)
+
+func (f OrderByMixin) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]any{
+		"column": f.SortBy,
+		"desc":   f.SortDir == "desc",
+	})
+}
+
 var _ urlstruct.ValuesUnmarshaler = (*OrderByMixin)(nil)
 
 func (f *OrderByMixin) UnmarshalValues(ctx context.Context, values url.Values) error {
@@ -29,13 +39,6 @@ func (f *OrderByMixin) UnmarshalValues(ctx context.Context, values url.Values) e
 		f.SortDir = "desc"
 	}
 	return nil
-}
-
-func (f *OrderByMixin) CHOrder(q *ch.SelectQuery) *ch.SelectQuery {
-	if f.SortBy == "" {
-		return q
-	}
-	return q.Order(f.SortBy + " " + f.SortDir)
 }
 
 //------------------------------------------------------------------------------

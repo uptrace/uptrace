@@ -27,21 +27,27 @@ func NewSpanHandler(app *bunapp.App) *SpanHandler {
 }
 
 func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
 	f, err := DecodeSpanFilter(h.App, req)
 	if err != nil {
 		return err
 	}
 	disableColumnsAndGroups(f.parts)
 
-	ctx := req.Context()
-	spans := make([]*Span, 0)
-
 	q := buildSpanIndexQuery(f, f.Duration().Minutes()).
 		ColumnExpr("`span.id`").
 		ColumnExpr("`span.trace_id`").
-		Apply(f.CHOrder).
+		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
+			if f.SortBy == "" {
+				return q
+			}
+			return q.OrderExpr(string(chColumn(f.SortBy)) + " " + f.SortDir)
+		}).
 		Limit(10).
 		Offset(f.Pager.GetOffset())
+
+	spans := make([]*Span, 0)
 
 	count, err := q.ScanAndCount(ctx, &spans)
 	if err != nil {
@@ -64,6 +70,7 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 	return httputil.JSON(w, bunrouter.H{
 		"spans": spans,
 		"count": count,
+		"order": f.OrderByMixin,
 	})
 }
 
