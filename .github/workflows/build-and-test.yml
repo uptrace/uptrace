@@ -115,7 +115,7 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
       - name: Install Ruby
-        uses: actions/setup-ruby@v1
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: '2.6'
       - name: Install fpm
@@ -151,7 +151,7 @@ jobs:
       github.repository == 'uptrace/uptrace'
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Go
         uses: actions/setup-go@v2.1.4
         with:
