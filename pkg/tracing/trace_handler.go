@@ -9,6 +9,8 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 type TraceHandler struct {
@@ -112,4 +114,62 @@ func (h *TraceHandler) ShowSpan(w http.ResponseWriter, req bunrouter.Request) er
 	return httputil.JSON(w, bunrouter.H{
 		"span": span,
 	})
+}
+
+//------------------------------------------------------------------------------
+
+func (h *TraceHandler) ShowTraceJSON(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	traceID, err := uuid.Parse(req.Param("trace_id"))
+	if err != nil {
+		return err
+	}
+
+	spans, err := SelectTraceSpans(ctx, h.App, traceID)
+	if err != nil {
+		return err
+	}
+
+	if len(spans) == 0 {
+		return httperror.NotFound("Trace %q not found. Try again later.", traceID)
+	}
+
+	tracepbSpans := make([]*tracepb.Span, len(spans))
+	for i, span := range spans {
+		tracepbSpans[i] = span.TracepbSpan()
+	}
+
+	resp := &tracepb.TracesData{
+		ResourceSpans: []*tracepb.ResourceSpans{{
+			// Here we should have resource attributes that are common for all spans.
+			// But in the database, we mix resource attributes and normal attributes
+			// together so the information about resource attributes is lost.
+			//
+			// Using nil here should work too.
+			Resource: nil,
+
+			ScopeSpans: []*tracepb.ScopeSpans{{
+				Scope: nil,
+				Spans: tracepbSpans,
+			}},
+
+			// InstrumentationLibrarySpans field is deprecated in favor of ScopeSpans.
+			// It will be removed in next versions.
+			InstrumentationLibrarySpans: []*tracepb.InstrumentationLibrarySpans{{
+				InstrumentationLibrary: nil,
+				Spans:                  tracepbSpans,
+			}},
+		}},
+	}
+	b, err := protojson.Marshal(resp)
+	if err != nil {
+		return err
+	}
+
+	if _, err := w.Write(b); err != nil {
+		return err
+	}
+
+	return nil
 }
