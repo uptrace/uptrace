@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"github.com/vmihailenco/msgpack/v5"
+	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"golang.org/x/exp/slices"
 )
 
@@ -129,6 +130,55 @@ func (s *Span) subtractDurationSelf(dur time.Duration) {
 		s.DurationSelf = 0
 	} else {
 		s.DurationSelf -= dur
+	}
+}
+
+//------------------------------------------------------------------------------
+
+func (s *Span) TracepbSpan() *tracepb.Span {
+	events := make([]*tracepb.Span_Event, len(s.Events))
+	for i, event := range s.Events {
+		events[i] = event.TracepbSpanEvent()
+	}
+
+	links := make([]*tracepb.Span_Link, len(s.Links))
+	for i, link := range s.Links {
+		links[i] = link.TracepbSpanLink()
+	}
+
+	return &tracepb.Span{
+		TraceId:      s.TraceID[:],
+		SpanId:       toOTLPSpanID(s.ID),
+		ParentSpanId: toOTLPSpanID(s.ParentID),
+
+		Name:              s.Name,
+		Kind:              toOTLPSpanKind(s.Kind),
+		StartTimeUnixNano: uint64(s.Time.UnixNano()),
+		EndTimeUnixNano:   uint64(s.Time.UnixNano()) + uint64(s.Duration),
+
+		Attributes: toOTLPAttributes(s.Attrs),
+		Events:     events,
+		Links:      links,
+		Status: &tracepb.Status{
+			Code:    toOTLPStatusCode(s.StatusCode),
+			Message: s.StatusMessage,
+		},
+	}
+}
+
+func (s *Span) TracepbSpanEvent() *tracepb.Span_Event {
+	return &tracepb.Span_Event{
+		TimeUnixNano: uint64(s.Time.UnixNano()),
+		Name:         s.Name,
+		Attributes:   toOTLPAttributes(s.Attrs),
+	}
+}
+
+func (l *SpanLink) TracepbSpanLink() *tracepb.Span_Link {
+	return &tracepb.Span_Link{
+		TraceId:    l.TraceID[:],
+		SpanId:     toOTLPSpanID(l.SpanID),
+		Attributes: toOTLPAttributes(l.Attrs),
 	}
 }
 
