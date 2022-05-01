@@ -37,10 +37,12 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 	spanHandler := NewSpanHandler(app)
 	traceHandler := NewTraceHandler(app)
 	suggestionHandler := NewSuggestionHandler(app)
+	clokiHandler := NewClokiHandler(app)
 
 	api := app.APIGroup()
 
 	api.GET("/traces/:trace_id", traceHandler.FindTrace)
+	api.GET("/cloki/:project_id/samples", clokiHandler.ListSamples)
 
 	g := api.
 		Use(org.NewAuthMiddleware(app)).

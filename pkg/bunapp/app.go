@@ -94,7 +94,8 @@ type App struct {
 
 	grpcServer *grpc.Server
 
-	chdb *ch.DB
+	chdb    *ch.DB
+	clokiDB *ch.DB
 }
 
 func New(ctx context.Context, cfg *AppConfig) *App {
@@ -110,6 +111,7 @@ func New(ctx context.Context, cfg *AppConfig) *App {
 	app.initRouter()
 	app.initGRPC()
 	app.initCH()
+	app.initClokiCH()
 
 	return app
 }
@@ -294,6 +296,24 @@ func (app *App) initCH() {
 	app.chdb = db
 }
 
+func (app *App) initClokiCH() {
+	db := ch.Connect(
+		ch.WithDSN(app.cfg.ClokiDB.DSN),
+	)
+
+	db.AddQueryHook(chdebug.NewQueryHook(
+		chdebug.WithVerbose(app.Debug()),
+		chdebug.FromEnv("DEBUG"),
+	))
+	db.AddQueryHook(chotel.NewQueryHook())
+
+	app.clokiDB = db
+}
+
 func (app *App) CH() *ch.DB {
 	return app.chdb
+}
+
+func (app *App) ClokiDB() *ch.DB {
+	return app.clokiDB
 }

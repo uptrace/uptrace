@@ -9,6 +9,41 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type AppConfig struct {
+	Filepath string `yaml:"-"`
+	Service  string `yaml:"service"`
+
+	Debug     bool   `yaml:"debug"`
+	SecretKey string `yaml:"secret_key"`
+
+	Site struct {
+		Scheme string `yaml:"scheme"`
+		Host   string `yaml:"host"`
+	} `yaml:"site"`
+
+	Listen struct {
+		HTTP string `yaml:"http"`
+		GRPC string `yaml:"grpc"`
+
+		HTTPHost string `yaml:"-"`
+		HTTPPort string `yaml:"-"`
+
+		GRPCHost string `yaml:"-"`
+		GRPCPort string `yaml:"-"`
+	} `yaml:"listen"`
+
+	DB      BunConfig `yaml:"db"`
+	CH      CHConfig  `yaml:"ch"`
+	ClokiDB CHConfig  `yaml:"cloki_db"`
+
+	Retention struct {
+		TTL string `yaml:"ttl"`
+	} `yaml:"retention"`
+
+	Users    []User    `yaml:"users"`
+	Projects []Project `yaml:"projects"`
+}
+
 func ReadConfig(configFile, service string) (*AppConfig, error) {
 	configFile, err := filepath.Abs(configFile)
 	if err != nil {
@@ -69,40 +104,6 @@ func validateProjects(projects []Project) error {
 	}
 
 	return nil
-}
-
-type AppConfig struct {
-	Filepath string `yaml:"-"`
-	Service  string `yaml:"service"`
-
-	Debug     bool   `yaml:"debug"`
-	SecretKey string `yaml:"secret_key"`
-
-	Site struct {
-		Scheme string `yaml:"scheme"`
-		Host   string `yaml:"host"`
-	} `yaml:"site"`
-
-	Listen struct {
-		HTTP string `yaml:"http"`
-		GRPC string `yaml:"grpc"`
-
-		HTTPHost string `yaml:"-"`
-		HTTPPort string `yaml:"-"`
-
-		GRPCHost string `yaml:"-"`
-		GRPCPort string `yaml:"-"`
-	} `yaml:"listen"`
-
-	DB BunConfig `yaml:"db"`
-	CH CHConfig  `yaml:"ch"`
-
-	Retention struct {
-		TTL string `yaml:"ttl"`
-	} `yaml:"retention"`
-
-	Users    []User    `yaml:"users"`
-	Projects []Project `yaml:"projects"`
 }
 
 type User struct {

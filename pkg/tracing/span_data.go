@@ -60,15 +60,14 @@ func SelectTraceSpans(ctx context.Context, app *bunapp.App, traceID uuid.UUID) (
 		return nil, err
 	}
 
-	spans := make([]*Span, len(data))
+	spans := make([]*Span, 0, len(data))
 
-	for i, span := range spans {
-		span = new(Span)
-		spans[i] = span
-
-		if err := unmarshalSpan(data[i].Data, span); err != nil {
+	for _, sd := range data {
+		span := new(Span)
+		if err := unmarshalSpan(sd.Data, span); err != nil {
 			return nil, err
 		}
+		spans = append(spans, span)
 	}
 
 	return spans, nil

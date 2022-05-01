@@ -20,6 +20,11 @@ ch:
   # clickhouse://<user>:<password>@<host>:<port>/<database>?sslmode=disable
   dsn: 'clickhouse://default:@localhost:9000/uptrace?sslmode=disable'
 
+cloki_db:
+  # Connection string for ClickHouse database.
+  # clickhouse://<user>:<password>@<host>:<port>/<database>?sslmode=disable
+  dsn: 'clickhouse://default:@localhost:9000/cloki?sslmode=disable'
+
 retention:
   # Tell ClickHouse to delete data after 30 days.
   # Supports SQL interval syntax, for example, INTERVAL 30 DAY.
