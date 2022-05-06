@@ -36,12 +36,15 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 	hostHandler := NewHostHandler(app)
 	spanHandler := NewSpanHandler(app)
 	traceHandler := NewTraceHandler(app)
+	tempoHandler := NewTempoHandler(app)
 	suggestionHandler := NewSuggestionHandler(app)
 
 	api := app.APIGroup()
 
-	api.GET("/traces/:trace_id", traceHandler.FindTrace)
-	api.GET("/traces/:trace_id/json", traceHandler.ShowTraceJSON)
+	api.GET("/traces/:trace_id", tempoHandler.ShowTraceProto)
+	api.GET("/traces/:trace_id/json", tempoHandler.ShowTraceJSON)
+
+	api.GET("/traces/search", traceHandler.FindTrace)
 
 	g := api.
 		Use(org.NewAuthMiddleware(app)).

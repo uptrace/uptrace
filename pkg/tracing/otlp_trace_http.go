@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	pbContentType   = "application/x-protobuf"
-	jsonContentType = "application/json"
+	protobufContentType = "application/x-protobuf"
+	jsonContentType     = "application/json"
 )
 
 func (s *TraceServiceServer) httpTraces(w http.ResponseWriter, req bunrouter.Request) error {
@@ -64,7 +64,7 @@ func (s *TraceServiceServer) httpTraces(w http.ResponseWriter, req bunrouter.Req
 		}
 
 		return nil
-	case pbContentType:
+	case protobufContentType:
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			return err
