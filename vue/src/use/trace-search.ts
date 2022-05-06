@@ -16,7 +16,7 @@ export function useTraceSearch() {
   })
 
   function find(traceId: string) {
-    request({ url: `/api/traces/${traceId}` })
+    request({ url: `/api/traces/search`, params: { trace_id: traceId } })
   }
 
   return proxyRefs({ loading, trace, find })
