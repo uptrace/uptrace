@@ -43,6 +43,7 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 	api := app.APIGroup()
 
 	router.GET("/ready", tempoHandler.Ready)
+	router.GET("/api/echo", tempoHandler.Echo)
 	// https://grafana.com/docs/tempo/latest/api_docs/#query
 	api.GET("/traces/:trace_id", tempoHandler.QueryTrace)
 	api.GET("/traces/:trace_id/json", tempoHandler.QueryTraceJSON)
