@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	protobufContentType = "application/x-protobuf"
+	protobufContentType = "application/protobuf"
 	jsonContentType     = "application/json"
 )
 
