@@ -29,6 +29,11 @@ func (h *TempoHandler) Ready(w http.ResponseWriter, req bunrouter.Request) error
 	return err
 }
 
+func (h *TempoHandler) Echo(w http.ResponseWriter, req bunrouter.Request) error {
+	_, err := w.Write([]byte("echo\n"))
+	return err
+}
+
 func (h *TempoHandler) QueryTrace(w http.ResponseWriter, req bunrouter.Request) error {
 	contentType := req.Header.Get("Accept")
 	if contentType == "" {
