@@ -37,7 +37,7 @@ func Rand() UUID {
 func FromBytes(b []byte) (UUID, error) {
 	var u UUID
 	if len(b) != uuidLen {
-		return u, fmt.Errorf("uuid: can't parse uuid: %x", b)
+		return u, fmt.Errorf("uuid: got %d bytes, wanted 16", len(b))
 	}
 	copy(u[:], b)
 	return u, nil
