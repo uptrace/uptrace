@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/uuid"
 	"github.com/vmihailenco/msgpack/v5"
 	"golang.org/x/exp/slices"
 )

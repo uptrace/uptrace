@@ -6,10 +6,10 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
-	"github.com/google/uuid"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
+	"github.com/uptrace/uptrace/pkg/uuid"
 )
 
 var jsonMarshaler = &jsonpb.Marshaler{}

@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/uuid"
 )
 
 type TraceHandler struct {

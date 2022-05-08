@@ -8,8 +8,8 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/google/uuid"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/uuid"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"go.uber.org/zap"
