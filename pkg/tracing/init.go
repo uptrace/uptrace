@@ -31,16 +31,24 @@ func initGRPC(ctx context.Context, app *bunapp.App) error {
 }
 
 func registerRoutes(ctx context.Context, app *bunapp.App) error {
+	router := app.Router()
 	sysHandler := NewSystemHandler(app)
 	serviceHandler := NewServiceHandler(app)
 	hostHandler := NewHostHandler(app)
 	spanHandler := NewSpanHandler(app)
 	traceHandler := NewTraceHandler(app)
+	tempoHandler := NewTempoHandler(app)
 	suggestionHandler := NewSuggestionHandler(app)
 
 	api := app.APIGroup()
 
-	api.GET("/traces/:trace_id", traceHandler.FindTrace)
+	router.GET("/ready", tempoHandler.Ready)
+	router.GET("/api/echo", tempoHandler.Echo)
+	// https://grafana.com/docs/tempo/latest/api_docs/#query
+	api.GET("/traces/:trace_id", tempoHandler.QueryTrace)
+	api.GET("/traces/:trace_id/json", tempoHandler.QueryTraceJSON)
+
+	api.GET("/traces/search", traceHandler.FindTrace)
 
 	g := api.
 		Use(org.NewAuthMiddleware(app)).

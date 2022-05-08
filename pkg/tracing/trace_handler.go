@@ -24,7 +24,7 @@ func NewTraceHandler(app *bunapp.App) *TraceHandler {
 func (h *TraceHandler) FindTrace(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	traceID, err := uuid.Parse(req.Param("trace_id"))
+	traceID, err := uuid.Parse(req.URL.Query().Get("trace_id"))
 	if err != nil {
 		return err
 	}

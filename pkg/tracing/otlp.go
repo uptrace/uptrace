@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"log"
+	"reflect"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -197,5 +198,135 @@ func otlpArray(vs []*commonpb.AnyValue) ([]string, bool) {
 	default:
 		log.Printf("unsupported attribute value %T", value)
 		return nil, false
+	}
+}
+
+//------------------------------------------------------------------------------
+
+func toOTLPSpanID(n uint64) []byte {
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, n)
+	return b
+}
+
+func toOTLPStatusCode(s string) tracepb.Status_StatusCode {
+	switch s {
+	case "ok":
+		return tracepb.Status_STATUS_CODE_OK
+	case "error":
+		return tracepb.Status_STATUS_CODE_ERROR
+	default:
+		return tracepb.Status_STATUS_CODE_UNSET
+	}
+}
+
+func toOTLPSpanKind(s string) tracepb.Span_SpanKind {
+	switch s {
+	case internalSpanKind:
+		return tracepb.Span_SPAN_KIND_INTERNAL
+	case serverSpanKind:
+		return tracepb.Span_SPAN_KIND_SERVER
+	case clientSpanKind:
+		return tracepb.Span_SPAN_KIND_CLIENT
+	case producerSpanKind:
+		return tracepb.Span_SPAN_KIND_PRODUCER
+	case consumerSpanKind:
+		return tracepb.Span_SPAN_KIND_CONSUMER
+	default:
+		return tracepb.Span_SPAN_KIND_UNSPECIFIED
+	}
+}
+
+func toOTLPAttributes(m AttrMap) []*commonpb.KeyValue {
+	kvs := make([]*commonpb.KeyValue, 0, len(m))
+	for k, v := range m {
+		if av := toOTLPAnyValue(v); av != nil {
+			kvs = append(kvs, &commonpb.KeyValue{
+				Key:   k,
+				Value: av,
+			})
+		}
+	}
+	return kvs
+}
+
+func toOTLPAnyValue(v any) *commonpb.AnyValue {
+	switch v := v.(type) {
+	case string:
+		return &commonpb.AnyValue{
+			Value: &commonpb.AnyValue_StringValue{
+				StringValue: v,
+			},
+		}
+	case int64:
+		return &commonpb.AnyValue{
+			Value: &commonpb.AnyValue_IntValue{
+				IntValue: v,
+			},
+		}
+	case uint64:
+		return &commonpb.AnyValue{
+			Value: &commonpb.AnyValue_IntValue{
+				IntValue: int64(v),
+			},
+		}
+	case float64:
+		return &commonpb.AnyValue{
+			Value: &commonpb.AnyValue_DoubleValue{
+				DoubleValue: v,
+			},
+		}
+	case bool:
+		return &commonpb.AnyValue{
+			Value: &commonpb.AnyValue_BoolValue{
+				BoolValue: v,
+			},
+		}
+	case []byte:
+		return &commonpb.AnyValue{
+			Value: &commonpb.AnyValue_BytesValue{
+				BytesValue: v,
+			},
+		}
+	case []string:
+		values := make([]*commonpb.AnyValue, len(v))
+		for i, el := range v {
+			values[i] = toOTLPAnyValue(el)
+		}
+		return &commonpb.AnyValue{
+			Value: &commonpb.AnyValue_ArrayValue{
+				ArrayValue: &commonpb.ArrayValue{
+					Values: values,
+				},
+			},
+		}
+	case []int64:
+		values := make([]*commonpb.AnyValue, len(v))
+		for i, el := range v {
+			values[i] = toOTLPAnyValue(el)
+		}
+		return &commonpb.AnyValue{
+			Value: &commonpb.AnyValue_ArrayValue{
+				ArrayValue: &commonpb.ArrayValue{
+					Values: values,
+				},
+			},
+		}
+	case []float64:
+		values := make([]*commonpb.AnyValue, len(v))
+		for i, el := range v {
+			values[i] = toOTLPAnyValue(el)
+		}
+		return &commonpb.AnyValue{
+			Value: &commonpb.AnyValue_ArrayValue{
+				ArrayValue: &commonpb.ArrayValue{
+					Values: values,
+				},
+			},
+		}
+	default:
+		otelzap.L().Error("unsupported attribute type",
+			zap.String("type", reflect.TypeOf(v).String()))
+		return nil
 	}
 }

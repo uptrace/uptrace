@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	collectortrace "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
@@ -93,11 +94,28 @@ func (s *TraceServiceServer) Export(
 func (s *TraceServiceServer) process(
 	ctx context.Context, project *bunapp.Project, resourceSpans []*tracepb.ResourceSpans,
 ) {
+	for _, rs := range resourceSpans {
+		if len(rs.ScopeSpans) == 0 {
+			for _, ils := range rs.InstrumentationLibrarySpans {
+				scopeSpans := tracepb.ScopeSpans{
+					Scope: &commonpb.InstrumentationScope{
+						Name:    ils.InstrumentationLibrary.Name,
+						Version: ils.InstrumentationLibrary.Version,
+					},
+					Spans:     ils.Spans,
+					SchemaUrl: ils.SchemaUrl,
+				}
+				rs.ScopeSpans = append(rs.ScopeSpans, &scopeSpans)
+			}
+		}
+		rs.InstrumentationLibrarySpans = nil
+	}
+
 	for _, rss := range resourceSpans {
 		resource := otlpAttrs(rss.Resource.Attributes)
 
-		for _, ils := range rss.InstrumentationLibrarySpans {
-			lib := ils.InstrumentationLibrary
+		for _, ss := range rss.ScopeSpans {
+			lib := ss.Scope
 			if lib != nil {
 				resource[xattr.OtelLibraryName] = lib.Name
 				if lib.Version != "" {
@@ -105,7 +123,7 @@ func (s *TraceServiceServer) process(
 				}
 			}
 
-			for _, span := range ils.Spans {
+			for _, span := range ss.Spans {
 				select {
 				case s.ch <- otlpSpan{
 					project:  project,
