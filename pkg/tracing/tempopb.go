@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"encoding/binary"
+	"fmt"
 	"reflect"
 
 	"github.com/grafana/tempo/pkg/tempopb"
@@ -9,15 +10,31 @@ import (
 	resourcepb "github.com/grafana/tempo/pkg/tempopb/resource/v1"
 	tracepb "github.com/grafana/tempo/pkg/tempopb/trace/v1"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/uuid"
 	"go.uber.org/zap"
 )
 
-func newTempopbTrace(spans []*Span) *tempopb.Trace {
+func newTempopbTrace(app *bunapp.App, traceID uuid.UUID, spans []*Span) *tempopb.Trace {
+	cfg := app.Config()
+	backlink := &commonpb.KeyValue{
+		Key: "uptrace.url",
+		Value: &commonpb.AnyValue{
+			Value: &commonpb.AnyValue_StringValue{
+				StringValue: fmt.Sprintf(
+					"%s://%s:%s/traces/%s",
+					cfg.Site.Scheme, cfg.Site.Host, cfg.Listen.HTTPPort, traceID.String(),
+				),
+			},
+		},
+	}
+
 	resourceSpans := make([]*tracepb.ResourceSpans, 0, len(spans))
 
 	for _, span := range spans {
-		resourceSpans = append(resourceSpans, tempoResourceSpans(span))
+		tempoSpan := tempoResourceSpans(span, backlink)
+		resourceSpans = append(resourceSpans, tempoSpan)
 	}
 
 	return &tempopb.Trace{
@@ -27,8 +44,9 @@ func newTempopbTrace(spans []*Span) *tempopb.Trace {
 
 var tempoResourceKeys = []string{xattr.ServiceName, xattr.HostName}
 
-func tempoResourceSpans(s *Span) *tracepb.ResourceSpans {
+func tempoResourceSpans(s *Span, backlink *commonpb.KeyValue) *tracepb.ResourceSpans {
 	resource, attributes := tempoResourceAndAttributes(s.Attrs, tempoResourceKeys)
+	attributes = append(attributes, backlink)
 
 	tracepbSpan := newTracepbSpan(s)
 	tracepbSpan.Attributes = attributes

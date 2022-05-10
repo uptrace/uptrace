@@ -75,7 +75,7 @@ func (h *TempoHandler) queryTrace(
 		return httperror.NotFound("Trace %q not found. Try again later.", traceID)
 	}
 
-	resp := newTempopbTrace(spans)
+	resp := newTempopbTrace(h.App, traceID, spans)
 
 	switch contentType {
 	case "*/*", jsonContentType:
