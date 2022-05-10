@@ -3,6 +3,7 @@ package tracing
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,7 +17,10 @@ import (
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"github.com/uptrace/uptrace/pkg/uuid"
+	"go.uber.org/zap"
 )
+
+const projectIDHeaderKey = "uptrace-project-id"
 
 var jsonMarshaler = &jsonpb.Marshaler{}
 
@@ -95,16 +99,20 @@ func (h *TempoHandler) queryTrace(
 func (h *TempoHandler) Tags(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	keys := make([]string, 0)
-
-	if err := h.CH().NewSelect().
+	q := h.CH().NewSelect().
 		Model((*SpanIndex)(nil)).
 		Distinct().
 		ColumnExpr("arrayJoin(all_keys) AS key").
-		// Where("project_id = ?", 123).
 		Where("`span.time` >= ?", time.Now().Add(-24*time.Hour)).
-		OrderExpr("key ASC").
-		ScanColumns(ctx, &keys); err != nil {
+		OrderExpr("key ASC")
+
+	if projectID := h.tempoProjectID(req); projectID != 0 {
+		q = q.Where("project_id = ?", projectID)
+	}
+
+	keys := make([]string, 0)
+
+	if err := q.ScanColumns(ctx, &keys); err != nil {
 		return err
 	}
 
@@ -121,11 +129,13 @@ func (h *TempoHandler) TagValues(w http.ResponseWriter, req bunrouter.Request) e
 		Distinct().
 		ColumnExpr("toString(?) AS value", chColumn(tag)).
 		Model((*SpanIndex)(nil)).
-		// Where("project_id = ?", 123).
 		Where("`span.time` >= ?", time.Now().Add(-24*time.Hour)).
 		OrderExpr("value ASC").
 		Limit(1000)
 
+	if projectID := h.tempoProjectID(req); projectID != 0 {
+		q = q.Where("project_id = ?", projectID)
+	}
 	if !strings.HasPrefix(tag, "span.") {
 		q = q.Where("has(all_keys, ?)", tag)
 	}
@@ -155,9 +165,9 @@ type TempoSearchParams struct {
 
 type TempoSearchItem struct {
 	TraceID           uuid.UUID `json:"traceID"`
-	RootServiceName   string    `json:"rootServiceName"`
-	RootTraceName     string    `json:"rootTraceName"`
-	StartTimeUnixNano int64     `json:"startTimeUnixNano"`
+	RootServiceName   string    `json:"rootServiceName" ch:",lc"`
+	RootTraceName     string    `json:"rootTraceName" ch:",lc"`
+	StartTimeUnixNano int64     `json:"startTimeUnixNano,string"`
 	DurationMs        float64   `json:"durationMs"`
 }
 
@@ -180,14 +190,16 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 		ColumnExpr("`span.trace_id` AS trace_id").
 		ColumnExpr("`service.name` AS root_service_name").
 		ColumnExpr("`span.name` AS root_trace_name").
-		ColumnExpr("`span.time` AS start_time_unix_nano").
+		ColumnExpr("toInt64(toUnixTimestamp(`span.time`) * 1e9) AS start_time_unix_nano").
 		ColumnExpr("`span.duration` / 1e6 AS duration_ms").
 		Model((*SpanIndex)(nil)).
-		// Where("project_id = ?", 123).
 		Where("`span.time` >= ?", f.Start).
 		Where("`span.parent_id` = 0").
 		Limit(f.Limit)
 
+	if projectID := h.tempoProjectID(req); projectID != 0 {
+		q = q.Where("project_id = ?", projectID)
+	}
 	if !f.End.IsZero() {
 		q = q.Where("`span.time` <= ?", f.End)
 	}
@@ -231,6 +243,19 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 			"inspectedBlocks": 0,
 		},
 	})
+}
+
+func (h *TempoHandler) tempoProjectID(req bunrouter.Request) uint32 {
+	s := req.Header.Get(projectIDHeaderKey)
+	if s == "" {
+		return 0
+	}
+	projectID, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
+		h.Zap(req.Context()).Error("can't parse project id", zap.Error(err))
+		return 0
+	}
+	return uint32(projectID)
 }
 
 func tempoAttrKey(key string) string {
