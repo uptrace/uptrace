@@ -3,6 +3,7 @@ package urlstruct
 import (
 	"database/sql"
 	"encoding"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -334,6 +335,20 @@ func scanNullString(v reflect.Value, values []string) error {
 }
 
 func scanMapStringString(v reflect.Value, values []string) error {
+	if len(values) == 1 {
+		s := values[0]
+		if s == "" {
+			v.Set(reflect.New(mapStringStringType).Elem())
+			return nil
+		}
+		var m map[string]string
+		if err := json.Unmarshal([]byte(s), &m); err != nil {
+			return err
+		}
+		v.Set(reflect.ValueOf(m))
+		return nil
+	}
+
 	m := make(map[string]string, len(values)/3)
 
 	var key string

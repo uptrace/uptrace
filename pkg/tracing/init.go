@@ -42,11 +42,18 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 
 	api := app.APIGroup()
 
-	router.GET("/ready", tempoHandler.Ready)
-	router.GET("/api/echo", tempoHandler.Echo)
-	// https://grafana.com/docs/tempo/latest/api_docs/#query
-	api.GET("/traces/:trace_id", tempoHandler.QueryTrace)
-	api.GET("/traces/:trace_id/json", tempoHandler.QueryTraceJSON)
+	// https://grafana.com/docs/tempo/latest/api_docs/
+	router.WithGroup("", func(g *bunrouter.Group) {
+		g.GET("/ready", tempoHandler.Ready)
+		g.GET("/api/echo", tempoHandler.Echo)
+
+		g.GET("/api/traces/:trace_id", tempoHandler.QueryTrace)
+		g.GET("/api/traces/:trace_id/json", tempoHandler.QueryTraceJSON)
+
+		g.GET("/api/search/tags", tempoHandler.Tags)
+		g.GET("/api/search/tag/:tag/values", tempoHandler.TagValues)
+		g.GET("/api/search", tempoHandler.Search)
+	})
 
 	api.GET("/traces/search", traceHandler.FindTrace)
 
