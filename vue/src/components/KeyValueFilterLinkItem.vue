@@ -90,10 +90,13 @@ export default defineComponent({
         return []
       }
 
+      const groupLink = link({ query: buildGroupBy(props.name) })
+      groupLink.to.name = 'GroupList'
+
       const items = [
         {
           title: `Group by ${props.name}`,
-          link: link({ query: buildGroupBy(props.name) }),
+          link: groupLink,
         },
       ]
 
