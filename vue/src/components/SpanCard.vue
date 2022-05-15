@@ -30,6 +30,11 @@
       </v-row>
 
       <v-row align="end" class="px-4 text-subtitle-2 text-center">
+        <v-col v-if="span.attrs[xkey.serviceName]" cols="auto">
+          <div class="grey--text font-weight-regular">Service</div>
+          <div>{{ span.attrs[xkey.serviceName] }}</div>
+        </v-col>
+
         <v-col v-if="span.kind" cols="auto">
           <div class="grey--text font-weight-regular">Kind</div>
           <div>{{ span.kind }}</div>
