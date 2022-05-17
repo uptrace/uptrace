@@ -103,7 +103,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, watch } from '@vue/composition-api'
+import { defineComponent, shallowRef } from '@vue/composition-api'
 
 // Composables
 import { useRouter, useQuery } from '@/use/router'
@@ -130,21 +130,11 @@ export default defineComponent({
     const traceSearch = useTraceSearch()
     const traceId = shallowRef('')
 
-    watch(
-      () => traceSearch.trace,
-      (trace) => {
-        if (trace) {
-          router.push({
-            name: 'TraceShow',
-            params: { projectId: String(trace.projectId), traceId: trace.id },
-          })
-          traceId.value = ''
-        }
-      },
-    )
-
     function jumpToTrace() {
-      traceSearch.find(traceId.value.trim())
+      router.push({
+        name: 'TraceFind',
+        params: { traceId: traceId.value.trim() },
+      })
     }
 
     return {
