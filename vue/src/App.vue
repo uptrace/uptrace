@@ -33,7 +33,6 @@
           <v-col cols="auto">
             <v-text-field
               v-model="traceId"
-              loading="traceSearch.loading"
               prepend-inner-icon="mdi-magnify"
               placeholder="Jump to trace id..."
               hide-details
@@ -103,13 +102,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, watch } from '@vue/composition-api'
+import { defineComponent, shallowRef } from '@vue/composition-api'
 
 // Composables
 import { useRouter, useQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 import { useUser } from '@/use/org'
-import { useTraceSearch } from '@/use/trace-search'
 
 // Components
 import UptraceLogoLarge from '@/components/UptraceLogoLarge.vue'
@@ -127,29 +125,17 @@ export default defineComponent({
     const { router } = useRouter()
     useForceReload()
     const user = useUser()
-    const traceSearch = useTraceSearch()
     const traceId = shallowRef('')
 
-    watch(
-      () => traceSearch.trace,
-      (trace) => {
-        if (trace) {
-          router.push({
-            name: 'TraceShow',
-            params: { projectId: String(trace.projectId), traceId: trace.id },
-          })
-          traceId.value = ''
-        }
-      },
-    )
-
     function jumpToTrace() {
-      traceSearch.find(traceId.value.trim())
+      router.push({
+        name: 'TraceFind',
+        params: { traceId: traceId.value.trim() },
+      })
     }
 
     return {
       user,
-      traceSearch,
       traceId,
       jumpToTrace,
     }
