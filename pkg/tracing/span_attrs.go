@@ -6,7 +6,6 @@ import (
 	"io"
 	"math/rand"
 	"strings"
-	"time"
 
 	"github.com/cespare/xxhash/v2"
 	ua "github.com/mileusna/useragent"
@@ -47,49 +46,20 @@ func newSpanContext(ctx context.Context) *spanContext {
 	}
 }
 
-func newSpan(ctx *spanContext, dest *Span, src *OTLPSpan) {
-	dest.ID = otlpSpanID(src.SpanId)
-	dest.ParentID = otlpSpanID(src.ParentSpanId)
-	dest.TraceID = otlpTraceID(src.TraceId)
-	dest.Name = src.Name
-	dest.Kind = otlpSpanKind(src.Kind)
-
-	dest.Time = time.Unix(0, int64(src.StartTimeUnixNano))
-	dest.Duration = time.Duration(src.EndTimeUnixNano - src.StartTimeUnixNano)
-
-	if src.Status != nil {
-		dest.StatusCode = otlpStatusCode(src.Status.Code)
-		dest.StatusMessage = src.Status.Message
+func initSpan(ctx *spanContext, span *Span) {
+	if span.Attrs.ServiceName() == "" {
+		span.Attrs[xattr.ServiceName] = "unknown_service"
+	}
+	if span.Attrs.HostName() == "" {
+		span.Attrs[xattr.HostName] = "unknown_host"
+	}
+	if s, _ := span.Attrs[xattr.HTTPUserAgent].(string); s != "" {
+		initHTTPUserAgent(span.Attrs, s)
 	}
 
-	initSpanAttrs(ctx, dest, src)
-
-	dest.Links = make([]*SpanLink, len(src.Links))
-	for i, link := range src.Links {
-		dest.Links[i] = newSpanLink(link)
-	}
-
-	assignSpanSystemAndGroupID(ctx, dest)
-	if dest.Name == "" {
-		dest.Name = "<empty>"
-	}
-}
-
-func initSpanAttrs(ctx *spanContext, dest *Span, src *OTLPSpan) {
-	dest.Attrs = make(AttrMap, len(src.resource)+len(src.Attributes))
-	for k, v := range src.resource {
-		dest.Attrs[k] = v
-	}
-	otlpSetAttrs(dest.Attrs, src.Attributes)
-
-	if dest.Attrs.ServiceName() == "" {
-		dest.Attrs[xattr.ServiceName] = "unknown_service"
-	}
-	if dest.Attrs.HostName() == "" {
-		dest.Attrs[xattr.HostName] = "unknown_host"
-	}
-	if s, _ := dest.Attrs[xattr.HTTPUserAgent].(string); s != "" {
-		initHTTPUserAgent(dest.Attrs, s)
+	assignSpanSystemAndGroupID(ctx, span)
+	if span.Name == "" {
+		span.Name = "<empty>"
 	}
 }
 
@@ -244,9 +214,7 @@ func hashSpan(digest *xxhash.Digest, span *Span, keys ...string) {
 
 //------------------------------------------------------------------------------
 
-func newSpanFromEvent(
-	ctx *spanContext, dest *Span, hostSpan *Span, event *tracepb.Span_Event,
-) {
+func initSpanEvent(ctx *spanContext, dest *Span, hostSpan *Span) {
 	dest.ProjectID = hostSpan.ProjectID
 	dest.TraceID = hostSpan.TraceID
 	dest.ID = rand.Uint64()
@@ -254,13 +222,11 @@ func newSpanFromEvent(
 
 	dest.Name = hostSpan.Name
 	dest.Kind = hostSpan.Kind
-	dest.Attrs = hostSpan.Attrs.Clone()
+	for k, v := range hostSpan.Attrs {
+		dest.Attrs.SetDefault(k, v)
+	}
 	dest.Duration = hostSpan.Duration
 	dest.StatusCode = hostSpan.StatusCode
-
-	dest.EventName = event.Name
-	otlpSetAttrs(dest.Attrs, event.Attributes)
-	dest.Time = time.Unix(0, int64(event.TimeUnixNano))
 
 	assignEventSystemAndGroupID(ctx, dest)
 }

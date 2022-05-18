@@ -2,7 +2,7 @@ version: '3'
 
 services:
   clickhouse:
-    image: clickhouse/clickhouse-server:22.3.4.20
+    image: clickhouse/clickhouse-server:22.4
     restart: always
     environment:
       CLICKHOUSE_DB: uptrace
@@ -13,9 +13,8 @@ services:
       retries: 30
     volumes:
       - ch_data:/var/lib/clickhouse
-    ports:
-      - '8123:8123'
-      - '9000:9000'
+    # use host mode so we can export span from ClickHouse to Uptrace
+    network_mode: host
     logging:
       driver: loki
       options:

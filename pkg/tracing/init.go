@@ -13,12 +13,16 @@ import (
 )
 
 func init() {
-	bunapp.OnStart("tracing.initGRPC", initGRPC)
-	bunapp.OnStart("tracing.registerRoutes", registerRoutes)
+	bunapp.OnStart("tracing.init", func(ctx context.Context, app *bunapp.App) error {
+		sp := NewSpanProcessor(app)
+		initGRPC(ctx, app, sp)
+		initRoutes(ctx, app, sp)
+		return nil
+	})
 }
 
-func initGRPC(ctx context.Context, app *bunapp.App) error {
-	traceService := NewTraceServiceServer(app)
+func initGRPC(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
+	traceService := NewTraceServiceServer(app, sp)
 	collectortracepb.RegisterTraceServiceServer(app.GRPCServer(), traceService)
 
 	metricsService := NewMetricsServiceServer(app)
@@ -26,11 +30,9 @@ func initGRPC(ctx context.Context, app *bunapp.App) error {
 
 	router := app.Router()
 	router.POST("/v1/traces", traceService.httpTraces)
-
-	return nil
 }
 
-func registerRoutes(ctx context.Context, app *bunapp.App) error {
+func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	router := app.Router()
 	sysHandler := NewSystemHandler(app)
 	serviceHandler := NewServiceHandler(app)
@@ -39,7 +41,7 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 	traceHandler := NewTraceHandler(app)
 	suggestionHandler := NewSuggestionHandler(app)
 	tempoHandler := NewTempoHandler(app)
-	zipkinHandler := NewZipkinHandler(app)
+	zipkinHandler := NewZipkinHandler(app, sp)
 
 	api := app.APIGroup()
 
@@ -106,6 +108,4 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 			},
 		})
 	})
-
-	return nil
 }
