@@ -37,8 +37,9 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 	hostHandler := NewHostHandler(app)
 	spanHandler := NewSpanHandler(app)
 	traceHandler := NewTraceHandler(app)
-	tempoHandler := NewTempoHandler(app)
 	suggestionHandler := NewSuggestionHandler(app)
+	tempoHandler := NewTempoHandler(app)
+	zipkinHandler := NewZipkinHandler(app)
 
 	api := app.APIGroup()
 
@@ -53,6 +54,11 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 		g.GET("/api/search/tags", tempoHandler.Tags)
 		g.GET("/api/search/tag/:tag/values", tempoHandler.TagValues)
 		g.GET("/api/search", tempoHandler.Search)
+	})
+
+	// https://zipkin.io/zipkin-api/#/default/post_spans
+	router.WithGroup("/api/v2", func(g *bunrouter.Group) {
+		g.POST("/spans", zipkinHandler.PostSpans)
 	})
 
 	api.GET("/traces/search", traceHandler.FindTrace)
