@@ -47,7 +47,7 @@ func newSpanContext(ctx context.Context) *spanContext {
 	}
 }
 
-func newSpan(ctx *spanContext, dest *Span, src *otlpSpan) {
+func newSpan(ctx *spanContext, dest *Span, src *OTLPSpan) {
 	dest.ID = otlpSpanID(src.SpanId)
 	dest.ParentID = otlpSpanID(src.ParentSpanId)
 	dest.TraceID = otlpTraceID(src.TraceId)
@@ -75,7 +75,7 @@ func newSpan(ctx *spanContext, dest *Span, src *otlpSpan) {
 	}
 }
 
-func initSpanAttrs(ctx *spanContext, dest *Span, src *otlpSpan) {
+func initSpanAttrs(ctx *spanContext, dest *Span, src *OTLPSpan) {
 	dest.Attrs = make(AttrMap, len(src.resource)+len(src.Attributes))
 	for k, v := range src.resource {
 		dest.Attrs[k] = v
