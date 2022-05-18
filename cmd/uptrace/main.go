@@ -203,11 +203,9 @@ func serveVueApp(app *bunapp.App) {
 		}
 	}
 
-	router.NewGroup("/*path",
-		bunrouter.WithMiddleware(notFoundMiddleware),
-		bunrouter.WithGroup(func(group *bunrouter.Group) {
-			group.GET("", bunrouter.HTTPHandler(fileServer))
-		}))
+	router.Use(notFoundMiddleware).WithGroup("/*path", func(group *bunrouter.Group) {
+		group.GET("", bunrouter.HTTPHandler(fileServer))
+	})
 }
 
 func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
@@ -445,7 +443,7 @@ func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 						fmt.Printf("The database is up to date\n")
 					}
 					fmt.Printf("Migrations: %s\n", ms)
-					fmt.Printf("Unapplied migrations: %s\n", ms.Unapplied())
+					fmt.Printf("Unapplied migrations: %s\n", unapplied)
 					fmt.Printf("Last migration group: %s\n", ms.LastGroup())
 
 					return nil
