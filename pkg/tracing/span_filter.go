@@ -320,18 +320,14 @@ func chColumn(key string) ch.Safe {
 }
 
 func appendCHColumn(b []byte, key string) []byte {
-	switch key {
-	case xattr.SpanSystem, xattr.SpanGroupID, xattr.SpanTraceID,
-		xattr.SpanName, xattr.SpanEventName, xattr.SpanKind, xattr.SpanDuration,
-		xattr.SpanStatusCode, xattr.SpanStatusMessage,
-		xattr.SpanLinkCount, xattr.SpanEventCount, xattr.SpanEventErrorCount, xattr.SpanEventLogCount:
+	if strings.HasPrefix(key, "span.") {
 		return chschema.AppendIdent(b, key)
-	default:
-		if _, ok := indexedAttrSet[key]; ok {
-			return chschema.AppendIdent(b, key)
-		}
-		return chschema.AppendQuery(b, "attr_values[indexOf(attr_keys, ?)]", key)
 	}
+
+	if _, ok := indexedAttrSet[key]; ok {
+		return chschema.AppendIdent(b, key)
+	}
+	return chschema.AppendQuery(b, "attr_values[indexOf(attr_keys, ?)]", key)
 }
 
 func uqlWhere(q *ch.SelectQuery, ast *uql.Where, minutes float64) *ch.SelectQuery {

@@ -25,7 +25,7 @@ require (
 	github.com/uptrace/go-clickhouse/chdebug v0.2.8-0.20220518133303-65991cc1437d
 	github.com/uptrace/go-clickhouse/chotel v0.2.8-0.20220518133303-65991cc1437d
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.13
-	github.com/uptrace/uptrace-go v1.7.0
+	github.com/uptrace/uptrace-go v1.7.1
 	github.com/urfave/cli/v2 v2.6.0
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/vmihailenco/tagparser v0.1.2
