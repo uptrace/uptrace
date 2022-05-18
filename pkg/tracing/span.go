@@ -1,14 +1,17 @@
 package tracing
 
 import (
+	"context"
 	"math"
 	"math/rand"
 	"strings"
 	"time"
 
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	"github.com/vmihailenco/msgpack/v5"
+	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 )
 
@@ -134,7 +137,7 @@ func (s *Span) subtractDurationSelf(dur time.Duration) {
 
 //------------------------------------------------------------------------------
 
-func BuildSpanTree(spansPtr *[]*Span) *Span {
+func buildSpanTree(ctx context.Context, app *bunapp.App, spansPtr *[]*Span) *Span {
 	spans := *spansPtr
 	m := make(map[uint64]*Span, len(spans))
 	var root *Span
@@ -183,6 +186,7 @@ func BuildSpanTree(spansPtr *[]*Span) *Span {
 
 		parent := m[s.ParentID]
 		if parent == nil {
+			app.Zap(ctx).Error("can't find parent span", zap.Uint64("parent_id", s.ParentID))
 			parent = root
 		}
 

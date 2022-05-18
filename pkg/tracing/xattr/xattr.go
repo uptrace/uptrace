@@ -32,6 +32,7 @@ const (
 	SpanEventLogCount   = "span.event_log_count"
 
 	ServiceName = "service.name"
+	PeerService = "peer.service"
 	HostName    = "host.name"
 
 	RPCSystem  = "rpc.system"
@@ -59,6 +60,20 @@ const (
 	HTTPUserAgentOSVersion = "http.user_agent.os_version"
 	HTTPUserAgentDevice    = "http.user_agent.device"
 	HTTPUserAgentBot       = "http.user_agent.bot"
+
+	NetTransport         = "net.transport"
+	NetPeerIP            = "net.peer.ip"
+	NetPeerIPCountryCode = "net.peer.ip.country_code"
+	NetPeerIPCountryName = "net.peer.ip.country_name"
+	NetPeerIPCityName    = "net.peer.ip.city_name"
+	NetPeerPort          = "net.peer.port"
+	NetPeerName          = "net.peer.name"
+	NetHostIP            = "net.host.ip"
+	NetHostIPCountryCode = "net.host.ip.country_code"
+	NetHostIPCountryName = "net.host.ip.country_name"
+	NetHostIPCityName    = "net.host.ip.city_name"
+	NetHostPort          = "net.host.port"
+	NetHostName          = "net.host.name"
 
 	LogMessage  = "log.message"
 	LogSeverity = "log.severity"
