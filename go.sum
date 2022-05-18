@@ -244,8 +244,8 @@ github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.13 h1:W1C+GRNIAABobuEohf
 github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.13/go.mod h1:vNmY7gwoy9t4RQxhmYHV1Myt4qf2bSMpSgmzFKuoZDg=
 github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.13 h1:eubSXDbu1BOELacn0MkXjCwSuWpBGwPJLL9ia79xl6E=
 github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.13/go.mod h1:3IJ7sxvwicE2uhhRZMfIo9o2dy5ANuVIsE2TbpdDEgY=
-github.com/uptrace/uptrace-go v1.7.0 h1:JT5pDED40sn+L6Fgc/D5FIKM0I6GECUjifH757kRnYs=
-github.com/uptrace/uptrace-go v1.7.0/go.mod h1:ZEFBLqjLJplFeak8w4IrpzDtXd+dY8QhCyHHCL6VP90=
+github.com/uptrace/uptrace-go v1.7.1 h1:08V74pATGYoJK+t94oRH6fdaLhs+r8rGWZOk4U6Yl40=
+github.com/uptrace/uptrace-go v1.7.1/go.mod h1:ZEFBLqjLJplFeak8w4IrpzDtXd+dY8QhCyHHCL6VP90=
 github.com/urfave/cli/v2 v2.6.0 h1:yj2Drkflh8X/zUrkWlWlUjZYHyWN7WMmpVxyxXIUyv8=
 github.com/urfave/cli/v2 v2.6.0/go.mod h1:oDzoM7pVwz6wHn5ogWgFUU1s4VJayeQS+aEZDqXIEJs=
 github.com/vmihailenco/encoding v0.3.4-0.20220121071420-f96fbbb25975 h1:Gkdl/xHEqIbNl9lb/DtHM2OXZL7zb0FpVdDV1LBSCFg=
