@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -116,7 +117,7 @@ var serveCommand = &cli.Command{
 				zap.Error(err))
 		}
 
-		serveVueApp(app)
+		serveVueApp(app.Router(), uptrace.DistFS())
 		handler := app.HTTPHandler()
 		handler = gzhttp.GzipHandler(handler)
 		handler = httputil.DecompressHandler{Next: handler}
@@ -181,30 +182,18 @@ func runMigrations(ctx context.Context, app *bunapp.App) error {
 	return nil
 }
 
-func serveVueApp(app *bunapp.App) {
-	router := app.Router()
-	fsys := http.FS(uptrace.DistFS())
-	fileServer := http.FileServer(fsys)
+func serveVueApp(router *bunrouter.Router, fsys fs.FS) {
+	httpFS := http.FS(fsys)
+	fileServer := http.FileServer(httpFS)
 
-	notFoundMiddleware := func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
-		return func(w http.ResponseWriter, req bunrouter.Request) error {
-			path := req.URL.Path
-			if path == "/" || strings.Contains(path, "/api/") {
-				return next(w, req)
-			}
-
-			if _, err := fsys.Open(req.URL.Path); err != nil {
-				req.URL.Path = "/"
-				router.ServeHTTP(w, req.Request)
-				return nil
-			}
-
-			return next(w, req)
+	router.GET("/*path", func(w http.ResponseWriter, req bunrouter.Request) error {
+		if _, err := httpFS.Open(req.URL.Path); err == nil {
+			fileServer.ServeHTTP(w, req.Request)
+		} else {
+			req.URL.Path = "/"
+			fileServer.ServeHTTP(w, req.Request)
 		}
-	}
-
-	router.Use(notFoundMiddleware).WithGroup("/*path", func(group *bunrouter.Group) {
-		group.GET("", bunrouter.HTTPHandler(fileServer))
+		return nil
 	})
 }
 
