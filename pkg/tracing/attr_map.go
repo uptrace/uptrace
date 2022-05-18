@@ -23,6 +23,12 @@ func (m AttrMap) Has(key string) bool {
 	return ok
 }
 
+func (m AttrMap) SetDefault(key string, value any) {
+	if _, ok := m[key]; !ok {
+		m[key] = value
+	}
+}
+
 func (m AttrMap) Text(key string) string {
 	s, _ := m[key].(string)
 	return s
