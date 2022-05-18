@@ -61,7 +61,7 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 		return httperror.NotFound("Trace %q not found. Try again later.", traceID)
 	}
 
-	root := BuildSpanTree(&spans)
+	root := buildSpanTree(ctx, h.App, &spans)
 	traceDur := root.TreeEndTime().Sub(root.Time)
 
 	_ = root.Walk(func(s, parent *Span) error {

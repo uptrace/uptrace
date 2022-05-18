@@ -3,7 +3,11 @@ package tracing
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 
+	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
@@ -15,6 +19,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+)
+
+const (
+	protobufContentType = "application/protobuf"
+	jsonContentType     = "application/json"
 )
 
 type TraceServiceServer struct {
@@ -27,10 +38,10 @@ type TraceServiceServer struct {
 
 var _ collectortrace.TraceServiceServer = (*TraceServiceServer)(nil)
 
-func NewTraceServiceServer(app *bunapp.App) *TraceServiceServer {
+func NewTraceServiceServer(app *bunapp.App, sp *SpanProcessor) *TraceServiceServer {
 	s := &TraceServiceServer{
 		App: app,
-		sp:  NewSpanProcessor(app),
+		sp:  sp,
 	}
 	return s
 }
@@ -99,13 +110,85 @@ func (s *TraceServiceServer) process(
 				}
 			}
 
-			for _, span := range ss.Spans {
-				s.sp.AddSpan(OTLPSpan{
-					project:  project,
-					Span:     span,
-					resource: resource,
-				})
+			for _, otlpSpan := range ss.Spans {
+				// TODO(vmihailenco): allocate spans in batches
+				span := new(Span)
+				initSpanFromOTLP(span, resource, otlpSpan)
+				span.ProjectID = project.ID
+				s.sp.AddSpan(span)
 			}
 		}
+	}
+}
+
+func (s *TraceServiceServer) httpTraces(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	dsn := req.Header.Get("uptrace-dsn")
+	if dsn == "" {
+		return errors.New("uptrace-dsn header is required")
+	}
+
+	span := trace.SpanFromContext(ctx)
+	if span.IsRecording() {
+		span.SetAttributes(attribute.String("dsn", dsn))
+	}
+
+	project, err := org.SelectProjectByDSN(ctx, s.App, dsn)
+	if err != nil {
+		return err
+	}
+
+	switch contentType := req.Header.Get("content-type"); contentType {
+	case jsonContentType:
+		body, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			return err
+		}
+
+		td := new(tracepb.TracesData)
+		if err := protojson.Unmarshal(body, td); err != nil {
+			return err
+		}
+
+		s.process(ctx, project, td.ResourceSpans)
+
+		resp := new(collectortrace.ExportTraceServiceResponse)
+		b, err := protojson.Marshal(resp)
+		if err != nil {
+			return err
+		}
+
+		if _, err := w.Write(b); err != nil {
+			return err
+		}
+
+		return nil
+	case protobufContentType:
+		body, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			return err
+		}
+
+		td := new(collectortrace.ExportTraceServiceRequest)
+		if err := proto.Unmarshal(body, td); err != nil {
+			return err
+		}
+
+		s.process(ctx, project, td.ResourceSpans)
+
+		resp := new(collectortrace.ExportTraceServiceResponse)
+		b, err := proto.Marshal(resp)
+		if err != nil {
+			return err
+		}
+
+		if _, err := w.Write(b); err != nil {
+			return err
+		}
+
+		return nil
+	default:
+		return fmt.Errorf("unsupported content type: %q", contentType)
 	}
 }

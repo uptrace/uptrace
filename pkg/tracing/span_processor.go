@@ -7,7 +7,6 @@ import (
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
 )
@@ -16,16 +15,10 @@ type SpanProcessor struct {
 	*bunapp.App
 
 	batchSize int
-	ch        chan OTLPSpan
+	ch        chan *Span
 	gate      *syncutil.Gate
 
 	logger *otelzap.Logger
-}
-
-type OTLPSpan struct {
-	project *bunapp.Project
-	*tracepb.Span
-	resource AttrMap
 }
 
 func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
@@ -34,7 +27,7 @@ func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
 		App: app,
 
 		batchSize: batchSize,
-		ch:        make(chan OTLPSpan, runtime.GOMAXPROCS(0)*batchSize),
+		ch:        make(chan *Span, runtime.GOMAXPROCS(0)*batchSize),
 		gate:      syncutil.NewGate(runtime.GOMAXPROCS(0)),
 
 		logger: app.ZapLogger(),
@@ -50,7 +43,7 @@ func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
 	return p
 }
 
-func (s *SpanProcessor) AddSpan(span OTLPSpan) {
+func (s *SpanProcessor) AddSpan(span *Span) {
 	select {
 	case s.ch <- span:
 	default:
@@ -64,7 +57,7 @@ func (s *SpanProcessor) processLoop(ctx context.Context) {
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
-	spans := make([]OTLPSpan, 0, s.batchSize)
+	spans := make([]*Span, 0, s.batchSize)
 	var numSpan int
 
 loop:
@@ -76,7 +69,7 @@ loop:
 		case <-timer.C:
 			if len(spans) > 0 {
 				s.flushSpans(ctx, spans, numSpan)
-				spans = make([]OTLPSpan, 0, len(spans))
+				spans = make([]*Span, 0, len(spans))
 			}
 			timer.Reset(timeout)
 		case <-s.Done():
@@ -85,7 +78,7 @@ loop:
 
 		if numSpan == s.batchSize {
 			s.flushSpans(ctx, spans, numSpan)
-			spans = make([]OTLPSpan, 0, len(spans))
+			spans = make([]*Span, 0, len(spans))
 		}
 	}
 
@@ -94,7 +87,7 @@ loop:
 	}
 }
 
-func (s *SpanProcessor) flushSpans(ctx context.Context, OTLPSpans []OTLPSpan, numSpan int) {
+func (s *SpanProcessor) flushSpans(ctx context.Context, spans []*Span, numSpan int) {
 	ctx, span := bunapp.Tracer.Start(ctx, "flush-spans")
 
 	s.WaitGroup().Add(1)
@@ -105,24 +98,17 @@ func (s *SpanProcessor) flushSpans(ctx context.Context, OTLPSpans []OTLPSpan, nu
 		defer s.gate.Done()
 		defer s.WaitGroup().Done()
 
-		s._flushSpans(ctx, OTLPSpans, numSpan)
+		s._flushSpans(ctx, spans, numSpan)
 	}()
 }
 
-func (s *SpanProcessor) _flushSpans(ctx context.Context, OTLPSpans []OTLPSpan, numSpan int) {
-	spans := make([]Span, 0, numSpan)
+func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span, numSpan int) {
 	indexedSpans := make([]SpanIndex, 0, numSpan)
 	dataSpans := make([]SpanData, 0, numSpan)
 
 	spanCtx := newSpanContext(ctx)
-	for i := range OTLPSpans {
-		OTLPSpan := &OTLPSpans[i]
-
-		spans = append(spans, Span{})
-		span := &spans[len(spans)-1]
-
-		span.ProjectID = OTLPSpan.project.ID
-		newSpan(spanCtx, span, OTLPSpan)
+	for _, span := range spans {
+		initSpan(spanCtx, span)
 
 		indexedSpans = append(indexedSpans, SpanIndex{})
 		index := &indexedSpans[len(indexedSpans)-1]
@@ -134,10 +120,8 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, OTLPSpans []OTLPSpan, n
 		var errorCount int
 		var logCount int
 
-		for _, otlpEvent := range OTLPSpan.Events {
-			spans = append(spans, Span{})
-			eventSpan := &spans[len(spans)-1]
-			newSpanFromEvent(spanCtx, eventSpan, span, otlpEvent)
+		for _, eventSpan := range span.Events {
+			initSpanEvent(spanCtx, eventSpan, span)
 
 			indexedSpans = append(indexedSpans, SpanIndex{})
 			newSpanIndex(&indexedSpans[len(indexedSpans)-1], eventSpan)
@@ -153,8 +137,8 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, OTLPSpans []OTLPSpan, n
 			}
 		}
 
-		index.LinkCount = uint8(len(OTLPSpan.Links))
-		index.EventCount = uint8(len(OTLPSpan.Events))
+		index.LinkCount = uint8(len(span.Links))
+		index.EventCount = uint8(len(span.Events))
 		index.EventErrorCount = uint8(errorCount)
 		index.EventLogCount = uint8(logCount)
 	}

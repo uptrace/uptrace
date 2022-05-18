@@ -124,8 +124,12 @@ func (u UUID) MarshalText() ([]byte, error) {
 var _ encoding.TextUnmarshaler = (*UUID)(nil)
 
 func (u *UUID) UnmarshalText(b []byte) error {
-	if len(b) == uuidHexLen {
+	switch len(b) {
+	case uuidHexLen:
 		_, err := hex.Decode(u[:], b)
+		return err
+	case 16:
+		_, err := hex.Decode(u[8:], b)
 		return err
 	}
 

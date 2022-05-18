@@ -7,6 +7,7 @@ import (
 	"log"
 	"reflect"
 	"strconv"
+	"time"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/uuid"
@@ -14,6 +15,49 @@ import (
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"go.uber.org/zap"
 )
+
+func initSpanFromOTLP(dest *Span, resource AttrMap, src *tracepb.Span) {
+	dest.ID = otlpSpanID(src.SpanId)
+	dest.ParentID = otlpSpanID(src.ParentSpanId)
+	dest.TraceID = otlpTraceID(src.TraceId)
+	dest.Name = src.Name
+	dest.Kind = otlpSpanKind(src.Kind)
+
+	dest.Time = time.Unix(0, int64(src.StartTimeUnixNano))
+	dest.Duration = time.Duration(src.EndTimeUnixNano - src.StartTimeUnixNano)
+
+	if src.Status != nil {
+		dest.StatusCode = otlpStatusCode(src.Status.Code)
+		dest.StatusMessage = src.Status.Message
+	}
+
+	dest.Attrs = make(AttrMap, len(resource)+len(src.Attributes))
+	for k, v := range resource {
+		dest.Attrs[k] = v
+	}
+	otlpSetAttrs(dest.Attrs, src.Attributes)
+
+	dest.Events = make([]*Span, len(src.Events))
+	for i, event := range src.Events {
+		dest.Events[i] = newSpanFromOTLPEvent(event)
+	}
+
+	dest.Links = make([]*SpanLink, len(src.Links))
+	for i, link := range src.Links {
+		dest.Links[i] = newSpanLink(link)
+	}
+}
+
+func newSpanFromOTLPEvent(event *tracepb.Span_Event) *Span {
+	span := new(Span)
+	span.EventName = event.Name
+	span.Time = time.Unix(0, int64(event.TimeUnixNano))
+
+	span.Attrs = make(AttrMap, len(event.Attributes))
+	otlpSetAttrs(span.Attrs, event.Attributes)
+
+	return span
+}
 
 func otlpSpanID(b []byte) uint64 {
 	switch len(b) {
