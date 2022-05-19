@@ -132,7 +132,7 @@ export default defineComponent({
       }
 
       return {
-        name: 'GroupList',
+        name: 'SpanGroupList',
         query: {
           ...dateRange.queryParams(),
           system: trace.root.system,
@@ -147,7 +147,7 @@ export default defineComponent({
       }
 
       return {
-        name: 'GroupList',
+        name: 'SpanGroupList',
         query: {
           ...dateRange.queryParams(),
           system: xkey.allSystem,
@@ -201,7 +201,7 @@ function useMeta(dateRange: UseDateRange, trace: UseTrace) {
       bs.push({
         text: root.system,
         to: {
-          name: 'GroupList',
+          name: 'SpanGroupList',
           query: {
             ...dateRange.queryParams(),
             system: root.system,
@@ -215,7 +215,7 @@ function useMeta(dateRange: UseDateRange, trace: UseTrace) {
       bs.push({
         text: root.name,
         to: {
-          name: 'GroupList',
+          name: 'SpanGroupList',
           query: {
             ...dateRange.queryParams(),
             system: root.system,

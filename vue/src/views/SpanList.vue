@@ -5,7 +5,7 @@
         <v-card rounded="lg" outlined class="mb-4">
           <v-toolbar flat color="light-blue lighten-5">
             <v-toolbar-title>
-              <span>Spans</span>
+              <span>{{ spanListRoute == 'SpanList' ? 'Spans' : 'Logs' }}</span>
             </v-toolbar-title>
 
             <v-spacer />
@@ -24,6 +24,8 @@
                 :order="spans.order"
                 :pager="spans.pager"
                 :system="systems.activeValue"
+                :span-list-route="spanListRoute"
+                :group-list-route="groupListRoute"
                 @click:chip="onChipClick"
               />
             </v-col>
@@ -72,6 +74,14 @@ export default defineComponent({
     },
     axiosParams: {
       type: Object as PropType<Record<string, any>>,
+      required: true,
+    },
+    spanListRoute: {
+      type: String,
+      required: true,
+    },
+    groupListRoute: {
+      type: String,
       required: true,
     },
   },

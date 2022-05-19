@@ -82,7 +82,7 @@ export default defineComponent({
 
     const exploreRoute = computed(() => {
       return {
-        name: 'GroupList',
+        name: 'SpanGroupList',
         query: {
           ...explore.order.axiosParams,
           system: system.value,

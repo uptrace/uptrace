@@ -1,4 +1,12 @@
-import { shallowRef, reactive, computed, proxyRefs, watch, ComputedRef } from '@vue/composition-api'
+import {
+  shallowRef,
+  reactive,
+  computed,
+  proxyRefs,
+  watch,
+  Ref,
+  ComputedRef,
+} from '@vue/composition-api'
 
 // Composables
 import { useRouter, useQuery } from '@/use/router'
@@ -100,22 +108,46 @@ export function useUql(cfg: UqlConfig = {}) {
       .catch(() => {})
   }
 
-  if (typeof cfg.query === 'string') {
-    query.value = cfg.query
-  } else if (cfg.query) {
-    watch(
-      cfg.query as ComputedRef<string>,
-      (queryValue) => {
-        query.value = queryValue
-      },
-      { immediate: true },
-    )
-  }
+  const cfgQuery = computed(() => {
+    if (typeof cfg.query === 'string') {
+      return cfg.query
+    }
+
+    if (cfg.query?.value) {
+      return cfg.query?.value
+    }
+
+    return ''
+  })
+
+  watch(
+    cfgQuery,
+    (cfgQuery: string) => {
+      if (cfgQuery === '') {
+        return
+      }
+
+      query.value = cfgQuery
+    },
+    { immediate: true },
+  )
+
+  // if (typeof cfg.query === 'string') {
+  //   query.value = cfg.query
+  // } else if (cfg.query) {
+  //   watch(
+  //     cfg.query as ComputedRef<string>,
+  //     (queryValue) => {
+  //       query.value = queryValue
+  //     },
+  //     { immediate: true },
+  //   )
+  // }
 
   if (cfg.syncQuery) {
     useQuery().sync({
       fromQuery(params) {
-        let s = params[paramName] ?? cfg.query ?? ''
+        let s = params[paramName] ?? cfgQuery.value ?? ''
         if (params.where) {
           s += QUERY_PART_SEP + 'where ' + params.where
         }
@@ -181,9 +213,15 @@ export function createUqlEditor() {
 
 export class UqlEditor {
   parts: Part[]
+  onReset: Ref<() => void>
 
   constructor(s: any = '') {
     this.parts = parseParts(s)
+
+    this.onReset = shallowRef(() => {
+      this.parts = []
+      this.add(buildGroupBy(xkey.spanGroupId))
+    })
   }
 
   toString() {
@@ -191,8 +229,7 @@ export class UqlEditor {
   }
 
   reset() {
-    this.parts = []
-    this.add(buildGroupBy(xkey.spanGroupId))
+    this.onReset.value()
     return this
   }
 

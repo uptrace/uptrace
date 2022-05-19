@@ -8,6 +8,7 @@
             <SystemPicker
               :date-range="dateRange"
               :systems="systems"
+              :tree="systems.tree"
               route-name="ServiceOverview"
               outlined
             />
@@ -75,7 +76,7 @@ export default defineComponent({
 
     const groupListRoute = computed(() => {
       return {
-        name: 'GroupList',
+        name: 'SpanGroupList',
         query: {
           ...props.dateRange.queryParams(),
           ...props.systems.axiosParams(),

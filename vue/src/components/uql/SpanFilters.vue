@@ -13,8 +13,16 @@
     <v-divider vertical class="mx-2" />
 
     <WhereFilterMenu :systems="systems" :uql="uql" :axios-params="axiosParams" />
-    <AggFilterMenu :uql="uql" :axios-params="axiosParams" />
-    <GroupByMenu :uql="uql" :axios-params="axiosParams" />
+    <AggFilterMenu
+      :uql="uql"
+      :axios-params="axiosParams"
+      :disabled="$route.name !== groupListRoute"
+    />
+    <GroupByMenu
+      :uql="uql"
+      :axios-params="axiosParams"
+      :disabled="$route.name !== groupListRoute"
+    />
 
     <v-divider vertical class="mx-2" />
     <v-btn text class="v-btn--filter" @click="reset">Reset</v-btn>
@@ -27,7 +35,7 @@ import { defineComponent, PropType } from '@vue/composition-api'
 // Composables
 import { AxiosParams } from '@/use/axios'
 import { UseSystems } from '@/use/systems'
-import { UseUql } from '@/use/uql'
+import { UseUql, UqlEditor } from '@/use/uql'
 
 // Components
 import SearchFilterMenu from '@/components/uql/SearchFilterMenu.vue'
@@ -56,6 +64,10 @@ export default defineComponent({
       type: Object as PropType<UseUql>,
       required: true,
     },
+    uqlEditor: {
+      type: Object as PropType<UqlEditor>,
+      required: true,
+    },
     systems: {
       type: Object as PropType<UseSystems>,
       required: true,
@@ -64,13 +76,16 @@ export default defineComponent({
       type: Object as PropType<AxiosParams>,
       required: true,
     },
+    groupListRoute: {
+      type: String,
+      required: true,
+    },
   },
 
   setup(props) {
     function reset() {
-      const editor = props.uql.createEditor()
-      editor.reset()
-      props.uql.commitEdits(editor)
+      props.uqlEditor.reset()
+      props.uql.commitEdits(props.uqlEditor)
     }
 
     return { xkey, reset }

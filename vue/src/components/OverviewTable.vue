@@ -165,7 +165,7 @@ export default defineComponent({
 
     function groupListRoute(system: string) {
       return {
-        name: 'GroupList',
+        name: 'SpanGroupList',
         query: {
           ...props.dateRange.queryParams(),
           system,
