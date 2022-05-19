@@ -63,7 +63,7 @@
               View trace
             </v-btn>
             <v-btn
-              v-if="$route.name !== 'GroupList'"
+              v-if="$route.name !== groupListRoute"
               depressed
               small
               :to="meta.groupRoute"
@@ -143,6 +143,7 @@ import { spanName, Span } from '@/models/span'
 interface Props {
   dateRange: UseDateRange
   span: Span
+  groupListRoute: string
 }
 
 export default defineComponent({
@@ -166,6 +167,14 @@ export default defineComponent({
     fluid: {
       type: Boolean,
       default: false,
+    },
+    spanListRoute: {
+      type: String,
+      default: 'SpanList',
+    },
+    groupListRoute: {
+      type: String,
+      default: 'SpanGroupList',
     },
   },
 
@@ -229,7 +238,7 @@ function useMeta(props: Props) {
 
   const groupRoute = computed(() => {
     return {
-      name: 'GroupList',
+      name: props.groupListRoute,
       query: {
         ...props.dateRange.queryParams(),
         system: props.span.system,
@@ -244,7 +253,7 @@ function useMeta(props: Props) {
     bs.push({
       text: props.span.system,
       to: {
-        name: 'GroupList',
+        name: props.groupListRoute,
         query: {
           ...props.dateRange.queryParams(),
           system: props.span.system,
@@ -256,7 +265,7 @@ function useMeta(props: Props) {
     bs.push({
       text: truncate(props.span.name, { length: 50 }),
       to: {
-        name: 'GroupList',
+        name: props.groupListRoute,
         query: {
           ...props.dateRange.queryParams(),
           system: props.span.system,

@@ -8,7 +8,12 @@
       <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
         <v-row align="center" justify="space-between" class="mb-4">
           <v-col cols="auto">
-            <SystemPicker :date-range="dateRange" :systems="systems" route-name="GroupList" />
+            <SystemPicker
+              :date-range="dateRange"
+              :systems="systems"
+              :tree="systemTree"
+              :route-name="groupListRoute"
+            />
           </v-col>
 
           <v-col cols="auto">
@@ -19,8 +24,10 @@
         <v-row align="end" no-gutters>
           <v-col>
             <v-tabs :key="$route.fullPath" background-color="transparent">
-              <v-tab :to="{ name: 'GroupList' }" exact-path>Groups</v-tab>
-              <v-tab :to="{ name: 'SpanList' }" exact-path>Spans</v-tab>
+              <v-tab :to="routes.groupList" exact-path>Groups</v-tab>
+              <v-tab :to="routes.spanList" exact-path>{{
+                spanListRoute == 'SpanList' ? 'Spans' : 'Logs'
+              }}</v-tab>
             </v-tabs>
           </v-col>
         </v-row>
@@ -29,7 +36,13 @@
 
     <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pt-2">
       <UptraceQuery :uql="uql" class="mb-1">
-        <SpanFilters :uql="uql" :systems="systems" :axios-params="axiosParams" />
+        <SpanFilters
+          :uql="uql"
+          :uql-editor="uqlEditor"
+          :systems="systems"
+          :axios-params="axiosParams"
+          :group-list-route="groupListRoute"
+        />
       </UptraceQuery>
 
       <router-view
@@ -37,19 +50,23 @@
         :systems="systems"
         :uql="uql"
         :axios-params="axiosParams"
+        :span-list-route="spanListRoute"
+        :group-list-route="groupListRoute"
       />
     </v-container>
   </XPlaceholder>
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from '@vue/composition-api'
+import { clone } from 'lodash'
+import { defineComponent, computed, watch, proxyRefs, PropType } from '@vue/composition-api'
 
 // Composables
+import { useRouter } from '@/use/router'
 import { useTitle } from '@vueuse/core'
 import { useDateRange } from '@/use/date-range'
-import { useSystems } from '@/use/systems'
-import { useUql, buildGroupBy } from '@/use/uql'
+import { useSystems, buildSystemTree, SystemTree, SystemFilter } from '@/use/systems'
+import { useUql } from '@/use/uql'
 
 // Components
 import DateRangePicker from '@/components/DateRangePicker.vue'
@@ -58,8 +75,10 @@ import HelpCard from '@/components/HelpCard.vue'
 import UptraceQuery from '@/components/uql/UptraceQuery.vue'
 import SpanFilters from '@/components/uql/SpanFilters.vue'
 
-// Utilities
-import { xkey } from '@/models/otelattr'
+interface Props {
+  spanListRoute: string
+  groupListRoute: string
+}
 
 export default defineComponent({
   name: 'Tracing',
@@ -71,7 +90,26 @@ export default defineComponent({
     SpanFilters,
   },
 
-  setup() {
+  props: {
+    query: {
+      type: String,
+      required: true,
+    },
+    spanListRoute: {
+      type: String,
+      required: true,
+    },
+    groupListRoute: {
+      type: String,
+      required: true,
+    },
+    systemFilter: {
+      type: Function as PropType<SystemFilter>,
+      default: undefined,
+    },
+  },
+
+  setup(props) {
     useTitle('Explore spans')
 
     const dateRange = useDateRange()
@@ -79,9 +117,13 @@ export default defineComponent({
 
     const systems = useSystems(dateRange)
     const uql = useUql({
-      query: buildGroupBy(xkey.spanGroupId),
+      query: computed(() => {
+        return props.query
+      }),
       syncQuery: true,
     })
+
+    const uqlEditor = uql.createEditor()
 
     const axiosParams = computed(() => {
       return {
@@ -91,9 +133,67 @@ export default defineComponent({
       }
     })
 
-    return { dateRange, systems, uql, axiosParams }
+    const systemTree = computed((): SystemTree[] => {
+      let items = systems.list
+      if (props.systemFilter) {
+        items = items.filter(props.systemFilter)
+      }
+      return buildSystemTree(items)
+    })
+
+    watch(
+      () => props.query,
+      (query) => {
+        uqlEditor.onReset.value = () => {
+          uqlEditor.parts = []
+          uqlEditor.add(query)
+        }
+
+        uqlEditor.reset()
+        uql.commitEdits(uqlEditor)
+      },
+      { immediate: true },
+    )
+
+    return {
+      dateRange,
+      uql,
+      axiosParams,
+      uqlEditor,
+      systems,
+      systemTree,
+      routes: useRoutes(props),
+    }
   },
 })
+
+function useRoutes(props: Props) {
+  const { route } = useRouter()
+
+  const spanList = computed(() => {
+    const query = clone(route.value.query)
+    if (query.sort_by) {
+      delete query.sort_by
+    }
+
+    return {
+      name: props.spanListRoute,
+      query,
+    }
+  })
+
+  const groupList = computed(() => {
+    return {
+      name: props.groupListRoute,
+      query: route.value.query,
+    }
+  })
+
+  return proxyRefs({
+    groupList,
+    spanList,
+  })
+}
 </script>
 
 <style lang="scss" scoped>

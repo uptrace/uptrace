@@ -1,7 +1,7 @@
 <template>
   <v-card flat :max-height="maxHeight">
     <v-list dense>
-      <template v-for="item in systems.tree">
+      <template v-for="item in items">
         <v-menu
           v-if="item.children"
           :key="item.system"
@@ -53,7 +53,7 @@ import { defineComponent, PropType } from '@vue/composition-api'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { UseSystems } from '@/use/systems'
+import { SystemTree } from '@/use/systems'
 
 export default defineComponent({
   name: 'SystemList',
@@ -63,8 +63,8 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
-    systems: {
-      type: Object as PropType<UseSystems>,
+    items: {
+      type: Array as PropType<SystemTree[]>,
       required: true,
     },
     maxHeight: {

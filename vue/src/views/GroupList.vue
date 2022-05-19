@@ -61,6 +61,8 @@
               :plot-columns="activeColumns"
               :order="explore.order"
               :axios-params="axiosParams"
+              :span-list-route="spanListRoute"
+              :group-list-route="groupListRoute"
             />
           </v-card-text>
         </v-card>
@@ -103,6 +105,14 @@ export default defineComponent({
     },
     axiosParams: {
       type: Object as PropType<Record<string, any>>,
+      required: true,
+    },
+    spanListRoute: {
+      type: String,
+      required: true,
+    },
+    groupListRoute: {
+      type: String,
       required: true,
     },
   },

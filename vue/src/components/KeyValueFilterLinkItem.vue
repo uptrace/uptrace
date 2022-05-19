@@ -91,7 +91,7 @@ export default defineComponent({
       }
 
       const groupLink = link({ query: buildGroupBy(props.name) })
-      groupLink.to.name = 'GroupList'
+      groupLink.to.name = 'SpanGroupList'
 
       const items = [
         {
@@ -140,7 +140,7 @@ export default defineComponent({
 
       return {
         to: {
-          name: route.value.name === 'SpanList' ? 'SpanList' : 'GroupList',
+          name: route.value.name === 'SpanList' ? 'SpanList' : 'SpanGroupList',
           query,
         },
         exact: true,

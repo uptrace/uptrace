@@ -58,6 +58,8 @@
           :key="dialog.activeSpan[xkey.spanId]"
           :date-range="dateRange"
           :span="dialog.activeSpan"
+          :span-list-route="spanListRoute"
+          :group-list-route="groupListRoute"
           fluid
           show-toolbar
         />
@@ -116,6 +118,14 @@ export default defineComponent({
     columns: {
       type: Array as PropType<string[]>,
       default: () => [],
+    },
+    spanListRoute: {
+      type: String,
+      required: true,
+    },
+    groupListRoute: {
+      type: String,
+      required: true,
     },
   },
 
