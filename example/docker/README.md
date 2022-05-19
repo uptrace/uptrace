@@ -56,9 +56,7 @@ SELECT
     start_time_us AS timestamp,
     finish_time_us - start_time_us AS duration,
     cast(tuple('clickhouse'), 'Tuple(serviceName text)') AS localEndpoint,
-    cast(tuple(
-        attribute.values[indexOf(attribute.names, 'db.statement')]),
-        'Tuple("db.statement" text)') AS tags
+    attribute AS tags
 FROM system.opentelemetry_span_log
 ```
 
