@@ -59,22 +59,23 @@ type ZipkinAnnotation struct {
 func (h *ZipkinHandler) PostSpans(w http.ResponseWriter, req bunrouter.Request) error {
 	dec := json.NewDecoder(req.Body)
 
-	var spans []ZipkinSpan
+	var zipkinSpans []ZipkinSpan
 
-	if err := dec.Decode(&spans); err != nil {
+	if err := dec.Decode(&zipkinSpans); err != nil {
 		return err
 	}
 
-	for i := range spans {
-		span := new(Span)
+	spans := make([]Span, len(zipkinSpans))
+	for i := range zipkinSpans {
+		span := &spans[i]
+		// TODO: accept project id
+		span.ProjectID = 2
 
-		zipkinSpan := &spans[i]
+		zipkinSpan := &zipkinSpans[i]
 		if err := initSpanFromZipkin(span, zipkinSpan); err != nil {
 			return err
 		}
 
-		// TODO: accept project id
-		span.ProjectID = 1
 		h.sp.AddSpan(span)
 	}
 
