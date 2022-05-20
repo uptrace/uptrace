@@ -25,7 +25,7 @@
     />
 
     <v-divider vertical class="mx-2" />
-    <v-btn text class="v-btn--filter" @click="reset">Reset</v-btn>
+    <v-btn text class="v-btn--filter" @click="$emit('click:reset')">Reset</v-btn>
   </div>
 </template>
 
@@ -78,12 +78,8 @@ export default defineComponent({
     },
   },
 
-  setup(props) {
-    function reset() {
-      props.uql.reset()
-    }
-
-    return { xkey, reset }
+  setup() {
+    return { xkey }
   },
 })
 </script>

@@ -41,6 +41,7 @@
           :systems="systems"
           :axios-params="axiosParams"
           :group-list-route="groupListRoute"
+          @click:reset="resetQuery"
         />
       </UptraceQuery>
 
@@ -120,8 +121,6 @@ export default defineComponent({
       syncQuery: true,
     })
 
-    const uqlEditor = uql.createEditor()
-
     const axiosParams = computed(() => {
       return {
         ...dateRange.axiosParams(),
@@ -140,24 +139,25 @@ export default defineComponent({
 
     watch(
       () => props.query,
-      (query) => {
-        uql.onReset = () => {
-          uql.query = query
-        }
-
-        uql.reset()
+      () => {
+        resetQuery()
       },
       { immediate: true },
     )
+
+    function resetQuery() {
+      uql.query = props.query
+    }
 
     return {
       dateRange,
       uql,
       axiosParams,
-      uqlEditor,
       systems,
       systemTree,
       routes: useRoutes(props),
+
+      resetQuery,
     }
   },
 })
