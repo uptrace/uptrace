@@ -38,7 +38,6 @@
       <UptraceQuery :uql="uql" class="mb-1">
         <SpanFilters
           :uql="uql"
-          :uql-editor="uqlEditor"
           :systems="systems"
           :axios-params="axiosParams"
           :group-list-route="groupListRoute"
@@ -117,9 +116,7 @@ export default defineComponent({
 
     const systems = useSystems(dateRange)
     const uql = useUql({
-      query: computed(() => {
-        return props.query
-      }),
+      query: props.query,
       syncQuery: true,
     })
 
@@ -144,13 +141,11 @@ export default defineComponent({
     watch(
       () => props.query,
       (query) => {
-        uqlEditor.onReset.value = () => {
-          uqlEditor.parts = []
-          uqlEditor.add(query)
+        uql.onReset = () => {
+          uql.query = query
         }
 
-        uqlEditor.reset()
-        uql.commitEdits(uqlEditor)
+        uql.reset()
       },
       { immediate: true },
     )

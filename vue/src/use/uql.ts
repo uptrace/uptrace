@@ -1,12 +1,4 @@
-import {
-  shallowRef,
-  reactive,
-  computed,
-  proxyRefs,
-  watch,
-  Ref,
-  ComputedRef,
-} from '@vue/composition-api'
+import { shallowRef, reactive, computed, proxyRefs } from '@vue/composition-api'
 
 // Composables
 import { useRouter, useQuery } from '@/use/router'
@@ -31,7 +23,7 @@ export interface Part {
 }
 
 interface UqlConfig {
-  query?: string | ComputedRef<string>
+  query?: string
   paramName?: string
   syncQuery?: boolean
 }
@@ -40,6 +32,9 @@ export type UseUql = ReturnType<typeof useUql>
 
 export function useUql(cfg: UqlConfig = {}) {
   const paramName = cfg.paramName ?? 'query'
+  const onReset = shallowRef(() => {
+    query.value = buildGroupBy(xkey.spanGroupId)
+  })
 
   const { router, route } = useRouter()
   const rawMode = shallowRef(false)
@@ -53,6 +48,10 @@ export function useUql(cfg: UqlConfig = {}) {
       return formatParts(parts.value)
     },
   })
+
+  function reset() {
+    onReset.value()
+  }
 
   function addPart(part: Part) {
     parts.value.push(reactive(part))
@@ -108,50 +107,12 @@ export function useUql(cfg: UqlConfig = {}) {
       .catch(() => {})
   }
 
-  const cfgQuery = computed(() => {
-    if (typeof cfg.query === 'string') {
-      return cfg.query
-    }
-
-    if (cfg.query?.value) {
-      return cfg.query?.value
-    }
-
-    return ''
-  })
-
-  watch(
-    cfgQuery,
-    (cfgQuery: string) => {
-      if (cfgQuery === '') {
-        return
-      }
-
-      query.value = cfgQuery
-    },
-    { immediate: true },
-  )
-
-  // if (typeof cfg.query === 'string') {
-  //   query.value = cfg.query
-  // } else if (cfg.query) {
-  //   watch(
-  //     cfg.query as ComputedRef<string>,
-  //     (queryValue) => {
-  //       query.value = queryValue
-  //     },
-  //     { immediate: true },
-  //   )
-  // }
+  query.value = cfg.query ?? ''
 
   if (cfg.syncQuery) {
     useQuery().sync({
       fromQuery(params) {
-        let s = params[paramName] ?? cfgQuery.value ?? ''
-        if (params.where) {
-          s += QUERY_PART_SEP + 'where ' + params.where
-        }
-        query.value = s
+        query.value = params[paramName] ?? cfg.query ?? ''
       },
       toQuery() {
         return {
@@ -169,6 +130,8 @@ export function useUql(cfg: UqlConfig = {}) {
     addPart,
     removePart,
     cleanup,
+    onReset,
+    reset,
 
     syncParts,
     axiosParams,
@@ -213,15 +176,9 @@ export function createUqlEditor() {
 
 export class UqlEditor {
   parts: Part[]
-  onReset: Ref<() => void>
 
   constructor(s: any = '') {
     this.parts = parseParts(s)
-
-    this.onReset = shallowRef(() => {
-      this.parts = []
-      this.add(buildGroupBy(xkey.spanGroupId))
-    })
   }
 
   toString() {
@@ -229,7 +186,8 @@ export class UqlEditor {
   }
 
   reset() {
-    this.onReset.value()
+    this.parts = []
+    this.add(buildGroupBy(xkey.spanGroupId))
     return this
   }
 

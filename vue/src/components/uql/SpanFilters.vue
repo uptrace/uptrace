@@ -35,7 +35,7 @@ import { defineComponent, PropType } from '@vue/composition-api'
 // Composables
 import { AxiosParams } from '@/use/axios'
 import { UseSystems } from '@/use/systems'
-import { UseUql, UqlEditor } from '@/use/uql'
+import { UseUql } from '@/use/uql'
 
 // Components
 import SearchFilterMenu from '@/components/uql/SearchFilterMenu.vue'
@@ -64,10 +64,6 @@ export default defineComponent({
       type: Object as PropType<UseUql>,
       required: true,
     },
-    uqlEditor: {
-      type: Object as PropType<UqlEditor>,
-      required: true,
-    },
     systems: {
       type: Object as PropType<UseSystems>,
       required: true,
@@ -84,8 +80,7 @@ export default defineComponent({
 
   setup(props) {
     function reset() {
-      props.uqlEditor.reset()
-      props.uql.commitEdits(props.uqlEditor)
+      props.uql.reset()
     }
 
     return { xkey, reset }
