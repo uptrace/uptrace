@@ -32,9 +32,6 @@ export type UseUql = ReturnType<typeof useUql>
 
 export function useUql(cfg: UqlConfig = {}) {
   const paramName = cfg.paramName ?? 'query'
-  const onReset = shallowRef(() => {
-    query.value = buildGroupBy(xkey.spanGroupId)
-  })
 
   const { router, route } = useRouter()
   const rawMode = shallowRef(false)
@@ -48,10 +45,6 @@ export function useUql(cfg: UqlConfig = {}) {
       return formatParts(parts.value)
     },
   })
-
-  function reset() {
-    onReset.value()
-  }
 
   function addPart(part: Part) {
     parts.value.push(reactive(part))
@@ -130,8 +123,6 @@ export function useUql(cfg: UqlConfig = {}) {
     addPart,
     removePart,
     cleanup,
-    onReset,
-    reset,
 
     syncParts,
     axiosParams,
