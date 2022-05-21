@@ -231,6 +231,20 @@ export function useDateRange() {
     return params
   }
 
+  function lokiParams() {
+    if (!isValid.value) {
+      return {
+        start: undefined,
+        end: undefined,
+      }
+    }
+
+    return {
+      start: gte.value!.getTime() * 1e6,
+      end: lt.value!.getTime() * 1e6,
+    }
+  }
+
   function syncQuery() {
     useQuery().sync({
       fromQuery(q) {
@@ -272,6 +286,7 @@ export function useDateRange() {
 
     queryParams,
     axiosParams,
+    lokiParams,
     syncQuery,
   })
 }
