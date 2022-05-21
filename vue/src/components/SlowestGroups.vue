@@ -97,7 +97,7 @@ export default defineComponent({
 
     const groupRoute = computed(() => {
       return {
-        name: 'GroupList',
+        name: 'SpanGroupList',
         query: {
           ...explore.order.axiosParams, // ?
           ...props.dateRange.queryParams(),

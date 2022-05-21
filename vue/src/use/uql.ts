@@ -1,4 +1,4 @@
-import { shallowRef, reactive, computed, proxyRefs, watch, ComputedRef } from '@vue/composition-api'
+import { shallowRef, reactive, computed, proxyRefs } from '@vue/composition-api'
 
 // Composables
 import { useRouter, useQuery } from '@/use/router'
@@ -23,7 +23,7 @@ export interface Part {
 }
 
 interface UqlConfig {
-  query?: string | ComputedRef<string>
+  query?: string
   paramName?: string
   syncQuery?: boolean
 }
@@ -100,26 +100,12 @@ export function useUql(cfg: UqlConfig = {}) {
       .catch(() => {})
   }
 
-  if (typeof cfg.query === 'string') {
-    query.value = cfg.query
-  } else if (cfg.query) {
-    watch(
-      cfg.query as ComputedRef<string>,
-      (queryValue) => {
-        query.value = queryValue
-      },
-      { immediate: true },
-    )
-  }
+  query.value = cfg.query ?? ''
 
   if (cfg.syncQuery) {
     useQuery().sync({
       fromQuery(params) {
-        let s = params[paramName] ?? cfg.query ?? ''
-        if (params.where) {
-          s += QUERY_PART_SEP + 'where ' + params.where
-        }
-        query.value = s
+        query.value = params[paramName] ?? cfg.query ?? ''
       },
       toQuery() {
         return {

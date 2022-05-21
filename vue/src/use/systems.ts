@@ -1,10 +1,13 @@
-import { clone, orderBy } from 'lodash'
+import { cloneDeep, orderBy } from 'lodash'
 import { shallowRef, computed, proxyRefs } from '@vue/composition-api'
 
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { useWatchAxios } from '@/use/watch-axios'
+
+// Utilities
+import { isEventSystem } from '@/models/otelattr'
 
 export interface System {
   system: string
@@ -17,6 +20,8 @@ export interface System {
   dummy?: boolean
   numChild?: number
 }
+
+export type SystemFilter = (system: System) => boolean
 
 export interface SystemTree extends System {
   children?: SystemTree[]
@@ -38,7 +43,14 @@ export function useSystems(dateRange: UseDateRange) {
   })
 
   const systems = computed((): System[] => {
-    return addDummySystems(data.value?.systems ?? [])
+    const systems = addDummySystems(data.value?.systems ?? [])
+    if (systemValue.value && systems.findIndex((sys) => sys.system === systemValue.value) === -1) {
+      systems.push({
+        system: systemValue.value,
+        isEvent: isEventSystem(systemValue.value),
+      } as System)
+    }
+    return systems
   })
 
   const tree = computed((): SystemTree[] => {
@@ -111,7 +123,7 @@ function addDummySystems(systems: System[]): System[] {
   if (!systems.length) {
     return []
   }
-  systems = clone(systems)
+  systems = cloneDeep(systems)
 
   const typeMap: Record<string, SystemTree> = {}
 
@@ -174,8 +186,8 @@ function addDummySystems(systems: System[]): System[] {
   return systems
 }
 
-function buildSystemTree(systems: SystemTree[]): SystemTree[] {
-  systems = clone(systems)
+export function buildSystemTree(systems: SystemTree[]): SystemTree[] {
+  systems = cloneDeep(systems)
   systems = systems.filter((sys) => sys.numChild !== 1)
 
   systems.slice(0).forEach((sys) => {
@@ -198,7 +210,9 @@ function buildSystemTree(systems: SystemTree[]): SystemTree[] {
       }
     }
 
-    sys.children = children
+    if (children.length) {
+      sys.children = children
+    }
   })
 
   return systems

@@ -82,7 +82,7 @@
               <v-btn
                 icon
                 title="Filter spans for this group"
-                :to="spanListRoute(item)"
+                :to="exploreRoute(item)"
                 exact
                 @click.native.stop
               >
@@ -119,6 +119,8 @@
                 :uql="uql"
                 :axios-params="axiosParams"
                 :where="groupBasedWhere(item)"
+                :span-list-route="spanListRoute"
+                :group-list-route="groupListRoute"
               />
             </td>
           </tr>
@@ -205,6 +207,14 @@ export default defineComponent({
       type: Object as PropType<Record<string, any>>,
       default: undefined,
     },
+    spanListRoute: {
+      type: String,
+      default: 'SpanList',
+    },
+    groupListRoute: {
+      type: String,
+      default: 'SpanGroupList',
+    },
   },
 
   setup(props) {
@@ -244,7 +254,7 @@ export default defineComponent({
       return name in item
     }
 
-    function spanListRoute(item: ExploreItem) {
+    function exploreRoute(item: ExploreItem) {
       const editor = props.uql ? props.uql.createEditor() : createUqlEditor().reset()
 
       for (let col of props.groupColumns) {
@@ -253,7 +263,7 @@ export default defineComponent({
       }
 
       return {
-        name: 'SpanList',
+        name: props.spanListRoute,
         query: {
           ...omit(route.value.query, 'sort_by', 'sort_dir'),
           ...props.systems.axiosParams(),
@@ -311,7 +321,7 @@ export default defineComponent({
       customColumns,
 
       columnHeader,
-      spanListRoute,
+      exploreRoute,
       groupBasedWhere,
       systemRoute,
       itemName,
