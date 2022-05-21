@@ -1,5 +1,15 @@
 <template>
   <XPlaceholder>
+    <UptraceQuery :uql="uql" class="mb-1">
+      <SpanFilters
+        :uql="uql"
+        :systems="systems"
+        :axios-params="axiosParams"
+        :group-list-route="groupListRoute"
+        @click:reset="resetQuery"
+      />
+    </UptraceQuery>
+
     <v-row>
       <v-col>
         <v-card rounded="lg" outlined class="mb-4">
@@ -39,16 +49,18 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, watch, PropType } from '@vue/composition-api'
+import { defineComponent, computed, watch, PropType } from '@vue/composition-api'
 
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/use/systems'
-import { UseUql } from '@/use/uql'
+import { useUql } from '@/use/uql'
 import { useSpans } from '@/use/spans'
 
 // Components
+import UptraceQuery from '@/components/uql/UptraceQuery.vue'
+import SpanFilters from '@/components/uql/SpanFilters.vue'
 import SpansTable from '@/components/SpansTable.vue'
 import { SpanChip } from '@/components/SpanChips.vue'
 
@@ -57,7 +69,7 @@ import { xkey } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'SpanList',
-  components: { SpansTable },
+  components: { UptraceQuery, SpanFilters, SpansTable },
 
   props: {
     dateRange: {
@@ -68,12 +80,8 @@ export default defineComponent({
       type: Object as PropType<UseSystems>,
       required: true,
     },
-    uql: {
-      type: Object as PropType<UseUql>,
-      required: true,
-    },
-    axiosParams: {
-      type: Object as PropType<Record<string, any>>,
+    query: {
+      type: String,
       required: true,
     },
     spanListRoute: {
@@ -89,12 +97,25 @@ export default defineComponent({
   setup(props) {
     const { route } = useRouter()
 
+    const uql = useUql({
+      query: props.query,
+      syncQuery: true,
+    })
+
+    const axiosParams = computed(() => {
+      return {
+        ...props.dateRange.axiosParams(),
+        ...uql.axiosParams(),
+        system: props.systems.activeValue,
+      }
+    })
+
     const spans = useSpans(
       () => {
         const { projectId } = route.value.params
         return {
           url: `/api/tracing/${projectId}/spans`,
-          params: props.axiosParams,
+          params: axiosParams.value,
         }
       },
       {
@@ -105,12 +126,6 @@ export default defineComponent({
         },
       },
     )
-
-    function onChipClick(chip: SpanChip) {
-      const editor = props.uql.createEditor()
-      editor.where(chip.key, '=', chip.value)
-      props.uql.commitEdits(editor)
-    }
 
     watch(
       () => props.systems.isEvent,
@@ -125,16 +140,39 @@ export default defineComponent({
       () => spans.queryParts,
       (queryParts) => {
         if (queryParts) {
-          props.uql.syncParts(queryParts)
+          uql.syncParts(queryParts)
         }
       },
     )
 
+    watch(
+      () => props.query,
+      () => {
+        resetQuery()
+      },
+      { immediate: true },
+    )
+
+    function resetQuery() {
+      uql.query = props.query
+    }
+
+    function onChipClick(chip: SpanChip) {
+      const editor = uql.createEditor()
+      editor.where(chip.key, '=', chip.value)
+      uql.commitEdits(editor)
+    }
+
     return {
+      uql,
+      axiosParams,
       spans,
 
+      resetQuery,
       onChipClick,
     }
   },
 })
 </script>
+
+<style lang="scss" scoped></style>

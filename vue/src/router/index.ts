@@ -20,6 +20,7 @@ import SystemGroupList from '@/components/SystemGroupList.vue'
 import Tracing from '@/views/Tracing.vue'
 import GroupList from '@/views/GroupList.vue'
 import SpanList from '@/views/SpanList.vue'
+import LokiLogs from '@/views/LokiLogs.vue'
 
 import TraceShow from '@/views/TraceShow.vue'
 import TraceFind from '@/views/TraceFind.vue'
@@ -157,6 +158,7 @@ const routes: Array<RouteConfig> = [
       spanListRoute: 'LogList',
       groupListRoute: 'LogGroupList',
       systemFilter: (item: System) => item.system.startsWith('log:'),
+      showLogql: true,
     },
     children: [
       {
@@ -168,6 +170,11 @@ const routes: Array<RouteConfig> = [
         name: 'LogGroupList',
         path: 'groups',
         component: GroupList,
+      },
+      {
+        name: 'LokiLogs',
+        path: 'logql',
+        component: LokiLogs,
       },
     ],
   },

@@ -66,8 +66,10 @@ export default defineComponent({
 
     useQuery().sync({
       fromQuery(query) {
-        if (query.system) {
+        if (typeof query.system === 'string') {
           props.systems.change(query.system)
+        } else {
+          props.systems.reset()
         }
       },
       toQuery() {
