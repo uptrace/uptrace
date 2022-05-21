@@ -1,9 +1,15 @@
 import Vue from 'vue'
 import VueRouter, { RouteConfig } from 'vue-router'
 
+// Utilities
+import { xkey } from '@/models/otelattr'
+
 // Composables
 import { useUser } from '@/use/org'
+import { buildGroupBy } from '@/use/uql'
+import { System } from '@/use/systems'
 
+// Components
 import Overview from '@/views/Overview.vue'
 import SystemOverview from '@/components/SystemOverview.vue'
 import ServiceOverview from '@/components/ServiceOverview.vue'
@@ -120,9 +126,14 @@ const routes: Array<RouteConfig> = [
   {
     path: '/explore/:projectId(\\d+)',
     component: Tracing,
+    props: {
+      query: buildGroupBy(xkey.spanGroupId),
+      spanListRoute: 'SpanList',
+      groupListRoute: 'SpanGroupList',
+    },
     children: [
       {
-        name: 'GroupList',
+        name: 'SpanGroupList',
         path: 'groups',
         component: GroupList,
       },
@@ -133,7 +144,30 @@ const routes: Array<RouteConfig> = [
       },
       {
         path: '',
-        redirect: { name: 'GroupList' },
+        redirect: { name: 'SpanGroupList' },
+      },
+    ],
+  },
+
+  {
+    path: '/logs/:projectId(\\d+)',
+    component: Tracing,
+    props: {
+      query: `group by ${xkey.spanGroupId} | ${xkey.spanCountPerMin}`,
+      spanListRoute: 'LogList',
+      groupListRoute: 'LogGroupList',
+      systemFilter: (item: System) => item.system.startsWith('log:'),
+    },
+    children: [
+      {
+        name: 'LogList',
+        path: 'spans',
+        component: SpanList,
+      },
+      {
+        name: 'LogGroupList',
+        path: 'groups',
+        component: GroupList,
       },
     ],
   },

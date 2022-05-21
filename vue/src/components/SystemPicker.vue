@@ -9,7 +9,7 @@
 
     <SystemList
       :date-range="dateRange"
-      :systems="systems"
+      :items="tree"
       :max-height="maxHeight"
       @click:item="menu = false"
     />
@@ -22,7 +22,7 @@ import { defineComponent, shallowRef, computed, watch, PropType } from '@vue/com
 // Composables
 import { useQuery } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { UseSystems } from '@//use/systems'
+import { UseSystems, SystemTree } from '@//use/systems'
 
 // Components
 import SystemList from '@/components/SystemList.vue'
@@ -43,6 +43,10 @@ export default defineComponent({
     outlined: {
       type: Boolean,
       default: false,
+    },
+    tree: {
+      type: Array as PropType<SystemTree[]>,
+      required: true,
     },
     maxHeight: {
       type: Number,

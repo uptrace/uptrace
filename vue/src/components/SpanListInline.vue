@@ -6,6 +6,8 @@
       :spans="spans.items"
       :order="spans.order"
       :pager="spans.pager"
+      :span-list-route="spanListRoute"
+      :group-list-route="groupListRoute"
       class="mb-4"
       v-on="listeners"
     />
@@ -45,6 +47,14 @@ export default defineComponent({
       required: true,
     },
     where: {
+      type: String,
+      required: true,
+    },
+    spanListRoute: {
+      type: String,
+      required: true,
+    },
+    groupListRoute: {
       type: String,
       required: true,
     },

@@ -79,7 +79,7 @@ export default defineComponent({
 
     const groupRoute = computed(() => {
       return {
-        name: 'GroupList',
+        name: 'SpanGroupList',
         query: {
           ...props.dateRange.queryParams(),
           system: props.event.system,

@@ -13,11 +13,19 @@
     <v-divider vertical class="mx-2" />
 
     <WhereFilterMenu :systems="systems" :uql="uql" :axios-params="axiosParams" />
-    <AggFilterMenu :uql="uql" :axios-params="axiosParams" />
-    <GroupByMenu :uql="uql" :axios-params="axiosParams" />
+    <AggFilterMenu
+      :uql="uql"
+      :axios-params="axiosParams"
+      :disabled="$route.name !== groupListRoute"
+    />
+    <GroupByMenu
+      :uql="uql"
+      :axios-params="axiosParams"
+      :disabled="$route.name !== groupListRoute"
+    />
 
     <v-divider vertical class="mx-2" />
-    <v-btn text class="v-btn--filter" @click="reset">Reset</v-btn>
+    <v-btn text class="v-btn--filter" @click="$emit('click:reset')">Reset</v-btn>
   </div>
 </template>
 
@@ -64,16 +72,14 @@ export default defineComponent({
       type: Object as PropType<AxiosParams>,
       required: true,
     },
+    groupListRoute: {
+      type: String,
+      required: true,
+    },
   },
 
-  setup(props) {
-    function reset() {
-      const editor = props.uql.createEditor()
-      editor.reset()
-      props.uql.commitEdits(editor)
-    }
-
-    return { xkey, reset }
+  setup() {
+    return { xkey }
   },
 })
 </script>

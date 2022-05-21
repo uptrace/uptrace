@@ -82,7 +82,7 @@ export default defineComponent({
 
     const exploreRoute = computed(() => {
       return {
-        name: 'GroupList',
+        name: 'SpanGroupList',
         query: {
           ...props.dateRange.queryParams(),
           system: xkey.allSystem,
