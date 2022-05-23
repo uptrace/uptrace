@@ -19,9 +19,9 @@ require (
 	github.com/rs/cors v1.8.2
 	github.com/segmentio/encoding v0.3.5
 	github.com/stretchr/testify v1.7.1
-	github.com/uptrace/bunrouter v1.0.16-0.20220523132813-2741aadef5f5
-	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.16-0.20220523132813-2741aadef5f5
-	github.com/uptrace/bunrouter/extra/reqlog v1.0.16-0.20220523132813-2741aadef5f5
+	github.com/uptrace/bunrouter v1.0.16
+	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.16
+	github.com/uptrace/bunrouter/extra/reqlog v1.0.16
 	github.com/uptrace/go-clickhouse v0.2.8-0.20220518133303-65991cc1437d
 	github.com/uptrace/go-clickhouse/chdebug v0.2.8-0.20220518133303-65991cc1437d
 	github.com/uptrace/go-clickhouse/chotel v0.2.8-0.20220518133303-65991cc1437d
@@ -48,7 +48,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
-	github.com/felixge/httpsnoop v1.0.2 // indirect
+	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -77,7 +77,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/net v0.0.0-20220425223048-2871e0cb64e4 // indirect
-	golang.org/x/sys v0.0.0-20220517195934-5e4e11fc645e // indirect
+	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20220505152158-f39f71e6c8f3 // indirect
 )

@@ -52,7 +52,7 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
-    query: {
+    value: {
       type: String,
       required: true,
     },
@@ -73,7 +73,7 @@ export default defineComponent({
     })
 
     watch(
-      () => props.query,
+      () => props.value,
       (query) => {
         internalQuery.value = query
       },
@@ -82,14 +82,14 @@ export default defineComponent({
 
     function onClick(key: string, op: string, value: string) {
       value = JSON.stringify(value)
-      ctx.emit('update:query', `{${key}${op}${value}}`)
+      ctx.emit('input', `{${key}${op}${value}}`)
     }
 
     function exitRawMode(save: boolean) {
       if (save) {
-        ctx.emit('update:query', internalQuery.value)
+        ctx.emit('input', internalQuery.value ?? '')
       } else {
-        internalQuery.value = props.query
+        internalQuery.value = props.value
       }
     }
 
