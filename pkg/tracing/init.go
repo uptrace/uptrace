@@ -3,6 +3,7 @@ package tracing
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -43,6 +44,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	tempoHandler := NewTempoHandler(app)
 	zipkinHandler := NewZipkinHandler(app, sp)
 	lokiProxyHandler := NewLokiProxyHandler(app)
+	authMiddleware := org.NewAuthMiddleware(app)
 
 	api := app.APIGroup()
 
@@ -64,16 +66,34 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 		g.POST("/spans", zipkinHandler.PostSpans)
 	})
 
-	// proxy loki
-	router.GET("/loki/api/*path", lokiProxyHandler.Proxy)
-	router.POST("/loki/api/*path", lokiProxyHandler.Proxy)
-	router.PUT("/loki/api/*path", lokiProxyHandler.Proxy)
-	router.DELETE("/loki/api/*path", lokiProxyHandler.Proxy)
+	router.
+		Use(authMiddleware).
+		Use(func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
+			cleanPath := func(path, projectID string) string {
+				path = strings.TrimPrefix(path, "/loki/api/"+projectID)
+				return "/loki/api" + path
+			}
+
+			return func(w http.ResponseWriter, req bunrouter.Request) error {
+				projectID := req.Params().ByName("project_id")
+				req.URL.Path = cleanPath(req.URL.Path, projectID)
+				req.URL.RawPath = cleanPath(req.URL.RawPath, projectID)
+				return next(w, req)
+			}
+		}).
+		WithGroup("/loki/api/:project_id", func(g *bunrouter.Group) {
+			g.GET("/v1/tail", lokiProxyHandler.ProxyWS)
+
+			g.GET("/*path", lokiProxyHandler.Proxy)
+			g.POST("/*path", lokiProxyHandler.Proxy)
+			g.PUT("/*path", lokiProxyHandler.Proxy)
+			g.DELETE("/*path", lokiProxyHandler.Proxy)
+		})
 
 	api.GET("/traces/search", traceHandler.FindTrace)
 
 	g := api.
-		Use(org.NewAuthMiddleware(app)).
+		Use(authMiddleware).
 		NewGroup("/tracing/:project_id")
 
 	g.GET("/systems", sysHandler.List)

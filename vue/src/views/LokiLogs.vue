@@ -38,7 +38,7 @@
 import { defineComponent, shallowRef, PropType } from '@vue/composition-api'
 
 // Composables
-//import { useRouter } from '@/use/router'
+import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/use/systems'
 import { useLogql } from '@/components/loki/logql'
@@ -63,13 +63,13 @@ export default defineComponent({
   },
 
   setup(props) {
-    //const { route } = useRouter()
+    const { route } = useRouter()
     const query = shallowRef('{foo="bar"}')
 
     const logql = useLogql(() => {
-      //const { projectId } = route.value.params
+      const { projectId } = route.value.params
       return {
-        url: `/loki/api/v1/query_range`,
+        url: `/loki/api/${projectId}/v1/query_range`,
         params: {
           ...props.dateRange.lokiParams(),
           query: query.value,

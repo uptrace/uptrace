@@ -158,6 +158,8 @@ github.com/google/renameio v0.1.0/go.mod h1:KWCgfxg9yswjAJkECMjeO8J8rahYeXnNhOm4
 github.com/google/uuid v1.1.2/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/googleapis/gax-go/v2 v2.0.4/go.mod h1:0Wqv26UfaUD9n4G6kQubkQ+KchISgw+vpHVxEJEs9eg=
 github.com/googleapis/gax-go/v2 v2.0.5/go.mod h1:DWXyrwAJ9X0FpwwEdw+IPEYBICEFu5mhpdKc/us6bOk=
+github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWmnc=
+github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/grafana/tempo v1.4.1 h1:d01i+286KhxbPzyN5ftp+uX2CHEPb1bA+l8ARIdA9ak=
 github.com/grafana/tempo v1.4.1/go.mod h1:cR6sl52Dc8UEEHzZcYp0+EvsVw+YtZIAgoEXQLTD7CM=
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
@@ -177,6 +179,8 @@ github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+o
 github.com/klauspost/compress v1.14.1/go.mod h1:/3/Vjq9QcHkK5uEr5lBEmyoZ1iFhe47etQ6QUkpK6sk=
 github.com/klauspost/compress v1.15.3 h1:wmfu2iqj9q22SyMINp1uQ8C2/V4M1phJdmH9fG4nba0=
 github.com/klauspost/compress v1.15.3/go.mod h1:PhcZ0MbTNciWF3rruxRgKxI5NkcHHrHUDtV4Yw2GlzU=
+github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c h1:N7A4JCA2G+j5fuFxCsJqjFU/sZe0mj8H0sSoSwbaikw=
+github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c/go.mod h1:Nn5wlyECw3iJrzi0AhIWg+AJUb4PlRQVW4/3XHH1LZA=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pretty v0.3.0/go.mod h1:640gp4NfQd8pI5XOwp5fnNeVWj67G7CFk/SaSQn7NBk=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
@@ -228,12 +232,12 @@ github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.1 h1:5TQK59W5E3v0r2duFAb7P95B6hEeOyEnHRa8MjYSMTY=
 github.com/stretchr/testify v1.7.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/uptrace/bunrouter v1.0.15 h1:78ZlTDQxcnl1y2JjYPRbrcVilNlIJoyRxIx5sfooMd0=
-github.com/uptrace/bunrouter v1.0.15/go.mod h1:TwT7Bc0ztF2Z2q/ZzMuSVkcb/Ig/d3MQeP2cxn3e1hI=
-github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.15 h1:idPSB3/6Ao4oWhoS9BH1DeiHiAOU9kqrP/j96AoWeiU=
-github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.15/go.mod h1:g8JCqIcYvqHaqEBwx0apR3rEuhPhFA9eaJyXs1awtAk=
-github.com/uptrace/bunrouter/extra/reqlog v1.0.15 h1:xZmaXsOqw4FBeIMJ3xsO8w7JRhrH86z4KyO/O6eWU70=
-github.com/uptrace/bunrouter/extra/reqlog v1.0.15/go.mod h1:Jza30T3W/l53OcgzBgbJT5JackYfOsCHDRKkoMKGwRc=
+github.com/uptrace/bunrouter v1.0.16-0.20220523132813-2741aadef5f5 h1:5hqCmPQ9TUB4d0wv1bJbTfnK5dbKJcfazsBwSf2EmtY=
+github.com/uptrace/bunrouter v1.0.16-0.20220523132813-2741aadef5f5/go.mod h1:TwT7Bc0ztF2Z2q/ZzMuSVkcb/Ig/d3MQeP2cxn3e1hI=
+github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.16-0.20220523132813-2741aadef5f5 h1:kDi9aSp+4aJRkZUyywOiSPe3gaLPmW8Xre409DWyTns=
+github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.16-0.20220523132813-2741aadef5f5/go.mod h1:g8JCqIcYvqHaqEBwx0apR3rEuhPhFA9eaJyXs1awtAk=
+github.com/uptrace/bunrouter/extra/reqlog v1.0.16-0.20220523132813-2741aadef5f5 h1:gNVFpGWHALiAuvjVbGzZdCCkWzQTtMgwZHHlofEAxdE=
+github.com/uptrace/bunrouter/extra/reqlog v1.0.16-0.20220523132813-2741aadef5f5/go.mod h1:Jza30T3W/l53OcgzBgbJT5JackYfOsCHDRKkoMKGwRc=
 github.com/uptrace/go-clickhouse v0.2.8-0.20220518133303-65991cc1437d h1:5eiNR+TGZoofSX0LKdfN1Zf4gJGfOwOGnCdAVMloUZI=
 github.com/uptrace/go-clickhouse v0.2.8-0.20220518133303-65991cc1437d/go.mod h1:buZm4qNiQbhw2pdliJ26xNKukzgLCqqXRGwKAYzDJC0=
 github.com/uptrace/go-clickhouse/chdebug v0.2.8-0.20220518133303-65991cc1437d h1:1LYKRltoWk2uExPWsds3TBYVS5f09iKcxRkzjzFYNxQ=

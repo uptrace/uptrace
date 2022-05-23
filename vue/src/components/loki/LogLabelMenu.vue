@@ -35,7 +35,7 @@ import { truncate } from 'lodash'
 import { defineComponent, shallowRef, PropType } from '@vue/composition-api'
 
 // Composables
-//import { useRouter } from '@/use/router'
+import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { useLabelValues } from '@/components/loki/logql'
 
@@ -58,7 +58,7 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
-    //const { route } = useRouter()
+    const { route } = useRouter()
     const menu = shallowRef(false)
 
     const labelValues = useLabelValues(() => {
@@ -66,9 +66,9 @@ export default defineComponent({
         return null
       }
 
-      //const { projectId } = route.value.params
+      const { projectId } = route.value.params
       return {
-        url: `/loki/api/v1/label/${props.label}/values`,
+        url: `/loki/api/${projectId}/v1/label/${props.label}/values`,
         params: {
           ...props.dateRange.lokiParams(),
         },
