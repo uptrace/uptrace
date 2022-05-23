@@ -70,7 +70,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 		Use(authMiddleware).
 		Use(func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 			cleanPath := func(path, projectID string) string {
-				path = strings.TrimPrefix(path, "/loki/api/"+projectID)
+				path = strings.TrimPrefix(path, projectID+"/loki/api/")
 				return "/loki/api" + path
 			}
 
@@ -81,7 +81,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 				return next(w, req)
 			}
 		}).
-		WithGroup("/loki/api/:project_id", func(g *bunrouter.Group) {
+		WithGroup("/:project_id/loki/api", func(g *bunrouter.Group) {
 			g.GET("/v1/tail", lokiProxyHandler.ProxyWS)
 
 			g.GET("/*path", lokiProxyHandler.Proxy)
