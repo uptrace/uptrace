@@ -103,6 +103,9 @@ type AppConfig struct {
 
 	Users    []User    `yaml:"users"`
 	Projects []Project `yaml:"projects"`
+	Loki    struct {
+		Addr string `yaml:"addr"`
+	} `yaml:"loki"`
 }
 
 type User struct {
