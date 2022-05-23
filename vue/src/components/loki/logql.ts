@@ -6,7 +6,7 @@ import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
 
 export type UseLogql = ReturnType<typeof useLogql>
 
-interface Result {
+export interface Result {
   stream: Record<string, string>
   values: LogValue[]
 }
@@ -22,24 +22,16 @@ export function useLogql(reqSource: AxiosRequestSource, cfg: LogqlConfig = {}) {
 
   const { loading, data } = useWatchAxios(reqSource)
 
-  const result = computed((): Result | undefined => {
-    const result = data.value?.data?.result ?? []
-    if (result.length) {
-      return result[0]
-    }
-    return undefined
+  const results = computed((): Result[] => {
+    return data.value?.data?.result ?? []
   })
 
-  const labels = computed((): Record<string, string> => {
-    return result.value?.stream ?? {}
-  })
-
-  const logs = computed((): LogValue[] => {
-    return result.value?.values ?? []
+  const numItem = computed(() => {
+    return results.value.reduce((sum, result) => sum + result.values.length, 0)
   })
 
   watch(
-    () => logs.value.length,
+    numItem,
     (numItem) => {
       pager.numItem = numItem
     },
@@ -50,8 +42,8 @@ export function useLogql(reqSource: AxiosRequestSource, cfg: LogqlConfig = {}) {
     pager,
 
     loading,
-    labels,
-    logs,
+    results,
+    numItem,
   })
 }
 

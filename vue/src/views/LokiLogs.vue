@@ -2,7 +2,7 @@
   <XPlaceholder>
     <v-row>
       <v-col>
-        <Logql :date-range="dateRange" :query="query" @update:query="query = $event" />
+        <Logql :date-range="dateRange" v-model="query" />
       </v-col>
     </v-row>
 
@@ -23,12 +23,10 @@
 
           <v-row class="px-4 pb-4">
             <v-col>
-              <LogsTable :loading="logql.loading" :labels="logql.labels" :logs="logql.logs" />
+              <LogsTable :loading="logql.loading" :results="logql.results" />
             </v-col>
           </v-row>
         </v-card>
-
-        <XPagination :pager="logql.pager" />
       </v-col>
     </v-row>
   </XPlaceholder>
@@ -67,6 +65,10 @@ export default defineComponent({
     const query = shallowRef('{foo="bar"}')
 
     const logql = useLogql(() => {
+      if (!query.value) {
+        return undefined
+      }
+
       const { projectId } = route.value.params
       return {
         url: `/loki/api/${projectId}/v1/query_range`,
