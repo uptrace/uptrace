@@ -3,7 +3,7 @@ version: '3'
 services:
   clickhouse:
     image: clickhouse/clickhouse-server:22.4
-    restart: always
+    restart: on-failure
     environment:
       CLICKHOUSE_DB: uptrace
     healthcheck:
@@ -13,26 +13,31 @@ services:
       retries: 30
     volumes:
       - ch_data:/var/lib/clickhouse
-    # use host mode so we can export span from ClickHouse to Uptrace
-    network_mode: host
-    logging:
-      driver: loki
-      options:
-        loki-url: 'http://localhost:3100/loki/api/v1/push'
-        loki-external-labels: 'type=docker,container_name={{.Name}}'
+    ports:
+      - '8123:8123'
+      - '9000:9000'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+  #    logging:
+  #      driver: loki
+  #      options:
+  #        loki-url: 'http://host.docker.internal:3100/loki/api/v1/push'
+  #        loki-external-labels: 'type=docker,container_name={{.Name}}'
 
   grafana:
     image: grafana/grafana:8.5.2
-    restart: always
+    restart: on-failure
     volumes:
       - ./config/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
       - ./config/grafana/custom.ini:/etc/grafana/grafana.ini
-    # use host mode so we can use Uptrace datasource
-    network_mode: host
+    ports:
+      - '3000:3000'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
 
   cloki:
     image: qxip/cloki:latest
-    restart: always
+    restart: on-failure
     environment:
       CLICKHOUSE_SERVER: clickhouse
       CLICKHOUSE_DB: uptrace

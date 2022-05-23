@@ -8,12 +8,7 @@
       <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
         <v-row align="center" justify="space-between" class="mb-4">
           <v-col cols="auto">
-            <SystemPicker
-              :date-range="dateRange"
-              :systems="systems"
-              :tree="systemTree"
-              :route-name="groupListRoute"
-            />
+            <SystemPicker :date-range="dateRange" :systems="systems" :tree="systemTree" />
           </v-col>
 
           <v-col cols="auto">
@@ -28,6 +23,7 @@
               <v-tab :to="routes.spanList" exact-path>{{
                 spanListRoute == 'SpanList' ? 'Spans' : 'Logs'
               }}</v-tab>
+              <v-tab v-if="showLogql" :to="routes.lokiLogs" exact-path>LogQL</v-tab>
             </v-tabs>
           </v-col>
         </v-row>
@@ -35,21 +31,10 @@
     </div>
 
     <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pt-2">
-      <UptraceQuery :uql="uql" class="mb-1">
-        <SpanFilters
-          :uql="uql"
-          :systems="systems"
-          :axios-params="axiosParams"
-          :group-list-route="groupListRoute"
-          @click:reset="resetQuery"
-        />
-      </UptraceQuery>
-
       <router-view
         :date-range="dateRange"
         :systems="systems"
-        :uql="uql"
-        :axios-params="axiosParams"
+        :query="query"
         :span-list-route="spanListRoute"
         :group-list-route="groupListRoute"
       />
@@ -59,21 +44,18 @@
 
 <script lang="ts">
 import { clone } from 'lodash'
-import { defineComponent, computed, watch, proxyRefs, PropType } from '@vue/composition-api'
+import { defineComponent, computed, proxyRefs, PropType } from '@vue/composition-api'
 
 // Composables
 import { useRouter } from '@/use/router'
 import { useTitle } from '@vueuse/core'
 import { useDateRange } from '@/use/date-range'
 import { useSystems, buildSystemTree, SystemTree, SystemFilter } from '@/use/systems'
-import { useUql } from '@/use/uql'
 
 // Components
 import DateRangePicker from '@/components/DateRangePicker.vue'
 import SystemPicker from '@/components/SystemPicker.vue'
 import HelpCard from '@/components/HelpCard.vue'
-import UptraceQuery from '@/components/uql/UptraceQuery.vue'
-import SpanFilters from '@/components/uql/SpanFilters.vue'
 
 interface Props {
   spanListRoute: string
@@ -86,8 +68,6 @@ export default defineComponent({
     DateRangePicker,
     SystemPicker,
     HelpCard,
-    UptraceQuery,
-    SpanFilters,
   },
 
   props: {
@@ -107,6 +87,10 @@ export default defineComponent({
       type: Function as PropType<SystemFilter>,
       default: undefined,
     },
+    showLogql: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   setup(props) {
@@ -116,18 +100,6 @@ export default defineComponent({
     dateRange.syncQuery()
 
     const systems = useSystems(dateRange)
-    const uql = useUql({
-      query: props.query,
-      syncQuery: true,
-    })
-
-    const axiosParams = computed(() => {
-      return {
-        ...dateRange.axiosParams(),
-        ...uql.axiosParams(),
-        system: systems.activeValue,
-      }
-    })
 
     const systemTree = computed((): SystemTree[] => {
       let items = systems.list
@@ -137,27 +109,11 @@ export default defineComponent({
       return buildSystemTree(items)
     })
 
-    watch(
-      () => props.query,
-      () => {
-        resetQuery()
-      },
-      { immediate: true },
-    )
-
-    function resetQuery() {
-      uql.query = props.query
-    }
-
     return {
       dateRange,
-      uql,
-      axiosParams,
       systems,
       systemTree,
       routes: useRoutes(props),
-
-      resetQuery,
     }
   },
 })
@@ -184,9 +140,16 @@ function useRoutes(props: Props) {
     }
   })
 
+  const lokiLogs = computed(() => {
+    return {
+      name: 'LokiLogs',
+    }
+  })
+
   return proxyRefs({
     groupList,
     spanList,
+    lokiLogs,
   })
 }
 </script>
