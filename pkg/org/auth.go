@@ -3,6 +3,7 @@ package org
 import (
 	"context"
 	"crypto/subtle"
+	"database/sql"
 	"errors"
 	"net/http"
 	"strconv"
@@ -31,7 +32,10 @@ var GuestUser = &bunapp.User{
 	Username: "guest",
 }
 
-type userCtxKey struct{}
+type (
+	userCtxKey    struct{}
+	projectCtxKey struct{}
+)
 
 func UserFromContext(ctx context.Context) (*bunapp.User, error) {
 	user, ok := ctx.Value(userCtxKey{}).(*bunapp.User)
@@ -41,28 +45,34 @@ func UserFromContext(ctx context.Context) (*bunapp.User, error) {
 	return user, nil
 }
 
+func ProjectFromContext(ctx context.Context) (*bunapp.Project, error) {
+	project, ok := ctx.Value(userCtxKey{}).(*bunapp.Project)
+	if !ok {
+		return nil, ErrUnauthorized
+	}
+	return project, nil
+}
+
 func NewAuthMiddleware(app *bunapp.App) bunrouter.MiddlewareFunc {
 	return func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 		return func(w http.ResponseWriter, req bunrouter.Request) error {
-			if user := userFromRequest(app, req); user != nil {
-				ctx := context.WithValue(req.Context(), userCtxKey{}, user)
-				return next(w, req.WithContext(ctx))
-			}
-			return ErrUnauthorized
-		}
-	}
-}
+			ctx := req.Context()
 
-func findUserByPassword(app *bunapp.App, username string, password string) *bunapp.User {
-	users := app.Config().Users
-	for i := range users {
-		user := &users[i]
-		if subtle.ConstantTimeCompare([]byte(user.Username), []byte(username)) == 1 &&
-			subtle.ConstantTimeCompare([]byte(user.Password), []byte(password)) == 1 {
-			return user
+			user := userFromRequest(app, req)
+			if user == nil {
+				return ErrUnauthorized
+			}
+			ctx = context.WithValue(ctx, userCtxKey{}, user)
+
+			project, err := projectFromRequest(app, req)
+			if err != nil {
+				return err
+			}
+			ctx = context.WithValue(ctx, projectCtxKey{}, project)
+
+			return next(w, req.WithContext(ctx))
 		}
 	}
-	return nil
 }
 
 func userFromRequest(app *bunapp.App, req bunrouter.Request) *bunapp.User {
@@ -95,6 +105,25 @@ func userFromRequest(app *bunapp.App, req bunrouter.Request) *bunapp.User {
 	}
 
 	return nil
+}
+
+func projectFromRequest(app *bunapp.App, req bunrouter.Request) (*bunapp.Project, error) {
+	ctx := req.Context()
+
+	projectID, err := req.Params().Uint32("project_id")
+	if err != nil {
+		return nil, err
+	}
+
+	project, err := SelectProjectByID(ctx, app, projectID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrUnauthorized
+		}
+		return nil, err
+	}
+
+	return project, nil
 }
 
 //------------------------------------------------------------------------------
@@ -133,4 +162,18 @@ func decodeUserToken(app *bunapp.App, jwtToken string) (uint64, error) {
 	}
 
 	return id, nil
+}
+
+//------------------------------------------------------------------------------
+
+func findUserByPassword(app *bunapp.App, username string, password string) *bunapp.User {
+	users := app.Config().Users
+	for i := range users {
+		user := &users[i]
+		if subtle.ConstantTimeCompare([]byte(user.Username), []byte(username)) == 1 &&
+			subtle.ConstantTimeCompare([]byte(user.Password), []byte(password)) == 1 {
+			return user
+		}
+	}
+	return nil
 }

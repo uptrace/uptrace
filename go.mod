@@ -13,14 +13,15 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/grafana/tempo v1.4.1
 	github.com/klauspost/compress v1.15.3
+	github.com/koding/websocketproxy v0.0.0-20181220232114-7ed82d81a28c
 	github.com/mileusna/useragent v1.0.2
 	github.com/mostynb/go-grpc-compression v1.1.16
 	github.com/rs/cors v1.8.2
 	github.com/segmentio/encoding v0.3.5
 	github.com/stretchr/testify v1.7.1
-	github.com/uptrace/bunrouter v1.0.15
-	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.15
-	github.com/uptrace/bunrouter/extra/reqlog v1.0.15
+	github.com/uptrace/bunrouter v1.0.16-0.20220523132813-2741aadef5f5
+	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.16-0.20220523132813-2741aadef5f5
+	github.com/uptrace/bunrouter/extra/reqlog v1.0.16-0.20220523132813-2741aadef5f5
 	github.com/uptrace/go-clickhouse v0.2.8-0.20220518133303-65991cc1437d
 	github.com/uptrace/go-clickhouse/chdebug v0.2.8-0.20220518133303-65991cc1437d
 	github.com/uptrace/go-clickhouse/chotel v0.2.8-0.20220518133303-65991cc1437d
@@ -52,6 +53,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.10.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
