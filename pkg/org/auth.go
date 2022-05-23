@@ -46,7 +46,7 @@ func UserFromContext(ctx context.Context) (*bunapp.User, error) {
 }
 
 func ProjectFromContext(ctx context.Context) (*bunapp.Project, error) {
-	project, ok := ctx.Value(userCtxKey{}).(*bunapp.Project)
+	project, ok := ctx.Value(projectCtxKey{}).(*bunapp.Project)
 	if !ok {
 		return nil, ErrUnauthorized
 	}
