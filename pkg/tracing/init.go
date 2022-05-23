@@ -43,8 +43,9 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	suggestionHandler := NewSuggestionHandler(app)
 	tempoHandler := NewTempoHandler(app)
 	zipkinHandler := NewZipkinHandler(app, sp)
-	lokiProxyHandler := NewLokiProxyHandler(app)
+	lokiProxyHandler := NewLokiProxyHandler(app,  app.Config().Loki.Addr)
 	authMiddleware := org.NewAuthMiddleware(app)
+
 
 	api := app.APIGroup()
 

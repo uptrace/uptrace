@@ -20,17 +20,17 @@ type LokiProxyHandler struct {
 	wsProxy *websocketproxy.WebsocketProxy
 }
 
-func NewLokiProxyHandler(app *bunapp.App) *LokiProxyHandler {
+func NewLokiProxyHandler(app *bunapp.App, lokiAddr string) *LokiProxyHandler {
 	h := &LokiProxyHandler{
 		App: app,
 	}
-	h.initProxy()
-	h.initWSProxy()
+	h.initProxy(lokiAddr)
+	h.initWSProxy(lokiAddr)
 	return h
 }
 
-func (h *LokiProxyHandler) initProxy() {
-	lokiURL, _ := url.Parse(h.App.Config().Loki.Addr)
+func (h *LokiProxyHandler) initProxy(addr string) {
+	lokiURL, _ := url.Parse(addr)
 	lokiQuery := lokiURL.RawQuery
 
 	errorLogger, _ := zap.NewStdLogAt(h.ZapLogger().Logger, zap.ErrorLevel)
@@ -56,8 +56,8 @@ func (h *LokiProxyHandler) initProxy() {
 	}
 }
 
-func (h *LokiProxyHandler) initWSProxy() {
-	u, _ := url.Parse(h.Config().Loki.Addr)
+func (h *LokiProxyHandler) initWSProxy(addr string) {
+	u, _ := url.Parse(addr)
 
 	h.wsProxy = &websocketproxy.WebsocketProxy{
 		// Director: func(req *http.Request, out http.Header) {
