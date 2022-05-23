@@ -42,6 +42,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	suggestionHandler := NewSuggestionHandler(app)
 	tempoHandler := NewTempoHandler(app)
 	zipkinHandler := NewZipkinHandler(app, sp)
+	lokiProxyHandler := NewLokiProxyHandler(app)
 
 	api := app.APIGroup()
 
@@ -62,6 +63,12 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	router.WithGroup("/api/v2", func(g *bunrouter.Group) {
 		g.POST("/spans", zipkinHandler.PostSpans)
 	})
+
+	// proxy loki
+	router.GET("/loki/api/*path", lokiProxyHandler.Proxy)
+	router.POST("/loki/api/*path", lokiProxyHandler.Proxy)
+	router.PUT("/loki/api/*path", lokiProxyHandler.Proxy)
+	router.DELETE("/loki/api/*path", lokiProxyHandler.Proxy)
 
 	api.GET("/traces/search", traceHandler.FindTrace)
 

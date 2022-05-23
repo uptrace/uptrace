@@ -41,3 +41,6 @@ projects:
   - id: 2
     name: My project
     token: project2_secret_token
+
+loki:
+  addr : 'http://localhost:3100'
