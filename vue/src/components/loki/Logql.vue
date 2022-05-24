@@ -43,6 +43,9 @@ import { useLabels } from '@/components/loki/logql'
 // Components
 import LogLabelMenu from '@/components/loki/LogLabelMenu.vue'
 
+// Utilities
+import { escapeRe } from '@/util/string'
+
 export default defineComponent({
   name: 'Logql',
   components: { LogLabelMenu },
@@ -82,7 +85,7 @@ export default defineComponent({
 
     function onClick(key: string, op: string, value: string) {
       value = JSON.stringify(value)
-      ctx.emit('input', `{${key}${op}${value}}`)
+      ctx.emit('input', updateQuery(internalQuery.value, key, op, value))
     }
 
     function exitRawMode(save: boolean) {
@@ -96,6 +99,46 @@ export default defineComponent({
     return { internalQuery, labels, onClick, exitRawMode }
   },
 })
+
+const STREAM_SEL_RE = new RegExp(`^\\s*{.*}\\s*$`)
+
+function updateQuery(query: string, key: string, op: string, value: string): string {
+  const selector = `${key}${op}${value}`
+
+  if (!query) {
+    return `{${selector}}`
+  }
+
+  let part0 = ''
+  let part1 = ''
+
+  const index = query.indexOf('|')
+  if (index >= 0) {
+    part0 = query.slice(0, index).trim()
+    part1 = query.slice(index + 1).trim()
+  } else {
+    part0 = query
+  }
+
+  if (!STREAM_SEL_RE.test(part0)) {
+    return join(' | ', `{${selector}}`, part0, part1)
+  }
+
+  const e = escapeRe
+  const re = new RegExp(`${e(key)}\\s*${e(op)}\\s*("(?:[^"\\\\]|\\\\.)*")`)
+  if (re.test(part0)) {
+    part0 = part0.replace(re, selector)
+  } else {
+    part0 = part0.slice(1, -1)
+    part0 = `{${part0}, ${selector}}`
+  }
+
+  return join(' | ', part0, part1)
+}
+
+function join(sep: string, ...ss: string[]) {
+  return ss.filter((s) => s.length).join(sep)
+}
 </script>
 
 <style lang="scss" scoped></style>
