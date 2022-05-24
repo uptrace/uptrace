@@ -16,14 +16,25 @@
 
             <v-spacer />
 
-            <div class="text-body-2 blue-grey--text text--darken-3">
-              <strong><XNum :value="logql.pager.numItem" verbose /></strong> logs
+            <div v-if="logql.numItemInStreams" class="text-body-2 blue-grey--text text--darken-3">
+              <strong><XNum :value="logql.numItemInStreams" verbose /></strong> logs
             </div>
           </v-toolbar>
 
-          <v-row class="px-4 pb-4">
+          <v-row>
             <v-col>
-              <LogsTable :loading="logql.loading" :results="logql.results" />
+              <LogsTable
+                v-if="logql.resultType === logql.ResultType.Streams"
+                :loading="logql.loading"
+                :streams="logql.streams"
+              />
+              <LogqlChart
+                v-else-if="logql.resultType === logql.ResultType.Matrix"
+                :date-range="dateRange"
+                :loading="logql.loading"
+                :result="logql.result"
+                class="my-4"
+              />
             </v-col>
           </v-row>
         </v-card>
@@ -44,10 +55,11 @@ import { useLogql } from '@/components/loki/logql'
 // Components
 import Logql from '@/components/loki/Logql.vue'
 import LogsTable from '@/components/loki/LogsTable.vue'
+import LogqlChart from '@/components/loki/LogqlChart.vue'
 
 export default defineComponent({
   name: 'LokiLogs',
-  components: { Logql, LogsTable },
+  components: { Logql, LogsTable, LogqlChart },
 
   props: {
     dateRange: {
