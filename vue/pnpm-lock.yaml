@@ -3,6 +3,7 @@ lockfileVersion: 5.3
 specifiers:
   '@types/chai': ^4.3.0
   '@types/lodash': ^4.14.177
+  '@types/logfmt': ^1.2.2
   '@types/mocha': ^9.0.0
   '@types/prismjs': ^1.16.6
   '@typescript-eslint/eslint-plugin': ^5.6.0
@@ -30,6 +31,7 @@ specifiers:
   eslint-plugin-prettier: ^4.0.0
   eslint-plugin-vue: ^8.2.0
   lodash: ^4.17.21
+  logfmt: ^1.3.2
   numbro: ^2.3.5
   prettier: ^2.5.1
   prismjs: ^1.25.0
@@ -69,6 +71,7 @@ dependencies:
 devDependencies:
   '@types/chai': 4.3.0
   '@types/lodash': 4.14.178
+  '@types/logfmt': 1.2.2
   '@types/mocha': 9.0.0
   '@types/prismjs': 1.16.6
   '@typescript-eslint/eslint-plugin': 5.6.0_f426fd14618bf79ab4120a24a149037b
@@ -87,6 +90,7 @@ devDependencies:
   eslint: 7.32.0
   eslint-plugin-prettier: 4.0.0_eslint@7.32.0+prettier@2.5.1
   eslint-plugin-vue: 8.2.0_eslint@7.32.0
+  logfmt: 1.3.2
   prettier: 2.5.1
   regenerator-runtime: 0.13.9
   sass: 1.32.8
@@ -1480,6 +1484,12 @@ packages:
     resolution: {integrity: sha512-0d5Wd09ItQWH1qFbEyQ7oTQ3GZrMfth5JkbN3EvTKLXcHLRDSXeLnlvlOn0wvxVIwK5o2M8JzP/OWz7T3NRsbw==}
     dev: true
 
+  /@types/logfmt/1.2.2:
+    resolution: {integrity: sha512-D67mkEUeXTKStrNPuoO18ONSqbwFcycFhQLDgHmTcU3bLBM/oUVHrruz5t70FDZEQNkMgALqMKfEdGh1FLzV7A==}
+    dependencies:
+      '@types/node': 16.11.12
+    dev: true
+
   /@types/mime/1.3.2:
     resolution: {integrity: sha512-YATxVxgRqNH6nHEIsvg6k2Boc1JHI9ZbH5iWFFv/MTkchz3b1ieGDa5T0a9RznNdI0KhVbdbWSN+KWWrQZRxTw==}
     dev: true
@@ -2484,7 +2494,7 @@ packages:
     dev: true
 
   /ansi-styles/2.2.1:
-    resolution: {integrity: sha1-tDLdM1i2NM914eRmQ2gkBTPB3b4=}
+    resolution: {integrity: sha512-kmCevFghRiWM7HB5zTPULl4r9bVFSWjz62MhqizDGUrq2NWuNMQyuv4tHHoKJHs69M/MF64lEcHdYIocrdWQYA==}
     engines: {node: '>=0.10.0'}
     dev: true
 
@@ -3195,7 +3205,7 @@ packages:
     dev: true
 
   /chalk/1.1.3:
-    resolution: {integrity: sha1-qBFcVeSnAv5NFQq9OHKCKn4J/Jg=}
+    resolution: {integrity: sha512-U3lRVLMSlsCfjqYPbLyVv11M9CPW4I728d6TCKMAOJueEeB9/8o+eSsMnxPJD+Q+K909sdESg7C+tIkoH6on1A==}
     engines: {node: '>=0.10.0'}
     dependencies:
       ansi-styles: 2.2.1
@@ -6907,6 +6917,14 @@ packages:
       cli-cursor: 1.0.2
     dev: true
 
+  /logfmt/1.3.2:
+    resolution: {integrity: sha512-U0lelcaGWEfEITZQXs8y5HrJp2xa0BJ+KDfkkLJRmuKbQIEVGNv145FbaNekY4ZYHJSBBx8NLJitaPtRqLEkxQ==}
+    hasBin: true
+    dependencies:
+      split: 0.2.10
+      through: 2.3.8
+    dev: true
+
   /loglevel/1.8.0:
     resolution: {integrity: sha512-G6A/nJLRgWOuuwdNuA6koovfEV1YpqqAG4pRUlFaz3jj2QNZ8M4vBqnVA+HBTmU/AMNUtlOsMmSpF6NyOjztbA==}
     engines: {node: '>= 0.6.0'}
@@ -9421,6 +9439,12 @@ packages:
     engines: {node: '>=0.10.0'}
     dependencies:
       extend-shallow: 3.0.2
+    dev: true
+
+  /split/0.2.10:
+    resolution: {integrity: sha1-Zwl8YB1pfOE2j0GPBs0gHPBSGlc=}
+    dependencies:
+      through: 2.3.8
     dev: true
 
   /sprintf-js/1.0.3:

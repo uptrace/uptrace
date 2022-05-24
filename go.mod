@@ -8,6 +8,7 @@ require (
 	github.com/bradleyjkemp/cupaloy v2.3.0+incompatible
 	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/codemodus/kace v0.5.1
+	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-logfmt/logfmt v0.5.1
 	github.com/gogo/protobuf v1.3.2
@@ -19,9 +20,9 @@ require (
 	github.com/rs/cors v1.8.2
 	github.com/segmentio/encoding v0.3.5
 	github.com/stretchr/testify v1.7.1
-	github.com/uptrace/bunrouter v1.0.16
-	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.16
-	github.com/uptrace/bunrouter/extra/reqlog v1.0.16
+	github.com/uptrace/bunrouter v1.0.17-0.20220524073629-7e3d7205a85c
+	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.17-0.20220524073629-7e3d7205a85c
+	github.com/uptrace/bunrouter/extra/reqlog v1.0.17-0.20220524073629-7e3d7205a85c
 	github.com/uptrace/go-clickhouse v0.2.8-0.20220518133303-65991cc1437d
 	github.com/uptrace/go-clickhouse/chdebug v0.2.8-0.20220518133303-65991cc1437d
 	github.com/uptrace/go-clickhouse/chotel v0.2.8-0.20220518133303-65991cc1437d
@@ -46,7 +47,6 @@ require (
 require (
 	github.com/cenkalti/backoff/v4 v4.1.3 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/felixge/httpsnoop v1.0.3 // indirect
 	github.com/go-logr/logr v1.2.3 // indirect

@@ -65,7 +65,7 @@ export default defineComponent({
     const labels = useLabels(() => {
       const { projectId } = route.value.params
       return {
-        url: `/loki/api/${projectId}/v1/label`,
+        url: `/${projectId}/loki/api/v1/label`,
         params: {
           ...props.dateRange.lokiParams(),
         },

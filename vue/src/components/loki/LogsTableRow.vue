@@ -8,14 +8,15 @@
     </tr>
     <tr v-if="expanded" class="v-data-table__expanded v-data-table__expanded__content">
       <td colspan="99" class="px-6 pt-3 pb-4">
-        <LogLabelsTable :labels="labels" />
+        <LogLabelsTable :labels="labels" :detected-labels="detectedLabels" />
       </td>
     </tr>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, PropType } from '@vue/composition-api'
+import { parse as parseLogfmt } from 'logfmt'
+import { defineComponent, shallowRef, computed, PropType } from '@vue/composition-api'
 
 // Components
 import LogLabelsTable from '@/components/loki/LogLabelsTable.vue'
@@ -39,10 +40,14 @@ export default defineComponent({
     },
   },
 
-  setup() {
+  setup(props) {
     const expanded = shallowRef(false)
 
-    return { expanded }
+    const detectedLabels = computed(() => {
+      return parseLogfmt(props.line)
+    })
+
+    return { expanded, detectedLabels }
   },
 })
 </script>
