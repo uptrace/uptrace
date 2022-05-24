@@ -62,20 +62,23 @@ export default defineComponent({
     const severity = computed(() => {
       for (let key of ['log.severity', 'severity', 'level']) {
         const value = mergedLabels.value[key]
-        if (value) {
-          return value
+        if (value && typeof value === 'string') {
+          return value.toLowerCase()
         }
       }
-      return 'info'
+      return ''
     })
 
     const severityColor = computed(() => {
       switch (severity.value) {
         case 'info':
+        case 'information':
           return 'green'
-        case ('warn', 'warning'):
+        case 'warn':
+        case 'warning':
           return 'lime'
-        case ('err', 'error'):
+        case 'err':
+        case 'error':
           return 'orange'
         case 'fatal':
           return 'red'
