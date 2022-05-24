@@ -1,49 +1,77 @@
-import { computed, watch, proxyRefs } from '@vue/composition-api'
+import { computed, proxyRefs } from '@vue/composition-api'
 
 // Composables
-import { usePager, PagerConfig } from '@/use/pager'
 import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
 
 export type UseLogql = ReturnType<typeof useLogql>
 
-export interface Result {
+export interface StreamsData {
+  resultType: ResultType.Streams
+  result: Stream[]
+}
+
+export interface MatrixData {
+  resultType: ResultType.Matrix
+  result: Matrix[]
+}
+
+export enum ResultType {
+  Unknown = '',
+  Streams = 'streams',
+  Matrix = 'matrix',
+}
+
+export interface Stream {
   stream: Record<string, string>
   values: LogValue[]
 }
 
 export type LogValue = [string, string]
 
-export interface LogqlConfig {
-  pager?: PagerConfig
+export interface Matrix {
+  metric: Record<string, string>
+  values: MatrixValue[]
 }
 
-export function useLogql(reqSource: AxiosRequestSource, cfg: LogqlConfig = {}) {
-  const pager = usePager(cfg.pager)
+export type MatrixValue = [number, string]
 
-  const { loading, data } = useWatchAxios(reqSource)
+export function useLogql(reqSource: AxiosRequestSource) {
+  const { loading, data: axiosData } = useWatchAxios(reqSource)
 
-  const results = computed((): Result[] => {
-    return data.value?.data?.result ?? []
+  const data = computed((): StreamsData | MatrixData | undefined => {
+    return axiosData.value?.data
   })
 
-  const numItem = computed(() => {
-    return results.value.reduce((sum, result) => sum + result.values.length, 0)
+  const resultType = computed((): ResultType => {
+    return data.value?.resultType ?? ResultType.Unknown
   })
 
-  watch(
-    numItem,
-    (numItem) => {
-      pager.numItem = numItem
-    },
-    { immediate: true },
-  )
+  const result = computed((): Stream[] | Matrix[] => {
+    return data.value?.result ?? []
+  })
+
+  const streams = computed((): Stream[] => {
+    if (!data.value) {
+      return []
+    }
+    if (data.value.resultType === ResultType.Streams) {
+      return data.value.result
+    }
+    return []
+  })
+
+  const numItemInStreams = computed(() => {
+    return streams.value.reduce((sum, stream) => sum + stream.values.length, 0)
+  })
 
   return proxyRefs({
-    pager,
+    ResultType,
 
     loading,
-    results,
-    numItem,
+    resultType,
+    result,
+    streams,
+    numItemInStreams,
   })
 }
 
