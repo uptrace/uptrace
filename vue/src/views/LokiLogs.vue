@@ -17,7 +17,7 @@
             <v-spacer />
 
             <div class="text-body-2 blue-grey--text text--darken-3">
-              <strong><XNum :value="logql.pager.numItem" verbose /></strong> spans
+              <strong><XNum :value="logql.pager.numItem" verbose /></strong> logs
             </div>
           </v-toolbar>
 
