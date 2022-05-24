@@ -12,7 +12,7 @@ module.exports = {
         target: 'http://localhost:14318',
         changeOrigin: true,
       },
-      '^/loki': {
+      '^/\\d+/loki': {
         target: 'http://localhost:14318',
         changeOrigin: true,
       },

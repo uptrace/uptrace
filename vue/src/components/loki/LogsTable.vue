@@ -16,7 +16,7 @@
 
     <tbody>
       <template v-for="(result, i) in results">
-        <LogTableRow
+        <LogsTableRow
           v-for="(value, j) in result.values"
           :key="`${i}-${j}`"
           :labels="result.stream"
@@ -35,11 +35,11 @@ import { defineComponent, PropType } from '@vue/composition-api'
 import { Result } from '@/components/loki/logql'
 
 // Components
-import LogTableRow from '@/components/loki/LogTableRow.vue'
+import LogsTableRow from '@/components/loki/LogsTableRow.vue'
 
 export default defineComponent({
   name: 'LogsTable',
-  components: { LogTableRow },
+  components: { LogsTableRow },
 
   props: {
     loading: {

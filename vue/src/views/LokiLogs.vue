@@ -71,7 +71,7 @@ export default defineComponent({
 
       const { projectId } = route.value.params
       return {
-        url: `/loki/api/${projectId}/v1/query_range`,
+        url: `/${projectId}/loki/api/v1/query_range`,
         params: {
           ...props.dateRange.lokiParams(),
           query: query.value,
