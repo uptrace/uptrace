@@ -1,9 +1,15 @@
 <template>
   <div v-frag>
     <tr class="cursor-pointer" @click="expanded = !expanded">
-      <td>
-        <span class="mr-3 text--secondary"><XDate :date="timestamp" format="full" /></span>
-        <span>{{ line }}</span>
+      <td class="pa-0">
+        <div class="d-flex align-center">
+          <div class="mr-2 severity" :class="severityColor"></div>
+          <div class="mr-1">
+            <v-icon>{{ expanded ? 'mdi-chevron-down' : 'mdi-chevron-right' }}</v-icon>
+          </div>
+          <div class="mr-3 text--secondary"><XDate :date="timestamp" format="full" /></div>
+          <div>{{ line }}</div>
+        </div>
       </td>
     </tr>
     <tr v-if="expanded" class="v-data-table__expanded v-data-table__expanded__content">
@@ -15,6 +21,7 @@
 </template>
 
 <script lang="ts">
+import { assign } from 'lodash'
 import { parse as parseLogfmt } from 'logfmt'
 import { defineComponent, shallowRef, computed, PropType } from '@vue/composition-api'
 
@@ -47,9 +54,44 @@ export default defineComponent({
       return parseLogfmt(props.line)
     })
 
-    return { expanded, detectedLabels }
+    const mergedLabels = computed(() => {
+      const dest: Record<string, string> = {}
+      return assign(dest, detectedLabels.value, props.labels)
+    })
+
+    const severity = computed(() => {
+      for (let key of ['log.severity', 'severity', 'level']) {
+        const value = mergedLabels.value[key]
+        if (value) {
+          return value
+        }
+      }
+      return 'info'
+    })
+
+    const severityColor = computed(() => {
+      switch (severity.value) {
+        case 'info':
+          return 'green'
+        case ('warn', 'warning'):
+          return 'lime'
+        case ('err', 'error'):
+          return 'orange'
+        case 'fatal':
+          return 'red'
+        default:
+          return 'grey'
+      }
+    })
+
+    return { expanded, detectedLabels, severity, severityColor }
   },
 })
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.severity {
+  height: 40px;
+  width: 4px;
+}
+</style>
