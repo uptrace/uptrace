@@ -72,7 +72,7 @@ export default defineComponent({
       required: true,
     },
     limit: {
-      type: Number,
+      type: [Number, String],
       required: true,
     },
   },
