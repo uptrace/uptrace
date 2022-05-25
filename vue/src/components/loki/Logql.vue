@@ -2,15 +2,26 @@
   <div>
     <v-row no-gutters align="center" class="mb-n1">
       <v-col>
-        <div class="d-flex filters">
-          <LogLabelMenu
-            v-for="label in labels.items"
-            :key="label"
-            :date-range="dateRange"
-            :label="label"
-            @click="onClick(label, $event.op, $event.value)"
+        <div class="d-flex justify-space-between filters">
+          <div class="d-flex filters">
+            <LogLabelMenu
+              v-for="label in labels.items"
+              :key="label"
+              :date-range="dateRange"
+              :label="label"
+              @click="onClick(label, $event.op, $event.value)"
+            />
+          </div>
+
+          <v-text-field
+            class="limit-input"
+            type="number"
+            outlined
+            label="Limit"
+            hide-details="auto"
+            :value="limit"
+            @input="$emit('update:limit', $event)"
           />
-          <v-text-field :value="limit" outlined @input="$emit('update:limit', $event)" />
         </div>
       </v-col>
     </v-row>
@@ -61,7 +72,7 @@ export default defineComponent({
       required: true,
     },
     limit: {
-      type: [Number, String],
+      type: Number,
       required: true,
     },
   },
@@ -116,7 +127,7 @@ function updateQuery(query: string, key: string, op: string, value: string): str
 
   let part0 = ''
   let part1 = ''
-
+  
   const index = query.indexOf('|')
   if (index >= 0) {
     part0 = query.slice(0, index).trim()
@@ -146,4 +157,8 @@ function join(sep: string, ...ss: string[]) {
 }
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.limit-input {
+  max-width: 200px;
+}
+</style>
