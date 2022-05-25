@@ -45,6 +45,10 @@ func UserFromContext(ctx context.Context) (*bunapp.User, error) {
 	return user, nil
 }
 
+func ContextWithUser(ctx context.Context, user *bunapp.User) context.Context {
+	return context.WithValue(ctx, userCtxKey{}, user)
+}
+
 func ProjectFromContext(ctx context.Context) (*bunapp.Project, error) {
 	project, ok := ctx.Value(projectCtxKey{}).(*bunapp.Project)
 	if !ok {
@@ -53,29 +57,33 @@ func ProjectFromContext(ctx context.Context) (*bunapp.Project, error) {
 	return project, nil
 }
 
+func ContextWithProject(ctx context.Context, project *bunapp.Project) context.Context {
+	return context.WithValue(ctx, projectCtxKey{}, project)
+}
+
 func NewAuthMiddleware(app *bunapp.App) bunrouter.MiddlewareFunc {
 	return func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 		return func(w http.ResponseWriter, req bunrouter.Request) error {
 			ctx := req.Context()
 
-			user := userFromRequest(app, req)
+			user := UserFromRequest(app, req)
 			if user == nil {
 				return ErrUnauthorized
 			}
-			ctx = context.WithValue(ctx, userCtxKey{}, user)
+			ctx = ContextWithUser(ctx, user)
 
-			project, err := projectFromRequest(app, req)
+			project, err := ProjectFromRequest(app, req)
 			if err != nil {
 				return err
 			}
-			ctx = context.WithValue(ctx, projectCtxKey{}, project)
+			ctx = ContextWithProject(ctx, project)
 
 			return next(w, req.WithContext(ctx))
 		}
 	}
 }
 
-func userFromRequest(app *bunapp.App, req bunrouter.Request) *bunapp.User {
+func UserFromRequest(app *bunapp.App, req bunrouter.Request) *bunapp.User {
 	ctx := req.Context()
 
 	users := app.Config().Users
@@ -107,7 +115,7 @@ func userFromRequest(app *bunapp.App, req bunrouter.Request) *bunapp.User {
 	return nil
 }
 
-func projectFromRequest(app *bunapp.App, req bunrouter.Request) (*bunapp.Project, error) {
+func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*bunapp.Project, error) {
 	ctx := req.Context()
 
 	projectID, err := req.Params().Uint32("project_id")

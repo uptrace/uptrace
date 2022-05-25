@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
@@ -76,7 +75,6 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			}
 
 			return func(w http.ResponseWriter, req bunrouter.Request) error {
-				spew.Dump(req.Params().Map())
 				projectID := req.Params().ByName("project_id")
 				req.URL.Path = cleanPath(req.URL.Path, projectID)
 				req.URL.RawPath = cleanPath(req.URL.RawPath, projectID)
