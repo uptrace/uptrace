@@ -17,6 +17,7 @@
             class="limit-input"
             type="number"
             outlined
+            dense
             label="Limit"
             hide-details="auto"
             :value="limit"

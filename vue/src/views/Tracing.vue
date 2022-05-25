@@ -23,7 +23,7 @@
               <v-tab :to="routes.spanList" exact-path>{{
                 spanListRoute == 'SpanList' ? 'Spans' : 'Logs'
               }}</v-tab>
-              <v-tab v-if="showLogql" :to="routes.lokiLogs" exact-path>LogQL</v-tab>
+              <v-tab v-if="showLogql && user.hasLoki" :to="routes.lokiLogs" exact-path>LogQL</v-tab>
             </v-tabs>
           </v-col>
         </v-row>
@@ -50,6 +50,7 @@ import { defineComponent, computed, proxyRefs, PropType } from '@vue/composition
 import { useRouter } from '@/use/router'
 import { useTitle } from '@vueuse/core'
 import { useDateRange } from '@/use/date-range'
+import { useUser } from '@/use/org'
 import { useSystems, buildSystemTree, SystemTree, SystemFilter } from '@/use/systems'
 
 // Components
@@ -99,6 +100,7 @@ export default defineComponent({
     const dateRange = useDateRange()
     dateRange.syncQuery()
 
+    const user = useUser()
     const systems = useSystems(dateRange)
 
     const systemTree = computed((): SystemTree[] => {
@@ -111,6 +113,7 @@ export default defineComponent({
 
     return {
       dateRange,
+      user,
       systems,
       systemTree,
       routes: useRoutes(props),

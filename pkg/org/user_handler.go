@@ -27,9 +27,12 @@ func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) erro
 		return ErrUnauthorized
 	}
 
+	cfg := h.Config()
+
 	return httputil.JSON(w, bunrouter.H{
 		"user":     user,
-		"projects": h.Config().Projects,
+		"projects": cfg.Projects,
+		"hasLoki":  cfg.Loki.Addr != "",
 	})
 }
 
