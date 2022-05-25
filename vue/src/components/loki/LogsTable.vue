@@ -22,6 +22,7 @@
           :labels="stream.stream"
           :timestamp="value[0]"
           :line="value[1]"
+          @click:filter="$emit('click:filter', $event)"
         />
       </template>
     </tbody>
