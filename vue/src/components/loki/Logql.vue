@@ -100,7 +100,7 @@ export default defineComponent({
   },
 })
 
-const STREAM_SEL_RE = new RegExp(`^\\s*{.*}\\s*$`)
+const STREAM_SEL_RE = /{[^}]*}/
 
 function updateQuery(query: string, key: string, op: string, value: string): string {
   const selector = `${key}${op}${value}`
@@ -109,35 +109,23 @@ function updateQuery(query: string, key: string, op: string, value: string): str
     return `{${selector}}`
   }
 
-  let part0 = ''
-  let part1 = ''
-
-  const index = query.indexOf('|')
-  if (index >= 0) {
-    part0 = query.slice(0, index).trim()
-    part1 = query.slice(index + 1).trim()
-  } else {
-    part0 = query
+  const m = query.match(STREAM_SEL_RE)
+  if (!m) {
+    return `{${selector}}`
   }
 
-  if (!STREAM_SEL_RE.test(part0)) {
-    return join(' | ', `{${selector}}`, part0, part1)
-  }
+  let found = m[0]
 
   const e = escapeRe
   const re = new RegExp(`${e(key)}\\s*${e(op)}\\s*("(?:[^"\\\\]|\\\\.)*")`)
-  if (re.test(part0)) {
-    part0 = part0.replace(re, selector)
+  if (re.test(found)) {
+    found = found.replace(re, selector)
   } else {
-    part0 = part0.slice(1, -1)
-    part0 = `{${part0}, ${selector}}`
+    found = found.slice(1, -1)
+    found = `{${found}, ${selector}}`
   }
 
-  return join(' | ', part0, part1)
-}
-
-function join(sep: string, ...ss: string[]) {
-  return ss.filter((s) => s.length).join(sep)
+  return query.replace(STREAM_SEL_RE, found)
 }
 </script>
 
