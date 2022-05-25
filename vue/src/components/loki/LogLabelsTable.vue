@@ -7,7 +7,11 @@
       </tr>
     </thead>
 
-    <LogLabelsTableBody :labels="labels" />
+    <LogLabelsTableBody
+      :labels="labels"
+      show-filters
+      @click:filter="$emit('click:filter', $event)"
+    />
 
     <template v-if="Object.keys(detectedLabels).length">
       <thead class="v-data-table-header">

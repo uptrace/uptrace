@@ -7,8 +7,28 @@
 
   <tbody v-else>
     <tr v-for="key in labelKeys" :key="key">
-      <th>{{ key }}</th>
-      <td>{{ labels[key] }}</td>
+      <th>
+        <span>{{ key }}</span>
+      </th>
+      <td>
+        <span v-if="showFilters" class="mr-2">
+          <v-btn
+            icon
+            small
+            title="Filter for value"
+            @click="$emit('click:filter', { key: key, op: '=', value: labels[key] })"
+            ><v-icon>mdi-magnify-plus-outline</v-icon></v-btn
+          >
+          <v-btn
+            icon
+            small
+            title="Filter out value"
+            @click="$emit('click:filter', { key: key, op: '!=', value: labels[key] })"
+            ><v-icon>mdi-magnify-minus-outline</v-icon></v-btn
+          >
+        </span>
+        <span>{{ labels[key] }}</span>
+      </td>
     </tr>
   </tbody>
 </template>
@@ -24,6 +44,10 @@ export default defineComponent({
       type: Object as PropType<Record<string, string>>,
       required: true,
     },
+    showFilters: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   setup(props) {
@@ -32,6 +56,7 @@ export default defineComponent({
       keys.sort()
       return keys
     })
+
     return { labelKeys }
   },
 })

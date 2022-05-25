@@ -22,7 +22,11 @@
           class="my-2"
           >Find trace</v-btn
         >
-        <LogLabelsTable :labels="labels" :detected-labels="detectedLabels" />
+        <LogLabelsTable
+          :labels="labels"
+          :detected-labels="detectedLabels"
+          @click:filter="$emit('click:filter', $event)"
+        />
       </td>
     </tr>
   </div>

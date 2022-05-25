@@ -9,7 +9,7 @@
               :key="label"
               :date-range="dateRange"
               :label="label"
-              @click="onClick(label, $event.op, $event.value)"
+              @click="$emit('click:filter', { key: label, op: $event.op, value: $event.value })"
             />
           </div>
 
@@ -56,9 +56,6 @@ import { useLabels } from '@/components/loki/logql'
 // Components
 import LogLabelMenu from '@/components/loki/LogLabelMenu.vue'
 
-// Utilities
-import { escapeRe } from '@/util/string'
-
 export default defineComponent({
   name: 'Logql',
   components: { LogLabelMenu },
@@ -100,11 +97,6 @@ export default defineComponent({
       { immediate: true },
     )
 
-    function onClick(key: string, op: string, value: string) {
-      value = JSON.stringify(value)
-      ctx.emit('input', updateQuery(internalQuery.value, key, op, value))
-    }
-
     function exitRawMode(save: boolean) {
       if (save) {
         ctx.emit('input', internalQuery.value ?? '')
@@ -113,37 +105,9 @@ export default defineComponent({
       }
     }
 
-    return { internalQuery, labels, onClick, exitRawMode }
+    return { internalQuery, labels, exitRawMode }
   },
 })
-
-const STREAM_SEL_RE = /{[^}]*}/
-
-function updateQuery(query: string, key: string, op: string, value: string): string {
-  const selector = `${key}${op}${value}`
-
-  if (!query) {
-    return `{${selector}}`
-  }
-
-  const m = query.match(STREAM_SEL_RE)
-  if (!m) {
-    return `{${selector}}`
-  }
-
-  let found = m[0]
-
-  const e = escapeRe
-  const re = new RegExp(`${e(key)}\\s*${e(op)}\\s*("(?:[^"\\\\]|\\\\.)*")`)
-  if (re.test(found)) {
-    found = found.replace(re, selector)
-  } else {
-    found = found.slice(1, -1)
-    found = `{${found}, ${selector}}`
-  }
-
-  return query.replace(STREAM_SEL_RE, found)
-}
 </script>
 
 <style lang="scss" scoped>
