@@ -2,7 +2,7 @@
   <XPlaceholder>
     <v-row>
       <v-col>
-        <Logql :date-range="dateRange" v-model="query" />
+        <Logql :date-range="dateRange" v-model="query" :limit.sync="limit" />
       </v-col>
     </v-row>
 
@@ -75,6 +75,7 @@ export default defineComponent({
   setup(props) {
     const { route } = useRouter()
     const query = shallowRef('{foo="bar"}')
+    const limit = shallowRef(1000)
 
     const logql = useLogql(() => {
       if (!query.value) {
@@ -88,12 +89,12 @@ export default defineComponent({
           ...props.dateRange.lokiParams(),
           query: query.value,
           direction: 'BACKWARD',
-          limit: 1000,
+          limit: limit.value,
         },
       }
     })
 
-    return { query, logql }
+    return { query, limit, logql }
   },
 })
 </script>
