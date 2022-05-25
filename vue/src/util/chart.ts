@@ -1,7 +1,26 @@
 import { truncate } from 'lodash'
-import * as echarts from 'echarts'
+import {
+  EChartsOption as BaseEChartsOption,
+  LegendComponentOption,
+  GridComponentOption,
+  XAXisComponentOption,
+  YAXisComponentOption,
+  DatasetComponentOption,
+  SeriesOption,
+  TooltipComponentOption,
+} from 'echarts'
 
-export function baseChartConfig(): any {
+export interface EChartsOption extends BaseEChartsOption {
+  legend: LegendComponentOption[]
+  grid: GridComponentOption[]
+  xAxis: XAXisComponentOption[]
+  yAxis: YAXisComponentOption[]
+  dataset: DatasetComponentOption[]
+  series: SeriesOption[]
+  tooltip: TooltipComponentOption[]
+}
+
+export function baseChartConfig(): EChartsOption {
   return {
     animation: false,
     textStyle: {
@@ -26,7 +45,7 @@ export function baseChartConfig(): any {
   }
 }
 
-export function addChartTooltip(cfg: any, tooltipCfg: echarts.TooltipComponentOption = {}) {
+export function addChartTooltip(cfg: any, tooltipCfg: TooltipComponentOption = {}) {
   cfg.tooltip.push({
     trigger: 'axis',
     appendToBody: true,
@@ -38,7 +57,9 @@ export function addChartTooltip(cfg: any, tooltipCfg: echarts.TooltipComponentOp
   })
 }
 
-export function createTooltipFormatter(fmt: (value: any) => string) {
+const DEFAULT_FORMATTER = (value: any): string => String(value)
+
+export function createTooltipFormatter(fmt = DEFAULT_FORMATTER) {
   return (params: any): string => {
     const rows = []
 

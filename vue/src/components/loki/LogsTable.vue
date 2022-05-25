@@ -8,18 +8,18 @@
       </tr>
     </thead>
 
-    <tbody v-if="!results.length">
+    <tbody v-if="!streams.length">
       <tr class="v-data-table__empty-wrapper">
         <td colspan="99">There are no any logs for the selected date range and filters.</td>
       </tr>
     </tbody>
 
     <tbody>
-      <template v-for="(result, i) in results">
+      <template v-for="(stream, i) in streams">
         <LogsTableRow
-          v-for="(value, j) in result.values"
+          v-for="(value, j) in stream.values"
           :key="`${i}-${j}`"
-          :labels="result.stream"
+          :labels="stream.stream"
           :timestamp="value[0]"
           :line="value[1]"
         />
@@ -32,7 +32,7 @@
 import { defineComponent, PropType } from '@vue/composition-api'
 
 // Composables
-import { Result } from '@/components/loki/logql'
+import { Stream } from '@/components/loki/logql'
 
 // Components
 import LogsTableRow from '@/components/loki/LogsTableRow.vue'
@@ -46,8 +46,8 @@ export default defineComponent({
       type: Boolean,
       required: true,
     },
-    results: {
-      type: Array as PropType<Result[]>,
+    streams: {
+      type: Array as PropType<Stream[]>,
       required: true,
     },
   },
