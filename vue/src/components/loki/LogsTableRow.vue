@@ -14,6 +14,14 @@
     </tr>
     <tr v-if="expanded" class="v-data-table__expanded v-data-table__expanded__content">
       <td colspan="99" class="px-6 pt-3 pb-4">
+        <v-btn
+          v-if="traceId"
+          :to="{ name: 'TraceFind', params: { traceId: traceId } }"
+          small
+          color="primary"
+          class="my-2"
+          >Find trace</v-btn
+        >
         <LogLabelsTable :labels="labels" :detected-labels="detectedLabels" />
       </td>
     </tr>
@@ -50,13 +58,36 @@ export default defineComponent({
   setup(props) {
     const expanded = shallowRef(false)
 
-    const detectedLabels = computed(() => {
-      return parseLogfmt(props.line)
+    const detectedLabels = computed((): Record<string, string> => {
+      return parseLogfmt(props.line) as Record<string, string>
     })
 
     const mergedLabels = computed(() => {
       const dest: Record<string, string> = {}
       return assign(dest, detectedLabels.value, props.labels)
+    })
+
+    const traceId = computed((): string => {
+      for (let key of ['traceid', 'trace_id', 'traceId']) {
+        const value = detectedLabels.value[key]
+        if (value) {
+          return value
+        }
+      }
+
+      let m = props.line.match('/\b[0-9a-f]{32}\b/')
+      if (m) {
+        return m[0]
+      }
+
+      m = props.line.match(
+        /\b[0-9a-f]{8}\b-[0-9a-f]{4}\b-[0-9a-f]{4}\b-[0-9a-f]{4}\b-[0-9a-f]{12}\b/,
+      )
+      if (m) {
+        return m[0]
+      }
+
+      return ''
     })
 
     const severity = computed(() => {
@@ -87,7 +118,7 @@ export default defineComponent({
       }
     })
 
-    return { expanded, detectedLabels, severity, severityColor }
+    return { expanded, detectedLabels, traceId, severity, severityColor }
   },
 })
 </script>
