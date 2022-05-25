@@ -10,6 +10,7 @@
             :label="label"
             @click="onClick(label, $event.op, $event.value)"
           />
+          <v-text-field :value="limit" outlined @input="$emit('update:limit', $event)" />
         </div>
       </v-col>
     </v-row>
@@ -57,6 +58,10 @@ export default defineComponent({
     },
     value: {
       type: String,
+      required: true,
+    },
+    limit: {
+      type: [Number, String],
       required: true,
     },
   },
