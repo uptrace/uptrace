@@ -41,6 +41,9 @@
                 :result="logql.result"
                 class="my-4"
               />
+              <v-card v-else class="text-center">
+                <v-card-text class="py-16">The query is empty.</v-card-text>
+              </v-card>
             </v-col>
           </v-row>
         </v-card>
@@ -89,7 +92,7 @@ export default defineComponent({
 
   setup(props) {
     const { route } = useRouter()
-    const query = shallowRef('{foo="bar"}')
+    const query = shallowRef('')
     const limit = shallowRef(1000)
 
     const logql = useLogql(() => {
