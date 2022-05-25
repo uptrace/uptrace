@@ -41,7 +41,7 @@
                 :result="logql.result"
                 class="my-4"
               />
-              <v-card v-else class="text-center">
+              <v-card v-else flat class="text-center">
                 <v-card-text class="py-16">The query is empty.</v-card-text>
               </v-card>
             </v-col>
@@ -56,7 +56,7 @@
 import { defineComponent, shallowRef, PropType } from '@vue/composition-api'
 
 // Composables
-import { useRouter } from '@/use/router'
+import { useRouter, useQuery } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/use/systems'
 import { useLogql } from '@/components/loki/logql'
@@ -110,6 +110,19 @@ export default defineComponent({
           limit: limit.value,
         },
       }
+    })
+
+    useQuery().sync({
+      fromQuery(routerQuery) {
+        if (typeof routerQuery.query === 'string') {
+          query.value = routerQuery.query
+        }
+      },
+      toQuery() {
+        return {
+          query: query.value,
+        }
+      },
     })
 
     function onClickFilter(filter: Filter) {
