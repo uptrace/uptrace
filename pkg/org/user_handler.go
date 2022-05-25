@@ -22,7 +22,7 @@ func NewUserHandler(app *bunapp.App) *UserHandler {
 }
 
 func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) error {
-	user := userFromRequest(h.App, req)
+	user := UserFromRequest(h.App, req)
 	if user == nil {
 		return ErrUnauthorized
 	}
