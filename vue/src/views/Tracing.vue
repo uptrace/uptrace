@@ -146,6 +146,7 @@ function useRoutes(props: Props) {
   const lokiLogs = computed(() => {
     return {
       name: 'LokiLogs',
+      query: route.value.query,
     }
   })
 
