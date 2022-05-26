@@ -114,13 +114,13 @@ export default defineComponent({
 
     useQuery().sync({
       fromQuery(routerQuery) {
-        if (typeof routerQuery.query === 'string') {
-          query.value = routerQuery.query
+        if (typeof routerQuery.logql === 'string') {
+          query.value = routerQuery.logql
         }
       },
       toQuery() {
         return {
-          query: query.value,
+          logql: query.value,
         }
       },
     })
