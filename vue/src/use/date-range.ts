@@ -240,6 +240,7 @@ export function useDateRange() {
     }
 
     return {
+      ...forceReloadParams.value,
       start: gte.value!.getTime() * 1e6,
       end: lt.value!.getTime() * 1e6,
     }
