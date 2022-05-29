@@ -91,10 +91,38 @@
       <v-container fluid>
         <v-row justify="center" align="center">
           <v-col cols="auto">
-            Found a bug? Create an
-            <a href="https://github.com/uptrace/uptrace/issues" target="_blank">issue</a>. Have a
-            suggestion? Start a
-            <a href="https://github.com/uptrace/uptrace/discussions" target="_blank">discussion</a>.
+            <v-btn href="https://get.uptrace.dev/" target="_blank" text rounded small>
+              <v-icon left small class="mr-1">mdi-help-circle-outline</v-icon>
+              <span>Docs</span>
+            </v-btn>
+            <v-btn
+              href="https://matrix.to/#/#uptrace:matrix.org"
+              target="_blank"
+              text
+              rounded
+              small
+            >
+              <v-icon left small class="mr-1">mdi-message-outline</v-icon>
+              <span>Chat</span>
+            </v-btn>
+            <v-btn href="https://opentelemetry.uptrace.dev/" target="_blank" text rounded small>
+              <v-icon left small class="mr-1">mdi-open-source-initiative</v-icon>
+              <span>OpenTelemetry</span>
+            </v-btn>
+            <v-btn
+              href="https://opentelemetry.uptrace.dev/instrumentations/"
+              target="_blank"
+              text
+              rounded
+              small
+            >
+              <v-icon left small class="mr-1">mdi-toy-brick-outline</v-icon>
+              <span>Instrumentations</span>
+            </v-btn>
+            <v-btn href="https://github.com/uptrace/uptrace" target="_blank" text rounded small>
+              <v-icon left small class="mr-1">mdi-github</v-icon>
+              <span>GitHub</span>
+            </v-btn>
           </v-col>
         </v-row>
       </v-container>
@@ -145,6 +173,10 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+.v-footer strong {
+  font-weight: 500;
+}
+
 .v-app-bar ::v-deep .v-toolbar__content {
   padding-top: 0px;
   padding-bottom: 0px;

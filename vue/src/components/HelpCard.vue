@@ -69,8 +69,6 @@
         </v-col>
       </v-row>
     </v-container>
-
-    <HelpLinks />
   </div>
 </template>
 
@@ -87,7 +85,6 @@ import DateRangePicker from '@/components/DateRangePicker.vue'
 import CollectorTabs from '@/components/CollectorTabs.vue'
 import UptraceDistroIcons from '@/components/UptraceDistroIcons.vue'
 import FrameworkIcons from '@/components/FrameworkIcons.vue'
-import HelpLinks from '@/components/HelpLinks.vue'
 
 export default defineComponent({
   name: 'HelpCard',
@@ -96,7 +93,6 @@ export default defineComponent({
     CollectorTabs,
     UptraceDistroIcons,
     FrameworkIcons,
-    HelpLinks,
   },
 
   props: {
