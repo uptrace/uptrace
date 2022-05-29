@@ -3,7 +3,6 @@
 </template>
 
 <script lang="ts">
-import * as echarts from 'echarts'
 import colors from 'vuetify/lib/util/colors'
 import { defineComponent, computed, PropType } from '@vue/composition-api'
 
@@ -95,12 +94,7 @@ function plotLine(cfg: any, name: string, line: number[], time: string[]) {
     showSymbol: false,
     lineStyle: { width: 1 },
     itemStyle: { color },
-    areaStyle: {
-      color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-        { offset: 0, color },
-        { offset: 1, color: '#ffe' },
-      ]),
-    },
+    areaStyle: { opacity: 0.15 },
   })
 }
 </script>
