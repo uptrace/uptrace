@@ -1,23 +1,68 @@
 version: '3'
+
 services:
   clickhouse:
     image: clickhouse/clickhouse-server:22.4
+    restart: on-failure
     environment:
-      - CLICKHOUSE_DB=uptrace
+      CLICKHOUSE_DB: uptrace
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'localhost:8123/ping']
       interval: 1s
       timeout: 1s
       retries: 30
+    volumes:
+      - ch_data:/var/lib/clickhouse
+    ports:
+      - '8123:8123'
+      - '9000:9000'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  grafana:
+    image: grafana/grafana:8.5.2
+    restart: on-failure
+    volumes:
+      - ../../config/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ../../config/grafana/custom.ini:/etc/grafana/grafana.ini
+    ports:
+      - '3000:3000'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  loki:
+    image: qxip/cloki:latest
+    restart: on-failure
+    environment:
+      CLICKHOUSE_SERVER: clickhouse
+      CLICKHOUSE_DB: uptrace
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    ports:
+      - '3100:3100' # UI and HTTP API
+
   uptrace:
-    image: 'uptrace/uptrace:latest'
+    image: 'uptrace/uptrace-dev:latest'
     volumes:
       - ./uptrace.yml:/etc/uptrace/uptrace.yml
     ports:
       - '14317:14317' # OTLP
       - '14318:14318' # UI and HTTP API
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     environment:
       - DEBUG=2
     depends_on:
       clickhouse:
         condition: service_healthy
+
+  promtail:
+    image: grafana/promtail:2.5.0
+    volumes:
+      - /var/log:/var/log
+    command: -config.file=/etc/promtail/config.yml
+
+volumes:
+  ch_data:
+    driver: local
