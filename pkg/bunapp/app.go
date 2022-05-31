@@ -165,7 +165,7 @@ func (app *App) initZap() {
 		panic(err)
 	}
 
-	app.logger = otelzap.New(zapLogger)
+	app.logger = otelzap.New(zapLogger, otelzap.WithMinLevel(zap.InfoLevel))
 	otelzap.ReplaceGlobals(app.logger)
 
 	app.OnStopped("zap", func(ctx context.Context, _ *App) error {

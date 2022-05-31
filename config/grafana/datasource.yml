@@ -22,7 +22,7 @@ datasources:
       # - matcherRegex: "traceID=(\\w+)"
       #   name: TraceID
       #   url: "http://localhost:14318/traces/1/${__value.raw}"
-  - name: Uptrace
+  - name: Uptrace Tempo
     type: tempo
     access: proxy
     url: http://host.docker.internal:14318
