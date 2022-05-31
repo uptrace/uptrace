@@ -7,10 +7,12 @@
           <div class="mr-1">
             <v-icon>{{ expanded ? 'mdi-chevron-down' : 'mdi-chevron-right' }}</v-icon>
           </div>
-          <div class="mr-3 text--secondary"><XDate :date="timestamp" format="full" /></div>
-          <div>{{ line }}</div>
+          <div class="text--secondary text-no-wrap">
+            <XDate :date="timestamp" format="relative" />
+          </div>
         </div>
       </td>
+      <td>{{ line }}</td>
     </tr>
     <tr v-if="expanded" class="v-data-table__expanded v-data-table__expanded__content">
       <td colspan="99" class="px-6 pt-3 pb-4">
