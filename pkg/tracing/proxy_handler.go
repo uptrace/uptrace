@@ -51,6 +51,11 @@ func (h *LokiProxyHandler) initProxy() {
 			if project, _ := org.ProjectFromContext(req.Context()); project != nil {
 				req.Header.Set("uptrace-project-id", strconv.Itoa(int(project.ID)))
 			}
+			req.Header.Del("Origin")
+		},
+		ModifyResponse: func(resp *http.Response) error {
+			resp.Header.Del("access-control-allow-origin")
+			return nil
 		},
 		ErrorLog: errorLogger,
 	}
