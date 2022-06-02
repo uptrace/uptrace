@@ -28,6 +28,7 @@
             auto-grow
             autofocus
             hide-details="auto"
+            spellcheck="false"
             @keyup.enter.stop.prevent
             @keydown.enter.stop.prevent="exitRawMode(true)"
             @keydown.esc.stop.prevent="exitRawMode(false)"
