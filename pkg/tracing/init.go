@@ -3,6 +3,7 @@ package tracing
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/uptrace/bunrouter"
@@ -65,6 +66,29 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	router.WithGroup("/api/v2", func(g *bunrouter.Group) {
 		g.POST("/spans", zipkinHandler.PostSpans)
 	})
+
+	router.
+		Use(func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
+			return func(w http.ResponseWriter, req bunrouter.Request) error {
+				dsn := req.Header.Get("uptrace-dsn")
+				if dsn == "" {
+					return next(w, req)
+				}
+				if project, _ := org.SelectProjectByDSN(ctx, app, dsn); project != nil {
+					req.Header.Set("uptrace-project-id", strconv.Itoa(int(project.ID)))
+				}
+
+				return next(w, req)
+			}
+		}).
+		WithGroup("/loki/api", func(g *bunrouter.Group) {
+			g.GET("/v1/tail", lokiProxyHandler.ProxyWS)
+
+			g.GET("/*path", lokiProxyHandler.Proxy)
+			g.POST("/*path", lokiProxyHandler.Proxy)
+			g.PUT("/*path", lokiProxyHandler.Proxy)
+			g.DELETE("/*path", lokiProxyHandler.Proxy)
+		})
 
 	router.
 		Use(authMiddleware).
