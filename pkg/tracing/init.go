@@ -2,7 +2,9 @@ package tracing
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/uptrace/bunrouter"
@@ -67,6 +69,27 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	})
 
 	router.
+		Use(func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
+			return func(w http.ResponseWriter, req bunrouter.Request) error {
+				dsn := req.Header.Get("uptrace-dsn")
+				if dsn == "" {
+					return errors.New("uptrace-dsn header is required")
+				}
+
+				project, err := org.SelectProjectByDSN(ctx, app, dsn)
+				if err != nil {
+					return err
+				}
+
+				req.Header.Set("uptrace-project-id", strconv.Itoa(int(project.ID)))
+				return next(w, req)
+			}
+		}).
+		WithGroup("/loki/api", func(g *bunrouter.Group) {
+			registerLokiProxy(g, lokiProxyHandler)
+		})
+
+	router.
 		Use(authMiddleware).
 		Use(func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 			cleanPath := func(path, projectID string) string {
@@ -82,12 +105,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			}
 		}).
 		WithGroup("/:project_id/loki/api", func(g *bunrouter.Group) {
-			g.GET("/v1/tail", lokiProxyHandler.ProxyWS)
-
-			g.GET("/*path", lokiProxyHandler.Proxy)
-			g.POST("/*path", lokiProxyHandler.Proxy)
-			g.PUT("/*path", lokiProxyHandler.Proxy)
-			g.DELETE("/*path", lokiProxyHandler.Proxy)
+			registerLokiProxy(g, lokiProxyHandler)
 		})
 
 	api.GET("/traces/search", traceHandler.FindTrace)
@@ -135,4 +153,13 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			},
 		})
 	})
+}
+
+func registerLokiProxy(g *bunrouter.Group, lokiProxyHandler *LokiProxyHandler) {
+	g.GET("/v1/tail", lokiProxyHandler.ProxyWS)
+
+	g.GET("/*path", lokiProxyHandler.Proxy)
+	g.POST("/*path", lokiProxyHandler.Proxy)
+	g.PUT("/*path", lokiProxyHandler.Proxy)
+	g.DELETE("/*path", lokiProxyHandler.Proxy)
 }
