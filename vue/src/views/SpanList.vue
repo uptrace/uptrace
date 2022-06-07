@@ -31,6 +31,7 @@
                 :date-range="dateRange"
                 :loading="spans.loading"
                 :spans="spans.items"
+                :is-event="systems.isEvent"
                 :order="spans.order"
                 :pager="spans.pager"
                 :system="systems.activeValue"
@@ -120,8 +121,6 @@ export default defineComponent({
       },
       {
         order: {
-          column: xkey.spanDuration,
-          desc: true,
           syncQuery: true,
         },
       },

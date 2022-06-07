@@ -14,6 +14,7 @@ export interface Span {
   name: string
   eventName?: string
   kind: string
+  standalone?: boolean
 
   statusCode: string
   statusMessage: string

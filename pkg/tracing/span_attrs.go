@@ -11,7 +11,10 @@ import (
 	ua "github.com/mileusna/useragent"
 	"github.com/uptrace/uptrace/pkg/logparser"
 	"github.com/uptrace/uptrace/pkg/sqlparser"
+	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/tracing/xotel"
+	"github.com/uptrace/uptrace/pkg/uuid"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
@@ -47,23 +50,36 @@ func newSpanContext(ctx context.Context) *spanContext {
 }
 
 func initSpan(ctx *spanContext, span *Span) {
+	initSpanAttrs(ctx, span)
+
 	if span.Attrs.ServiceName() == "" {
 		span.Attrs[xattr.ServiceName] = "unknown_service"
 	}
 	if span.Attrs.HostName() == "" {
 		span.Attrs[xattr.HostName] = "unknown_host"
 	}
-	if s, _ := span.Attrs[xattr.HTTPUserAgent].(string); s != "" {
-		initHTTPUserAgent(span.Attrs, s)
-	}
 
-	assignSpanSystemAndGroupID(ctx, span)
-	if span.Name == "" {
-		span.Name = "<empty>"
+	if span.EventName != "" {
+		assignEventSystemAndGroupID(ctx, span)
+	} else {
+		assignSpanSystemAndGroupID(ctx, span)
+		if span.Name == "" {
+			span.Name = "<empty>"
+		}
 	}
 }
 
-func initHTTPUserAgent(attrs AttrMap, str string) {
+func initSpanAttrs(ctx *spanContext, span *Span) {
+	if s, _ := span.Attrs[xattr.HTTPUserAgent].(string); s != "" {
+		initHTTPUserAgent(span.Attrs, s)
+	}
+	if msg, ok := span.Attrs[xattr.LogMessage].(string); ok {
+		initLogMessage(ctx, span, msg)
+	}
+	initLogSeverity(span.Attrs)
+}
+
+func initHTTPUserAgent(attrs xotel.AttrMap, str string) {
 	agent := ua.Parse(str)
 
 	if agent.Name != "" {
@@ -88,6 +104,199 @@ func initHTTPUserAgent(attrs AttrMap, str string) {
 		attrs[xattr.HTTPUserAgentBot] = 1
 	}
 }
+
+//------------------------------------------------------------------------------
+
+func initLogMessage(ctx *spanContext, span *Span, msg string) {
+	if msg == "" {
+		delete(span.Attrs, xattr.LogMessage)
+		return
+	}
+
+	if m, ok := logparser.IsJSON(msg); ok {
+		// Delete the attribute so we can override the message.
+		delete(span.Attrs, xattr.LogMessage)
+
+		spanFromJSONLog(span, m)
+
+		if s, ok := span.Attrs[xattr.LogMessage].(string); ok {
+			msg = s
+		} else {
+			// Restore the attribute.
+			span.Attrs[xattr.LogMessage] = msg
+		}
+	}
+
+	hash, params := messageHashAndParams(ctx, msg)
+	span.logMessageHash = hash
+
+	for k, v := range params {
+		span.Attrs.SetDefault(k, v)
+	}
+
+	promoteLogParamsToSpan(span, params)
+}
+
+func spanFromJSONLog(span *Span, src xotel.AttrMap) {
+	attrs := span.Attrs
+	for key, value := range src {
+		switch key {
+		case "level", "severity":
+			if s, _ := value.(string); s != "" {
+				attrs.SetDefault(xattr.LogSeverity, s)
+			}
+		case "message", "msg":
+			if s, _ := value.(string); s != "" {
+				attrs.SetDefault(xattr.LogMessage, s)
+			}
+		case "time":
+			if tm := anyconv.Time(value); !tm.IsZero() {
+				span.Time = tm
+			}
+		case "trace_id", "traceid":
+			span.TraceID = anyconv.UUID(value)
+		case "span_id", "spanid":
+			span.ParentID = anyconv.Uint64(value)
+		case "service":
+			if s, _ := value.(string); s != "" {
+				attrs.SetDefault(xattr.ServiceName, s)
+			}
+		case "host", "hostname":
+			if s, _ := value.(string); s != "" {
+				attrs.SetDefault(xattr.HostName, s)
+			}
+		case "logger":
+			if s, _ := value.(string); s != "" {
+				attrs.SetDefault(xattr.LogSource, s)
+			}
+		default:
+			attrs.SetDefault(key, value)
+		}
+	}
+}
+
+func promoteLogParamsToSpan(span *Span, params map[string]any) {
+	if span.TraceID.IsZero() {
+		traceID := anyconv.UUID(params["trace_id"])
+		if traceID.IsZero() {
+			// Standalone span.
+			span.TraceID = uuid.Rand()
+			span.ParentID = 0
+			span.Standalone = true
+			return
+		}
+		span.TraceID = traceID
+	}
+
+	if span.ParentID == 0 {
+		if id := span.Attrs.Uint64("span_id"); id != 0 {
+			span.ParentID = id
+		} else {
+			// Assign random ID and handle it when assembling the trace tree.
+			// Otherwise, the span will be treated as a root.
+			span.ParentID = rand.Uint64()
+		}
+	}
+}
+
+func initLogSeverity(attrs xotel.AttrMap) {
+	if found, ok := attrs[xattr.LogSeverity].(string); ok {
+		if normalized := normalizeLogSeverity(found); normalized != "" {
+			if normalized != found {
+				attrs[xattr.LogSeverity] = normalized
+			}
+			return
+		}
+		// We can't normalize the severity. Set the default.
+		attrs[xattr.LogSeverity] = xotel.InfoSeverity
+	}
+
+	if attrs.Has(xattr.LogSeverityNumber) {
+		num := attrs.Uint64(xattr.LogSeverityNumber)
+		if sev := logSeverityFromNumber(num); sev != "" {
+			attrs[xattr.LogSeverity] = sev
+			return
+		}
+	}
+}
+
+func normalizeLogSeverity(s string) string {
+	if s := _normalizeLogSeverity(s); s != "" {
+		return s
+	}
+	return _normalizeLogSeverity(strings.ToLower(s))
+}
+
+func _normalizeLogSeverity(s string) string {
+	switch s {
+	case "trace":
+		return xotel.TraceSeverity
+	case "debug":
+		return xotel.DebugSeverity
+	case "info", "information":
+		return xotel.InfoSeverity
+	case "warn", "warning":
+		return xotel.WarnSeverity
+	case "error", "err", "alert":
+		return xotel.ErrorSeverity
+	case "fatal", "crit", "critical", "emerg", "emergency", "panic":
+		return xotel.FatalSeverity
+	default:
+		return ""
+	}
+}
+
+func logSeverityFromNumber(n uint64) string {
+	switch {
+	case n == 0:
+		return ""
+	case n <= 4:
+		return xotel.TraceSeverity
+	case n <= 8:
+		return xotel.DebugSeverity
+	case n <= 12:
+		return xotel.InfoSeverity
+	case n <= 16:
+		return xotel.WarnSeverity
+	case n <= 20:
+		return xotel.ErrorSeverity
+	case n <= 24:
+		return xotel.FatalSeverity
+	}
+	return ""
+}
+
+func messageHashAndParams(
+	ctx *spanContext, msg string,
+) (uint64, map[string]any) {
+	digest := ctx.digest
+	digest.Reset()
+
+	var params map[string]any
+
+	tok := logparser.NewTokenizer(msg)
+loop:
+	for {
+		tok := tok.NextToken()
+		switch tok.Type {
+		case logparser.InvalidToken:
+			break loop
+		case logparser.WordToken:
+			digest.WriteString(tok.Text)
+		case logparser.ParamToken:
+			if k, v, ok := logparser.IsLogfmt(tok.Text); ok {
+				if params == nil {
+					params = make(map[string]any)
+				}
+				params[k] = v
+			}
+		}
+	}
+
+	return digest.Sum64(), params
+}
+
+//------------------------------------------------------------------------------
 
 func newSpanLink(link *tracepb.Span_Link) *SpanLink {
 	return &SpanLink{
@@ -228,6 +437,7 @@ func initSpanEvent(ctx *spanContext, dest *Span, hostSpan *Span) {
 	dest.Duration = hostSpan.Duration
 	dest.StatusCode = hostSpan.StatusCode
 
+	initSpanAttrs(ctx, dest)
 	assignEventSystemAndGroupID(ctx, dest)
 }
 
@@ -236,7 +446,7 @@ func assignEventSystemAndGroupID(ctx *spanContext, span *Span) {
 	case logEventType:
 		sev, _ := span.Attrs[xattr.LogSeverity].(string)
 		if sev == "" {
-			sev = "INFO"
+			sev = xotel.InfoSeverity
 		}
 
 		span.System = logEventType + ":" + strings.ToLower(sev)
@@ -246,11 +456,11 @@ func assignEventSystemAndGroupID(ctx *spanContext, span *Span) {
 				xattr.LogSource,
 				xattr.LogFilepath,
 			)
-			if s, _ := span.Attrs[xattr.LogMessage].(string); s != "" {
-				hashMessage(ctx.digest, s)
+			if span.logMessageHash != 0 {
+				digest.WriteString(fmt.Sprint(span.logMessageHash))
 			}
 		})
-		span.EventName = spanLogEventName(span)
+		span.EventName = logEventName(span)
 		return
 	case exceptionEventType, errorEventType:
 		span.System = exceptionEventType
@@ -289,9 +499,10 @@ func assignEventSystemAndGroupID(ctx *spanContext, span *Span) {
 	}
 }
 
-func spanLogEventName(span *Span) string {
+func logEventName(span *Span) string {
 	if msg, _ := span.Attrs[xattr.LogMessage].(string); msg != "" {
-		if sev, _ := span.Attrs[xattr.LogSeverity].(string); sev != "" {
+		sev, _ := span.Attrs[xattr.LogSeverity].(string)
+		if sev != "" && !strings.HasPrefix(msg, sev) {
 			msg = sev + " " + msg
 		}
 		return msg

@@ -1,12 +1,12 @@
 package tracing
 
 import (
-	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strconv"
 	"time"
 
+	"github.com/segmentio/encoding/json"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/utf8string"
 )

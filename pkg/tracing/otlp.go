@@ -10,13 +10,14 @@ import (
 	"time"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"go.uber.org/zap"
 )
 
-func initSpanFromOTLP(dest *Span, resource AttrMap, src *tracepb.Span) {
+func initSpanFromOTLP(dest *Span, resource xotel.AttrMap, src *tracepb.Span) {
 	dest.ID = otlpSpanID(src.SpanId)
 	dest.ParentID = otlpSpanID(src.ParentSpanId)
 	dest.TraceID = otlpTraceID(src.TraceId)
@@ -31,7 +32,7 @@ func initSpanFromOTLP(dest *Span, resource AttrMap, src *tracepb.Span) {
 		dest.StatusMessage = src.Status.Message
 	}
 
-	dest.Attrs = make(AttrMap, len(resource)+len(src.Attributes))
+	dest.Attrs = make(xotel.AttrMap, len(resource)+len(src.Attributes))
 	for k, v := range resource {
 		dest.Attrs[k] = v
 	}
@@ -53,7 +54,7 @@ func newSpanFromOTLPEvent(event *tracepb.Span_Event) *Span {
 	span.EventName = event.Name
 	span.Time = time.Unix(0, int64(event.TimeUnixNano))
 
-	span.Attrs = make(AttrMap, len(event.Attributes))
+	span.Attrs = make(xotel.AttrMap, len(event.Attributes))
 	otlpSetAttrs(span.Attrs, event.Attributes)
 
 	return span
@@ -116,14 +117,6 @@ func otlpTraceID(b []byte) uuid.UUID {
 	return u
 }
 
-const (
-	internalSpanKind = "internal"
-	serverSpanKind   = "server"
-	clientSpanKind   = "client"
-	producerSpanKind = "producer"
-	consumerSpanKind = "consumer"
-)
-
 func otlpSpanKind(kind tracepb.Span_SpanKind) string {
 	switch kind {
 	case tracepb.Span_SPAN_KIND_SERVER:
@@ -138,11 +131,6 @@ func otlpSpanKind(kind tracepb.Span_SpanKind) string {
 	return internalSpanKind
 }
 
-const (
-	okStatusCode    = "ok"
-	errorStatusCode = "error"
-)
-
 func otlpStatusCode(code tracepb.Status_StatusCode) string {
 	switch code {
 	case tracepb.Status_STATUS_CODE_ERROR:
@@ -152,13 +140,13 @@ func otlpStatusCode(code tracepb.Status_StatusCode) string {
 	}
 }
 
-func otlpAttrs(kvs []*commonpb.KeyValue) AttrMap {
-	dest := make(AttrMap, len(kvs))
+func otlpAttrs(kvs []*commonpb.KeyValue) xotel.AttrMap {
+	dest := make(xotel.AttrMap, len(kvs))
 	otlpSetAttrs(dest, kvs)
 	return dest
 }
 
-func otlpSetAttrs(dest AttrMap, kvs []*commonpb.KeyValue) {
+func otlpSetAttrs(dest xotel.AttrMap, kvs []*commonpb.KeyValue) {
 	for _, kv := range kvs {
 		if kv == nil || kv.Value == nil {
 			continue
@@ -281,7 +269,7 @@ func toOTLPSpanKind(s string) tracepb.Span_SpanKind {
 	}
 }
 
-func toOTLPAttributes(m AttrMap) []*commonpb.KeyValue {
+func toOTLPAttributes(m xotel.AttrMap) []*commonpb.KeyValue {
 	kvs := make([]*commonpb.KeyValue, 0, len(m))
 	for k, v := range m {
 		if av := toOTLPAnyValue(v); av != nil {

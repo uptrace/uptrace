@@ -14,10 +14,6 @@ type Token struct {
 	Text string
 }
 
-func newToken(typ TokenType, text string) Token {
-	return Token{Type: typ, Text: text}
-}
-
 type Tokenizer struct {
 	s   string
 	lex Lexer
@@ -35,6 +31,10 @@ func (t *Tokenizer) NextToken() Token {
 	c := t.lex.NextByte()
 	if c == 0 {
 		return Token{}
+	}
+
+	if isWhitespace(c) {
+		return t.NextToken()
 	}
 
 	switch c {
@@ -70,7 +70,7 @@ loop:
 			continue loop
 		}
 
-		if t.isWordSep(c) {
+		if t.isWordBoundary(c) {
 			t.lex.Rewind()
 			break
 		}
@@ -79,7 +79,7 @@ loop:
 	return s
 }
 
-func (t *Tokenizer) isWordSep(c byte) bool {
+func (t *Tokenizer) isWordBoundary(c byte) bool {
 	if isWhitespace(c) {
 		return true
 	}
@@ -103,12 +103,13 @@ func isWhitespace(c byte) bool {
 	}
 }
 
-func isDigit(c byte) bool {
-	return c >= '0' && c <= '9'
-}
-
-func isAlpha(c byte) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+func isIdent(s string) bool {
+	for _, c := range []byte(s) {
+		if !(isAlpha(c) || isDigit(c) || c == '.') {
+			return false
+		}
+	}
+	return true
 }
 
 func isWord(s string) bool {
@@ -118,4 +119,12 @@ func isWord(s string) bool {
 		}
 	}
 	return true
+}
+
+func isDigit(c byte) bool {
+	return c >= '0' && c <= '9'
+}
+
+func isAlpha(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
