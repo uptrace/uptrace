@@ -121,6 +121,7 @@ var serveCommand = &cli.Command{
 		handler := app.HTTPHandler()
 		handler = gzhttp.GzipHandler(handler)
 		handler = httputil.DecompressHandler{Next: handler}
+		handler = httputil.NewTraceparentHandler(handler)
 		handler = otelhttp.NewHandler(handler, "")
 		handler = cors.AllowAll().Handler(handler)
 		handler = httputil.PanicHandler{Next: handler}
