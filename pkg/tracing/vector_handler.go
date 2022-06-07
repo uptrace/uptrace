@@ -32,8 +32,7 @@ type VectorHandler struct {
 func NewVectorHandler(app *bunapp.App, sp *SpanProcessor) *VectorHandler {
 	return &VectorHandler{
 		App: app,
-
-		sp: sp,
+		sp:  sp,
 	}
 }
 
