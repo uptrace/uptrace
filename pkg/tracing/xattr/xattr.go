@@ -75,10 +75,11 @@ const (
 	NetHostPort          = "net.host.port"
 	NetHostName          = "net.host.name"
 
-	LogMessage  = "log.message"
-	LogSeverity = "log.severity"
-	LogSource   = "log.source"
-	LogFilepath = "log.filepath"
+	LogMessage        = "log.message"
+	LogSeverity       = "log.severity"
+	LogSeverityNumber = "log.severity_number"
+	LogSource         = "log.source"
+	LogFilepath       = "log.filepath"
 
 	ExceptionType       = "exception.type"
 	ExceptionMessage    = "exception.message"

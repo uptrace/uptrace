@@ -9,7 +9,7 @@
             <span>{{ col }}</span>
           </ThOrder>
           <ThOrder :value="xkey.spanTime" :order="order">Time</ThOrder>
-          <ThOrder :value="xkey.spanDuration" :order="order" align="end">
+          <ThOrder v-if="!isEvent" :value="xkey.spanDuration" :order="order" align="end">
             <span>Dur.</span>
           </ThOrder>
         </tr>
@@ -43,7 +43,7 @@
               />
             </td>
             <td class="text-no-wrap"><XDate :date="span.time" format="relative" /></td>
-            <td class="text-right">
+            <td v-if="!isEvent" class="text-right">
               <XDuration :duration="span.duration" fixed />
             </td>
           </tr>
@@ -106,6 +106,10 @@ export default defineComponent({
     spans: {
       type: Array as PropType<Span[]>,
       required: true,
+    },
+    isEvent: {
+      type: Boolean,
+      default: false,
     },
     pager: {
       type: Object as PropType<UsePager>,

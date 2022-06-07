@@ -1,10 +1,11 @@
-package tracing
+package xotel
 
 import (
-	"encoding/json"
 	"strconv"
 	"time"
 
+	"github.com/segmentio/encoding/json"
+	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 )
 
@@ -47,27 +48,11 @@ func (m AttrMap) Int64(key string) int64 {
 }
 
 func (m AttrMap) Uint64(key string) uint64 {
-	switch v := m[key].(type) {
-	case uint64:
-		return v
-	case json.Number:
-		n, _ := strconv.ParseUint(string(v), 10, 64)
-		return n
-	default:
-		return 0
-	}
+	return anyconv.Uint64(m[key])
 }
 
 func (m AttrMap) Time(key string) time.Time {
-	switch v := m[key].(type) {
-	case time.Time:
-		return v
-	case string:
-		tm, _ := time.Parse(time.RFC3339Nano, v)
-		return tm
-	default:
-		return time.Time{}
-	}
+	return anyconv.Time(m[key])
 }
 
 func (m AttrMap) Duration(key string) time.Duration {

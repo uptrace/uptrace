@@ -2,13 +2,14 @@ package httperror
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"reflect"
 	"strconv"
+
+	"github.com/segmentio/encoding/json"
 )
 
 type Error struct {

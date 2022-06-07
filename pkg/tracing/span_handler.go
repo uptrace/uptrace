@@ -139,7 +139,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		ColumnExpr("sum(`span.count`) / ? AS rate", minutes).
 		ColumnExpr("toStartOfInterval(`span.time`, INTERVAL ? minute) AS time", minutes).
 		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
-			if f.IsEvent() {
+			if isEventSystem(f.System) {
 				return q
 			}
 			return q.ColumnExpr("sumIf(`span.count`, `span.status_code` = 'error') AS errorCount").
@@ -159,7 +159,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		ColumnExpr("groupArray(rate) AS rate").
 		ColumnExpr("groupArray(time) AS time").
 		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
-			if f.IsEvent() {
+			if isEventSystem(f.System) {
 				return q
 			}
 			return q.ColumnExpr("groupArray(errorCount) AS errorCount").

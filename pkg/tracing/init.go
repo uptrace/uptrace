@@ -44,7 +44,6 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	traceHandler := NewTraceHandler(app)
 	suggestionHandler := NewSuggestionHandler(app)
 	tempoHandler := NewTempoHandler(app)
-	zipkinHandler := NewZipkinHandler(app, sp)
 	lokiProxyHandler := NewLokiProxyHandler(app)
 	authMiddleware := org.NewAuthMiddleware(app)
 
@@ -65,7 +64,15 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 
 	// https://zipkin.io/zipkin-api/#/default/post_spans
 	router.WithGroup("/api/v2", func(g *bunrouter.Group) {
+		zipkinHandler := NewZipkinHandler(app, sp)
+
 		g.POST("/spans", zipkinHandler.PostSpans)
+	})
+
+	router.WithGroup("/api/v1", func(g *bunrouter.Group) {
+		vectorHandler := NewVectorHandler(app, sp)
+
+		g.POST("/vector-logs", vectorHandler.Create)
 	})
 
 	router.

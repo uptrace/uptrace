@@ -3,12 +3,12 @@ package urlstruct
 import (
 	"database/sql"
 	"encoding"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
 	"time"
 
+	"github.com/segmentio/encoding/json"
 	"github.com/vmihailenco/tagparser"
 )
 

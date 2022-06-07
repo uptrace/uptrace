@@ -85,7 +85,7 @@ export function useSystems(dateRange: UseDateRange) {
   })
 
   const isEvent = computed((): boolean => {
-    return system.value?.isEvent ?? false
+    return isEventSystem(systemValue.value)
   })
 
   function axiosParams() {

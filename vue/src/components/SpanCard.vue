@@ -52,7 +52,7 @@
           <XDate v-if="span.time" :date="span.time" format="full" />
         </v-col>
 
-        <v-col cols="auto">
+        <v-col v-if="span.duration > 0" cols="auto">
           <div class="grey--text font-weight-regular">Duration</div>
           <XDuration :duration="span.duration" fixed />
         </v-col>
@@ -138,7 +138,7 @@ import FixedDatePeriodPicker from '@/components/FixedDatePeriodPicker.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
-import { spanName, Span } from '@/models/span'
+import { spanName, eventOrSpanName, Span } from '@/models/span'
 
 interface Props {
   dateRange: UseDateRange
@@ -221,7 +221,7 @@ function useMeta(props: Props) {
   const { route } = useRouter()
 
   const traceRoute = computed(() => {
-    if (!props.span.traceId) {
+    if (props.span.standalone) {
       return null
     }
     if (route.value.name === 'TraceShow' && route.value.params.traceId === props.span.traceId) {
@@ -263,7 +263,7 @@ function useMeta(props: Props) {
     })
 
     bs.push({
-      text: truncate(props.span.name, { length: 50 }),
+      text: truncate(eventOrSpanName(props.span), { length: 50 }),
       to: {
         name: props.groupListRoute,
         query: {

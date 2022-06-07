@@ -5,11 +5,11 @@ import (
 	"database/sql/driver"
 	"encoding"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
 
+	"github.com/segmentio/encoding/json"
 	"golang.org/x/exp/rand"
 )
 

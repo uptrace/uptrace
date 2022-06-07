@@ -2,10 +2,10 @@ package org
 
 import (
 	"database/sql"
-	"encoding/json"
 	"net/http"
 	"time"
 
+	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
