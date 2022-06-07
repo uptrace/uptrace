@@ -8,7 +8,7 @@
             <SystemPicker
               :date-range="dateRange"
               :systems="systems"
-              :tree="systems.tree"
+              :items="systems.items"
               route-name="HostOverview"
               outlined
             />

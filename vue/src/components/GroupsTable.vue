@@ -227,7 +227,7 @@ export default defineComponent({
     })
 
     const showSystemColumn = computed((): boolean => {
-      return isDummySystem(props.systems.activeValue) && hasColumn(xkey.spanSystem)
+      return isDummySystem(props.systems.activeSystem) && hasColumn(xkey.spanSystem)
     })
 
     const hasTimeColumn = computed(() => {
