@@ -275,6 +275,18 @@ func tempoAnyValue(v any) *commonpb.AnyValue {
 				},
 			},
 		}
+	case []any:
+		values := make([]*commonpb.AnyValue, len(v))
+		for i, el := range v {
+			values[i] = tempoAnyValue(fmt.Sprint(el))
+		}
+		return &commonpb.AnyValue{
+			Value: &commonpb.AnyValue_ArrayValue{
+				ArrayValue: &commonpb.ArrayValue{
+					Values: values,
+				},
+			},
+		}
 	default:
 		otelzap.L().Error("unsupported attribute type",
 			zap.String("type", reflect.TypeOf(v).String()))

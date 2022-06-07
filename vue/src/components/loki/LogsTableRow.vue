@@ -1,7 +1,7 @@
 <template>
   <div v-frag>
     <tr class="cursor-pointer" @click="expanded = !expanded">
-      <td class="pa-0">
+      <td>
         <div class="d-flex align-center">
           <div class="mr-2 severity" :class="severityColor"></div>
           <div class="mr-1">
