@@ -2,14 +2,14 @@
   <v-menu v-model="menu" offset-y>
     <template #activator="{ on }">
       <v-btn style="text-transform: none" v-bind="attrs" v-on="on">
-        <span class="px-4">{{ systems.activeValue || 'Choose system' }}</span>
+        <span class="px-4">{{ systems.activeSystem || 'Choose system' }}</span>
         <v-icon right size="24">mdi-menu-down</v-icon>
       </v-btn>
     </template>
 
     <SystemList
       :date-range="dateRange"
-      :items="tree"
+      :items="systemsTree"
       :max-height="maxHeight"
       @click:item="menu = false"
     />
@@ -17,12 +17,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed, watch, PropType } from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, watchEffect, PropType } from '@vue/composition-api'
 
 // Composables
 import { useQuery } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { UseSystems, SystemTree } from '@//use/systems'
+import { buildSystemsTree, UseSystems, System } from '@/use/systems'
 
 // Components
 import SystemList from '@/components/SystemList.vue'
@@ -40,13 +40,13 @@ export default defineComponent({
       type: Object as PropType<UseSystems>,
       required: true,
     },
+    items: {
+      type: Array as PropType<System[]>,
+      required: true,
+    },
     outlined: {
       type: Boolean,
       default: false,
-    },
-    tree: {
-      type: Array as PropType<SystemTree[]>,
-      required: true,
     },
     maxHeight: {
       type: Number,
@@ -64,6 +64,14 @@ export default defineComponent({
       return { dark: true, class: 'blue darken-1 elevation-5' }
     })
 
+    const systemsTree = computed(() => {
+      const tree = buildSystemsTree(props.items)
+      if (tree.length === 1 && tree[0].children) {
+        return props.items
+      }
+      return tree
+    })
+
     useQuery().sync({
       fromQuery(query) {
         if (typeof query.system === 'string') {
@@ -73,28 +81,22 @@ export default defineComponent({
         }
       },
       toQuery() {
-        if (props.systems.activeValue) {
-          return { system: props.systems.activeValue }
+        if (props.systems.activeSystem) {
+          return { system: props.systems.activeSystem }
         }
       },
     })
 
-    watch(
-      () => props.systems.list,
-      () => {
-        if (props.systems.activeItem) {
-          return
-        }
+    watchEffect(() => {
+      if (props.systems.activeSystem) {
+        return
+      }
+      if (props.items.length) {
+        props.systems.change(props.items[0].system)
+      }
+    })
 
-        if (props.systems.list.length) {
-          props.systems.change(props.systems.list[0].system)
-          return
-        }
-      },
-      { immediate: true },
-    )
-
-    return { menu, attrs }
+    return { menu, attrs, systemsTree }
   },
 })
 </script>

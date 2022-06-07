@@ -53,7 +53,7 @@ import { defineComponent, PropType } from '@vue/composition-api'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { SystemTree } from '@/use/systems'
+import { SystemTreeNode } from '@/use/systems'
 
 export default defineComponent({
   name: 'SystemList',
@@ -64,7 +64,7 @@ export default defineComponent({
       required: true,
     },
     items: {
-      type: Array as PropType<SystemTree[]>,
+      type: Array as PropType<SystemTreeNode[]>,
       required: true,
     },
     maxHeight: {
