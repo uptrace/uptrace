@@ -49,12 +49,9 @@ func ContextWithUser(ctx context.Context, user *bunapp.User) context.Context {
 	return context.WithValue(ctx, userCtxKey{}, user)
 }
 
-func ProjectFromContext(ctx context.Context) (*bunapp.Project, error) {
-	project, ok := ctx.Value(projectCtxKey{}).(*bunapp.Project)
-	if !ok {
-		return nil, ErrUnauthorized
-	}
-	return project, nil
+func ProjectFromContext(ctx context.Context) *bunapp.Project {
+	project, _ := ctx.Value(projectCtxKey{}).(*bunapp.Project)
+	return project
 }
 
 func ContextWithProject(ctx context.Context, project *bunapp.Project) context.Context {

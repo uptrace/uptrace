@@ -2,10 +2,7 @@ package tracing
 
 import (
 	"context"
-	"errors"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -43,14 +40,14 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	spanHandler := NewSpanHandler(app)
 	traceHandler := NewTraceHandler(app)
 	suggestionHandler := NewSuggestionHandler(app)
-	tempoHandler := NewTempoHandler(app)
-	lokiProxyHandler := NewLokiProxyHandler(app)
 	authMiddleware := org.NewAuthMiddleware(app)
 
 	api := app.APIGroup()
 
 	// https://grafana.com/docs/tempo/latest/api_docs/
 	router.WithGroup("", func(g *bunrouter.Group) {
+		tempoHandler := NewTempoHandler(app)
+
 		g.GET("/ready", tempoHandler.Ready)
 		g.GET("/api/echo", tempoHandler.Echo)
 
@@ -75,45 +72,22 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 		g.POST("/vector-logs", vectorHandler.Create)
 	})
 
-	router.
-		Use(func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
-			return func(w http.ResponseWriter, req bunrouter.Request) error {
-				dsn := req.Header.Get("uptrace-dsn")
-				if dsn == "" {
-					return errors.New("uptrace-dsn header is required")
-				}
+	{
+		lokiProxyHandler := NewLokiProxyHandler(app, sp)
 
-				project, err := org.SelectProjectByDSN(ctx, app, dsn)
-				if err != nil {
-					return err
-				}
+		router.
+			Use(lokiProxyHandler.checkProjectAccess).
+			WithGroup("/loki/api", func(g *bunrouter.Group) {
+				registerLokiProxy(g, lokiProxyHandler)
+			})
 
-				req.Header.Set("uptrace-project-id", strconv.Itoa(int(project.ID)))
-				return next(w, req)
-			}
-		}).
-		WithGroup("/loki/api", func(g *bunrouter.Group) {
-			registerLokiProxy(g, lokiProxyHandler)
-		})
-
-	router.
-		Use(authMiddleware).
-		Use(func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
-			cleanPath := func(path, projectID string) string {
-				path = strings.TrimPrefix(path, "/"+projectID+"/loki/api/")
-				return "/loki/api/" + path
-			}
-
-			return func(w http.ResponseWriter, req bunrouter.Request) error {
-				projectID := req.Params().ByName("project_id")
-				req.URL.Path = cleanPath(req.URL.Path, projectID)
-				req.URL.RawPath = cleanPath(req.URL.RawPath, projectID)
-				return next(w, req)
-			}
-		}).
-		WithGroup("/:project_id/loki/api", func(g *bunrouter.Group) {
-			registerLokiProxy(g, lokiProxyHandler)
-		})
+		router.
+			Use(lokiProxyHandler.checkProjectAccess).
+			Use(lokiProxyHandler.trimProjectID).
+			WithGroup("/:project_id/loki/api", func(g *bunrouter.Group) {
+				registerLokiProxy(g, lokiProxyHandler)
+			})
+	}
 
 	api.GET("/traces/search", traceHandler.FindTrace)
 
@@ -164,6 +138,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 
 func registerLokiProxy(g *bunrouter.Group, lokiProxyHandler *LokiProxyHandler) {
 	g.GET("/v1/tail", lokiProxyHandler.ProxyWS)
+	g.POST("/v1/push", lokiProxyHandler.Push)
 
 	g.GET("/*path", lokiProxyHandler.Proxy)
 	g.POST("/*path", lokiProxyHandler.Proxy)

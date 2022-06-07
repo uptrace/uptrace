@@ -1,28 +1,45 @@
 package tracing
 
 import (
+	"bytes"
+	"context"
+	"fmt"
+	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/segmentio/encoding/json"
 
 	"github.com/koding/websocketproxy"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	"go.uber.org/zap"
 )
 
 type LokiProxyHandler struct {
-	*bunapp.App
+	GrafanaBaseHandler
+
+	sp *SpanProcessor
+
 	proxy   *httputil.ReverseProxy
 	wsProxy *websocketproxy.WebsocketProxy
 }
 
-func NewLokiProxyHandler(app *bunapp.App) *LokiProxyHandler {
+func NewLokiProxyHandler(app *bunapp.App, sp *SpanProcessor) *LokiProxyHandler {
 	h := &LokiProxyHandler{
-		App: app,
+		GrafanaBaseHandler: GrafanaBaseHandler{
+			App: app,
+		},
+		sp: sp,
 	}
 	h.initProxy()
 	h.initWSProxy()
@@ -48,9 +65,10 @@ func (h *LokiProxyHandler) initProxy() {
 				// explicitly disable User-Agent so it's not set to default value
 				req.Header.Set("User-Agent", "")
 			}
-			if project, _ := org.ProjectFromContext(req.Context()); project != nil {
-				req.Header.Set("uptrace-project-id", strconv.Itoa(int(project.ID)))
-			}
+
+			project := org.ProjectFromContext(req.Context())
+			req.Header.Set("uptrace-project-id", strconv.Itoa(int(project.ID)))
+
 			req.Header.Del("Origin")
 		},
 		ModifyResponse: func(resp *http.Response) error {
@@ -74,15 +92,80 @@ func (h *LokiProxyHandler) initWSProxy() {
 			clone := *u
 			u := &clone
 
-			if project, _ := org.ProjectFromContext(req.Context()); project != nil {
-				query := u.Query()
-				query.Set("uptrace-project-id", strconv.Itoa(int(project.ID)))
-				u.RawQuery = query.Encode()
-			}
+			project := org.ProjectFromContext(req.Context())
+
+			query := u.Query()
+			query.Set("uptrace-project-id", strconv.Itoa(int(project.ID)))
+			u.RawQuery = query.Encode()
 
 			return u
 		},
 	}
+}
+
+type LokiStream struct {
+	Stream xotel.AttrMap     `json:"stream"`
+	Values []LokiStreamValue `json:"values"`
+}
+
+type LokiStreamValue []string
+
+func (h *LokiProxyHandler) Push(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+	project := org.ProjectFromContext(req.Context())
+
+	switch req.Header.Get("content-type") {
+	case "application/json", "":
+		// continue
+	default:
+		h.proxy.ServeHTTP(w, req.Request)
+		return nil
+	}
+
+	b, err := io.ReadAll(req.Body)
+	if err != nil {
+		return err
+	}
+	req.Body = io.NopCloser(bytes.NewReader(b))
+
+	if err := h.processStreams(ctx, project, b); err != nil {
+		h.Zap(ctx).Error("processStreams failed", zap.Error(err))
+	}
+
+	h.proxy.ServeHTTP(w, req.Request)
+	return nil
+}
+
+func (h *LokiProxyHandler) processStreams(
+	ctx context.Context, project *bunapp.Project, data []byte,
+) error {
+	var in struct {
+		Streams []LokiStream `json:"streams"`
+	}
+
+	if err := json.Unmarshal(data, &in); err != nil {
+		return err
+	}
+
+	p := &lokiLogProcessor{
+		ctx:     ctx,
+		app:     h.App,
+		sp:      h.sp,
+		project: project,
+	}
+	defer p.close()
+
+	for i := range in.Streams {
+		stream := &in.Streams[i]
+		spans := make([]Span, len(stream.Values))
+		for i, value := range stream.Values {
+			if err := p.processLogValue(&spans[i], stream.Stream, value); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (h *LokiProxyHandler) Proxy(w http.ResponseWriter, req bunrouter.Request) error {
@@ -94,6 +177,49 @@ func (h *LokiProxyHandler) ProxyWS(w http.ResponseWriter, req bunrouter.Request)
 	h.wsProxy.ServeHTTP(w, req.Request)
 	return nil
 }
+
+//------------------------------------------------------------------------------
+
+type lokiLogProcessor struct {
+	ctx context.Context
+	app *bunapp.App
+
+	sp      *SpanProcessor
+	project *bunapp.Project
+
+	logger *otelzap.Logger
+}
+
+func (p *lokiLogProcessor) close() {}
+
+func (p *lokiLogProcessor) processLogValue(
+	span *Span, resource xotel.AttrMap, value LokiStreamValue,
+) error {
+	if len(value) != 2 {
+		return fmt.Errorf("got %d values, expected 2", len(value))
+	}
+
+	span.ID = rand.Uint64()
+	span.ProjectID = p.project.ID
+	span.Kind = internalSpanKind
+	span.EventName = logEventType
+	span.StatusCode = okStatusCode
+	span.Attrs = resource.Clone()
+
+	ts, err := strconv.ParseInt(value[0], 10, 64)
+	if err != nil {
+		return err
+	}
+
+	span.Time = time.Unix(0, ts)
+	span.Attrs[xattr.LogMessage] = value[1]
+
+	p.sp.AddSpan(span)
+
+	return nil
+}
+
+//------------------------------------------------------------------------------
 
 // joinURLPath from golang.org/src/net/http/httputil/reverseproxy.go
 func joinURLPath(a, b *url.URL) (path, rawpath string) {
