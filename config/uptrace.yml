@@ -1,7 +1,7 @@
 # Enable to log HTTP requests and ClickHouse queries.
 debug: false
 
-# Secret key that is used to sign JWT tokens.
+# Secret key that is used to sign JWT tokens etc.
 secret_key: changeme
 
 # Public URL for Vue-powered UI.
@@ -12,21 +12,36 @@ site:
 listen:
   # OTLP/gRPC API
   grpc: ':14317'
-  # OTLP/HTTP API and Uptrace API
+  # OTLP/HTTP API and Uptrace HTTP API
   http: ':14318'
 
 ch:
-  # Connection string for ClickHouse database.
+  # Connection string for ClickHouse database. For example:
   # clickhouse://<user>:<password>@<host>:<port>/<database>?sslmode=disable
+  #
+  # See https://clickhouse.uptrace.dev/
   dsn: 'clickhouse://default:@localhost:9000/uptrace?sslmode=disable'
 
-retention:
-  # Tell ClickHouse to delete data after 30 days.
+# Various options to tweak ClickHouse schema.
+ch_schema:
+  # Compression codec, for example, LZ4 or ZSTD(3).
+  compression: Default
+
+  # Delete data after 30 days.
   # Supports SQL interval syntax, for example, INTERVAL 30 DAY.
   ttl: 30 DAY
 
-# Uncomment this section to require authentication.
-#
+  # Whether to create ReplicatedMergeTree instead of MergeTree.
+  replicated: false
+
+spans:
+  # The size of Go chan used to buffer incoming spans.
+  #buffer_size: 100000
+
+  # The number of spans to insert in a single query.
+  #batch_size: 10000
+
+# To require authentication, uncomment the following section.
 # users:
 #   - id: 1
 #     username: uptrace

@@ -22,12 +22,12 @@ type SpanProcessor struct {
 }
 
 func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
-	batchSize := scaleWithCPU(1000, 32000)
+	cfg := app.Config()
 	p := &SpanProcessor{
 		App: app,
 
-		batchSize: batchSize,
-		ch:        make(chan *Span, runtime.GOMAXPROCS(0)*batchSize),
+		batchSize: cfg.Spans.BatchSize,
+		ch:        make(chan *Span, cfg.Spans.BufferSize),
 		gate:      syncutil.NewGate(runtime.GOMAXPROCS(0)),
 
 		logger: app.ZapLogger(),

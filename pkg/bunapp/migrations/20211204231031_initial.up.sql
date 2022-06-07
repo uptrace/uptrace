@@ -1,65 +1,67 @@
 CREATE TABLE spans_index (
-  project_id UInt32 Codec(DoubleDelta, Default),
-  "span.system" LowCardinality(String),
-  "span.group_id" UInt64 Codec(Delta, Default),
+  project_id UInt32 Codec(DoubleDelta, ?CODEC),
+  "span.system" LowCardinality(String) Codec(?CODEC),
+  "span.group_id" UInt64 Codec(Delta, ?CODEC),
 
-  "span.trace_id" UUID,
-  "span.id" UInt64,
-  "span.parent_id" UInt64,
-  "span.name" LowCardinality(String),
-  "span.event_name" String,
-  "span.kind" LowCardinality(String),
-  "span.time" DateTime Codec(Delta, Default),
-  "span.duration" Int64 Codec(Delta, Default),
-  "span.count" Float32,
+  "span.trace_id" UUID Codec(?CODEC),
+  "span.id" UInt64 Codec(?CODEC),
+  "span.parent_id" UInt64 Codec(?CODEC),
+  "span.name" LowCardinality(String) Codec(?CODEC),
+  "span.event_name" String Codec(?CODEC),
+  "span.kind" LowCardinality(String) Codec(?CODEC),
+  "span.time" DateTime Codec(Delta, ?CODEC),
+  "span.duration" Int64 Codec(Delta, ?CODEC),
+  "span.count" Float32 Codec(?CODEC),
 
-  "span.status_code" LowCardinality(String),
-  "span.status_message" String,
+  "span.status_code" LowCardinality(String) Codec(?CODEC),
+  "span.status_message" String Codec(?CODEC),
 
-  "span.link_count" UInt8,
-  "span.event_count" UInt8,
-  "span.event_error_count" UInt8,
-  "span.event_log_count" UInt8,
+  "span.link_count" UInt8 Codec(?CODEC),
+  "span.event_count" UInt8 Codec(?CODEC),
+  "span.event_error_count" UInt8 Codec(?CODEC),
+  "span.event_log_count" UInt8 Codec(?CODEC),
 
-  attr_keys Array(LowCardinality(String)),
-  attr_values Array(String),
+  attr_keys Array(LowCardinality(String)) Codec(?CODEC),
+  attr_values Array(String) Codec(?CODEC),
 
-  "service.name" LowCardinality(String),
-  "host.name" LowCardinality(String),
+  "service.name" LowCardinality(String) Codec(?CODEC),
+  "host.name" LowCardinality(String) Codec(?CODEC),
 
-  "db.system" LowCardinality(String),
-  "db.statement" String,
-  "db.operation" LowCardinality(String),
-  "db.sql.table" LowCardinality(String),
+  "db.system" LowCardinality(String) Codec(?CODEC),
+  "db.statement" String Codec(?CODEC),
+  "db.operation" LowCardinality(String) Codec(?CODEC),
+  "db.sql.table" LowCardinality(String) Codec(?CODEC),
 
-  "log.severity" LowCardinality(String),
-  "log.message" String,
+  "log.severity" LowCardinality(String) Codec(?CODEC),
+  "log.message" String Codec(?CODEC),
 
-  "exception.type" LowCardinality(String),
-  "exception.message" String,
+  "exception.type" LowCardinality(String) Codec(?CODEC),
+  "exception.message" String Codec(?CODEC),
 
   INDEX idx_attr_keys attr_keys TYPE bloom_filter(0.01) GRANULARITY 8,
   INDEX idx_duration "span.duration" TYPE minmax GRANULARITY 1
 )
-ENGINE = MergeTree()
+ENGINE = ?(REPLICATED)MergeTree()
 ORDER BY (project_id, "span.system", "span.group_id", "span.time")
 PARTITION BY toDate("span.time")
 TTL toDate("span.time") + INTERVAL ?TTL DELETE
+SETTINGS ttl_only_drop_parts = 1
 
 --migration:split
 
 CREATE TABLE spans_data (
-  trace_id UUID,
-  id UInt64,
-  parent_id UInt64,
-  time DateTime Codec(Delta, Default),
-  data String
+  trace_id UUID Codec(?CODEC),
+  id UInt64 Codec(?CODEC),
+  parent_id UInt64 Codec(?CODEC),
+  time DateTime Codec(Delta, ?CODEC),
+  data String Codec(?CODEC)
 )
-ENGINE = MergeTree()
+ENGINE = ?(REPLICATED)MergeTree()
 ORDER BY (trace_id, id)
 PARTITION BY toDate(time)
 TTL toDate(time) + INTERVAL ?TTL DELETE
-SETTINGS index_granularity = 128
+SETTINGS ttl_only_drop_parts = 1,
+         index_granularity = 128
 
 --migration:split
 
@@ -75,18 +77,19 @@ ENGINE = Buffer(currentDatabase(), spans_data, 5, 10, 30, 10000, 1000000, 100000
 --migration:split
 
 CREATE TABLE span_system_minutes (
-  project_id UInt32,
-  system LowCardinality(String),
-  time DateTime Codec(Delta, Default),
-  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32),
-  count UInt64 Codec(Delta, Default),
-  error_count UInt64 Codec(Delta, Default)
+  project_id UInt32 Codec(?CODEC),
+  system LowCardinality(String) Codec(?CODEC),
+  time DateTime Codec(Delta, ?CODEC),
+  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32) Codec(?CODEC),
+  count UInt64 Codec(Delta, ?CODEC),
+  error_count UInt64 Codec(Delta, ?CODEC)
 )
-ENGINE = SummingMergeTree()
+ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
 ORDER BY (project_id, time, system)
 TTL toDate(time) + INTERVAL ?TTL DELETE
-SETTINGS index_granularity = 128;
+SETTINGS ttl_only_drop_parts = 1,
+         index_granularity = 128
 
 --migration:split
 
@@ -106,18 +109,19 @@ SETTINGS prefer_column_name_to_alias = 1
 --migration:split
 
 CREATE TABLE span_system_hours (
-  project_id UInt32,
-  system LowCardinality(String),
-  time DateTime Codec(Delta, Default),
-  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32),
-  count UInt64 Codec(Delta, Default),
-  error_count UInt64 Codec(Delta, Default)
+  project_id UInt32 Codec(?CODEC),
+  system LowCardinality(String) Codec(?CODEC),
+  time DateTime Codec(Delta, ?CODEC),
+  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32) Codec(?CODEC),
+  count UInt64 Codec(Delta, ?CODEC),
+  error_count UInt64 Codec(Delta, ?CODEC)
 )
-ENGINE = SummingMergeTree()
+ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
 ORDER BY (project_id, time, system)
 TTL toDate(time) + INTERVAL ?TTL DELETE
-SETTINGS index_granularity = 128;
+SETTINGS ttl_only_drop_parts = 1,
+         index_granularity = 128
 
 --migration:split
 
@@ -138,19 +142,20 @@ SETTINGS prefer_column_name_to_alias = 1
 --migration:split
 
 CREATE TABLE span_service_minutes (
-  project_id UInt32,
-  system LowCardinality(String),
-  service LowCardinality(String),
-  time DateTime Codec(Delta, Default),
-  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32),
-  count UInt64 Codec(Delta, Default),
-  error_count UInt64 Codec(Delta, Default)
+  project_id UInt32 Codec(?CODEC),
+  system LowCardinality(String) Codec(?CODEC),
+  service LowCardinality(String) Codec(?CODEC),
+  time DateTime Codec(Delta, ?CODEC),
+  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32) Codec(?CODEC),
+  count UInt64 Codec(Delta, ?CODEC),
+  error_count UInt64 Codec(Delta, ?CODEC)
 )
-ENGINE = SummingMergeTree()
+ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
 ORDER BY (project_id, time, system, service)
 TTL toDate(time) + INTERVAL ?TTL DELETE
-SETTINGS index_granularity = 128;
+SETTINGS ttl_only_drop_parts = 1,
+         index_granularity = 128
 
 --migration:split
 
@@ -171,19 +176,20 @@ SETTINGS prefer_column_name_to_alias = 1
 --migration:split
 
 CREATE TABLE span_service_hours (
-  project_id UInt32,
-  system LowCardinality(String),
-  service LowCardinality(String),
-  time DateTime Codec(Delta, Default),
-  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32),
-  count UInt64 Codec(Delta, Default),
-  error_count UInt64 Codec(Delta, Default)
+  project_id UInt32 Codec(?CODEC),
+  system LowCardinality(String) Codec(?CODEC),
+  service LowCardinality(String) Codec(?CODEC),
+  time DateTime Codec(Delta, ?CODEC),
+  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32) Codec(?CODEC),
+  count UInt64 Codec(Delta, ?CODEC),
+  error_count UInt64 Codec(Delta, ?CODEC)
 )
-ENGINE = SummingMergeTree()
+ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
 ORDER BY (project_id, time, system, service)
 TTL toDate(time) + INTERVAL ?TTL DELETE
-SETTINGS index_granularity = 128;
+SETTINGS ttl_only_drop_parts = 1,
+         index_granularity = 128
 
 --migration:split
 
@@ -205,19 +211,20 @@ SETTINGS prefer_column_name_to_alias = 1
 --migration:split
 
 CREATE TABLE span_host_minutes (
-  project_id UInt32,
-  system LowCardinality(String),
-  host LowCardinality(String),
-  time DateTime Codec(Delta, Default),
-  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32),
-  count UInt64 Codec(Delta, Default),
-  error_count UInt64 Codec(Delta, Default)
+  project_id UInt32 Codec(?CODEC),
+  system LowCardinality(String) Codec(?CODEC),
+  host LowCardinality(String) Codec(?CODEC),
+  time DateTime Codec(Delta, ?CODEC),
+  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32) Codec(?CODEC),
+  count UInt64 Codec(Delta, ?CODEC),
+  error_count UInt64 Codec(Delta, ?CODEC)
 )
-ENGINE = SummingMergeTree()
+ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
 ORDER BY (project_id, time, system, host)
 TTL toDate(time) + INTERVAL ?TTL DELETE
-SETTINGS index_granularity = 128;
+SETTINGS ttl_only_drop_parts = 1,
+         index_granularity = 128
 
 --migration:split
 
@@ -238,19 +245,20 @@ SETTINGS prefer_column_name_to_alias = 1
 --migration:split
 
 CREATE TABLE span_host_hours (
-  project_id UInt32,
-  system LowCardinality(String),
-  host LowCardinality(String),
-  time DateTime Codec(Delta, Default),
-  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32),
-  count UInt64 Codec(Delta, Default),
-  error_count UInt64 Codec(Delta, Default)
+  project_id UInt32 Codec(?CODEC),
+  system LowCardinality(String) Codec(?CODEC),
+  host LowCardinality(String) Codec(?CODEC),
+  time DateTime Codec(Delta, ?CODEC),
+  tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32) Codec(?CODEC),
+  count UInt64 Codec(Delta, ?CODEC),
+  error_count UInt64 Codec(Delta, ?CODEC)
 )
-ENGINE = SummingMergeTree()
+ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
 ORDER BY (project_id, time, system, host)
 TTL toDate(time) + INTERVAL ?TTL DELETE
-SETTINGS index_granularity = 128;
+SETTINGS ttl_only_drop_parts = 1,
+         index_granularity = 128
 
 --migration:split
 
