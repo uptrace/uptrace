@@ -69,6 +69,24 @@
         </v-col>
       </v-row>
     </v-container>
+
+    <PageToolbar :loading="loading">
+      <v-toolbar-title>Already using Zipkin API?</v-toolbar-title>
+    </PageToolbar>
+
+    <v-container class="mb-6 px-4 py-6">
+      <v-row>
+        <v-col class="text-subtitle-1">
+          Uptrace also supports Zipkin JSON API at <code>/api/v2/spans</code>:
+        </v-col>
+      </v-row>
+
+      <v-row>
+        <v-col>
+          <XCode language="bash" :code="zipkinCurl" />
+        </v-col>
+      </v-row>
+    </v-container>
   </div>
 </template>
 
@@ -132,9 +150,13 @@ export default defineComponent({
       return data.value?.http?.dsn ?? 'http://localhost:14318'
     })
 
-    return { grpcEndpoint, httpEndpoint, grpcDsn, httpDsn }
+    return { grpcEndpoint, httpEndpoint, grpcDsn, httpDsn, zipkinCurl }
   },
 })
+
+const zipkinCurl = `
+curl -X POST 'http://localhost:14318/api/v2/spans' -H 'Content-Type: application/json' -d @spans.json
+`.trim()
 </script>
 
 <style lang="scss" scoped></style>
