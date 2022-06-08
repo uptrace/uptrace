@@ -48,6 +48,8 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	router.WithGroup("", func(g *bunrouter.Group) {
 		tempoHandler := NewTempoHandler(app)
 
+		g = g.Use(tempoHandler.checkProjectAccess)
+
 		g.GET("/ready", tempoHandler.Ready)
 		g.GET("/api/echo", tempoHandler.Echo)
 

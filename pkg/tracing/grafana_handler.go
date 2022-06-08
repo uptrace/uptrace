@@ -14,6 +14,16 @@ type GrafanaBaseHandler struct {
 	*bunapp.App
 }
 
+func (h *GrafanaBaseHandler) Ready(w http.ResponseWriter, req bunrouter.Request) error {
+	_, err := w.Write([]byte("ready\n"))
+	return err
+}
+
+func (h *GrafanaBaseHandler) Echo(w http.ResponseWriter, req bunrouter.Request) error {
+	_, err := w.Write([]byte("echo\n"))
+	return err
+}
+
 func (h *GrafanaBaseHandler) checkProjectAccess(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	userAndProject := org.NewAuthMiddleware(h.App)(next)
 
