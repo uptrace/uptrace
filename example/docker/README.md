@@ -32,7 +32,12 @@ distro. To get some test data, just reload the UI few times. It usually takes ab
 the data to appear.
 
 To configure OpenTelemetry for your programming language, see
-[documentation](https://get.uptrace.dev/guide/).
+[documentation](https://get.uptrace.dev/guide/opentelemetry-tracing-tool.html).
+
+## Grafana
+
+If you are a big fan of Grafana, you can open http://localhost:3000 (`admin:admin`) and view spans
+using Tempo API and logs using Loki API.
 
 ## ClickHouse and OpenTelemetry
 
