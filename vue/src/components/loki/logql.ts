@@ -33,6 +33,20 @@ export interface Matrix {
   values: MatrixValue[]
 }
 
+export type LabelSelection = {
+  name: string
+  selected: boolean
+  values: Array<object>
+}
+
+export type Label = {
+  label: string
+  selected: boolean
+}
+export type LabelValue = {
+  name: string
+  selected: boolean
+}
 export type MatrixValue = [number, string]
 
 export function useLogql(reqSource: AxiosRequestSource) {
@@ -66,7 +80,6 @@ export function useLogql(reqSource: AxiosRequestSource) {
 
   return proxyRefs({
     ResultType,
-
     loading,
     resultType,
     result,
@@ -82,7 +95,27 @@ export function useLabels(reqSource: AxiosRequestSource) {
     return data.value?.data ?? []
   })
 
-  return proxyRefs({ loading, items: labels })
+  const labelsSelected = useLabelsSelected(labels)
+
+  return proxyRefs({ loading, items: labels, selected: labelsSelected })
+}
+
+export function useLabelsSelected(labels: any) {
+  const labelsFormatted = computed((): LabelSelection[] => {
+    return (
+      labels?.value?.map((label: string) => ({ name: label, selected: false, values: [] })) ?? [{}]
+    )
+  })
+  return labelsFormatted
+}
+
+export function useValuesSelected(values: any) {
+  const valuesFormatted = computed((): LabelValue[] => {
+    return (
+      values?.value?.map((value: string): LabelValue => ({ name: value, selected: false })) ?? [{}]
+    )
+  })
+  return valuesFormatted
 }
 
 export function useLabelValues(reqSource: AxiosRequestSource) {
@@ -92,5 +125,11 @@ export function useLabelValues(reqSource: AxiosRequestSource) {
     return data.value?.data ?? []
   })
 
-  return proxyRefs({ loading, items: values })
+  const valuesSelected = useValuesSelected(values)
+  console.log(valuesSelected)
+  // returns a proxyRef for view utilization
+
+  return proxyRefs({ loading, items: values, selected: valuesSelected })
 }
+
+// add values into labels

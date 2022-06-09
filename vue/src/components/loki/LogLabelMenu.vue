@@ -29,7 +29,7 @@
     </XList>
   </v-menu>
 </template>
-
+<!-- this is a dropdown unit-->
 <script lang="ts">
 import { truncate } from 'lodash'
 import { defineComponent, shallowRef, PropType } from '@vue/composition-api'
@@ -79,6 +79,8 @@ export default defineComponent({
       ctx.emit('click', { op, value })
       menu.value = false
     }
+
+    console.log(labelValues)
 
     return { menu, labelValues, addFilter, truncate }
   },

@@ -25,5 +25,5 @@ datasources:
   - name: Uptrace Tempo
     type: tempo
     access: proxy
-    url: http://host.docker.internal:14318
+    url: http://demo.uptrace.dev
     editable: true
