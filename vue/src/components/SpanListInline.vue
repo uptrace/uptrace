@@ -4,6 +4,7 @@
       :date-range="dateRange"
       :loading="spans.loading"
       :spans="spans.items"
+      :is-event="isEvent"
       :order="spans.order"
       :pager="spans.pager"
       :span-list-route="spanListRoute"
@@ -17,7 +18,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, PropType } from '@vue/composition-api'
+import { defineComponent, computed, watch, PropType } from '@vue/composition-api'
 
 // Composables
 import { useRouter } from '@/use/router'
@@ -28,6 +29,9 @@ import { useSpans } from '@/use/spans'
 // Components
 import SpansTable from '@/components/SpansTable.vue'
 import { SpanChip } from '@/components/SpanChips.vue'
+
+// Utilities
+import { xkey } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'SpanListInline',
@@ -41,6 +45,10 @@ export default defineComponent({
     uql: {
       type: Object as PropType<UseUql>,
       default: undefined,
+    },
+    isEvent: {
+      type: Boolean,
+      required: true,
     },
     axiosParams: {
       type: Object as PropType<Record<string, any>>,
@@ -81,6 +89,14 @@ export default defineComponent({
       }
       return { 'click:chip': onChipClick }
     })
+
+    watch(
+      () => props.isEvent,
+      (isEvent) => {
+        spans.order.column = isEvent ? xkey.spanTime : xkey.spanDuration
+      },
+      { immediate: true },
+    )
 
     function onChipClick(chip: SpanChip) {
       const editor = props.uql.createEditor()

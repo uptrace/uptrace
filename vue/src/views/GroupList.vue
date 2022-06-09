@@ -139,7 +139,7 @@ export default defineComponent({
       return {
         ...props.dateRange.axiosParams(),
         ...uql.axiosParams(),
-        system: props.systems.activeValue,
+        system: props.systems.activeSystem,
       }
     })
 

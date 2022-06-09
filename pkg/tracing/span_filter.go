@@ -2,13 +2,13 @@ package tracing
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
@@ -108,10 +108,6 @@ func (f *SpanFilter) UnmarshalValues(ctx context.Context, values url.Values) err
 	f.parts = uql.Parse(f.Query)
 
 	return nil
-}
-
-func (f *SpanFilter) IsEvent() bool {
-	return isEventSystem(f.System)
 }
 
 func (f *SpanFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {

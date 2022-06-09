@@ -157,7 +157,18 @@ const routes: Array<RouteConfig> = [
       query: `group by ${xkey.spanGroupId} | ${xkey.spanCountPerMin}`,
       spanListRoute: 'LogList',
       groupListRoute: 'LogGroupList',
-      systemFilter: (item: System) => item.system.startsWith('log:'),
+      systemsFilter: (items: System[]) => {
+        items = items.filter((item: System) => item.system.startsWith('log:'))
+
+        if (items.length === 0) {
+          items.push({
+            system: 'log:all',
+            isEvent: true,
+          } as System)
+        }
+
+        return items
+      },
       showLogql: true,
     },
     children: [

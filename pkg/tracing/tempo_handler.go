@@ -25,23 +25,18 @@ const projectIDHeaderKey = "uptrace-project-id"
 var jsonMarshaler = &jsonpb.Marshaler{}
 
 type TempoHandler struct {
+	GrafanaBaseHandler
+
 	*bunapp.App
 }
 
 func NewTempoHandler(app *bunapp.App) *TempoHandler {
 	return &TempoHandler{
+		GrafanaBaseHandler: GrafanaBaseHandler{
+			App: app,
+		},
 		App: app,
 	}
-}
-
-func (h *TempoHandler) Ready(w http.ResponseWriter, req bunrouter.Request) error {
-	_, err := w.Write([]byte("ready\n"))
-	return err
-}
-
-func (h *TempoHandler) Echo(w http.ResponseWriter, req bunrouter.Request) error {
-	_, err := w.Write([]byte("echo\n"))
-	return err
 }
 
 func (h *TempoHandler) QueryTrace(w http.ResponseWriter, req bunrouter.Request) error {

@@ -12,7 +12,7 @@
     <div class="border">
       <div class="grey lighten-5">
         <v-container fluid class="mb-2">
-          <SystemQuickMetrics :loading="systems.loading" :systems="systems.list" />
+          <SystemQuickMetrics :loading="systems.loading" :systems="systems.items" />
         </v-container>
 
         <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
@@ -80,7 +80,7 @@ export default defineComponent({
       const candidates = [xsys.logFatal, xsys.logPanic, xsys.logError, xsys.logWarn]
       const chosen = []
       for (let candidate of candidates) {
-        const found = systems.list.find((v) => v.system === candidate)
+        const found = systems.items.find((v) => v.system === candidate)
         if (found) {
           chosen.push(candidate)
         }

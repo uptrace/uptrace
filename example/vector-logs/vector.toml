@@ -1,0 +1,23 @@
+# Random Syslog-formatted logs
+[sources.dummy_logs]
+type = "demo_logs"
+format = "syslog"
+interval = 1.0
+
+# Parse Syslog logs
+# See the Vector Remap Language reference for more info: https://vrl.dev
+[transforms.parse_logs]
+type = "remap"
+inputs = ["dummy_logs"]
+source = '''
+. = parse_syslog!(string!(.message))
+'''
+
+# Export data to Uptrace.
+[sinks.uptrace]
+type = "http"
+inputs = ["parse_logs"]
+encoding.codec = "ndjson"
+compression = "gzip"
+uri = "http://localhost:14318/api/v1/vector-logs"
+headers.uptrace-dsn = "http://project2_secret_token@localhost:14317/2"

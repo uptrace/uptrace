@@ -2,6 +2,24 @@
 
 To get started with Uptrace, see https://get.uptrace.dev/guide/
 
+## v0.2.15 - Jun 8 2022
+
+### 💡 Enhancements 💡
+
+- Added support for accepting Zipkin spans at `http://uptrace:14318/api/v2/spans`.
+- Added support for accepting Vector logs. See the [example](example/vector-logs).
+- Uptrace can be integrated to work together with Grafana Loki or cLoki
+  [docs](https://get.uptrace.dev/guide/grafana.html)
+- Uptrace can be used as a Tempo data source in Grafana
+  [docs](https://get.uptrace.dev/guide/grafana.html)
+- Added "Slowest groups" to the Overview tab
+- Added new config option `ch_schema.compression`. You can now set ClickHouse compression via
+  Uptrace config.
+- Added new config option `ch_schema.replicated` if you want to use ClickHouse replication.
+- Renamed the config option `retention.ttl` to `ch_schema.ttl`.
+- Added new config option `spans.buffer_size`.
+- Added new config option `spans.batch_size`.
+
 ## v0.2.14 - Apr 19 2022
 
 - Fix incorrect `ORDER BY` when focusing on spans.

@@ -3,7 +3,6 @@ package tracing
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -41,15 +40,16 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	spanHandler := NewSpanHandler(app)
 	traceHandler := NewTraceHandler(app)
 	suggestionHandler := NewSuggestionHandler(app)
-	tempoHandler := NewTempoHandler(app)
-	zipkinHandler := NewZipkinHandler(app, sp)
-	lokiProxyHandler := NewLokiProxyHandler(app)
 	authMiddleware := org.NewAuthMiddleware(app)
 
 	api := app.APIGroup()
 
 	// https://grafana.com/docs/tempo/latest/api_docs/
 	router.WithGroup("", func(g *bunrouter.Group) {
+		tempoHandler := NewTempoHandler(app)
+
+		g = g.Use(tempoHandler.checkProjectAccess)
+
 		g.GET("/ready", tempoHandler.Ready)
 		g.GET("/api/echo", tempoHandler.Echo)
 
@@ -63,32 +63,33 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 
 	// https://zipkin.io/zipkin-api/#/default/post_spans
 	router.WithGroup("/api/v2", func(g *bunrouter.Group) {
+		zipkinHandler := NewZipkinHandler(app, sp)
+
 		g.POST("/spans", zipkinHandler.PostSpans)
 	})
 
-	router.
-		Use(authMiddleware).
-		Use(func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
-			cleanPath := func(path, projectID string) string {
-				path = strings.TrimPrefix(path, "/"+projectID+"/loki/api/")
-				return "/loki/api/" + path
-			}
+	router.WithGroup("/api/v1", func(g *bunrouter.Group) {
+		vectorHandler := NewVectorHandler(app, sp)
 
-			return func(w http.ResponseWriter, req bunrouter.Request) error {
-				projectID := req.Params().ByName("project_id")
-				req.URL.Path = cleanPath(req.URL.Path, projectID)
-				req.URL.RawPath = cleanPath(req.URL.RawPath, projectID)
-				return next(w, req)
-			}
-		}).
-		WithGroup("/:project_id/loki/api", func(g *bunrouter.Group) {
-			g.GET("/v1/tail", lokiProxyHandler.ProxyWS)
+		g.POST("/vector-logs", vectorHandler.Create)
+	})
 
-			g.GET("/*path", lokiProxyHandler.Proxy)
-			g.POST("/*path", lokiProxyHandler.Proxy)
-			g.PUT("/*path", lokiProxyHandler.Proxy)
-			g.DELETE("/*path", lokiProxyHandler.Proxy)
-		})
+	{
+		lokiProxyHandler := NewLokiProxyHandler(app, sp)
+
+		router.
+			Use(lokiProxyHandler.checkProjectAccess).
+			WithGroup("/loki/api", func(g *bunrouter.Group) {
+				registerLokiProxy(g, lokiProxyHandler)
+			})
+
+		router.
+			Use(lokiProxyHandler.checkProjectAccess).
+			Use(lokiProxyHandler.trimProjectID).
+			WithGroup("/:project_id/loki/api", func(g *bunrouter.Group) {
+				registerLokiProxy(g, lokiProxyHandler)
+			})
+	}
 
 	api.GET("/traces/search", traceHandler.FindTrace)
 
@@ -135,4 +136,14 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			},
 		})
 	})
+}
+
+func registerLokiProxy(g *bunrouter.Group, lokiProxyHandler *LokiProxyHandler) {
+	g.GET("/v1/tail", lokiProxyHandler.ProxyWS)
+	g.POST("/v1/push", lokiProxyHandler.Push)
+
+	g.GET("/*path", lokiProxyHandler.Proxy)
+	g.POST("/*path", lokiProxyHandler.Proxy)
+	g.PUT("/*path", lokiProxyHandler.Proxy)
+	g.DELETE("/*path", lokiProxyHandler.Proxy)
 }

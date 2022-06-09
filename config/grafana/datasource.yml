@@ -7,23 +7,21 @@ deleteDatasources:
     orgId: 1
 
 datasources:
-  - name: cLoki
+  - name: Uptrace cLoki
     type: loki
     access: proxy
-    url: http://host.docker.internal:3100
+    url: http://host.docker.internal:14318
     editable: true
     jsonData:
-      derivedFields:
-        - datasourceUid: Uptrace
-          matcherRegex: ".*/traces/(?\u003ctraceId\u003e.*)"
-          name: 'traceId'
-          url: '${__value.raw}'
-      # Field with external link.
-      # - matcherRegex: "traceID=(\\w+)"
-      #   name: TraceID
-      #   url: "http://localhost:14318/traces/1/${__value.raw}"
+      httpHeaderName1: 'uptrace-dsn'
+    secureJsonData:
+      httpHeaderValue1: 'http://project1_secret_token@localhost:14317/1'
   - name: Uptrace Tempo
     type: tempo
     access: proxy
     url: http://demo.uptrace.dev
     editable: true
+    jsonData:
+      httpHeaderName1: 'uptrace-dsn'
+    secureJsonData:
+      httpHeaderValue1: 'http://project1_secret_token@localhost:14317/1'

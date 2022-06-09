@@ -30,20 +30,9 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
-  loki:
-    image: qxip/cloki:latest
-    restart: on-failure
-    environment:
-      CLICKHOUSE_SERVER: clickhouse
-      CLICKHOUSE_DB: uptrace
-    depends_on:
-      clickhouse:
-        condition: service_healthy
-    ports:
-      - '3100:3100' # UI and HTTP API
-
   uptrace:
-    image: 'uptrace/uptrace-dev:latest'
+    image: 'uptrace/uptrace:latest'
+    #image: 'uptrace/uptrace-dev:latest'
     volumes:
       - ./uptrace.yml:/etc/uptrace/uptrace.yml
     ports:
@@ -56,6 +45,18 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
+
+  loki:
+    image: qxip/cloki:latest
+    restart: on-failure
+    environment:
+      CLICKHOUSE_SERVER: clickhouse
+      CLICKHOUSE_DB: uptrace
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    ports:
+      - '3100:3100' # UI and HTTP API
 
   promtail:
     image: grafana/promtail:2.5.0

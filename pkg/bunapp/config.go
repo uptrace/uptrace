@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"gopkg.in/yaml.v3"
 )
@@ -52,6 +53,13 @@ func ReadConfig(configFile, service string) (*AppConfig, error) {
 	cfg.Listen.GRPCHost = grpcHost
 	cfg.Listen.GRPCPort = grpcPort
 
+	if cfg.Spans.BatchSize == 0 {
+		cfg.Spans.BatchSize = scaleWithCPU(1000, 32000)
+	}
+	if cfg.Spans.BufferSize == 0 {
+		cfg.Spans.BufferSize = runtime.GOMAXPROCS(0) * cfg.Spans.BatchSize
+	}
+
 	return cfg, nil
 }
 
@@ -97,13 +105,21 @@ type AppConfig struct {
 	DB BunConfig `yaml:"db"`
 	CH CHConfig  `yaml:"ch"`
 
-	Retention struct {
-		TTL string `yaml:"ttl"`
-	} `yaml:"retention"`
+	CHSchema struct {
+		TTL         string `yaml:"ttl"`
+		Compression string `yaml:"compression"`
+		Replicated  bool   `yaml:"replicated"`
+	} `yaml:"ch_schema"`
+
+	Spans struct {
+		BufferSize int `yaml:"buffer_size"`
+		BatchSize  int `yaml:"batch_size"`
+	} `yaml:"spans"`
 
 	Users    []User    `yaml:"users"`
 	Projects []Project `yaml:"projects"`
-	Loki    struct {
+
+	Loki struct {
 		Addr string `yaml:"addr"`
 	} `yaml:"loki"`
 }
@@ -148,4 +164,22 @@ type BunConfig struct {
 
 type CHConfig struct {
 	DSN string `yaml:"dsn"`
+}
+
+func scaleWithCPU(min, max int) int {
+	if min == 0 {
+		panic("min == 0")
+	}
+	if max == 0 {
+		panic("max == 0")
+	}
+
+	n := runtime.GOMAXPROCS(0) * min
+	if n < min {
+		return min
+	}
+	if n > max {
+		return max
+	}
+	return n
 }

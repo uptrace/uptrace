@@ -8,7 +8,7 @@
       <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
         <v-row align="center" justify="space-between" class="mb-4">
           <v-col cols="auto">
-            <SystemPicker :date-range="dateRange" :systems="systems" :tree="systemTree" />
+            <SystemPicker :date-range="dateRange" :systems="systems" :items="systemsItems" />
           </v-col>
 
           <v-col cols="auto">
@@ -51,7 +51,7 @@ import { useRouter } from '@/use/router'
 import { useTitle } from '@vueuse/core'
 import { useDateRange } from '@/use/date-range'
 import { useUser } from '@/use/org'
-import { useSystems, buildSystemTree, SystemTree, SystemFilter } from '@/use/systems'
+import { useSystems, SystemsFilter } from '@/use/systems'
 
 // Components
 import DateRangePicker from '@/components/DateRangePicker.vue'
@@ -84,8 +84,8 @@ export default defineComponent({
       type: String,
       required: true,
     },
-    systemFilter: {
-      type: Function as PropType<SystemFilter>,
+    systemsFilter: {
+      type: Function as PropType<SystemsFilter>,
       default: undefined,
     },
     showLogql: {
@@ -103,19 +103,18 @@ export default defineComponent({
     const user = useUser()
     const systems = useSystems(dateRange)
 
-    const systemTree = computed((): SystemTree[] => {
-      let items = systems.list
-      if (props.systemFilter) {
-        items = items.filter(props.systemFilter)
+    const systemsItems = computed(() => {
+      if (props.systemsFilter) {
+        return props.systemsFilter(systems.items)
       }
-      return buildSystemTree(items)
+      return systems.items
     })
 
     return {
       dateRange,
       user,
       systems,
-      systemTree,
+      systemsItems,
       routes: useRoutes(props),
     }
   },

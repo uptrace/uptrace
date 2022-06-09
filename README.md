@@ -23,6 +23,8 @@ Uptrace comes in 2 versions:
 **Features**:
 
 - OpenTelemetry protocol via gRPC (`:14317`) and HTTP (`:14318`)
+- Zipkin protocol support on `http://uptrace:14318/api/v2/spans`.
+- [Vector Logs](example/vector-logs) support.
 - Span/Trace grouping
 - SQL-like query language
 - Errors/logs support

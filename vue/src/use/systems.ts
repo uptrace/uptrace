@@ -21,10 +21,10 @@ export interface System {
   numChild?: number
 }
 
-export type SystemFilter = (system: System) => boolean
+export type SystemsFilter = (systems: System[]) => System[]
 
-export interface SystemTree extends System {
-  children?: SystemTree[]
+export interface SystemTreeNode extends System {
+  children?: SystemTreeNode[]
 }
 
 export type UseSystems = ReturnType<typeof useSystems>
@@ -43,18 +43,7 @@ export function useSystems(dateRange: UseDateRange) {
   })
 
   const systems = computed((): System[] => {
-    const systems = addDummySystems(data.value?.systems ?? [])
-    if (systemValue.value && systems.findIndex((sys) => sys.system === systemValue.value) === -1) {
-      systems.push({
-        system: systemValue.value,
-        isEvent: isEventSystem(systemValue.value),
-      } as System)
-    }
-    return systems
-  })
-
-  const tree = computed((): SystemTree[] => {
-    return buildSystemTree(systems.value as SystemTree[])
+    return addDummySystems(data.value?.systems ?? [])
   })
 
   const hasNoData = computed(() => {
@@ -66,7 +55,7 @@ export function useSystems(dateRange: UseDateRange) {
 
   const internalValue = shallowRef<string>()
 
-  const systemValue = computed({
+  const activeSystem = computed({
     get() {
       return internalValue.value
     },
@@ -75,42 +64,31 @@ export function useSystems(dateRange: UseDateRange) {
     },
   })
 
-  const system = computed((): System | undefined => {
-    if (!systemValue.value) {
-      return undefined
-    }
-
-    const system = systems.value.find((sys) => sys.system === systemValue.value)
-    return system
-  })
-
   const isEvent = computed((): boolean => {
-    return system.value?.isEvent ?? false
+    return isEventSystem(activeSystem.value)
   })
 
   function axiosParams() {
     return {
-      system: system.value?.system,
+      system: activeSystem.value,
     }
   }
 
   function change(system: string): void {
-    systemValue.value = system
+    activeSystem.value = system
   }
 
   function reset(): void {
-    systemValue.value = undefined
+    activeSystem.value = undefined
   }
 
   return proxyRefs({
     loading,
 
-    list: systems,
-    tree,
+    items: systems,
     hasNoData,
 
-    activeValue: systemValue,
-    activeItem: system,
+    activeSystem,
     isEvent,
 
     axiosParams,
@@ -125,7 +103,7 @@ function addDummySystems(systems: System[]): System[] {
   }
   systems = cloneDeep(systems)
 
-  const typeMap: Record<string, SystemTree> = {}
+  const typeMap: Record<string, SystemTreeNode> = {}
 
   for (let sys of systems) {
     const i = sys.system.indexOf(':')
@@ -186,7 +164,7 @@ function addDummySystems(systems: System[]): System[] {
   return systems
 }
 
-export function buildSystemTree(systems: SystemTree[]): SystemTree[] {
+export function buildSystemsTree(systems: SystemTreeNode[]): SystemTreeNode[] {
   systems = cloneDeep(systems)
   systems = systems.filter((sys) => sys.numChild !== 1)
 

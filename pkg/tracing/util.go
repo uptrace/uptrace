@@ -1,34 +1,15 @@
 package tracing
 
 import (
-	"encoding/json"
 	"fmt"
 	"os/exec"
-	"runtime"
 	"strconv"
 	"time"
 
+	"github.com/segmentio/encoding/json"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/utf8string"
 )
-
-func scaleWithCPU(min, max int) int {
-	if min == 0 {
-		panic("min == 0")
-	}
-	if max == 0 {
-		panic("max == 0")
-	}
-
-	n := runtime.GOMAXPROCS(0) * min
-	if n < min {
-		return min
-	}
-	if n > max {
-		return max
-	}
-	return n
-}
 
 func asString(v any) string {
 	switch v := v.(type) {

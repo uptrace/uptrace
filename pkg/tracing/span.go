@@ -9,10 +9,24 @@ import (
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
+)
+
+const (
+	internalSpanKind = "internal"
+	serverSpanKind   = "server"
+	clientSpanKind   = "client"
+	producerSpanKind = "producer"
+	consumerSpanKind = "consumer"
+)
+
+const (
+	okStatusCode    = "ok"
+	errorStatusCode = "error"
 )
 
 type Span struct {
@@ -24,9 +38,10 @@ type Span struct {
 	ID       uint64    `json:"id,string" ch:"span.id"`
 	ParentID uint64    `json:"parentId,string,omitempty" ch:"span.parent_id"`
 
-	Name      string `json:"name" ch:"span.name,lc"`
-	EventName string `json:"eventName,omitempty" ch:"span.event_name,lc"`
-	Kind      string `json:"kind" ch:"span.kind,lc"`
+	Name       string `json:"name" ch:"span.name,lc"`
+	EventName  string `json:"eventName,omitempty" ch:"span.event_name,lc"`
+	Kind       string `json:"kind" ch:"span.kind,lc"`
+	Standalone bool   `json:"standalone,omitempty" ch:"-"`
 
 	Time         time.Time     `json:"time" ch:"span.time"`
 	Duration     time.Duration `json:"duration" ch:"span.duration"`
@@ -36,17 +51,19 @@ type Span struct {
 	StatusCode    string `json:"statusCode" ch:"span.status_code,lc"`
 	StatusMessage string `json:"statusMessage" ch:"span.status_message"`
 
-	Attrs  AttrMap     `json:"attrs" ch:"-"`
-	Events []*Span     `json:"events,omitempty" msgpack:"-" ch:"-"`
-	Links  []*SpanLink `json:"links" ch:"-"`
+	Attrs  xotel.AttrMap `json:"attrs" ch:"-"`
+	Events []*Span       `json:"events,omitempty" msgpack:"-" ch:"-"`
+	Links  []*SpanLink   `json:"links,omitempty" ch:"-"`
 
 	Children []*Span `json:"children,omitempty" msgpack:"-" ch:"-"`
+
+	logMessageHash uint64
 }
 
 type SpanLink struct {
-	TraceID uuid.UUID `json:"traceId"`
-	SpanID  uint64    `json:"spanId"`
-	Attrs   AttrMap   `json:"attrs"`
+	TraceID uuid.UUID     `json:"traceId"`
+	SpanID  uint64        `json:"spanId"`
+	Attrs   xotel.AttrMap `json:"attrs"`
 }
 
 func (s *Span) IsEvent() bool {
@@ -210,7 +227,7 @@ func newFakeRoot(spans []*Span) *Span {
 	span := new(Span)
 	span.ID = rand.Uint64()
 	span.TraceID = sample.TraceID
-	span.Attrs = AttrMap{
+	span.Attrs = xotel.AttrMap{
 		xattr.SpanTime:       minTime,
 		xattr.SpanStatusCode: okStatusCode,
 	}

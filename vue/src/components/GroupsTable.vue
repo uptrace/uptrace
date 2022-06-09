@@ -117,6 +117,7 @@
                 :date-range="dateRange"
                 :systems="systems"
                 :uql="uql"
+                :is-event="isEventSystem(item[xkey.spanSystem])"
                 :axios-params="axiosParams"
                 :where="groupBasedWhere(item)"
                 :span-list-route="spanListRoute"
@@ -148,7 +149,7 @@ import LoadGroupSparkline from '@/components/LoadGroupSparkline.vue'
 import SpanListInline from '@/components/SpanListInline.vue'
 
 // Utilities
-import { xkey, isDummySystem } from '@/models/otelattr'
+import { xkey, isEventSystem, isDummySystem } from '@/models/otelattr'
 import { quote } from '@/util/string'
 
 // Styles
@@ -226,7 +227,7 @@ export default defineComponent({
     })
 
     const showSystemColumn = computed((): boolean => {
-      return isDummySystem(props.systems.activeValue) && hasColumn(xkey.spanSystem)
+      return isDummySystem(props.systems.activeSystem) && hasColumn(xkey.spanSystem)
     })
 
     const hasTimeColumn = computed(() => {
@@ -320,6 +321,7 @@ export default defineComponent({
       hasTimeColumn,
       customColumns,
 
+      isEventSystem,
       columnHeader,
       exploreRoute,
       groupBasedWhere,

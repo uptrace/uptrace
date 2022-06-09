@@ -31,9 +31,10 @@
                 :date-range="dateRange"
                 :loading="spans.loading"
                 :spans="spans.items"
+                :is-event="systems.isEvent"
                 :order="spans.order"
                 :pager="spans.pager"
-                :system="systems.activeValue"
+                :system="systems.activeSystem"
                 :span-list-route="spanListRoute"
                 :group-list-route="groupListRoute"
                 @click:chip="onChipClick"
@@ -106,7 +107,7 @@ export default defineComponent({
       return {
         ...props.dateRange.axiosParams(),
         ...uql.axiosParams(),
-        system: props.systems.activeValue,
+        system: props.systems.activeSystem,
       }
     })
 
@@ -120,8 +121,6 @@ export default defineComponent({
       },
       {
         order: {
-          column: xkey.spanDuration,
-          desc: true,
           syncQuery: true,
         },
       },

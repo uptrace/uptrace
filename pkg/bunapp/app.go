@@ -281,8 +281,20 @@ func (app *App) initCH() {
 		}),
 	)
 
+	replicated := ""
+	if app.cfg.CHSchema.Replicated {
+		replicated = "Replicated"
+	}
+
+	compression := app.cfg.CHSchema.Compression
+	if compression == "" {
+		compression = "Default"
+	}
+
 	fmter := db.Formatter().
-		WithNamedArg("TTL", ch.Safe(app.cfg.Retention.TTL))
+		WithNamedArg("TTL", ch.Safe(app.cfg.CHSchema.TTL)).
+		WithNamedArg("REPLICATED", ch.Safe(replicated)).
+		WithNamedArg("CODEC", ch.Safe(compression))
 	db = db.WithFormatter(fmter)
 
 	db.AddQueryHook(chdebug.NewQueryHook(

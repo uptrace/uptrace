@@ -12,6 +12,7 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	"go.uber.org/zap"
 )
@@ -156,7 +157,7 @@ func tempoSpanKind(s string) tracepb.Span_SpanKind {
 }
 
 func tempoResourceAndAttributes(
-	m AttrMap, resourceKeys []string,
+	m xotel.AttrMap, resourceKeys []string,
 ) (resource, attrs []*commonpb.KeyValue) {
 	isResource := make(map[string]bool, len(resourceKeys))
 	for _, k := range resourceKeys {
@@ -188,7 +189,7 @@ func tempoResourceAndAttributes(
 	return resource, attrs
 }
 
-func tempoAttributes(m AttrMap) []*commonpb.KeyValue {
+func tempoAttributes(m xotel.AttrMap) []*commonpb.KeyValue {
 	kvs := make([]*commonpb.KeyValue, 0, len(m))
 	for k, v := range m {
 		if av := tempoAnyValue(v); av != nil {
@@ -267,6 +268,18 @@ func tempoAnyValue(v any) *commonpb.AnyValue {
 		values := make([]*commonpb.AnyValue, len(v))
 		for i, el := range v {
 			values[i] = tempoAnyValue(el)
+		}
+		return &commonpb.AnyValue{
+			Value: &commonpb.AnyValue_ArrayValue{
+				ArrayValue: &commonpb.ArrayValue{
+					Values: values,
+				},
+			},
+		}
+	case []any:
+		values := make([]*commonpb.AnyValue, len(v))
+		for i, el := range v {
+			values[i] = tempoAnyValue(fmt.Sprint(el))
 		}
 		return &commonpb.AnyValue{
 			Value: &commonpb.AnyValue_ArrayValue{
