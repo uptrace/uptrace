@@ -5,13 +5,13 @@
         <div class="d-flex justify-space-between filters">
           <div class="d-flex filters" style="display: none">
             <v-btn
+              v-model="labelBrowserOpen"
               x-small
               outlined
               class="my-2"
+              label="Browse Labels"
               :color="labelBrowserOpen ? 'primary' : 'secondary'"
               @click="setLabelBrowserOpen"
-              v-model="labelBrowserOpen"
-              label="Browse Labels"
               >Browse Labels</v-btn
             >
 

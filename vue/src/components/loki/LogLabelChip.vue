@@ -1,10 +1,10 @@
 <template>
   <v-chip
+    v-if="label"
     v-model="isLabelSelected"
     label
     small
     class="ma-1"
-    v-if="label"
     :color="isLabelSelected ? 'blue' : 'grey lighten-4'"
     :class="{ active: isLabelSelected }"
     @click="setIsLabelSelected"
@@ -24,6 +24,7 @@ export default defineComponent({
   props: {
     label: {
       type: String,
+      default: '',
       require: true,
     },
     selected: {
