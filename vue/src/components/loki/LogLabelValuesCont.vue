@@ -1,6 +1,6 @@
 <template>
   <v-card class="d-flex flex-column pa-2 ma-1 mt-2" :elevation="1">
-    <small class="text-caption font-weight-light mx-2">{{ label.label }}</small>
+    <small class="text-caption font-weight-light mx-2">{{ label.name }}</small>
     <LogLabelValue
       v-for="(item, idx) in labelValues.selected"
       :key="idx"
@@ -47,13 +47,12 @@ export default defineComponent({
     const labelValues = useLabelValues(() => {
       const { projectId } = route.value.params
       return {
-        url: `/${projectId}/loki/api/v1/label/${props.label.label}/values`,
+        url: `/${projectId}/loki/api/v1/label/${props.label.name}/values`,
         params: {
           ...props.dateRange.lokiParams(),
         },
       }
     })
-
     function addFilter(op: string, value: string) {
       setValueSelected.value = !isValueSelected.value
       ctx.emit('click', { op, value })

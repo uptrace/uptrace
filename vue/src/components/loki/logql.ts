@@ -33,14 +33,8 @@ export interface Matrix {
   values: MatrixValue[]
 }
 
-export type LabelSelection = {
-  name: string
-  selected: boolean
-  values: Array<object>
-}
-
 export type Label = {
-  label: string
+  name: string
   selected: boolean
 }
 export type LabelValue = {
@@ -114,8 +108,8 @@ export function useLabelValues(reqSource: AxiosRequestSource) {
 
 export function useLabelsSelected(labels: any) {
   return computed(
-    (): LabelSelection[] =>
-      labels?.value?.map((label: string) => ({ name: label, selected: false, values: [] })) ?? [{}],
+    (): Label[] =>
+      labels?.value?.map((label: string) => ({ name: label, selected: false })) ?? [{}],
   )
 }
 

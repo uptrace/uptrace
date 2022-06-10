@@ -78,7 +78,7 @@
                 :date-range="dateRange"
                 :label="label"
                 @click="
-                  $emit('click:filter', { key: label.label, op: $event.op, value: $event.value })
+                  $emit('click:filter', { key: label.name, op: $event.op, value: $event.value })
                 "
               />
             </v-row>
@@ -126,7 +126,6 @@ export default defineComponent({
     const internalQuery = shallowRef('')
     let labelsList: Label[] = []
     const labelsSelection = ref({ labelsList })
-    const panel = ref([0])
     const labelBrowserOpen = ref(false)
     const labels = useLabels(() => {
       const { projectId } = route.value.params
@@ -158,9 +157,9 @@ export default defineComponent({
       return (labelBrowserOpen.value = labelBrowserOpen.value ? false : true)
     }
     function onLabelSelected(value: Label) {
-      if (labelsSelection.value.labelsList.some((label) => value.label === label.label)) {
+      if (labelsSelection.value.labelsList.some((label) => value.name === label.name)) {
         let filtered = labelsSelection.value.labelsList.filter(
-          (f) => f.label !== value.label && !value.selected,
+          (f) => f.name !== value.name && !value.selected,
         )
         labelsSelection.value.labelsList = filtered
       } else {
@@ -176,7 +175,6 @@ export default defineComponent({
       setLabelBrowserOpen,
       onLabelSelected,
       labelsSelection,
-      panel,
     }
   },
 })

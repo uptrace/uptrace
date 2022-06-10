@@ -18,7 +18,7 @@ import { defineComponent, shallowRef, PropType, watch, computed } from '@vue/com
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
-import { LabelSelection } from '@/components/loki/logql'
+import { Label } from '@/components/loki/logql'
 
 export default defineComponent({
   name: 'LogLabelSelect',
@@ -28,7 +28,7 @@ export default defineComponent({
       required: true,
     },
     label: {
-      type: Object as PropType<LabelSelection>,
+      type: Object as PropType<Label>,
       require: true,
     },
   },
@@ -50,10 +50,8 @@ export default defineComponent({
 
     function setIsLabelSelected() {
       setLabelSelected.value = !isLabelSelected.value
-      ctx.emit('click:labelSelected', {
-        label: props?.label?.name || '',
-        selected: setLabelSelected.value,
-      })
+      const label: Label = { name: props?.label?.name || '', selected: setLabelSelected.value }
+      ctx.emit('click:labelSelected', label)
     }
 
     return { isLabelSelected, setIsLabelSelected }
