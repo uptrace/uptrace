@@ -1,15 +1,6 @@
 <template>
   <v-card class="d-flex flex-column pa-2 ma-1 mt-2" :elevation="1">
-    <small>{{ label.label }}</small>
-    <!-- <v-chip
-      label
-      x-small
-      class="ma-1"
-      v-for="(item, idx) in labelValues.items"
-      :key="idx"
-      @click="onClick(item)"
-      >{{ item }}</v-chip
-    > -->
+    <small class="text-caption font-weight-light mx-2">{{ label.label }}</small>
     <LogLabelValue
       v-for="(item, idx) in labelValues.selected"
       :key="idx"
@@ -20,7 +11,6 @@
 </template>
 
 <script lang="ts">
-// import {truncate } from 'lodash'
 import { defineComponent, shallowRef, PropType, computed } from '@vue/composition-api'
 import { UseDateRange } from '@/use/date-range'
 import { useRouter } from '@/use/router'
@@ -43,7 +33,6 @@ export default defineComponent({
     },
   },
   setup(props, ctx) {
-    // make call from component as in label
     const { route } = useRouter()
     const labelMenu = shallowRef(false)
     const isValueSelected = shallowRef(false)
@@ -54,9 +43,6 @@ export default defineComponent({
         isValueSelected.value = value
       },
     })
-
-    //  add label values unit as a split component
-    // pass this values as props down to that split component
 
     const labelValues = useLabelValues(() => {
       const { projectId } = route.value.params
@@ -70,25 +56,16 @@ export default defineComponent({
 
     function addFilter(op: string, value: string) {
       setValueSelected.value = !isValueSelected.value
-
       ctx.emit('click', { op, value })
       labelMenu.value = false
     }
 
     function onClick(item: any) {
-      console.log(item)
       addFilter('=', item)
-
-      console.log(item, props, ctx)
     }
 
     return { onClick, labelValues, addFilter, isValueSelected }
   },
 })
 </script>
-<style lang="scss" scoped>
-.active {
-  background: #1e88e5 !important;
-  color: white;
-}
-</style>
+<style lang="scss" scoped></style>

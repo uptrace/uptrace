@@ -2,11 +2,12 @@
   <v-chip
     v-model="isLabelSelected"
     label
-    x-small
+    small
     class="ma-1"
     v-if="label"
-    @click="setIsLabelSelected"
+    :color="isLabelSelected ? 'blue' : 'grey lighten-4'"
     :class="{ active: isLabelSelected }"
+    @click="setIsLabelSelected"
   >
     {{ label.name }}
   </v-chip>
@@ -19,7 +20,6 @@ import { defineComponent, shallowRef, PropType, watch, computed } from '@vue/com
 import { UseDateRange } from '@/use/date-range'
 import { LabelSelection } from '@/components/loki/logql'
 
-// here should be the complete template with values list incluided
 export default defineComponent({
   name: 'LogLabelSelect',
   props: {
@@ -34,15 +34,12 @@ export default defineComponent({
   },
   setup(props, ctx) {
     const isLabelSelected = shallowRef(props.label?.selected)
-    // const labelValuesSelected = shallowRef([])
-
     const setLabelSelected = computed({
       get: () => isLabelSelected.value,
       set: (value) => {
         isLabelSelected.value = value
       },
     })
-
     watch(
       () => props.label?.selected,
       (label) => {
@@ -53,7 +50,6 @@ export default defineComponent({
 
     function setIsLabelSelected() {
       setLabelSelected.value = !isLabelSelected.value
-
       ctx.emit('click:labelSelected', {
         label: props?.label?.name || '',
         selected: setLabelSelected.value,
@@ -66,7 +62,6 @@ export default defineComponent({
 </script>
 <style lang="scss" scoped>
 .active {
-  background: #1e88e5 !important;
   color: white;
 }
 </style>

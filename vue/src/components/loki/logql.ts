@@ -100,24 +100,6 @@ export function useLabels(reqSource: AxiosRequestSource) {
   return proxyRefs({ loading, items: labels, selected: labelsSelected })
 }
 
-export function useLabelsSelected(labels: any) {
-  const labelsFormatted = computed((): LabelSelection[] => {
-    return (
-      labels?.value?.map((label: string) => ({ name: label, selected: false, values: [] })) ?? [{}]
-    )
-  })
-  return labelsFormatted
-}
-
-export function useValuesSelected(values: any) {
-  const valuesFormatted = computed((): LabelValue[] => {
-    return (
-      values?.value?.map((value: string): LabelValue => ({ name: value, selected: false })) ?? [{}]
-    )
-  })
-  return valuesFormatted
-}
-
 export function useLabelValues(reqSource: AxiosRequestSource) {
   const { loading, data } = useWatchAxios(reqSource)
 
@@ -126,10 +108,20 @@ export function useLabelValues(reqSource: AxiosRequestSource) {
   })
 
   const valuesSelected = useValuesSelected(values)
-  console.log(valuesSelected)
-  // returns a proxyRef for view utilization
 
   return proxyRefs({ loading, items: values, selected: valuesSelected })
 }
 
-// add values into labels
+export function useLabelsSelected(labels: any) {
+  return computed(
+    (): LabelSelection[] =>
+      labels?.value?.map((label: string) => ({ name: label, selected: false, values: [] })) ?? [{}],
+  )
+}
+
+export function useValuesSelected(values: any) {
+  return computed(
+    (): LabelValue[] =>
+      values?.value?.map((value: string): LabelValue => ({ name: value, selected: false })) ?? [{}],
+  )
+}

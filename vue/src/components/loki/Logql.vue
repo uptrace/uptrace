@@ -3,10 +3,18 @@
     <v-row no-gutters align="center" class="mb-n1">
       <v-col>
         <div class="d-flex justify-space-between filters">
-          <v-container class="px-0" fluid>
-            <v-checkbox v-model="labelBrowserOpen" label="Browse Labels"> </v-checkbox>
-          </v-container>
           <div class="d-flex filters" style="display: none">
+            <v-btn
+              x-small
+              outlined
+              class="my-2"
+              :color="labelBrowserOpen ? 'primary' : 'secondary'"
+              @click="setLabelBrowserOpen"
+              v-model="labelBrowserOpen"
+              label="Browse Labels"
+              >Browse Labels</v-btn
+            >
+
             <LogLabelMenu
               v-for="label in labels.items"
               :key="label"
@@ -36,6 +44,7 @@
           v-model="internalQuery"
           rows="1"
           outlined
+          dense
           clearable
           auto-grow
           hide-details="auto"
@@ -48,42 +57,33 @@
     </v-row>
     <v-row v-if="labelBrowserOpen">
       <v-col>
-        <!--  enclose this in a card  -->
+        <div>
+          <div class="mx-2">
+            <v-row>
+              <LogLabelSelect
+                v-for="label in labels.selected"
+                :key="label.name"
+                :date-range="dateRange"
+                :label="label"
+                x-small
+                class="ma-1"
+                @click:labelSelected="onLabelSelected"
+              />
+            </v-row>
 
-        <!--  It should open on  -->
-        <v-expansion-panels v-model="panel">
-          <!-- first one for labels list -->
-          <v-expansion-panel>
-            <v-expansion-panel-header> Select Labels From List </v-expansion-panel-header>
-            <v-expansion-panel-content>
-              <v-row>
-                <LogLabelSelect
-                  v-for="label in labels.selected"
-                  :key="label.name"
-                  :date-range="dateRange"
-                  :label="label"
-                  x-small
-                  class="ma-1"
-                  @click:labelSelected="onLabelSelected"
-                />
-              </v-row>
-
-              <v-row>
-                <LogLabelValuesCont
-                  v-for="(labelv, index) in labelsSelection.labelsList"
-                  :key="index"
-                  :date-range="dateRange"
-                  :label="labelv"
-                  @click="
-                    $emit('click:filter', { key: labelv.label, op: $event.op, value: $event.value })
-                  "
-                />
-              </v-row>
-              <!-- add value selection event  -->
-            </v-expansion-panel-content>
-          </v-expansion-panel>
-          <!-- second for values inside label (shoould be inside cards) -->
-        </v-expansion-panels>
+            <v-row>
+              <LogLabelValuesCont
+                v-for="(label, index) in labelsSelection.labelsList"
+                :key="index"
+                :date-range="dateRange"
+                :label="label"
+                @click="
+                  $emit('click:filter', { key: label.label, op: $event.op, value: $event.value })
+                "
+              />
+            </v-row>
+          </div>
+        </div>
       </v-col>
     </v-row>
   </div>
@@ -154,10 +154,10 @@ export default defineComponent({
         internalQuery.value = props.value
       }
     }
-
+    function setLabelBrowserOpen() {
+      return (labelBrowserOpen.value = labelBrowserOpen.value ? false : true)
+    }
     function onLabelSelected(value: Label) {
-      console.log(value)
-
       if (labelsSelection.value.labelsList.some((label) => value.label === label.label)) {
         let filtered = labelsSelection.value.labelsList.filter(
           (f) => f.label !== value.label && !value.selected,
@@ -173,6 +173,7 @@ export default defineComponent({
       labels,
       exitRawMode,
       labelBrowserOpen,
+      setLabelBrowserOpen,
       onLabelSelected,
       labelsSelection,
       panel,

@@ -2,9 +2,10 @@
   <v-chip
     v-model="isValueSelected"
     v-if="value"
-    label
-    x-small
+    pill
+    small
     class="ma-1"
+    :color="isValueSelected ? 'blue' : 'grey lighten-4'"
     :class="{ active: isValueSelected }"
     @click="setIsValueSelected"
     >{{ value.name }}</v-chip
@@ -50,17 +51,13 @@ export default defineComponent({
       })
     }
 
-    function onClick(item: string) {
-      console.log(item)
-    }
-    return { isValueSelected, setValueSelected, onClick, setIsValueSelected }
+    return { isValueSelected, setValueSelected, setIsValueSelected }
   },
 })
 </script>
 
 <style lang="scss" scoped>
 .active {
-  background: #1e88e5 !important;
   color: white;
 }
 </style>
