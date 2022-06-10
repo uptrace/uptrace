@@ -1,10 +1,11 @@
 <template>
   <v-card class="d-flex flex-column pa-2 ma-1 mt-2" :elevation="1">
-    <small class="text-caption font-weight-light mx-2">{{ label.name }}</small>
-    <LogLabelValue
+    <small class="text-caption font-weight-light mx-2">{{ label }}</small>
+    <LogLabelValueChip
       v-for="(item, idx) in labelValues.selected"
       :key="idx"
-      :value="item"
+      :value="item.name"
+      :selected="item.selected"
       @click:valueSelected="onClick(item.name)"
     />
   </v-card>
@@ -14,17 +15,17 @@
 import { defineComponent, shallowRef, PropType, computed } from '@vue/composition-api'
 import { UseDateRange } from '@/use/date-range'
 import { useRouter } from '@/use/router'
-import LogLabelValue from '@/components/loki/LogLabelValue.vue'
-import { useLabelValues, Label } from '@/components/loki/logql'
+import LogLabelValueChip from '@/components/loki/LogLabelValueChip.vue'
+import { useLabelValues } from '@/components/loki/logql'
 
 // Composables
 
 export default defineComponent({
   name: 'LogLabelValuesCont',
-  components: { LogLabelValue },
+  components: { LogLabelValueChip },
   props: {
     label: {
-      type: Object as PropType<Label>,
+      type: String,
       required: true,
     },
     dateRange: {
@@ -47,7 +48,7 @@ export default defineComponent({
     const labelValues = useLabelValues(() => {
       const { projectId } = route.value.params
       return {
-        url: `/${projectId}/loki/api/v1/label/${props.label.name}/values`,
+        url: `/${projectId}/loki/api/v1/label/${props.label}/values`,
         params: {
           ...props.dateRange.lokiParams(),
         },

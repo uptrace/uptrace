@@ -60,11 +60,12 @@
         <div>
           <div class="mx-2">
             <v-row>
-              <LogLabelSelect
+              <LogLabelChip
                 v-for="label in labels.selected"
                 :key="label.name"
                 :date-range="dateRange"
-                :label="label"
+                :label="label.name"
+                :selected="label.selected"
                 x-small
                 class="ma-1"
                 @click:labelSelected="onLabelSelected"
@@ -76,7 +77,7 @@
                 v-for="(label, index) in labelsSelection.labelsList"
                 :key="index"
                 :date-range="dateRange"
-                :label="label"
+                :label="label.name"
                 @click="
                   $emit('click:filter', { key: label.name, op: $event.op, value: $event.value })
                 "
@@ -99,12 +100,12 @@ import { useLabels, Label } from '@/components/loki/logql'
 
 // Components
 import LogLabelMenu from '@/components/loki/LogLabelMenu.vue'
-import LogLabelSelect from '@/components/loki/LogLabelSelect.vue'
+import LogLabelChip from '@/components/loki/LogLabelChip.vue'
 import LogLabelValuesCont from '@/components/loki/LogLabelValuesCont.vue'
 
 export default defineComponent({
   name: 'Logql',
-  components: { LogLabelMenu, LogLabelSelect, LogLabelValuesCont },
+  components: { LogLabelMenu, LogLabelChip, LogLabelValuesCont },
 
   props: {
     dateRange: {

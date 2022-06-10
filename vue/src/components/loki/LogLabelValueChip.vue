@@ -8,27 +8,31 @@
     :color="isValueSelected ? 'blue' : 'grey lighten-4'"
     :class="{ active: isValueSelected }"
     @click="setIsValueSelected"
-    >{{ value.name }}</v-chip
+    >{{ value }}</v-chip
   >
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, PropType, computed, watch } from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, watch } from '@vue/composition-api'
 
 export type LabelValue = {
   name: string
   selected: boolean
 }
 export default defineComponent({
-  name: 'LogLabelValue',
+  name: 'LogLabelValueChip',
   props: {
     value: {
-      type: Object as PropType<LabelValue>,
+      type: String,
+      required: true,
+    },
+    selected: {
+      type: Boolean,
       required: true,
     },
   },
   setup(props, ctx) {
-    const isValueSelected = shallowRef(props.value.selected)
+    const isValueSelected = shallowRef(props?.selected)
     const setValueSelected = computed({
       get: () => isValueSelected.value,
       set: (value) => {
@@ -37,7 +41,7 @@ export default defineComponent({
     })
 
     watch(
-      () => props.value.selected,
+      () => props.selected,
       (value) => {
         isValueSelected.value = value || false
       },
@@ -46,7 +50,7 @@ export default defineComponent({
     function setIsValueSelected() {
       setValueSelected.value = !isValueSelected.value
       ctx.emit('click:valueSelected', {
-        value: props.value.name || '',
+        value: props.value || '',
         selected: setValueSelected.value,
       })
     }

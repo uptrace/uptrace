@@ -9,31 +9,30 @@
     :class="{ active: isLabelSelected }"
     @click="setIsLabelSelected"
   >
-    {{ label.name }}
+    {{ label }}
   </v-chip>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, PropType, watch, computed } from '@vue/composition-api'
+import { defineComponent, shallowRef, watch, computed } from '@vue/composition-api'
 
 // Composables
-import { UseDateRange } from '@/use/date-range'
 import { Label } from '@/components/loki/logql'
 
 export default defineComponent({
-  name: 'LogLabelSelect',
+  name: 'LogLabelChip',
   props: {
-    dateRange: {
-      type: Object as PropType<UseDateRange>,
-      required: true,
-    },
     label: {
-      type: Object as PropType<Label>,
+      type: String,
       require: true,
+    },
+    selected: {
+      type: Boolean,
+      required: true,
     },
   },
   setup(props, ctx) {
-    const isLabelSelected = shallowRef(props.label?.selected)
+    const isLabelSelected = shallowRef(props?.selected)
     const setLabelSelected = computed({
       get: () => isLabelSelected.value,
       set: (value) => {
@@ -41,7 +40,7 @@ export default defineComponent({
       },
     })
     watch(
-      () => props.label?.selected,
+      () => props?.selected,
       (label) => {
         isLabelSelected.value = label || false
       },
@@ -50,7 +49,7 @@ export default defineComponent({
 
     function setIsLabelSelected() {
       setLabelSelected.value = !isLabelSelected.value
-      const label: Label = { name: props?.label?.name || '', selected: setLabelSelected.value }
+      const label: Label = { name: props?.label || '', selected: setLabelSelected.value }
       ctx.emit('click:labelSelected', label)
     }
 
