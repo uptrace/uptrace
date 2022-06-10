@@ -19,7 +19,7 @@ datasources:
   - name: Uptrace Tempo
     type: tempo
     access: proxy
-    url: http://demo.uptrace.dev
+    url: http://host.docker.internal:14318
     editable: true
     jsonData:
       httpHeaderName1: 'uptrace-dsn'
