@@ -33,11 +33,11 @@ export interface Matrix {
   values: MatrixValue[]
 }
 
-export type Label = {
+export interface Label {
   name: string
   selected: boolean
 }
-export type LabelValue = {
+export interface LabelValue {
   name: string
   selected: boolean
 }
