@@ -9,8 +9,8 @@
         :style="hidden ? bar.coloredStyle : bar.lightenStyle"
       ></span>
       <TraceTimelineChildrenBars
-        :key="child.id"
         v-if="child.children"
+        :key="child.id"
         :trace="trace"
         :span="span"
         :children="child.children"

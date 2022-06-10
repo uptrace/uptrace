@@ -1,7 +1,7 @@
 <template>
   <v-chip
-    v-model="isValueSelected"
     v-if="value"
+    v-model="isValueSelected"
     pill
     small
     class="ma-1"

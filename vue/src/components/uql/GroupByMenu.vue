@@ -12,10 +12,10 @@
           <v-row>
             <v-col class="space-around no-transform">
               <UqlChip
-                v-for="column in groupColumns"
-                :key="column"
+                v-for="columnUql in groupColumns"
+                :key="columnUql"
                 :uql="uql"
-                :group="column"
+                :group="columnUql"
                 @click="menu = false"
               />
             </v-col>
