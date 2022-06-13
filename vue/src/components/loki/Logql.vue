@@ -5,13 +5,13 @@
         <div class="d-flex justify-space-between filters">
           <div class="d-flex filters" style="display: none">
             <v-btn
-              v-model="labelBrowserOpen"
+              v-model="isLabelBrowserOpen"
               x-small
               outlined
               class="my-2"
               label="Browse Labels"
-              :color="labelBrowserOpen ? 'primary' : 'secondary'"
-              @click="setLabelBrowserOpen"
+              :color="isLabelBrowserOpen ? 'primary' : 'secondary'"
+              @click="isLabelBrowserOpen = !isLabelBrowserOpen"
               >Browse Labels</v-btn
             >
 
@@ -55,7 +55,7 @@
         ></v-textarea>
       </v-col>
     </v-row>
-    <v-row v-if="labelBrowserOpen">
+    <v-row v-show="isLabelBrowserOpen">
       <v-col>
         <div>
           <div class="mx-2">
@@ -63,26 +63,27 @@
               <LogLabelChip
                 v-for="label in labels"
                 :key="label.name"
-                :date-range="dateRange"
+                v-model="label.selected"
                 :attr-key="label.name"
-                :selected="label.selected"
                 label
                 x-small
                 class="ma-1"
-                @click:labelSelected="onLabelSelected"
               />
             </v-row>
 
             <v-row>
-              <LogLabelValuesCont
-                v-for="(label, index) in labelsSelection.labelsList"
-                :key="index"
-                :date-range="dateRange"
-                :label="label.name"
-                @click="
-                  $emit('click:filter', { key: label.name, op: $event.op, value: $event.value })
-                "
-              />
+              <template v-for="label in labels">
+                <div v-show="label.selected" :key="label.name">
+                  <LogLabelValuesCont
+                    :key="label.name"
+                    :date-range="dateRange"
+                    :label="label.name"
+                    @click="
+                      $emit('click:filter', { key: label.name, op: $event.op, value: $event.value })
+                    "
+                  />
+                </div>
+              </template>
             </v-row>
           </div>
         </div>
@@ -92,7 +93,15 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed, watch, PropType, ref } from '@vue/composition-api'
+import {
+  defineComponent,
+  shallowRef,
+  computed,
+  reactive,
+  watch,
+  PropType,
+  ref,
+} from '@vue/composition-api'
 
 // Composables
 import { useRouter } from '@/use/router'
@@ -126,9 +135,7 @@ export default defineComponent({
   setup(props, ctx) {
     const { route } = useRouter()
     const internalQuery = shallowRef('')
-    let labelsList: Label[] = []
-    const labelsSelection = ref({ labelsList })
-    const labelBrowserOpen = ref(false)
+    const isLabelBrowserOpen = ref(false)
 
     const labelValues = useLabels(() => {
       const { projectId } = route.value.params
@@ -141,10 +148,14 @@ export default defineComponent({
       }
     })
 
-    const labels = computed((): Label[] => {
+    const internalLabels = computed((): Label[] => {
       return labelValues.items.map((value: string): Label => {
         return { name: value, selected: false }
       })
+    })
+
+    const labels = computed((): Label[] => {
+      return internalLabels.value.map((label) => reactive(label))
     })
 
     watch(
@@ -163,29 +174,11 @@ export default defineComponent({
       }
     }
 
-    function setLabelBrowserOpen() {
-      return (labelBrowserOpen.value = labelBrowserOpen.value ? false : true)
-    }
-
-    function onLabelSelected(value: Label) {
-      if (labelsSelection.value.labelsList.some((label) => value.name === label.name)) {
-        let filtered = labelsSelection.value.labelsList.filter(
-          (f) => f.name !== value.name && !value.selected,
-        )
-        labelsSelection.value.labelsList = filtered
-      } else {
-        labelsSelection.value.labelsList.push(value)
-      }
-    }
-
     return {
       internalQuery,
       labels,
       exitRawMode,
-      labelBrowserOpen,
-      setLabelBrowserOpen,
-      onLabelSelected,
-      labelsSelection,
+      isLabelBrowserOpen,
     }
   },
 })

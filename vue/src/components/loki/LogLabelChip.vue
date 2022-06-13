@@ -23,12 +23,12 @@ import { Label } from '@/components/loki/logql'
 export default defineComponent({
   name: 'LogLabelChip',
   props: {
-    attrKey: {
-      type: String,
+    value: {
+      type: Boolean,
       required: true,
     },
-    selected: {
-      type: Boolean,
+    attrKey: {
+      type: String,
       required: true,
     },
     pill: {
@@ -41,10 +41,10 @@ export default defineComponent({
     },
   },
   setup(props, ctx) {
-    const chipSelected = shallowRef(props.selected)
+    const chipSelected = shallowRef(false)
 
     watch(
-      () => props.selected,
+      () => props.value,
       (value) => {
         chipSelected.value = value
       },
@@ -55,6 +55,7 @@ export default defineComponent({
       chipSelected.value = !chipSelected.value
       const label: Label = { name: props.attrKey, selected: chipSelected.value }
       ctx.emit('click:labelSelected', label)
+      ctx.emit('input', chipSelected.value)
     }
 
     return { chipSelected, setIsLabelSelected }

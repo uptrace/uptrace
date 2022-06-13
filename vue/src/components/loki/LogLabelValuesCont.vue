@@ -4,8 +4,8 @@
     <LogLabelChip
       v-for="(item, idx) in labels"
       :key="idx"
+      v-model="item.selected"
       :attr-key="item.name"
-      :selected="item.selected"
       pill
       @click:labelSelected="onClick(item.name)"
     />
@@ -13,7 +13,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, PropType, computed } from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, reactive, PropType } from '@vue/composition-api'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
@@ -41,14 +41,6 @@ export default defineComponent({
   setup(props, ctx) {
     const { route } = useRouter()
     const labelMenu = shallowRef(false)
-    const isValueSelected = shallowRef(false)
-
-    const setValueSelected = computed({
-      get: () => isValueSelected.value,
-      set: (value) => {
-        isValueSelected.value = value
-      },
-    })
 
     const labelValues = useLabels(() => {
       const { projectId } = route.value.params
@@ -60,14 +52,17 @@ export default defineComponent({
       }
     })
 
-    const labels = computed((): Label[] => {
+    const internalLabels = computed((): Label[] => {
       return labelValues.items.map((value: string): Label => {
         return { name: value, selected: false }
       })
     })
 
+    const labels = computed((): Label[] => {
+      return internalLabels.value.map((label) => reactive(label))
+    })
+
     function addFilter(op: string, value: string) {
-      setValueSelected.value = !isValueSelected.value
       ctx.emit('click', { op, value })
       labelMenu.value = false
     }
@@ -76,7 +71,7 @@ export default defineComponent({
       addFilter('=', item)
     }
 
-    return { labels, onClick, addFilter, isValueSelected }
+    return { labels, onClick, addFilter }
   },
 })
 </script>
