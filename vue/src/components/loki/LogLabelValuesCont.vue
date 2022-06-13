@@ -1,12 +1,13 @@
 <template>
   <v-card class="d-flex flex-column pa-2 ma-1 mt-2" :elevation="1">
     <small class="text-caption font-weight-light mx-2">{{ label }}</small>
-    <LogLabelValueChip
+    <LogLabelChip
       v-for="(item, idx) in labelValues.selected"
       :key="idx"
-      :value="item.name"
+      :attr-key="item.name"
       :selected="item.selected"
-      @click:valueSelected="onClick(item.name)"
+      pill
+      @click:labelSelected="onClick(item.name)"
     />
   </v-card>
 </template>
@@ -15,14 +16,14 @@
 import { defineComponent, shallowRef, PropType, computed } from '@vue/composition-api'
 import { UseDateRange } from '@/use/date-range'
 import { useRouter } from '@/use/router'
-import LogLabelValueChip from '@/components/loki/LogLabelValueChip.vue'
+import LogLabelChip from '@/components/loki/LogLabelChip.vue'
 import { useLabelValues } from '@/components/loki/logql'
 
 // Composables
 
 export default defineComponent({
   name: 'LogLabelValuesCont',
-  components: { LogLabelValueChip },
+  components: { LogLabelChip },
   props: {
     label: {
       type: String,

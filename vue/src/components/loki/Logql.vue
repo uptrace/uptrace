@@ -64,8 +64,9 @@
                 v-for="label in labels.selected"
                 :key="label.name"
                 :date-range="dateRange"
-                :label="label.name"
+                :attr-key="label.name"
                 :selected="label.selected"
+                label
                 x-small
                 class="ma-1"
                 @click:labelSelected="onLabelSelected"

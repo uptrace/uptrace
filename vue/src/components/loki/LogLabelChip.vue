@@ -1,20 +1,21 @@
 <template>
   <v-chip
-    v-if="label"
-    v-model="isLabelSelected"
-    label
+    v-if="attrKey"
+    v-model="chipSelected"
     small
     class="ma-1"
-    :color="isLabelSelected ? 'blue' : 'grey lighten-4'"
-    :class="{ active: isLabelSelected }"
+    :color="chipSelected ? 'blue' : 'grey lighten-4'"
+    :class="{ active: chipSelected }"
+    :pill="pill"
+    :label="label"
     @click="setIsLabelSelected"
   >
-    {{ label }}
+    {{ attrKey }}
   </v-chip>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, watch, computed } from '@vue/composition-api'
+import { defineComponent, shallowRef, watch } from '@vue/composition-api'
 
 // Composables
 import { Label } from '@/components/loki/logql'
@@ -22,39 +23,41 @@ import { Label } from '@/components/loki/logql'
 export default defineComponent({
   name: 'LogLabelChip',
   props: {
-    label: {
+    attrKey: {
       type: String,
-      default: '',
-      require: true,
+      required: true,
     },
     selected: {
       type: Boolean,
       required: true,
     },
+    pill: {
+      type: Boolean,
+      default: false,
+    },
+    label: {
+      type: Boolean,
+      default: false,
+    },
   },
   setup(props, ctx) {
-    const isLabelSelected = shallowRef(props?.selected)
-    const setLabelSelected = computed({
-      get: () => isLabelSelected.value,
-      set: (value) => {
-        isLabelSelected.value = value
-      },
-    })
+    const chipSelected = shallowRef(props.selected)
+
     watch(
-      () => props?.selected,
-      (label) => {
-        isLabelSelected.value = label || false
+      () => props.selected,
+      (value) => {
+        chipSelected.value = value
       },
       { immediate: true },
     )
 
     function setIsLabelSelected() {
-      setLabelSelected.value = !isLabelSelected.value
-      const label: Label = { name: props?.label || '', selected: setLabelSelected.value }
+      chipSelected.value = !chipSelected.value
+      const label: Label = { name: props.attrKey, selected: chipSelected.value }
       ctx.emit('click:labelSelected', label)
     }
 
-    return { isLabelSelected, setIsLabelSelected }
+    return { chipSelected, setIsLabelSelected }
   },
 })
 </script>
