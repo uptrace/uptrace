@@ -3,7 +3,7 @@
     <v-row no-gutters align="center" class="mb-n1">
       <v-col>
         <div class="d-flex justify-space-between filters">
-          <div class="d-flex filters" style="display: none">
+          <div class="d-flex align-center filters" style="display: none">
             <v-btn
               v-model="isLabelBrowserOpen"
               x-small
@@ -14,14 +14,25 @@
               @click="isLabelBrowserOpen = !isLabelBrowserOpen"
               >Browse Labels</v-btn
             >
+            <div v-show="isLabelBrowserOpen">
+              <LogLabelChip
+                v-for="label in labels"
+                :key="label.name"
+                v-model="label.selected"
+                :attr-key="label.name"
+                label
+                x-small
+                class="ma-1"
+              />
+            </div>
 
-            <LogLabelMenu
+            <!-- <LogLabelMenu
               v-for="label in labels.items"
               :key="label"
               :date-range="dateRange"
               :label="label"
               @click="$emit('click:filter', { key: label, op: $event.op, value: $event.value })"
-            />
+            /> -->
           </div>
 
           <v-text-field
@@ -59,7 +70,7 @@
       <v-col>
         <div>
           <div class="mx-2">
-            <v-row>
+            <!-- <v-row>
               <LogLabelChip
                 v-for="label in labels"
                 :key="label.name"
@@ -69,11 +80,11 @@
                 x-small
                 class="ma-1"
               />
-            </v-row>
+            </v-row> -->
 
             <v-row>
-              <template v-for="label in labels">
-                <div v-show="label.selected" :key="label.name">
+              <template v-for="(label, idx) in labels">
+                <div v-show="label.selected" :key="idx">
                   <LogLabelValuesCont
                     :key="label.name"
                     :date-range="dateRange"
@@ -109,13 +120,13 @@ import { UseDateRange } from '@/use/date-range'
 import { useLabels, Label } from '@/components/loki/logql'
 
 // Components
-import LogLabelMenu from '@/components/loki/LogLabelMenu.vue'
+// import LogLabelMenu from '@/components/loki/LogLabelMenu.vue'
 import LogLabelChip from '@/components/loki/LogLabelChip.vue'
 import LogLabelValuesCont from '@/components/loki/LogLabelValuesCont.vue'
 
 export default defineComponent({
   name: 'Logql',
-  components: { LogLabelMenu, LogLabelChip, LogLabelValuesCont },
+  components: { /*LogLabelMenu, */ LogLabelChip, LogLabelValuesCont },
 
   props: {
     dateRange: {
