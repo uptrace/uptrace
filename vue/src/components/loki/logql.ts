@@ -66,13 +66,17 @@ export function useLogql(reqSource: AxiosRequestSource) {
 
   return proxyRefs({
     ResultType,
-
     loading,
     resultType,
     result,
     streams,
     numItemInStreams,
   })
+}
+
+export interface Label {
+  name: string
+  selected: boolean
 }
 
 export function useLabels(reqSource: AxiosRequestSource) {
@@ -83,14 +87,4 @@ export function useLabels(reqSource: AxiosRequestSource) {
   })
 
   return proxyRefs({ loading, items: labels })
-}
-
-export function useLabelValues(reqSource: AxiosRequestSource) {
-  const { loading, data } = useWatchAxios(reqSource)
-
-  const values = computed((): string[] => {
-    return data.value?.data ?? []
-  })
-
-  return proxyRefs({ loading, items: values })
 }
