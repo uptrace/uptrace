@@ -3,8 +3,8 @@
     <v-row>
       <v-col>
         <Logql
-          :date-range="dateRange"
           v-model="query"
+          :date-range="dateRange"
           :limit.sync="limit"
           @click:filter="onClickFilter"
         />

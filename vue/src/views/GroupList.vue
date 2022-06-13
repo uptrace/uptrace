@@ -42,9 +42,9 @@
             <v-slide-group v-model="activeColumns" multiple center-active show-arrows class="mb-4">
               <v-slide-item
                 v-for="(col, i) in explore.plotColumns"
+                v-slot="{ active, toggle }"
                 :key="col.name"
                 :value="col.name"
-                v-slot="{ active, toggle }"
               >
                 <v-btn
                   :input-value="active"

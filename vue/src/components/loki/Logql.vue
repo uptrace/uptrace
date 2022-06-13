@@ -3,7 +3,18 @@
     <v-row no-gutters align="center" class="mb-n1">
       <v-col>
         <div class="d-flex justify-space-between filters">
-          <div class="d-flex filters">
+          <div class="d-flex filters" style="display: none">
+            <v-btn
+              v-model="isLabelBrowserOpen"
+              x-small
+              outlined
+              class="my-2"
+              label="Browse Labels"
+              :color="isLabelBrowserOpen ? 'primary' : 'secondary'"
+              @click="isLabelBrowserOpen = !isLabelBrowserOpen"
+              >Browse Labels</v-btn
+            >
+
             <LogLabelMenu
               v-for="label in labels.items"
               :key="label"
@@ -33,6 +44,7 @@
           v-model="internalQuery"
           rows="1"
           outlined
+          dense
           clearable
           auto-grow
           hide-details="auto"
@@ -43,23 +55,67 @@
         ></v-textarea>
       </v-col>
     </v-row>
+    <v-row v-show="isLabelBrowserOpen">
+      <v-col>
+        <div>
+          <div class="mx-2">
+            <v-row>
+              <LogLabelChip
+                v-for="label in labels"
+                :key="label.name"
+                v-model="label.selected"
+                :attr-key="label.name"
+                label
+                x-small
+                class="ma-1"
+              />
+            </v-row>
+
+            <v-row>
+              <template v-for="label in labels">
+                <div v-show="label.selected" :key="label.name">
+                  <LogLabelValuesCont
+                    :key="label.name"
+                    :date-range="dateRange"
+                    :label="label.name"
+                    @click="
+                      $emit('click:filter', { key: label.name, op: $event.op, value: $event.value })
+                    "
+                  />
+                </div>
+              </template>
+            </v-row>
+          </div>
+        </div>
+      </v-col>
+    </v-row>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, watch, PropType } from '@vue/composition-api'
+import {
+  defineComponent,
+  shallowRef,
+  computed,
+  reactive,
+  watch,
+  PropType,
+  ref,
+} from '@vue/composition-api'
 
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { useLabels } from '@/components/loki/logql'
+import { useLabels, Label } from '@/components/loki/logql'
 
 // Components
 import LogLabelMenu from '@/components/loki/LogLabelMenu.vue'
+import LogLabelChip from '@/components/loki/LogLabelChip.vue'
+import LogLabelValuesCont from '@/components/loki/LogLabelValuesCont.vue'
 
 export default defineComponent({
   name: 'Logql',
-  components: { LogLabelMenu },
+  components: { LogLabelMenu, LogLabelChip, LogLabelValuesCont },
 
   props: {
     dateRange: {
@@ -79,15 +135,27 @@ export default defineComponent({
   setup(props, ctx) {
     const { route } = useRouter()
     const internalQuery = shallowRef('')
+    const isLabelBrowserOpen = ref(false)
 
-    const labels = useLabels(() => {
+    const labelValues = useLabels(() => {
       const { projectId } = route.value.params
+
       return {
         url: `/${projectId}/loki/api/v1/label`,
         params: {
           ...props.dateRange.lokiParams(),
         },
       }
+    })
+
+    const internalLabels = computed((): Label[] => {
+      return labelValues.items.map((value: string): Label => {
+        return { name: value, selected: false }
+      })
+    })
+
+    const labels = computed((): Label[] => {
+      return internalLabels.value.map((label) => reactive(label))
     })
 
     watch(
@@ -106,7 +174,12 @@ export default defineComponent({
       }
     }
 
-    return { internalQuery, labels, exitRawMode }
+    return {
+      internalQuery,
+      labels,
+      exitRawMode,
+      isLabelBrowserOpen,
+    }
   },
 })
 </script>
