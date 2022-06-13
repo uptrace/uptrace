@@ -37,7 +37,7 @@ import { defineComponent, shallowRef, PropType } from '@vue/composition-api'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { useLabelValues } from '@/components/loki/logql'
+import { useLabels } from '@/components/loki/logql'
 
 // Components
 import XList from '@/components/XList.vue'
@@ -61,7 +61,7 @@ export default defineComponent({
     const { route } = useRouter()
     const menu = shallowRef(false)
 
-    const labelValues = useLabelValues(() => {
+    const labelValues = useLabels(() => {
       if (!menu.value) {
         return null
       }

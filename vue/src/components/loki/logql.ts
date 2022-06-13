@@ -33,14 +33,6 @@ export interface Matrix {
   values: MatrixValue[]
 }
 
-export interface Label {
-  name: string
-  selected: boolean
-}
-export interface LabelValue {
-  name: string
-  selected: boolean
-}
 export type MatrixValue = [number, string]
 
 export function useLogql(reqSource: AxiosRequestSource) {
@@ -82,6 +74,11 @@ export function useLogql(reqSource: AxiosRequestSource) {
   })
 }
 
+export interface Label {
+  name: string
+  selected: boolean
+}
+
 export function useLabels(reqSource: AxiosRequestSource) {
   const { loading, data } = useWatchAxios(reqSource)
 
@@ -89,33 +86,5 @@ export function useLabels(reqSource: AxiosRequestSource) {
     return data.value?.data ?? []
   })
 
-  const labelsSelected = useLabelsSelected(labels)
-
-  return proxyRefs({ loading, items: labels, selected: labelsSelected })
-}
-
-export function useLabelValues(reqSource: AxiosRequestSource) {
-  const { loading, data } = useWatchAxios(reqSource)
-
-  const values = computed((): string[] => {
-    return data.value?.data ?? []
-  })
-
-  const valuesSelected = useValuesSelected(values)
-
-  return proxyRefs({ loading, items: values, selected: valuesSelected })
-}
-
-export function useLabelsSelected(labels: any) {
-  return computed(
-    (): Label[] =>
-      labels?.value?.map((label: string) => ({ name: label, selected: false })) ?? [{}],
-  )
-}
-
-export function useValuesSelected(values: any) {
-  return computed(
-    (): LabelValue[] =>
-      values?.value?.map((value: string): LabelValue => ({ name: value, selected: false })) ?? [{}],
-  )
+  return proxyRefs({ loading, items: labels })
 }

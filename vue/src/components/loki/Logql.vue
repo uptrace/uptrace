@@ -61,7 +61,7 @@
           <div class="mx-2">
             <v-row>
               <LogLabelChip
-                v-for="label in labels.selected"
+                v-for="label in labels"
                 :key="label.name"
                 :date-range="dateRange"
                 :attr-key="label.name"
@@ -92,7 +92,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, watch, PropType, ref } from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, watch, PropType, ref } from '@vue/composition-api'
 
 // Composables
 import { useRouter } from '@/use/router'
@@ -129,7 +129,8 @@ export default defineComponent({
     let labelsList: Label[] = []
     const labelsSelection = ref({ labelsList })
     const labelBrowserOpen = ref(false)
-    const labels = useLabels(() => {
+
+    const labelValues = useLabels(() => {
       const { projectId } = route.value.params
 
       return {
@@ -138,6 +139,12 @@ export default defineComponent({
           ...props.dateRange.lokiParams(),
         },
       }
+    })
+
+    const labels = computed((): Label[] => {
+      return labelValues.items.map((value: string): Label => {
+        return { name: value, selected: false }
+      })
     })
 
     watch(
@@ -155,9 +162,11 @@ export default defineComponent({
         internalQuery.value = props.value
       }
     }
+
     function setLabelBrowserOpen() {
       return (labelBrowserOpen.value = labelBrowserOpen.value ? false : true)
     }
+
     function onLabelSelected(value: Label) {
       if (labelsSelection.value.labelsList.some((label) => value.name === label.name)) {
         let filtered = labelsSelection.value.labelsList.filter(
