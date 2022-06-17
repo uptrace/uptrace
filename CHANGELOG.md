@@ -1,6 +1,6 @@
 # Changelog
 
-To get started with Uptrace, see https://get.uptrace.dev/guide/
+To get started with Uptrace, see https://get.uptrace.dev/guide/opentelemetry-tracing-tool.html
 
 ## v0.2.15 - Jun 8 2022
 
