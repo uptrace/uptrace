@@ -72,6 +72,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 		vectorHandler := NewVectorHandler(app, sp)
 
 		g.POST("/vector-logs", vectorHandler.Create)
+		g.POST("/vector/logs", vectorHandler.Create)
 	})
 
 	{
