@@ -41,7 +41,7 @@
         </SystemQuickMetricCard>
       </v-col>
 
-      <v-col>
+      <v-col v-if="metrics.failures.count">
         <SystemQuickMetricCard :metric="metrics.failures">
           <template #default="{ metric }">
             {{ ((metric.errorCount / metric.count) * 100).toFixed(2) }}%

@@ -75,27 +75,29 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 }
 
 func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
 	f, err := DecodeSpanFilter(h.App, req)
 	if err != nil {
 		return err
 	}
 
-	ctx := req.Context()
-	groups := make([]map[string]any, 0)
-
 	q := buildSpanIndexQuery(f, f.Duration().Minutes()).
 		Limit(1000)
+	groups := make([]map[string]any, 0)
 
-	if err := q.Scan(ctx, &groups); err != nil {
-		if cherr, ok := err.(*ch.Error); ok {
-			w.WriteHeader(http.StatusBadRequest)
-			return httputil.JSON(w, bunrouter.H{
-				"query":   q.String(),
-				"code":    "invalid_query",
-				"message": cherr.Error(),
-			})
+	if len(f.columnMap) > 0 {
+		if err := q.Scan(ctx, &groups); err != nil {
+			if cherr, ok := err.(*ch.Error); ok {
+				w.WriteHeader(http.StatusBadRequest)
+				return httputil.JSON(w, bunrouter.H{
+					"query":   q.String(),
+					"code":    "invalid_query",
+					"message": cherr.Error(),
+				})
+			}
+			return err
 		}
-		return err
 	}
 
 	columns := f.columns(groups)
