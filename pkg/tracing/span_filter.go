@@ -146,7 +146,8 @@ func (f *SpanFilter) columns(items []map[string]any) []ColumnInfo {
 		item = items[0]
 	}
 
-	var columns []ColumnInfo
+	columns := make([]ColumnInfo, 0)
+
 	for _, part := range f.parts {
 		if part.Disabled || part.Error != "" {
 			continue
@@ -169,6 +170,7 @@ func (f *SpanFilter) columns(items []map[string]any) []ColumnInfo {
 			}
 		}
 	}
+
 	return columns
 }
 

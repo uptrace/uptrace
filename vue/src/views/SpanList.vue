@@ -99,7 +99,6 @@ export default defineComponent({
     const { route } = useRouter()
 
     const uql = useUql({
-      query: props.query,
       syncQuery: true,
     })
 
