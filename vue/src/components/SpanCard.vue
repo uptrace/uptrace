@@ -275,7 +275,19 @@ function useMeta(props: Props) {
       exact: true,
     })
 
-    if (props.span.traceId) {
+    if (props.span.standalone) {
+      bs.push({
+        text: props.span.traceId,
+        to: {
+          name: 'SpanShow',
+          params: {
+            traceId: props.span.traceId,
+            spanId: props.span.id,
+          },
+        },
+        exact: true,
+      })
+    } else {
       bs.push({
         text: props.span.traceId,
         to: {
@@ -286,9 +298,7 @@ function useMeta(props: Props) {
         },
         exact: true,
       })
-    }
 
-    if (props.span.traceId && props.span.id) {
       bs.push({
         text: props.span.id,
         to: {
