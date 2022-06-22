@@ -16,7 +16,7 @@
     "axios-retry": "^3.2.4",
     "core-js": "^3.19.3",
     "date-fns": "^2.27.0",
-    "echarts": "^5.3.1",
+    "echarts": "^5.3.3",
     "element-resize-detector": "^1.2.4",
     "lodash": "^4.17.21",
     "numbro": "^2.3.5",

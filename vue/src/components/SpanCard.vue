@@ -300,7 +300,7 @@ function useMeta(props: Props) {
       })
 
       bs.push({
-        text: props.span.id,
+        text: 'Span',
         to: {
           name: 'SpanShow',
           params: {
