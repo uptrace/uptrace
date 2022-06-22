@@ -46,7 +46,7 @@ const colorSet = {
   errorPct: colors.red.darken3,
   p50: colors.green.lighten2,
   p90: colors.amber.darken1,
-  p99: colors.amber.darken3,
+  p99: colors.deepOrange.darken3,
 }
 
 export default defineComponent({
