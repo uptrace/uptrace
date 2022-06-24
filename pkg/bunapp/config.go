@@ -16,13 +16,15 @@ func ReadConfig(configFile, service string) (*AppConfig, error) {
 		return nil, err
 	}
 
-	b, err := os.ReadFile(configFile)
+	configBytes, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, err
 	}
 
 	cfg := new(AppConfig)
-	if err := yaml.Unmarshal(b, cfg); err != nil {
+
+	configStr := expandEnv(string(configBytes))
+	if err := yaml.Unmarshal([]byte(configStr), cfg); err != nil {
 		return nil, err
 	}
 
@@ -63,6 +65,15 @@ func ReadConfig(configFile, service string) (*AppConfig, error) {
 	return cfg, nil
 }
 
+func expandEnv(s string) string {
+	return os.Expand(s, func(str string) string {
+		if str == "$" { // escaping
+			return "$"
+		}
+		return os.Getenv(str)
+	})
+}
+
 func validateProjects(projects []Project) error {
 	if len(projects) == 0 {
 		return fmt.Errorf("config must contain at least one project")
@@ -94,6 +105,8 @@ type AppConfig struct {
 	Listen struct {
 		HTTP string `yaml:"http"`
 		GRPC string `yaml:"grpc"`
+
+		// Calculated.
 
 		HTTPHost string `yaml:"-"`
 		HTTPPort string `yaml:"-"`
