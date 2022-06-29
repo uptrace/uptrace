@@ -25,14 +25,6 @@
                 class="ma-1"
               />
             </div>
-
-            <!-- <LogLabelMenu
-              v-for="label in labels.items"
-              :key="label"
-              :date-range="dateRange"
-              :label="label"
-              @click="$emit('click:filter', { key: label, op: $event.op, value: $event.value })"
-            /> -->
           </div>
 
           <v-text-field
@@ -70,31 +62,26 @@
       <v-col>
         <div>
           <div class="mx-2">
-            <!-- <v-row>
-              <LogLabelChip
-                v-for="label in labels"
-                :key="label.name"
-                v-model="label.selected"
-                :attr-key="label.name"
-                label
-                x-small
-                class="ma-1"
-              />
-            </v-row> -->
-
             <v-row>
-              <template v-for="(label, idx) in labels">
-                <div v-show="label.selected" :key="idx">
-                  <LogLabelValuesCont
-                    :key="label.name"
-                    :date-range="dateRange"
-                    :label="label.name"
-                    @click="
-                      $emit('click:filter', { key: label.name, op: $event.op, value: $event.value })
-                    "
-                  />
-                </div>
-              </template>
+              <div v-for="(label, idx) in labels" v-show="label.selected" :key="idx">
+                <LogLabelValuesCont
+                  :key="label.name"
+                  :date-range="dateRange"
+                  :label="label.name"
+                  :query="internalQuery"
+                  @click="
+                    $emit('click:filter', {
+                      key: label.name,
+                      op: $event.op,
+                      value: $event.value,
+                      selected: $event.selected,
+                      labelValues: $event.labelValues,
+                      label: $event.label,
+                      labels,
+                    })
+                  "
+                />
+              </div>
             </v-row>
           </div>
         </div>
@@ -120,7 +107,6 @@ import { UseDateRange } from '@/use/date-range'
 import { useLabels, Label } from '@/components/loki/logql'
 
 // Components
-// import LogLabelMenu from '@/components/loki/LogLabelMenu.vue'
 import LogLabelChip from '@/components/loki/LogLabelChip.vue'
 import LogLabelValuesCont from '@/components/loki/LogLabelValuesCont.vue'
 
@@ -137,6 +123,7 @@ export default defineComponent({
       type: String,
       required: true,
     },
+
     limit: {
       type: [Number, String],
       required: true,
@@ -147,7 +134,6 @@ export default defineComponent({
     const { route } = useRouter()
     const internalQuery = shallowRef('')
     const isLabelBrowserOpen = ref(false)
-
     const labelValues = useLabels(() => {
       const { projectId } = route.value.params
 
@@ -161,7 +147,7 @@ export default defineComponent({
 
     const internalLabels = computed((): Label[] => {
       return labelValues.items.map((value: string): Label => {
-        return { name: value, selected: false }
+        return { name: value, selected: false, label: '' }
       })
     })
 
@@ -176,12 +162,12 @@ export default defineComponent({
       },
       { immediate: true },
     )
-
+    // this one sends event for
     function exitRawMode(save: boolean) {
       if (save) {
         ctx.emit('input', internalQuery.value ?? '')
       } else {
-        internalQuery.value = props.value
+        internalQuery.value = props.value // internalquery is the query value
       }
     }
 

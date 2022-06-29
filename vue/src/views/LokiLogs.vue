@@ -67,12 +67,16 @@ import LogsTable from '@/components/loki/LogsTable.vue'
 import LogqlChart from '@/components/loki/LogqlChart.vue'
 
 // Utilities
-import { escapeRe } from '@/util/string'
+import { logParse, queryParse } from '@/util/loki'
 
 interface Filter {
   key: string
   op: string
   value: string
+  selected: boolean
+  label: string
+  labels: []
+  labelValues: []
 }
 
 export default defineComponent({
@@ -94,7 +98,6 @@ export default defineComponent({
     const { route } = useRouter()
     const query = shallowRef('')
     const limit = shallowRef(1000)
-
     const logql = useLogql(() => {
       if (!query.value) {
         return undefined
@@ -126,39 +129,44 @@ export default defineComponent({
     })
 
     function onClickFilter(filter: Filter) {
-      query.value = updateQuery(query.value, filter.key, filter.op, JSON.stringify(filter.value))
+      query.value = queryParser(query.value, filter.key, filter.value, filter.selected, filter.op)
     }
 
     return { query, limit, logql, onClickFilter }
   },
 })
 
-const STREAM_SEL_RE = /{[^}]*}/
+// stream selector regex
+const STREAM_SELECTOR_REGEX = /{[^}]*}/
 
-function updateQuery(query: string, key: string, op: string, value: string): string {
-  const selector = `${key}${op}${value}`
+export function queryParser(
+  query: string,
+  key: string,
+  value: string,
+  selected: boolean,
+  op: string,
+) {
+  const { equalLabels } = logParse
+  const { fromLabels } = queryParse
+  const isQuery = query.match(STREAM_SELECTOR_REGEX) && query.length > 7
+  const keyValue: [string, string] = [key, value]
+  const tags = query.split(/[{}]/)
+  const preTags = tags[0] || ''
+  const postTags = tags[2] || ''
 
-  if (!query) {
-    return `{${selector}}`
-  }
-
-  const m = query.match(STREAM_SEL_RE)
-  if (!m) {
-    return `{${selector}}`
-  }
-
-  let found = m[0]
-
-  const e = escapeRe
-  const re = new RegExp(`${e(key)}\\s*${e(op)}\\s*("(?:[^"\\\\]|\\\\.)*")`)
-  if (re.test(found)) {
-    found = found.replace(re, selector)
+  if (isQuery) {
+    if (query === `{${key}="${value}"}`) {
+      return equalLabels(query, preTags, postTags, keyValue, op)
+    } else {
+      return `${preTags || ''}{${fromLabels(query, keyValue, op)}}${postTags || ''}`
+    }
   } else {
-    found = found.slice(1, -1)
-    found = `{${found}, ${selector}}`
+    if (op === '!=') {
+      return `${preTags || ''}{${key}!="${value}"}${postTags || ''}`
+    } else {
+      return `${preTags || ''}{${key}="${value}"}${postTags || ''}`
+    }
   }
-
-  return query.replace(STREAM_SEL_RE, found)
 }
 </script>
 

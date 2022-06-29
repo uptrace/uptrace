@@ -77,6 +77,7 @@ export function useLogql(reqSource: AxiosRequestSource) {
 export interface Label {
   name: string
   selected: boolean
+  label: string
 }
 
 export function useLabels(reqSource: AxiosRequestSource) {
