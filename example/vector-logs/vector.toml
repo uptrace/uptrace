@@ -19,5 +19,5 @@ type = "http"
 inputs = ["parse_logs"]
 encoding.codec = "ndjson"
 compression = "gzip"
-uri = "http://localhost:14318/api/v1/vector-logs"
+uri = "http://localhost:14318/api/v1/vector/logs"
 headers.uptrace-dsn = "http://project2_secret_token@localhost:14317/2"

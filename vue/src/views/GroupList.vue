@@ -131,7 +131,6 @@ export default defineComponent({
     const activeColumns = shallowRef<string[]>([])
 
     const uql = useUql({
-      query: props.query,
       syncQuery: true,
     })
 

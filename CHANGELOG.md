@@ -1,6 +1,15 @@
 # Changelog
 
-To get started with Uptrace, see https://get.uptrace.dev/guide/
+To get started with Uptrace, see https://get.uptrace.dev/guide/opentelemetry-tracing-tool.html
+
+## v0.2.16 - Unreleased
+
+- Start expanding env vars in the YAML config, for example:
+
+```yaml
+ch:
+  dsn: 'clickhouse://${CLICKHOUSE_USER}:@${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT}/${CLICKHOUSE_DATABASE}?sslmode=disable'
+```
 
 ## v0.2.15 - Jun 8 2022
 

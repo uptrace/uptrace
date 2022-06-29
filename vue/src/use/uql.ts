@@ -46,6 +46,23 @@ export function useUql(cfg: UqlConfig = {}) {
     },
   })
 
+  query.value = cfg.query ?? ''
+
+  if (cfg.syncQuery) {
+    useQuery().sync({
+      fromQuery(params) {
+        if (params[paramName]) {
+          query.value = params[paramName]
+        }
+      },
+      toQuery() {
+        return {
+          [paramName]: query.value,
+        }
+      },
+    })
+  }
+
   function addPart(part: Part) {
     parts.value.push(reactive(part))
     // eslint-disable-next-line no-self-assign
@@ -98,21 +115,6 @@ export function useUql(cfg: UqlConfig = {}) {
         },
       })
       .catch(() => {})
-  }
-
-  query.value = cfg.query ?? ''
-
-  if (cfg.syncQuery) {
-    useQuery().sync({
-      fromQuery(params) {
-        query.value = params[paramName] ?? cfg.query ?? ''
-      },
-      toQuery() {
-        return {
-          [paramName]: query.value,
-        }
-      },
-    })
   }
 
   return proxyRefs({
