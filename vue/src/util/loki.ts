@@ -1,4 +1,7 @@
-export const logParse = {
+// stream selector regex
+const STREAM_SELECTOR_REGEX = /{[^}]*}/
+
+const parseLog = {
   equalLabels: (
     query: string,
     preTags: string,
@@ -17,21 +20,14 @@ export const logParse = {
   },
   splitLabels: (query: string): any[] =>
     query
-      ?.match(/[^{\}]+(?=})/g, '$1')
+      ?.match(/[^{}]+(?=})/g)
       ?.map((m) => m.split(','))
       ?.flat() || [], // fix removing from array
-  labelAdd: (op: string, keySubtValue: string, keyValue: string): string => {
+  addLabel: (op: string, keySubtValue: string, keyValue: string): string => {
     let labelmod = op === '!=' ? keySubtValue : keyValue
     return labelmod || ''
   },
-  valueAdd: (op: string, label: string, value: string, keySubtValue: string): string => {
-    const [lb, val] = label.split('=')
-    const values = val.split(/[""]/)[1]
-    const valueAdded = `${lb}=~"${values} | ${value}"`
-    let labelMod = op == '!=' ? keySubtValue : valueAdded
-    return labelMod
-  },
-  valueRmFromLabel: (label: string, value: string): string => {
+  rmValueFromLabel: (label: string, value: string): string => {
     const [lb, val] = label.split('=~')
     let lvalue = val.split(/[""]/)[1]
     let values = lvalue.split('|')
@@ -48,7 +44,7 @@ export const logParse = {
     const labelmod = lb + opr + '"' + lvalues.trim() + '"'
     return labelmod
   },
-  valueAddToLabel: (label: string, value: string, isEquals: boolean): string => {
+  addValueToLabel: (label: string, value: string, isEquals: boolean): string => {
     const sign = isEquals ? '=' : '=~'
     const [lb, val] = label.split(sign)
     const values = val.split(/[""]/)[1]
@@ -56,16 +52,16 @@ export const logParse = {
     return labelmod
   },
 }
-export const queryParse = {
+const parseQuery = {
   fromLabels: (query: string, keyVal: [string, string], op: string) => {
     const [key, value] = keyVal
     const keyValue = `${key}="${value}"`
     const keySubtValue = `${key}!="${value}"`
     let queryString = ''
-    let queryArr = logParse.splitLabels(query)
+    let queryArr = parseLog.splitLabels(query)
     queryArr?.forEach((label) => {
       const regexQuery = label.match(/([^{}=,~!]+)/gm)
-      const querySplitted = logParse.splitLabels(query)
+      const querySplitted = parseLog.splitLabels(query)
       if (!regexQuery) {
         return
       }
@@ -77,25 +73,25 @@ export const queryParse = {
         !querySplitted?.some((s) => s.includes(key) && s.includes(value))
       ) {
         let labelMod = op === '!=' ? keySubtValue : label
-        const parsed = logParse.labelAdd(op, labelMod, keyValue)
-        const regs = logParse.splitLabels(query).concat(parsed)
+        const parsed = parseLog.addLabel(op, labelMod, keyValue)
+        const regs = parseLog.splitLabels(query).concat(parsed)
         const joined = regs.join(',')
         queryString = joined
       } // add the case for multiple exclusion regex
       else if (label.includes('=') && label.includes(key) && !label.includes(value)) {
-        let labelMod = logParse.valueAddToLabel(label, value, true)
-        const matches = logParse.splitLabels(query).join(',').replace(`${label}`, labelMod)
+        let labelMod = parseLog.addValueToLabel(label, value, true)
+        const matches = parseLog.splitLabels(query).join(',').replace(`${label}`, labelMod)
         queryString = matches
       } else if (label.includes('=~') && label.includes(key) && label.includes(value)) {
-        const labelMod = logParse.valueRmFromLabel(label, value)
-        const matches = logParse.splitLabels(query).join(',').replace(`${label}`, labelMod)
+        const labelMod = parseLog.rmValueFromLabel(label, value)
+        const matches = parseLog.splitLabels(query).join(',').replace(`${label}`, labelMod)
         queryString = matches
       } else if (
         label.includes('=~') &&
         label.includes(key.trim()) &&
         !label.includes(value.trim())
       ) {
-        const labelMod = logParse.valueAddToLabel(label, value, false)
+        const labelMod = parseLog.addValueToLabel(label, value, false)
         queryString = labelMod
       } else if (
         !label.includes('=~') &&
@@ -110,4 +106,34 @@ export const queryParse = {
     })
     return queryString
   },
+}
+
+export function decodeQuery(
+  query: string,
+  key: string,
+  value: string,
+  selected: boolean,
+  op: string,
+) {
+  const { equalLabels } = parseLog
+  const { fromLabels } = parseQuery
+  const isQuery = query.match(STREAM_SELECTOR_REGEX) && query.length > 7
+  const keyValue: [string, string] = [key, value]
+  const tags = query.split(/[{}]/)
+  const preTags = tags[0] || ''
+  const postTags = tags[2] || ''
+
+  if (isQuery) {
+    if (query === `{${key}="${value}"}`) {
+      return equalLabels(query, preTags, postTags, keyValue, op)
+    } else {
+      return `${preTags || ''}{${fromLabels(query, keyValue, op)}}${postTags || ''}`
+    }
+  } else {
+    if (op === '!=') {
+      return `${preTags || ''}{${key}!="${value}"}${postTags || ''}`
+    } else {
+      return `${preTags || ''}{${key}="${value}"}${postTags || ''}`
+    }
+  }
 }

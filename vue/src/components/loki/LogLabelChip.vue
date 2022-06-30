@@ -53,7 +53,7 @@ export default defineComponent({
 
     function setIsLabelSelected() {
       chipSelected.value = !chipSelected.value
-      const label: Label = { name: props.attrKey, selected: chipSelected.value }
+      const label: Label = { label: '', name: props.attrKey, selected: chipSelected.value }
       ctx.emit('click:labelSelected', label)
       ctx.emit('input', chipSelected.value)
     }

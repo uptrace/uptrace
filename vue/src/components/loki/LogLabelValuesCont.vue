@@ -35,11 +35,6 @@ export interface LabelItem {
   label: string
 }
 
-export enum Operators {
-  equals = '=',
-  matches = '=~',
-}
-
 export default defineComponent({
   name: 'LogLabelValuesCont',
   components: { LogLabelChip },

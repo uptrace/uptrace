@@ -67,7 +67,7 @@ import LogsTable from '@/components/loki/LogsTable.vue'
 import LogqlChart from '@/components/loki/LogqlChart.vue'
 
 // Utilities
-import { logParse, queryParse } from '@/util/loki'
+import { decodeQuery } from '@/util/loki'
 
 interface Filter {
   key: string
@@ -129,45 +129,12 @@ export default defineComponent({
     })
 
     function onClickFilter(filter: Filter) {
-      query.value = queryParser(query.value, filter.key, filter.value, filter.selected, filter.op)
+      query.value = decodeQuery(query.value, filter.key, filter.value, filter.selected, filter.op)
     }
 
     return { query, limit, logql, onClickFilter }
   },
 })
-
-// stream selector regex
-const STREAM_SELECTOR_REGEX = /{[^}]*}/
-
-export function queryParser(
-  query: string,
-  key: string,
-  value: string,
-  selected: boolean,
-  op: string,
-) {
-  const { equalLabels } = logParse
-  const { fromLabels } = queryParse
-  const isQuery = query.match(STREAM_SELECTOR_REGEX) && query.length > 7
-  const keyValue: [string, string] = [key, value]
-  const tags = query.split(/[{}]/)
-  const preTags = tags[0] || ''
-  const postTags = tags[2] || ''
-
-  if (isQuery) {
-    if (query === `{${key}="${value}"}`) {
-      return equalLabels(query, preTags, postTags, keyValue, op)
-    } else {
-      return `${preTags || ''}{${fromLabels(query, keyValue, op)}}${postTags || ''}`
-    }
-  } else {
-    if (op === '!=') {
-      return `${preTags || ''}{${key}!="${value}"}${postTags || ''}`
-    } else {
-      return `${preTags || ''}{${key}="${value}"}${postTags || ''}`
-    }
-  }
-}
 </script>
 
 <style lang="scss" scoped></style>
