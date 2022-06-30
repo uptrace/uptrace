@@ -65,21 +65,10 @@
             <v-row>
               <div v-for="(label, idx) in labels" v-show="label.selected" :key="idx">
                 <LogLabelValuesCont
-                  :key="label.name"
                   :date-range="dateRange"
                   :label="label.name"
                   :query="internalQuery"
-                  @click="
-                    $emit('click:filter', {
-                      key: label.name,
-                      op: $event.op,
-                      value: $event.value,
-                      selected: $event.selected,
-                      labelValues: $event.labelValues,
-                      label: $event.label,
-                      labels,
-                    })
-                  "
+                  @click="$emit('click:filter', { $event })"
                 />
               </div>
             </v-row>
@@ -112,7 +101,7 @@ import LogLabelValuesCont from '@/components/loki/LogLabelValuesCont.vue'
 
 export default defineComponent({
   name: 'Logql',
-  components: { /*LogLabelMenu, */ LogLabelChip, LogLabelValuesCont },
+  components: { LogLabelChip, LogLabelValuesCont },
 
   props: {
     dateRange: {
@@ -147,7 +136,7 @@ export default defineComponent({
 
     const internalLabels = computed((): Label[] => {
       return labelValues.items.map((value: string): Label => {
-        return { name: value, selected: false, label: '' }
+        return { name: '', value, selected: false }
       })
     })
 
@@ -167,7 +156,7 @@ export default defineComponent({
       if (save) {
         ctx.emit('input', internalQuery.value ?? '')
       } else {
-        internalQuery.value = props.value // internalquery is the query value
+        internalQuery.value = props.value
       }
     }
 

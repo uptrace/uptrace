@@ -29,11 +29,6 @@ import { useLabels, Label } from '@/components/loki/logql'
 
 // Components
 import LogLabelChip from '@/components/loki/LogLabelChip.vue'
-export interface LabelItem {
-  name: string
-  selected: boolean
-  label: string
-}
 
 export default defineComponent({
   name: 'LogLabelValuesCont',
@@ -68,9 +63,9 @@ export default defineComponent({
       }
     })
 
-    const internalLabels = computed((): LabelItem[] => {
-      return labelValues.items.map((value: string): LabelItem => {
-        return { name: value, selected: false, label: props.label || '' }
+    const internalLabels = computed((): Label[] => {
+      return labelValues.items.map((value: string): Label => {
+        return { name: props.label || '', value: value || '', selected: false }
       })
     })
 
@@ -80,32 +75,27 @@ export default defineComponent({
     watch(
       () => props.query,
       (query) => {
-        // parse the query in 're'
         labels.value.forEach((label) => {
-          if (query?.includes(label.name) && query?.includes(label?.label)) {
-            label.selected = true
-          } else {
-            label.selected = false
-          }
+          label.selected = query?.includes(label.name) && query?.includes(label?.name)
         })
       },
       { immediate: true },
     )
 
-    function addFilter(op: string, value: string, selected: boolean, labelValues: any) {
+    function addFilter(op: string, value: string) {
       labels.value.forEach((value) => {
-        if (props.query?.includes(value.name)) {
+        if (props.query?.includes(value.value)) {
           value.selected = true
         }
       })
 
-      ctx.emit('click', { op, value, selected, labelValues, label: props.label })
+      ctx.emit('click', { label: props.label, value, op })
       labelMenu.value = false
     }
 
     function onClick(item: any) {
-      const { name, selected } = item
-      addFilter('=', name, selected, labels)
+      const { name } = item
+      addFilter('=', name)
     }
 
     return { labels, onClick, addFilter }

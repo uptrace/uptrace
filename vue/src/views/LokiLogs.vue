@@ -129,7 +129,7 @@ export default defineComponent({
     })
 
     function onClickFilter(filter: Filter) {
-      query.value = decodeQuery(query.value, filter.key, filter.value, filter.selected, filter.op)
+      query.value = decodeQuery(query.value, filter.label, filter.value, filter.op)
     }
 
     return { query, limit, logql, onClickFilter }

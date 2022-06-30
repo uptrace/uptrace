@@ -2,21 +2,12 @@
 const STREAM_SELECTOR_REGEX = /{[^}]*}/
 
 const parseLog = {
-  equalLabels: (
-    query: string,
-    preTags: string,
-    postTags: string,
-    keyValue: [string, string],
-    op: string,
-  ) => {
-    if (op === '=') {
-      return `${preTags || ''}{}${postTags || ''}`
-    } else if (op === '!=') {
-      const [key, value] = keyValue
-      return `{${key}!="${value}"}`
-    } else {
-      return query
-    }
+  newQuery: (keyValue: string[], op: string, tags: string[]) => {
+    const [key, value] = keyValue
+    return `${tags[0] || ''}{${key}${op}${value}}${tags[2] || ''}}`
+  },
+  equalLabels: (keyValue: string[], op: string, tags: string[]) => {
+    return op === '!=' ? parseLog.newQuery(keyValue, op, tags) : '{}'
   },
   splitLabels: (query: string): any[] =>
     query
@@ -51,22 +42,32 @@ const parseLog = {
     const labelmod = `${lb}=~"${values.trim()} | ${value.trim()}"`
     return labelmod
   },
+  isEqualsQuery: (query: string, keyValue: string[]) => {
+    const [key, value] = keyValue
+    return query === `{${key}="${value}"}`
+  },
+  editQuery: (query: string, keyValue: string[], op: string, tags: string[]) => {
+    return parseLog.isEqualsQuery(query, keyValue)
+      ? parseLog.equalLabels(keyValue, op, tags)
+      : parseQuery.fromLabels(query, keyValue, op, tags)
+  },
 }
 const parseQuery = {
-  fromLabels: (query: string, keyVal: [string, string], op: string) => {
+  fromLabels: (query: string, keyVal: string[], op: string, tags: string[]): string => {
     const [key, value] = keyVal
     const keyValue = `${key}="${value}"`
     const keySubtValue = `${key}!="${value}"`
     let queryString = ''
     let queryArr = parseLog.splitLabels(query)
+    if (!queryArr) {
+      return ''
+    }
     queryArr?.forEach((label) => {
       const regexQuery = label.match(/([^{}=,~!]+)/gm)
       const querySplitted = parseLog.splitLabels(query)
-      if (!regexQuery) {
-        return
-      }
-
-      if (
+      if (!regexQuery || !querySplitted) {
+        return ''
+      } else if (
         !label.includes(key.trim()) &&
         !label.includes(value.trim()) &&
         !querySplitted?.some((s) => s.includes(key)) &&
@@ -77,8 +78,7 @@ const parseQuery = {
         const regs = parseLog.splitLabels(query).concat(parsed)
         const joined = regs.join(',')
         queryString = joined
-      } // add the case for multiple exclusion regex
-      else if (label.includes('=') && label.includes(key) && !label.includes(value)) {
+      } else if (label.includes('=') && label.includes(key) && !label.includes(value)) {
         let labelMod = parseLog.addValueToLabel(label, value, true)
         const matches = parseLog.splitLabels(query).join(',').replace(`${label}`, labelMod)
         queryString = matches
@@ -104,36 +104,14 @@ const parseQuery = {
         queryString = joined
       }
     })
-    return queryString
+    return `${tags[0] || ''}{${queryString}}${tags[2] || ''}`
   },
 }
 
-export function decodeQuery(
-  query: string,
-  key: string,
-  value: string,
-  selected: boolean,
-  op: string,
-) {
-  const { equalLabels } = parseLog
-  const { fromLabels } = parseQuery
+export function decodeQuery(query: string, key: string, value: string, op: string) {
+  const { newQuery, editQuery } = parseLog
   const isQuery = query.match(STREAM_SELECTOR_REGEX) && query.length > 7
-  const keyValue: [string, string] = [key, value]
+  const keyValue = [key, value]
   const tags = query.split(/[{}]/)
-  const preTags = tags[0] || ''
-  const postTags = tags[2] || ''
-
-  if (isQuery) {
-    if (query === `{${key}="${value}"}`) {
-      return equalLabels(query, preTags, postTags, keyValue, op)
-    } else {
-      return `${preTags || ''}{${fromLabels(query, keyValue, op)}}${postTags || ''}`
-    }
-  } else {
-    if (op === '!=') {
-      return `${preTags || ''}{${key}!="${value}"}${postTags || ''}`
-    } else {
-      return `${preTags || ''}{${key}="${value}"}${postTags || ''}`
-    }
-  }
+  return !isQuery ? newQuery(keyValue, op, tags) : editQuery(query, keyValue, op, tags)
 }
