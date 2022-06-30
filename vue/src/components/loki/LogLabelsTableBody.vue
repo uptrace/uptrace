@@ -16,14 +16,14 @@
             icon
             small
             title="Filter for value"
-            @click="$emit('click:filter', { key: key, op: '=', value: labels[key] })"
+            @click="$emit('click:filter', { name: key, op: '=', value: labels[key] })"
             ><v-icon>mdi-magnify-plus-outline</v-icon></v-btn
           >
           <v-btn
             icon
             small
             title="Filter out value"
-            @click="$emit('click:filter', { key: key, op: '!=', value: labels[key] })"
+            @click="$emit('click:filter', { name: key, op: '!=', value: labels[key] })"
             ><v-icon>mdi-magnify-minus-outline</v-icon></v-btn
           >
         </span>

@@ -17,9 +17,9 @@
             <div v-show="isLabelBrowserOpen">
               <LogLabelChip
                 v-for="label in labels"
-                :key="label.name"
+                :key="label.value"
                 v-model="label.selected"
-                :attr-key="label.name"
+                :attr-key="label.value"
                 label
                 x-small
                 class="ma-1"
@@ -66,9 +66,9 @@
               <div v-for="(label, idx) in labels" v-show="label.selected" :key="idx">
                 <LogLabelValuesCont
                   :date-range="dateRange"
-                  :label="label.name"
+                  :label="label.value"
                   :query="internalQuery"
-                  @click="$emit('click:filter', { $event })"
+                  @click="$emit('click:filter', $event)"
                 />
               </div>
             </v-row>

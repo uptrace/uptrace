@@ -69,14 +69,10 @@ import LogqlChart from '@/components/loki/LogqlChart.vue'
 // Utilities
 import { decodeQuery } from '@/util/loki'
 
-interface Filter {
-  key: string
-  op: string
+export interface Filter {
+  name: string
   value: string
-  selected: boolean
-  label: string
-  labels: []
-  labelValues: []
+  op: string
 }
 
 export default defineComponent({
@@ -129,7 +125,9 @@ export default defineComponent({
     })
 
     function onClickFilter(filter: Filter) {
-      query.value = decodeQuery(query.value, filter.label, filter.value, filter.op)
+      console.log(filter)
+      const { name, op, value } = filter
+      query.value = decodeQuery(query.value, name, value, op)
     }
 
     return { query, limit, logql, onClickFilter }

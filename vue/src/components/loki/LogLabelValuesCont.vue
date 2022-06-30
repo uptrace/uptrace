@@ -5,7 +5,7 @@
       v-for="(item, idx) in labels"
       :key="idx"
       v-model="item.selected"
-      :attr-key="item.name"
+      :attr-key="item.value"
       pill
       @click:labelSelected="onClick(item)"
     />
@@ -76,7 +76,7 @@ export default defineComponent({
       () => props.query,
       (query) => {
         labels.value.forEach((label) => {
-          label.selected = query?.includes(label.name) && query?.includes(label?.name)
+          label.selected = query?.includes(label.name) && query?.includes(label?.value)
         })
       },
       { immediate: true },
@@ -88,14 +88,13 @@ export default defineComponent({
           value.selected = true
         }
       })
-
-      ctx.emit('click', { label: props.label, value, op })
+      ctx.emit('click', { name: props.label, value, op })
       labelMenu.value = false
     }
 
     function onClick(item: any) {
-      const { name } = item
-      addFilter('=', name)
+      const { value } = item
+      addFilter('=', value)
     }
 
     return { labels, onClick, addFilter }
