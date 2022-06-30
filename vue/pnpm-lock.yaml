@@ -46,7 +46,7 @@ specifiers:
   vue-prism-component: 1.2.0
   vue-router: ^3.5.3
   vue-template-compiler: ^2.6.14
-  vuetify: ^2.6.4
+  vuetify: ^2.6.7
   vuetify-loader: ^1.7.3
 
 dependencies:
@@ -66,7 +66,7 @@ dependencies:
   vue-frag: 1.3.1_vue@2.6.14
   vue-prism-component: 1.2.0
   vue-router: 3.5.3
-  vuetify: 2.6.4_vue@2.6.14
+  vuetify: 2.6.7_vue@2.6.14
 
 devDependencies:
   '@types/chai': 4.3.0
@@ -98,7 +98,7 @@ devDependencies:
   typescript: 4.5.3
   vue-cli-plugin-vuetify: 2.4.5_776d37e06bd93ffed106755da2d6a8a8
   vue-template-compiler: 2.6.14
-  vuetify-loader: 1.7.3_cfe6260f4a77386d492c4e564aa08ca3
+  vuetify-loader: 1.7.3_ccccb61b1f4d2604b8cf540b08b732f5
 
 packages:
 
@@ -3144,7 +3144,7 @@ packages:
     dev: true
 
   /callsites/2.0.0:
-    resolution: {integrity: sha1-BuuE8A7qQT2oav/vrL/7Ngk7PFA=}
+    resolution: {integrity: sha512-ksWePWBloaWPxJYQ8TL0JHvtci6G5QTKwQ95RcWAa/lzoAKuAOflGdAK92hpHXjkwb8zLxoLNUoNYZgVsaJzvQ==}
     engines: {node: '>=4'}
     dev: true
 
@@ -4428,7 +4428,7 @@ packages:
     dev: true
 
   /emojis-list/2.1.0:
-    resolution: {integrity: sha1-TapNnbAPmBmIDHn6RXrlsJof04k=}
+    resolution: {integrity: sha512-knHEZMgs8BB+MInokmNTg/OyPlAddghe1YBgNwJBc5zsJi/uyIcXoSDsL/W9ymOsBoBGdPIHXYJ9+qKFwRwDng==}
     engines: {node: '>= 0.10'}
     dev: true
 
@@ -6624,7 +6624,7 @@ packages:
     dev: true
 
   /json5/0.5.1:
-    resolution: {integrity: sha1-Hq3nrMASA0rYTiOWdn6tn6VJWCE=}
+    resolution: {integrity: sha512-4xrs1aW+6N5DalkqSVA8fxh458CXvR99WU8WLKmq4v8eWAL86Xo3BVqyd3SkA9wEVjCMqyvvRRkshAdOnBp5rw==}
     hasBin: true
     dev: true
 
@@ -7150,7 +7150,7 @@ packages:
     dev: true
 
   /minimist/0.0.8:
-    resolution: {integrity: sha1-hX/Kv8M5fSYluCKCYuhqp6ARsF0=}
+    resolution: {integrity: sha512-miQKw5Hv4NS1Psg2517mV4e4dYNaO3++hjAvLOAzKqZ61rH8NS1SK+vbfBWZ5PY/Me/bEWhUwqMghEW5Fb9T7Q==}
     dev: true
 
   /minimist/1.2.0:
@@ -8519,11 +8519,11 @@ packages:
     dev: true
 
   /punycode/1.3.2:
-    resolution: {integrity: sha1-llOgNvt8HuQjQvIyXM7v6jkmxI0=}
+    resolution: {integrity: sha512-RofWgt/7fL5wP1Y7fxE7/EmTLzQVnB0ycyibJ0OOHIlJqTNzglYFxVwETOcIoJqJmpDXJ9xImDv+Fq34F/d4Dw==}
     dev: true
 
   /punycode/1.4.1:
-    resolution: {integrity: sha1-wNWmOycYgArY4esPpSachN1BhF4=}
+    resolution: {integrity: sha512-jmYNElW7yvO7TV33CjSmvSiE2yco3bV2czu/OzDKdMNVZQWfxCblURLhf+47syQRBntjfLdd/H0egrzIG+oaFQ==}
     dev: true
 
   /punycode/2.1.1:
@@ -8868,7 +8868,7 @@ packages:
     dev: true
 
   /resolve-from/3.0.0:
-    resolution: {integrity: sha1-six699nWiBvItuZTM17rywoYh0g=}
+    resolution: {integrity: sha512-GnlH6vxLymXJNMBo7XP1fJIzBFbdYt49CuTwmB/6N53t+kMPRMFKz783LlQ4tv28XoQfMWinAJX6WCGf2IlaIw==}
     engines: {node: '>=4'}
     dev: true
 
@@ -10353,7 +10353,7 @@ packages:
       sass-loader: 10.1.1_sass@1.32.8
       semver: 7.3.5
       shelljs: 0.8.4
-      vuetify-loader: 1.7.3_cfe6260f4a77386d492c4e564aa08ca3
+      vuetify-loader: 1.7.3_ccccb61b1f4d2604b8cf540b08b732f5
     transitivePeerDependencies:
       - webpack
     dev: true
@@ -10471,7 +10471,7 @@ packages:
     resolution: {integrity: sha512-x2284lgYvjOMj3Za7kqzRcUSxBboHqtgRE2zlos1qWaOye5yUmHn42LB1250NJBLRwEcdrB0JRwyPTEPhfQjiQ==}
     dev: false
 
-  /vuetify-loader/1.7.3_cfe6260f4a77386d492c4e564aa08ca3:
+  /vuetify-loader/1.7.3_ccccb61b1f4d2604b8cf540b08b732f5:
     resolution: {integrity: sha512-1Kt6Rfvuw3i9BBlxC9WTMnU3WEU7IBWQmDX+fYGAVGpzWCX7oHythUIwPCZGShHSYcPMKSDbXTPP8UvT5RNw8Q==}
     peerDependencies:
       vue-template-compiler: ^2.6.10
@@ -10482,11 +10482,11 @@ packages:
       file-loader: 6.2.0
       loader-utils: 2.0.2
       vue-template-compiler: 2.6.14
-      vuetify: 2.6.4_vue@2.6.14
+      vuetify: 2.6.7_vue@2.6.14
     dev: true
 
-  /vuetify/2.6.4_vue@2.6.14:
-    resolution: {integrity: sha512-2wEzU/Gz39gQCxK93xoiWPKCHQUnyUKWd81wB7Q7hfYJWu5QOWQXYlF0X/BgUZzf8IOyHWKiSNEAfEe9OE3b4w==}
+  /vuetify/2.6.7_vue@2.6.14:
+    resolution: {integrity: sha512-1XxCv6mt1UsKaW7rqow0hF/jOw1ijT/fHH9euWLHgSVIcPAx8D2AY5ihTCBbMmV53Hj/YD0DUvzyk6cM/OGHvw==}
     peerDependencies:
       vue: ^2.6.4
     dependencies:
