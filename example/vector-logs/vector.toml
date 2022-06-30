@@ -1,14 +1,28 @@
-# Random Syslog-formatted logs
-[sources.dummy_logs]
+[sources.syslog_logs]
 type = "demo_logs"
 format = "syslog"
-interval = 1.0
+interval = 0.1
+
+[sources.apache_common_logs]
+type = "demo_logs"
+format = "apache_common"
+interval = 0.1
+
+[sources.apache_error_logs]
+type = "demo_logs"
+format = "apache_error"
+interval = 0.1
+
+[sources.json_logs]
+type = "demo_logs"
+format = "json"
+interval = 0.1
 
 # Parse Syslog logs
 # See the Vector Remap Language reference for more info: https://vrl.dev
 [transforms.parse_logs]
 type = "remap"
-inputs = ["dummy_logs"]
+inputs = ["syslog_logs"]
 source = '''
 . = parse_syslog!(string!(.message))
 '''
@@ -16,7 +30,7 @@ source = '''
 # Export data to Uptrace.
 [sinks.uptrace]
 type = "http"
-inputs = ["parse_logs"]
+inputs = ["parse_logs", "apache_common_logs", "apache_error_logs", "json_logs"]
 encoding.codec = "ndjson"
 compression = "gzip"
 uri = "http://localhost:14318/api/v1/vector/logs"
