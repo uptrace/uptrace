@@ -1,5 +1,13 @@
 # vue
 
+## pnpm
+
+This project requires pnpm and [shamefully-hoist](https://pnpm.io/npmrc#shamefully-hoist):
+
+```ini
+shamefully-hoist=true
+```
+
 ## Project setup
 
 ```
