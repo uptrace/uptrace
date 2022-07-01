@@ -67,12 +67,12 @@ import LogsTable from '@/components/loki/LogsTable.vue'
 import LogqlChart from '@/components/loki/LogqlChart.vue'
 
 // Utilities
-import { escapeRe } from '@/util/string'
+import { decodeQuery } from '@/util/loki'
 
-interface Filter {
-  key: string
-  op: string
+export interface Filter {
+  name: string
   value: string
+  op: string
 }
 
 export default defineComponent({
@@ -94,7 +94,6 @@ export default defineComponent({
     const { route } = useRouter()
     const query = shallowRef('')
     const limit = shallowRef(1000)
-
     const logql = useLogql(() => {
       if (!query.value) {
         return undefined
@@ -126,40 +125,14 @@ export default defineComponent({
     })
 
     function onClickFilter(filter: Filter) {
-      query.value = updateQuery(query.value, filter.key, filter.op, JSON.stringify(filter.value))
+      const { name, op, value } = filter
+
+      query.value = decodeQuery(query.value, name, value, op)
     }
 
     return { query, limit, logql, onClickFilter }
   },
 })
-
-const STREAM_SEL_RE = /{[^}]*}/
-
-function updateQuery(query: string, key: string, op: string, value: string): string {
-  const selector = `${key}${op}${value}`
-
-  if (!query) {
-    return `{${selector}}`
-  }
-
-  const m = query.match(STREAM_SEL_RE)
-  if (!m) {
-    return `{${selector}}`
-  }
-
-  let found = m[0]
-
-  const e = escapeRe
-  const re = new RegExp(`${e(key)}\\s*${e(op)}\\s*("(?:[^"\\\\]|\\\\.)*")`)
-  if (re.test(found)) {
-    found = found.replace(re, selector)
-  } else {
-    found = found.slice(1, -1)
-    found = `{${found}, ${selector}}`
-  }
-
-  return query.replace(STREAM_SEL_RE, found)
-}
 </script>
 
 <style lang="scss" scoped></style>

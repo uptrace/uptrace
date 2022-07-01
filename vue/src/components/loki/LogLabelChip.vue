@@ -1,6 +1,6 @@
 <template>
   <v-chip
-    v-if="attrKey"
+    v-if="labelValue"
     v-model="chipSelected"
     small
     class="ma-1"
@@ -10,7 +10,7 @@
     :label="label"
     @click="setIsLabelSelected"
   >
-    {{ attrKey }}
+    {{ labelValue }}
   </v-chip>
 </template>
 
@@ -27,7 +27,7 @@ export default defineComponent({
       type: Boolean,
       required: true,
     },
-    attrKey: {
+    labelValue: {
       type: String,
       required: true,
     },
@@ -53,7 +53,7 @@ export default defineComponent({
 
     function setIsLabelSelected() {
       chipSelected.value = !chipSelected.value
-      const label: Label = { name: props.attrKey, selected: chipSelected.value }
+      const label: Label = { name: '', value: props.labelValue, selected: chipSelected.value }
       ctx.emit('click:labelSelected', label)
       ctx.emit('input', chipSelected.value)
     }

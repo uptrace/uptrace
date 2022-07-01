@@ -3,7 +3,7 @@
     <v-row no-gutters align="center" class="mb-n1">
       <v-col>
         <div class="d-flex justify-space-between filters">
-          <div class="d-flex filters" style="display: none">
+          <div class="d-flex align-center filters" style="display: none">
             <v-btn
               v-model="isLabelBrowserOpen"
               x-small
@@ -14,14 +14,17 @@
               @click="isLabelBrowserOpen = !isLabelBrowserOpen"
               >Browse Labels</v-btn
             >
-
-            <LogLabelMenu
-              v-for="label in labels.items"
-              :key="label"
-              :date-range="dateRange"
-              :label="label"
-              @click="$emit('click:filter', { key: label, op: $event.op, value: $event.value })"
-            />
+            <div v-show="isLabelBrowserOpen">
+              <LogLabelChip
+                v-for="label in labels"
+                :key="label.value"
+                v-model="label.selected"
+                :label-value="label.value"
+                label
+                x-small
+                class="ma-1"
+              />
+            </div>
           </div>
 
           <v-text-field
@@ -60,30 +63,14 @@
         <div>
           <div class="mx-2">
             <v-row>
-              <LogLabelChip
-                v-for="label in labels"
-                :key="label.name"
-                v-model="label.selected"
-                :attr-key="label.name"
-                label
-                x-small
-                class="ma-1"
-              />
-            </v-row>
-
-            <v-row>
-              <template v-for="label in labels">
-                <div v-show="label.selected" :key="label.name">
-                  <LogLabelValuesCont
-                    :key="label.name"
-                    :date-range="dateRange"
-                    :label="label.name"
-                    @click="
-                      $emit('click:filter', { key: label.name, op: $event.op, value: $event.value })
-                    "
-                  />
-                </div>
-              </template>
+              <div v-for="(label, idx) in labels" v-show="label.selected" :key="idx">
+                <LogLabelValuesCont
+                  :date-range="dateRange"
+                  :label="label.value"
+                  :query="internalQuery"
+                  @click="$emit('click:filter', $event)"
+                />
+              </div>
             </v-row>
           </div>
         </div>
@@ -109,13 +96,12 @@ import { UseDateRange } from '@/use/date-range'
 import { useLabels, Label } from '@/components/loki/logql'
 
 // Components
-import LogLabelMenu from '@/components/loki/LogLabelMenu.vue'
 import LogLabelChip from '@/components/loki/LogLabelChip.vue'
 import LogLabelValuesCont from '@/components/loki/LogLabelValuesCont.vue'
 
 export default defineComponent({
   name: 'Logql',
-  components: { LogLabelMenu, LogLabelChip, LogLabelValuesCont },
+  components: { LogLabelChip, LogLabelValuesCont },
 
   props: {
     dateRange: {
@@ -126,6 +112,7 @@ export default defineComponent({
       type: String,
       required: true,
     },
+
     limit: {
       type: [Number, String],
       required: true,
@@ -136,7 +123,6 @@ export default defineComponent({
     const { route } = useRouter()
     const internalQuery = shallowRef('')
     const isLabelBrowserOpen = ref(false)
-
     const labelValues = useLabels(() => {
       const { projectId } = route.value.params
 
@@ -150,7 +136,7 @@ export default defineComponent({
 
     const internalLabels = computed((): Label[] => {
       return labelValues.items.map((value: string): Label => {
-        return { name: value, selected: false }
+        return { name: '', value, selected: false }
       })
     })
 
@@ -165,7 +151,7 @@ export default defineComponent({
       },
       { immediate: true },
     )
-
+    // this one sends event for
     function exitRawMode(save: boolean) {
       if (save) {
         ctx.emit('input', internalQuery.value ?? '')
