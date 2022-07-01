@@ -211,7 +211,7 @@ function useAttrSet(attrKeys: Ref<string[]>) {
 </script>
 
 <style lang="scss" scoped>
-.v-btn-toggle ::v-deep .v-btn {
+.v-btn-toggle :deep(.v-btn) {
   text-transform: none;
 }
 </style>

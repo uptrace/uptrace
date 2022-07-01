@@ -35,9 +35,9 @@ export const useUser = defineStore(() => {
     return data.value?.hasLoki ?? false
   })
 
-  getOrLoad()
-
   let req: Promise<any>
+
+  getOrLoad()
 
   function reload() {
     req = request({ url: '/api/users/current' })

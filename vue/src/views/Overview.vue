@@ -11,7 +11,7 @@
 
     <div class="border">
       <div class="grey lighten-5">
-        <v-container fluid class="mb-2">
+        <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="mb-2">
           <SystemQuickMetrics :loading="systems.loading" :systems="systems.items" />
         </v-container>
 

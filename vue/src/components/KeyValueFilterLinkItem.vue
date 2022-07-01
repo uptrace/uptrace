@@ -8,7 +8,7 @@
       <v-list dense>
         <v-list-item v-for="item in menuItems" :key="item.title" v-bind="item.link">
           <v-list-item-content class="text-body-2">
-            <v-list-item-title v-text="item.title"></v-list-item-title>
+            <v-list-item-title>{{ item.title }}</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
       </v-list>

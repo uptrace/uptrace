@@ -3,7 +3,7 @@
     <v-list-item-group v-model="activePeriodMs" color="primary">
       <v-list-item v-for="item in periods" :key="item.ms" :value="item.ms">
         <v-list-item-content>
-          <v-list-item-title v-text="item.text"></v-list-item-title>
+          <v-list-item-title>{{ item.text }}</v-list-item-title>
         </v-list-item-content>
       </v-list-item>
     </v-list-item-group>

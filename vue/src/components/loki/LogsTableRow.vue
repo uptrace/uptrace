@@ -36,7 +36,6 @@
 
 <script lang="ts">
 import { assign } from 'lodash'
-import { parse as parseLogfmt } from 'logfmt'
 import { defineComponent, shallowRef, computed, PropType } from '@vue/composition-api'
 
 // Components
@@ -65,7 +64,7 @@ export default defineComponent({
     const expanded = shallowRef(false)
 
     const detectedLabels = computed((): Record<string, string> => {
-      return parseLogfmt(props.line) as Record<string, string>
+      return {} as Record<string, string>
     })
 
     const mergedLabels = computed(() => {
