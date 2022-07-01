@@ -125,8 +125,8 @@ export default defineComponent({
     })
 
     function onClickFilter(filter: Filter) {
-      console.log(filter)
       const { name, op, value } = filter
+
       query.value = decodeQuery(query.value, name, value, op)
     }
 

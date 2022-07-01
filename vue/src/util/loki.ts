@@ -1,4 +1,3 @@
-// stream selector regex
 const STREAM_SELECTOR_REGEX = /{[^}]*}/
 
 const parseLog = {
@@ -7,7 +6,14 @@ const parseLog = {
     return `${tags[0] || ''}{${key}${op}"${value}"}${tags[2] || ''}`
   },
   equalLabels: (keyValue: string[], op: string, tags: string[]): string => {
-    return op === '!=' ? parseLog.newQuery(keyValue, op, tags) : '{}'
+    if (op === '!=') {
+      return parseLog.newQuery(keyValue, op, tags)
+    }
+
+    return '{}'
+  },
+  formatQuery: (queryString: string, tags: string[]): string => {
+    return `${tags[0] || ''}{${queryString || ''}}${tags[2] || ''}`
   },
   splitLabels: (query: string): string[] =>
     query
@@ -15,25 +21,23 @@ const parseLog = {
       ?.map((m) => m.split(','))
       ?.flat() || [], // fix removing from array
   addLabel: (op: string, keySubtValue: string, keyValue: string): string => {
-    let labelmod = op === '!=' ? keySubtValue : keyValue
-    return labelmod || ''
+    if (op === '!=') {
+      return keySubtValue
+    }
+    return keyValue
   },
   rmValueFromLabel: (label: string, value: string): string => {
     const [lb, val] = label?.split('=~')
     let lvalue = val?.split(/[""]/)[1]
     let values = lvalue?.split('|')
     let filtered = values?.filter((f) => f.trim() !== value?.trim())
-    let lvalues = ''
-    let opr = ''
+
     if (filtered?.length > 1) {
-      lvalues = filtered?.join('|')
-      opr = '=~'
-    } else {
-      lvalues = filtered?.join('')
-      opr = '='
+      const lvalues = filtered?.join('|')?.trim()
+      return lb?.trim() + '=~' + '"' + lvalues + '"'
     }
-    const labelmod = lb?.trim() + opr + '"' + lvalues?.trim() + '"'
-    return labelmod
+    const lvalues = filtered?.join('')?.trim()
+    return lb?.trim() + '=' + '"' + lvalues + '"'
   },
   addValueToLabel: (label: string, value: string, isEquals: boolean): string => {
     const sign = isEquals ? '=' : '=~'
@@ -47,79 +51,90 @@ const parseLog = {
     return query === `{${key}="${value}"}`
   },
   editQuery: (query: string, keyValue: string[], op: string, tags: string[]): string => {
-    return parseLog.isEqualsQuery(query, keyValue)
-      ? parseLog.equalLabels(keyValue, op, tags)
-      : parseQuery.fromLabels(query, keyValue, op, tags)
+    if (parseLog.isEqualsQuery(query, keyValue)) {
+      return parseLog.equalLabels(keyValue, op, tags)
+    }
+
+    return parseQuery.fromLabels(query, keyValue, op, tags)
   },
 }
 const parseQuery = {
   fromLabels: (query: string, keyVal: string[], op: string, tags: string[]): string => {
-    const [key, value] = keyVal
-    const keyValue = `${key}="${value}"`
-    const keySubtValue = `${key}!="${value}"`
-    let queryString = ''
-    let queryArr = parseLog.splitLabels(query)
-    if (!queryArr) {
+    const queryString = parseQueryLabels(keyVal, query, op)
+    return parseLog.formatQuery(queryString, tags)
+  },
+}
+
+function parseQueryLabels(keyVal: string[], query: string, op: string) {
+  const [key, value] = keyVal
+  const keyValue = `${key}="${value}"`
+  const keySubtValue = `${key}!="${value}"`
+  let queryArr = parseLog.splitLabels(query)
+  if (!queryArr) {
+    return ''
+  }
+
+  for (let label of queryArr) {
+    const regexQuery = label.match(/([^{}=,~!]+)/gm)
+    const querySplitted = parseLog.splitLabels(query)
+    if (!regexQuery) {
       return ''
     }
-    try {
-      queryArr?.forEach((label) => {
-        const regexQuery = label.match(/([^{}=,~!]+)/gm)
-        const querySplitted = parseLog.splitLabels(query)
-        if (!regexQuery) {
-          return ''
-        }
-        if (
-          !label.includes(key?.trim()) &&
-          !label.includes(value?.trim()) &&
-          !querySplitted?.some((s) => s.includes(key)) &&
-          !querySplitted?.some((s) => s.includes(key) && s.includes(value))
-        ) {
-          let labelMod = op === '!=' ? keySubtValue : label
-          const parsed = parseLog.addLabel(op, labelMod, keyValue)
-          const regs = parseLog.splitLabels(query).concat(parsed)
-          const joined = regs.join(',')
-          queryString = joined
-        } else if (
-          label?.includes('=') &&
-          label?.split('=')?.[0]?.trim() === key?.trim() &&
-          !label?.includes(value)
-        ) {
-          let labelMod = parseLog.addValueToLabel(label, value, true)
-          const matches = parseLog.splitLabels(query)?.join(',')?.replace(`${label}`, labelMod)
-          queryString = matches
-        } else if (
-          label?.includes('=~') &&
-          label?.split('=~')?.[0]?.trim() === key?.trim() &&
-          label?.includes(value)
-        ) {
-          const labelMod = parseLog.rmValueFromLabel(label, value)
-          const matches = parseLog.splitLabels(query).join(',').replace(`${label}`, labelMod)
-          queryString = matches
-        } else if (
-          label?.includes('=~') &&
-          label?.split('=~')?.[0]?.trim() === key?.trim() &&
-          !label?.includes(value?.trim())
-        ) {
-          const labelMod = parseLog.addValueToLabel(label, value, false)
-          queryString = labelMod
-        } else if (
-          label?.includes('=') &&
-          label?.split('=')?.[0]?.trim() === key?.trim() &&
-          label?.split('"')?.[1]?.trim() === value?.trim() &&
-          querySplitted?.some((s) => s === label)
-        ) {
-          const filtered = querySplitted?.filter((f) => f !== label)
-          const joined = filtered?.join(',')
-          queryString = joined
-        }
-      })
-      return `${tags[0] || ''}{${queryString || ''}}${tags[2] || ''}`
-    } catch (e) {
-      console.log(e)
-      return query
+
+    if (
+      !label.includes(key?.trim()) &&
+      !label.includes(value?.trim()) &&
+      !querySplitted?.some((s) => s.includes(key)) &&
+      !querySplitted?.some((s) => s.includes(key) && s.includes(value))
+    ) {
+      // add new label
+      let labelMod = op === '!=' ? keySubtValue : label
+      const parsed = parseLog.addLabel(op, labelMod, keyValue)
+      const regs = parseLog.splitLabels(query).concat(parsed)
+      return regs.join(',')
     }
-  },
+
+    if (
+      label?.includes('=') &&
+      label?.split('=')?.[0]?.trim() === key?.trim() &&
+      !label?.includes(value)
+    ) {
+      // values group from existing label
+      let labelMod = parseLog.addValueToLabel(label, value, true)
+      return parseLog.splitLabels(query)?.join(',')?.replace(`${label}`, labelMod)
+    }
+
+    if (
+      label?.includes('=~') &&
+      label?.split('=~')?.[0]?.trim() === key?.trim() &&
+      label?.includes(value)
+    ) {
+      // filter value from existing values group from label
+      const labelMod = parseLog.rmValueFromLabel(label, value)
+      return parseLog.splitLabels(query).join(',').replace(`${label}`, labelMod)
+    }
+
+    if (
+      label?.includes('=~') &&
+      label?.split('=~')?.[0]?.trim() === key?.trim() &&
+      !label?.includes(value?.trim())
+    ) {
+      // add value to existing values group from label
+      return parseLog.addValueToLabel(label, value, false)
+    }
+
+    if (
+      label?.includes('=') &&
+      label?.split('=')?.[0]?.trim() === key?.trim() &&
+      label?.split('"')?.[1]?.trim() === value?.trim() &&
+      querySplitted?.some((s) => s === label)
+    ) {
+      // remove label from query
+      const filtered = querySplitted?.filter((f) => f !== label)
+      return filtered?.join(',')
+    }
+  }
+  return ''
 }
 
 export function decodeQuery(query: string, key: string, value: string, op: string): string {
@@ -127,5 +142,10 @@ export function decodeQuery(query: string, key: string, value: string, op: strin
   const isQuery = query?.match(STREAM_SELECTOR_REGEX) && query?.length > 7
   const keyValue = [key, value]
   const tags = query?.split(/[{}]/)
-  return !isQuery ? newQuery(keyValue, op, tags) : editQuery(query, keyValue, op, tags)
+
+  if (!isQuery) {
+    return newQuery(keyValue, op, tags)
+  }
+
+  return editQuery(query, keyValue, op, tags)
 }
