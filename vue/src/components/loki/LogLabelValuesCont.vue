@@ -5,7 +5,7 @@
       v-for="(item, idx) in labels"
       :key="idx"
       v-model="item.selected"
-      :attr-key="item.value"
+      :label-value="item.value"
       pill
       @click:labelSelected="onClick(item)"
     />
@@ -76,7 +76,7 @@ export default defineComponent({
       () => props.query,
       (query) => {
         labels.value.forEach((label) => {
-          label.selected = query?.includes(label.name) && query?.includes(label?.value)
+          label.selected = query.includes(label.name) && query.includes(label.value)
         })
       },
       { immediate: true },

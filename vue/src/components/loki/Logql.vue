@@ -19,7 +19,7 @@
                 v-for="label in labels"
                 :key="label.value"
                 v-model="label.selected"
-                :attr-key="label.value"
+                :label-value="label.value"
                 label
                 x-small
                 class="ma-1"
