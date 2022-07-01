@@ -164,12 +164,12 @@ export default defineComponent({
   text-overflow: unset;
 }
 
-.no-transform ::v-deep .v-btn {
+.no-transform :deep(.v-btn) {
   padding: 0 12px !important;
   text-transform: none;
 }
 
-.space-around ::v-deep .v-chip {
+.space-around :deep(.v-chip) {
   margin: 4px;
 }
 </style>
