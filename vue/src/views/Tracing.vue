@@ -12,7 +12,11 @@
           </v-col>
 
           <v-col cols="auto">
-            <DateRangePicker :date-range="dateRange" />
+            <TimePeriodPickerMenu :date-range="dateRange" />
+            <v-btn small outlined class="ml-2" @click="dateRange.reload">
+              <v-icon small class="mr-1">mdi-refresh</v-icon>
+              <span>{{ dateRange.isNow ? 'Reload' : 'Reset' }}</span>
+            </v-btn>
           </v-col>
         </v-row>
 
@@ -54,7 +58,7 @@ import { useUser } from '@/use/org'
 import { useSystems, SystemsFilter } from '@/use/systems'
 
 // Components
-import DateRangePicker from '@/components/DateRangePicker.vue'
+import TimePeriodPickerMenu from '@/components/TimePeriodPickerMenu.vue'
 import SystemPicker from '@/components/SystemPicker.vue'
 import HelpCard from '@/components/HelpCard.vue'
 
@@ -66,7 +70,7 @@ interface Props {
 export default defineComponent({
   name: 'Tracing',
   components: {
-    DateRangePicker,
+    TimePeriodPickerMenu,
     SystemPicker,
     HelpCard,
   },
