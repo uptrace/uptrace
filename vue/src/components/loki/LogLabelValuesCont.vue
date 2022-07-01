@@ -5,15 +5,22 @@
       v-for="(item, idx) in labels"
       :key="idx"
       v-model="item.selected"
-      :attr-key="item.name"
+      :label-value="item.value"
       pill
-      @click:labelSelected="onClick(item.name)"
+      @click:labelSelected="onClick(item)"
     />
   </v-card>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed, reactive, PropType } from '@vue/composition-api'
+import {
+  defineComponent,
+  shallowRef,
+  computed,
+  reactive,
+  PropType,
+  watch,
+} from '@vue/composition-api'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
@@ -36,6 +43,10 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
+    query: {
+      type: String,
+      required: true,
+    },
   },
 
   setup(props, ctx) {
@@ -54,21 +65,36 @@ export default defineComponent({
 
     const internalLabels = computed((): Label[] => {
       return labelValues.items.map((value: string): Label => {
-        return { name: value, selected: false }
+        return { name: props.label || '', value: value || '', selected: false }
       })
     })
 
     const labels = computed((): Label[] => {
       return internalLabels.value.map((label) => reactive(label))
     })
+    watch(
+      () => props.query,
+      (query) => {
+        labels.value.forEach((label) => {
+          label.selected = query.includes(label.name) && query.includes(label.value)
+        })
+      },
+      { immediate: true },
+    )
 
     function addFilter(op: string, value: string) {
-      ctx.emit('click', { op, value })
+      labels.value.forEach((value) => {
+        if (props.query?.includes(value.value)) {
+          value.selected = true
+        }
+      })
+      ctx.emit('click', { name: props.label, value, op })
       labelMenu.value = false
     }
 
     function onClick(item: any) {
-      addFilter('=', item)
+      const { value } = item
+      addFilter('=', value)
     }
 
     return { labels, onClick, addFilter }
