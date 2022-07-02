@@ -43,7 +43,7 @@ const parseLog = {
     const sign = isEquals ? '=' : '=~'
     const [lb, val] = label?.split(sign)
     const values = val?.split(/[""]/)[1]
-    const labelmod = `${lb}=~"${values?.trim()} | ${value?.trim()}"`
+    const labelmod = `${lb}=~"${values?.trim()}|${value?.trim()}"`
     return labelmod
   },
   isEqualsQuery: (query: string, keyValue: string[]): boolean => {
