@@ -12,7 +12,7 @@
               label="Browse Labels"
               :color="isLabelBrowserOpen ? 'primary' : 'secondary'"
               @click="isLabelBrowserOpen = !isLabelBrowserOpen"
-              >Browse Labels</v-btn
+              >Browse Labels ({{ labels.length }})</v-btn
             >
             <div v-show="isLabelBrowserOpen">
               <LogLabelChip
@@ -50,6 +50,7 @@
           dense
           clearable
           auto-grow
+          class="text-query"
           hide-details="auto"
           spellcheck="false"
           @keyup.enter.stop.prevent
@@ -173,5 +174,9 @@ export default defineComponent({
 <style lang="scss" scoped>
 .limit-input {
   max-width: 200px;
+}
+.text-query {
+  font-family: monospace;
+  font-size: 13px;
 }
 </style>
