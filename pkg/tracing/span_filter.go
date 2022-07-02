@@ -185,10 +185,10 @@ func isNumColumn(v any) bool {
 
 //------------------------------------------------------------------------------
 
-func buildSpanIndexQuery(f *SpanFilter, minutes float64) *ch.SelectQuery {
+func buildSpanIndexQuery(app *bunapp.App, f *SpanFilter, minutes float64) *ch.SelectQuery {
 	q := f.CH().NewSelect().
-		Model((*SpanIndex)(nil)).
-		Apply(f.whereClause)
+		TableExpr("? AS s", app.DistTable("spans_index")).
+		WithQuery(f.whereClause)
 	q, f.columnMap = compileUQL(q, f.parts, minutes)
 	return q
 }
@@ -430,63 +430,59 @@ func disableColumnsAndGroups(parts []*uql.Part) {
 
 //------------------------------------------------------------------------------
 
-func spanSystemTableForWhere(f *TimeFilter) string {
-	return spanSystemTable(tablePeriod(f))
+func spanSystemTableForWhere(app *bunapp.App, f *TimeFilter) ch.Ident {
+	return spanSystemTable(app, tablePeriod(f))
 }
 
-func spanSystemTableForGroup(f *TimeFilter) (string, time.Duration) {
+func spanSystemTableForGroup(app *bunapp.App, f *TimeFilter) (ch.Ident, time.Duration) {
 	tablePeriod, groupPeriod := tableGroupPeriod(f)
-	return spanSystemTable(tablePeriod), groupPeriod
+	return spanSystemTable(app, tablePeriod), groupPeriod
 }
 
-func spanSystemTable(period time.Duration) string {
+func spanSystemTable(app *bunapp.App, period time.Duration) ch.Ident {
 	switch period {
 	case time.Minute:
-		return "span_system_minutes AS s"
+		return app.DistTable("span_system_minutes")
 	case time.Hour:
-		return "span_system_hours AS s"
+		return app.DistTable("span_system_hours")
 	}
 	panic("not reached")
 }
 
 //------------------------------------------------------------------------------
 
-func spanServiceTableForWhere(f *TimeFilter) string {
-	return spanServiceTable(tablePeriod(f))
-}
-
-func spanServiceTableForGroup(f *TimeFilter) (string, time.Duration) {
+func spanServiceTableForGroup(app *bunapp.App, f *TimeFilter) (ch.Ident, time.Duration) {
 	tablePeriod, groupPeriod := tableGroupPeriod(f)
-	return spanServiceTable(tablePeriod), groupPeriod
+	return spanServiceTable(app, tablePeriod), groupPeriod
 }
 
-func spanServiceTable(period time.Duration) string {
+func spanServiceTable(app *bunapp.App, period time.Duration) ch.Ident {
 	switch period {
 	case time.Minute:
-		return "span_service_minutes AS s"
+		return app.DistTable("span_service_minutes")
 	case time.Hour:
-		return "span_service_hours AS s"
+		return app.DistTable("span_service_hours")
 	}
 	panic("not reached")
 }
 
 //------------------------------------------------------------------------------
 
-func spanHostTableForWhere(f *TimeFilter) string {
-	return spanHostTable(tablePeriod(f))
+func spanHostTableForWhere(app *bunapp.App, f *TimeFilter) ch.Ident {
+	return spanHostTable(app, tablePeriod(f))
 }
 
-func spanHostTableForGroup(f *TimeFilter) (string, time.Duration) {
+func spanHostTableForGroup(app *bunapp.App, f *TimeFilter) (ch.Ident, time.Duration) {
 	tablePeriod, groupPeriod := tableGroupPeriod(f)
-	return spanHostTable(tablePeriod), groupPeriod
+	return spanHostTable(app, tablePeriod), groupPeriod
 }
 
-func spanHostTable(period time.Duration) string {
+func spanHostTable(app *bunapp.App, period time.Duration) ch.Ident {
 	switch period {
 	case time.Minute:
-		return "span_host_minutes AS s"
+		return app.DistTable("span_host_minutes")
 	case time.Hour:
-		return "span_host_hours AS s"
+		return app.DistTable("span_host_hours")
 	}
 	panic("not reached")
 }

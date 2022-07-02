@@ -18,13 +18,13 @@ require (
 	github.com/mostynb/go-grpc-compression v1.1.16
 	github.com/rs/cors v1.8.2
 	github.com/segmentio/encoding v0.3.5
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.7.5
 	github.com/uptrace/bunrouter v1.0.17
 	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.17
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.17
-	github.com/uptrace/go-clickhouse v0.2.8
-	github.com/uptrace/go-clickhouse/chdebug v0.2.8
-	github.com/uptrace/go-clickhouse/chotel v0.2.8
+	github.com/uptrace/go-clickhouse v0.2.9-0.20220702113922-76433f015827
+	github.com/uptrace/go-clickhouse/chdebug v0.2.9-0.20220702113922-76433f015827
+	github.com/uptrace/go-clickhouse/chotel v0.2.9-0.20220702113922-76433f015827
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.14
 	github.com/uptrace/uptrace-go v1.7.1
 	github.com/urfave/cli/v2 v2.8.1
@@ -58,7 +58,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
-	github.com/pierrec/lz4/v4 v4.1.14 // indirect
+	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
@@ -78,7 +78,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
-	golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d // indirect
+	golang.org/x/sys v0.0.0-20220624220833-87e55d714810 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/genproto v0.0.0-20220608133413-ed9918b62aac // indirect
 )

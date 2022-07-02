@@ -122,6 +122,7 @@ type AppConfig struct {
 		TTL         string `yaml:"ttl"`
 		Compression string `yaml:"compression"`
 		Replicated  bool   `yaml:"replicated"`
+		Cluster     string `yaml:"cluster"`
 	} `yaml:"ch_schema"`
 
 	Spans struct {

@@ -63,17 +63,17 @@ func (h *SystemHandler) List(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	tableName := spanSystemTableForWhere(&f.TimeFilter)
+	tableName := spanSystemTableForWhere(h.App, &f.TimeFilter)
 	minutes := f.TimeFilter.Duration().Minutes()
 	systems := make([]map[string]any, 0)
 
 	if err := h.CH().NewSelect().
-		TableExpr(tableName).
+		TableExpr("?", tableName).
 		ColumnExpr("system").
 		ColumnExpr("sum(count) AS count").
 		ColumnExpr("sum(count) / ? AS countPerMin", minutes).
 		ColumnExpr("sum(error_count) AS errorCount").
-		Apply(f.whereClause).
+		WithQuery(f.whereClause).
 		GroupExpr("system").
 		OrderExpr("system ASC").
 		Limit(1000).
@@ -99,7 +99,7 @@ func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	tableName, groupPeriod := spanSystemTableForGroup(&f.TimeFilter)
+	tableName, groupPeriod := spanSystemTableForGroup(h.App, &f.TimeFilter)
 
 	subq := h.CH().NewSelect().
 		WithAlias("tdigest_state", "quantilesTDigestWeightedMergeState(0.5, 0.9, 0.99)(tdigest)").
@@ -115,9 +115,9 @@ func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 		ColumnExpr("qs[2] AS stats__p90").
 		ColumnExpr("qs[3] AS stats__p99").
 		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time", groupPeriod.Minutes()).
-		TableExpr(tableName).
+		TableExpr("?", tableName).
 		Where("system != ?", internalSpanType).
-		Apply(f.whereClause).
+		WithQuery(f.whereClause).
 		GroupExpr("system, time").
 		OrderExpr("system ASC, time ASC").
 		Limit(10000)
