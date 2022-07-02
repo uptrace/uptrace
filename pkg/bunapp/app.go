@@ -294,7 +294,9 @@ func (app *App) initCH() {
 	fmter := db.Formatter().
 		WithNamedArg("TTL", ch.Safe(app.cfg.CHSchema.TTL)).
 		WithNamedArg("REPLICATED", ch.Safe(replicated)).
-		WithNamedArg("CODEC", ch.Safe(compression))
+		WithNamedArg("CODEC", ch.Safe(compression)).
+		WithNamedArg("CLUSTER", ch.Safe(app.cfg.CHSchema.Cluster))
+
 	db = db.WithFormatter(fmter)
 
 	db.AddQueryHook(chdebug.NewQueryHook(
@@ -308,4 +310,11 @@ func (app *App) initCH() {
 
 func (app *App) CH() *ch.DB {
 	return app.chdb
+}
+
+func (app *App) DistTable(tableName string) ch.Ident {
+	if app.cfg.CHSchema.Cluster != "" {
+		return ch.Ident(tableName + "_dist")
+	}
+	return ch.Ident(tableName)
 }

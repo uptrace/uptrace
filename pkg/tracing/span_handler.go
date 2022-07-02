@@ -35,10 +35,10 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 	}
 	disableColumnsAndGroups(f.parts)
 
-	q := buildSpanIndexQuery(f, f.Duration().Minutes()).
+	q := buildSpanIndexQuery(h.App, f, f.Duration().Minutes()).
 		ColumnExpr("`span.id`").
 		ColumnExpr("`span.trace_id`").
-		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
+		WithQuery(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if f.SortBy == "" {
 				return q
 			}
@@ -82,7 +82,7 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	q := buildSpanIndexQuery(f, f.Duration().Minutes()).
+	q := buildSpanIndexQuery(h.App, f, f.Duration().Minutes()).
 		Limit(1000)
 	groups := make([]map[string]any, 0)
 
@@ -140,7 +140,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		ColumnExpr("sum(`span.count`) AS count").
 		ColumnExpr("sum(`span.count`) / ? AS rate", minutes).
 		ColumnExpr("toStartOfInterval(`span.time`, INTERVAL ? minute) AS time", minutes).
-		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
+		WithQuery(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if isEventSystem(f.System) {
 				return q
 			}
@@ -151,7 +151,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 				ColumnExpr("round(qs[2]) AS p90").
 				ColumnExpr("round(qs[3]) AS p99")
 		}).
-		Apply(f.whereClause).
+		WithQuery(f.whereClause).
 		GroupExpr("time").
 		OrderExpr("time ASC").
 		Limit(10000)
@@ -160,7 +160,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		ColumnExpr("groupArray(count) AS count").
 		ColumnExpr("groupArray(rate) AS rate").
 		ColumnExpr("groupArray(time) AS time").
-		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
+		WithQuery(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if isEventSystem(f.System) {
 				return q
 			}
@@ -204,7 +204,7 @@ func (h *SpanHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error 
 	minutes := groupPeriod.Minutes()
 	m := make(map[string]interface{})
 
-	subq := buildSpanIndexQuery(f, minutes)
+	subq := buildSpanIndexQuery(h.App, f, minutes)
 	subq = uqlColumn(subq, colName, minutes).
 		ColumnExpr("toStartOfInterval(`span.time`, toIntervalMinute(?)) AS time", minutes).
 		GroupExpr("time").

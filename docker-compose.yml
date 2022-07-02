@@ -13,6 +13,7 @@ services:
       retries: 30
     volumes:
       - ch_data:/var/lib/clickhouse
+      - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/config.xml
     ports:
       - '8123:8123'
       - '9000:9000'

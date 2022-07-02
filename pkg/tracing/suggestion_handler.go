@@ -65,7 +65,7 @@ func (h *SuggestionHandler) Attributes(w http.ResponseWriter, req bunrouter.Requ
 	}
 	disableColumnsAndGroups(f.parts)
 
-	attrKeys, err := selectAttrKeys(ctx, f)
+	attrKeys, err := selectAttrKeys(ctx, h.App, f)
 	if err != nil {
 		return err
 	}
@@ -81,9 +81,9 @@ func (h *SuggestionHandler) Attributes(w http.ResponseWriter, req bunrouter.Requ
 	})
 }
 
-func selectAttrKeys(ctx context.Context, f *SpanFilter) ([]string, error) {
+func selectAttrKeys(ctx context.Context, app *bunapp.App, f *SpanFilter) ([]string, error) {
 	keys := make([]string, 0)
-	if err := buildSpanIndexQuery(f, 0).
+	if err := buildSpanIndexQuery(app, f, 0).
 		ColumnExpr("groupUniqArrayArray(1000)(all_keys)").
 		Scan(ctx, &keys); err != nil {
 		return nil, err
@@ -108,7 +108,7 @@ func (h *SuggestionHandler) Values(w http.ResponseWriter, req bunrouter.Request)
 		return err
 	}
 
-	q := buildSpanIndexQuery(f, 0)
+	q := buildSpanIndexQuery(h.App, f, 0)
 	q = uqlColumn(q, colName, 0).Group(f.Column)
 	if !strings.HasPrefix(f.Column, "span.") {
 		q = q.Where("has(all_keys, ?)", f.Column)

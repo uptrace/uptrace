@@ -72,7 +72,7 @@ func (h *HostHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 		return err
 	}
 
-	tableName, groupPeriod := spanHostTableForGroup(&f.TimeFilter)
+	tableName, groupPeriod := spanHostTableForGroup(h.App, &f.TimeFilter)
 
 	subq := h.CH().NewSelect().
 		WithAlias("tdigest_state", "quantilesTDigestWeightedMergeState(0.5, 0.9, 0.99)(tdigest)").
@@ -88,8 +88,8 @@ func (h *HostHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 		ColumnExpr("qs[2] AS stats__p90").
 		ColumnExpr("qs[3] AS stats__p99").
 		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time", groupPeriod.Minutes()).
-		TableExpr(tableName).
-		Apply(f.whereClause).
+		TableExpr("?", tableName).
+		WithQuery(f.whereClause).
 		GroupExpr("host, time").
 		OrderExpr("host ASC, time ASC").
 		Limit(10000)

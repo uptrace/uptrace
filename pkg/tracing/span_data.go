@@ -31,7 +31,7 @@ func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 	var data []byte
 
 	q := app.CH().NewSelect().
-		Model((*SpanData)(nil)).
+		TableExpr("?", app.DistTable("spans_data_buffer")).
 		Column("data").
 		Where("trace_id = ?", span.TraceID).
 		Limit(1)
@@ -62,8 +62,8 @@ func SelectTraceSpans(ctx context.Context, app *bunapp.App, traceID uuid.UUID) (
 
 	spans := make([]*Span, len(data))
 
-	for i, span := range spans {
-		span = new(Span)
+	for i := range spans {
+		span := new(Span)
 		spans[i] = span
 
 		if err := unmarshalSpan(data[i].Data, span); err != nil {

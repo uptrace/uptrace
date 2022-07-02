@@ -34,6 +34,9 @@ ch_schema:
   # Whether to create ReplicatedMergeTree instead of MergeTree.
   replicated: false
 
+  # Cluster name for Distributed tables.
+  cluster: uptrace1
+
 spans:
   # The size of Go chan used to buffer incoming spans.
   #buffer_size: 100000

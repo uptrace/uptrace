@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<clickhouse>
+  <listen_host>0.0.0.0</listen_host>
+  <timezone>UTC</timezone>
+
+  <!-- https://github.com/ClickHouse/ClickHouse/issues/35552 -->
+  <openSSL>
+    <server>
+      <certificateFile remove="1" />
+      <privateKeyFile remove="1" />
+    </server>
+  </openSSL>
+
+  <macros>
+    <cluster>cluster1</cluster>
+    <shard>shard1</shard>
+    <replica from_env="REPLICA" />
+  </macros>
+
+  <default_replica_path>/clickhouse/tables/{uuid}/{cluster}-{shard}</default_replica_path>
+  <default_replica_name>{replica}</default_replica_name>
+
+  <storage_configuration>
+    <disks>
+      <default>
+        <!-- <keep_free_space_bytes>2147483648</keep_free_space_bytes> -->
+      </default>
+    </disks>
+
+    <policies>
+      <hot_only>
+        <volumes>
+          <default>
+            <disk>default</disk>
+          </default>
+        </volumes>
+      </hot_only>
+
+      <tiered>
+        <volumes>
+          <default>
+            <disk>default</disk>
+          </default>
+        </volumes>
+      </tiered>
+    </policies>
+  </storage_configuration>
+
+  <remote_servers>
+    <uptrace1>
+      <shard>
+        <internal_replication>true</internal_replication>
+        <replica>
+          <host>clickhouse</host>
+          <port>9000</port>
+        </replica>
+      </shard>
+    </uptrace1>
+  </remote_servers>
+</clickhouse>
