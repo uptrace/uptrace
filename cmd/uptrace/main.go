@@ -25,6 +25,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunapp/migrations"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	_ "github.com/uptrace/uptrace/pkg/metrics"
 	_ "github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
