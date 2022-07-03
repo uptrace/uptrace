@@ -3,75 +3,26 @@ package tracing
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/url"
 	"strings"
 	"time"
 
-	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"github.com/uptrace/uptrace/pkg/uql"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
 
-type OrderByMixin struct {
-	SortBy  string
-	SortDir string
-}
-
-var _ json.Marshaler = (*OrderByMixin)(nil)
-
-func (f OrderByMixin) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]any{
-		"column": f.SortBy,
-		"desc":   f.SortDir == "desc",
-	})
-}
-
-var _ urlstruct.ValuesUnmarshaler = (*OrderByMixin)(nil)
-
-func (f *OrderByMixin) UnmarshalValues(ctx context.Context, values url.Values) error {
-	if f.SortDir == "" {
-		f.SortDir = "desc"
-	}
-	return nil
-}
-
-//------------------------------------------------------------------------------
-
-type TimeFilter struct {
-	TimeGTE time.Time
-	TimeLT  time.Time
-}
-
-var _ urlstruct.ValuesUnmarshaler = (*TimeFilter)(nil)
-
-func (f *TimeFilter) UnmarshalValues(ctx context.Context, values url.Values) error {
-	if f.TimeGTE.IsZero() {
-		return fmt.Errorf("time_gte is required")
-	}
-	if f.TimeLT.IsZero() {
-		return fmt.Errorf("time_lt is required")
-	}
-	return nil
-}
-
-func (f *TimeFilter) Duration() time.Duration {
-	return f.TimeLT.Sub(f.TimeGTE)
-}
-
-//------------------------------------------------------------------------------
-
 type SpanFilter struct {
 	*bunapp.App `urlstruct:"-"`
 
-	OrderByMixin
+	org.TimeFilter
+	org.OrderByMixin
 	urlstruct.Pager
-	TimeFilter
 
 	ProjectID uint32
 	System    string
@@ -116,8 +67,8 @@ func (f *SpanFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 		Where("`span.time` < ?", f.TimeLT)
 
 	switch {
-	case f.System == allSpanType:
-		q = q.Where("`span.system` != ?", internalSpanType)
+	case f.System == AllSpanType:
+		q = q.Where("`span.system` != ?", InternalSpanType)
 	case strings.HasSuffix(f.System, ":all"):
 		system := strings.TrimSuffix(f.System, ":all")
 		q = q.Where("startsWith(`span.system`, ?)", system)
@@ -185,10 +136,13 @@ func isNumColumn(v any) bool {
 
 //------------------------------------------------------------------------------
 
+func NewSpanIndexQuery(app *bunapp.App) *ch.SelectQuery {
+	return app.CH().NewSelect().
+		TableExpr("? AS s", app.DistTable("spans_index"))
+}
+
 func buildSpanIndexQuery(app *bunapp.App, f *SpanFilter, minutes float64) *ch.SelectQuery {
-	q := f.CH().NewSelect().
-		TableExpr("? AS s", app.DistTable("spans_index")).
-		WithQuery(f.whereClause)
+	q := NewSpanIndexQuery(app).WithQuery(f.whereClause)
 	q, f.columnMap = compileUQL(q, f.parts, minutes)
 	return q
 }
@@ -280,11 +234,11 @@ func appendUQLColumn(b []byte, name uql.Name, minutes float64) []byte {
 	switch name.FuncName {
 	case "p50", "p75", "p90", "p99":
 		return chschema.AppendQuery(b, "quantileTDigest(?)(toFloat64OrDefault(?))",
-			quantileLevel(name.FuncName), chColumn(name.AttrKey))
+			quantileLevel(name.FuncName), CHColumn(name.AttrKey))
 	case "top3":
-		return chschema.AppendQuery(b, "topK(3)(?)", chColumn(name.AttrKey))
+		return chschema.AppendQuery(b, "topK(3)(?)", CHColumn(name.AttrKey))
 	case "top10":
-		return chschema.AppendQuery(b, "topK(10)(?)", chColumn(name.AttrKey))
+		return chschema.AppendQuery(b, "topK(10)(?)", CHColumn(name.AttrKey))
 	}
 
 	switch name.String() {
@@ -303,7 +257,7 @@ func appendUQLColumn(b []byte, name uql.Name, minutes float64) []byte {
 			b = append(b, '(')
 		}
 
-		b = appendCHColumn(b, name.AttrKey)
+		b = AppendCHColumn(b, name.AttrKey)
 
 		if name.FuncName != "" {
 			b = append(b, ')')
@@ -313,11 +267,11 @@ func appendUQLColumn(b []byte, name uql.Name, minutes float64) []byte {
 	}
 }
 
-func chColumn(key string) ch.Safe {
-	return ch.Safe(appendCHColumn(nil, key))
+func CHColumn(key string) ch.Safe {
+	return ch.Safe(AppendCHColumn(nil, key))
 }
 
-func appendCHColumn(b []byte, key string) []byte {
+func AppendCHColumn(b []byte, key string) []byte {
 	if strings.HasPrefix(key, "span.") {
 		return chschema.AppendIdent(b, key)
 	}
@@ -430,12 +384,12 @@ func disableColumnsAndGroups(parts []*uql.Part) {
 
 //------------------------------------------------------------------------------
 
-func spanSystemTableForWhere(app *bunapp.App, f *TimeFilter) ch.Ident {
-	return spanSystemTable(app, tablePeriod(f))
+func spanSystemTableForWhere(app *bunapp.App, f *org.TimeFilter) ch.Ident {
+	return spanSystemTable(app, org.TablePeriod(f))
 }
 
-func spanSystemTableForGroup(app *bunapp.App, f *TimeFilter) (ch.Ident, time.Duration) {
-	tablePeriod, groupPeriod := tableGroupPeriod(f)
+func spanSystemTableForGroup(app *bunapp.App, f *org.TimeFilter) (ch.Ident, time.Duration) {
+	tablePeriod, groupPeriod := org.TableGroupPeriod(f)
 	return spanSystemTable(app, tablePeriod), groupPeriod
 }
 
@@ -451,8 +405,8 @@ func spanSystemTable(app *bunapp.App, period time.Duration) ch.Ident {
 
 //------------------------------------------------------------------------------
 
-func spanServiceTableForGroup(app *bunapp.App, f *TimeFilter) (ch.Ident, time.Duration) {
-	tablePeriod, groupPeriod := tableGroupPeriod(f)
+func spanServiceTableForGroup(app *bunapp.App, f *org.TimeFilter) (ch.Ident, time.Duration) {
+	tablePeriod, groupPeriod := org.TableGroupPeriod(f)
 	return spanServiceTable(app, tablePeriod), groupPeriod
 }
 
@@ -468,12 +422,12 @@ func spanServiceTable(app *bunapp.App, period time.Duration) ch.Ident {
 
 //------------------------------------------------------------------------------
 
-func spanHostTableForWhere(app *bunapp.App, f *TimeFilter) ch.Ident {
-	return spanHostTable(app, tablePeriod(f))
+func spanHostTableForWhere(app *bunapp.App, f *org.TimeFilter) ch.Ident {
+	return spanHostTable(app, org.TablePeriod(f))
 }
 
-func spanHostTableForGroup(app *bunapp.App, f *TimeFilter) (ch.Ident, time.Duration) {
-	tablePeriod, groupPeriod := tableGroupPeriod(f)
+func spanHostTableForGroup(app *bunapp.App, f *org.TimeFilter) (ch.Ident, time.Duration) {
+	tablePeriod, groupPeriod := org.TableGroupPeriod(f)
 	return spanHostTable(app, tablePeriod), groupPeriod
 }
 
@@ -485,40 +439,4 @@ func spanHostTable(app *bunapp.App, period time.Duration) ch.Ident {
 		return app.DistTable("span_host_hours")
 	}
 	panic("not reached")
-}
-
-//------------------------------------------------------------------------------
-
-func tablePeriod(f *TimeFilter) time.Duration {
-	var period time.Duration
-
-	if d := f.TimeLT.Sub(f.TimeGTE); d >= 6*time.Hour {
-		period = time.Hour
-	} else {
-		period = time.Minute
-	}
-
-	return period
-}
-
-func tableGroupPeriod(f *TimeFilter) (tablePeriod, groupPeriod time.Duration) {
-	groupPeriod = calcGroupPeriod(f, 200)
-	if groupPeriod >= time.Hour {
-		tablePeriod = time.Hour
-	} else {
-		tablePeriod = time.Minute
-	}
-	return tablePeriod, groupPeriod
-}
-
-func calcGroupPeriod(f *TimeFilter, n int) time.Duration {
-	d := f.TimeLT.Sub(f.TimeGTE)
-	period := time.Minute
-	for i := 0; i < 100; i++ {
-		if int(d/period) <= n {
-			return period
-		}
-		period *= 2
-	}
-	return 24 * time.Hour
 }

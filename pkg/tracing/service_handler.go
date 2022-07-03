@@ -9,13 +9,14 @@ import (
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
 
 type ServiceFilter struct {
 	*bunapp.App `urlstruct:"-"`
 
-	TimeFilter
+	org.TimeFilter
 
 	ProjectID uint32
 	System    string
@@ -44,7 +45,7 @@ func (f *ServiceFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 		Where("time < ?", f.TimeLT)
 
 	switch f.System {
-	case "", allSpanType:
+	case "", AllSpanType:
 	default:
 		q = q.Where("system = ?", f.System)
 	}

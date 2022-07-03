@@ -1,4 +1,4 @@
-package tracing
+package grafana
 
 import (
 	"bytes"
@@ -20,6 +20,7 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	"go.uber.org/zap"
@@ -28,13 +29,13 @@ import (
 type LokiProxyHandler struct {
 	GrafanaBaseHandler
 
-	sp *SpanProcessor
+	sp *tracing.SpanProcessor
 
 	proxy   *httputil.ReverseProxy
 	wsProxy *websocketproxy.WebsocketProxy
 }
 
-func NewLokiProxyHandler(app *bunapp.App, sp *SpanProcessor) *LokiProxyHandler {
+func NewLokiProxyHandler(app *bunapp.App, sp *tracing.SpanProcessor) *LokiProxyHandler {
 	h := &LokiProxyHandler{
 		GrafanaBaseHandler: GrafanaBaseHandler{
 			App: app,
@@ -157,7 +158,7 @@ func (h *LokiProxyHandler) processStreams(
 
 	for i := range in.Streams {
 		stream := &in.Streams[i]
-		spans := make([]Span, len(stream.Values))
+		spans := make([]tracing.Span, len(stream.Values))
 		for i, value := range stream.Values {
 			if err := p.processLogValue(&spans[i], stream.Stream, value); err != nil {
 				return err
@@ -184,7 +185,7 @@ type lokiLogProcessor struct {
 	ctx context.Context
 	app *bunapp.App
 
-	sp      *SpanProcessor
+	sp      *tracing.SpanProcessor
 	project *bunapp.Project
 
 	logger *otelzap.Logger
@@ -193,7 +194,7 @@ type lokiLogProcessor struct {
 func (p *lokiLogProcessor) close() {}
 
 func (p *lokiLogProcessor) processLogValue(
-	span *Span, resource xotel.AttrMap, value LokiStreamValue,
+	span *tracing.Span, resource xotel.AttrMap, value LokiStreamValue,
 ) error {
 	if len(value) != 2 {
 		return fmt.Errorf("got %d values, expected 2", len(value))
@@ -201,9 +202,9 @@ func (p *lokiLogProcessor) processLogValue(
 
 	span.ID = rand.Uint64()
 	span.ProjectID = p.project.ID
-	span.Kind = internalSpanKind
-	span.EventName = logEventType
-	span.StatusCode = okStatusCode
+	span.Kind = tracing.InternalSpanKind
+	span.EventName = tracing.LogEventType
+	span.StatusCode = tracing.OKStatusCode
 	span.Attrs = resource.Clone()
 
 	ts, err := strconv.ParseInt(value[0], 10, 64)

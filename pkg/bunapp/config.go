@@ -62,6 +62,13 @@ func ReadConfig(configFile, service string) (*AppConfig, error) {
 		cfg.Spans.BufferSize = runtime.GOMAXPROCS(0) * cfg.Spans.BatchSize
 	}
 
+	if cfg.Metrics.BatchSize == 0 {
+		cfg.Metrics.BatchSize = scaleWithCPU(1000, 32000)
+	}
+	if cfg.Metrics.BufferSize == 0 {
+		cfg.Metrics.BufferSize = runtime.GOMAXPROCS(0) * cfg.Spans.BatchSize
+	}
+
 	return cfg, nil
 }
 
@@ -129,6 +136,11 @@ type AppConfig struct {
 		BufferSize int `yaml:"buffer_size"`
 		BatchSize  int `yaml:"batch_size"`
 	} `yaml:"spans"`
+
+	Metrics struct {
+		BufferSize int `yaml:"buffer_size"`
+		BatchSize  int `yaml:"batch_size"`
+	} `yaml:"metrics"`
 
 	Users    []User    `yaml:"users"`
 	Projects []Project `yaml:"projects"`

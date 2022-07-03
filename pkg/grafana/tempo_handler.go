@@ -1,4 +1,4 @@
-package tracing
+package grafana
 
 import (
 	"fmt"
@@ -15,6 +15,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	"go.uber.org/zap"
@@ -61,7 +62,7 @@ func (h *TempoHandler) queryTrace(
 		return err
 	}
 
-	spans, err := SelectTraceSpans(ctx, h.App, traceID)
+	spans, err := tracing.SelectTraceSpans(ctx, h.App, traceID)
 	if err != nil {
 		return err
 	}
@@ -94,8 +95,7 @@ func (h *TempoHandler) queryTrace(
 func (h *TempoHandler) Tags(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	q := h.CH().NewSelect().
-		Model((*SpanIndex)(nil)).
+	q := tracing.NewSpanIndexQuery(h.App).
 		Distinct().
 		ColumnExpr("arrayJoin(all_keys) AS key").
 		Where("`span.time` >= ?", time.Now().Add(-24*time.Hour)).
@@ -120,10 +120,9 @@ func (h *TempoHandler) TagValues(w http.ResponseWriter, req bunrouter.Request) e
 	ctx := req.Context()
 	tag := tempoAttrKey(req.Param("tag"))
 
-	q := h.CH().NewSelect().
+	q := tracing.NewSpanIndexQuery(h.App).
 		Distinct().
-		ColumnExpr("toString(?) AS value", chColumn(tag)).
-		Model((*SpanIndex)(nil)).
+		ColumnExpr("toString(?) AS value", tracing.CHColumn(tag)).
 		Where("`span.time` >= ?", time.Now().Add(-24*time.Hour)).
 		OrderExpr("value ASC").
 		Limit(1000)
@@ -181,13 +180,12 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 		f.Limit = 20
 	}
 
-	q := h.CH().NewSelect().
+	q := tracing.NewSpanIndexQuery(h.App).
 		ColumnExpr("`span.trace_id` AS trace_id").
 		ColumnExpr("`service.name` AS root_service_name").
 		ColumnExpr("`span.name` AS root_trace_name").
 		ColumnExpr("toInt64(toUnixTimestamp(`span.time`) * 1e9) AS start_time_unix_nano").
 		ColumnExpr("`span.duration` / 1e6 AS duration_ms").
-		Model((*SpanIndex)(nil)).
 		Where("`span.time` >= ?", f.Start).
 		Where("`span.parent_id` = 0").
 		Limit(f.Limit)
@@ -213,7 +211,7 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 				value := string(d.Value())
 
 				var b []byte
-				b = appendCHColumn(b, key)
+				b = tracing.AppendCHColumn(b, key)
 				b = append(b, " = "...)
 				b = chschema.AppendString(b, value)
 				q = q.Where(string(b))

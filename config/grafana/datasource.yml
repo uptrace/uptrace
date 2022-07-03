@@ -25,3 +25,12 @@ datasources:
       httpHeaderName1: 'uptrace-dsn'
     secureJsonData:
       httpHeaderValue1: 'http://project1_secret_token@localhost:14317/1'
+  - name: Uptrace Prometheus
+    type: prometheus
+    access: proxy
+    url: http://host.docker.internal:14318
+    editable: true
+    jsonData:
+      httpHeaderName1: 'uptrace-dsn'
+    secureJsonData:
+      httpHeaderValue1: 'http://project1_secret_token@localhost:14317/1'

@@ -9,13 +9,14 @@ import (
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
 
 type SystemFilter struct {
 	*bunapp.App `urlstruct:"-"`
 
-	TimeFilter
+	org.TimeFilter
 
 	ProjectID uint32
 }
@@ -116,7 +117,7 @@ func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 		ColumnExpr("qs[3] AS stats__p99").
 		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time", groupPeriod.Minutes()).
 		TableExpr("?", tableName).
-		Where("system != ?", internalSpanType).
+		Where("system != ?", InternalSpanType).
 		WithQuery(f.whereClause).
 		GroupExpr("system, time").
 		OrderExpr("system ASC, time ASC").

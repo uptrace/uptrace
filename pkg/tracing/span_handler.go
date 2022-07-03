@@ -11,6 +11,7 @@ import (
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"github.com/uptrace/uptrace/pkg/uql"
 	"go4.org/syncutil"
@@ -42,7 +43,7 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 			if f.SortBy == "" {
 				return q
 			}
-			return q.OrderExpr(string(chColumn(f.SortBy)) + " " + f.SortDir)
+			return q.OrderExpr(string(CHColumn(f.SortBy)) + " " + f.SortDir)
 		}).
 		Limit(10).
 		Offset(f.Pager.GetOffset())
@@ -128,7 +129,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	groupPeriod := calcGroupPeriod(&f.TimeFilter, 300)
+	groupPeriod := org.CalcGroupPeriod(&f.TimeFilter, 300)
 	minutes := groupPeriod.Minutes()
 
 	m := make(map[string]interface{})
@@ -200,7 +201,7 @@ func (h *SpanHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	groupPeriod := calcGroupPeriod(&f.TimeFilter, 300)
+	groupPeriod := org.CalcGroupPeriod(&f.TimeFilter, 300)
 	minutes := groupPeriod.Minutes()
 	m := make(map[string]interface{})
 

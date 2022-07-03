@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"encoding"
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 	"time"
 
+	"github.com/prometheus/common/model"
 	"github.com/segmentio/encoding/json"
 	"github.com/vmihailenco/tagparser"
 )
@@ -215,7 +217,7 @@ func scanString(v reflect.Value, values []string) error {
 }
 
 func scanTime(v reflect.Value, values []string) error {
-	tm, err := parseTime(values[0])
+	tm, err := ParseTime(values[0])
 	if err != nil {
 		return err
 	}
@@ -223,7 +225,7 @@ func scanTime(v reflect.Value, values []string) error {
 	return nil
 }
 
-func parseTime(s string) (time.Time, error) {
+func ParseTime(s string) (time.Time, error) {
 	n, err := strconv.ParseInt(s, 10, 64)
 	if err == nil {
 		return time.Unix(n, 0), nil
@@ -243,12 +245,29 @@ func parseTime(s string) (time.Time, error) {
 }
 
 func scanDuration(v reflect.Value, values []string) error {
-	dur, err := time.ParseDuration(values[0])
+	dur, err := ParseDuration(values[0])
 	if err != nil {
 		return err
 	}
 	v.SetInt(int64(dur))
 	return nil
+}
+
+func ParseDuration(s string) (time.Duration, error) {
+	// Assume seconds.
+	if d, err := strconv.ParseFloat(s, 64); err == nil {
+		ns := d * float64(time.Second)
+		if ns > float64(math.MaxInt64) || ns < float64(math.MinInt64) {
+			return 0, fmt.Errorf("cannot parse %q duration (int64 overflow)", s)
+		}
+		return time.Duration(ns), nil
+	}
+
+	if d, err := model.ParseDuration(s); err == nil {
+		return time.Duration(d), nil
+	}
+
+	return time.ParseDuration(s)
 }
 
 func scanNullBool(v reflect.Value, values []string) error {

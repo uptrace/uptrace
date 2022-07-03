@@ -35,7 +35,7 @@ ch_schema:
   replicated: false
 
   # Cluster name for Distributed tables.
-  cluster: uptrace1
+  #cluster: uptrace1
 
 spans:
   # The size of Go chan used to buffer incoming spans.
