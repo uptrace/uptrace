@@ -5,16 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/otlpconv"
 	"github.com/uptrace/uptrace/pkg/tracing/xotel"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
@@ -195,9 +196,9 @@ func (s *MetricsServiceServer) export(
 				case *metricspb.Metric_Sum:
 					p.otlpSum(sm.Scope, metric, data)
 				case *metricspb.Metric_Histogram:
-					// ignore
+					p.otlpHistogram(sm.Scope, metric, data)
 				case *metricspb.Metric_ExponentialHistogram:
-					// ignore
+					p.otlpExpHistogram(sm.Scope, metric, data)
 				default:
 					p.Zap(p.ctx).Error("unknown metric",
 						zap.String("type", fmt.Sprintf("%T", data)))
@@ -275,13 +276,13 @@ func (p *otlpProcessor) otlpSum(
 
 		switch value := dp.Value.(type) {
 		case *metricspb.NumberDataPoint_AsInt:
-			dest.StartTimeUnix = uint32(dp.StartTimeUnixNano / uint64(time.Second))
+			dest.StartTimeUnix = dp.StartTimeUnixNano
 			dest.NumberPoint = &NumberPoint{
 				Int: value.AsInt,
 			}
 			p.enqueue(dest)
 		case *metricspb.NumberDataPoint_AsDouble:
-			dest.StartTimeUnix = uint32(dp.StartTimeUnixNano / uint64(time.Second))
+			dest.StartTimeUnix = dp.StartTimeUnixNano
 			dest.NumberPoint = &NumberPoint{
 				Double: value.AsDouble,
 			}
@@ -290,6 +291,76 @@ func (p *otlpProcessor) otlpSum(
 			p.Zap(p.ctx).Error("unknown point value type",
 				zap.String("type", fmt.Sprintf("%T", dp.Value)))
 		}
+	}
+}
+
+func (p *otlpProcessor) otlpHistogram(
+	scope *commonpb.InstrumentationScope,
+	metric *metricspb.Metric,
+	data *metricspb.Metric_Histogram,
+) {
+	isDelta := data.Histogram.AggregationTemporality == deltaAggTemp
+	for _, dp := range data.Histogram.DataPoints {
+		if dp.Flags&uint32(metricspb.DataPointFlags_FLAG_NO_RECORDED_VALUE) != 0 {
+			continue
+		}
+
+		dest := p.nextMeasure(scope, metric, HistogramInstrument, dp.Attributes, dp.TimeUnixNano)
+		if isDelta {
+			dest.Histogram = newBFloat16Histogram(dp.ExplicitBounds, dp.BucketCounts)
+		} else {
+			dest.StartTimeUnix = dp.StartTimeUnixNano
+			dest.HistogramPoint = &HistogramPoint{
+				Sum:          dp.GetSum(),
+				Count:        dp.Count,
+				Bounds:       dp.ExplicitBounds,
+				BucketCounts: dp.BucketCounts,
+			}
+		}
+		p.enqueue(dest)
+	}
+}
+
+func (p *otlpProcessor) otlpExpHistogram(
+	scope *commonpb.InstrumentationScope,
+	metric *metricspb.Metric,
+	data *metricspb.Metric_ExponentialHistogram,
+) {
+	isDelta := data.ExponentialHistogram.AggregationTemporality == deltaAggTemp
+	for _, dp := range data.ExponentialHistogram.DataPoints {
+		if dp.Flags&uint32(metricspb.DataPointFlags_FLAG_NO_RECORDED_VALUE) != 0 {
+			continue
+		}
+
+		dest := p.nextMeasure(scope, metric, HistogramInstrument, dp.Attributes, dp.TimeUnixNano)
+		if isDelta {
+			hist := make(bfloat16.Map)
+			dest.Histogram = hist
+
+			if dp.ZeroCount > 0 {
+				hist[bfloat16.From(0)] += dp.ZeroCount
+			}
+			base := math.Pow(2, math.Pow(2, float64(dp.Scale)))
+			populateBFloat16Hist(hist, base, int(dp.Positive.Offset), dp.Positive.BucketCounts, +1)
+			populateBFloat16Hist(hist, base, int(dp.Negative.Offset), dp.Negative.BucketCounts, -1)
+		} else {
+			dest.StartTimeUnix = dp.StartTimeUnixNano
+			dest.ExpHistogramPoint = &ExpHistogramPoint{
+				Sum:       dp.GetSum(),
+				Count:     dp.Count,
+				Scale:     dp.Scale,
+				ZeroCount: dp.ZeroCount,
+				Positive: ExpHistogramBuckets{
+					Offset:       dp.Positive.Offset,
+					BucketCounts: dp.Positive.BucketCounts,
+				},
+				Negative: ExpHistogramBuckets{
+					Offset:       dp.Negative.Offset,
+					BucketCounts: dp.Negative.BucketCounts,
+				},
+			}
+		}
+		p.enqueue(dest)
 	}
 }
 
@@ -357,46 +428,59 @@ func toFloat64(value any) float64 {
 	}
 }
 
-func min(a, b int) int {
-	if a <= b {
-		return a
-	}
-	return b
+//------------------------------------------------------------------------------
+
+type quickBFloat16Histogram struct {
+	m bfloat16.Map
 }
 
-func cleanPromName(s string) string {
-	if isValidPromName(s) {
-		return s
+func (h *quickBFloat16Histogram) Add(mean float64, count uint64) {
+	h.m[bfloat16.From(mean)] += count
+}
+
+func newBFloat16Histogram(
+	bounds []float64, counts []uint64,
+) map[bfloat16.T]uint64 {
+	h := quickBFloat16Histogram{
+		m: make(map[bfloat16.T]uint64, len(counts)),
 	}
 
-	r := make([]byte, 0, len(s))
-	for _, c := range []byte(s) {
-		if isAllowedPromNameChar(c) {
-			r = append(r, c)
-		} else {
-			r = append(r, '_')
+	if c0 := counts[0]; c0 > 0 {
+		h.Add(bounds[0], c0)
+	}
+	counts = counts[1:]
+
+	prev := bounds[0]
+	for i, count := range counts[:len(counts)-1] {
+		upper := bounds[i+1]
+		if count > 0 {
+			h.Add((upper+prev)/2, count)
 		}
+		prev = upper
 	}
-	return unsafeconv.String(r)
+
+	if lastCount := counts[len(counts)-1]; lastCount > 0 {
+		max := math.Nextafter(bounds[len(bounds)-1], math.MaxFloat64)
+		h.Add(max, lastCount)
+	}
+
+	if len(h.m) > 0 {
+		return h.m
+	}
+	return nil
 }
 
-func isValidPromName(s string) bool {
-	for _, c := range []byte(s) {
-		if !isAllowedPromNameChar(c) {
-			return false
+func populateBFloat16Hist(
+	hist bfloat16.Map, base float64, offset int, counts []uint64, sign float64,
+) {
+	lower := math.Pow(base, float64(offset))
+	for i, count := range counts {
+		if count == 0 {
+			continue
 		}
+		upper := math.Pow(base, float64(offset+i+1))
+		mean := (lower + upper) / 2
+		hist[bfloat16.From(sign*mean)] += count
+		lower = upper
 	}
-	return true
-}
-
-func isAllowedPromNameChar(c byte) bool {
-	return isAlpha(c) || isDigit(c) || c == '_'
-}
-
-func isDigit(c byte) bool {
-	return c >= '0' && c <= '9'
-}
-
-func isAlpha(c byte) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }

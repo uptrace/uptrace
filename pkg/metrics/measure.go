@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/xotel"
@@ -30,15 +31,18 @@ type Measure struct {
 	Time      time.Time `ch:"type:DateTime"`
 	AttrsHash uint64
 
-	Sum   float32
-	Value float32
+	Sum       float32
+	Value     float32
+	Histogram bfloat16.Map `ch:"type:AggregateFunction(quantilesBFloat16(0.5, 0.9, 0.99), Float32)"`
 
 	Attrs  xotel.AttrMap `ch:"-"`
 	Keys   []string      `ch:"type:Array(LowCardinality(String))"`
 	Values []string      `ch:"type:Array(LowCardinality(String))"`
 
-	StartTimeUnix uint32       `ch:"-"`
-	NumberPoint   *NumberPoint `ch:"-"`
+	StartTimeUnix     uint64             `ch:"-"`
+	NumberPoint       *NumberPoint       `ch:"-"`
+	HistogramPoint    *HistogramPoint    `ch:"-"`
+	ExpHistogramPoint *ExpHistogramPoint `ch:"-"`
 }
 
 func InsertMeasures(ctx context.Context, app *bunapp.App, measures []*Measure) error {

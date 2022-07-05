@@ -7,7 +7,7 @@ CREATE TABLE measure_minutes (
   instrument LowCardinality(String) Codec(?CODEC),
   sum SimpleAggregateFunction(sumWithOverflow, Float32) Codec(?CODEC),
   value SimpleAggregateFunction(anyLast, Float32) Codec(?CODEC),
-  histogram AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32) Codec(?CODEC),
+  histogram AggregateFunction(quantilesBFloat16(0.5, 0.9, 0.99), Float32) Codec(?CODEC),
 
   keys Array(LowCardinality(String)) Codec(?CODEC),
   values Array(LowCardinality(String)) Codec(?CODEC)
