@@ -1,7 +1,7 @@
 <script lang="ts">
 import Vue from 'vue'
 import { VIcon } from 'vuetify/lib'
-import { PropType } from '@vue/composition-api'
+import { PropType } from 'vue'
 
 // Composables
 import { UseOrder } from '@/use/order'

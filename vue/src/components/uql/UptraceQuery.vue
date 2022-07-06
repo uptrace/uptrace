@@ -101,14 +101,7 @@
 </template>
 
 <script lang="ts">
-import {
-  defineComponent,
-  shallowRef,
-  computed,
-  watch,
-  proxyRefs,
-  PropType,
-} from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, watch, proxyRefs, PropType } from 'vue'
 
 // Composables
 import { createPart, Part, UseUql } from '@/use/uql'

@@ -12,7 +12,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, onMounted, watchEffect, PropType } from '@vue/composition-api'
+import { defineComponent, computed, onMounted, watchEffect, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'

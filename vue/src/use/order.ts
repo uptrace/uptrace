@@ -1,4 +1,4 @@
-import { shallowRef, computed, proxyRefs, watch } from '@vue/composition-api'
+import { shallowRef, computed, proxyRefs, watch } from 'vue'
 
 import { useQuery } from '@/use/router'
 

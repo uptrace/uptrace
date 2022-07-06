@@ -81,15 +81,7 @@
 </template>
 
 <script lang="ts">
-import {
-  defineComponent,
-  shallowRef,
-  computed,
-  reactive,
-  watch,
-  PropType,
-  ref,
-} from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, reactive, watch, PropType, ref } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'

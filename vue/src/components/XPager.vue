@@ -1,6 +1,6 @@
 <script lang="ts">
 import Vue from 'vue'
-import { PropType } from '@vue/composition-api'
+import { PropType } from 'vue'
 import { VBtn, VIcon } from 'vuetify/lib'
 
 // Composables

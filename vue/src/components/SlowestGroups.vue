@@ -28,7 +28,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, watch, computed, PropType } from '@vue/composition-api'
+import { defineComponent, shallowRef, watch, computed, PropType } from 'vue'
 
 // Composables
 import { UseSystems } from '@/use/systems'

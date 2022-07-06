@@ -40,7 +40,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, PropType } from '@vue/composition-api'
+import { defineComponent, computed, PropType } from 'vue'
 
 // Utilities
 import { xkey, isEventSystem } from '@/models/otelattr'

@@ -32,7 +32,7 @@
 
 <script lang="ts">
 import { truncate } from 'lodash'
-import { defineComponent, shallowRef, PropType } from '@vue/composition-api'
+import { defineComponent, shallowRef, PropType } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'

@@ -131,7 +131,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef } from '@vue/composition-api'
+import { defineComponent, shallowRef } from 'vue'
 
 // Composables
 import { useRouter, useQuery } from '@/use/router'

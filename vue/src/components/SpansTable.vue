@@ -69,7 +69,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, nextTick, proxyRefs, PropType } from '@vue/composition-api'
+import { defineComponent, shallowRef, nextTick, proxyRefs, PropType } from 'vue'
 
 // Composables
 import { useQuery } from '@/use/router'

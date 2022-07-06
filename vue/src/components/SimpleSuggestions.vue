@@ -28,7 +28,7 @@
 
 <script lang="ts">
 import { truncate } from 'lodash'
-import { defineComponent, PropType } from '@vue/composition-api'
+import { defineComponent, PropType } from 'vue'
 
 // Composables
 import { UseSuggestions, Suggestion } from '@/use/suggestions'

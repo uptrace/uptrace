@@ -1,4 +1,4 @@
-import { computed, proxyRefs } from '@vue/composition-api'
+import { computed, proxyRefs } from 'vue'
 
 // Composables
 import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
