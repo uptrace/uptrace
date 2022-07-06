@@ -201,7 +201,7 @@ function usePartEditor(uql: UseUql) {
 </script>
 
 <style lang="scss" scoped>
-.v-chip :deep(.v-icon) {
+.v-chip ::v-deep .v-icon {
   font-size: 20px;
   width: 20px;
   height: 20px;

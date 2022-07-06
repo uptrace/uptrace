@@ -183,7 +183,7 @@ function isInMemDb(system: string): boolean {
 </script>
 
 <style lang="scss" scoped>
-.metrics :deep(.col) {
+.metrics ::v-deep .col {
   max-width: 250px;
 }
 </style>
