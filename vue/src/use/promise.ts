@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { shallowRef, computed, watch } from '@vue/composition-api'
+import { shallowRef, computed, watch } from 'vue'
 
 // Composables
 import { useSnackbar } from '@/use/snackbar'

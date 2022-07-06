@@ -84,7 +84,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, watch, proxyRefs } from '@vue/composition-api'
+import { defineComponent, computed, watch, proxyRefs } from 'vue'
 
 // Components
 import LoadPctileChart from '@/components/LoadPctileChart.vue'

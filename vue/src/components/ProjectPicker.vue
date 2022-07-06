@@ -32,7 +32,7 @@
 
 <script lang="ts">
 import Vue from 'vue'
-import { defineComponent, ref, computed } from '@vue/composition-api'
+import { defineComponent, ref, computed } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'

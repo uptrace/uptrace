@@ -7,7 +7,7 @@ import {
   watch,
   onBeforeMount,
   onBeforeUnmount,
-} from '@vue/composition-api'
+} from 'vue'
 
 import { defineStore } from '@/use/store'
 
@@ -86,14 +86,14 @@ export const useQuery = defineStore(() => {
   function sync(item: QueryItem) {
     items.value.push(item)
     // eslint-disable-next-line no-self-assign
-    items.value = items.value
+    items.value = items.value.slice()
 
     function remove() {
       const idx = items.value.findIndex((v) => v === item)
       if (idx >= 0) {
         items.value.splice(idx, 1)
         // eslint-disable-next-line no-self-assign
-        items.value = items.value
+        items.value = items.value.slice()
       }
     }
 
@@ -113,14 +113,14 @@ export const useQuery = defineStore(() => {
   function onRouteUpdated(hook: OnRouteUpdatedHook) {
     routeUpdatedHooks.value.push(hook)
     // eslint-disable-next-line no-self-assign
-    routeUpdatedHooks.value = routeUpdatedHooks.value
+    routeUpdatedHooks.value = routeUpdatedHooks.value.slice()
 
     onBeforeUnmount(() => {
       const idx = routeUpdatedHooks.value.findIndex((v) => v === hook)
       if (idx >= 0) {
         routeUpdatedHooks.value.splice(idx, 1)
         // eslint-disable-next-line no-self-assign
-        routeUpdatedHooks.value = routeUpdatedHooks.value
+        routeUpdatedHooks.value = routeUpdatedHooks.value.slice()
       }
     })
 

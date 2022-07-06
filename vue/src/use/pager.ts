@@ -1,4 +1,4 @@
-import { shallowRef, computed, watch, proxyRefs } from '@vue/composition-api'
+import { shallowRef, computed, watch, proxyRefs } from 'vue'
 
 interface PagePos {
   start: number

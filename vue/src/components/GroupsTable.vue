@@ -133,7 +133,7 @@
 
 <script lang="ts">
 import { omit, truncate } from 'lodash'
-import { defineComponent, shallowRef, computed, PropType } from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'

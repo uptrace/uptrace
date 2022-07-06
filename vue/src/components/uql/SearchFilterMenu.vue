@@ -60,14 +60,7 @@
 
 <script lang="ts">
 import { isEqual } from 'lodash'
-import {
-  defineComponent,
-  proxyRefs,
-  shallowRef,
-  computed,
-  Ref,
-  PropType,
-} from '@vue/composition-api'
+import { defineComponent, proxyRefs, shallowRef, computed, Ref, PropType } from 'vue'
 
 // Composables
 import { UseUql } from '@/use/uql'

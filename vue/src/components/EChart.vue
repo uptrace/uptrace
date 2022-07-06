@@ -7,14 +7,7 @@
 <script lang="ts">
 import { debounce } from 'lodash'
 import * as echarts from 'echarts'
-import {
-  defineComponent,
-  shallowRef,
-  watch,
-  onMounted,
-  onUnmounted,
-  PropType,
-} from '@vue/composition-api'
+import { defineComponent, shallowRef, watch, onMounted, onUnmounted, PropType } from 'vue'
 
 type GroupName = string | symbol
 

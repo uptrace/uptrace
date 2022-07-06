@@ -13,7 +13,7 @@
 
 <script lang="ts">
 import * as echarts from 'echarts'
-import { defineComponent, computed, PropType } from '@vue/composition-api'
+import { defineComponent, computed, PropType } from 'vue'
 import colors from 'vuetify/lib/util/colors'
 
 // Components

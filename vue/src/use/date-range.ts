@@ -1,5 +1,5 @@
 import { min, addMilliseconds, subMilliseconds, differenceInMilliseconds } from 'date-fns'
-import { ref, computed, proxyRefs } from '@vue/composition-api'
+import { ref, computed, proxyRefs } from 'vue'
 
 // Composables
 import { useQuery } from '@/use/router'

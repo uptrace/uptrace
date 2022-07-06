@@ -36,7 +36,7 @@
 
 <script lang="ts">
 import { truncate } from 'lodash'
-import { defineComponent, computed, PropType } from '@vue/composition-api'
+import { defineComponent, computed, PropType } from 'vue'
 
 // Utilities
 import { ColoredSystem } from '@/models/colored-system'
