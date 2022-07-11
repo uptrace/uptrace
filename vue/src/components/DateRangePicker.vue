@@ -10,7 +10,7 @@
       <v-icon class="small">mdi-chevron-left</v-icon>
     </v-btn>
 
-    <DateTimePeriodMenu v-if="dateRange.gte" :date-range="dateRange" :periods="periods" />
+    <DateRangePickerMenu :date-range="dateRange" />
     <PeriodPickerMenu
       :value="dateRange.duration"
       :periods="periods"
@@ -41,8 +41,8 @@ import { defineComponent, computed, watchEffect, onMounted, PropType } from 'vue
 import { UseDateRange } from '@/use/date-range'
 
 // Components
-import DateTimePeriodMenu from '@/components/DateTimePeriodMenu.vue'
 import PeriodPickerMenu from '@/components/PeriodPickerMenu.vue'
+import DateRangePickerMenu from '@/components/DateRangePickerMenu.vue'
 
 // Utilities
 import { hour } from '@/util/date'
@@ -50,7 +50,7 @@ import { periodsForDays } from '@/models/period'
 
 export default defineComponent({
   name: 'DateRangePicker',
-  components: { DateTimePeriodMenu, PeriodPickerMenu },
+  components: { PeriodPickerMenu, DateRangePickerMenu },
 
   props: {
     dateRange: {
