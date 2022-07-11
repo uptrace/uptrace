@@ -9,7 +9,7 @@
     </template>
 
     <v-list dense>
-      <v-list-item-group :value="value" mandatory @change="onChange">
+      <v-list-item-group :value="value" @change="onChange">
         <v-list-item v-for="item in periods" :key="item.ms" :value="item.ms">
           <v-list-item-content>
             <v-list-item-title>Last {{ item.text }}</v-list-item-title>
@@ -25,6 +25,7 @@ import { defineComponent, computed, PropType } from '@vue/composition-api'
 
 // Utilities
 import { Period } from '@/models/period'
+import { formatDistance } from 'date-fns'
 
 export default defineComponent({
   name: 'PeriodPickerMenu',
@@ -43,6 +44,14 @@ export default defineComponent({
   setup(props, { emit }) {
     const activePeriod = computed((): Period | undefined => {
       const period = props.periods.find((p) => p.ms === props.value)
+
+      if (!period) {
+        return {
+          text: formatDistance(0, props.value),
+          ms: props.value,
+        }
+      }
+
       return period
     })
 
