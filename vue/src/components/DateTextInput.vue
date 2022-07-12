@@ -39,7 +39,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed, watch } from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, watch } from 'vue'
 
 // Utilities
 import { parse, format, isValid } from 'date-fns'
