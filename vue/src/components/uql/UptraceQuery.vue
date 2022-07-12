@@ -101,14 +101,7 @@
 </template>
 
 <script lang="ts">
-import {
-  defineComponent,
-  shallowRef,
-  computed,
-  watch,
-  proxyRefs,
-  PropType,
-} from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, watch, proxyRefs, PropType } from 'vue'
 
 // Composables
 import { createPart, Part, UseUql } from '@/use/uql'
@@ -208,7 +201,7 @@ function usePartEditor(uql: UseUql) {
 </script>
 
 <style lang="scss" scoped>
-.v-chip :deep(.v-icon) {
+.v-chip ::v-deep .v-icon {
   font-size: 20px;
   width: 20px;
   height: 20px;

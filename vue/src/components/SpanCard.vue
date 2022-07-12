@@ -124,7 +124,7 @@
 <script lang="ts">
 import { format } from 'sql-formatter'
 import { truncate } from 'lodash'
-import { defineComponent, ref, computed, proxyRefs, PropType } from '@vue/composition-api'
+import { defineComponent, ref, computed, proxyRefs, PropType } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'

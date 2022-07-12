@@ -15,7 +15,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, watch } from '@vue/composition-api'
+import { defineComponent, shallowRef, watch } from 'vue'
 
 // Composables
 import { Label } from '@/components/loki/logql'

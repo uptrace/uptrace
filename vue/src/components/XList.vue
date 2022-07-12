@@ -38,7 +38,7 @@
 
 <script lang="ts">
 import { truncate } from 'lodash'
-import { defineComponent, shallowRef, computed, watch } from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, watch } from 'vue'
 
 interface Item {
   text: string

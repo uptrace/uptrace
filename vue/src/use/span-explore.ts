@@ -1,6 +1,6 @@
 import { format } from 'sql-formatter'
 import { orderBy } from 'lodash'
-import { computed, watch, proxyRefs } from '@vue/composition-api'
+import { computed, watch, proxyRefs } from 'vue'
 
 // Composables
 import { usePager, PagerConfig } from '@/use/pager'

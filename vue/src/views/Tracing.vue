@@ -44,7 +44,7 @@
 
 <script lang="ts">
 import { clone } from 'lodash'
-import { defineComponent, computed, proxyRefs, PropType } from '@vue/composition-api'
+import { defineComponent, computed, proxyRefs, PropType } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'

@@ -60,14 +60,7 @@
 
 <script lang="ts">
 import { isEqual } from 'lodash'
-import {
-  defineComponent,
-  proxyRefs,
-  shallowRef,
-  computed,
-  Ref,
-  PropType,
-} from '@vue/composition-api'
+import { defineComponent, proxyRefs, shallowRef, computed, Ref, PropType } from 'vue'
 
 // Composables
 import { UseUql } from '@/use/uql'
@@ -211,7 +204,7 @@ function useAttrSet(attrKeys: Ref<string[]>) {
 </script>
 
 <style lang="scss" scoped>
-.v-btn-toggle :deep(.v-btn) {
+.v-btn-toggle ::v-deep .v-btn {
   text-transform: none;
 }
 </style>

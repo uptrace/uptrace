@@ -1,5 +1,5 @@
 import { orderBy } from 'lodash'
-import { computed, watch, proxyRefs } from '@vue/composition-api'
+import { computed, watch, proxyRefs } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'

@@ -30,7 +30,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from '@vue/composition-api'
+import { defineComponent, PropType } from 'vue'
 
 // Composables
 import { AxiosParams } from '@/use/axios'

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -51,7 +52,7 @@ func (h *LokiProxyHandler) initProxy() {
 	lokiURL, _ := url.Parse(h.App.Config().Loki.Addr)
 	lokiQuery := lokiURL.RawQuery
 
-	errorLogger, _ := zap.NewStdLogAt(h.ZapLogger().Logger, zap.ErrorLevel)
+	errorLogger, _ := zap.NewStdLogAt(h.ZapLogger().Logger, zap.WarnLevel)
 	h.proxy = &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
 			req.URL.Scheme = lokiURL.Scheme
@@ -71,6 +72,15 @@ func (h *LokiProxyHandler) initProxy() {
 			req.Header.Set("uptrace-project-id", strconv.Itoa(int(project.ID)))
 
 			req.Header.Del("Origin")
+		},
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout:   5 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout:   5 * time.Second,
+			ResponseHeaderTimeout: 5 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
 		},
 		ModifyResponse: func(resp *http.Response) error {
 			resp.Header.Del("access-control-allow-origin")

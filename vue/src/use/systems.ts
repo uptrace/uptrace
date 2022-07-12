@@ -1,5 +1,5 @@
 import { cloneDeep, orderBy } from 'lodash'
-import { shallowRef, computed, proxyRefs } from '@vue/composition-api'
+import { shallowRef, computed, proxyRefs } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'

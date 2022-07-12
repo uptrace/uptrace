@@ -54,7 +54,7 @@
 
 <script lang="ts">
 import colors from 'vuetify/lib/util/colors'
-import { defineComponent, computed, PropType } from '@vue/composition-api'
+import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { System } from '@/use/systems'
@@ -183,7 +183,7 @@ function isInMemDb(system: string): boolean {
 </script>
 
 <style lang="scss" scoped>
-.metrics :deep(.col) {
+.metrics ::v-deep .col {
   max-width: 250px;
 }
 </style>

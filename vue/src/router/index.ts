@@ -31,7 +31,7 @@ import Help from '@/views/Help.vue'
 
 Vue.use(VueRouter)
 
-const routes: Array<RouteConfig> = [
+const routes: RouteConfig[] = [
   {
     name: 'Home',
     path: '/',

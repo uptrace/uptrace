@@ -1,6 +1,6 @@
 <script lang="ts">
 import { VNode } from 'vue'
-import { defineComponent, h } from '@vue/composition-api'
+import { defineComponent, h } from 'vue'
 
 export default defineComponent({
   name: 'XPlaceholder',

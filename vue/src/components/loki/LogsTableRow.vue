@@ -36,7 +36,7 @@
 
 <script lang="ts">
 import { assign } from 'lodash'
-import { defineComponent, shallowRef, computed, PropType } from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Components
 import LogLabelsTable from '@/components/loki/LogLabelsTable.vue'

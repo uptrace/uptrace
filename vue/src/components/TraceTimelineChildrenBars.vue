@@ -21,7 +21,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, PropType } from '@vue/composition-api'
+import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { TraceSpan, UseTrace } from '@/use/trace'

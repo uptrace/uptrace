@@ -90,7 +90,7 @@
 
 <script lang="ts">
 import { Route } from 'vue-router'
-import { defineComponent, PropType } from '@vue/composition-api'
+import { defineComponent, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'

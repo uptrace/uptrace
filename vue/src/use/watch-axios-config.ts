@@ -1,5 +1,5 @@
 import { AxiosRequestConfig, AxiosResponse } from 'axios'
-import { watch, onBeforeUnmount } from '@vue/composition-api'
+import { watch, onBeforeUnmount } from 'vue'
 
 export type { AxiosRequestConfig }
 

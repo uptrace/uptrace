@@ -1,5 +1,5 @@
 import axios, { AxiosRequestConfig, CancelTokenSource, AxiosResponse } from 'axios'
-import { computed } from '@vue/composition-api'
+import { computed } from 'vue'
 
 // Composables
 import { usePromise, Config } from '@/use/promise'

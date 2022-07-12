@@ -131,7 +131,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef } from '@vue/composition-api'
+import { defineComponent, shallowRef } from 'vue'
 
 // Composables
 import { useRouter, useQuery } from '@/use/router'
@@ -177,7 +177,7 @@ export default defineComponent({
   font-weight: 500;
 }
 
-.v-app-bar :deep(.v-toolbar__content) {
+.v-app-bar ::v-deep .v-toolbar__content {
   padding-top: 0px;
   padding-bottom: 0px;
 }

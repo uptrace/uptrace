@@ -1,4 +1,4 @@
-import { shallowRef, reactive, computed, proxyRefs } from '@vue/composition-api'
+import { shallowRef, reactive, computed, proxyRefs } from 'vue'
 
 // Composables
 import { useRouter, useQuery } from '@/use/router'
@@ -66,13 +66,13 @@ export function useUql(cfg: UqlConfig = {}) {
   function addPart(part: Part) {
     parts.value.push(reactive(part))
     // eslint-disable-next-line no-self-assign
-    parts.value = parts.value
+    parts.value = parts.value.slice()
   }
 
   function removePart(index: number) {
     parts.value.splice(index, 1)
     // eslint-disable-next-line no-self-assign
-    parts.value = parts.value
+    parts.value = parts.value.slice()
   }
 
   function cleanup() {

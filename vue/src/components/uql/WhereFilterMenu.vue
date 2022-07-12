@@ -140,7 +140,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed, watch, PropType } from '@vue/composition-api'
+import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'
@@ -375,12 +375,12 @@ export default defineComponent({
   text-overflow: unset;
 }
 
-.no-transform :deep(.v-btn) {
+.no-transform ::v-deep .v-btn {
   padding: 0 12px !important;
   text-transform: none;
 }
 
-.space-around :deep(.v-chip) {
+.space-around ::v-deep .v-chip {
   margin: 4px;
 }
 </style>

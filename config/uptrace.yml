@@ -1,3 +1,15 @@
+##
+## You can use environment variables anywhere in this file, for example:
+##
+##   foo: $FOO
+##   bar: ${BAR}
+##   $BAZ: baz
+##
+## To escape `$`, use `$$`, for example:
+##
+##   foo: $$FooBar
+##
+
 # Enable to log HTTP requests and ClickHouse queries.
 debug: false
 

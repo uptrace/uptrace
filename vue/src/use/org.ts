@@ -1,4 +1,4 @@
-import { computed, proxyRefs } from '@vue/composition-api'
+import { computed, proxyRefs } from 'vue'
 
 import router from '@/router'
 

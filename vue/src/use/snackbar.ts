@@ -1,4 +1,4 @@
-import { ref, proxyRefs } from '@vue/composition-api'
+import { ref, proxyRefs } from 'vue'
 
 import { defineStore } from '@/use/store'
 
