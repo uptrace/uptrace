@@ -49,7 +49,7 @@ import { defineComponent, computed, proxyRefs, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { useTitle } from '@vueuse/core'
-import { useDateRange } from '@/use/date-range'
+import { UseDateRange } from '@/use/date-range'
 import { useUser } from '@/use/org'
 import { useSystems, SystemsFilter } from '@/use/systems'
 
@@ -72,6 +72,10 @@ export default defineComponent({
   },
 
   props: {
+    dateRange: {
+      type: Object as PropType<UseDateRange>,
+      required: true,
+    },
     query: {
       type: String,
       required: true,
@@ -96,12 +100,10 @@ export default defineComponent({
 
   setup(props) {
     useTitle('Explore spans')
-
-    const dateRange = useDateRange()
-    dateRange.syncQuery()
+    props.dateRange.syncQuery()
 
     const user = useUser()
-    const systems = useSystems(dateRange)
+    const systems = useSystems(props.dateRange)
 
     const systemsItems = computed(() => {
       if (props.systemsFilter) {
@@ -111,7 +113,6 @@ export default defineComponent({
     })
 
     return {
-      dateRange,
       user,
       systems,
       systemsItems,
