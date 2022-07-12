@@ -84,7 +84,7 @@
 
     <v-main>
       <XSnackbar />
-      <router-view />
+      <router-view :date-range="dateRange" />
     </v-main>
 
     <v-footer app absolute color="grey lighten-5">
@@ -136,6 +136,7 @@ import { defineComponent, shallowRef } from 'vue'
 // Composables
 import { useRouter, useQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
+import { useDateRange } from '@/use/date-range'
 import { useUser } from '@/use/org'
 
 // Components
@@ -153,6 +154,7 @@ export default defineComponent({
 
     const { router } = useRouter()
     useForceReload()
+    const dateRange = useDateRange()
     const user = useUser()
     const traceId = shallowRef('')
 
@@ -164,6 +166,7 @@ export default defineComponent({
     }
 
     return {
+      dateRange,
       user,
       traceId,
       jumpToTrace,

@@ -33,7 +33,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, shallowRef, computed, watch, PropType } from '@vue/composition-api'
+import { defineComponent, ref, shallowRef, computed, watch, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
