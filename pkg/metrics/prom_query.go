@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"time"
 
@@ -126,13 +127,6 @@ func (q *promQuerier) Select(
 		}
 
 		if series.metric != metric || series.attrsHash != attrsHash {
-			if promHist != nil {
-				promHist.ForEachSeries(func(series *promSeries) {
-					seriesSet.slice = append(seriesSet.slice, series)
-				})
-				promHist = nil
-			}
-
 			labels := make(promlabels.Labels, 0, 1+len(keys))
 
 			labels = append(labels, promlabels.Label{
@@ -159,7 +153,7 @@ func (q *promQuerier) Select(
 						Name:  "le",
 						Value: strconv.FormatFloat(le, 'f', -1, 64),
 					})
-					// seriesSet.slice = append(seriesSet.slice, series)
+					seriesSet.slice = append(seriesSet.slice, series)
 					return series
 				})
 			} else {
@@ -172,13 +166,6 @@ func (q *promQuerier) Select(
 		} else {
 			series.AddSample(float64(value), tm)
 		}
-	}
-
-	if promHist != nil {
-		promHist.ForEachSeries(func(series *promSeries) {
-			seriesSet.slice = append(seriesSet.slice, series)
-		})
-		promHist = nil
 	}
 
 	if err := rows.Err(); err != nil {
@@ -320,6 +307,16 @@ func (s *promSeries) Clone() *promSeries {
 	return &clone
 }
 
+func (s *promSeries) UpdateLabel(name, value string) {
+	for i := range s.labels {
+		label := &s.labels[i]
+		if label.Name == name {
+			label.Value = value
+			break
+		}
+	}
+}
+
 func (s *promSeries) Labels() promlabels.Labels {
 	return s.labels
 }
@@ -390,6 +387,7 @@ func (s *seriesIter) Err() error {
 type promHistogram struct {
 	newSeries   func(le float64) *promSeries
 	seriesSlice []*promSeries
+	infSeries   *promSeries
 	buckets     []uint64
 	mapping     mapping.Mapping
 }
@@ -403,6 +401,7 @@ func newPromHistogram(newSeries func(le float64) *promSeries) *promHistogram {
 	return &promHistogram{
 		newSeries:   newSeries,
 		seriesSlice: make([]*promSeries, 10),
+		infSeries:   newSeries(math.Inf(+1)),
 		buckets:     make([]uint64, 10),
 		mapping:     mapping,
 	}
@@ -432,7 +431,11 @@ func (h *promHistogram) Add(mp bfloat16.Map, tm time.Time) {
 		h.buckets[i] = 0
 	}
 
+	var sum uint64
+
 	for value, count := range mp {
+		sum += count
+
 		index := int(h.mapping.MapToIndex(value.Float64()))
 		if index >= len(h.buckets) {
 			h.buckets = slices.Grow(h.buckets, index+1)[:index+1]
@@ -445,6 +448,8 @@ func (h *promHistogram) Add(mp bfloat16.Map, tm time.Time) {
 			h.Series(index).AddSample(float64(count), tm)
 		}
 	}
+
+	h.infSeries.AddSample(float64(sum), tm)
 }
 
 func (h *promHistogram) ForEachSeries(fn func(series *promSeries)) {
@@ -453,6 +458,7 @@ func (h *promHistogram) ForEachSeries(fn func(series *promSeries)) {
 			fn(series)
 		}
 	}
+	fn(h.infSeries)
 }
 
 //------------------------------------------------------------------------------

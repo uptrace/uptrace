@@ -318,7 +318,10 @@ func promqlMatrixValue(value promql.Matrix) []matrixItem {
 		}
 
 		for j, point := range sample.Points {
-			item.Values[j] = []any{float64(point.T) / 1000, strconv.FormatFloat(point.V, 'f', -1, 64)}
+			item.Values[j] = []any{
+				float64(point.T) / 1000,
+				strconv.FormatFloat(point.V, 'f', -1, 64),
+			}
 		}
 
 	}
