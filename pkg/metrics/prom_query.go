@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/prometheus/storage"
 	"github.com/prometheus/prometheus/tsdb/chunkenc"
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
 )
 
@@ -72,6 +73,11 @@ func (q *promQuerier) Select(
 				"instrument = 'gauge', avg(value), "+
 				"-1) AS value",
 		).
+		ColumnExpr("if("+
+			"instrument = 'histogram', "+
+			"argMax(histogram, time), "+
+			"defaultValueOfTypeName('AggregateFunction(quantilesBFloat16(0.5, 0.9, 0.99), Float32)')) "+
+			"AS histogram").
 		ColumnExpr("anyLast(keys) AS keys").
 		ColumnExpr("anyLast(values) AS values").
 		TableExpr("?", q.app.DistTable("measure_minutes")).
@@ -96,10 +102,11 @@ func (q *promQuerier) Select(
 		var attrsHash uint32
 		var tm time.Time
 		var value float32
+		var hist bfloat16.Map
 		var keys []string
 		var values []string
 
-		if err := rows.Scan(&metric, &attrsHash, &tm, &value, &keys, &values); err != nil {
+		if err := rows.Scan(&metric, &attrsHash, &tm, &value, &hist, &keys, &values); err != nil {
 			return &promSeriesSet{err: err}
 		}
 
