@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"go.opentelemetry.io/otel/sdk/metric/aggregator/exponential/mapping"
+	"go.opentelemetry.io/otel/sdk/metric/aggregator/exponential/mapping/logarithm"
 	"golang.org/x/exp/slices"
 
 	promlabels "github.com/prometheus/prometheus/model/labels"
@@ -97,6 +100,7 @@ func (q *promQuerier) Select(
 	seriesSet := new(promSeriesSet)
 
 	series := new(promSeries)
+	var promHist *promHistogram
 	for rows.Next() {
 		var metric string
 		var attrsHash uint32
@@ -111,6 +115,15 @@ func (q *promQuerier) Select(
 		}
 
 		if series.metric != metric || series.attrsHash != attrsHash {
+			if promHist != nil {
+				for _, series := range promHist.buckets {
+					if series != nil {
+						seriesSet.slice = append(seriesSet.slice, series)
+					}
+				}
+				promHist = nil
+			}
+
 			labels := make(promlabels.Labels, 0, 1+len(keys))
 
 			labels = append(labels, promlabels.Label{
@@ -130,15 +143,29 @@ func (q *promQuerier) Select(
 				attrsHash: attrsHash,
 				labels:    labels,
 			}
-			seriesSet.slice = append(seriesSet.slice, series)
+			if len(hist) > 0 {
+				promHist = newPromHistogram(func(le float64) *promSeries {
+					series := series.Clone()
+					series.labels = append(series.labels, promlabels.Label{
+						Name:  "le",
+						Value: fmt.Sprint(le),
+					})
+					seriesSet.slice = append(seriesSet.slice, series)
+					return series
+				})
+			} else {
+				seriesSet.slice = append(seriesSet.slice, series)
+			}
 		}
 
-		series.samples = append(series.samples, promSample{
-			value:     float64(value),
-			timestamp: tm.UnixNano() / int64(time.Millisecond),
-		})
+		if len(hist) > 0 {
+			promHist.Add(hist, tm)
+		} else {
+			series.AddSample(float64(value), tm)
+		}
 	}
 
+	spew.Dump(seriesSet)
 	if err := rows.Err(); err != nil {
 		return &promSeriesSet{err: err}
 	}
@@ -213,6 +240,7 @@ func (q *promQuerier) Close() error {
 func transpileLabelMatchers(q *ch.SelectQuery, matchers []*promlabels.Matcher) *ch.SelectQuery {
 	for _, m := range matchers {
 		if m.Name == "le" {
+			spew.Dump(m)
 			continue
 		}
 
@@ -271,9 +299,11 @@ type promSeries struct {
 	samples   []promSample
 }
 
-type promSample struct {
-	value     float64
-	timestamp int64
+func (s *promSeries) Clone() *promSeries {
+	clone := *s
+	clone.labels = slices.Clone(clone.labels)
+	clone.samples = slices.Clone(clone.samples)
+	return &clone
 }
 
 func (s *promSeries) Labels() promlabels.Labels {
@@ -283,6 +313,22 @@ func (s *promSeries) Labels() promlabels.Labels {
 func (s *promSeries) Iterator() chunkenc.Iterator {
 	return &seriesIter{
 		samples: s.samples,
+	}
+}
+
+func (s *promSeries) AddSample(value float64, tm time.Time) {
+	s.samples = append(s.samples, newPromSample(value, tm))
+}
+
+type promSample struct {
+	value     float64
+	timestamp int64
+}
+
+func newPromSample(value float64, tm time.Time) promSample {
+	return promSample{
+		value:     value,
+		timestamp: tm.UnixNano() / int64(time.Millisecond),
 	}
 }
 
@@ -323,6 +369,50 @@ func (s *seriesIter) At() (int64, float64) {
 
 func (s *seriesIter) Err() error {
 	return nil
+}
+
+//------------------------------------------------------------------------------
+
+type promHistogram struct {
+	newSeries func(le float64) *promSeries
+	buckets   []*promSeries
+	mapping   mapping.Mapping
+}
+
+func newPromHistogram(newSeries func(le float64) *promSeries) *promHistogram {
+	mapping, err := logarithm.NewMapping(3)
+	if err != nil {
+		panic(err)
+	}
+
+	return &promHistogram{
+		newSeries: newSeries,
+		buckets:   make([]*promSeries, 10),
+		mapping:   mapping,
+	}
+}
+
+func (h *promHistogram) Bucket(value float64) *promSeries {
+	index := int(h.mapping.MapToIndex(value))
+	if index >= len(h.buckets) {
+		h.buckets = slices.Grow(h.buckets, index+1)[:index+1]
+	}
+
+	series := h.buckets[index]
+	if series == nil {
+		series = h.newSeries(value)
+		h.buckets[index] = series
+	}
+
+	return series
+}
+
+func (h *promHistogram) Add(hist bfloat16.Map, tm time.Time) {
+	var sum uint64
+	for value, count := range hist {
+		sum += count
+		h.Bucket(value.Float64()).AddSample(float64(sum), tm)
+	}
 }
 
 //------------------------------------------------------------------------------
