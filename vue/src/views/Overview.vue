@@ -44,11 +44,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from 'vue'
+import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { useTitle } from '@vueuse/core'
-import { useDateRange } from '@/use/date-range'
+import type { UseDateRange } from '@/use/date-range'
 import { useSystems } from '@/use/systems'
 
 // Components
@@ -64,16 +64,21 @@ export default defineComponent({
   name: 'Overview',
   components: { DateRangePicker, HelpCard, SystemQuickMetrics },
 
-  setup() {
+  props: {
+    dateRange: {
+      type: Object as PropType<UseDateRange>,
+      required: true,
+    },
+  },
+
+  setup(props) {
     useTitle('Overview')
+    props.dateRange.syncQuery()
 
-    const dateRange = useDateRange()
-    dateRange.syncQuery()
-
-    const systems = useSystems(dateRange)
+    const systems = useSystems(props.dateRange)
 
     const chosenSystems = computed((): string[] => {
-      if (dateRange.duration > 3 * day) {
+      if (props.dateRange.duration > 3 * day) {
         return []
       }
 
@@ -89,7 +94,6 @@ export default defineComponent({
     })
 
     return {
-      dateRange,
       systems,
       chosenSystems,
     }
