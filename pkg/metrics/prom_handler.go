@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	kitzap "github.com/go-kit/kit/log/zap"
 	"github.com/grafana/regexp"
 	"github.com/prometheus/prometheus/promql"
@@ -290,8 +290,6 @@ func writePromqlResult(w http.ResponseWriter, res *promql.Result) error {
 		return fmt.Errorf("unsupported promql value: %T", res.Value)
 	}
 
-	spew.Dump(result)
-
 	return httputil.JSON(w, bunrouter.H{
 		"status": "success",
 		"data": bunrouter.H{
@@ -320,7 +318,7 @@ func promqlMatrixValue(value promql.Matrix) []matrixItem {
 		}
 
 		for j, point := range sample.Points {
-			item.Values[j] = []any{float64(point.T) / 1000, fmt.Sprintf("%f", point.V)}
+			item.Values[j] = []any{float64(point.T) / 1000, strconv.FormatFloat(point.V, 'f', -1, 64)}
 		}
 
 	}

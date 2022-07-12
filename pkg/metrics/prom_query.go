@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"go.opentelemetry.io/otel/sdk/metric/aggregator/exponential/mapping"
@@ -128,7 +127,7 @@ func (q *promQuerier) Select(
 
 		if series.metric != metric || series.attrsHash != attrsHash {
 			if promHist != nil {
-				promHist.ForEachBucket(func(series *promSeries) {
+				promHist.ForEachSeries(func(series *promSeries) {
 					seriesSet.slice = append(seriesSet.slice, series)
 				})
 				promHist = nil
@@ -176,13 +175,12 @@ func (q *promQuerier) Select(
 	}
 
 	if promHist != nil {
-		promHist.ForEachBucket(func(series *promSeries) {
+		promHist.ForEachSeries(func(series *promSeries) {
 			seriesSet.slice = append(seriesSet.slice, series)
 		})
 		promHist = nil
 	}
 
-	spew.Dump(seriesSet)
 	if err := rows.Err(); err != nil {
 		return &promSeriesSet{err: err}
 	}
@@ -390,9 +388,10 @@ func (s *seriesIter) Err() error {
 //------------------------------------------------------------------------------
 
 type promHistogram struct {
-	newSeries func(le float64) *promSeries
-	buckets   []*promSeries
-	mapping   mapping.Mapping
+	newSeries   func(le float64) *promSeries
+	seriesSlice []*promSeries
+	buckets     []uint64
+	mapping     mapping.Mapping
 }
 
 func newPromHistogram(newSeries func(le float64) *promSeries) *promHistogram {
@@ -402,37 +401,54 @@ func newPromHistogram(newSeries func(le float64) *promSeries) *promHistogram {
 	}
 
 	return &promHistogram{
-		newSeries: newSeries,
-		buckets:   make([]*promSeries, 10),
-		mapping:   mapping,
+		newSeries:   newSeries,
+		seriesSlice: make([]*promSeries, 10),
+		buckets:     make([]uint64, 10),
+		mapping:     mapping,
 	}
 }
 
-func (h *promHistogram) Bucket(value float64) *promSeries {
-	index := int(h.mapping.MapToIndex(value))
-	if index >= len(h.buckets) {
-		h.buckets = slices.Grow(h.buckets, index+1)[:index+1]
+func (h *promHistogram) Series(index int) *promSeries {
+	if index >= len(h.seriesSlice) {
+		h.seriesSlice = slices.Grow(h.seriesSlice, index+1)[:index+1]
 	}
 
-	series := h.buckets[index]
+	series := h.seriesSlice[index]
 	if series == nil {
-		series = h.newSeries(value)
-		h.buckets[index] = series
+		lower, err := h.mapping.LowerBoundary(int32(index + 1))
+		// TODO: check err and round lower boundary
+		if err != nil {
+			panic(err)
+		}
+		series = h.newSeries(lower)
+		h.seriesSlice[index] = series
 	}
 
 	return series
 }
 
-func (h *promHistogram) Add(hist bfloat16.Map, tm time.Time) {
-	var sum uint64
-	for value, count := range hist {
-		sum += count
-		h.Bucket(value.Float64()).AddSample(float64(count), tm)
+func (h *promHistogram) Add(mp bfloat16.Map, tm time.Time) {
+	for i := range h.buckets {
+		h.buckets[i] = 0
+	}
+
+	for value, count := range mp {
+		index := int(h.mapping.MapToIndex(value.Float64()))
+		if index >= len(h.buckets) {
+			h.buckets = slices.Grow(h.buckets, index+1)[:index+1]
+		}
+		h.buckets[index] += count
+	}
+
+	for index, count := range h.buckets {
+		if count > 0 {
+			h.Series(index).AddSample(float64(count), tm)
+		}
 	}
 }
 
-func (h *promHistogram) ForEachBucket(fn func(series *promSeries)) {
-	for _, series := range h.buckets {
+func (h *promHistogram) ForEachSeries(fn func(series *promSeries)) {
+	for _, series := range h.seriesSlice {
 		if series != nil {
 			fn(series)
 		}
