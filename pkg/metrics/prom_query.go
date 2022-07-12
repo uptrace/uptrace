@@ -2,7 +2,9 @@ package metrics
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -68,7 +70,7 @@ func (q *promQuerier) Select(
 	matchers ...*promlabels.Matcher,
 ) storage.SeriesSet {
 	chQuery := q.db.NewSelect().
-		ColumnExpr("metric, attrs_hash, time").
+		ColumnExpr("metric, attrs_hash, time, instrument").
 		ColumnExpr(
 			"multiIf("+
 				"instrument = 'additive', argMax(value, time), "+
@@ -103,24 +105,32 @@ func (q *promQuerier) Select(
 	var promHist *promHistogram
 	for rows.Next() {
 		var metric string
-		var attrsHash uint32
+		var attrsHash uint64
 		var tm time.Time
+		var instrument string
 		var value float32
 		var hist bfloat16.Map
 		var keys []string
 		var values []string
 
-		if err := rows.Scan(&metric, &attrsHash, &tm, &value, &hist, &keys, &values); err != nil {
+		if err := rows.Scan(
+			&metric,
+			&attrsHash,
+			&tm,
+			&instrument,
+			&value,
+			&hist,
+			&keys,
+			&values,
+		); err != nil {
 			return &promSeriesSet{err: err}
 		}
 
 		if series.metric != metric || series.attrsHash != attrsHash {
 			if promHist != nil {
-				for _, series := range promHist.buckets {
-					if series != nil {
-						seriesSet.slice = append(seriesSet.slice, series)
-					}
-				}
+				promHist.ForEachBucket(func(series *promSeries) {
+					seriesSet.slice = append(seriesSet.slice, series)
+				})
 				promHist = nil
 			}
 
@@ -143,14 +153,14 @@ func (q *promQuerier) Select(
 				attrsHash: attrsHash,
 				labels:    labels,
 			}
-			if len(hist) > 0 {
+			if instrument == HistogramInstrument {
 				promHist = newPromHistogram(func(le float64) *promSeries {
 					series := series.Clone()
 					series.labels = append(series.labels, promlabels.Label{
 						Name:  "le",
-						Value: fmt.Sprint(le),
+						Value: strconv.FormatFloat(le, 'f', -1, 64),
 					})
-					seriesSet.slice = append(seriesSet.slice, series)
+					// seriesSet.slice = append(seriesSet.slice, series)
 					return series
 				})
 			} else {
@@ -158,11 +168,18 @@ func (q *promQuerier) Select(
 			}
 		}
 
-		if len(hist) > 0 {
+		if instrument == HistogramInstrument {
 			promHist.Add(hist, tm)
 		} else {
 			series.AddSample(float64(value), tm)
 		}
+	}
+
+	if promHist != nil {
+		promHist.ForEachBucket(func(series *promSeries) {
+			seriesSet.slice = append(seriesSet.slice, series)
+		})
+		promHist = nil
 	}
 
 	spew.Dump(seriesSet)
@@ -240,8 +257,7 @@ func (q *promQuerier) Close() error {
 func transpileLabelMatchers(q *ch.SelectQuery, matchers []*promlabels.Matcher) *ch.SelectQuery {
 	for _, m := range matchers {
 		if m.Name == "le" {
-			spew.Dump(m)
-			continue
+			return q.Err(errors.New("Uptrace does not support 'le' matcher in promql"))
 		}
 
 		colName := chColumn(m.Name)
@@ -294,7 +310,7 @@ func (e *promSeriesSet) Warnings() storage.Warnings {
 
 type promSeries struct {
 	metric    string
-	attrsHash uint32
+	attrsHash uint64
 	labels    promlabels.Labels
 	samples   []promSample
 }
@@ -380,7 +396,7 @@ type promHistogram struct {
 }
 
 func newPromHistogram(newSeries func(le float64) *promSeries) *promHistogram {
-	mapping, err := logarithm.NewMapping(3)
+	mapping, err := logarithm.NewMapping(1)
 	if err != nil {
 		panic(err)
 	}
@@ -411,7 +427,15 @@ func (h *promHistogram) Add(hist bfloat16.Map, tm time.Time) {
 	var sum uint64
 	for value, count := range hist {
 		sum += count
-		h.Bucket(value.Float64()).AddSample(float64(sum), tm)
+		h.Bucket(value.Float64()).AddSample(float64(count), tm)
+	}
+}
+
+func (h *promHistogram) ForEachBucket(fn func(series *promSeries)) {
+	for _, series := range h.buckets {
+		if series != nil {
+			fn(series)
+		}
 	}
 }
 

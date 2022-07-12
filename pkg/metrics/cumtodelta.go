@@ -41,7 +41,7 @@ type ExpHistogramBuckets struct {
 
 type MeasureKey struct {
 	Metric        string
-	AttrsHash     uint32
+	AttrsHash     uint64
 	StartTimeUnix uint32
 }
 

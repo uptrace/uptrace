@@ -225,10 +225,7 @@ func (h *PromHandler) QueryRange(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	res := rangeQuery.Exec(req.Context())
-	if res.Err != nil {
-		return res.Err
-	}
+	res := rangeQuery.Exec(ctx)
 	if err := writePromqlResult(w, res); err != nil {
 		return err
 	}
@@ -268,9 +265,6 @@ func (h *PromHandler) QueryInstant(w http.ResponseWriter, req bunrouter.Request)
 	}
 
 	res := promQuery.Exec(ctx)
-	if res.Err != nil {
-		return res.Err
-	}
 	if err := writePromqlResult(w, res); err != nil {
 		return err
 	}
@@ -279,6 +273,10 @@ func (h *PromHandler) QueryInstant(w http.ResponseWriter, req bunrouter.Request)
 }
 
 func writePromqlResult(w http.ResponseWriter, res *promql.Result) error {
+	if res.Err != nil {
+		return res.Err
+	}
+
 	var result any
 
 	switch value := res.Value.(type) {
