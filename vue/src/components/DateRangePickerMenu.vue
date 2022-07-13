@@ -2,7 +2,9 @@
   <v-menu v-model="menu" offset-y transition="slide-x-transition" :close-on-content-click="false">
     <template #activator="{ on, attrs }">
       <span class="mr-2">
-        <v-icon small v-bind="attrs" v-on="on">mdi-calendar-blank</v-icon>
+        <v-btn icon v-bind="attrs" v-on="on">
+          <v-icon small>mdi-calendar-blank</v-icon>
+        </v-btn>
         <v-btn v-if="dateRange.hasNextPeriod" text small class="px-1" v-bind="attrs" v-on="on">
           <span><XDate :date="dateRange.gte" :format="format" /> - </span>
           <XDate :date="dateRange.lt" :format="format" />
@@ -10,20 +12,32 @@
       </span>
     </template>
     <v-card width="auto">
-      <v-card-text>
-        <v-row no-gutters>
-          <v-col class="pt-3 pr-2">From</v-col>
-          <v-col cols="auto" class="d-flex justify-end">
-            <DateTextInput v-model="gte" />
-          </v-col>
-        </v-row>
-        <v-row no-gutters>
-          <v-col class="pt-3 pr-2">To</v-col>
-          <v-col cols="auto" class="d-flex justify-end">
-            <DateTextInput v-model="lt" />
-          </v-col>
-        </v-row>
-      </v-card-text>
+      <div @click="byDuration = true">
+        <v-card :disabled="!byDuration" tile outlined color="transparent">
+          <v-card-text>
+            <DateRangeDurationPicker v-model="duration" />
+          </v-card-text>
+        </v-card>
+      </div>
+      <v-divider></v-divider>
+      <div @click="byDuration = false">
+        <v-card :disabled="byDuration" tile outlined color="transparent">
+          <v-card-text>
+            <v-row no-gutters>
+              <v-col class="pt-3 pr-2">From</v-col>
+              <v-col cols="auto" class="d-flex justify-end">
+                <DateTextInput v-model="gte" />
+              </v-col>
+            </v-row>
+            <v-row no-gutters>
+              <v-col class="pt-3 pr-2">To</v-col>
+              <v-col cols="auto" class="d-flex justify-end">
+                <DateTextInput v-model="lt" />
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
+      </div>
       <v-card-actions>
         <v-spacer></v-spacer>
         <v-btn class="primary mr-1" :disabled="!isValid" @click="apply">Apply</v-btn>
@@ -40,13 +54,14 @@ import { UseDateRange } from '@/use/date-range'
 
 // Components
 import DateTextInput from '@/components/DateTextInput.vue'
+import DateRangeDurationPicker from '@/components/DateRangeDurationPicker.vue'
 
 // Utilities
 import { hour } from '@/util/date'
 
 export default defineComponent({
   name: 'DateRangePickerMenu',
-  components: { DateTextInput },
+  components: { DateTextInput, DateRangeDurationPicker },
 
   props: {
     dateRange: {
@@ -63,12 +78,23 @@ export default defineComponent({
     const menu = ref(false)
     const gte = shallowRef(new Date(Date.now() - hour))
     const lt = shallowRef(new Date())
+    const byDuration = shallowRef(true)
+    const duration = shallowRef(hour)
 
     const isValid = computed((): boolean => {
+      if (byDuration.value && duration.value !== 0) {
+        true
+      }
+
       return gte.value! < lt.value!
     })
 
     function apply() {
+      if (byDuration.value) {
+        props.dateRange.changeDuration(duration.value)
+        return
+      }
+
       props.dateRange.change(gte.value, lt.value)
       menu.value = false
     }
@@ -93,8 +119,20 @@ export default defineComponent({
       { immediate: true },
     )
 
+    watch(
+      () => props.dateRange.duration,
+      (ms) => {
+        if (ms) {
+          duration.value = ms
+        }
+      },
+      { immediate: true },
+    )
+
     return {
       menu,
+      byDuration,
+      duration,
       gte,
       lt,
       isValid,
