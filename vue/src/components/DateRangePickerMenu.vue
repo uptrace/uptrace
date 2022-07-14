@@ -12,56 +12,33 @@
       </span>
     </template>
     <v-card width="auto">
-      <div @click="byDuration = true">
-        <v-card :disabled="!byDuration" tile outlined color="transparent">
-          <v-card-text>
-            <DateRangeDurationPicker v-model="duration" />
-          </v-card-text>
-        </v-card>
-      </div>
-      <v-divider></v-divider>
-      <div @click="byDuration = false">
-        <v-card :disabled="byDuration" tile outlined color="transparent">
-          <v-card-text>
-            <v-row no-gutters>
-              <v-col class="pt-3 pr-2">From</v-col>
-              <v-col cols="auto" class="d-flex justify-end">
-                <DateTextInput v-model="gte" />
-              </v-col>
-            </v-row>
-            <v-row no-gutters>
-              <v-col class="pt-3 pr-2">To</v-col>
-              <v-col cols="auto" class="d-flex justify-end">
-                <DateTextInput v-model="lt" />
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
-      </div>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn class="primary mr-1" :disabled="!isValid" @click="apply">Apply</v-btn>
-      </v-card-actions>
+      <v-card-text>
+        <DateRangeDurationPicker :value="dateRange.duration" @input="applyDuration" />
+      </v-card-text>
+      <v-divider class="my-2"></v-divider>
+      <v-card-text>
+        <DateRangePeriodPicker :date-range="dateRange" @input="applyPeriod" />
+      </v-card-text>
     </v-card>
   </v-menu>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, shallowRef, computed, watch, PropType } from 'vue'
+import { defineComponent, ref, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
 
 // Components
-import DateTextInput from '@/components/DateTextInput.vue'
 import DateRangeDurationPicker from '@/components/DateRangeDurationPicker.vue'
-
-// Utilities
-import { hour } from '@/util/date'
+import DateRangePeriodPicker from '@/components/DateRangePeriodPicker.vue'
 
 export default defineComponent({
   name: 'DateRangePickerMenu',
-  components: { DateTextInput, DateRangeDurationPicker },
+  components: {
+    DateRangeDurationPicker,
+    DateRangePeriodPicker,
+  },
 
   props: {
     dateRange: {
@@ -76,68 +53,22 @@ export default defineComponent({
 
   setup(props) {
     const menu = ref(false)
-    const gte = shallowRef(new Date(Date.now() - hour))
-    const lt = shallowRef(new Date())
-    const byDuration = shallowRef(true)
-    const duration = shallowRef(hour)
 
-    const isValid = computed((): boolean => {
-      if (byDuration.value && duration.value !== 0) {
-        true
-      }
-
-      return gte.value! < lt.value!
-    })
-
-    function apply() {
-      if (byDuration.value) {
-        props.dateRange.changeDuration(duration.value)
-        return
-      }
-
-      props.dateRange.change(gte.value, lt.value)
+    function applyDuration(ms: number) {
+      props.dateRange.changeDuration(ms)
       menu.value = false
     }
 
-    watch(
-      () => props.dateRange.gte,
-      (date: Date | undefined) => {
-        if (date) {
-          gte.value = date
-        }
-      },
-      { immediate: true },
-    )
-
-    watch(
-      () => props.dateRange.lt,
-      (date: Date | undefined) => {
-        if (date) {
-          lt.value = date
-        }
-      },
-      { immediate: true },
-    )
-
-    watch(
-      () => props.dateRange.duration,
-      (ms) => {
-        if (ms) {
-          duration.value = ms
-        }
-      },
-      { immediate: true },
-    )
+    function applyPeriod(gte: Date, lt: Date) {
+      props.dateRange.change(gte, lt)
+      menu.value = false
+    }
 
     return {
       menu,
-      byDuration,
-      duration,
-      gte,
-      lt,
-      isValid,
 
-      apply,
+      applyDuration,
+      applyPeriod,
     }
   },
 })
