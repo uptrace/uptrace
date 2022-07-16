@@ -16,7 +16,7 @@
           outlined
           hint="dd-mm-yyyy"
           persistent-hint
-          class="mx-2 d-inline-block"
+          class="mx-5 d-inline-block"
           :rules="rules.date"
           @blur="onBlur"
         >
