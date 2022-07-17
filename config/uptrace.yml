@@ -56,6 +56,13 @@ spans:
   # The number of spans to insert in a single query.
   #batch_size: 10000
 
+metrics:
+  # The size of Go chan used to buffer incoming measures.
+  #buffer_size: 100000
+
+  # The number of measures to insert in a single query.
+  #batch_size: 10000
+
 # To require authentication, uncomment the following section.
 # users:
 #   - id: 1

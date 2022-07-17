@@ -57,7 +57,7 @@ func (s *MeasureProcessor) AddMeasure(measure *Measure) {
 	select {
 	case s.ch <- measure:
 	default:
-		s.logger.Error("measure buffer is full (measure is dropped)")
+		s.logger.Error("measure buffer is full (consider increasing metrics.buffer_size)")
 	}
 }
 
