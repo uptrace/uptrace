@@ -1,7 +1,6 @@
 package metrics
 
 import (
-	"sync/atomic"
 	"time"
 
 	"github.com/zyedidia/generic/list"
@@ -42,7 +41,7 @@ type ExpHistogramBuckets struct {
 type MeasureKey struct {
 	Metric        string
 	AttrsHash     uint64
-	StartTimeUnix uint32
+	StartTimeUnix uint64
 }
 
 type MeasureValue struct {
@@ -51,18 +50,11 @@ type MeasureValue struct {
 	Time  time.Time
 }
 
-type CumToDeltaConvStats struct {
-	Hits   uint64
-	Misses uint64
-}
-
 type CumToDeltaConv struct {
 	cap int
 
 	mp   map[MeasureKey]*list.Node[MeasureValue]
 	list *list.List[MeasureValue]
-
-	stats CumToDeltaConvStats
 }
 
 func NewCumToDeltaConv(n int) *CumToDeltaConv {
@@ -75,21 +67,12 @@ func NewCumToDeltaConv(n int) *CumToDeltaConv {
 	return c
 }
 
-func (c *CumToDeltaConv) Stats() CumToDeltaConvStats {
-	return CumToDeltaConvStats{
-		Hits:   atomic.LoadUint64(&c.stats.Hits),
-		Misses: atomic.LoadUint64(&c.stats.Misses),
-	}
-}
-
 func (c *CumToDeltaConv) Len() int {
 	return len(c.mp)
 }
 
 func (c *CumToDeltaConv) Lookup(key MeasureKey, point any, time time.Time) any {
 	if node, ok := c.mp[key]; ok {
-		atomic.AddUint64(&c.stats.Hits, 1)
-
 		c.list.Remove(node)
 		c.list.PushFrontNode(node)
 
@@ -102,8 +85,6 @@ func (c *CumToDeltaConv) Lookup(key MeasureKey, point any, time time.Time) any {
 		node.Value.Time = time
 		return prevPoint
 	}
-
-	atomic.AddUint64(&c.stats.Misses, 1)
 
 	if len(c.mp) < c.cap {
 		c.list.PushFront(MeasureValue{

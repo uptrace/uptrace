@@ -277,13 +277,13 @@ func (p *otlpProcessor) otlpSum(
 		switch value := dp.Value.(type) {
 		case *metricspb.NumberDataPoint_AsInt:
 			dest.StartTimeUnix = dp.StartTimeUnixNano
-			dest.NumberPoint = &NumberPoint{
+			dest.CumPoint = &NumberPoint{
 				Int: value.AsInt,
 			}
 			p.enqueue(dest)
 		case *metricspb.NumberDataPoint_AsDouble:
 			dest.StartTimeUnix = dp.StartTimeUnixNano
-			dest.NumberPoint = &NumberPoint{
+			dest.CumPoint = &NumberPoint{
 				Double: value.AsDouble,
 			}
 			p.enqueue(dest)
@@ -310,7 +310,7 @@ func (p *otlpProcessor) otlpHistogram(
 			dest.Histogram = newBFloat16Histogram(dp.ExplicitBounds, dp.BucketCounts)
 		} else {
 			dest.StartTimeUnix = dp.StartTimeUnixNano
-			dest.HistogramPoint = &HistogramPoint{
+			dest.CumPoint = &HistogramPoint{
 				Sum:          dp.GetSum(),
 				Count:        dp.Count,
 				Bounds:       dp.ExplicitBounds,
@@ -345,7 +345,7 @@ func (p *otlpProcessor) otlpExpHistogram(
 			populateBFloat16Hist(hist, base, int(dp.Negative.Offset), dp.Negative.BucketCounts, -1)
 		} else {
 			dest.StartTimeUnix = dp.StartTimeUnixNano
-			dest.ExpHistogramPoint = &ExpHistogramPoint{
+			dest.CumPoint = &ExpHistogramPoint{
 				Sum:       dp.GetSum(),
 				Count:     dp.Count,
 				Scale:     dp.Scale,

@@ -1,6 +1,9 @@
 package metrics
 
-import "github.com/uptrace/uptrace/pkg/unsafeconv"
+import (
+	"github.com/uptrace/uptrace/pkg/unsafeconv"
+	"golang.org/x/exp/constraints"
+)
 
 func listToSet(ss []string) map[string]struct{} {
 	m := make(map[string]struct{}, len(ss))
@@ -10,8 +13,15 @@ func listToSet(ss []string) map[string]struct{} {
 	return m
 }
 
-func min(a, b int) int {
+func min[T constraints.Ordered](a, b T) T {
 	if a <= b {
+		return a
+	}
+	return b
+}
+
+func max[T constraints.Ordered](a, b T) T {
+	if a >= b {
 		return a
 	}
 	return b

@@ -39,10 +39,8 @@ type Measure struct {
 	Keys   []string      `ch:"type:Array(LowCardinality(String))"`
 	Values []string      `ch:"type:Array(LowCardinality(String))"`
 
-	StartTimeUnix     uint64             `ch:"-"`
-	NumberPoint       *NumberPoint       `ch:"-"`
-	HistogramPoint    *HistogramPoint    `ch:"-"`
-	ExpHistogramPoint *ExpHistogramPoint `ch:"-"`
+	StartTimeUnix uint64 `ch:"-"`
+	CumPoint      any    `ch:"-"`
 }
 
 func InsertMeasures(ctx context.Context, app *bunapp.App, measures []*Measure) error {
