@@ -20,12 +20,12 @@ import (
 type MeasureProcessor struct {
 	*bunapp.App
 
+	batchSize int
+
 	ch   chan *Measure
 	gate *syncutil.Gate
 
-	c2d      *CumToDeltaConv
-	measures []*Measure
-
+	c2d    *CumToDeltaConv
 	logger *otelzap.Logger
 }
 
@@ -34,12 +34,12 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 	p := &MeasureProcessor{
 		App: app,
 
+		batchSize: cfg.Metrics.BatchSize,
+
 		ch:   make(chan *Measure, cfg.Metrics.BufferSize),
 		gate: syncutil.NewGate(runtime.GOMAXPROCS(0)),
 
-		c2d:      NewCumToDeltaConv(bunapp.ScaleWithCPU(4000, 32000)),
-		measures: make([]*Measure, 0, cfg.Metrics.BatchSize),
-
+		c2d:    NewCumToDeltaConv(bunapp.ScaleWithCPU(4000, 32000)),
 		logger: app.ZapLogger(),
 	}
 
@@ -67,57 +67,63 @@ func (s *MeasureProcessor) processLoop(ctx context.Context) {
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
+	measures := make([]*Measure, 0, s.batchSize)
+
 loop:
 	for {
 		select {
 		case measure := <-s.ch:
-			s.processMeasure(ctx, measure)
+			if measure = s.processMeasure(ctx, measure); measure != nil {
+				measures = append(measures, measure)
+			}
 		case <-timer.C:
-			if len(s.measures) > 0 {
-				s.flushMeasures(ctx, s.measures)
-				s.measures = make([]*Measure, 0, len(s.measures))
+			if len(measures) > 0 {
+				s.flushMeasures(ctx, measures)
+				measures = make([]*Measure, 0, len(measures))
 			}
 			timer.Reset(timeout)
 		case <-s.Done():
 			break loop
 		}
 
-		if len(s.measures) == cap(s.measures) {
-			s.flushMeasures(ctx, s.measures)
-			s.measures = make([]*Measure, 0, len(s.measures))
+		if len(measures) == cap(measures) {
+			s.flushMeasures(ctx, measures)
+			measures = make([]*Measure, 0, len(measures))
 		}
 	}
 
-	if len(s.measures) > 0 {
-		s.flushMeasures(ctx, s.measures)
+	if len(measures) > 0 {
+		s.flushMeasures(ctx, measures)
 	}
 }
 
-func (s *MeasureProcessor) processMeasure(ctx context.Context, measure *Measure) {
+func (s *MeasureProcessor) processMeasure(ctx context.Context, measure *Measure) *Measure {
 	switch point := measure.CumPoint.(type) {
 	case nil:
-		// ignore
+		return measure
 	case *NumberPoint:
 		if !s.convertNumberPoint(ctx, measure, point) {
-			return
+			return nil
 		}
 		measure.CumPoint = nil
+		return measure
 	case *HistogramPoint:
 		if !s.convertHistogramPoint(ctx, measure, point) {
-			return
+			return nil
 		}
 		measure.CumPoint = nil
+		return measure
 	case *ExpHistogramPoint:
 		if !s.convertExpHistogramPoint(ctx, measure, point) {
-			return
+			return nil
 		}
 		measure.CumPoint = nil
+		return measure
 	default:
 		s.Zap(ctx).Error("unknown cum point type",
 			zap.String("type", reflect.TypeOf(point).String()))
+		return nil
 	}
-
-	s.measures = append(s.measures, measure)
 }
 
 func (s *MeasureProcessor) convertNumberPoint(
