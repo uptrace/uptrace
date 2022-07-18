@@ -16,14 +16,15 @@
           outlined
           hint="dd-mm-yyyy"
           persistent-hint
-          class="mx-5 d-inline-block"
           :rules="rules.date"
+          class="d-inline-block ml-2"
           @blur="onBlur"
         >
         </v-text-field>
       </template>
       <v-date-picker v-model="datePicker" no-title @input="menu = false"></v-date-picker>
     </v-menu>
+
     <v-text-field
       v-model="formattedTime"
       style="width: 75px"
@@ -31,8 +32,8 @@
       dense
       hint="24 hours"
       persistent-hint
-      class="d-inline-block"
       :rules="rules.time"
+      class="d-inline-block ml-4"
       @blur="onBlur"
     ></v-text-field>
   </div>

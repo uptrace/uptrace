@@ -1,14 +1,14 @@
 <template>
   <div>
     <v-row no-gutters>
-      <v-col class="pt-3 pr-2">From</v-col>
-      <v-col cols="auto" class="d-flex justify-end">
+      <v-col class="pt-3 text-body-1">From date</v-col>
+      <v-col cols="auto">
         <DateTextInput v-model="gte" />
       </v-col>
     </v-row>
     <v-row no-gutters>
-      <v-col class="pt-3 pr-2">To</v-col>
-      <v-col cols="auto" class="d-flex justify-end">
+      <v-col class="pt-3 text-body-1">To date</v-col>
+      <v-col cols="auto">
         <DateTextInput v-model="lt" />
       </v-col>
     </v-row>
@@ -35,7 +35,7 @@ import DateTextInput from '@/components/DateTextInput.vue'
 import { hour } from '@/util/date'
 
 export default defineComponent({
-  name: 'DateRangePeriodPicker',
+  name: 'CustomDateRangePicker',
   components: { DateTextInput },
 
   props: {
