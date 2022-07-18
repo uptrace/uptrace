@@ -9,7 +9,7 @@
     </template>
 
     <v-list dense>
-      <v-list-item-group :value="value" mandatory @change="onChange">
+      <v-list-item-group :value="value" @change="onChange">
         <v-list-item v-for="item in periods" :key="item.ms" :value="item.ms">
           <v-list-item-content>
             <v-list-item-title>Last {{ item.text }}</v-list-item-title>
@@ -55,8 +55,10 @@ export default defineComponent({
       return period
     })
 
-    function onChange(ms: number) {
-      emit('input', ms)
+    function onChange(ms: number | undefined) {
+      if (ms) {
+        emit('input', ms)
+      }
     }
 
     return { activePeriod, onChange }
