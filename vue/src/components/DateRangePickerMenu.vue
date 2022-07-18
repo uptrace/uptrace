@@ -12,12 +12,12 @@
       </span>
     </template>
     <v-card width="auto">
-      <v-card-text>
-        <DateRangeDurationPicker :value="dateRange.duration" @input="applyDuration" />
-      </v-card-text>
-      <v-divider class="my-2"></v-divider>
-      <v-card-text>
-        <DateRangePeriodPicker :date-range="dateRange" @input="applyPeriod" />
+      <v-card-text class="pa-5">
+        <CustomDurationPicker :value="dateRange.duration" @input="applyDuration" />
+
+        <v-divider class="my-6"></v-divider>
+
+        <CustomDateRangePicker :date-range="dateRange" @input="applyPeriod" />
       </v-card-text>
     </v-card>
   </v-menu>
@@ -30,14 +30,14 @@ import { defineComponent, ref, PropType } from 'vue'
 import { UseDateRange } from '@/use/date-range'
 
 // Components
-import DateRangeDurationPicker from '@/components/DateRangeDurationPicker.vue'
-import DateRangePeriodPicker from '@/components/DateRangePeriodPicker.vue'
+import CustomDurationPicker from '@/components/CustomDurationPicker.vue'
+import CustomDateRangePicker from '@/components/CustomDateRangePicker.vue'
 
 export default defineComponent({
   name: 'DateRangePickerMenu',
   components: {
-    DateRangeDurationPicker,
-    DateRangePeriodPicker,
+    CustomDurationPicker,
+    CustomDateRangePicker,
   },
 
   props: {
