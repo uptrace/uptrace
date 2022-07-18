@@ -1,18 +1,15 @@
 <template>
-  <v-row no-gutters align="center">
-    <v-col>Last</v-col>
+  <v-row dense align="center">
+    <v-col class="text-body-1">Last</v-col>
     <v-col>
       <v-text-field
-        v-model.number="val"
+        v-model.number="amount"
         type="number"
-        autofocus
-        dense
-        flat
-        solo
         hide-details
-        background-color="grey lighten-4"
+        outlined
+        dense
+        mandatory
         style="width: 78px"
-        class="d-inline-block text-body-2 mx-1"
       >
       </v-text-field>
     </v-col>
@@ -24,15 +21,14 @@
         item-value="ms"
         hide-details
         outlined
-        mandatory
-        style="width: 116px"
-        class="d-inline-block"
         dense
+        mandatory
+        style="width: 118px"
       >
       </v-select>
     </v-col>
     <v-col>
-      <v-btn class="primary d-inline-block mx-1" :disabled="!isValid" @click="apply"> Apply </v-btn>
+      <v-btn class="primary d-inline-block mx-1" :disabled="!isValid" @click="apply">Apply</v-btn>
     </v-col>
   </v-row>
 </template>
@@ -42,6 +38,11 @@ import { defineComponent, shallowRef, computed, watch } from 'vue'
 
 // Utilities
 import { minute, hour, day } from '@/util/date'
+
+interface Unit {
+  name: string
+  ms: number
+}
 
 export default defineComponent({
   name: 'DateRangeDurationPicker',
@@ -54,7 +55,7 @@ export default defineComponent({
   },
 
   setup(props, { emit }) {
-    const units = [
+    const units: Unit[] = [
       {
         name: 'minutes',
         ms: minute,
@@ -68,11 +69,12 @@ export default defineComponent({
         ms: day,
       },
     ]
-    const val = shallowRef(1)
+
+    const amount = shallowRef(1)
     const unit = shallowRef(hour)
 
     const isValid = computed(() => {
-      if (val.value * unit.value > 0) {
+      if (amount.value * unit.value > 0) {
         return true
       }
 
@@ -80,31 +82,41 @@ export default defineComponent({
     })
 
     function apply() {
-      emit('input', val.value * unit.value)
+      emit('input', amount.value * unit.value)
     }
 
     watch(
       () => props.value,
-      (value: number) => {
-        if (value === val.value * unit.value) {
-          return
-        }
-
-        for (var i = units.length; i--; ) {
-          let ms = units[i].ms
-          if (value % ms === 0) {
-            val.value = value / ms
-            unit.value = ms
-            return
-          }
-        }
+      (ms: number) => {
+        const found = findUnit(ms)
+        amount.value = Math.floor(ms / found.ms)
+        unit.value = found.ms
       },
       { immediate: true },
     )
 
+    function findUnit(ms: number): Unit {
+      for (let i = units.length - 1; i >= 0; i--) {
+        const unit = units[i]
+
+        if (ms / unit.ms >= 1000) {
+          const found = units[i + 1]
+          if (found) {
+            return found
+          }
+        }
+
+        if (ms % unit.ms === 0) {
+          return unit
+        }
+      }
+
+      return units[0]
+    }
+
     return {
       units,
-      val,
+      amount,
       unit,
       isValid,
 
