@@ -3,8 +3,9 @@
 ## Getting started
 
 This example demonstrates how to quickly start Uptrace using Docker. To run Uptrace permanently, we
-recommend using a DEB/RPM [package](https://get.uptrace.dev/guide/#packages) or a pre-compiled
-[binary](https://get.uptrace.dev/guide/#binaries).
+recommend using a DEB/RPM
+[package](https://uptrace.dev/get/opentelemetry-tracing-tool.html#packages) or a pre-compiled
+[binary](https://uptrace.dev/get/opentelemetry-tracing-tool.html#binaries).
 
 **Step 1**. Download the example using Git:
 
@@ -32,7 +33,7 @@ distro. To get some test data, just reload the UI few times. It usually takes ab
 the data to appear.
 
 To configure OpenTelemetry for your programming language, see
-[documentation](https://get.uptrace.dev/guide/opentelemetry-tracing-tool.html).
+[documentation](https://uptrace.dev/get/opentelemetry-tracing-tool.html).
 
 ## Grafana
 

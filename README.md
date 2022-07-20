@@ -43,8 +43,8 @@ Uptrace comes in 2 versions:
 ## Getting started
 
 - [Docker example](example/docker) to try Uptrace with a single command
-- [Installation](https://get.uptrace.dev/guide/) guide with pre-compiled binaries for Linux, MacOS,
-  and Windows
+- [Installation](https://uptrace.dev/get/opentelemetry-tracing-tool.html) guide with pre-compiled
+  binaries for Linux, MacOS, and Windows
 
 We also provide guides for the most popular frameworks:
 

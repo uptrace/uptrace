@@ -85,7 +85,7 @@ var serveCommand = &cli.Command{
 		project := &projects[len(projects)-1]
 
 		fmt.Printf("reading YAML config from    %s\n", cfg.Filepath)
-		fmt.Printf("read the docs at            https://get.uptrace.dev/guide/\n")
+		fmt.Printf("read the docs at            https://uptrace.dev/get/\n")
 		fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
 		fmt.Println()
 

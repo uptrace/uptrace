@@ -50,9 +50,7 @@
         <v-col class="text-subtitle-1">
           Uptrace natively supports OpenTelemetry Protocol (OTLP) in case you are already using
           OpenTelemetry Collector. Use the following OTLP exporter
-          <a
-            href="https://opentelemetry.uptrace.dev/guide/collector.html#configuration"
-            target="_blank"
+          <a href="https://uptrace.dev/opentelemetry/collector.html#configuration" target="_blank"
             >config</a
           >:
         </v-col>

@@ -53,7 +53,7 @@ export default defineComponent({
     })
 
     function link(lang: string): string {
-      return `https://docs.uptrace.dev/guide/${lang}.html`
+      return `https://uptrace.dev/docs/${lang}.html`
     }
 
     return { distros }

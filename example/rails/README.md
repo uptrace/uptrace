@@ -17,5 +17,5 @@ And open http://localhost:9292
 
 ## Documentation
 
-See [Getting started with Rails and OpenTelemetry](https://get.uptrace.dev/opentelemetry/rails.html)
+See [Getting started with Rails and OpenTelemetry](https://uptrace.dev/get/opentelemetry-rails.html)
 for details.

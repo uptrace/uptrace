@@ -15,7 +15,9 @@
         <v-card-text class="py-4">
           <p class="grey--text text--darken-4">
             Uptrace supports SQL-like language to filter, group, and aggregate span
-            <a href="https://opentelemetry.uptrace.dev/attributes/" target="_blank">attributes</a>.
+            <a href="https://uptrace.dev/opentelemetry/attributes.html" target="_blank"
+              >attributes</a
+            >.
           </p>
 
           <v-simple-table>
@@ -75,11 +77,7 @@
         <v-card-actions>
           <v-spacer />
           <v-btn text color="primary" @click="dialog = false">Close</v-btn>
-          <v-btn
-            text
-            color="primary"
-            href="https://docs.uptrace.dev/guide/querying.html"
-            target="_blank"
+          <v-btn text color="primary" href="https://uptrace.dev/docs/querying.html" target="_blank"
             >Read more</v-btn
           >
         </v-card-actions>
