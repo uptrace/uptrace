@@ -10,5 +10,5 @@ UPTRACE_DSN=http://project2_secret_token@localhost:14317/2 go run .
 Then open http://localhost:9999
 
 See
-[Getting started with Gin, GORM, and OpenTelemetry](https://get.uptrace.dev/opentelemetry/gin-gorm.html)
+[Getting started with Gin, GORM, and OpenTelemetry](https://uptrace.dev/get/opentelemetry-gin-gorm.html)
 for details.

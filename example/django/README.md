@@ -18,5 +18,5 @@ export UPTRACE_DSN=http://project2_secret_token@localhost:14317/2
 And open http://localhost:8000
 
 See
-[Getting started with Django, PostgreSQL/MySQL, and OpenTelemetry](https://get.uptrace.dev/opentelemetry/django.html)
+[Getting started with Django, PostgreSQL/MySQL, and OpenTelemetry](https://uptrace.dev/get/opentelemetry-django.html)
 for details.
