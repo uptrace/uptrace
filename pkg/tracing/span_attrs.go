@@ -12,6 +12,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/logparser"
 	"github.com/uptrace/uptrace/pkg/sqlparser"
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
+	"github.com/uptrace/uptrace/pkg/tracing/otlpconv"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	"github.com/uptrace/uptrace/pkg/uuid"
@@ -19,20 +20,20 @@ import (
 )
 
 const (
-	allSpanType      = "all"
-	internalSpanType = "internal"
+	AllSpanType      = "all"
+	InternalSpanType = "internal"
 
-	httpSpanType      = "http"
-	dbSpanType        = "db"
-	rpcSpanType       = "rpc"
-	messagingSpanType = "messaging"
-	serviceSpanType   = "service"
+	HTTPSpanType      = "http"
+	DBSpanType        = "db"
+	RPCSpanType       = "rpc"
+	MessagingSpanType = "messaging"
+	ServiceSpanType   = "service"
 
-	logEventType       = "log"
-	exceptionEventType = "exception"
-	errorEventType     = "error"
-	messageEventType   = "message"
-	eventType          = "event"
+	LogEventType       = "log"
+	ExceptionEventType = "exception"
+	ErrorEventType     = "error"
+	MessageEventType   = "message"
+	EventType          = "event"
 )
 
 type spanContext struct {
@@ -302,7 +303,7 @@ func newSpanLink(link *tracepb.Span_Link) *SpanLink {
 	return &SpanLink{
 		TraceID: otlpTraceID(link.TraceId),
 		SpanID:  otlpSpanID(link.SpanId),
-		Attrs:   otlpAttrs(link.Attributes),
+		Attrs:   otlpconv.Attrs(link.Attributes),
 	}
 }
 
@@ -332,7 +333,7 @@ func isSQLKeyword(s string) bool {
 
 func assignSpanSystemAndGroupID(ctx *spanContext, span *Span) {
 	if s := span.Attrs.Text(xattr.RPCSystem); s != "" {
-		span.System = rpcSpanType + ":" + span.Attrs.ServiceName()
+		span.System = RPCSpanType + ":" + span.Attrs.ServiceName()
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span,
 				xattr.RPCSystem,
@@ -344,7 +345,7 @@ func assignSpanSystemAndGroupID(ctx *spanContext, span *Span) {
 	}
 
 	if s := span.Attrs.Text(xattr.MessagingSystem); s != "" {
-		span.System = messagingSpanType + ":" + s
+		span.System = MessagingSpanType + ":" + s
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span,
 				xattr.MessagingSystem,
@@ -357,7 +358,7 @@ func assignSpanSystemAndGroupID(ctx *spanContext, span *Span) {
 	}
 
 	if s := span.Attrs.Text(xattr.DBSystem); s != "" {
-		span.System = dbSpanType + ":" + s
+		span.System = DBSpanType + ":" + s
 		stmt, _ := span.Attrs[xattr.DBStatement].(string)
 
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
@@ -373,22 +374,22 @@ func assignSpanSystemAndGroupID(ctx *spanContext, span *Span) {
 	}
 
 	if span.Attrs.Has(xattr.HTTPRoute) || span.Attrs.Has(xattr.HTTPTarget) {
-		span.System = httpSpanType + ":" + span.Attrs.ServiceName()
+		span.System = HTTPSpanType + ":" + span.Attrs.ServiceName()
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span, xattr.HTTPMethod, xattr.HTTPRoute)
 		})
 		return
 	}
 
-	if span.ParentID == 0 || span.Kind != internalSpanKind {
-		span.System = serviceSpanType + ":" + span.Attrs.ServiceName()
+	if span.ParentID == 0 || span.Kind != InternalSpanKind {
+		span.System = ServiceSpanType + ":" + span.Attrs.ServiceName()
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span)
 		})
 		return
 	}
 
-	span.System = internalSpanType
+	span.System = InternalSpanType
 	span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 		hashSpan(digest, span)
 	})
@@ -443,13 +444,13 @@ func initSpanEvent(ctx *spanContext, dest *Span, hostSpan *Span) {
 
 func assignEventSystemAndGroupID(ctx *spanContext, span *Span) {
 	switch span.EventName {
-	case logEventType:
+	case LogEventType:
 		sev, _ := span.Attrs[xattr.LogSeverity].(string)
 		if sev == "" {
 			sev = xotel.InfoSeverity
 		}
 
-		span.System = logEventType + ":" + strings.ToLower(sev)
+		span.System = LogEventType + ":" + strings.ToLower(sev)
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span,
 				xattr.LogSeverity,
@@ -462,8 +463,8 @@ func assignEventSystemAndGroupID(ctx *spanContext, span *Span) {
 		})
 		span.EventName = logEventName(span)
 		return
-	case exceptionEventType, errorEventType:
-		span.System = exceptionEventType
+	case ExceptionEventType, ErrorEventType:
+		span.System = ExceptionEventType
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span, xattr.ExceptionType)
 			if s, _ := span.Attrs[xattr.ExceptionMessage].(string); s != "" {
@@ -475,7 +476,7 @@ func assignEventSystemAndGroupID(ctx *spanContext, span *Span) {
 			span.Attrs.Text(xattr.ExceptionMessage),
 		)
 		return
-	case messageEventType:
+	case MessageEventType:
 		span.System = spanMessageEventType(span)
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span,
@@ -488,7 +489,7 @@ func assignEventSystemAndGroupID(ctx *spanContext, span *Span) {
 		span.EventName = spanMessageEventName(span)
 		return
 	default:
-		span.System = eventType
+		span.System = EventType
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span)
 		})
@@ -519,16 +520,16 @@ func logEventName(span *Span) string {
 
 func spanMessageEventType(span *Span) string {
 	if sys := span.Attrs.Text(xattr.RPCSystem); sys != "" {
-		return messageEventType + ":" + sys
+		return MessageEventType + ":" + sys
 	}
 	if sys := span.Attrs.Text(xattr.MessagingSystem); sys != "" {
-		return messageEventType + ":" + sys
+		return MessageEventType + ":" + sys
 	}
-	return messageEventType + ":unknown"
+	return MessageEventType + ":unknown"
 }
 
 func spanMessageEventName(span *Span) string {
-	if span.EventName != messageEventType {
+	if span.EventName != MessageEventType {
 		return span.EventName
 	}
 	if op := span.Attrs.Text(xattr.MessagingOperation); op != "" {
@@ -537,7 +538,7 @@ func spanMessageEventName(span *Span) string {
 	if typ := span.Attrs.Text("message.type"); typ != "" {
 		return join(span.Name, typ)
 	}
-	if span.Kind != internalSpanKind {
+	if span.Kind != InternalSpanKind {
 		return join(span.Name, span.Kind)
 	}
 	return span.EventName

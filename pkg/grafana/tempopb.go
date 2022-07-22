@@ -1,4 +1,4 @@
-package tracing
+package grafana
 
 import (
 	"encoding/binary"
@@ -11,13 +11,14 @@ import (
 	tracepb "github.com/grafana/tempo/pkg/tempopb/trace/v1"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	"go.uber.org/zap"
 )
 
-func newTempopbTrace(app *bunapp.App, traceID uuid.UUID, spans []*Span) *tempopb.Trace {
+func newTempopbTrace(app *bunapp.App, traceID uuid.UUID, spans []*tracing.Span) *tempopb.Trace {
 	cfg := app.Config()
 	backlink := &commonpb.KeyValue{
 		Key: "uptrace.url",
@@ -45,7 +46,7 @@ func newTempopbTrace(app *bunapp.App, traceID uuid.UUID, spans []*Span) *tempopb
 
 var tempoResourceKeys = []string{xattr.ServiceName, xattr.HostName}
 
-func tempoResourceSpans(s *Span, backlink *commonpb.KeyValue) *tracepb.ResourceSpans {
+func tempoResourceSpans(s *tracing.Span, backlink *commonpb.KeyValue) *tracepb.ResourceSpans {
 	resource, attributes := tempoResourceAndAttributes(s.Attrs, tempoResourceKeys)
 	attributes = append(attributes, backlink)
 
@@ -73,7 +74,7 @@ func tempoResourceSpans(s *Span, backlink *commonpb.KeyValue) *tracepb.ResourceS
 	}
 }
 
-func newTracepbSpan(s *Span) *tracepb.Span {
+func newTracepbSpan(s *tracing.Span) *tracepb.Span {
 	events := make([]*tracepb.Span_Event, len(s.Events))
 	for i, event := range s.Events {
 		events[i] = newTracepbSpanEvent(event)
@@ -106,7 +107,7 @@ func newTracepbSpan(s *Span) *tracepb.Span {
 	return out
 }
 
-func newTracepbSpanEvent(s *Span) *tracepb.Span_Event {
+func newTracepbSpanEvent(s *tracing.Span) *tracepb.Span_Event {
 	return &tracepb.Span_Event{
 		TimeUnixNano: uint64(s.Time.UnixNano()),
 		Name:         s.Name,
@@ -114,7 +115,7 @@ func newTracepbSpanEvent(s *Span) *tracepb.Span_Event {
 	}
 }
 
-func newTracepbSpanLink(l *SpanLink) *tracepb.Span_Link {
+func newTracepbSpanLink(l *tracing.SpanLink) *tracepb.Span_Link {
 	return &tracepb.Span_Link{
 		TraceId:    l.TraceID[:],
 		SpanId:     tempoSpanID(l.SpanID),
@@ -141,15 +142,15 @@ func tempoStatusCode(s string) tracepb.Status_StatusCode {
 
 func tempoSpanKind(s string) tracepb.Span_SpanKind {
 	switch s {
-	case internalSpanKind:
+	case tracing.InternalSpanKind:
 		return tracepb.Span_SPAN_KIND_INTERNAL
-	case serverSpanKind:
+	case tracing.ServerSpanKind:
 		return tracepb.Span_SPAN_KIND_SERVER
-	case clientSpanKind:
+	case tracing.ClientSpanKind:
 		return tracepb.Span_SPAN_KIND_CLIENT
-	case producerSpanKind:
+	case tracing.ProducerSpanKind:
 		return tracepb.Span_SPAN_KIND_PRODUCER
-	case consumerSpanKind:
+	case tracing.ConsumerSpanKind:
 		return tracepb.Span_SPAN_KIND_CONSUMER
 	default:
 		return tracepb.Span_SPAN_KIND_UNSPECIFIED

@@ -3,6 +3,7 @@ package tracing
 import (
 	"context"
 	"net/http"
+	"sync"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -11,24 +12,28 @@ import (
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 )
 
+const (
+	protobufContentType = "application/protobuf"
+	jsonContentType     = "application/json"
+)
+
 func init() {
 	bunapp.OnStart("tracing.init", func(ctx context.Context, app *bunapp.App) error {
-		sp := NewSpanProcessor(app)
-		initGRPC(ctx, app, sp)
-		initRoutes(ctx, app, sp)
+		initGRPC(ctx, app)
+		initRoutes(ctx, app)
 		return nil
 	})
 }
 
-func initGRPC(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
-	traceService := NewTraceServiceServer(app, sp)
+func initGRPC(ctx context.Context, app *bunapp.App) {
+	traceService := NewTraceServiceServer(app, GlobalSpanProcessor(app))
 	collectortracepb.RegisterTraceServiceServer(app.GRPCServer(), traceService)
 
 	router := app.Router()
 	router.POST("/v1/traces", traceService.httpTraces)
 }
 
-func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
+func initRoutes(ctx context.Context, app *bunapp.App) {
 	router := app.Router()
 	sysHandler := NewSystemHandler(app)
 	serviceHandler := NewServiceHandler(app)
@@ -40,53 +45,19 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 
 	api := app.APIGroup()
 
-	// https://grafana.com/docs/tempo/latest/api_docs/
-	router.WithGroup("", func(g *bunrouter.Group) {
-		tempoHandler := NewTempoHandler(app)
-
-		g = g.Use(tempoHandler.checkProjectAccess)
-
-		g.GET("/ready", tempoHandler.Ready)
-		g.GET("/api/echo", tempoHandler.Echo)
-
-		g.GET("/api/traces/:trace_id", tempoHandler.QueryTrace)
-		g.GET("/api/traces/:trace_id/json", tempoHandler.QueryTraceJSON)
-
-		g.GET("/api/search/tags", tempoHandler.Tags)
-		g.GET("/api/search/tag/:tag/values", tempoHandler.TagValues)
-		g.GET("/api/search", tempoHandler.Search)
-	})
-
 	// https://zipkin.io/zipkin-api/#/default/post_spans
 	router.WithGroup("/api/v2", func(g *bunrouter.Group) {
-		zipkinHandler := NewZipkinHandler(app, sp)
+		zipkinHandler := NewZipkinHandler(app, GlobalSpanProcessor(app))
 
 		g.POST("/spans", zipkinHandler.PostSpans)
 	})
 
 	router.WithGroup("/api/v1", func(g *bunrouter.Group) {
-		vectorHandler := NewVectorHandler(app, sp)
+		vectorHandler := NewVectorHandler(app, GlobalSpanProcessor(app))
 
 		g.POST("/vector-logs", vectorHandler.Create)
 		g.POST("/vector/logs", vectorHandler.Create)
 	})
-
-	{
-		lokiProxyHandler := NewLokiProxyHandler(app, sp)
-
-		router.
-			Use(lokiProxyHandler.checkProjectAccess).
-			WithGroup("/loki/api", func(g *bunrouter.Group) {
-				registerLokiProxy(g, lokiProxyHandler)
-			})
-
-		router.
-			Use(lokiProxyHandler.checkProjectAccess).
-			Use(lokiProxyHandler.trimProjectID).
-			WithGroup("/:project_id/loki/api", func(g *bunrouter.Group) {
-				registerLokiProxy(g, lokiProxyHandler)
-			})
-	}
 
 	api.GET("/traces/search", traceHandler.FindTrace)
 
@@ -135,12 +106,14 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	})
 }
 
-func registerLokiProxy(g *bunrouter.Group, lokiProxyHandler *LokiProxyHandler) {
-	g.GET("/v1/tail", lokiProxyHandler.ProxyWS)
-	g.POST("/v1/push", lokiProxyHandler.Push)
+var (
+	spanProcessorOnce sync.Once
+	spanProcessor     *SpanProcessor
+)
 
-	g.GET("/*path", lokiProxyHandler.Proxy)
-	g.POST("/*path", lokiProxyHandler.Proxy)
-	g.PUT("/*path", lokiProxyHandler.Proxy)
-	g.DELETE("/*path", lokiProxyHandler.Proxy)
+func GlobalSpanProcessor(app *bunapp.App) *SpanProcessor {
+	spanProcessorOnce.Do(func() {
+		spanProcessor = NewSpanProcessor(app)
+	})
+	return spanProcessor
 }

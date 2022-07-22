@@ -56,10 +56,17 @@ func ReadConfig(configFile, service string) (*AppConfig, error) {
 	cfg.Listen.GRPCPort = grpcPort
 
 	if cfg.Spans.BatchSize == 0 {
-		cfg.Spans.BatchSize = scaleWithCPU(1000, 32000)
+		cfg.Spans.BatchSize = ScaleWithCPU(1000, 32000)
 	}
 	if cfg.Spans.BufferSize == 0 {
 		cfg.Spans.BufferSize = runtime.GOMAXPROCS(0) * cfg.Spans.BatchSize
+	}
+
+	if cfg.Metrics.BatchSize == 0 {
+		cfg.Metrics.BatchSize = ScaleWithCPU(1000, 32000)
+	}
+	if cfg.Metrics.BufferSize == 0 {
+		cfg.Metrics.BufferSize = runtime.GOMAXPROCS(0) * cfg.Spans.BatchSize
 	}
 
 	return cfg, nil
@@ -130,6 +137,11 @@ type AppConfig struct {
 		BatchSize  int `yaml:"batch_size"`
 	} `yaml:"spans"`
 
+	Metrics struct {
+		BufferSize int `yaml:"buffer_size"`
+		BatchSize  int `yaml:"batch_size"`
+	} `yaml:"metrics"`
+
 	Users    []User    `yaml:"users"`
 	Projects []Project `yaml:"projects"`
 
@@ -180,7 +192,7 @@ type CHConfig struct {
 	DSN string `yaml:"dsn"`
 }
 
-func scaleWithCPU(min, max int) int {
+func ScaleWithCPU(min, max int) int {
 	if min == 0 {
 		panic("min == 0")
 	}

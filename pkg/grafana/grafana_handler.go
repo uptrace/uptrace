@@ -1,4 +1,4 @@
-package tracing
+package grafana
 
 import (
 	"errors"
@@ -24,7 +24,7 @@ func (h *GrafanaBaseHandler) Echo(w http.ResponseWriter, req bunrouter.Request) 
 	return err
 }
 
-func (h *GrafanaBaseHandler) checkProjectAccess(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
+func (h *GrafanaBaseHandler) CheckProjectAccess(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	userAndProject := org.NewAuthMiddleware(h.App)(next)
 
 	return func(w http.ResponseWriter, req bunrouter.Request) error {

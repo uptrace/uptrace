@@ -27,3 +27,7 @@ DROP TABLE IF EXISTS span_host_minutes_dist
 --migration:split
 
 DROP TABLE IF EXISTS span_host_hours_dist
+
+--migration:split
+
+DROP TABLE IF EXISTS measure_minutes_dist

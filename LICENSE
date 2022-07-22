@@ -6,16 +6,16 @@ Licensor:             Uptrace
 Licensed Work:        Uptrace
                       The Licensed Work is (c) 2021 Uptrace
 Additional Use Grant: You may make use of the Licensed Work, provided that
-                      you may not use the Licensed Work for a Distributed
-                      Tracing Service.
+                      you may not use the Licensed Work for a Tracing and
+                      Metrics Service.
 
-                      A "Distributed Tracing Service" is a commercial offering
+                      A "Tracing and Metrics Service" is a commercial offering
                       that allows third parties (other than your employees and
                       contractors) to access the functionality of the
                       Licensed Work so that such third parties directly benefit
-                      from the distributed tracing of the Licensed Work.
+                      from the tracing and metrics of the Licensed Work.
 
-Change Date:          2025-01-01
+Change Date:          2025-07-01
 
 Change License:       Apache License, Version 2.0
 

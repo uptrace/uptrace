@@ -24,6 +24,7 @@ import (
 	"github.com/uptrace/uptrace/pkg"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunapp/migrations"
+	_ "github.com/uptrace/uptrace/pkg/grafana"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	_ "github.com/uptrace/uptrace/pkg/metrics"
 	_ "github.com/uptrace/uptrace/pkg/tracing"

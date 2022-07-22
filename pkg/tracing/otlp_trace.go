@@ -10,6 +10,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/tracing/otlpconv"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -21,11 +22,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-)
-
-const (
-	protobufContentType = "application/protobuf"
-	jsonContentType     = "application/json"
 )
 
 type TraceServiceServer struct {
@@ -99,7 +95,7 @@ func (s *TraceServiceServer) process(
 	}
 
 	for _, rss := range resourceSpans {
-		resource := otlpAttrs(rss.Resource.Attributes)
+		resource := otlpconv.Attrs(rss.Resource.Attributes)
 
 		for _, ss := range rss.ScopeSpans {
 			lib := ss.Scope

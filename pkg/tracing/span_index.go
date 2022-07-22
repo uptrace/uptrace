@@ -6,6 +6,7 @@ import (
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"github.com/uptrace/uptrace/pkg/tracing/xotel"
+	"github.com/uptrace/uptrace/pkg/utf8util"
 )
 
 type SpanIndex struct {
@@ -99,7 +100,7 @@ func attrKeysAndValues(m xotel.AttrMap) ([]string, []string) {
 			continue
 		}
 		keys = append(keys, k)
-		values = append(values, truncate(asString(v), 200))
+		values = append(values, utf8util.TruncMedium(asString(v)))
 	}
 	return keys, values
 }

@@ -4,12 +4,11 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
-	"log"
 	"reflect"
-	"strconv"
 	"time"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/tracing/otlpconv"
 	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
@@ -36,7 +35,9 @@ func initSpanFromOTLP(dest *Span, resource xotel.AttrMap, src *tracepb.Span) {
 	for k, v := range resource {
 		dest.Attrs[k] = v
 	}
-	otlpSetAttrs(dest.Attrs, src.Attributes)
+	otlpconv.ForEachAttr(src.Attributes, func(key string, value any) {
+		dest.Attrs[key] = value
+	})
 
 	dest.Events = make([]*Span, len(src.Events))
 	for i, event := range src.Events {
@@ -55,7 +56,9 @@ func newSpanFromOTLPEvent(event *tracepb.Span_Event) *Span {
 	span.Time = time.Unix(0, int64(event.TimeUnixNano))
 
 	span.Attrs = make(xotel.AttrMap, len(event.Attributes))
-	otlpSetAttrs(span.Attrs, event.Attributes)
+	otlpconv.ForEachAttr(event.Attributes, func(key string, value any) {
+		span.Attrs[key] = value
+	})
 
 	return span
 }
@@ -120,116 +123,23 @@ func otlpTraceID(b []byte) uuid.UUID {
 func otlpSpanKind(kind tracepb.Span_SpanKind) string {
 	switch kind {
 	case tracepb.Span_SPAN_KIND_SERVER:
-		return serverSpanKind
+		return ServerSpanKind
 	case tracepb.Span_SPAN_KIND_CLIENT:
-		return clientSpanKind
+		return ClientSpanKind
 	case tracepb.Span_SPAN_KIND_PRODUCER:
-		return producerSpanKind
+		return ProducerSpanKind
 	case tracepb.Span_SPAN_KIND_CONSUMER:
-		return consumerSpanKind
+		return ConsumerSpanKind
 	}
-	return internalSpanKind
+	return InternalSpanKind
 }
 
 func otlpStatusCode(code tracepb.Status_StatusCode) string {
 	switch code {
 	case tracepb.Status_STATUS_CODE_ERROR:
-		return errorStatusCode
+		return ErrorStatusCode
 	default:
-		return okStatusCode
-	}
-}
-
-func otlpAttrs(kvs []*commonpb.KeyValue) xotel.AttrMap {
-	dest := make(xotel.AttrMap, len(kvs))
-	otlpSetAttrs(dest, kvs)
-	return dest
-}
-
-func otlpSetAttrs(dest xotel.AttrMap, kvs []*commonpb.KeyValue) {
-	for _, kv := range kvs {
-		if kv == nil || kv.Value == nil {
-			continue
-		}
-		if value, ok := otlpValue(*kv.Value); ok {
-			dest[kv.Key] = value
-		}
-	}
-}
-
-func otlpValue(v commonpb.AnyValue) (any, bool) {
-	switch v := v.Value.(type) {
-	case *commonpb.AnyValue_StringValue:
-		return v.StringValue, true
-	case *commonpb.AnyValue_IntValue:
-		return v.IntValue, true
-	case *commonpb.AnyValue_DoubleValue:
-		return v.DoubleValue, true
-	case *commonpb.AnyValue_BoolValue:
-		return v.BoolValue, true
-	case *commonpb.AnyValue_ArrayValue:
-		return otlpArray(v.ArrayValue.Values)
-	case *commonpb.AnyValue_KvlistValue:
-		return otlpAttrs(v.KvlistValue.Values), true
-	}
-
-	log.Printf("unsupported attribute value %T", v.Value)
-	return nil, false
-}
-
-func otlpArray(vs []*commonpb.AnyValue) ([]string, bool) {
-	if len(vs) == 0 {
-		return nil, false
-	}
-
-	switch value := vs[0].Value; value.(type) {
-	case *commonpb.AnyValue_StringValue:
-		ss := make([]string, len(vs))
-		for i, v := range vs {
-			if v == nil {
-				continue
-			}
-			if v, ok := v.Value.(*commonpb.AnyValue_StringValue); ok {
-				ss[i] = v.StringValue
-			}
-		}
-		return ss, true
-	case *commonpb.AnyValue_IntValue:
-		ss := make([]string, len(vs))
-		for i, v := range vs {
-			if v == nil {
-				continue
-			}
-			if v, ok := v.Value.(*commonpb.AnyValue_IntValue); ok {
-				ss[i] = strconv.FormatInt(v.IntValue, 10)
-			}
-		}
-		return ss, true
-	case *commonpb.AnyValue_DoubleValue:
-		ss := make([]string, len(vs))
-		for i, v := range vs {
-			if v == nil {
-				continue
-			}
-			if v, ok := v.Value.(*commonpb.AnyValue_DoubleValue); ok {
-				ss[i] = strconv.FormatFloat(v.DoubleValue, 'f', -1, 64)
-			}
-		}
-		return ss, true
-	case *commonpb.AnyValue_BoolValue:
-		ss := make([]string, len(vs))
-		for i, v := range vs {
-			if v == nil {
-				continue
-			}
-			if v, ok := v.Value.(*commonpb.AnyValue_BoolValue); ok {
-				ss[i] = strconv.FormatBool(v.BoolValue)
-			}
-		}
-		return ss, true
-	default:
-		log.Printf("unsupported attribute value %T", value)
-		return nil, false
+		return OKStatusCode
 	}
 }
 
@@ -254,15 +164,15 @@ func toOTLPStatusCode(s string) tracepb.Status_StatusCode {
 
 func toOTLPSpanKind(s string) tracepb.Span_SpanKind {
 	switch s {
-	case internalSpanKind:
+	case InternalSpanKind:
 		return tracepb.Span_SPAN_KIND_INTERNAL
-	case serverSpanKind:
+	case ServerSpanKind:
 		return tracepb.Span_SPAN_KIND_SERVER
-	case clientSpanKind:
+	case ClientSpanKind:
 		return tracepb.Span_SPAN_KIND_CLIENT
-	case producerSpanKind:
+	case ProducerSpanKind:
 		return tracepb.Span_SPAN_KIND_PRODUCER
-	case consumerSpanKind:
+	case ConsumerSpanKind:
 		return tracepb.Span_SPAN_KIND_CONSUMER
 	default:
 		return tracepb.Span_SPAN_KIND_UNSPECIFIED

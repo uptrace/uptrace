@@ -8,7 +8,6 @@ import (
 
 	"github.com/segmentio/encoding/json"
 	"golang.org/x/exp/constraints"
-	"golang.org/x/exp/utf8string"
 )
 
 func asString(v any) string {
@@ -31,13 +30,6 @@ func asString(v any) string {
 		}
 		return fmt.Sprint(v)
 	}
-}
-
-func truncate(s string, n int) string {
-	if len(s) <= n {
-		return s
-	}
-	return utf8string.NewString(s).Slice(0, n)
 }
 
 func listToSet(ss []string) map[string]struct{} {
