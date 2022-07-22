@@ -40,7 +40,13 @@
 
       <tbody v-if="!items.length">
         <tr class="v-data-table__empty-wrapper">
-          <td colspan="99">There are no matching groups.</td>
+          <td colspan="99" class="py-16">
+            <div class="mb-4">There are no matching groups. Try to change filters.</div>
+            <v-btn :to="{ name: 'Help' }">
+              <v-icon left>mdi-help-circle-outline</v-icon>
+              <span>Help</span>
+            </v-btn>
+          </td>
         </tr>
       </tbody>
 
