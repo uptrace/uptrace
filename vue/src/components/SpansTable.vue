@@ -1,7 +1,7 @@
 <template>
   <div>
     <v-simple-table>
-      <thead class="v-data-table-header">
+      <thead v-if="spans.length" class="v-data-table-header">
         <tr>
           <th>Span Name</th>
           <th></th>
@@ -25,7 +25,13 @@
 
       <tbody v-if="!spans.length">
         <tr class="v-data-table__empty-wrapper">
-          <td colspan="99">There are no spans for the selected date range and filters.</td>
+          <td colspan="99" class="py-16">
+            <div class="mb-4">There are no matching spans. Try to change filters.</div>
+            <v-btn :to="{ name: 'Help' }">
+              <v-icon left>mdi-help-circle-outline</v-icon>
+              <span>Help</span>
+            </v-btn>
+          </td>
         </tr>
       </tbody>
 

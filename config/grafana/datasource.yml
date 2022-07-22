@@ -7,7 +7,7 @@ deleteDatasources:
     orgId: 1
 
 datasources:
-  - name: Uptrace cLoki
+  - name: Uptrace cLoki Project 1
     type: loki
     access: proxy
     url: http://host.docker.internal:14318
@@ -16,7 +16,7 @@ datasources:
       httpHeaderName1: 'uptrace-dsn'
     secureJsonData:
       httpHeaderValue1: 'http://project1_secret_token@localhost:14317/1'
-  - name: Uptrace Tempo
+  - name: Uptrace Tempo Project 1
     type: tempo
     access: proxy
     url: http://host.docker.internal:14318
@@ -25,7 +25,7 @@ datasources:
       httpHeaderName1: 'uptrace-dsn'
     secureJsonData:
       httpHeaderValue1: 'http://project1_secret_token@localhost:14317/1'
-  - name: Uptrace Prometheus
+  - name: Uptrace Prometheus Project 1
     type: prometheus
     access: proxy
     url: http://host.docker.internal:14318
