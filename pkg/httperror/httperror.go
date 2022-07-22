@@ -12,51 +12,56 @@ import (
 	"github.com/segmentio/encoding/json"
 )
 
-type Error struct {
+type Error interface {
+	error
+	HTTPStatusCode() int
+}
+
+type httpError struct {
 	Status int `json:"status"`
 
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }
 
-func (e *Error) StatusCode() int {
+func (e *httpError) HTTPStatusCode() int {
 	return e.Status
 }
 
-func (e *Error) Error() string {
+func (e *httpError) Error() string {
 	return e.Message
 }
 
 //------------------------------------------------------------------------------
 
-func New(status int, code, msg string, args ...any) *Error {
+func New(status int, code, msg string, args ...any) Error {
 	if len(args) > 0 {
 		msg = fmt.Sprintf(msg, args...)
 	}
-	return &Error{
+	return &httpError{
 		Status:  status,
 		Code:    code,
 		Message: msg,
 	}
 }
 
-func NotFound(msg string, args ...any) *Error {
+func NotFound(msg string, args ...any) Error {
 	return New(http.StatusNotFound, "not_found", msg, args...)
 }
 
-func Unauthorized(msg string, args ...any) *Error {
+func Unauthorized(msg string, args ...any) Error {
 	return New(http.StatusUnauthorized, "unauthorized", msg, args...)
 }
 
-func Forbidden(msg string, args ...any) *Error {
+func Forbidden(msg string, args ...any) Error {
 	return New(http.StatusForbidden, "forbidden", msg, args...)
 }
 
-func BadRequest(code, msg string, args ...any) *Error {
+func BadRequest(code, msg string, args ...any) Error {
 	return New(http.StatusBadRequest, code, msg, args...)
 }
 
-func InternalServerError(msg string, args ...any) *Error {
+func InternalServerError(msg string, args ...any) Error {
 	return New(http.StatusInternalServerError, "internal", msg, args...)
 }
 
@@ -64,9 +69,9 @@ func InternalServerError(msg string, args ...any) *Error {
 
 var errType = reflect.TypeOf(errors.New(""))
 
-func From(err error) *Error {
+func From(err error) Error {
 	switch err := err.(type) {
-	case *Error:
+	case Error:
 		return err
 	case *json.SyntaxError:
 		return BadRequest("json_syntax", err.Error())
@@ -103,7 +108,7 @@ func From(err error) *Error {
 	return internalError(err)
 }
 
-func internalError(err error) *Error {
+func internalError(err error) Error {
 	typ := reflect.TypeOf(err).String()
 	return InternalServerError(typ + ": " + err.Error())
 }

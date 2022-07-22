@@ -87,9 +87,9 @@ func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, vector x
 	// Can be overriden later with the information parsed from the log message.
 	span.ID = rand.Uint64()
 
-	span.Kind = internalSpanKind
-	span.EventName = logEventType
-	span.StatusCode = okStatusCode
+	span.Kind = InternalSpanKind
+	span.EventName = LogEventType
+	span.StatusCode = OKStatusCode
 
 	attrs := make(xotel.AttrMap, len(vector)+2)
 	span.Attrs = attrs

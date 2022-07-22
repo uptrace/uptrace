@@ -19,6 +19,12 @@ func (m AttrMap) Clone() AttrMap {
 	return clone
 }
 
+func (m AttrMap) Merge(other AttrMap) {
+	for k, v := range other {
+		m[k] = v
+	}
+}
+
 func (m AttrMap) Has(key string) bool {
 	_, ok := m[key]
 	return ok

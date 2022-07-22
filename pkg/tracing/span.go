@@ -17,16 +17,16 @@ import (
 )
 
 const (
-	internalSpanKind = "internal"
-	serverSpanKind   = "server"
-	clientSpanKind   = "client"
-	producerSpanKind = "producer"
-	consumerSpanKind = "consumer"
+	InternalSpanKind = "internal"
+	ServerSpanKind   = "server"
+	ClientSpanKind   = "client"
+	ProducerSpanKind = "producer"
+	ConsumerSpanKind = "consumer"
 )
 
 const (
-	okStatusCode    = "ok"
-	errorStatusCode = "error"
+	OKStatusCode    = "ok"
+	ErrorStatusCode = "error"
 )
 
 type Span struct {
@@ -121,7 +121,7 @@ func (s *Span) AddEvent(event *Span) {
 }
 
 func (s *Span) AdjustDurationSelf(child *Span) {
-	if child.Attrs.Text(xattr.SpanKind) == consumerSpanKind { // async span
+	if child.Attrs.Text(xattr.SpanKind) == ConsumerSpanKind { // async span
 		return
 	}
 	if child.Time.After(s.EndTime()) {
@@ -229,7 +229,7 @@ func newFakeRoot(spans []*Span) *Span {
 	span.TraceID = sample.TraceID
 	span.Attrs = xotel.AttrMap{
 		xattr.SpanTime:       minTime,
-		xattr.SpanStatusCode: okStatusCode,
+		xattr.SpanStatusCode: OKStatusCode,
 	}
 	return span
 }
@@ -241,10 +241,10 @@ func isEventSystem(s string) bool {
 		s = s[:idx]
 	}
 	switch s {
-	case eventType,
-		logEventType,
-		exceptionEventType,
-		messageEventType:
+	case EventType,
+		LogEventType,
+		ExceptionEventType,
+		MessageEventType:
 		return true
 	default:
 		return false
@@ -257,7 +257,7 @@ func isLogSystem(s string) bool {
 
 func isErrorSystem(s string) bool {
 	switch s {
-	case exceptionEventType, "log:error", "log:fatal", "log:panic":
+	case ExceptionEventType, "log:error", "log:fatal", "log:panic":
 		return true
 	default:
 		return false

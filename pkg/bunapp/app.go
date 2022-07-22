@@ -232,7 +232,7 @@ func (app *App) httpErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFu
 		}
 
 		httpErr := httperror.From(err)
-		statusCode := httpErr.StatusCode()
+		statusCode := httpErr.HTTPStatusCode()
 
 		if statusCode >= 400 {
 			trace.SpanFromContext(req.Context()).RecordError(err)

@@ -152,15 +152,15 @@ func parseZipkinID(s string) (uint64, error) {
 func parseZipkinKind(s string) string {
 	switch s {
 	case "SERVER":
-		return serverSpanKind
+		return ServerSpanKind
 	case "CLIENT":
-		return clientSpanKind
+		return ClientSpanKind
 	case "PRODUCER":
-		return producerSpanKind
+		return ProducerSpanKind
 	case "CONSUMER":
-		return consumerSpanKind
+		return ConsumerSpanKind
 	default:
-		return internalSpanKind
+		return InternalSpanKind
 	}
 }
 

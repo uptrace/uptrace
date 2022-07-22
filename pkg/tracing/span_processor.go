@@ -47,7 +47,7 @@ func (s *SpanProcessor) AddSpan(span *Span) {
 	select {
 	case s.ch <- span:
 	default:
-		s.logger.Error("span buffer is full (span is dropped)")
+		s.logger.Error("span buffer is full (consider increasing spans.buffer_size)")
 	}
 }
 
