@@ -6,8 +6,6 @@ replace github.com/segmentio/encoding => github.com/vmihailenco/encoding v0.3.4-
 
 replace github.com/uptrace/uptrace/pkg/grafana => ./pkg/grafana
 
-replace github.com/uptrace/go-clickhouse => /home/vmihailenco/workspace/go-clickhouse
-
 require (
 	github.com/bradleyjkemp/cupaloy v2.3.0+incompatible
 	github.com/cespare/xxhash/v2 v2.1.2
@@ -26,9 +24,9 @@ require (
 	github.com/uptrace/bunrouter v1.0.17
 	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.17
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.17
-	github.com/uptrace/go-clickhouse v0.2.9-0.20220702113922-76433f015827
-	github.com/uptrace/go-clickhouse/chdebug v0.2.9-0.20220702113922-76433f015827
-	github.com/uptrace/go-clickhouse/chotel v0.2.9-0.20220702113922-76433f015827
+	github.com/uptrace/go-clickhouse v0.2.9-0.20220722090019-d2293eb95aa1
+	github.com/uptrace/go-clickhouse/chdebug v0.2.9-0.20220722090019-d2293eb95aa1
+	github.com/uptrace/go-clickhouse/chotel v0.2.9-0.20220722090019-d2293eb95aa1
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.14
 	github.com/uptrace/uptrace-go v1.8.0
 	github.com/uptrace/uptrace/pkg/grafana v0.0.0-00010101000000-000000000000
@@ -44,7 +42,7 @@ require (
 	go.opentelemetry.io/proto/otlp v0.18.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
+	golang.org/x/exp v0.0.0-20220713135740-79cabaa25d75
 	google.golang.org/grpc v1.47.0
 	google.golang.org/protobuf v1.28.0
 	gopkg.in/yaml.v3 v3.0.1
