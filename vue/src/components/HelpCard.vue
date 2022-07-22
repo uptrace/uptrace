@@ -16,11 +16,11 @@
             and configure it using the provided DSN (connection string).
           </p>
 
-          <p>For Go, Python, and .NET use <strong>OTLP/gRPC</strong> (port 14317):</p>
+          <p>For Go, Python, and .NET, use <strong>OTLP/gRPC</strong> (port 14317):</p>
 
           <XCode :code="`UPTRACE_DSN=${grpcDsn}`" class="mb-4" />
 
-          <p>For Ruby and Node.JS use <strong>OTLP/HTTP</strong> (port 14318):</p>
+          <p>For Ruby and Node.JS, use <strong>OTLP/HTTP</strong> (port 14318):</p>
 
           <XCode :code="`UPTRACE_DSN=${httpDsn}`" class="mb-4" />
         </v-col>
@@ -69,7 +69,35 @@
     </v-container>
 
     <PageToolbar :loading="loading">
-      <v-toolbar-title>Already using Zipkin API?</v-toolbar-title>
+      <v-toolbar-title>Vector Logs</v-toolbar-title>
+    </PageToolbar>
+
+    <v-container class="mb-6 px-4 py-6">
+      <v-row>
+        <v-col class="text-subtitle-1">
+          To configure Vector to send logs to Uptrace, use the HTTP sink and pass your project DSN
+          via HTTP headers. For example, to collect syslog messages you can create the following
+          Vector config:
+        </v-col>
+      </v-row>
+
+      <v-row>
+        <v-col>
+          <XCode language="toml" :code="vectorConfig" />
+        </v-col>
+      </v-row>
+
+      <v-row>
+        <v-col class="text-subtitle-1">
+          See
+          <a href="https://uptrace.dev/docs/logging.html" target="_blank">documentation</a>
+          for more details.
+        </v-col>
+      </v-row>
+    </v-container>
+
+    <PageToolbar :loading="loading">
+      <v-toolbar-title>Zipkin API</v-toolbar-title>
     </PageToolbar>
 
     <v-container class="mb-6 px-4 py-6">
@@ -148,13 +176,34 @@ export default defineComponent({
       return data.value?.http?.dsn ?? 'http://localhost:14318'
     })
 
-    return { grpcEndpoint, httpEndpoint, grpcDsn, httpDsn, zipkinCurl }
+    const vectorConfig = computed(() => {
+      return `
+[sources.in]
+type = "file"
+include = ["/var/log/syslog"]
+
+[sinks.out]
+type = "http"
+inputs = ["in"]
+encoding.codec = "ndjson"
+compression = "gzip"
+uri = "${httpEndpoint.value}/api/v1/vector/logs"
+headers.uptrace-dsn = "${httpDsn.value}"
+      `.trim()
+    })
+
+    const zipkinCurl = computed(() => {
+      return `
+curl -X POST '${httpEndpoint.value}/api/v2/spans' \\
+  -H 'Content-Type: application/json' \\
+  -H 'uptrace-dsn: ${httpDsn.value}' \\
+  -d @spans.json
+      `.trim()
+    })
+
+    return { grpcEndpoint, httpEndpoint, grpcDsn, httpDsn, vectorConfig, zipkinCurl }
   },
 })
-
-const zipkinCurl = `
-curl -X POST 'http://localhost:14318/api/v2/spans' -H 'Content-Type: application/json' -d @spans.json
-`.trim()
 </script>
 
 <style lang="scss" scoped></style>
