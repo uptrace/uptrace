@@ -91,7 +91,7 @@
       <v-container fluid>
         <v-row justify="center" align="center">
           <v-col cols="auto">
-            <v-btn href="https://get.uptrace.dev/" target="_blank" text rounded small>
+            <v-btn href="https://uptrace.dev/get/" target="_blank" text rounded small>
               <v-icon left small class="mr-1">mdi-help-circle-outline</v-icon>
               <span>Docs</span>
             </v-btn>
@@ -105,12 +105,12 @@
               <v-icon left small class="mr-1">mdi-message-outline</v-icon>
               <span>Chat</span>
             </v-btn>
-            <v-btn href="https://opentelemetry.uptrace.dev/" target="_blank" text rounded small>
+            <v-btn href="https://uptrace.dev/opentelemetry/" target="_blank" text rounded small>
               <v-icon left small class="mr-1">mdi-open-source-initiative</v-icon>
               <span>OpenTelemetry</span>
             </v-btn>
             <v-btn
-              href="https://opentelemetry.uptrace.dev/instrumentations/"
+              href="https://uptrace.dev/opentelemetry/instrumentations/"
               target="_blank"
               text
               rounded

@@ -70,11 +70,11 @@ export default defineComponent({
     })
 
     function instrumentationLink(file: string): string {
-      return `https://opentelemetry.uptrace.dev/instrumentations/${file}`
+      return `https://uptrace.dev/opentelemetry/instrumentations/${file}`
     }
 
     function tutorialLink(name: string): string {
-      return `https://get.uptrace.dev/opentelemetry/${name}`
+      return `https://uptrace.dev/get/opentelemetry-${name}`
     }
 
     return { frameworks }

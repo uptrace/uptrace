@@ -2,7 +2,9 @@
   <v-menu v-model="menu" offset-y transition="slide-x-transition" :close-on-content-click="false">
     <template #activator="{ on, attrs }">
       <span class="mr-2">
-        <v-icon small v-bind="attrs" v-on="on">mdi-calendar-blank</v-icon>
+        <v-btn icon v-bind="attrs" v-on="on">
+          <v-icon small>mdi-calendar-blank</v-icon>
+        </v-btn>
         <v-btn v-if="dateRange.hasNextPeriod" text small class="px-1" v-bind="attrs" v-on="on">
           <span><XDate :date="dateRange.gte" :format="format" /> - </span>
           <XDate :date="dateRange.lt" :format="format" />
@@ -10,43 +12,33 @@
       </span>
     </template>
     <v-card width="auto">
-      <v-card-text>
-        <v-row no-gutters>
-          <v-col class="pt-3 pr-2">From</v-col>
-          <v-col cols="auto" class="d-flex justify-end">
-            <DateTextInput v-model="gte" />
-          </v-col>
-        </v-row>
-        <v-row no-gutters>
-          <v-col class="pt-3 pr-2">To</v-col>
-          <v-col cols="auto" class="d-flex justify-end">
-            <DateTextInput v-model="lt" />
-          </v-col>
-        </v-row>
+      <v-card-text class="pa-5">
+        <CustomDurationPicker :value="dateRange.duration" @input="applyDuration" />
+
+        <v-divider class="my-6"></v-divider>
+
+        <CustomDateRangePicker :date-range="dateRange" @input="applyPeriod" />
       </v-card-text>
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn class="primary mr-1" :disabled="!isValid" @click="apply">Apply</v-btn>
-      </v-card-actions>
     </v-card>
   </v-menu>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, shallowRef, computed, watch, PropType } from 'vue'
+import { defineComponent, ref, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
 
 // Components
-import DateTextInput from '@/components/DateTextInput.vue'
-
-// Utilities
-import { hour } from '@/util/date'
+import CustomDurationPicker from '@/components/CustomDurationPicker.vue'
+import CustomDateRangePicker from '@/components/CustomDateRangePicker.vue'
 
 export default defineComponent({
   name: 'DateRangePickerMenu',
-  components: { DateTextInput },
+  components: {
+    CustomDurationPicker,
+    CustomDateRangePicker,
+  },
 
   props: {
     dateRange: {
@@ -61,45 +53,22 @@ export default defineComponent({
 
   setup(props) {
     const menu = ref(false)
-    const gte = shallowRef(new Date(Date.now() - hour))
-    const lt = shallowRef(new Date())
 
-    const isValid = computed((): boolean => {
-      return gte.value! < lt.value!
-    })
-
-    function apply() {
-      props.dateRange.change(gte.value, lt.value)
+    function applyDuration(ms: number) {
+      props.dateRange.changeDuration(ms)
       menu.value = false
     }
 
-    watch(
-      () => props.dateRange.gte,
-      (date: Date | undefined) => {
-        if (date) {
-          gte.value = date
-        }
-      },
-      { immediate: true },
-    )
-
-    watch(
-      () => props.dateRange.lt,
-      (date: Date | undefined) => {
-        if (date) {
-          lt.value = date
-        }
-      },
-      { immediate: true },
-    )
+    function applyPeriod(gte: Date, lt: Date) {
+      props.dateRange.change(gte, lt)
+      menu.value = false
+    }
 
     return {
       menu,
-      gte,
-      lt,
-      isValid,
 
-      apply,
+      applyDuration,
+      applyPeriod,
     }
   },
 })

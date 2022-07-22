@@ -55,8 +55,10 @@ export default defineComponent({
       return period
     })
 
-    function onChange(ms: number) {
-      emit('input', ms)
+    function onChange(ms: number | undefined) {
+      if (ms) {
+        emit('input', ms)
+      }
     }
 
     return { activePeriod, onChange }
