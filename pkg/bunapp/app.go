@@ -277,12 +277,30 @@ func (app *App) GRPCServer() *grpc.Server {
 //------------------------------------------------------------------------------
 
 func (app *App) initCH() {
-	db := ch.Connect(
-		ch.WithDSN(app.cfg.CH.DSN),
+	opts := []ch.Option{
 		ch.WithQuerySettings(map[string]any{
 			"prefer_column_name_to_alias": 1,
 		}),
-	)
+	}
+
+	cfg := app.cfg.CH
+	if cfg.DSN != "" {
+		opts = append(opts, ch.WithDSN(cfg.DSN))
+	}
+	if cfg.Addr != "" {
+		opts = append(opts, ch.WithAddr(cfg.Addr))
+	}
+	if cfg.User != "" {
+		opts = append(opts, ch.WithUser(cfg.User))
+	}
+	if cfg.Password != "" {
+		opts = append(opts, ch.WithPassword(cfg.Password))
+	}
+	if cfg.Database != "" {
+		opts = append(opts, ch.WithDatabase(cfg.Database))
+	}
+
+	db := ch.Connect(opts...)
 	chSchema := app.Config().CHSchema
 
 	compression := chSchema.Compression

@@ -17,7 +17,7 @@
           <p>To view Uptrace metrics in Grafana:</p>
 
           <ol class="mb-4">
-            <li>Open "Configururation" -&gt; "Data source" in Grafana.</li>
+            <li>In grafana, go to "Configururation" -&gt; "Data source" in Grafana.</li>
             <li>Click on "Add data source" and then select "Prometheus".</li>
             <li>
               As an URL, use Uptrace HTTP address, for example,
@@ -34,7 +34,7 @@
             <a href="https://github.com/uptrace/uptrace/tree/master/example/docker"
               >Docker example</a
             >
-            which comes with pre-configured Grafana.
+            which comes with pre-configured Grafana on <code>http://localhost:3000/</code>.
           </p>
 
           <p>

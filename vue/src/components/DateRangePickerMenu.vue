@@ -15,7 +15,11 @@
       <v-card-text class="pa-5">
         <CustomDurationPicker :value="dateRange.duration" @input="applyDuration" />
 
-        <v-divider class="my-6"></v-divider>
+        <div class="my-5 d-flex align-center">
+          <v-divider />
+          <div class="mx-2 grey--text text--lighten-1">or</div>
+          <v-divider />
+        </div>
 
         <CustomDateRangePicker :date-range="dateRange" @input="applyPeriod" />
       </v-card-text>
