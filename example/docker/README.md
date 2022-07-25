@@ -37,8 +37,14 @@ To configure OpenTelemetry for your programming language, see
 
 ## Grafana
 
-If you are a big fan of Grafana, you can open http://localhost:3000 (`admin:admin`) and view spans
-using Tempo API and logs using Loki API.
+This example comes with a pre-configured Grafana on http://localhost:3000 (`admin:admin`) that
+allows you to:
+
+- View metrics using Prometheus data source.
+- View traces using Tempo data source.
+- View logs using Loki data source.
+
+See [Uptrace Grafana](https://uptrace.dev/get/grafana.html) documentation for details.
 
 ## ClickHouse and OpenTelemetry
 
