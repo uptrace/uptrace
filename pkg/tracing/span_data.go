@@ -19,7 +19,7 @@ type SpanData struct {
 	Data     []byte
 }
 
-func newSpanData(data *SpanData, span *Span) {
+func initSpanData(data *SpanData, span *Span) {
 	data.TraceID = span.TraceID
 	data.ID = span.ID
 	data.ParentID = span.ParentID

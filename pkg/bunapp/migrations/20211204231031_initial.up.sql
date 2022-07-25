@@ -1,4 +1,4 @@
-CREATE TABLE spans_index (
+CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
   project_id UInt32 Codec(DoubleDelta, ?CODEC),
   "span.system" LowCardinality(String) Codec(?CODEC),
   "span.group_id" UInt64 Codec(Delta, ?CODEC),
@@ -49,7 +49,7 @@ SETTINGS ttl_only_drop_parts = 1
 
 --migration:split
 
-CREATE TABLE spans_data (
+CREATE TABLE ?DB.spans_data ?ON_CLUSTER (
   trace_id UUID Codec(?CODEC),
   id UInt64 Codec(?CODEC),
   parent_id UInt64 Codec(?CODEC),
@@ -65,18 +65,18 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE TABLE spans_index_buffer AS spans_index
+CREATE TABLE ?DB.spans_index_buffer ?ON_CLUSTER AS ?DB.spans_index
 ENGINE = Buffer(currentDatabase(), spans_index, 5, 10, 30, 10000, 1000000, 10000000, 100000000)
 
 --migration:split
 
-CREATE TABLE spans_data_buffer AS spans_data
+CREATE TABLE ?DB.spans_data_buffer ?ON_CLUSTER AS ?DB.spans_data
 ENGINE = Buffer(currentDatabase(), spans_data, 5, 10, 30, 10000, 1000000, 10000000, 100000000)
 
 --------------------------------------------------------------------------------
 --migration:split
 
-CREATE TABLE span_system_minutes (
+CREATE TABLE ?DB.span_system_minutes ?ON_CLUSTER (
   project_id UInt32 Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
   time DateTime Codec(Delta, ?CODEC),
@@ -93,8 +93,8 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE MATERIALIZED VIEW span_system_minutes_mv
-TO span_system_minutes AS
+CREATE MATERIALIZED VIEW ?DB.span_system_minutes_mv ?ON_CLUSTER
+TO ?DB.span_system_minutes AS
 SELECT
   project_id,
   "span.system" AS system,
@@ -102,13 +102,13 @@ SELECT
   quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32("span.duration"), toUInt32("span.count")) AS tdigest,
   toUInt64(sum("span.count")) AS count,
   countIf("span.status_code" = 'error') AS error_count
-FROM spans_index
+FROM ?DB.spans_index
 GROUP BY project_id, time, system
 SETTINGS prefer_column_name_to_alias = 1
 
 --migration:split
 
-CREATE TABLE span_system_hours (
+CREATE TABLE ?DB.span_system_hours ?ON_CLUSTER (
   project_id UInt32 Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
   time DateTime Codec(Delta, ?CODEC),
@@ -125,8 +125,8 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE MATERIALIZED VIEW span_system_hours_mv
-TO span_system_hours AS
+CREATE MATERIALIZED VIEW ?DB.span_system_hours_mv ?ON_CLUSTER
+TO ?DB.span_system_hours AS
 SELECT
   project_id,
   system,
@@ -141,7 +141,7 @@ SETTINGS prefer_column_name_to_alias = 1
 --------------------------------------------------------------------------------
 --migration:split
 
-CREATE TABLE span_service_minutes (
+CREATE TABLE ?DB.span_service_minutes ?ON_CLUSTER (
   project_id UInt32 Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
   service LowCardinality(String) Codec(?CODEC),
@@ -159,8 +159,8 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE MATERIALIZED VIEW span_service_minutes_mv
-TO span_service_minutes AS
+CREATE MATERIALIZED VIEW ?DB.span_service_minutes_mv ?ON_CLUSTER
+TO ?DB.span_service_minutes AS
 SELECT
   project_id,
   "span.system" AS system,
@@ -169,13 +169,13 @@ SELECT
   quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32("span.duration"), toUInt32("span.count")) AS tdigest,
   toUInt64(sum("span.count")) AS count,
   countIf("span.status_code" = 'error') AS error_count
-FROM spans_index
+FROM ?DB.spans_index
 GROUP BY project_id, time, system, service
 SETTINGS prefer_column_name_to_alias = 1
 
 --migration:split
 
-CREATE TABLE span_service_hours (
+CREATE TABLE ?DB.span_service_hours ?ON_CLUSTER (
   project_id UInt32 Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
   service LowCardinality(String) Codec(?CODEC),
@@ -193,8 +193,8 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE MATERIALIZED VIEW span_service_hours_mv
-TO span_service_hours AS
+CREATE MATERIALIZED VIEW ?DB.span_service_hours_mv ?ON_CLUSTER
+TO ?DB.span_service_hours AS
 SELECT
   project_id,
   system,
@@ -203,14 +203,14 @@ SELECT
   quantilesTDigestWeightedMergeState(0.5, 0.9, 0.99)(tdigest) AS tdigest,
   sum(count) AS count,
   sum(error_count) AS error_count
-FROM span_service_minutes
+FROM ?DB.span_service_minutes
 GROUP BY project_id, toStartOfHour(time), system, service
 SETTINGS prefer_column_name_to_alias = 1
 
 --------------------------------------------------------------------------------
 --migration:split
 
-CREATE TABLE span_host_minutes (
+CREATE TABLE ?DB.span_host_minutes ?ON_CLUSTER (
   project_id UInt32 Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
   host LowCardinality(String) Codec(?CODEC),
@@ -228,8 +228,8 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE MATERIALIZED VIEW span_host_minutes_mv
-TO span_host_minutes AS
+CREATE MATERIALIZED VIEW ?DB.span_host_minutes_mv ?ON_CLUSTER
+TO ?DB.span_host_minutes AS
 SELECT
   project_id,
   "span.system" AS system,
@@ -238,13 +238,13 @@ SELECT
   quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32("span.duration"), toUInt32("span.count")) AS tdigest,
   toUInt64(sum("span.count")) AS count,
   countIf("span.status_code" = 'error') AS error_count
-FROM spans_index
+FROM ?DB.spans_index
 GROUP BY project_id, time, system, host
 SETTINGS prefer_column_name_to_alias = 1
 
 --migration:split
 
-CREATE TABLE span_host_hours (
+CREATE TABLE ?DB.span_host_hours ?ON_CLUSTER (
   project_id UInt32 Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
   host LowCardinality(String) Codec(?CODEC),
@@ -262,8 +262,8 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE MATERIALIZED VIEW span_host_hours_mv
-TO span_host_hours AS
+CREATE MATERIALIZED VIEW ?DB.span_host_hours_mv ?ON_CLUSTER
+TO ?DB.span_host_hours AS
 SELECT
   project_id,
   system,
@@ -272,6 +272,6 @@ SELECT
   quantilesTDigestWeightedMergeState(0.5, 0.9, 0.99)(tdigest) AS tdigest,
   sum(count) AS count,
   sum(error_count) AS error_count
-FROM span_host_minutes
+FROM ?DB.span_host_minutes
 GROUP BY project_id, toStartOfHour(time), system, host
 SETTINGS prefer_column_name_to_alias = 1

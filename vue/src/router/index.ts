@@ -26,6 +26,8 @@ import TraceShow from '@/views/TraceShow.vue'
 import TraceFind from '@/views/TraceFind.vue'
 import SpanShow from '@/views/SpanShow.vue'
 
+import Metrics from '@/views/Metrics.vue'
+
 import Login from '@/views/Login.vue'
 import Help from '@/views/Help.vue'
 
@@ -204,6 +206,12 @@ const routes: RouteConfig[] = [
     path: '/traces/:traceId',
     name: 'TraceFind',
     component: TraceFind,
+  },
+
+  {
+    name: 'Metrics',
+    path: '/metrics/:projectId(\\d+)',
+    component: Metrics,
   },
 ]
 
