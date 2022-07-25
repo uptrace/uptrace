@@ -258,6 +258,7 @@ func (p *otlpProcessor) otlpSum(
 		}
 
 		dest := p.nextMeasure(scope, metric, "", dp.Attributes, dp.TimeUnixNano)
+
 		if !data.Sum.IsMonotonic {
 			// Agg temporality does not matter.
 			dest.Instrument = AdditiveInstrument

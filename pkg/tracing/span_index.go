@@ -40,7 +40,7 @@ type SpanIndex struct {
 	ExceptionMessage string `ch:"exception.message"`
 }
 
-func newSpanIndex(index *SpanIndex, span *Span) {
+func initSpanIndex(index *SpanIndex, span *Span) {
 	index.Span = span
 	index.Count = 1
 

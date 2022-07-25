@@ -23,6 +23,7 @@
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
                 <v-tab :to="{ name: 'SpanGroupList' }">Explore</v-tab>
                 <v-tab :to="{ name: 'LogGroupList', query: { system: 'log:all' } }">Logs</v-tab>
+                <v-tab :to="{ name: 'Metrics' }">Metrics</v-tab>
                 <v-tab :to="{ name: 'Help' }">Help</v-tab>
               </template>
               <v-tab v-if="!user.isAuth" :to="{ name: 'Login' }">Login</v-tab>

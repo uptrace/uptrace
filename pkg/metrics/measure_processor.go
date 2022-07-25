@@ -62,7 +62,7 @@ func (s *MeasureProcessor) AddMeasure(measure *Measure) {
 }
 
 func (s *MeasureProcessor) processLoop(ctx context.Context) {
-	const timeout = time.Second
+	const timeout = 5 * time.Second
 
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
@@ -73,8 +73,14 @@ loop:
 	for {
 		select {
 		case measure := <-s.ch:
-			if measure = s.processMeasure(ctx, measure); measure != nil {
-				measures = append(measures, measure)
+			if !s.processMeasure(ctx, measure) {
+				break
+			}
+
+			measures = append(measures, measure)
+			if len(measures) == s.batchSize {
+				s.flushMeasures(ctx, measures)
+				measures = make([]*Measure, 0, len(measures))
 			}
 		case <-timer.C:
 			if len(measures) > 0 {
@@ -85,11 +91,6 @@ loop:
 		case <-s.Done():
 			break loop
 		}
-
-		if len(measures) == cap(measures) {
-			s.flushMeasures(ctx, measures)
-			measures = make([]*Measure, 0, len(measures))
-		}
 	}
 
 	if len(measures) > 0 {
@@ -97,32 +98,32 @@ loop:
 	}
 }
 
-func (s *MeasureProcessor) processMeasure(ctx context.Context, measure *Measure) *Measure {
+func (s *MeasureProcessor) processMeasure(ctx context.Context, measure *Measure) bool {
 	switch point := measure.CumPoint.(type) {
 	case nil:
-		return measure
+		return true
 	case *NumberPoint:
 		if !s.convertNumberPoint(ctx, measure, point) {
-			return nil
+			return false
 		}
 		measure.CumPoint = nil
-		return measure
+		return true
 	case *HistogramPoint:
 		if !s.convertHistogramPoint(ctx, measure, point) {
-			return nil
+			return false
 		}
 		measure.CumPoint = nil
-		return measure
+		return true
 	case *ExpHistogramPoint:
 		if !s.convertExpHistogramPoint(ctx, measure, point) {
-			return nil
+			return false
 		}
 		measure.CumPoint = nil
-		return measure
+		return true
 	default:
 		s.Zap(ctx).Error("unknown cum point type",
 			zap.String("type", reflect.TypeOf(point).String()))
-		return nil
+		return false
 	}
 }
 

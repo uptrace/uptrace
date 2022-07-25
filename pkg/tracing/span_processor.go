@@ -7,6 +7,7 @@ import (
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
 )
@@ -58,17 +59,15 @@ func (s *SpanProcessor) processLoop(ctx context.Context) {
 	defer timer.Stop()
 
 	spans := make([]*Span, 0, s.batchSize)
-	var numSpan int
 
 loop:
 	for {
 		select {
 		case span := <-s.ch:
 			spans = append(spans, span)
-			numSpan += 1 + len(span.Events)
 		case <-timer.C:
 			if len(spans) > 0 {
-				s.flushSpans(ctx, spans, numSpan)
+				s.flushSpans(ctx, spans)
 				spans = make([]*Span, 0, len(spans))
 			}
 			timer.Reset(timeout)
@@ -76,18 +75,18 @@ loop:
 			break loop
 		}
 
-		if numSpan == s.batchSize {
-			s.flushSpans(ctx, spans, numSpan)
+		if len(spans) == s.batchSize {
+			s.flushSpans(ctx, spans)
 			spans = make([]*Span, 0, len(spans))
 		}
 	}
 
 	if len(spans) > 0 {
-		s.flushSpans(ctx, spans, numSpan)
+		s.flushSpans(ctx, spans)
 	}
 }
 
-func (s *SpanProcessor) flushSpans(ctx context.Context, spans []*Span, numSpan int) {
+func (s *SpanProcessor) flushSpans(ctx context.Context, spans []*Span) {
 	ctx, span := bunapp.Tracer.Start(ctx, "flush-spans")
 
 	s.WaitGroup().Add(1)
@@ -98,36 +97,40 @@ func (s *SpanProcessor) flushSpans(ctx context.Context, spans []*Span, numSpan i
 		defer s.gate.Done()
 		defer s.WaitGroup().Done()
 
-		s._flushSpans(ctx, spans, numSpan)
+		s._flushSpans(ctx, spans)
 	}()
 }
 
-func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span, numSpan int) {
-	indexedSpans := make([]SpanIndex, 0, numSpan)
-	dataSpans := make([]SpanData, 0, numSpan)
+func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
+	indexedSpans := make([]SpanIndex, 0, len(spans))
+	dataSpans := make([]SpanData, 0, len(spans))
 
 	spanCtx := newSpanContext(ctx)
 	for _, span := range spans {
 		initSpan(spanCtx, span)
+		spanCounter.Add(ctx, int64(len(spans)),
+			attribute.Int64("project_id", int64(span.ProjectID)))
 
 		indexedSpans = append(indexedSpans, SpanIndex{})
 		index := &indexedSpans[len(indexedSpans)-1]
-		newSpanIndex(index, span)
+		initSpanIndex(index, span)
 
 		dataSpans = append(dataSpans, SpanData{})
-		newSpanData(&dataSpans[len(dataSpans)-1], span)
+		initSpanData(&dataSpans[len(dataSpans)-1], span)
 
 		var errorCount int
 		var logCount int
 
 		for _, eventSpan := range span.Events {
 			initSpanEvent(spanCtx, eventSpan, span)
+			spanCounter.Add(ctx, int64(len(spans)),
+				attribute.Int64("project_id", int64(span.ProjectID)))
 
 			indexedSpans = append(indexedSpans, SpanIndex{})
-			newSpanIndex(&indexedSpans[len(indexedSpans)-1], eventSpan)
+			initSpanIndex(&indexedSpans[len(indexedSpans)-1], eventSpan)
 
 			dataSpans = append(dataSpans, SpanData{})
-			newSpanData(&dataSpans[len(dataSpans)-1], eventSpan)
+			initSpanData(&dataSpans[len(dataSpans)-1], eventSpan)
 
 			if isErrorSystem(eventSpan.System) {
 				errorCount++

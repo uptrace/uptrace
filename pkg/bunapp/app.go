@@ -68,7 +68,10 @@ func StartConfig(ctx context.Context, cfg *AppConfig) (context.Context, *App, er
 		return nil, nil, err
 	}
 
-	setupOpentelemetry(app)
+	switch cfg.Service {
+	case "serve":
+		setupOpentelemetry(app)
+	}
 
 	return app.Context(), app, nil
 }
@@ -280,22 +283,30 @@ func (app *App) initCH() {
 			"prefer_column_name_to_alias": 1,
 		}),
 	)
+	chSchema := app.Config().CHSchema
 
-	replicated := ""
-	if app.cfg.CHSchema.Replicated {
-		replicated = "Replicated"
-	}
-
-	compression := app.cfg.CHSchema.Compression
+	compression := chSchema.Compression
 	if compression == "" {
 		compression = "Default"
 	}
 
+	replicated := ""
+	if chSchema.Replicated {
+		replicated = "Replicated"
+	}
+
+	onCluster := ""
+	if chSchema.Replicated {
+		onCluster = "ON CLUSTER " + chSchema.Cluster
+	}
+
 	fmter := db.Formatter().
+		WithNamedArg("DB", ch.Safe(db.Config().Database)).
 		WithNamedArg("TTL", ch.Safe(app.cfg.CHSchema.TTL)).
 		WithNamedArg("REPLICATED", ch.Safe(replicated)).
 		WithNamedArg("CODEC", ch.Safe(compression)).
-		WithNamedArg("CLUSTER", ch.Safe(app.cfg.CHSchema.Cluster))
+		WithNamedArg("CLUSTER", ch.Safe(app.cfg.CHSchema.Cluster)).
+		WithNamedArg("ON_CLUSTER", ch.Safe(onCluster))
 
 	db = db.WithFormatter(fmter)
 
