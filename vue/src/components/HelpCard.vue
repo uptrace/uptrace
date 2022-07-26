@@ -18,11 +18,11 @@
 
           <p>For Go, Python, and .NET, use <strong>OTLP/gRPC</strong> (port 14317):</p>
 
-          <XCode :code="`UPTRACE_DSN=${grpcDsn}`" class="mb-4" />
+          <XCode :code="`UPTRACE_DSN=${project.grpc.dsn}`" class="mb-4" />
 
           <p>For Ruby and Node.JS, use <strong>OTLP/HTTP</strong> (port 14318):</p>
 
-          <XCode :code="`UPTRACE_DSN=${httpDsn}`" class="mb-4" />
+          <XCode :code="`UPTRACE_DSN=${project.http.dsn}`" class="mb-4" />
         </v-col>
       </v-row>
 
@@ -58,12 +58,7 @@
 
       <v-row>
         <v-col>
-          <CollectorTabs
-            :http-endpoint="httpEndpoint"
-            :grpc-endpoint="grpcEndpoint"
-            :http-dsn="httpDsn"
-            :grpc-dsn="grpcDsn"
-          />
+          <CollectorTabs :http="project.http" :grpc="project.grpc" />
         </v-col>
       </v-row>
     </v-container>
@@ -120,9 +115,8 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { useWatchAxios } from '@/use/watch-axios'
+import { useProject } from '@/use/project'
 
 // Components
 import DateRangePicker from '@/components/DateRangePicker.vue'
@@ -151,30 +145,7 @@ export default defineComponent({
   },
 
   setup() {
-    const { route } = useRouter()
-
-    const { data } = useWatchAxios(() => {
-      const { projectId } = route.value.params
-      return {
-        url: `/api/tracing/${projectId}/conn-info`,
-      }
-    })
-
-    const grpcEndpoint = computed(() => {
-      return data.value?.grpc?.endpoint ?? 'http://localhost:14317'
-    })
-
-    const httpEndpoint = computed(() => {
-      return data.value?.http?.endpoint ?? 'http://localhost:14318'
-    })
-
-    const grpcDsn = computed(() => {
-      return data.value?.grpc?.dsn ?? 'http://localhost:14317'
-    })
-
-    const httpDsn = computed(() => {
-      return data.value?.http?.dsn ?? 'http://localhost:14318'
-    })
+    const project = useProject()
 
     const vectorConfig = computed(() => {
       return `
@@ -187,21 +158,21 @@ type = "http"
 inputs = ["in"]
 encoding.codec = "ndjson"
 compression = "gzip"
-uri = "${httpEndpoint.value}/api/v1/vector/logs"
-headers.uptrace-dsn = "${httpDsn.value}"
+uri = "${project.http.endpoint}/api/v1/vector/logs"
+headers.uptrace-dsn = "${project.http.dsn}"
       `.trim()
     })
 
     const zipkinCurl = computed(() => {
       return `
-curl -X POST '${httpEndpoint.value}/api/v2/spans' \\
+curl -X POST '${project.http.endpoint}/api/v2/spans' \\
   -H 'Content-Type: application/json' \\
-  -H 'uptrace-dsn: ${httpDsn.value}' \\
+  -H 'uptrace-dsn: ${project.http.dsn}' \\
   -d @spans.json
       `.trim()
     })
 
-    return { grpcEndpoint, httpEndpoint, grpcDsn, httpDsn, vectorConfig, zipkinCurl }
+    return { project, vectorConfig, zipkinCurl }
   },
 })
 </script>
