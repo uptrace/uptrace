@@ -152,10 +152,10 @@ export default defineComponent({
 
   setup() {
     useQuery()
-
-    const { router } = useRouter()
     useForceReload()
     const dateRange = useDateRange()
+
+    const { router } = useRouter()
     const user = useUser()
     const traceId = shallowRef('')
 

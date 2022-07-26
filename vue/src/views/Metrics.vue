@@ -17,16 +17,20 @@
           <p>To view Uptrace metrics in Grafana:</p>
 
           <ol class="mb-4">
-            <li>In grafana, go to "Configururation" -&gt; "Data source" in Grafana.</li>
+            <li>In Grafana, go to "Configururation" -&gt; "Data source".</li>
             <li>Click on "Add data source" and then select "Prometheus".</li>
             <li>
               As an URL, use Uptrace HTTP address, for example,
-              <code>http://localhost:14318/</code>.
+              <code>{{ project.http.endpoint }}</code
+              >.
             </li>
-            <li>
-              In "Custom HTTP Headers" section, click "Add header" and add
-              <code>uptrace-dsn: http://project1_secret_token@localhost:14318/1</code> header.
-            </li>
+            <li>In "Custom HTTP Headers" section, click "Add header".</li>
+            <ul>
+              <li>Header: <code>uptrace-dsn</code></li>
+              <li>
+                Value: <code>{{ project.http.dsn }}</code>
+              </li>
+            </ul>
           </ol>
 
           <p>
@@ -34,7 +38,8 @@
             <a href="https://github.com/uptrace/uptrace/tree/master/example/docker"
               >Docker example</a
             >
-            which comes with pre-configured Grafana on <code>http://localhost:3000/</code>.
+            which comes with pre-configured Grafana available on
+            <code>http://localhost:3000/</code>.
           </p>
 
           <p>
@@ -49,8 +54,17 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 
+// Composables
+import { useProject } from '@/use/project'
+
 export default defineComponent({
   name: 'Metrics',
+
+  setup() {
+    const project = useProject()
+
+    return { project }
+  },
 })
 </script>
 

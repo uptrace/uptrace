@@ -2,12 +2,10 @@ package tracing
 
 import (
 	"context"
-	"net/http"
 	"sync"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/metric/instrument"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
@@ -86,29 +84,6 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 	g.WithGroup("/suggestions", func(g *bunrouter.Group) {
 		g.GET("/attributes", suggestionHandler.Attributes)
 		g.GET("/values", suggestionHandler.Values)
-	})
-
-	g.GET("/conn-info", func(w http.ResponseWriter, req bunrouter.Request) error {
-		projectID, err := req.Params().Uint32("project_id")
-		if err != nil {
-			return err
-		}
-
-		project, err := org.SelectProjectByID(ctx, app, projectID)
-		if err != nil {
-			return err
-		}
-
-		return httputil.JSON(w, bunrouter.H{
-			"grpc": map[string]any{
-				"endpoint": app.Config().GRPCEndpoint(project),
-				"dsn":      app.Config().GRPCDsn(project),
-			},
-			"http": map[string]any{
-				"endpoint": app.Config().HTTPEndpoint(project),
-				"dsn":      app.Config().HTTPDsn(project),
-			},
-		})
 	})
 }
 

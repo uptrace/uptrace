@@ -1,11 +1,11 @@
 <template>
   <v-card flat>
-    <v-tabs v-model="tabs">
+    <v-tabs v-model="activeTab">
       <v-tab href="#grpc">GRPC</v-tab>
       <v-tab href="#http">HTTP</v-tab>
     </v-tabs>
 
-    <v-tabs-items v-model="tabs">
+    <v-tabs-items v-model="activeTab">
       <v-tab-item value="grpc">
         <XCode language="yaml" :code="otlpGrpc"></XCode>
       </v-tab-item>
@@ -17,70 +17,55 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue'
+import { defineComponent, shallowRef, computed, PropType } from 'vue'
+
+// Composables
+import { ConnDetails } from '@/use/project'
 
 export default defineComponent({
   name: 'CollectorTabs',
 
   props: {
-    grpcEndpoint: {
-      type: String,
-      default: '',
+    grpc: {
+      type: Object as PropType<ConnDetails>,
+      required: true,
     },
-    httpEndpoint: {
-      type: String,
-      default: '',
-    },
-    grpcDsn: {
-      type: String,
-      default: '',
-    },
-    httpDsn: {
-      type: String,
-      default: '',
+    http: {
+      type: Object as PropType<ConnDetails>,
+      required: true,
     },
   },
 
   setup(props) {
-    const tabs = ref()
+    const activeTab = shallowRef('')
 
     const otlpGrpc = computed(() => {
-      return formatTemplate(otlpGrpcTpl, props.grpcEndpoint, props.grpcDsn)
+      return `
+exporters:
+  otlp:
+    endpoint: ${props.grpc.endpoint}
+    tls:
+      insecure: true
+    headers:
+      uptrace-dsn: '${props.grpc.dsn}'
+      `.trim()
     })
 
     const otlpHttp = computed(() => {
-      return formatTemplate(otlpHttpTpl, props.httpEndpoint, props.httpDsn)
-    })
-
-    return { tabs, otlpGrpc, otlpHttp }
-  },
-})
-
-function formatTemplate(format: string, ...args: any[]) {
-  return format.replace(/{(\d+)}/g, function (match, number) {
-    return typeof args[number] !== 'undefined' ? args[number] : match
-  })
-}
-
-const otlpGrpcTpl = `
-exporters:
-  otlp:
-    endpoint: {0}
-    tls:
-      insecure: true
-    headers:
-      uptrace-dsn: '{1}'
-`.trim()
-
-const otlpHttpTpl = `
+      return `
 exporters:
   otlphttp:
-    endpoint: {0}
+    endpoint: ${props.http.endpoint}
     tls:
       insecure: true
     headers:
-      uptrace-dsn: '{1}'
-`.trim()
+      uptrace-dsn: '${props.http.dsn}'
+      `.trim()
+    })
+
+    return { activeTab, otlpGrpc, otlpHttp }
+  },
+})
 </script>
 
 <style lang="scss" scoped></style>
