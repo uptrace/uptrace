@@ -24,7 +24,7 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 	router := app.Router()
 
 	// https://grafana.com/docs/tempo/latest/api_docs/
-	router.WithGroup("", func(g *bunrouter.Group) {
+	router.WithGroup("/api/tempo", func(g *bunrouter.Group) {
 		tempoHandler := NewTempoHandler(app)
 
 		g = g.Use(tempoHandler.CheckProjectAccess)
@@ -40,22 +40,22 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 		g.GET("/api/search", tempoHandler.Search)
 	})
 
-	{
+	router.WithGroup("", func(g *bunrouter.Group) {
 		lokiProxyHandler := NewLokiProxyHandler(app, tracing.GlobalSpanProcessor(app))
 
-		router.
-			Use(lokiProxyHandler.CheckProjectAccess).
+		g.GET("/ready", lokiProxyHandler.Ready)
+
+		g.Use(lokiProxyHandler.CheckProjectAccess).
 			WithGroup("/loki/api", func(g *bunrouter.Group) {
 				registerLokiProxy(g, lokiProxyHandler)
 			})
 
-		router.
-			Use(lokiProxyHandler.CheckProjectAccess).
+		g.Use(lokiProxyHandler.CheckProjectAccess).
 			Use(lokiProxyHandler.trimProjectID).
 			WithGroup("/:project_id/loki/api", func(g *bunrouter.Group) {
 				registerLokiProxy(g, lokiProxyHandler)
 			})
-	}
+	})
 }
 
 func registerLokiProxy(g *bunrouter.Group, lokiProxyHandler *LokiProxyHandler) {
