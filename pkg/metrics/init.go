@@ -35,7 +35,7 @@ func initGRPC(ctx context.Context, app *bunapp.App) {
 func initRoutes(ctx context.Context, app *bunapp.App) {
 	router := app.Router()
 
-	router.WithGroup("", func(g *bunrouter.Group) {
+	router.WithGroup("/api/prometheus", func(g *bunrouter.Group) {
 		promHandler := NewPromHandler(app)
 
 		g = g.Use(promHandler.CheckProjectAccess, promErrorHandler)

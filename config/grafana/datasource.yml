@@ -1,11 +1,5 @@
 apiVersion: 1
 
-deleteDatasources:
-  - name: cLoki
-    orgId: 1
-  - name: Uptrace
-    orgId: 1
-
 datasources:
   - name: Uptrace cLoki Project 1
     type: loki
@@ -20,7 +14,7 @@ datasources:
   - name: Uptrace Tempo Project 1
     type: tempo
     access: proxy
-    url: http://host.docker.internal:14318
+    url: http://host.docker.internal:14318/api/tempo
     editable: true
     jsonData:
       httpHeaderName1: 'uptrace-dsn'
@@ -30,7 +24,7 @@ datasources:
   - name: Uptrace Prometheus Project 1
     type: prometheus
     access: proxy
-    url: http://host.docker.internal:14318
+    url: http://host.docker.internal:14318/api/prometheus
     editable: true
     jsonData:
       httpHeaderName1: 'uptrace-dsn'
@@ -40,7 +34,7 @@ datasources:
   - name: Uptrace Prometheus Project 2
     type: prometheus
     access: proxy
-    url: http://host.docker.internal:14318
+    url: http://host.docker.internal:14318/api/prometheus
     editable: true
     jsonData:
       httpHeaderName1: 'uptrace-dsn'
