@@ -21,8 +21,7 @@
             <li>Click on "Add data source" and then select "Prometheus".</li>
             <li>
               As an URL, use Uptrace HTTP address, for example,
-              <code>{{ project.http.endpoint }}</code
-              >.
+              <code>{{ project.http.endpoint }}/api/prometheus</code>.
             </li>
             <li>In "Custom HTTP Headers" section, click "Add header".</li>
             <ul>
