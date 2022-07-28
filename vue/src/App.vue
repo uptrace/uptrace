@@ -17,8 +17,10 @@
             <ProjectPicker />
           </v-col>
 
+          <v-spacer />
+
           <v-col cols="auto">
-            <v-tabs optional class="ml-8">
+            <v-tabs optional>
               <template v-if="user.isAuth && $route.params.projectId">
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
                 <v-tab :to="{ name: 'SpanGroupList' }">Explore</v-tab>
@@ -30,7 +32,7 @@
             </v-tabs>
           </v-col>
 
-          <v-spacer></v-spacer>
+          <v-spacer />
 
           <v-col cols="auto">
             <v-text-field
@@ -50,7 +52,7 @@
               href="https://uptrace.dev/compare-open-source"
               target="_blank"
               dark
-              class="deep-orange darken-3 ml-lg-10"
+              class="deep-orange darken-3"
               >Upgrade</v-btn
             >
           </v-col>
