@@ -1,7 +1,6 @@
 <template>
   <div class="text-no-wrap">
     <v-btn
-      text
       icon
       :disabled="!dateRange.hasPrevPeriod"
       title="Previous period"
@@ -18,7 +17,6 @@
     />
 
     <v-btn
-      text
       icon
       :disabled="!dateRange.hasNextPeriod"
       title="Next period"
@@ -29,7 +27,10 @@
 
     <v-btn small outlined class="ml-2" @click="dateRange.reload">
       <v-icon small class="mr-1">mdi-refresh</v-icon>
-      <span>{{ dateRange.isNow ? 'Reload' : 'Reset' }}</span>
+      <span>Reload</span>
+    </v-btn>
+    <v-btn v-if="!dateRange.isNow" small outlined class="ml-2" @click="dateRange.reloadNow">
+      <span>Now</span>
     </v-btn>
   </div>
 </template>
