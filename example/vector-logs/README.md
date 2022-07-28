@@ -7,3 +7,5 @@ To run this example:
 ```shell
 vector --config vector.toml
 ```
+
+See [Logging](https://uptrace.dev/docs/logging.html) documentation for details.
