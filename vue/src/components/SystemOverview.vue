@@ -84,7 +84,7 @@ export default defineComponent({
       return {
         name: 'SpanGroupList',
         query: {
-          ...props.dateRange.queryParams(),
+          ...props.dateRange.axiosParams(),
           system: xkey.allSystem,
           query: buildGroupBy(xkey.spanSystem),
         },

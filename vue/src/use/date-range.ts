@@ -86,6 +86,10 @@ export function useDateRange() {
   }
 
   function reload() {
+    forceReload()
+  }
+
+  function reloadNow() {
     updateNow(true)
     forceReload()
   }
@@ -268,9 +272,8 @@ export function useDateRange() {
     datePicker,
     timePicker,
 
-    updateNow,
     reload,
-    forceReload,
+    reloadNow,
 
     reset,
     change,
