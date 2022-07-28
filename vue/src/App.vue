@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <v-app-bar app elevation="1" color="white">
-      <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pa-0 fill-height">
+      <v-container fluid class="pa-0 fill-height">
         <v-row align="center" class="flex-nowrap">
           <v-col cols="auto">
             <div class="mt-2">
