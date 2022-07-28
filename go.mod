@@ -25,9 +25,9 @@ require (
 	github.com/uptrace/bunrouter v1.0.17
 	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.17
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.17
-	github.com/uptrace/go-clickhouse v0.2.9-0.20220722090019-d2293eb95aa1
-	github.com/uptrace/go-clickhouse/chdebug v0.2.9-0.20220722090019-d2293eb95aa1
-	github.com/uptrace/go-clickhouse/chotel v0.2.9-0.20220722090019-d2293eb95aa1
+	github.com/uptrace/go-clickhouse v0.2.9-0.20220728082011-74e949e01d00
+	github.com/uptrace/go-clickhouse/chdebug v0.2.9-0.20220728082011-74e949e01d00
+	github.com/uptrace/go-clickhouse/chotel v0.2.9-0.20220728082011-74e949e01d00
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.14
 	github.com/uptrace/uptrace-go v1.8.0
 	github.com/urfave/cli/v2 v2.11.1
@@ -37,6 +37,7 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.33.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.33.0
 	go.opentelemetry.io/otel v1.8.0
+	go.opentelemetry.io/otel/metric v0.31.0
 	go.opentelemetry.io/otel/sdk/metric v0.31.0
 	go.opentelemetry.io/otel/trace v1.8.0
 	go.opentelemetry.io/proto/otlp v0.18.0
@@ -94,7 +95,6 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.8.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.8.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.8.0 // indirect
-	go.opentelemetry.io/otel/metric v0.31.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.8.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/goleak v1.1.12 // indirect

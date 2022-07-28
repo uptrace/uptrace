@@ -281,6 +281,7 @@ func (app *App) initCH() {
 		ch.WithQuerySettings(map[string]any{
 			"prefer_column_name_to_alias": 1,
 		}),
+		ch.WithAutoCreateDatabase(true),
 	}
 
 	cfg := app.cfg.CH
