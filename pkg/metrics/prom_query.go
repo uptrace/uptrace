@@ -15,7 +15,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	promlabels "github.com/prometheus/prometheus/model/labels"
-	"github.com/prometheus/prometheus/storage"
+	promstorage "github.com/prometheus/prometheus/storage"
 	"github.com/prometheus/prometheus/tsdb/chunkenc"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
@@ -40,11 +40,11 @@ func newPromQueryable(ctx context.Context, app *bunapp.App, projectID uint32) *p
 	}
 }
 
-var _ storage.Queryable = (*promQueryable)(nil)
+var _ promstorage.Queryable = (*promQueryable)(nil)
 
 func (q *promQueryable) Querier(
 	ctx context.Context, timeGTE, timeLE int64,
-) (storage.Querier, error) {
+) (promstorage.Querier, error) {
 	return &promQuerier{
 		promQueryable: q,
 	}, nil
@@ -62,13 +62,13 @@ type promQuerier struct {
 	*promQueryable
 }
 
-var _ storage.Querier = (*promQuerier)(nil)
+var _ promstorage.Querier = (*promQuerier)(nil)
 
 func (q *promQuerier) Select(
 	sortSeries bool,
-	hints *storage.SelectHints,
+	hints *promstorage.SelectHints,
 	matchers ...*promlabels.Matcher,
-) storage.SeriesSet {
+) promstorage.SeriesSet {
 	chQuery := q.db.NewSelect().
 		ColumnExpr("metric, attrs_hash, time, instrument").
 		ColumnExpr(
@@ -92,7 +92,9 @@ func (q *promQuerier) Select(
 		GroupExpr("metric, attrs_hash, time, instrument").
 		OrderExpr("metric, attrs_hash, time").
 		Limit(1e6)
+
 	chQuery = transpileLabelMatchers(chQuery, matchers)
+	// TODO: use hints.Grouping
 
 	rows, err := q.db.QueryContext(q.ctx, chQuery.String())
 	if err != nil {
@@ -130,7 +132,7 @@ func (q *promQuerier) Select(
 			labels := make(promlabels.Labels, 0, 1+len(keys))
 
 			labels = append(labels, promlabels.Label{
-				Name:  "__name__",
+				Name:  promlabels.MetricName,
 				Value: metric,
 			})
 
@@ -176,7 +178,7 @@ func (q *promQuerier) Select(
 }
 
 func (q *promQuerier) Series(
-	hints *storage.SelectHints,
+	hints *promstorage.SelectHints,
 	matchers ...*promlabels.Matcher,
 ) ([][][]string, error) {
 	chQuery := q.db.NewSelect().
@@ -188,7 +190,9 @@ func (q *promQuerier) Series(
 		Where("time < toDateTime(?)", hints.End/1000).
 		OrderExpr("metric, attrs_hash").
 		Limit(10000)
+
 	chQuery = transpileLabelMatchers(chQuery, matchers)
+	// TODO: use hints.Grouping
 
 	rows, err := q.db.QueryContext(q.ctx, chQuery.String())
 	if err != nil {
@@ -206,8 +210,8 @@ func (q *promQuerier) Series(
 			return nil, err
 		}
 
-		labels := make([][]string, 0, 2*(1+len(keys)))
-		labels = append(labels, []string{"__name__", metric})
+		labels := make([][]string, 0, 1+len(keys))
+		labels = append(labels, []string{promlabels.MetricName, metric})
 
 		for i, key := range keys {
 			labels = append(labels, []string{key, fmt.Sprint(values[i])})
@@ -225,13 +229,13 @@ func (q *promQuerier) Series(
 
 func (c *promQuerier) LabelValues(
 	name string, matchers ...*promlabels.Matcher,
-) ([]string, storage.Warnings, error) {
+) ([]string, promstorage.Warnings, error) {
 	return nil, nil, nil
 }
 
 func (q *promQuerier) LabelNames(
 	matchers ...*promlabels.Matcher,
-) ([]string, storage.Warnings, error) {
+) ([]string, promstorage.Warnings, error) {
 	return nil, nil, nil
 }
 
@@ -241,8 +245,8 @@ func (q *promQuerier) Close() error {
 
 func transpileLabelMatchers(q *ch.SelectQuery, matchers []*promlabels.Matcher) *ch.SelectQuery {
 	for _, m := range matchers {
-		if m.Name == "le" {
-			return q.Err(errors.New("Uptrace does not support 'le' matcher in promql"))
+		if m.Name == promlabels.BucketLabel {
+			return q.Err(errors.New("Uptrace does not support 'le' Prometheus matcher"))
 		}
 
 		colName := chColumn(m.Name)
@@ -256,6 +260,8 @@ func transpileLabelMatchers(q *ch.SelectQuery, matchers []*promlabels.Matcher) *
 			q = q.Where("match(?, ?)", colName, m.Value)
 		case promlabels.MatchNotRegexp:
 			q = q.Where("NOT match(%s, ?)", colName, m.Value)
+		default:
+			return q.Err(fmt.Errorf("unknown Prometheus matcher type: %q", m.Type))
 		}
 	}
 	return q
@@ -269,7 +275,7 @@ type promSeriesSet struct {
 	err   error
 }
 
-var _ storage.SeriesSet = (*promSeriesSet)(nil)
+var _ promstorage.SeriesSet = (*promSeriesSet)(nil)
 
 func (e *promSeriesSet) Err() error {
 	return e.err
@@ -280,14 +286,14 @@ func (e *promSeriesSet) Next() bool {
 	return e.index <= len(e.slice)
 }
 
-func (e *promSeriesSet) At() storage.Series {
+func (e *promSeriesSet) At() promstorage.Series {
 	if e.index >= 1 && e.index <= len(e.slice) {
 		return e.slice[e.index-1]
 	}
 	return nil
 }
 
-func (e *promSeriesSet) Warnings() storage.Warnings {
+func (e *promSeriesSet) Warnings() promstorage.Warnings {
 	return nil
 }
 
@@ -481,6 +487,23 @@ func (h *promHistogram) ForEachSeries(fn func(series *promSeries)) {
 
 //------------------------------------------------------------------------------
 
+func buildLabelMap(
+	hints *promstorage.SelectHints,
+	matchers []*promlabels.Matcher,
+) map[string]bool {
+	labelMap := make(map[string]bool, len(hints.Grouping)+len(matchers))
+
+	for _, key := range hints.Grouping {
+		labelMap[key] = true
+	}
+
+	for _, matcher := range matchers {
+		labelMap[matcher.Name] = true
+	}
+
+	return labelMap
+}
+
 func roundPretty(n float64) float64 {
 	if n == 0 || math.IsNaN(n) || math.IsInf(n, 0) {
 		return n
@@ -510,7 +533,7 @@ func chColumn(key string) ch.Safe {
 }
 
 func appendCHColumn(b []byte, key string) []byte {
-	if key == "__name__" {
+	if key == promlabels.MetricName {
 		return chschema.AppendIdent(b, "metric")
 	}
 	return chschema.AppendQuery(b, "values[indexOf(keys, ?)]", key)

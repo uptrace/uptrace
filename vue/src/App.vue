@@ -98,15 +98,9 @@
               <v-icon left small class="mr-1">mdi-help-circle-outline</v-icon>
               <span>Docs</span>
             </v-btn>
-            <v-btn
-              href="https://matrix.to/#/#uptrace:matrix.org"
-              target="_blank"
-              text
-              rounded
-              small
-            >
+            <v-btn href="https://discord.gg/YF8tdP8Pmk" target="_blank" text rounded small>
               <v-icon left small class="mr-1">mdi-message-outline</v-icon>
-              <span>Chat</span>
+              <span>Discord</span>
             </v-btn>
             <v-btn href="https://uptrace.dev/opentelemetry/" target="_blank" text rounded small>
               <v-icon left small class="mr-1">mdi-open-source-initiative</v-icon>
