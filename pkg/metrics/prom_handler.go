@@ -201,12 +201,10 @@ func (h *PromHandler) QueryRange(w http.ResponseWriter, req bunrouter.Request) e
 	}
 
 	if f.Step <= 0 {
-		return errors.New("zero or negative query resolution step widths are not accepted. Try a positive integer")
+		return fmt.Errorf("invalid step value: %q", f.Step)
 	}
-	// For safety, limit the number of returned points per timeseries.
-	// This is sufficient for 60s resolution for a week or 1h resolution for a year.
-	if f.End.Sub(f.Start)/f.Step > 11000 {
-		return errors.New("exceeded maximum resolution of 11,000 points per timeseries. Try decreasing the query resolution (?step=XX)")
+	if f.End.Sub(f.Start)/f.Step > 10000 {
+		return fmt.Errorf("step is too small: %q", f.Step)
 	}
 	if f.Query == "" {
 		return errors.New("'query' param is required")
