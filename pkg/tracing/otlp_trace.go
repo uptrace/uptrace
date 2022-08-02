@@ -9,6 +9,7 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/otlpconv"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
@@ -75,7 +76,7 @@ func (s *TraceServiceServer) Export(
 }
 
 func (s *TraceServiceServer) process(
-	ctx context.Context, project *bunapp.Project, resourceSpans []*tracepb.ResourceSpans,
+	ctx context.Context, project *bunconf.Project, resourceSpans []*tracepb.ResourceSpans,
 ) {
 	for _, rs := range resourceSpans {
 		if len(rs.ScopeSpans) == 0 {

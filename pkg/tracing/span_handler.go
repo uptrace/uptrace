@@ -134,7 +134,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 
 	m := make(map[string]interface{})
 
-	subq := h.CH().NewSelect().
+	subq := h.CH.NewSelect().
 		Model((*SpanIndex)(nil)).
 		WithAlias("qsNaN", "quantilesTDigest(0.5, 0.9, 0.99)(`span.duration`)").
 		WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
@@ -157,7 +157,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		OrderExpr("time ASC").
 		Limit(10000)
 
-	if err := h.CH().NewSelect().
+	if err := h.CH.NewSelect().
 		ColumnExpr("groupArray(count) AS count").
 		ColumnExpr("groupArray(rate) AS rate").
 		ColumnExpr("groupArray(time) AS time").
@@ -211,7 +211,7 @@ func (h *SpanHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error 
 		GroupExpr("time").
 		OrderExpr("time ASC")
 
-	if err := h.CH().NewSelect().
+	if err := h.CH.NewSelect().
 		ColumnExpr("groupArray(?) AS ?", ch.Ident(f.Column), ch.Ident(f.Column)).
 		ColumnExpr("groupArray(s.time) AS time").
 		TableExpr("(?) AS s", subq).

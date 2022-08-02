@@ -1,4 +1,4 @@
-package grafana
+package org
 
 import (
 	"errors"
@@ -7,25 +7,24 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/org"
 )
 
-type GrafanaBaseHandler struct {
+type BaseGrafanaHandler struct {
 	*bunapp.App
 }
 
-func (h *GrafanaBaseHandler) Ready(w http.ResponseWriter, req bunrouter.Request) error {
+func (h *BaseGrafanaHandler) Ready(w http.ResponseWriter, req bunrouter.Request) error {
 	_, err := w.Write([]byte("ready\n"))
 	return err
 }
 
-func (h *GrafanaBaseHandler) Echo(w http.ResponseWriter, req bunrouter.Request) error {
+func (h *BaseGrafanaHandler) Echo(w http.ResponseWriter, req bunrouter.Request) error {
 	_, err := w.Write([]byte("echo\n"))
 	return err
 }
 
-func (h *GrafanaBaseHandler) CheckProjectAccess(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
-	userAndProject := org.NewAuthMiddleware(h.App)(next)
+func (h *BaseGrafanaHandler) CheckProjectAccess(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
+	userAndProject := NewAuthMiddleware(h.App)(next)
 
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
@@ -38,18 +37,18 @@ func (h *GrafanaBaseHandler) CheckProjectAccess(next bunrouter.HandlerFunc) bunr
 			return errors.New("either uptrace-dsn or x-scope-orgid header is required")
 		}
 
-		project, err := org.SelectProjectByDSN(ctx, h.App, dsn)
+		project, err := SelectProjectByDSN(ctx, h.App, dsn)
 		if err != nil {
 			return err
 		}
 
-		ctx = org.ContextWithProject(ctx, project)
+		ctx = ContextWithProject(ctx, project)
 
 		return next(w, req.WithContext(ctx))
 	}
 }
 
-func (h *GrafanaBaseHandler) uptraceDSN(req bunrouter.Request) string {
+func (h *BaseGrafanaHandler) uptraceDSN(req bunrouter.Request) string {
 	if s := req.Header.Get("uptrace-dsn"); s != "" {
 		return s
 	}
@@ -62,7 +61,7 @@ func (h *GrafanaBaseHandler) uptraceDSN(req bunrouter.Request) string {
 	return ""
 }
 
-func (h *GrafanaBaseHandler) trimProjectID(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
+func (h *BaseGrafanaHandler) trimProjectID(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	cleanPath := func(path, projectID string) string {
 		path = strings.TrimPrefix(path, "/"+projectID+"/loki/api/")
 		return "/loki/api/" + path

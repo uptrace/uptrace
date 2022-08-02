@@ -12,6 +12,7 @@ import (
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
 	"golang.org/x/exp/slices"
@@ -39,8 +40,8 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 		ch:   make(chan *Measure, cfg.Metrics.BufferSize),
 		gate: syncutil.NewGate(runtime.GOMAXPROCS(0)),
 
-		c2d:    NewCumToDeltaConv(bunapp.ScaleWithCPU(4000, 32000)),
-		logger: app.ZapLogger(),
+		c2d:    NewCumToDeltaConv(bunconf.ScaleWithCPU(4000, 32000)),
+		logger: app.Logger(),
 	}
 
 	app.WaitGroup().Add(1)

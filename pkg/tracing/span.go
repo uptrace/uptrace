@@ -70,6 +70,10 @@ func (s *Span) IsEvent() bool {
 	return isEventSystem(s.System)
 }
 
+func (s *Span) IsError() bool {
+	return isErrorSystem(s.System)
+}
+
 func (s *Span) EndTime() time.Time {
 	return s.Time.Add(time.Duration(s.Duration))
 }

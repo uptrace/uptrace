@@ -9,6 +9,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/prometheus/prometheus/notifier"
+	"github.com/prometheus/prometheus/promql"
+	"github.com/prometheus/prometheus/rules"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/bunrouter/extra/bunrouterotel"
 	"github.com/uptrace/bunrouter/extra/reqlog"
@@ -16,6 +19,7 @@ import (
 	"github.com/uptrace/go-clickhouse/chdebug"
 	"github.com/uptrace/go-clickhouse/chotel"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -50,9 +54,9 @@ func Start(ctx context.Context, configFile, service string) (context.Context, *A
 	var firstErr error
 
 	for _, configFile := range files {
-		cfg, err := ReadConfig(configFile, service)
+		conf, err := bunconf.ReadConfig(configFile, service)
 		if err == nil {
-			return StartConfig(ctx, cfg)
+			return StartConfig(ctx, conf)
 		}
 		firstErr = err
 	}
@@ -60,15 +64,12 @@ func Start(ctx context.Context, configFile, service string) (context.Context, *A
 	return context.TODO(), nil, firstErr
 }
 
-func StartConfig(ctx context.Context, cfg *AppConfig) (context.Context, *App, error) {
+func StartConfig(ctx context.Context, conf *bunconf.Config) (context.Context, *App, error) {
 	rand.Seed(time.Now().UnixNano())
 
-	app := New(ctx, cfg)
-	if err := onStart.Run(ctx, app); err != nil {
-		return nil, nil, err
-	}
+	app := New(ctx, conf)
 
-	switch cfg.Service {
+	switch conf.Service {
 	case "serve":
 		setupOpentelemetry(app)
 	}
@@ -81,11 +82,11 @@ type App struct {
 	ctx       context.Context
 	ctxCancel func()
 
-	wg       sync.WaitGroup
-	stopping uint32
+	wg      sync.WaitGroup
+	stopped uint32
 
 	startTime time.Time
-	cfg       *AppConfig
+	conf      *bunconf.Config
 
 	onStop    appHooks
 	onStopped appHooks
@@ -97,13 +98,17 @@ type App struct {
 
 	grpcServer *grpc.Server
 
-	chdb *ch.DB
+	CH *ch.DB
+
+	QueryEngine     *promql.Engine
+	NotifierManager *notifier.Manager
+	RuleManager     *rules.Manager
 }
 
-func New(ctx context.Context, cfg *AppConfig) *App {
+func New(ctx context.Context, conf *bunconf.Config) *App {
 	app := &App{
 		startTime: time.Now(),
-		cfg:       cfg,
+		conf:      conf,
 	}
 
 	app.undoneCtx = ContextWithApp(ctx, app)
@@ -112,13 +117,13 @@ func New(ctx context.Context, cfg *AppConfig) *App {
 	app.initZap()
 	app.initRouter()
 	app.initGRPC()
-	app.initCH()
+	app.CH = app.newCH()
 
 	return app
 }
 
 func (app *App) Stop() {
-	if !atomic.CompareAndSwapUint32(&app.stopping, 0, 1) {
+	if !atomic.CompareAndSwapUint32(&app.stopped, 0, 1) {
 		return
 	}
 	app.ctxCancel()
@@ -135,7 +140,7 @@ func (app *App) OnStopped(name string, fn HookFunc) {
 }
 
 func (app *App) Debug() bool {
-	return app.cfg.Debug
+	return app.conf.Debug
 }
 
 func (app *App) Context() context.Context {
@@ -150,8 +155,8 @@ func (app *App) WaitGroup() *sync.WaitGroup {
 	return &app.wg
 }
 
-func (app *App) Config() *AppConfig {
-	return app.cfg
+func (app *App) Config() *bunconf.Config {
+	return app.conf
 }
 
 //------------------------------------------------------------------------------
@@ -177,7 +182,7 @@ func (app *App) initZap() {
 	})
 }
 
-func (app *App) ZapLogger() *otelzap.Logger {
+func (app *App) Logger() *otelzap.Logger {
 	return app.logger
 }
 
@@ -276,7 +281,7 @@ func (app *App) GRPCServer() *grpc.Server {
 
 //------------------------------------------------------------------------------
 
-func (app *App) initCH() {
+func (app *App) newCH() *ch.DB {
 	opts := []ch.Option{
 		ch.WithQuerySettings(map[string]any{
 			"prefer_column_name_to_alias": 1,
@@ -284,21 +289,21 @@ func (app *App) initCH() {
 		ch.WithAutoCreateDatabase(true),
 	}
 
-	cfg := app.cfg.CH
-	if cfg.DSN != "" {
-		opts = append(opts, ch.WithDSN(cfg.DSN))
+	conf := app.conf.CH
+	if conf.DSN != "" {
+		opts = append(opts, ch.WithDSN(conf.DSN))
 	}
-	if cfg.Addr != "" {
-		opts = append(opts, ch.WithAddr(cfg.Addr))
+	if conf.Addr != "" {
+		opts = append(opts, ch.WithAddr(conf.Addr))
 	}
-	if cfg.User != "" {
-		opts = append(opts, ch.WithUser(cfg.User))
+	if conf.User != "" {
+		opts = append(opts, ch.WithUser(conf.User))
 	}
-	if cfg.Password != "" {
-		opts = append(opts, ch.WithPassword(cfg.Password))
+	if conf.Password != "" {
+		opts = append(opts, ch.WithPassword(conf.Password))
 	}
-	if cfg.Database != "" {
-		opts = append(opts, ch.WithDatabase(cfg.Database))
+	if conf.Database != "" {
+		opts = append(opts, ch.WithDatabase(conf.Database))
 	}
 
 	db := ch.Connect(opts...)
@@ -321,10 +326,10 @@ func (app *App) initCH() {
 
 	fmter := db.Formatter().
 		WithNamedArg("DB", ch.Safe(db.Config().Database)).
-		WithNamedArg("TTL", ch.Safe(app.cfg.CHSchema.TTL)).
+		WithNamedArg("TTL", ch.Safe(app.conf.CHSchema.TTL)).
 		WithNamedArg("REPLICATED", ch.Safe(replicated)).
 		WithNamedArg("CODEC", ch.Safe(compression)).
-		WithNamedArg("CLUSTER", ch.Safe(app.cfg.CHSchema.Cluster)).
+		WithNamedArg("CLUSTER", ch.Safe(app.conf.CHSchema.Cluster)).
 		WithNamedArg("ON_CLUSTER", ch.Safe(onCluster))
 
 	db = db.WithFormatter(fmter)
@@ -335,15 +340,11 @@ func (app *App) initCH() {
 	))
 	db.AddQueryHook(chotel.NewQueryHook())
 
-	app.chdb = db
-}
-
-func (app *App) CH() *ch.DB {
-	return app.chdb
+	return db
 }
 
 func (app *App) DistTable(tableName string) ch.Ident {
-	if app.cfg.CHSchema.Cluster != "" {
+	if app.conf.CHSchema.Cluster != "" {
 		return ch.Ident(tableName + "_dist")
 	}
 	return ch.Ident(tableName)
