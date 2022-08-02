@@ -21,12 +21,9 @@ var spanCounter, _ = bunapp.Meter.SyncInt64().UpDownCounter(
 	instrument.WithDescription("Number of processed spans"),
 )
 
-func init() {
-	bunapp.OnStart("tracing.init", func(ctx context.Context, app *bunapp.App) error {
-		initGRPC(ctx, app)
-		initRoutes(ctx, app)
-		return nil
-	})
+func Init(ctx context.Context, app *bunapp.App) {
+	initGRPC(ctx, app)
+	initRoutes(ctx, app)
 }
 
 func initGRPC(ctx context.Context, app *bunapp.App) {

@@ -26,14 +26,14 @@ const projectIDHeaderKey = "uptrace-project-id"
 var jsonMarshaler = &jsonpb.Marshaler{}
 
 type TempoHandler struct {
-	GrafanaBaseHandler
+	org.BaseGrafanaHandler
 
 	*bunapp.App
 }
 
 func NewTempoHandler(app *bunapp.App) *TempoHandler {
 	return &TempoHandler{
-		GrafanaBaseHandler: GrafanaBaseHandler{
+		BaseGrafanaHandler: org.BaseGrafanaHandler{
 			App: app,
 		},
 		App: app,

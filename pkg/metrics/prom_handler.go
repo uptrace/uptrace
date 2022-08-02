@@ -7,51 +7,26 @@ import (
 	"strconv"
 	"time"
 
-	kitzap "github.com/go-kit/kit/log/zap"
-	"github.com/grafana/regexp"
+	promlabels "github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql"
 	"github.com/prometheus/prometheus/promql/parser"
+	"github.com/prometheus/prometheus/storage"
 	promstorage "github.com/prometheus/prometheus/storage"
-	promapi "github.com/prometheus/prometheus/web/api/v1"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/grafana"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
-	"go.uber.org/zap/zapcore"
 )
 
 type PromHandler struct {
-	grafana.GrafanaBaseHandler
-
-	promapi *promapi.API
-	promeng *promql.Engine
+	org.BaseGrafanaHandler
 }
 
 func NewPromHandler(app *bunapp.App) *PromHandler {
-	promeng := promql.NewEngine(promql.EngineOpts{
-		Logger:                   kitzap.NewZapSugarLogger(app.ZapLogger().Logger, zapcore.InfoLevel),
-		Reg:                      nil,
-		MaxSamples:               100000,
-		Timeout:                  time.Second * 30,
-		ActiveQueryTracker:       nil,
-		LookbackDelta:            0,
-		NoStepSubqueryIntervalFn: nil,
-		EnableAtModifier:         false,
-		EnableNegativeOffset:     false,
-	})
 	return &PromHandler{
-		GrafanaBaseHandler: grafana.GrafanaBaseHandler{
+		BaseGrafanaHandler: org.BaseGrafanaHandler{
 			App: app,
 		},
-
-		promapi: &promapi.API{
-			Queryable:         nil,
-			QueryEngine:       promeng,
-			ExemplarQueryable: nil,
-			CORSOrigin:        regexp.MustCompile("\\*"),
-		},
-		promeng: promeng,
 	}
 }
 
@@ -70,7 +45,7 @@ func (h *PromHandler) Labels(w http.ResponseWriter, req bunrouter.Request) error
 
 	var labels []string
 
-	if err := h.CH().NewSelect().
+	if err := h.CH.NewSelect().
 		Distinct().
 		ColumnExpr("arrayJoin(keys)").
 		TableExpr("?", measureTableForWhere(h.App, &f.TimeFilter)).
@@ -81,7 +56,7 @@ func (h *PromHandler) Labels(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	labels = append(labels, "__name__")
+	labels = append(labels, promlabels.MetricName)
 
 	return httputil.JSON(w, map[string]any{
 		"status": "success",
@@ -94,65 +69,61 @@ func (h *PromHandler) Series(w http.ResponseWriter, req bunrouter.Request) error
 	project := org.ProjectFromContext(ctx)
 
 	var in struct {
-		Match []string
-		Start float64
-		End   float64
+		Match        []string
+		StartSeconds float64 `urlstruct:"start"`
+		EndSeconds   float64 `urlstruct:"end"`
 	}
 
 	if err := bunapp.UnmarshalValues(req, &in); err != nil {
 		return err
 	}
 
-	queryable := newPromQueryable(ctx, h.App, project.ID)
-	seriesSlice := make([][][]string, 0)
-
-	for _, match := range in.Match {
-		q, err := h.promapi.QueryEngine.NewRangeQuery(
-			queryable,
-			match,
-			time.Unix(int64(in.Start), 0),
-			time.Unix(int64(in.End), 0),
-			time.Second,
-		)
-		if err != nil {
-			return err
-		}
-
-		stmt, ok := q.Statement().(*parser.EvalStmt)
-		if !ok {
-			return fmt.Errorf("metrics: unexpected statement type: %T", q.Statement())
-		}
-
-		sel, ok := stmt.Expr.(*parser.VectorSelector)
-		if !ok {
-			return fmt.Errorf("metrics: unexpected expr type: %T", stmt.Expr)
-		}
-
-		series, err := queryable.querier().Series(&promstorage.SelectHints{
-			Start: int64(in.Start * 1000),
-			End:   int64(in.End * 1000),
-		}, sel.LabelMatchers...)
-		if err != nil {
-			return err
-		}
-
-		seriesSlice = append(seriesSlice, series...)
+	if len(in.Match) == 0 {
+		return fmt.Errorf("'match' query param is required")
+	}
+	matcherSets, err := parseMatchersParam(in.Match)
+	if err != nil {
+		return err
 	}
 
-	data := make([]map[string]string, len(seriesSlice))
+	startMillis := int64(in.StartSeconds * 1000)
+	endMillis := int64(in.EndSeconds * 1000)
+	promStorage := NewPromStorage(ctx, h.App, project.ID)
 
-	for i, series := range seriesSlice {
-		labels := make(map[string]string, len(series)*15/10)
-		data[i] = labels
+	q, err := promStorage.Querier(ctx, startMillis, endMillis)
+	if err != nil {
+		return err
+	}
+	defer q.Close()
 
-		for _, kv := range series {
-			labels[kv[0]] = kv[1]
-		}
+	var sets []promstorage.SeriesSet
+
+	hints := &promstorage.SelectHints{
+		Start: startMillis,
+		End:   endMillis,
+		// There is no series function, this token is used for lookups that don't need samples.
+		Func: "series",
+	}
+	for _, mset := range matcherSets {
+		// We need to sort this select results to merge (deduplicate) the series sets later.
+		s := q.Select(true, hints, mset...)
+		sets = append(sets, s)
+	}
+
+	var metrics []promlabels.Labels
+
+	set := storage.NewMergeSeriesSet(sets, storage.ChainedSeriesMerge)
+	for set.Next() {
+		metrics = append(metrics, set.At().Labels())
+	}
+	if err := set.Err(); err != nil {
+		return err
 	}
 
 	return httputil.JSON(w, map[string]any{
-		"status": "success",
-		"data":   data,
+		"status":   "success",
+		"data":     metrics,
+		"warnings": set.Warnings(),
 	})
 }
 
@@ -168,7 +139,7 @@ func (h *PromHandler) LabelValues(w http.ResponseWriter, req bunrouter.Request) 
 		return errors.New("'label' query param is required")
 	}
 
-	q := h.CH().NewSelect().
+	q := h.CH.NewSelect().
 		Distinct().
 		ColumnExpr("?", chColumn(f.Label)).
 		TableExpr("?", measureTableForWhere(h.App, &f.TimeFilter)).
@@ -176,7 +147,7 @@ func (h *PromHandler) LabelValues(w http.ResponseWriter, req bunrouter.Request) 
 		Where("time >= ?", f.TimeGTE).
 		Where("time < ?", f.TimeLT)
 
-	if f.Label != "__name__" {
+	if f.Label != promlabels.MetricName {
 		q = q.Where("has(keys, ?)", f.Label)
 	}
 
@@ -201,19 +172,20 @@ func (h *PromHandler) QueryRange(w http.ResponseWriter, req bunrouter.Request) e
 	}
 
 	if f.Step <= 0 {
-		return fmt.Errorf("invalid step value: %q", f.Step)
+		return fmt.Errorf(`invalid "step" value: %q`, f.Step)
 	}
 	if f.End.Sub(f.Start)/f.Step > 10000 {
-		return fmt.Errorf("step is too small: %q", f.Step)
+		return fmt.Errorf(`"step" is too small: %q`, f.Step)
 	}
 	if f.Query == "" {
-		return errors.New("'query' param is required")
+		return errors.New(`"query" param is required`)
 	}
 
-	queryable := newPromQueryable(ctx, h.App, f.ProjectID)
+	queryable := NewPromStorage(ctx, h.App, f.ProjectID)
 
-	rangeQuery, err := h.promapi.QueryEngine.NewRangeQuery(
+	rangeQuery, err := h.QueryEngine.NewRangeQuery(
 		queryable,
+		&promql.QueryOpts{},
 		f.Query,
 		f.TimeGTE,
 		f.TimeLT,
@@ -222,6 +194,7 @@ func (h *PromHandler) QueryRange(w http.ResponseWriter, req bunrouter.Request) e
 	if err != nil {
 		return err
 	}
+	defer rangeQuery.Close()
 
 	res := rangeQuery.Exec(ctx)
 	if err := writePromqlResult(w, res); err != nil {
@@ -245,16 +218,17 @@ func (h *PromHandler) QueryInstant(w http.ResponseWriter, req bunrouter.Request)
 	}
 
 	if in.Query == "" {
-		return errors.New("'query' param is required")
+		return errors.New(`"query" param is required`)
 	}
 	if int64(in.Time) == 0 {
 		in.Time = float64(time.Now().Unix())
 	}
 
-	queryable := newPromQueryable(ctx, h.App, project.ID)
+	queryable := NewPromStorage(ctx, h.App, project.ID)
 
-	promQuery, err := h.promapi.QueryEngine.NewInstantQuery(
+	promQuery, err := h.QueryEngine.NewInstantQuery(
 		queryable,
+		&promql.QueryOpts{},
 		in.Query,
 		time.Unix(int64(in.Time), 0),
 	)
@@ -345,4 +319,19 @@ func promqlVectorValue(value promql.Vector) []vectorItem {
 		}
 	}
 	return vector
+}
+
+func parseMatchersParam(matchers []string) ([][]*promlabels.Matcher, error) {
+	matcherSets := make([][]*promlabels.Matcher, 0, len(matchers))
+	for _, s := range matchers {
+		matchers, err := parser.ParseMetricSelector(s)
+		if err != nil {
+			return nil, err
+		}
+		if isEmptyMatcherSet(matchers) {
+			return nil, errors.New("match[] must contain at least one non-empty matcher")
+		}
+		matcherSets = append(matcherSets, matchers)
+	}
+	return matcherSets, nil
 }

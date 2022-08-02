@@ -30,7 +30,7 @@ func initSpanData(data *SpanData, span *Span) {
 func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 	var data []byte
 
-	q := app.CH().NewSelect().
+	q := app.CH.NewSelect().
 		TableExpr("?", app.DistTable("spans_data_buffer")).
 		Column("data").
 		Where("trace_id = ?", span.TraceID).
@@ -51,7 +51,7 @@ func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 func SelectTraceSpans(ctx context.Context, app *bunapp.App, traceID uuid.UUID) ([]*Span, error) {
 	var data []SpanData
 
-	if err := app.CH().NewSelect().
+	if err := app.CH.NewSelect().
 		Model(&data).
 		Column("data").
 		Where("trace_id = ?", traceID).

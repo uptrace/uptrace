@@ -32,4 +32,5 @@ fpm -s dir -t rpm -n $PKG_NAME -v ${VERSION#v} -f -p "$OUTPUT_DIR" \
     $SERVICE_PATH=/lib/systemd/system/$SERVICE_NAME.service \
     $UPTRACEBIN_PATH=/usr/bin/$SERVICE_NAME \
     $CONFIG_PATH=/etc/$SERVICE_NAME/uptrace.yml \
+    $PROM_CONFIG_PATH=/etc/$SERVICE_NAME/uptrace-prometheus.yml \
     $ENVFILE_PATH=/etc/$SERVICE_NAME/$SERVICE_NAME.conf

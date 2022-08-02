@@ -9,11 +9,11 @@ import (
 	"github.com/uptrace/uptrace/pkg/httputil"
 )
 
-func init() {
-	bunapp.OnStart("tracing.registerRoutes", registerRoutes)
+func Init(ctx context.Context, app *bunapp.App) {
+	registerRoutes(ctx, app)
 }
 
-func registerRoutes(ctx context.Context, app *bunapp.App) error {
+func registerRoutes(ctx context.Context, app *bunapp.App) {
 	userHandler := NewUserHandler(app)
 
 	g := app.APIGroup()
@@ -46,6 +46,4 @@ func registerRoutes(ctx context.Context, app *bunapp.App) error {
 			},
 		})
 	})
-
-	return nil
 }

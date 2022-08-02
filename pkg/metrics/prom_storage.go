@@ -14,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/aggregator/exponential/mapping/exponent"
 	"golang.org/x/exp/slices"
 
+	"github.com/prometheus/prometheus/model/exemplar"
 	promlabels "github.com/prometheus/prometheus/model/labels"
 	promstorage "github.com/prometheus/prometheus/storage"
 	"github.com/prometheus/prometheus/tsdb/chunkenc"
@@ -22,54 +23,89 @@ import (
 	"github.com/uptrace/go-clickhouse/ch/chschema"
 )
 
-type promQueryable struct {
+type PromStorage struct {
+	*bunapp.App
+
 	ctx       context.Context
-	app       *bunapp.App
-	db        *ch.DB
 	projectID uint32
 	logger    *otelzap.Logger
 }
 
-func newPromQueryable(ctx context.Context, app *bunapp.App, projectID uint32) *promQueryable {
-	return &promQueryable{
+func NewPromStorage(
+	ctx context.Context, app *bunapp.App, projectID uint32,
+) *PromStorage {
+	return &PromStorage{
+		App:       app,
 		ctx:       ctx,
-		app:       app,
-		db:        app.CH(),
 		projectID: projectID,
-		logger:    app.ZapLogger(),
+		logger:    app.Logger(),
 	}
 }
 
-var _ promstorage.Queryable = (*promQueryable)(nil)
+var _ promstorage.Queryable = (*PromStorage)(nil)
 
-func (q *promQueryable) Querier(
+func (s *PromStorage) Querier(
 	ctx context.Context, timeGTE, timeLE int64,
 ) (promstorage.Querier, error) {
 	return &promQuerier{
-		promQueryable: q,
+		PromStorage: s,
 	}, nil
 }
 
-func (q *promQueryable) querier() *promQuerier {
+func (s *PromStorage) querier() *promQuerier {
 	return &promQuerier{
-		promQueryable: q,
+		PromStorage: s,
+	}
+}
+
+var _ promstorage.Appendable = (*PromStorage)(nil)
+
+func (s *PromStorage) Appender(ctx context.Context) promstorage.Appender {
+	return &promAppender{
+		PromStorage: s,
 	}
 }
 
 //------------------------------------------------------------------------------
 
+type promAppender struct {
+	*PromStorage
+}
+
+func (a *promAppender) Append(
+	ref promstorage.SeriesRef, l promlabels.Labels, t int64, v float64,
+) (promstorage.SeriesRef, error) {
+	return 0, nil
+}
+
+func (a *promAppender) Commit() error {
+	return nil
+}
+
+func (a *promAppender) Rollback() error {
+	return nil
+}
+
+func (a *promAppender) AppendExemplar(
+	ref promstorage.SeriesRef, l promlabels.Labels, e exemplar.Exemplar,
+) (promstorage.SeriesRef, error) {
+	return 0, nil
+}
+
+//------------------------------------------------------------------------------
+
 type promQuerier struct {
-	*promQueryable
+	*PromStorage
 }
 
 var _ promstorage.Querier = (*promQuerier)(nil)
 
-func (q *promQuerier) Select(
+func (pq *promQuerier) Select(
 	sortSeries bool,
 	hints *promstorage.SelectHints,
 	matchers ...*promlabels.Matcher,
 ) promstorage.SeriesSet {
-	chQuery := q.db.NewSelect().
+	chQuery := pq.CH.NewSelect().
 		ColumnExpr("metric, attrs_hash, time, instrument").
 		ColumnExpr(
 			"multiIf("+
@@ -85,18 +121,21 @@ func (q *promQuerier) Select(
 			"AS histogram").
 		ColumnExpr("anyLast(keys) AS keys").
 		ColumnExpr("anyLast(values) AS values").
-		TableExpr("?", q.app.DistTable("measure_minutes")).
-		Where("project_id = ?", q.projectID).
+		TableExpr("?", pq.DistTable("measure_minutes")).
 		Where("time >= toDateTime(?)", hints.Start/1000).
 		Where("time < toDateTime(?)", hints.End/1000).
 		GroupExpr("metric, attrs_hash, time, instrument").
 		OrderExpr("metric, attrs_hash, time").
 		Limit(1e6)
 
+	if pq.projectID != 0 {
+		chQuery = chQuery.Where("project_id = ?", pq.projectID)
+	}
+
 	chQuery = transpileLabelMatchers(chQuery, matchers)
 	// TODO: use hints.Grouping
 
-	rows, err := q.db.QueryContext(q.ctx, chQuery.String())
+	rows, err := pq.CH.QueryContext(pq.ctx, chQuery.String())
 	if err != nil {
 		return &promSeriesSet{err: err}
 	}
@@ -177,24 +216,27 @@ func (q *promQuerier) Select(
 	return seriesSet
 }
 
-func (q *promQuerier) Series(
+func (pq *promQuerier) Series(
 	hints *promstorage.SelectHints,
 	matchers ...*promlabels.Matcher,
 ) ([][][]string, error) {
-	chQuery := q.db.NewSelect().
+	chQuery := pq.CH.NewSelect().
 		DistinctOn("metric, attrs_hash").
 		ColumnExpr("metric, keys, values").
-		TableExpr("?", q.app.DistTable("measure_minutes")).
-		Where("project_id = ?", q.projectID).
+		TableExpr("?", pq.DistTable("measure_minutes")).
 		Where("time >= toDateTime(?)", hints.Start/1000).
 		Where("time < toDateTime(?)", hints.End/1000).
 		OrderExpr("metric, attrs_hash").
 		Limit(10000)
 
+	if pq.projectID != 0 {
+		chQuery = chQuery.Where("project_id = ?", pq.projectID)
+	}
+
 	chQuery = transpileLabelMatchers(chQuery, matchers)
 	// TODO: use hints.Grouping
 
-	rows, err := q.db.QueryContext(q.ctx, chQuery.String())
+	rows, err := pq.CH.QueryContext(pq.ctx, chQuery.String())
 	if err != nil {
 		return nil, err
 	}
@@ -504,6 +546,15 @@ func buildLabelMap(
 	return labelMap
 }
 
+func isEmptyMatcherSet(matchers []*promlabels.Matcher) bool {
+	for _, lm := range matchers {
+		if lm != nil && !lm.Matches("") {
+			return false
+		}
+	}
+	return true
+}
+
 func roundPretty(n float64) float64 {
 	if n == 0 || math.IsNaN(n) || math.IsInf(n, 0) {
 		return n
@@ -533,8 +584,12 @@ func chColumn(key string) ch.Safe {
 }
 
 func appendCHColumn(b []byte, key string) []byte {
-	if key == promlabels.MetricName {
+	switch key {
+	case promlabels.MetricName:
 		return chschema.AppendIdent(b, "metric")
+	case "__project_id__":
+		return chschema.AppendIdent(b, "project_id")
+	default:
+		return chschema.AppendQuery(b, "values[indexOf(keys, ?)]", key)
 	}
-	return chschema.AppendQuery(b, "values[indexOf(keys, ?)]", key)
 }

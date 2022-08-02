@@ -11,6 +11,6 @@ func TestPing(t *testing.T) {
 	ctx, app := testbed.StartApp(t)
 	defer app.Stop()
 
-	err := app.CH().Ping(ctx)
+	err := app.CH.Ping(ctx)
 	require.NoError(t, err)
 }

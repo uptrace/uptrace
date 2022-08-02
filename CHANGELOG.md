@@ -4,17 +4,26 @@ To get started with Uptrace, see https://uptrace.dev/get/opentelemetry-tracing-t
 
 ## v0.3.0 - Unreleased
 
+### Added
+
 - Accept and store [OpenTelemetry Metrics](https://uptrace.dev/opentelemetry/metrics.html) in
   ClickHouse.
-- Support Prometheus-compatible API. You can now add Uptrace as a Prometheus data source in Grafana
+- Support Prometheus-compatible API. You can now use Uptrace as a Prometheus data source in Grafana
   to view metrics. See [documentation](https://uptrace.dev/get/grafana.html#prometheus-metrics) for
   details.
+- Send error notifications using AlertManager. This requires a Prometheus config and AlertManager.
 - Expand env vars in the YAML config, for example:
 
 ```yaml
 ch:
   dsn: 'clickhouse://${CLICKHOUSE_USER}:@${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT}/${CLICKHOUSE_DB}?sslmode=disable'
 ```
+
+- Uptrace will try to create ClickHouse database on start.
+
+### Changed
+
+- Replace `site.scheme` and `site.host` config options with `site.addr`.
 
 ## v0.2.15 - Jun 8 2022
 

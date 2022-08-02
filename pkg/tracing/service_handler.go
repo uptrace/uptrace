@@ -75,7 +75,7 @@ func (h *ServiceHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 
 	tableName, groupPeriod := spanServiceTableForGroup(h.App, &f.TimeFilter)
 
-	subq := h.CH().NewSelect().
+	subq := h.CH.NewSelect().
 		WithAlias("tdigest_state", "quantilesTDigestWeightedMergeState(0.5, 0.9, 0.99)(tdigest)").
 		WithAlias("qsNaN", "finalizeAggregation(tdigest_state)").
 		WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
@@ -97,7 +97,7 @@ func (h *ServiceHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 
 	services := make([]map[string]any, 0)
 
-	if err := h.CH().NewSelect().
+	if err := h.CH.NewSelect().
 		WithAlias("qsNaN", "quantilesTDigestWeightedMerge(0.5, 0.9, 0.99)(tdigest_state)").
 		WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
 		ColumnExpr("service").

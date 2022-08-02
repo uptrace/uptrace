@@ -19,12 +19,9 @@ const (
 
 var jsonMarshaler = &jsonpb.Marshaler{}
 
-func init() {
-	bunapp.OnStart("metrics.init", func(ctx context.Context, app *bunapp.App) error {
-		initGRPC(ctx, app)
-		initRoutes(ctx, app)
-		return nil
-	})
+func Init(ctx context.Context, app *bunapp.App) {
+	initGRPC(ctx, app)
+	initRoutes(ctx, app)
 }
 
 func initGRPC(ctx context.Context, app *bunapp.App) {

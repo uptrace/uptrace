@@ -12,6 +12,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 
 	"go.uber.org/zap"
@@ -27,7 +28,7 @@ var (
 	ErrAccessedDenied = httperror.Forbidden("access denied")
 )
 
-var GuestUser = &bunapp.User{
+var GuestUser = &bunconf.User{
 	ID:       1,
 	Username: "guest",
 }
@@ -37,24 +38,24 @@ type (
 	projectCtxKey struct{}
 )
 
-func UserFromContext(ctx context.Context) (*bunapp.User, error) {
-	user, ok := ctx.Value(userCtxKey{}).(*bunapp.User)
+func UserFromContext(ctx context.Context) (*bunconf.User, error) {
+	user, ok := ctx.Value(userCtxKey{}).(*bunconf.User)
 	if !ok {
 		return nil, ErrUnauthorized
 	}
 	return user, nil
 }
 
-func ContextWithUser(ctx context.Context, user *bunapp.User) context.Context {
+func ContextWithUser(ctx context.Context, user *bunconf.User) context.Context {
 	return context.WithValue(ctx, userCtxKey{}, user)
 }
 
-func ProjectFromContext(ctx context.Context) *bunapp.Project {
-	project, _ := ctx.Value(projectCtxKey{}).(*bunapp.Project)
+func ProjectFromContext(ctx context.Context) *bunconf.Project {
+	project, _ := ctx.Value(projectCtxKey{}).(*bunconf.Project)
 	return project
 }
 
-func ContextWithProject(ctx context.Context, project *bunapp.Project) context.Context {
+func ContextWithProject(ctx context.Context, project *bunconf.Project) context.Context {
 	return context.WithValue(ctx, projectCtxKey{}, project)
 }
 
@@ -80,7 +81,7 @@ func NewAuthMiddleware(app *bunapp.App) bunrouter.MiddlewareFunc {
 	}
 }
 
-func UserFromRequest(app *bunapp.App, req bunrouter.Request) *bunapp.User {
+func UserFromRequest(app *bunapp.App, req bunrouter.Request) *bunconf.User {
 	ctx := req.Context()
 
 	users := app.Config().Users
@@ -112,7 +113,7 @@ func UserFromRequest(app *bunapp.App, req bunrouter.Request) *bunapp.User {
 	return nil
 }
 
-func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*bunapp.Project, error) {
+func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*bunconf.Project, error) {
 	ctx := req.Context()
 
 	projectID, err := req.Params().Uint32("project_id")
@@ -171,7 +172,7 @@ func decodeUserToken(app *bunapp.App, jwtToken string) (uint64, error) {
 
 //------------------------------------------------------------------------------
 
-func findUserByPassword(app *bunapp.App, username string, password string) *bunapp.User {
+func findUserByPassword(app *bunapp.App, username string, password string) *bunconf.User {
 	users := app.Config().Users
 	for i := range users {
 		user := &users[i]

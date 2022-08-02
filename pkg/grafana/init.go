@@ -13,11 +13,8 @@ const (
 	jsonContentType     = "application/json"
 )
 
-func init() {
-	bunapp.OnStart("grafana.init", func(ctx context.Context, app *bunapp.App) error {
-		initRoutes(ctx, app)
-		return nil
-	})
+func Init(ctx context.Context, app *bunapp.App) {
+	initRoutes(ctx, app)
 }
 
 func initRoutes(ctx context.Context, app *bunapp.App) {

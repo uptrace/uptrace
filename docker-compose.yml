@@ -43,15 +43,29 @@ services:
     ports:
       - '3100:3100' # UI and HTTP API
 
-  promtail:
-    image: grafana/promtail:2.5.0
+  #  promtail:
+  #    image: grafana/promtail:2.5.0
+  #    volumes:
+  #      - ./config/promtail/config.yml:/etc/promtail/config.yml
+  #      - /var/log:/var/log
+  #    command: -config.file=/etc/promtail/config.yml
+  #    extra_hosts:
+  #      - 'host.docker.internal:host-gateway'
+
+  alertmanager:
+    image: prom/alertmanager:v0.24.0
+    restart: on-failure
     volumes:
-      - ./config/promtail/config.yml:/etc/promtail/config.yml
-      - /var/log:/var/log
-    command: -config.file=/etc/promtail/config.yml
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
+      - ./config/alertmanager/:/etc/alertmanager/
+      - alertmanager_data:/alertmanager
+    ports:
+      - 9093:9093
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
 
 volumes:
   ch_data:
+    driver: local
+  alertmanager_data:
     driver: local

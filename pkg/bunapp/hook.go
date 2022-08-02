@@ -9,14 +9,6 @@ import (
 	"go4.org/syncutil"
 )
 
-var onStart appHooks
-
-func OnStart(name string, fn HookFunc) {
-	onStart.Add(newHook(name, fn))
-}
-
-//------------------------------------------------------------------------------
-
 type HookFunc func(ctx context.Context, app *App) error
 
 type appHooks struct {

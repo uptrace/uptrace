@@ -13,6 +13,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/otlpconv"
 	"github.com/uptrace/uptrace/pkg/tracing/xotel"
@@ -143,7 +144,7 @@ func (s *MetricsServiceServer) Export(
 func (s *MetricsServiceServer) export(
 	ctx context.Context,
 	req *collectormetricspb.ExportMetricsServiceRequest,
-	project *bunapp.Project,
+	project *bunconf.Project,
 ) (*collectormetricspb.ExportMetricsServiceResponse, error) {
 	var numMetric int
 
@@ -216,7 +217,7 @@ type otlpProcessor struct {
 	mp *MeasureProcessor
 
 	ctx         context.Context
-	project     *bunapp.Project
+	project     *bunconf.Project
 	projectAttr attribute.KeyValue
 	resource    xotel.AttrMap
 }

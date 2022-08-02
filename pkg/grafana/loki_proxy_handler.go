@@ -28,7 +28,7 @@ import (
 )
 
 type LokiProxyHandler struct {
-	GrafanaBaseHandler
+	org.BaseGrafanaHandler
 
 	sp *tracing.SpanProcessor
 
@@ -38,7 +38,7 @@ type LokiProxyHandler struct {
 
 func NewLokiProxyHandler(app *bunapp.App, sp *tracing.SpanProcessor) *LokiProxyHandler {
 	h := &LokiProxyHandler{
-		GrafanaBaseHandler: GrafanaBaseHandler{
+		BaseGrafanaHandler: org.BaseGrafanaHandler{
 			App: app,
 		},
 		sp: sp,
@@ -52,7 +52,7 @@ func (h *LokiProxyHandler) initProxy() {
 	lokiURL, _ := url.Parse(h.App.Config().Loki.Addr)
 	lokiQuery := lokiURL.RawQuery
 
-	errorLogger, _ := zap.NewStdLogAt(h.ZapLogger().Logger, zap.WarnLevel)
+	errorLogger, _ := zap.NewStdLogAt(h.Logger().Logger, zap.WarnLevel)
 	h.proxy = &httputil.ReverseProxy{
 		Director: func(req *http.Request) {
 			req.URL.Scheme = lokiURL.Scheme
@@ -148,7 +148,7 @@ func (h *LokiProxyHandler) Push(w http.ResponseWriter, req bunrouter.Request) er
 }
 
 func (h *LokiProxyHandler) processStreams(
-	ctx context.Context, project *bunapp.Project, data []byte,
+	ctx context.Context, project *bunconf.Project, data []byte,
 ) error {
 	var in struct {
 		Streams []LokiStream `json:"streams"`
@@ -196,7 +196,7 @@ type lokiLogProcessor struct {
 	app *bunapp.App
 
 	sp      *tracing.SpanProcessor
-	project *bunapp.Project
+	project *bunconf.Project
 
 	logger *otelzap.Logger
 }

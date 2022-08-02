@@ -16,16 +16,15 @@ debug: false
 # Secret key that is used to sign JWT tokens etc.
 secret_key: changeme
 
-# Public URL for Vue-powered UI.
-site:
-  scheme: 'http'
-  host: 'localhost'
-
 listen:
   # OTLP/gRPC API
   grpc: ':14317'
   # OTLP/HTTP API and Uptrace HTTP API
   http: ':14318'
+
+# Public URL for Vue-powered UI.
+site:
+  addr: 'http://localhost:14318'
 
 ch:
   # Connection string for ClickHouse database. For example:
@@ -44,11 +43,12 @@ ch_schema:
   ttl: 30 DAY
 
   # Whether to create ReplicatedMergeTree instead of MergeTree.
-  replicated: false
+  #replicated: false
 
-  # Cluster name for Distributed tables.
+  # Cluster name for Distributed tables and ON CLUSTER clause.
   #cluster: uptrace1
 
+# Spans processing options.
 spans:
   # The size of Go chan used to buffer incoming spans.
   #buffer_size: 100000
@@ -56,6 +56,7 @@ spans:
   # The number of spans to insert in a single query.
   #batch_size: 10000
 
+# Metrics processing options.
 metrics:
   # The size of Go chan used to buffer incoming measures.
   #buffer_size: 100000
@@ -70,7 +71,7 @@ metrics:
 #     password: uptrace
 
 projects:
-  # First project is used for self-monitoring.
+  # Conventionally, first project is used for self-monitoring.
   - id: 1
     name: Uptrace
     token: project1_secret_token
@@ -79,5 +80,7 @@ projects:
     name: My project
     token: project2_secret_token
 
-loki:
-  addr: 'http://localhost:3100'
+# Uptrace uses Prometheus to send alerts and monitor metrics.
+prometheus:
+  # Path to the Prometheus config.
+  config: uptrace-prometheus.yml

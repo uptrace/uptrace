@@ -5,34 +5,50 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
+	"os/signal"
+	"path/filepath"
 	"strings"
-	"sync"
+	"syscall"
 	"time"
 
+	kitzap "github.com/go-kit/kit/log/zap"
+	"github.com/go-kit/log"
 	"github.com/klauspost/compress/gzhttp"
 	_ "github.com/mostynb/go-grpc-compression/snappy"
 	_ "github.com/mostynb/go-grpc-compression/zstd"
+	"github.com/prometheus/client_golang/prometheus"
+	promconfig "github.com/prometheus/prometheus/config"
+	"github.com/prometheus/prometheus/discovery"
+	"github.com/prometheus/prometheus/notifier"
+	"github.com/prometheus/prometheus/promql"
+	"github.com/prometheus/prometheus/rules"
+	"github.com/prometheus/prometheus/util/strutil"
 	"github.com/rs/cors"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/chmigrate"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace"
 	"github.com/uptrace/uptrace/pkg"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunapp/migrations"
-	_ "github.com/uptrace/uptrace/pkg/grafana"
+	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/run"
+	"gopkg.in/yaml.v2"
+
+	//_ "github.com/uptrace/uptrace/pkg/grafana"
 	"github.com/uptrace/uptrace/pkg/httputil"
-	_ "github.com/uptrace/uptrace/pkg/metrics"
-	_ "github.com/uptrace/uptrace/pkg/tracing"
+	"github.com/uptrace/uptrace/pkg/metrics"
+	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func main() {
@@ -53,11 +69,13 @@ func main() {
 			versionCommand,
 			serveCommand,
 			newCHCommand(migrations.Migrations),
+			// command.AlertManager,
 		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 }
 
@@ -80,93 +98,280 @@ var serveCommand = &cli.Command{
 		}
 		defer app.Stop()
 
-		cfg := app.Config()
+		conf := app.Config()
+		logger := app.Logger()
+
+		// Paths should be resolved relatively to the main Uptrace config file.
+		if err := os.Chdir(conf.BaseDir); err != nil {
+			logger.Error("os.Chdir failed", zap.Error(err))
+		}
 
 		projects := app.Config().Projects
 		project := &projects[len(projects)-1]
 
-		fmt.Printf("reading YAML config from    %s\n", cfg.Filepath)
+		fmt.Printf("current working dir         %s\n", conf.BaseDir)
+		fmt.Printf("reading YAML config from    %s\n", conf.FileName)
 		fmt.Printf("read the docs at            https://uptrace.dev/get/\n")
 		fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
 		fmt.Println()
 
-		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", cfg.GRPCDsn(project))
-		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", cfg.HTTPDsn(project))
-		fmt.Printf("Open UI (listen.http)       %s\n", cfg.SiteAddr())
+		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", conf.GRPCDsn(project))
+		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", conf.HTTPDsn(project))
+		fmt.Printf("Open UI (site.addr)         %s\n", conf.SitePath("/"))
 		fmt.Println()
 
-		httpLn, err := net.Listen("tcp", cfg.Listen.HTTP)
+		httpLn, err := net.Listen("tcp", conf.Listen.HTTP)
 		if err != nil {
-			otelzap.L().Error("net.Listen failed (edit listen.http YAML option)",
-				zap.Error(err), zap.String("addr", cfg.Listen.HTTP))
+			logger.Error("net.Listen failed (edit listen.http YAML option)",
+				zap.Error(err), zap.String("addr", conf.Listen.HTTP))
 			return err
 		}
 
-		grpcLn, err := net.Listen("tcp", cfg.Listen.GRPC)
+		grpcLn, err := net.Listen("tcp", conf.Listen.GRPC)
 		if err != nil {
-			otelzap.L().Error("net.Listen failed (edit listen.grpc YAML option)",
-				zap.Error(err), zap.String("addr", cfg.Listen.GRPC))
+			logger.Error("net.Listen failed (edit listen.grpc YAML option)",
+				zap.Error(err), zap.String("addr", conf.Listen.GRPC))
 			return err
 		}
 
-		if err := app.CH().Ping(ctx); err != nil {
-			otelzap.L().Error("ClickHouse ping failed (edit ch.dsn YAML option)",
+		if err := app.CH.Ping(ctx); err != nil {
+			logger.Error("ClickHouse ping failed (edit ch.dsn YAML option)",
 				zap.Error(err), zap.String("dsn", app.Config().CH.DSN))
 		}
 
-		if err := runMigrations(ctx, app); err != nil {
-			otelzap.L().Error("ClickHouse migrations failed",
+		if err := runMigrations(ctx, app.CH); err != nil {
+			logger.Error("ClickHouse migrations failed",
 				zap.Error(err))
 		}
 
-		serveVueApp(app.Router(), uptrace.DistFS())
-		handler := app.HTTPHandler()
-		handler = gzhttp.GzipHandler(handler)
-		handler = httputil.DecompressHandler{Next: handler}
-		handler = httputil.NewTraceparentHandler(handler)
-		handler = otelhttp.NewHandler(handler, "")
-		handler = cors.AllowAll().Handler(handler)
-		handler = httputil.PanicHandler{Next: handler}
+		promLogger := kitzap.NewZapSugarLogger(logger.Logger, zapcore.InfoLevel)
+		promConfigReady := make(chan struct{})
+		ctxNotify, cancelNotify := context.WithCancel(context.Background())
 
-		httpServer := &http.Server{
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 5 * time.Second,
-			IdleTimeout:  60 * time.Second,
-			Handler:      handler,
-		}
+		app.NotifierManager = notifier.NewManager(&notifier.Options{
+			QueueCapacity: 100,
+			Registerer:    prometheus.DefaultRegisterer,
+		}, promLogger)
 
-		var wg sync.WaitGroup
+		discoveryManagerNotifyReady := make(chan struct{})
+		discoveryManagerNotify := discovery.NewManager(
+			ctxNotify,
+			log.With(promLogger, "component", "discovery manager notify"),
+			discovery.Name("notify"),
+		)
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		app.QueryEngine = promql.NewEngine(promql.EngineOpts{
+			Logger:             log.With(promLogger, "component", "query engine"),
+			Reg:                prometheus.DefaultRegisterer,
+			MaxSamples:         50000000,
+			Timeout:            time.Minute,
+			ActiveQueryTracker: nil,
+			LookbackDelta:      5 * time.Minute,
+			NoStepSubqueryIntervalFn: func(rangeMillis int64) int64 {
+				return time.Duration(promconfig.DefaultGlobalConfig.EvaluationInterval).Milliseconds()
+			},
+			// EnableAtModifier and EnableNegativeOffset have to be
+			// always on for regular PromQL as of Prometheus v2.33.
+			EnableAtModifier:     true,
+			EnableNegativeOffset: true,
+			EnablePerStepStats:   false,
+		})
 
-			if err := httpServer.Serve(httpLn); err != nil && err.Error() != "http: Server closed" {
-				app.Zap(ctx).Error("httpServer.Serve failed", zap.Error(err))
-			}
-		}()
-
-		go func() {
-			if err := app.GRPCServer().Serve(grpcLn); err != nil {
-				app.Zap(ctx).Error("grpcServer.Serve failed", zap.Error(err))
-			}
-		}()
-
-		genSampleTrace()
-
-		fmt.Println(bunapp.WaitExitSignal())
-
-		if err := httpServer.Shutdown(ctx); err != nil {
+		promStorage := metrics.NewPromStorage(ctx, app, 0)
+		externalURL, err := url.Parse(conf.Prometheus.ExternalURL)
+		if err != nil {
 			return err
 		}
 
-		wg.Wait()
-		return nil
+		app.RuleManager = rules.NewManager(&rules.ManagerOptions{
+			Appendable:      promStorage,
+			Queryable:       promStorage,
+			QueryFunc:       rules.EngineQueryFunc(app.QueryEngine, promStorage),
+			NotifyFunc:      sendAlerts(app.NotifierManager, conf.Prometheus.ExternalURL),
+			Context:         context.Background(),
+			ExternalURL:     externalURL,
+			Registerer:      prometheus.DefaultRegisterer,
+			Logger:          log.With(promLogger, "component", "rule manager"),
+			OutageTolerance: time.Hour,
+			ForGracePeriod:  10 * time.Minute,
+			ResendDelay:     time.Minute,
+		})
+
+		org.Init(ctx, app)
+		tracing.Init(ctx, app)
+		metrics.Init(ctx, app)
+
+		reloaders := []reloader{
+			{
+				name: "notify",
+				fn:   app.NotifierManager.ApplyConfig,
+			},
+			{
+				name: "notify_sd",
+				fn: func(conf *promconfig.Config) error {
+					c := make(map[string]discovery.Configs)
+					for k, v := range conf.AlertingConfig.AlertmanagerConfigs.ToMap() {
+						c[k] = v.ServiceDiscoveryConfigs
+					}
+					discoveryManagerNotify.ApplyConfig(c)
+					close(discoveryManagerNotifyReady)
+					return nil
+				},
+			},
+			{
+				name: "rules",
+				fn: func(conf *promconfig.Config) error {
+					// Get all rule files matching the configuration paths.
+					var files []string
+					for _, pat := range conf.RuleFiles {
+						fs, err := filepath.Glob(pat)
+						if err != nil {
+							// The only error can be a bad pattern.
+							return fmt.Errorf("error retrieving rule files for %s: %w", pat, err)
+						}
+						files = append(files, fs...)
+					}
+					return app.RuleManager.Update(
+						time.Duration(conf.GlobalConfig.EvaluationInterval),
+						files,
+						conf.GlobalConfig.ExternalLabels,
+						externalURL.String(),
+						nil,
+					)
+				},
+			},
+		}
+
+		var g run.Group
+
+		{
+			handleStaticFiles(app.Router(), uptrace.DistFS())
+			handler := app.HTTPHandler()
+			handler = gzhttp.GzipHandler(handler)
+			handler = httputil.DecompressHandler{Next: handler}
+			handler = httputil.NewTraceparentHandler(handler)
+			handler = otelhttp.NewHandler(handler, "")
+			handler = cors.AllowAll().Handler(handler)
+			handler = httputil.PanicHandler{Next: handler}
+
+			httpServer := &http.Server{
+				ReadTimeout:  5 * time.Second,
+				WriteTimeout: 5 * time.Second,
+				IdleTimeout:  60 * time.Second,
+				Handler:      handler,
+			}
+
+			g.Add(func() error {
+				return httpServer.Serve(httpLn)
+			}, func(err error) {
+				if err := httpServer.Shutdown(ctx); err != nil {
+					logger.Error("httpServer.Shutdown", zap.Error(err))
+				}
+			})
+		}
+
+		{
+			grpcServer := app.GRPCServer()
+
+			g.Add(func() error {
+				return grpcServer.Serve(grpcLn)
+			}, func(err error) {
+				grpcServer.Stop()
+			})
+		}
+
+		g.Add(
+			func() error {
+				err := discoveryManagerNotify.Run()
+				logger.Info("Notify discovery manager stopped")
+				return err
+			},
+			func(err error) {
+				logger.Info("Stopping notify discovery manager...")
+				cancelNotify()
+			},
+		)
+
+		g.Add(
+			func() error {
+				select {
+				case <-promConfigReady:
+				case <-app.Done():
+					return nil
+				}
+
+				app.NotifierManager.Run(discoveryManagerNotify.SyncCh())
+				logger.Info("Notifier manager stopped")
+				return nil
+			},
+			func(err error) {
+				app.NotifierManager.Stop()
+			},
+		)
+
+		g.Add(func() error {
+			select {
+			case <-promConfigReady:
+			case <-app.Done():
+				return nil
+			}
+
+			app.RuleManager.Run()
+			return nil
+		}, func(err error) {
+			app.RuleManager.Stop()
+		})
+
+		{
+			hup := make(chan os.Signal, 1)
+			signal.Notify(hup, syscall.SIGHUP)
+
+			g.Add(func() error {
+				for {
+					select {
+					case <-hup:
+						if err := reloadPromConfig(conf.Prometheus.Config, reloaders); err != nil {
+							logger.Error("reloadPromConfig failed", zap.Error(err))
+						}
+					case <-app.Done():
+						return nil
+					}
+				}
+			}, func(err error) {})
+		}
+
+		{
+			term := make(chan os.Signal, 1)
+			signal.Notify(term, os.Interrupt, syscall.SIGTERM)
+
+			g.Add(func() error {
+				if err := reloadPromConfig(conf.Prometheus.Config, reloaders); err != nil {
+					logger.Error("reloadPromConfig failed", zap.Error(err))
+				}
+				close(promConfigReady)
+
+				select {
+				case <-term:
+				case <-app.Done():
+				}
+
+				return nil
+			}, func(err error) {
+				app.Stop()
+			})
+		}
+
+		go genSampleTrace()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		return g.Run(ctx)
 	},
 }
 
-func runMigrations(ctx context.Context, app *bunapp.App) error {
-	migrator := chmigrate.NewMigrator(app.CH(), migrations.Migrations)
+func runMigrations(ctx context.Context, db *ch.DB) error {
+	migrator := chmigrate.NewMigrator(db, migrations.Migrations)
 
 	if err := migrator.Init(ctx); err != nil {
 		return err
@@ -185,19 +390,55 @@ func runMigrations(ctx context.Context, app *bunapp.App) error {
 	return nil
 }
 
-func serveVueApp(router *bunrouter.Router, fsys fs.FS) {
+func handleStaticFiles(router *bunrouter.Router, fsys fs.FS) {
 	httpFS := http.FS(fsys)
 	fileServer := http.FileServer(httpFS)
 
 	router.GET("/*path", func(w http.ResponseWriter, req bunrouter.Request) error {
 		if _, err := httpFS.Open(req.URL.Path); err == nil {
 			fileServer.ServeHTTP(w, req.Request)
-		} else {
+			return nil
+		}
+
+		if !strings.HasPrefix(req.URL.Path, "/api") {
 			req.URL.Path = "/"
 			fileServer.ServeHTTP(w, req.Request)
+			return nil
 		}
+
+		http.NotFound(w, req.Request)
 		return nil
 	})
+}
+
+type reloader struct {
+	name string
+	fn   func(*promconfig.Config) error
+}
+
+func reloadPromConfig(configFile string, reloaders []reloader) error {
+	configFile, err := filepath.Abs(configFile)
+	if err != nil {
+		return err
+	}
+
+	configBytes, err := os.ReadFile(configFile)
+	if err != nil {
+		return err
+	}
+
+	conf := new(promconfig.Config)
+
+	if err := yaml.Unmarshal(configBytes, conf); err != nil {
+		return err
+	}
+
+	for _, reloader := range reloaders {
+		if err := reloader.fn(conf); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
@@ -215,7 +456,7 @@ func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					db := app.CH()
+					db := app.CH
 					for i := 0; i < 30; i++ {
 						if err := db.Ping(ctx); err != nil {
 							app.Zap(ctx).Info("ClickHouse is down",
@@ -241,7 +482,7 @@ func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH, migrations)
 					return migrator.Init(ctx)
 				},
 			},
@@ -255,7 +496,7 @@ func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH, migrations)
 
 					group, err := migrator.Migrate(ctx)
 					if err != nil {
@@ -281,7 +522,7 @@ func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH, migrations)
 
 					group, err := migrator.Rollback(ctx)
 					if err != nil {
@@ -307,7 +548,7 @@ func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH, migrations)
 
 					if err := migrator.Init(ctx); err != nil {
 						return err
@@ -346,7 +587,7 @@ func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH, migrations)
 					return migrator.Lock(ctx)
 				},
 			},
@@ -360,7 +601,7 @@ func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH, migrations)
 					return migrator.Unlock(ctx)
 				},
 			},
@@ -374,7 +615,7 @@ func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH, migrations)
 
 					name := strings.Join(c.Args().Slice(), "_")
 					mf, err := migrator.CreateGoMigration(ctx, name)
@@ -396,7 +637,7 @@ func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH, migrations)
 
 					name := strings.Join(c.Args().Slice(), "_")
 					files, err := migrator.CreateSQLMigrations(ctx, name)
@@ -421,7 +662,7 @@ func newCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH(), migrations)
+					migrator := chmigrate.NewMigrator(app.CH, migrations)
 
 					ms, err := migrator.MigrationsWithStatus(ctx)
 					if err != nil {
@@ -455,10 +696,42 @@ func genSampleTrace() {
 
 	_, child1 := tracer.Start(ctx, "child1-of-main")
 	child1.SetAttributes(attribute.String("key1", "value1"))
-	child1.RecordError(errors.New("error1"))
+	child1.RecordError(errors.New("oh my error1"))
 	child1.End()
 
 	_, child2 := tracer.Start(ctx, "child2-of-main")
 	child2.SetAttributes(attribute.Int("key2", 42), attribute.Float64("key3", 123.456))
 	child2.End()
+}
+
+//------------------------------------------------------------------------------
+
+type sender interface {
+	Send(alerts ...*notifier.Alert)
+}
+
+// sendAlerts implements the rules.NotifyFunc for a Notifier.
+func sendAlerts(s sender, externalURL string) rules.NotifyFunc {
+	return func(ctx context.Context, expr string, alerts ...*rules.Alert) {
+		var res []*notifier.Alert
+
+		for _, alert := range alerts {
+			a := &notifier.Alert{
+				StartsAt:     alert.FiredAt,
+				Labels:       alert.Labels,
+				Annotations:  alert.Annotations,
+				GeneratorURL: externalURL + strutil.TableLinkForExpression(expr),
+			}
+			if !alert.ResolvedAt.IsZero() {
+				a.EndsAt = alert.ResolvedAt
+			} else {
+				a.EndsAt = alert.ValidUntil
+			}
+			res = append(res, a)
+		}
+
+		if len(alerts) > 0 {
+			s.Send(res...)
+		}
+	}
 }

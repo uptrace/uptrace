@@ -44,7 +44,7 @@ type Measure struct {
 }
 
 func InsertMeasures(ctx context.Context, app *bunapp.App, measures []*Measure) error {
-	_, err := app.CH().NewInsert().Model(&measures).Exec(ctx)
+	_, err := app.CH.NewInsert().Model(&measures).Exec(ctx)
 	return err
 }
 

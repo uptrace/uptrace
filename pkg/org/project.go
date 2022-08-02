@@ -6,12 +6,13 @@ import (
 	"fmt"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"go.uber.org/zap"
 )
 
 func SelectProjectByID(
 	ctx context.Context, app *bunapp.App, projectID uint32,
-) (*bunapp.Project, error) {
+) (*bunconf.Project, error) {
 	projects := app.Config().Projects
 	for i := range projects {
 		project := &projects[i]
@@ -24,7 +25,7 @@ func SelectProjectByID(
 
 func SelectProjectByDSN(
 	ctx context.Context, app *bunapp.App, dsnStr string,
-) (*bunapp.Project, error) {
+) (*bunconf.Project, error) {
 	dsn, err := ParseDSN(dsnStr)
 	if err != nil {
 		return nil, err
