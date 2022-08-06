@@ -1,10 +1,7 @@
 <template>
   <v-menu v-model="menu" offset-y :close-on-content-click="false">
     <template #activator="{ on, attrs }">
-      <v-btn text class="v-btn--filter" v-bind="attrs" v-on="on">
-        <span>Where</span>
-        <v-icon right class="ml-0">mdi-menu-down</v-icon>
-      </v-btn>
+      <v-btn text class="v-btn--filter" v-bind="attrs" v-on="on"> Where </v-btn>
     </template>
     <v-card class="pa-3">
       <v-row>
@@ -129,6 +126,7 @@
                 :axios-params="axiosParams"
                 :attr-key="attrKey"
                 :label="attrKey"
+                show-icon
                 @change="menu = false"
               />
             </div>

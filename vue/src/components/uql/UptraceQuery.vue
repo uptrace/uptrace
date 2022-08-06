@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-row no-gutters align="center" class="mb-n1">
+    <v-row no-gutters align="center" style="margin-bottom: 1px">
       <v-col>
         <div class="d-flex filters">
           <slot />
@@ -8,17 +8,12 @@
       </v-col>
 
       <v-col cols="auto">
-        <SpanQueryHelpDialog :uql="uql" class="mr-2" />
-      </v-col>
-      <v-col cols="auto">
-        <v-btn v-if="!uql.rawMode" icon title="Edit query" @click="uql.rawMode = true">
-          <v-icon size="22">mdi-pencil-outline</v-icon>
-        </v-btn>
+        <SpanQueryHelpDialog :uql="uql" />
       </v-col>
     </v-row>
 
     <template v-if="uql.rawMode">
-      <v-row align="center" dense>
+      <v-row align="center" no-gutters>
         <v-col>
           <v-textarea
             v-model="query"
@@ -48,7 +43,7 @@
       </v-row>
     </template>
 
-    <v-row v-else-if="!uql.parts.length" align="center" dense>
+    <v-row v-else-if="!uql.parts.length" no-gutters align="center">
       <v-col class="mb-1 px-3 text-body-2">
         <div v-if="disabled" class="text--disabled">The query is empty...</div>
         <div v-else class="text--secondary cursor-pointer" @click="uql.rawMode = true">
@@ -57,7 +52,7 @@
       </v-col>
     </v-row>
 
-    <v-row v-else align="center" dense>
+    <v-row v-else no-gutters align="center">
       <v-col class="d-flex flex-wrap align-start">
         <template v-for="(part, i) in uql.parts">
           <div v-if="i === partEditor.index" :key="i" class="mr-2 d-inline-block">
@@ -215,7 +210,8 @@ function usePartEditor(uql: UseUql) {
 
 <style lang="scss">
 .v-btn--filter {
-  padding: 0 10px !important;
+  height: 34px !important;
+  padding: 0 8px !important;
   color: map-get($grey, 'darken-2') !important;
   text-transform: none;
 }

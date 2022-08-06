@@ -1,25 +1,13 @@
 import { omit, cloneDeep, debounce } from 'lodash'
 import { Route } from 'vue-router'
-import {
-  getCurrentInstance,
-  shallowRef,
-  computed,
-  watch,
-  onBeforeMount,
-  onBeforeUnmount,
-} from 'vue'
+import { shallowRef, computed, watch, onBeforeMount, onBeforeUnmount } from 'vue'
 
+import router from '@/router'
 import { defineStore } from '@/use/store'
 
 export function useRouter() {
-  const vm = getCurrentInstance()
-  if (!vm) {
-    throw new Error('useRouter is called outside of setup')
-  }
-  const router = vm.proxy.$router
-
   const route = computed((): Route => {
-    return vm.proxy.$route
+    return router.app.$root.$route
   })
 
   return { router, route }
@@ -36,9 +24,11 @@ interface QueryItem {
 
 type OnRouteUpdatedHook = (route: Route) => void
 
-export const useQuery = defineStore(() => {
+export const useRouteQuery = defineStore(() => {
   const { router, route } = useRouter()
-  const lastRoute = shallowRef<Route>()
+
+  let isFreshRoute = false
+  const lastFreshRoute = shallowRef<Route>()
 
   const routeUpdatedHooks = shallowRef<OnRouteUpdatedHook[]>([])
   const items = shallowRef<QueryItem[]>([])
@@ -80,8 +70,13 @@ export const useQuery = defineStore(() => {
     ignoreNext = omit(route, 'matched') as Route
     ignoreNext.query = query
 
-    router.replace({ query, hash: route.hash }).catch(() => {})
-  }, 10)
+    if (isFreshRoute) {
+      isFreshRoute = false
+      router.replace({ query, hash: route.hash }).catch(() => {})
+    } else {
+      router.push({ query, hash: route.hash }).catch(() => {})
+    }
+  }, 100)
 
   function sync(item: QueryItem) {
     items.value.push(item)
@@ -101,8 +96,8 @@ export const useQuery = defineStore(() => {
 
     if (item.fromQuery) {
       onBeforeMount(() => {
-        if (lastRoute.value && item.fromQuery) {
-          item.fromQuery(lastRoute.value.query)
+        if (lastFreshRoute.value && item.fromQuery) {
+          item.fromQuery(lastFreshRoute.value.query)
         }
       })
     }
@@ -125,8 +120,8 @@ export const useQuery = defineStore(() => {
     })
 
     onBeforeMount(() => {
-      if (lastRoute.value) {
-        hook(lastRoute.value)
+      if (lastFreshRoute.value) {
+        hook(lastFreshRoute.value)
       }
     })
   }
@@ -151,7 +146,7 @@ export const useQuery = defineStore(() => {
         hook(route)
       }
 
-      lastRoute.value = route
+      lastFreshRoute.value = route
     },
     { immediate: true, flush: 'sync' },
   )
@@ -165,6 +160,7 @@ export const useQuery = defineStore(() => {
       if (ignoreNext && routeEqual(route, ignoreNext)) {
         return
       }
+      isFreshRoute = true
       updateQueryDebounced(route, query.value)
     },
     { flush: 'post' },
@@ -180,7 +176,7 @@ export const useQuery = defineStore(() => {
     { immediate: true, flush: 'post' },
   )
 
-  return { route: lastRoute, onRouteUpdated, sync }
+  return { route: lastFreshRoute, onRouteUpdated, sync }
 })
 
 function routeEqual(r1: Route, r2: Route): boolean {

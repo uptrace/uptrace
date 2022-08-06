@@ -2,8 +2,7 @@
   <v-menu v-model="menu" offset-y :close-on-content-click="false">
     <template #activator="{ on, attrs }">
       <v-btn text class="v-btn--filter" :disabled="disabled" v-bind="attrs" v-on="on">
-        <span>Group by</span>
-        <v-icon right class="ml-0">mdi-menu-down</v-icon>
+        Group by
       </v-btn>
     </template>
     <v-form ref="form" v-model="isValid" @submit.prevent="addFilter">

@@ -1,10 +1,7 @@
 <template>
   <v-menu v-model="menu" offset-y :close-on-content-click="false">
     <template #activator="{ on, attrs }">
-      <v-btn :disabled="disabled" text class="v-btn--filter" v-bind="attrs" v-on="on">
-        <span>Agg</span>
-        <v-icon right class="ml-0">mdi-menu-down</v-icon>
-      </v-btn>
+      <v-btn :disabled="disabled" text class="v-btn--filter" v-bind="attrs" v-on="on"> Agg </v-btn>
     </template>
     <v-form ref="form" v-model="isValid" @submit.prevent="addFilter">
       <v-card width="400px">

@@ -2,7 +2,7 @@ import { min, addMilliseconds, subMilliseconds, differenceInMilliseconds } from 
 import { ref, computed, proxyRefs } from 'vue'
 
 // Composables
-import { useQuery } from '@/use/router'
+import { useRouteQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 
 // Utilities
@@ -102,14 +102,9 @@ export function useDateRange() {
 
   function change(gteVal: Date, ltVal: Date) {
     const durVal = ltVal.getTime() - gteVal.getTime()
-
-    if (lt.value && lt.value.getTime() === ltVal.getTime() && duration.value === durVal) {
-      return
-    }
-
-    resetNow()
     lt.value = ltVal
     duration.value = durVal
+    resetNow()
   }
 
   function changeDuration(ms: number): void {
@@ -251,7 +246,7 @@ export function useDateRange() {
   }
 
   function syncQuery() {
-    useQuery().sync({
+    useRouteQuery().sync({
       fromQuery(q) {
         parseQueryParams(q)
       },

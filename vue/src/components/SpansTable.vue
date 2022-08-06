@@ -78,7 +78,7 @@
 import { defineComponent, shallowRef, nextTick, proxyRefs, PropType } from 'vue'
 
 // Composables
-import { useQuery } from '@/use/router'
+import { useRouteQuery } from '@/use/router'
 import { UsePager } from '@/use/pager'
 import { UseOrder } from '@/use/order'
 import { UseDateRange } from '@/use/date-range'
@@ -148,7 +148,7 @@ export default defineComponent({
 
     const dialog = useDialog()
 
-    useQuery().onRouteUpdated(() => {
+    useRouteQuery().onRouteUpdated(() => {
       dialog.close()
     })
 

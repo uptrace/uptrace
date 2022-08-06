@@ -56,7 +56,7 @@
 import { defineComponent, shallowRef, PropType } from 'vue'
 
 // Composables
-import { useRouter, useQuery } from '@/use/router'
+import { useRouter, useRouteQuery } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/use/systems'
 import { useLogql } from '@/components/loki/logql'
@@ -111,7 +111,7 @@ export default defineComponent({
       }
     })
 
-    useQuery().sync({
+    useRouteQuery().sync({
       fromQuery(routerQuery) {
         if (typeof routerQuery.logql === 'string') {
           query.value = routerQuery.logql

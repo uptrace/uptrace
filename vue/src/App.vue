@@ -131,7 +131,7 @@
 import { defineComponent, shallowRef } from 'vue'
 
 // Composables
-import { useRouter, useQuery } from '@/use/router'
+import { useRouter, useRouteQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 import { useDateRange } from '@/use/date-range'
 import { useUser } from '@/use/org'
@@ -147,7 +147,7 @@ export default defineComponent({
   components: { UptraceLogoLarge, UptraceLogoSmall, ProjectPicker, XSnackbar },
 
   setup() {
-    useQuery()
+    useRouteQuery()
     useForceReload()
     const dateRange = useDateRange()
 

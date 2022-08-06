@@ -1,10 +1,7 @@
 <template>
   <v-menu v-model="menu" offset-y :close-on-content-click="false">
     <template #activator="{ on, attrs }">
-      <v-btn text class="v-btn--filter" v-bind="attrs" v-on="on">
-        <span>Search</span>
-        <v-icon right class="ml-0">mdi-menu-down</v-icon>
-      </v-btn>
+      <v-btn text class="v-btn--filter" v-bind="attrs" v-on="on"> Search </v-btn>
     </template>
     <v-form @submit.prevent="addFilter">
       <v-card width="550">

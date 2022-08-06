@@ -1,7 +1,7 @@
 import { shallowRef, reactive, computed, proxyRefs } from 'vue'
 
 // Composables
-import { useRouter, useQuery } from '@/use/router'
+import { useRouteQuery } from '@/use/router'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
@@ -33,7 +33,6 @@ export type UseUql = ReturnType<typeof useUql>
 export function useUql(cfg: UqlConfig = {}) {
   const paramName = cfg.paramName ?? 'query'
 
-  const { router, route } = useRouter()
   const rawMode = shallowRef(false)
   const parts = shallowRef<Part[]>([])
 
@@ -49,7 +48,7 @@ export function useUql(cfg: UqlConfig = {}) {
   query.value = cfg.query ?? ''
 
   if (cfg.syncQuery) {
-    useQuery().sync({
+    useRouteQuery().sync({
       fromQuery(params) {
         if (params[paramName]) {
           query.value = params[paramName]
@@ -102,19 +101,7 @@ export function useUql(cfg: UqlConfig = {}) {
   }
 
   function commitEdits(editor: UqlEditor) {
-    if (!cfg.syncQuery) {
-      query.value = editor.toString()
-      return
-    }
-
-    router
-      .push({
-        query: {
-          ...route.value.query,
-          [paramName]: editor.toString(),
-        },
-      })
-      .catch(() => {})
+    query.value = editor.toString()
   }
 
   return proxyRefs({
