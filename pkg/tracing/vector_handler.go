@@ -84,7 +84,7 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 }
 
 func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, vector xotel.AttrMap) {
-	// Can be overriden later with the information parsed from the log message.
+	// Can be overridden later with the information parsed from the log message.
 	span.ID = rand.Uint64()
 
 	span.Kind = InternalSpanKind
