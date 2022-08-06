@@ -3,7 +3,7 @@
     <template #activator="{ on, attrs }">
       <v-btn text class="v-btn--filter" v-bind="attrs" v-on="on">
         <span>{{ label }}</span>
-        <v-icon right class="ml-0">mdi-menu-down</v-icon>
+        <v-icon v-if="showIcon" right class="ml-0">mdi-menu-down</v-icon>
       </v-btn>
     </template>
 
@@ -65,6 +65,10 @@ export default defineComponent({
     label: {
       type: String,
       required: true,
+    },
+    showIcon: {
+      type: Boolean,
+      default: false,
     },
   },
 

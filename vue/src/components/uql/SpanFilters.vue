@@ -26,6 +26,7 @@
 
     <v-divider vertical class="mx-2" />
     <v-btn text class="v-btn--filter" @click="$emit('click:reset')">Reset</v-btn>
+    <v-btn text class="v-btn--filter" @click="uql.rawMode = true">Edit</v-btn>
   </div>
 </template>
 

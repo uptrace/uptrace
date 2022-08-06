@@ -1,6 +1,6 @@
 <template>
   <XPlaceholder>
-    <UptraceQuery :uql="uql" class="mb-1">
+    <UptraceQuery :uql="uql" class="mt-1 mb-3">
       <SpanFilters
         :uql="uql"
         :systems="systems"

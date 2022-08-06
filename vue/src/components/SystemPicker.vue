@@ -20,7 +20,7 @@
 import { defineComponent, shallowRef, computed, watchEffect, PropType } from 'vue'
 
 // Composables
-import { useQuery } from '@/use/router'
+import { useRouteQuery } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { buildSystemsTree, UseSystems, System } from '@/use/systems'
 
@@ -72,7 +72,7 @@ export default defineComponent({
       return tree
     })
 
-    useQuery().sync({
+    useRouteQuery().sync({
       fromQuery(query) {
         if (typeof query.system === 'string') {
           props.systems.change(query.system)

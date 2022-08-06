@@ -1,6 +1,6 @@
 import { shallowRef, computed, proxyRefs, watch } from 'vue'
 
-import { useQuery } from '@/use/router'
+import { useRouteQuery } from '@/use/router'
 
 export interface Order {
   column: string
@@ -40,7 +40,7 @@ export function useOrder(cfg: OrderConfig = {}) {
   )
 
   if (cfg.syncQuery) {
-    useQuery().sync({
+    useRouteQuery().sync({
       fromQuery(query) {
         const { sort_by, sort_dir } = query
         if (sort_by) {
