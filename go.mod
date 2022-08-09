@@ -11,7 +11,6 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-kit/kit v0.12.0
 	github.com/gogo/protobuf v1.3.2
-	github.com/grafana/regexp v0.0.0-20220304095617-2e8d9baf4ac2
 	github.com/klauspost/compress v1.15.9
 	github.com/mileusna/useragent v1.1.0
 	github.com/mostynb/go-grpc-compression v1.1.16
@@ -20,9 +19,9 @@ require (
 	github.com/rs/cors v1.8.2
 	github.com/segmentio/encoding v0.3.5
 	github.com/stretchr/testify v1.8.0
-	github.com/uptrace/bunrouter v1.0.17
-	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.17
-	github.com/uptrace/bunrouter/extra/reqlog v1.0.17
+	github.com/uptrace/bunrouter v1.0.18
+	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.18
+	github.com/uptrace/bunrouter/extra/reqlog v1.0.18
 	github.com/uptrace/go-clickhouse v0.2.9-0.20220728135733-2683bc477fd6
 	github.com/uptrace/go-clickhouse/chdebug v0.2.9-0.20220728135733-2683bc477fd6
 	github.com/uptrace/go-clickhouse/chotel v0.2.9-0.20220728135733-2683bc477fd6
@@ -34,10 +33,10 @@ require (
 	github.com/zyedidia/generic v1.1.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.33.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.33.0
-	go.opentelemetry.io/otel v1.8.0
+	go.opentelemetry.io/otel v1.9.0
 	go.opentelemetry.io/otel/metric v0.31.0
 	go.opentelemetry.io/otel/sdk/metric v0.31.0
-	go.opentelemetry.io/otel/trace v1.8.0
+	go.opentelemetry.io/otel/trace v1.9.0
 	go.opentelemetry.io/proto/otlp v0.18.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
@@ -76,19 +75,16 @@ require (
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/grafana/regexp v0.0.0-20220304095617-2e8d9baf4ac2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/julienschmidt/httprouter v1.3.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
@@ -118,12 +114,9 @@ require (
 	golang.org/x/net v0.0.0-20220708220712-1185a9018129 // indirect
 	golang.org/x/oauth2 v0.0.0-20220718184931-c8730f7fcb92 // indirect
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
-	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
+	golang.org/x/sys v0.0.0-20220808155132-1c4a2a72c664 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	k8s.io/klog/v2 v2.70.0 // indirect
-	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect
 )
 
 require (
@@ -137,5 +130,4 @@ require (
 	github.com/prometheus/prometheus v0.37.0
 	github.com/segmentio/asm v1.2.0 // indirect
 	google.golang.org/genproto v0.0.0-20220720214146-176da50484ac // indirect
-	k8s.io/apimachinery v0.24.2
 )

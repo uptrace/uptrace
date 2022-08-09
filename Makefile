@@ -11,6 +11,10 @@ uptrace-vue:
 gomoddownload:
 	go mod download
 
+.PHONY: go_mod_tidy
+go_mod_tidy:
+	rm -f go.sum && go mod tidy -go=1.16 && go mod tidy -go=1.18
+
 .PHONY: uptrace
 uptrace:
 	GO111MODULE=on CGO_ENABLED=0 go build -trimpath -o ./bin/uptrace_$(GOOS)_$(GOARCH)$(EXTENSION) \
