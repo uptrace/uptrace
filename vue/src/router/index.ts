@@ -20,7 +20,6 @@ import SystemGroupList from '@/components/SystemGroupList.vue'
 import Tracing from '@/views/Tracing.vue'
 import GroupList from '@/views/GroupList.vue'
 import SpanList from '@/views/SpanList.vue'
-import LokiLogs from '@/views/LokiLogs.vue'
 
 import TraceShow from '@/views/TraceShow.vue'
 import TraceFind from '@/views/TraceFind.vue'
@@ -183,11 +182,6 @@ const routes: RouteConfig[] = [
         name: 'LogGroupList',
         path: 'groups',
         component: GroupList,
-      },
-      {
-        name: 'LokiLogs',
-        path: 'logql',
-        component: LokiLogs,
       },
     ],
   },
