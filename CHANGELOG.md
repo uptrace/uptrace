@@ -31,8 +31,6 @@ ch:
 
 - Added support for accepting Zipkin spans at `http://uptrace:14318/api/v2/spans`.
 - Added support for accepting Vector logs. See the [example](example/vector-logs).
-- Uptrace can be integrated to work together with Grafana Loki or cLoki
-  [docs](https://uptrace.dev/get/grafana.html)
 - Uptrace can be used as a Tempo data source in Grafana [docs](https://uptrace.dev/get/grafana.html)
 - Added "Slowest groups" to the Overview tab
 - Added new config option `ch_schema.compression`. You can now set ClickHouse compression via

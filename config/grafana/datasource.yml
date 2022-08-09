@@ -1,16 +1,6 @@
 apiVersion: 1
 
 datasources:
-  - name: Uptrace cLoki Project 1
-    type: loki
-    access: proxy
-    url: http://host.docker.internal:14318
-    editable: true
-    jsonData:
-      httpHeaderName1: 'uptrace-dsn'
-    secureJsonData:
-      httpHeaderValue1: 'http://project1_secret_token@localhost:14317/1'
-
   - name: Uptrace Tempo Project 1
     type: tempo
     access: proxy

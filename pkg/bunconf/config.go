@@ -167,10 +167,6 @@ type Config struct {
 		Config      string `yaml:"config"`
 		ExternalURL string `yaml:"externalUrl"`
 	} `yaml:"prometheus"`
-
-	Loki struct {
-		Addr string `yaml:"addr"`
-	} `yaml:"loki"`
 }
 
 type User struct {

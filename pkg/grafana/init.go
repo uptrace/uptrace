@@ -5,7 +5,6 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/tracing"
 )
 
 const (
@@ -36,31 +35,4 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 		g.GET("/api/search/tag/:tag/values", tempoHandler.TagValues)
 		g.GET("/api/search", tempoHandler.Search)
 	})
-
-	router.WithGroup("", func(g *bunrouter.Group) {
-		lokiProxyHandler := NewLokiProxyHandler(app, tracing.GlobalSpanProcessor(app))
-
-		g.GET("/ready", lokiProxyHandler.Ready)
-
-		g.Use(lokiProxyHandler.CheckProjectAccess).
-			WithGroup("/loki/api", func(g *bunrouter.Group) {
-				registerLokiProxy(g, lokiProxyHandler)
-			})
-
-		g.Use(lokiProxyHandler.CheckProjectAccess).
-			Use(lokiProxyHandler.trimProjectID).
-			WithGroup("/:project_id/loki/api", func(g *bunrouter.Group) {
-				registerLokiProxy(g, lokiProxyHandler)
-			})
-	})
-}
-
-func registerLokiProxy(g *bunrouter.Group, lokiProxyHandler *LokiProxyHandler) {
-	g.GET("/v1/tail", lokiProxyHandler.ProxyWS)
-	g.POST("/v1/push", lokiProxyHandler.Push)
-
-	g.GET("/*path", lokiProxyHandler.Proxy)
-	g.POST("/*path", lokiProxyHandler.Proxy)
-	g.PUT("/*path", lokiProxyHandler.Proxy)
-	g.DELETE("/*path", lokiProxyHandler.Proxy)
 }

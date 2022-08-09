@@ -23,7 +23,6 @@
               <v-tab :to="routes.spanList" exact-path>{{
                 spanListRoute == 'SpanList' ? 'Spans' : 'Logs'
               }}</v-tab>
-              <v-tab v-if="showLogql && user.hasLoki" :to="routes.lokiLogs" exact-path>LogQL</v-tab>
             </v-tabs>
           </v-col>
         </v-row>
@@ -92,10 +91,6 @@ export default defineComponent({
       type: Function as PropType<SystemsFilter>,
       default: undefined,
     },
-    showLogql: {
-      type: Boolean,
-      default: false,
-    },
   },
 
   setup(props) {
@@ -143,17 +138,9 @@ function useRoutes(props: Props) {
     }
   })
 
-  const lokiLogs = computed(() => {
-    return {
-      name: 'LokiLogs',
-      query: route.value.query,
-    }
-  })
-
   return proxyRefs({
     groupList,
     spanList,
-    lokiLogs,
   })
 }
 </script>

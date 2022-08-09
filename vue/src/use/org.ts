@@ -31,10 +31,6 @@ export const useUser = defineStore(() => {
     return data.value?.projects ?? []
   })
 
-  const hasLoki = computed((): boolean => {
-    return data.value?.hasLoki ?? false
-  })
-
   let req: Promise<any>
 
   getOrLoad()
@@ -64,7 +60,6 @@ export const useUser = defineStore(() => {
     current: user,
     isAuth,
     projects,
-    hasLoki,
 
     reload,
     getOrLoad,

@@ -32,7 +32,6 @@ func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) erro
 	return httputil.JSON(w, bunrouter.H{
 		"user":     user,
 		"projects": cfg.Projects,
-		"hasLoki":  cfg.Loki.Addr != "",
 	})
 }
 

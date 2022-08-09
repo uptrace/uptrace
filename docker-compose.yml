@@ -31,27 +31,6 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
-  loki:
-    image: qxip/cloki:latest
-    restart: on-failure
-    environment:
-      CLICKHOUSE_SERVER: clickhouse
-      CLICKHOUSE_DB: uptrace
-    depends_on:
-      clickhouse:
-        condition: service_healthy
-    ports:
-      - '3100:3100' # UI and HTTP API
-
-  #  promtail:
-  #    image: grafana/promtail:2.5.0
-  #    volumes:
-  #      - ./config/promtail/config.yml:/etc/promtail/config.yml
-  #      - /var/log:/var/log
-  #    command: -config.file=/etc/promtail/config.yml
-  #    extra_hosts:
-  #      - 'host.docker.internal:host-gateway'
-
   alertmanager:
     image: prom/alertmanager:v0.24.0
     restart: on-failure

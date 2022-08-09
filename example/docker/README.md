@@ -42,7 +42,6 @@ allows you to:
 
 - View metrics using Prometheus data source.
 - View traces using Tempo data source.
-- View logs using Loki data source.
 
 See [Uptrace Grafana](https://uptrace.dev/get/grafana.html) documentation for details.
 
