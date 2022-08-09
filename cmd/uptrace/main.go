@@ -39,7 +39,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/run"
 	"gopkg.in/yaml.v2"
 
-	//_ "github.com/uptrace/uptrace/pkg/grafana"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/tracing"
