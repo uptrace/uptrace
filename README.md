@@ -17,8 +17,8 @@ uses OpenTelelemetry to collect data and ClickHouse database to store it.
 - OpenTelemetry [tracing](https://uptrace.dev/opentelemetry/distributed-tracing.html),
   [metrics](https://uptrace.dev/opentelemetry/metrics.html), and logs.
 - Prometheus-like API to retrieve metrics.
-- [Grafana](https://uptrace.dev/get/grafana.html) integration, for example, you can use Uptrace as a
-  Grafana data source to view metrics.
+- [Grafana](https://uptrace.dev/get/opentelemetry-metrics-grafana.html) integration to browse
+  OpenTelemetry Metrics.
 - Email/Slack notifications using Prometheus AlertManager.
 - Span/Trace grouping.
 - SQL-like query language.

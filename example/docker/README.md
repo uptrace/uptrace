@@ -38,9 +38,8 @@ To configure OpenTelemetry for your programming language, see
 ## Grafana
 
 This example comes with a pre-configured Grafana on http://localhost:3000 (`admin:admin`) that
-allows you to view metrics using Prometheus data source.
-
-See [Uptrace Grafana](https://uptrace.dev/get/grafana.html) documentation for details.
+allows you to view metrics using
+[Prometheus data source](http://localhost:8080/get/opentelemetry-metrics-grafana.html#prometheus-data-source).
 
 ## ClickHouse and OpenTelemetry
 
