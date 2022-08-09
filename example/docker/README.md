@@ -38,10 +38,7 @@ To configure OpenTelemetry for your programming language, see
 ## Grafana
 
 This example comes with a pre-configured Grafana on http://localhost:3000 (`admin:admin`) that
-allows you to:
-
-- View metrics using Prometheus data source.
-- View traces using Tempo data source.
+allows you to view metrics using Prometheus data source.
 
 See [Uptrace Grafana](https://uptrace.dev/get/grafana.html) documentation for details.
 
