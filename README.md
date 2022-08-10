@@ -16,16 +16,14 @@ uses OpenTelelemetry to collect data and ClickHouse database to store it.
 
 - OpenTelemetry [tracing](https://uptrace.dev/opentelemetry/distributed-tracing.html),
   [metrics](https://uptrace.dev/opentelemetry/metrics.html), and logs.
-- Prometheus-like API to retrieve metrics.
 - [Grafana](https://uptrace.dev/get/opentelemetry-metrics-grafana.html) integration to browse
-  OpenTelemetry Metrics.
+  [OpenTelemetry Metrics](https://uptrace.dev/opentelemetry/metrics.html).
 - Email/Slack notifications using Prometheus AlertManager.
 - Span/Trace grouping.
 - SQL-like query language.
 - Charts and Percentiles.
 - Systems, services, and hostnames dashboards.
 - Multiple users/projects via YAML config.
-- Sampling/adjusted counts support.
 
 **Ingestion**:
 
@@ -66,6 +64,10 @@ BSL [here](https://mariadb.com/bsl-faq-adopting/).
 
 **Is the database schema stable?**
 
-No, we are still making changes to the database schema and hoping to switch to
+Yes, but we are still making changes to the database schema and plan to switch to
 [ClickHouse dynamic subcolumns](https://github.com/ClickHouse/ClickHouse/pull/23932) when that
 feature is stable enough.
+
+## Contributing
+
+See [Contributing to Uptrace](https://uptrace.dev/get/contributing.html).
