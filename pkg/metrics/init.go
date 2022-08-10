@@ -8,7 +8,9 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/httperror"
+	"go.opentelemetry.io/otel/metric/instrument"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 )
 
@@ -18,6 +20,11 @@ const (
 )
 
 var jsonMarshaler = &jsonpb.Marshaler{}
+
+var metricCounter, _ = bunotel.Meter.SyncInt64().UpDownCounter(
+	"uptrace.projects.metrics",
+	instrument.WithDescription("Number of processed metrics"),
+)
 
 func Init(ctx context.Context, app *bunapp.App) {
 	initGRPC(ctx, app)
