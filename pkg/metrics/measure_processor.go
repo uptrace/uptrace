@@ -13,6 +13,7 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
+	"github.com/uptrace/uptrace/pkg/bunotel"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
 	"golang.org/x/exp/slices"
@@ -79,6 +80,12 @@ loop:
 			}
 
 			measures = append(measures, measure)
+			metricCounter.Add(
+				ctx,
+				1,
+				bunotel.ProjectID.Int64(int64(measure.ProjectID)),
+			)
+
 			if len(measures) == s.batchSize {
 				s.flushMeasures(ctx, measures)
 				measures = make([]*Measure, 0, len(measures))
@@ -238,13 +245,13 @@ func (s *MeasureProcessor) convertExpHistogramPoint(
 }
 
 func (s *MeasureProcessor) flushMeasures(ctx context.Context, measures []*Measure) {
-	ctx, measure := bunapp.Tracer.Start(ctx, "flush-measures")
+	ctx, span := bunotel.Tracer.Start(ctx, "flush-measures")
 
 	s.WaitGroup().Add(1)
 	s.gate.Start()
 
 	go func() {
-		defer measure.End()
+		defer span.End()
 		defer s.gate.Done()
 		defer s.WaitGroup().Done()
 

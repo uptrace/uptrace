@@ -12,8 +12,8 @@ import (
 	"github.com/prometheus/prometheus/notifier"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
-	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
 )
@@ -93,7 +93,7 @@ loop:
 }
 
 func (s *SpanProcessor) flushSpans(ctx context.Context, spans []*Span) {
-	ctx, span := bunapp.Tracer.Start(ctx, "flush-spans")
+	ctx, span := bunotel.Tracer.Start(ctx, "flush-spans")
 
 	s.WaitGroup().Add(1)
 	s.gate.Start()
@@ -117,11 +117,7 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 	spanCtx := newSpanContext(ctx)
 	for _, span := range spans {
 		initSpan(spanCtx, span)
-		spanCounter.Add(
-			ctx,
-			int64(len(spans)),
-			attribute.Int64("project_id", int64(span.ProjectID)),
-		)
+		spanCounter.Add(ctx, 1, bunotel.ProjectID.Int64(int64(span.ProjectID)))
 
 		indexedSpans = append(indexedSpans, SpanIndex{})
 		index := &indexedSpans[len(indexedSpans)-1]
@@ -135,8 +131,7 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 
 		for _, eventSpan := range span.Events {
 			initSpanEvent(spanCtx, eventSpan, span)
-			spanCounter.Add(ctx, int64(len(spans)),
-				attribute.Int64("project_id", int64(span.ProjectID)))
+			spanCounter.Add(ctx, 1, bunotel.ProjectID.Int64(int64(span.ProjectID)))
 
 			indexedSpans = append(indexedSpans, SpanIndex{})
 			initSpanIndex(&indexedSpans[len(indexedSpans)-1], eventSpan)

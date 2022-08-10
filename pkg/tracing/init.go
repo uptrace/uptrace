@@ -6,6 +6,7 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/metric/instrument"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
@@ -16,7 +17,7 @@ const (
 	jsonContentType     = "application/json"
 )
 
-var spanCounter, _ = bunapp.Meter.SyncInt64().UpDownCounter(
+var spanCounter, _ = bunotel.Meter.SyncInt64().UpDownCounter(
 	"uptrace.projects.spans",
 	instrument.WithDescription("Number of processed spans"),
 )
