@@ -146,13 +146,13 @@ import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseOrder } from '@/use/order'
 import { UseSystems } from '@/use/systems'
-import { ExploreItem, ColumnInfo } from '@/use/span-explore'
+import { ExploreItem, ColumnInfo } from '@/tracing/use-span-explore'
 import { createUqlEditor, UseUql } from '@/use/uql'
 
 // Components
 import ThOrder from '@/components/ThOrder.vue'
-import LoadGroupSparkline from '@/components/LoadGroupSparkline.vue'
-import SpanListInline from '@/components/SpanListInline.vue'
+import LoadGroupSparkline from '@/tracing/LoadGroupSparkline.vue'
+import SpanListInline from '@/tracing/SpanListInline.vue'
 
 // Utilities
 import { xkey, isEventSystem, isDummySystem } from '@/models/otelattr'

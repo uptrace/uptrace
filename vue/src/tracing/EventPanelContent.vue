@@ -25,7 +25,7 @@
 
     <v-row>
       <v-col>
-        <AttrTable :date-range="dateRange" :span="event" />
+        <AttrsTable :date-range="dateRange" :span="event" />
       </v-col>
     </v-row>
   </div>
@@ -41,7 +41,7 @@ import { usePercentiles } from '@/use/percentiles'
 
 // Components
 import PctileChart from '@/components/PctileChart.vue'
-import AttrTable from '@/components/AttrTable.vue'
+import AttrsTable from '@/tracing/AttrsTable.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
@@ -49,7 +49,7 @@ import { Span } from '@/models/span'
 
 export default defineComponent({
   name: 'EventPanelContent',
-  components: { PctileChart, AttrTable },
+  components: { PctileChart, AttrsTable },
 
   props: {
     dateRange: {

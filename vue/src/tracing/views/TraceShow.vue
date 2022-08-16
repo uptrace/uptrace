@@ -89,13 +89,13 @@ import { defineComponent, computed, watch, proxyRefs } from 'vue'
 // Components
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 import SystemBarChart from '@/components/SystemBarChart.vue'
-import TraceTabs from '@/components/TraceTabs.vue'
-import TraceError from '@/components/TraceError.vue'
+import TraceTabs from '@/tracing/TraceTabs.vue'
+import TraceError from '@/tracing/TraceError.vue'
 
 // Composables
 import { useTitle } from '@vueuse/core'
 import { useDateRange, UseDateRange } from '@/use/date-range'
-import { useTrace, UseTrace } from '@/use/trace'
+import { useTrace, UseTrace } from '@/tracing/use-trace'
 
 // Utilities
 import { xkey } from '@/models/otelattr'

@@ -50,10 +50,10 @@ import { Span } from '@/models/span'
 import { UseDateRange } from '@/use/date-range'
 
 // Components
-import KeyValueFilterLink from '@/components/KeyValueFilterLink.vue'
+import KeyValueFilterLink from '@/tracing/KeyValueFilterLink.vue'
 
 export default defineComponent({
-  name: 'AttrTable',
+  name: 'AttrsTable',
   components: { KeyValueFilterLink },
 
   props: {

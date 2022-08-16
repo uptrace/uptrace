@@ -21,7 +21,7 @@ import { defineComponent, watch } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'
-import { useTraceSearch } from '@/use/trace-search'
+import { useTraceSearch } from '@/tracing/use-trace-search'
 
 export default defineComponent({
   name: 'TraceFind',

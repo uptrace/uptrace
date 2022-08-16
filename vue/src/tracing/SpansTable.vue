@@ -85,8 +85,8 @@ import { UseDateRange } from '@/use/date-range'
 
 // Components
 import ThOrder from '@/components/ThOrder.vue'
-import SpanCard from '@/components/SpanCard.vue'
-import SpanChips from '@/components/SpanChips.vue'
+import SpanCard from '@/tracing/SpanCard.vue'
+import SpanChips from '@/tracing/SpanChips.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'

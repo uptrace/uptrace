@@ -92,7 +92,7 @@
 
             <v-tabs-items v-model="activeTab">
               <v-tab-item value="attrs" class="pa-4">
-                <AttrTable :date-range="dateRange" :span="span" />
+                <AttrsTable :date-range="dateRange" :span="span" />
               </v-tab-item>
 
               <v-tab-item value="dbStatement">
@@ -131,10 +131,10 @@ import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 
 // Components
-import LoadPctileChart from '@/components/LoadPctileChart.vue'
-import AttrTable from '@/components/AttrTable.vue'
-import EventPanels from '@/components/EventPanels.vue'
 import FixedDatePeriodPicker from '@/components/FixedDatePeriodPicker.vue'
+import LoadPctileChart from '@/components/LoadPctileChart.vue'
+import AttrsTable from '@/tracing/AttrsTable.vue'
+import EventPanels from '@/tracing/EventPanels.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
@@ -150,7 +150,7 @@ export default defineComponent({
   name: 'SpanCard',
   components: {
     FixedDatePeriodPicker,
-    AttrTable,
+    AttrsTable,
     EventPanels,
     LoadPctileChart,
   },

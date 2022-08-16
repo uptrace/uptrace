@@ -24,11 +24,11 @@ import { defineComponent, computed, watch, PropType } from 'vue'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseUql } from '@/use/uql'
-import { useSpans } from '@/use/spans'
+import { useSpans } from '@/tracing/use-spans'
 
 // Components
-import SpansTable from '@/components/SpansTable.vue'
-import { SpanChip } from '@/components/SpanChips.vue'
+import SpansTable from '@/tracing/SpansTable.vue'
+import { SpanChip } from '@/tracing/SpanChips.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'

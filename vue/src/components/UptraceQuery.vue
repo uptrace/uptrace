@@ -102,8 +102,8 @@ import { defineComponent, shallowRef, computed, watch, proxyRefs, PropType } fro
 import { createPart, Part, UseUql } from '@/use/uql'
 
 // Components
-import SpanQueryHelpDialog from '@/components/SpanQueryHelpDialog.vue'
 import UptraceQueryChip from '@/components/UptraceQueryChip.vue'
+import SpanQueryHelpDialog from '@/tracing/SpanQueryHelpDialog.vue'
 
 export default defineComponent({
   name: 'UptraceQuery',

@@ -26,8 +26,8 @@ import { UseTrace } from '@/use/trace'
 import { UseDateRange } from '@/use/date-range'
 
 // Components
-import TraceTimeline from '@/components/TraceTimeline.vue'
-import EventPanels from '@/components/EventPanels.vue'
+import TraceTimeline from '@/tracing/TraceTimeline.vue'
+import EventPanels from '@/tracing/EventPanels.vue'
 
 export default defineComponent({
   name: 'TraceTabs',

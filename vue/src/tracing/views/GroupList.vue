@@ -92,12 +92,12 @@ import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/use/systems'
 import { useUql } from '@/use/uql'
-import { useSpanExplore } from '@/use/span-explore'
+import { useSpanExplore } from '@/tracing/use-span-explore'
 
 // Components
-import UptraceQuery from '@/components/uql/UptraceQuery.vue'
-import SpanFilters from '@/components/uql/SpanFilters.vue'
-import GroupsTable from '@/components/GroupsTable.vue'
+import UptraceQuery from '@/components/UptraceQuery.vue'
+import SpanFilters from '@/tracing/uql/SpanFilters.vue'
+import GroupsTable from '@/tracing/GroupsTable.vue'
 
 export default defineComponent({
   name: 'GroupList',
