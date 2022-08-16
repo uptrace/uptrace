@@ -11,7 +11,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing/otlpconv"
+	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -96,7 +96,7 @@ func (s *TraceServiceServer) process(
 	}
 
 	for _, rss := range resourceSpans {
-		resource := otlpconv.Attrs(rss.Resource.Attributes)
+		resource := AttrMap(otlpconv.Map(rss.Resource.Attributes))
 
 		for _, ss := range rss.ScopeSpans {
 			lib := ss.Scope

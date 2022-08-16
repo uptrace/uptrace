@@ -29,14 +29,18 @@ func max[T constraints.Ordered](a, b T) T {
 
 //------------------------------------------------------------------------------
 
-func cleanPromName(s string) string {
-	if isValidPromName(s) {
+func cleanAttrKey(s string) string {
+	return cleanMetricName(s)
+}
+
+func cleanMetricName(s string) string {
+	if isValidMetricName(s) {
 		return s
 	}
 
 	r := make([]byte, 0, len(s))
 	for _, c := range []byte(s) {
-		if isAllowedPromNameChar(c) {
+		if isAllowedMetricNameChar(c) {
 			r = append(r, c)
 		} else {
 			r = append(r, '_')
@@ -45,17 +49,17 @@ func cleanPromName(s string) string {
 	return unsafeconv.String(r)
 }
 
-func isValidPromName(s string) bool {
+func isValidMetricName(s string) bool {
 	for _, c := range []byte(s) {
-		if !isAllowedPromNameChar(c) {
+		if !isAllowedMetricNameChar(c) {
 			return false
 		}
 	}
 	return true
 }
 
-func isAllowedPromNameChar(c byte) bool {
-	return isAlpha(c) || isDigit(c) || c == '_'
+func isAllowedMetricNameChar(c byte) bool {
+	return isAlpha(c) || isDigit(c) || c == '_' || c == '.'
 }
 
 func isDigit(c byte) bool {

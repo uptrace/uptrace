@@ -6,6 +6,7 @@ CREATE TABLE ?DB.measure_minutes ?ON_CLUSTER (
 
   instrument LowCardinality(String) Codec(?CODEC),
   sum SimpleAggregateFunction(sumWithOverflow, Float32) Codec(?CODEC),
+  count SimpleAggregateFunction(sum, UInt64) Codec(T64, ?CODEC),
   value SimpleAggregateFunction(anyLast, Float32) Codec(?CODEC),
   histogram AggregateFunction(quantilesBFloat16(0.5, 0.9, 0.99), Float32) Codec(?CODEC),
 
@@ -33,6 +34,7 @@ CREATE TABLE ?DB.measure_hours ?ON_CLUSTER (
 
   instrument LowCardinality(String) Codec(?CODEC),
   sum SimpleAggregateFunction(sumWithOverflow, Float32) Codec(?CODEC),
+  count SimpleAggregateFunction(sum, UInt64) Codec(T64, ?CODEC),
   value SimpleAggregateFunction(anyLast, Float32) Codec(?CODEC),
   histogram AggregateFunction(quantilesBFloat16(0.5, 0.9, 0.99), Float32) Codec(?CODEC),
 
@@ -57,6 +59,7 @@ AS SELECT
 
   anyLast(instrument) AS instrument,
   sumWithOverflow(sum) AS sum,
+  sum(count) AS count,
   anyLast(value) AS value,
   quantilesBFloat16MergeState(0.5, 0.9, 0.99)(histogram) AS histogram,
 

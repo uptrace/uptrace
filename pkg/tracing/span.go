@@ -9,7 +9,6 @@ import (
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
-	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap"
@@ -51,9 +50,9 @@ type Span struct {
 	StatusCode    string `json:"statusCode" ch:"span.status_code,lc"`
 	StatusMessage string `json:"statusMessage" ch:"span.status_message"`
 
-	Attrs  xotel.AttrMap `json:"attrs" ch:"-"`
-	Events []*Span       `json:"events,omitempty" msgpack:"-" ch:"-"`
-	Links  []*SpanLink   `json:"links,omitempty" ch:"-"`
+	Attrs  AttrMap     `json:"attrs" ch:"-"`
+	Events []*Span     `json:"events,omitempty" msgpack:"-" ch:"-"`
+	Links  []*SpanLink `json:"links,omitempty" ch:"-"`
 
 	Children []*Span `json:"children,omitempty" msgpack:"-" ch:"-"`
 
@@ -61,9 +60,9 @@ type Span struct {
 }
 
 type SpanLink struct {
-	TraceID uuid.UUID     `json:"traceId"`
-	SpanID  uint64        `json:"spanId"`
-	Attrs   xotel.AttrMap `json:"attrs"`
+	TraceID uuid.UUID `json:"traceId"`
+	SpanID  uint64    `json:"spanId"`
+	Attrs   AttrMap   `json:"attrs"`
 }
 
 func (s *Span) IsEvent() bool {
@@ -231,7 +230,7 @@ func newFakeRoot(spans []*Span) *Span {
 	span := new(Span)
 	span.ID = rand.Uint64()
 	span.TraceID = sample.TraceID
-	span.Attrs = xotel.AttrMap{
+	span.Attrs = AttrMap{
 		xattr.SpanTime:       minTime,
 		xattr.SpanStatusCode: OKStatusCode,
 	}

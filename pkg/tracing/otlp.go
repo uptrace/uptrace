@@ -8,15 +8,14 @@ import (
 	"time"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
-	"github.com/uptrace/uptrace/pkg/tracing/otlpconv"
-	"github.com/uptrace/uptrace/pkg/tracing/xotel"
+	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"go.uber.org/zap"
 )
 
-func initSpanFromOTLP(dest *Span, resource xotel.AttrMap, src *tracepb.Span) {
+func initSpanFromOTLP(dest *Span, resource AttrMap, src *tracepb.Span) {
 	dest.ID = otlpSpanID(src.SpanId)
 	dest.ParentID = otlpSpanID(src.ParentSpanId)
 	dest.TraceID = otlpTraceID(src.TraceId)
@@ -31,11 +30,11 @@ func initSpanFromOTLP(dest *Span, resource xotel.AttrMap, src *tracepb.Span) {
 		dest.StatusMessage = src.Status.Message
 	}
 
-	dest.Attrs = make(xotel.AttrMap, len(resource)+len(src.Attributes))
+	dest.Attrs = make(AttrMap, len(resource)+len(src.Attributes))
 	for k, v := range resource {
 		dest.Attrs[k] = v
 	}
-	otlpconv.ForEachAttr(src.Attributes, func(key string, value any) {
+	otlpconv.ForEachKeyValue(src.Attributes, func(key string, value any) {
 		dest.Attrs[key] = value
 	})
 
@@ -55,8 +54,8 @@ func newSpanFromOTLPEvent(event *tracepb.Span_Event) *Span {
 	span.EventName = event.Name
 	span.Time = time.Unix(0, int64(event.TimeUnixNano))
 
-	span.Attrs = make(xotel.AttrMap, len(event.Attributes))
-	otlpconv.ForEachAttr(event.Attributes, func(key string, value any) {
+	span.Attrs = make(AttrMap, len(event.Attributes))
+	otlpconv.ForEachKeyValue(event.Attributes, func(key string, value any) {
 		span.Attrs[key] = value
 	})
 
@@ -179,7 +178,7 @@ func toOTLPSpanKind(s string) tracepb.Span_SpanKind {
 	}
 }
 
-func toOTLPAttributes(m xotel.AttrMap) []*commonpb.KeyValue {
+func toOTLPAttributes(m AttrMap) []*commonpb.KeyValue {
 	kvs := make([]*commonpb.KeyValue, 0, len(m))
 	for k, v := range m {
 		if av := toOTLPAnyValue(v); av != nil {

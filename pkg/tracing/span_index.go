@@ -5,7 +5,6 @@ import (
 
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
-	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	"github.com/uptrace/uptrace/pkg/utf8util"
 )
 
@@ -62,7 +61,7 @@ func initSpanIndex(index *SpanIndex, span *Span) {
 	index.AttrKeys, index.AttrValues = attrKeysAndValues(span.Attrs)
 }
 
-func mapKeys(m xotel.AttrMap) []string {
+func mapKeys(m AttrMap) []string {
 	keys := make([]string, 0, len(m))
 	for key := range m {
 		keys = append(keys, key)
@@ -89,7 +88,7 @@ var (
 	indexedAttrSet = listToSet(indexedAttrs)
 )
 
-func attrKeysAndValues(m xotel.AttrMap) ([]string, []string) {
+func attrKeysAndValues(m AttrMap) ([]string, []string) {
 	keys := make([]string, 0, len(m))
 	values := make([]string, 0, len(m))
 	for k, v := range m {
