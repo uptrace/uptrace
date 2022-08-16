@@ -30,10 +30,10 @@ import { UseSystems } from '@/use/systems'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { buildGroupBy } from '@/use/uql'
-import { useSpanExplore } from '@/use/span-explore'
+import { useSpanExplore } from '@/tracing/use-span-explore'
 
 // Components
-import GroupsTable from '@/components/GroupsTable.vue'
+import GroupsTable from '@/tracing/GroupsTable.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'

@@ -22,7 +22,7 @@ import { defineComponent, computed, PropType } from 'vue'
 import { UseDateRange } from '@/use/date-range'
 
 // Components
-import KeyValueFilterLinkItem from '@/components/KeyValueFilterLinkItem.vue'
+import KeyValueFilterLinkItem from '@/tracing/KeyValueFilterLinkItem.vue'
 
 export default defineComponent({
   name: 'KeyValueFilterLink',

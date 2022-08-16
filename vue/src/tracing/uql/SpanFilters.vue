@@ -39,12 +39,12 @@ import { UseSystems } from '@/use/systems'
 import { UseUql } from '@/use/uql'
 
 // Components
-import SearchFilterMenu from '@/components/uql/SearchFilterMenu.vue'
-import DurationFilterMenu from '@/components/uql/DurationFilterMenu.vue'
-import AttrFilterMenu from '@/components/uql/AttrFilterMenu.vue'
-import WhereFilterMenu from '@/components/uql/WhereFilterMenu.vue'
-import AggFilterMenu from '@/components/uql/AggFilterMenu.vue'
-import GroupByMenu from '@/components/uql/GroupByMenu.vue'
+import SearchFilterMenu from '@/tracing/uql/SearchFilterMenu.vue'
+import DurationFilterMenu from '@/tracing/uql/DurationFilterMenu.vue'
+import AttrFilterMenu from '@/tracing/uql/AttrFilterMenu.vue'
+import WhereFilterMenu from '@/tracing/uql/WhereFilterMenu.vue'
+import AggFilterMenu from '@/tracing/uql/AggFilterMenu.vue'
+import GroupByMenu from '@/tracing/uql/GroupByMenu.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'

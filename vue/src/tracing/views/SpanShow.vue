@@ -13,14 +13,14 @@
 <script lang="ts">
 import { defineComponent, computed, watch, proxyRefs } from 'vue'
 
-// Components
-import SpanCard from '@/components/SpanCard.vue'
-
 // Composables
 import { useTitle } from '@vueuse/core'
 import { useRouter } from '@/use/router'
 import { useDateRange } from '@/use/date-range'
 import { useWatchAxios } from '@/use/watch-axios'
+
+// Components
+import SpanCard from '@/tracing/SpanCard.vue'
 
 // Utilities
 import { Span } from '@/models/span'

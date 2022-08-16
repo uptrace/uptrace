@@ -91,9 +91,9 @@ import { UseDateRange } from '@/use/date-range'
 import { UseTrace, TraceSpan } from '@/use/trace'
 
 // Components
-import SpanCard from '@/components/SpanCard.vue'
-import SpanChips from '@/components/SpanChips.vue'
-import TraceTimelineChildrenBars from '@/components/TraceTimelineChildrenBars.vue'
+import SpanCard from '@/tracing/SpanCard.vue'
+import SpanChips from '@/tracing/SpanChips.vue'
+import TraceTimelineChildrenBars from '@/tracing/TraceTimelineChildrenBars.vue'
 
 // Utilities
 import { spanName } from '@/models/span'

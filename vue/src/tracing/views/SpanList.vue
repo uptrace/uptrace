@@ -57,13 +57,13 @@ import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/use/systems'
 import { useUql } from '@/use/uql'
-import { useSpans } from '@/use/spans'
+import { useSpans } from '@/tracing/use-spans'
 
 // Components
-import UptraceQuery from '@/components/uql/UptraceQuery.vue'
-import SpanFilters from '@/components/uql/SpanFilters.vue'
-import SpansTable from '@/components/SpansTable.vue'
-import { SpanChip } from '@/components/SpanChips.vue'
+import UptraceQuery from '@/components/UptraceQuery.vue'
+import SpanFilters from '@/tracing/uql/SpanFilters.vue'
+import SpansTable from '@/tracing/SpansTable.vue'
+import { SpanChip } from '@/tracing/SpanChips.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'

@@ -149,8 +149,8 @@ import { UseUql } from '@/use/uql'
 
 // Components
 import SimpleSuggestions from '@/components/SimpleSuggestions.vue'
-import AttrFilterMenu from '@/components/uql/AttrFilterMenu.vue'
 import UqlChip from '@/components/UqlChip.vue'
+import AttrFilterMenu from '@/tracing/uql/AttrFilterMenu.vue'
 
 // Utilities
 import { requiredRule } from '@/util/validation'

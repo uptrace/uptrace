@@ -11,21 +11,22 @@ import { System } from '@/use/systems'
 
 // Components
 import Overview from '@/views/Overview.vue'
-import SystemOverview from '@/components/SystemOverview.vue'
-import ServiceOverview from '@/components/ServiceOverview.vue'
-import HostOverview from '@/components/HostOverview.vue'
-import SlowestGroups from '@/components/SlowestGroups.vue'
-import SystemGroupList from '@/components/SystemGroupList.vue'
 
-import Tracing from '@/views/Tracing.vue'
-import GroupList from '@/views/GroupList.vue'
-import SpanList from '@/views/SpanList.vue'
+import SystemOverview from '@/tracing/views/SystemOverview.vue'
+import ServiceOverview from '@/tracing/views/ServiceOverview.vue'
+import HostOverview from '@/tracing/views/HostOverview.vue'
+import SlowestGroups from '@/tracing/views/SlowestGroups.vue'
+import SystemGroupList from '@/tracing/views/SystemGroupList.vue'
 
-import TraceShow from '@/views/TraceShow.vue'
-import TraceFind from '@/views/TraceFind.vue'
-import SpanShow from '@/views/SpanShow.vue'
+import Tracing from '@/tracing/views/Tracing.vue'
+import GroupList from '@/tracing/views/GroupList.vue'
+import SpanList from '@/tracing/views/SpanList.vue'
 
-import Metrics from '@/views/Metrics.vue'
+import TraceShow from '@/tracing/views/TraceShow.vue'
+import TraceFind from '@/tracing/views/TraceFind.vue'
+import SpanShow from '@/tracing/views/SpanShow.vue'
+
+import Metrics from '@/metrics/views/Metrics.vue'
 
 import Login from '@/views/Login.vue'
 import Help from '@/views/Help.vue'

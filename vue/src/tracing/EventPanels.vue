@@ -21,7 +21,7 @@ import { defineComponent, ref, watch, PropType } from 'vue'
 import { UseDateRange } from '@/use/date-range'
 
 // Components
-import EventPanelContent from '@/components/EventPanelContent.vue'
+import EventPanelContent from '@/tracing/EventPanelContent.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
