@@ -15,7 +15,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
-	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -83,7 +82,7 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 	return nil
 }
 
-func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, vector xotel.AttrMap) {
+func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, vector AttrMap) {
 	// Can be overridden later with the information parsed from the log message.
 	span.ID = rand.Uint64()
 
@@ -91,7 +90,7 @@ func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, vector x
 	span.EventName = LogEventType
 	span.StatusCode = OKStatusCode
 
-	attrs := make(xotel.AttrMap, len(vector)+2)
+	attrs := make(AttrMap, len(vector)+2)
 	span.Attrs = attrs
 	attrs[xattr.TelemetrySDKName] = vectorSDK
 

@@ -4,22 +4,29 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 )
 
-func ForEachAttr(kvs []*commonpb.KeyValue, fn func(key string, value any)) {
+func Map(kvs []*commonpb.KeyValue) map[string]any {
+	dest := make(map[string]any, len(kvs))
+	ForEachKeyValue(kvs, func(key string, value any) {
+		dest[key] = value
+	})
+	return dest
+}
+
+func ForEachKeyValue(kvs []*commonpb.KeyValue, fn func(key string, value any)) {
 	for _, kv := range kvs {
 		if kv == nil || kv.Value == nil {
 			continue
 		}
-		if value, ok := Value(kv.Value); ok {
+		if value, ok := AnyValue(kv.Value); ok {
 			fn(kv.Key, value)
 		}
 	}
 }
 
-func Value(v *commonpb.AnyValue) (any, bool) {
+func AnyValue(v *commonpb.AnyValue) (any, bool) {
 	switch v := v.Value.(type) {
 	case *commonpb.AnyValue_StringValue:
 		return v.StringValue, true
@@ -32,7 +39,7 @@ func Value(v *commonpb.AnyValue) (any, bool) {
 	case *commonpb.AnyValue_ArrayValue:
 		return Array(v.ArrayValue.Values)
 	case *commonpb.AnyValue_KvlistValue:
-		return Attrs(v.KvlistValue.Values), true
+		return Map(v.KvlistValue.Values), true
 	}
 
 	log.Printf("unsupported attribute value %T", v.Value)
@@ -93,12 +100,4 @@ func Array(vs []*commonpb.AnyValue) ([]string, bool) {
 		log.Printf("unsupported attribute value %T", value)
 		return nil, false
 	}
-}
-
-func Attrs(kvs []*commonpb.KeyValue) xotel.AttrMap {
-	dest := make(xotel.AttrMap, len(kvs))
-	ForEachAttr(kvs, func(key string, value any) {
-		dest[key] = value
-	})
-	return dest
 }

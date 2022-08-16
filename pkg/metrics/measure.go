@@ -8,7 +8,6 @@ import (
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 )
 
 const (
@@ -32,15 +31,24 @@ type Measure struct {
 	AttrsHash uint64
 
 	Sum       float32
+	Count     uint64
 	Value     float32
 	Histogram bfloat16.Map `ch:"type:AggregateFunction(quantilesBFloat16(0.5, 0.9, 0.99), Float32)"`
 
-	Attrs  xotel.AttrMap `ch:"-"`
-	Keys   []string      `ch:"type:Array(LowCardinality(String))"`
-	Values []string      `ch:"type:Array(LowCardinality(String))"`
+	Attrs  AttrMap  `ch:"-"`
+	Keys   []string `ch:"type:Array(LowCardinality(String))"`
+	Values []string `ch:"type:Array(LowCardinality(String))"`
 
-	StartTimeUnix uint64 `ch:"-"`
-	CumPoint      any    `ch:"-"`
+	StartTimeUnixNano uint64 `ch:"-"`
+	CumPoint          any    `ch:"-"`
+}
+
+type AttrMap map[string]string
+
+func (m AttrMap) Merge(other AttrMap) {
+	for k, v := range other {
+		m[k] = v
+	}
 }
 
 func InsertMeasures(ctx context.Context, app *bunapp.App, measures []*Measure) error {

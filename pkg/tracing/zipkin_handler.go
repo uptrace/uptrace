@@ -14,7 +14,6 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
-	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	"github.com/uptrace/uptrace/pkg/uuid"
 )
 
@@ -41,7 +40,7 @@ type ZipkinSpan struct {
 	Kind           string             `json:"kind"`
 	LocalEndpoint  ZipkinEndpoint     `json:"localEndpoint"`
 	RemoteEndpoint ZipkinEndpoint     `json:"remoteEndpoint"`
-	Tags           xotel.AttrMap      `json:"tags"`
+	Tags           AttrMap            `json:"tags"`
 	Annotations    []ZipkinAnnotation `json:"annotations"`
 }
 
@@ -112,7 +111,7 @@ func initSpanFromZipkin(dest *Span, src *ZipkinSpan) error {
 	dest.Attrs = src.Tags
 
 	if dest.Attrs == nil {
-		dest.Attrs = make(xotel.AttrMap)
+		dest.Attrs = make(AttrMap)
 	}
 	if src.LocalEndpoint.ServiceName != "" {
 		dest.Attrs.SetDefault(xattr.ServiceName, src.LocalEndpoint.ServiceName)

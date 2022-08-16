@@ -1,4 +1,4 @@
-package xotel
+package tracing
 
 import (
 	"strconv"

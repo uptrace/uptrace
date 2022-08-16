@@ -139,9 +139,9 @@ func (s *MeasureProcessor) convertNumberPoint(
 	ctx context.Context, measure *Measure, point *NumberPoint,
 ) bool {
 	key := MeasureKey{
-		Metric:        measure.Metric,
-		AttrsHash:     measure.AttrsHash,
-		StartTimeUnix: measure.StartTimeUnix,
+		Metric:            measure.Metric,
+		AttrsHash:         measure.AttrsHash,
+		StartTimeUnixNano: measure.StartTimeUnixNano,
 	}
 
 	prevPoint, ok := s.c2d.Lookup(key, point, measure.Time).(*NumberPoint)
@@ -161,9 +161,9 @@ func (s *MeasureProcessor) convertHistogramPoint(
 	ctx context.Context, measure *Measure, point *HistogramPoint,
 ) bool {
 	key := MeasureKey{
-		Metric:        measure.Metric,
-		AttrsHash:     measure.AttrsHash,
-		StartTimeUnix: measure.StartTimeUnix,
+		Metric:            measure.Metric,
+		AttrsHash:         measure.AttrsHash,
+		StartTimeUnixNano: measure.StartTimeUnixNano,
 	}
 
 	prevPoint, ok := s.c2d.Lookup(key, point, measure.Time).(*HistogramPoint)
@@ -190,9 +190,9 @@ func (s *MeasureProcessor) convertExpHistogramPoint(
 	ctx context.Context, measure *Measure, point *ExpHistogramPoint,
 ) bool {
 	key := MeasureKey{
-		Metric:        measure.Metric,
-		AttrsHash:     measure.AttrsHash,
-		StartTimeUnix: measure.StartTimeUnix,
+		Metric:            measure.Metric,
+		AttrsHash:         measure.AttrsHash,
+		StartTimeUnixNano: measure.StartTimeUnixNano,
 	}
 
 	prevPoint, ok := s.c2d.Lookup(key, point, measure.Time).(*ExpHistogramPoint)

@@ -9,12 +9,12 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 	ua "github.com/mileusna/useragent"
+	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/logparser"
+	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"github.com/uptrace/uptrace/pkg/sqlparser"
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
-	"github.com/uptrace/uptrace/pkg/tracing/otlpconv"
 	"github.com/uptrace/uptrace/pkg/tracing/xattr"
-	"github.com/uptrace/uptrace/pkg/tracing/xotel"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
@@ -80,7 +80,7 @@ func initSpanAttrs(ctx *spanContext, span *Span) {
 	initLogSeverity(span.Attrs)
 }
 
-func initHTTPUserAgent(attrs xotel.AttrMap, str string) {
+func initHTTPUserAgent(attrs AttrMap, str string) {
 	agent := ua.Parse(str)
 
 	if agent.Name != "" {
@@ -138,7 +138,7 @@ func initLogMessage(ctx *spanContext, span *Span, msg string) {
 	promoteLogParamsToSpan(span, params)
 }
 
-func spanFromJSONLog(span *Span, src xotel.AttrMap) {
+func spanFromJSONLog(span *Span, src AttrMap) {
 	attrs := span.Attrs
 	for key, value := range src {
 		switch key {
@@ -200,7 +200,7 @@ func promoteLogParamsToSpan(span *Span, params map[string]any) {
 	}
 }
 
-func initLogSeverity(attrs xotel.AttrMap) {
+func initLogSeverity(attrs AttrMap) {
 	if found, ok := attrs[xattr.LogSeverity].(string); ok {
 		if normalized := normalizeLogSeverity(found); normalized != "" {
 			if normalized != found {
@@ -209,7 +209,7 @@ func initLogSeverity(attrs xotel.AttrMap) {
 			return
 		}
 		// We can't normalize the severity. Set the default.
-		attrs[xattr.LogSeverity] = xotel.InfoSeverity
+		attrs[xattr.LogSeverity] = bunotel.InfoSeverity
 	}
 
 	if attrs.Has(xattr.LogSeverityNumber) {
@@ -231,17 +231,17 @@ func normalizeLogSeverity(s string) string {
 func _normalizeLogSeverity(s string) string {
 	switch s {
 	case "trace":
-		return xotel.TraceSeverity
+		return bunotel.TraceSeverity
 	case "debug":
-		return xotel.DebugSeverity
+		return bunotel.DebugSeverity
 	case "info", "information":
-		return xotel.InfoSeverity
+		return bunotel.InfoSeverity
 	case "warn", "warning":
-		return xotel.WarnSeverity
+		return bunotel.WarnSeverity
 	case "error", "err", "alert":
-		return xotel.ErrorSeverity
+		return bunotel.ErrorSeverity
 	case "fatal", "crit", "critical", "emerg", "emergency", "panic":
-		return xotel.FatalSeverity
+		return bunotel.FatalSeverity
 	default:
 		return ""
 	}
@@ -252,17 +252,17 @@ func logSeverityFromNumber(n uint64) string {
 	case n == 0:
 		return ""
 	case n <= 4:
-		return xotel.TraceSeverity
+		return bunotel.TraceSeverity
 	case n <= 8:
-		return xotel.DebugSeverity
+		return bunotel.DebugSeverity
 	case n <= 12:
-		return xotel.InfoSeverity
+		return bunotel.InfoSeverity
 	case n <= 16:
-		return xotel.WarnSeverity
+		return bunotel.WarnSeverity
 	case n <= 20:
-		return xotel.ErrorSeverity
+		return bunotel.ErrorSeverity
 	case n <= 24:
-		return xotel.FatalSeverity
+		return bunotel.FatalSeverity
 	}
 	return ""
 }
@@ -303,7 +303,7 @@ func newSpanLink(link *tracepb.Span_Link) *SpanLink {
 	return &SpanLink{
 		TraceID: otlpTraceID(link.TraceId),
 		SpanID:  otlpSpanID(link.SpanId),
-		Attrs:   otlpconv.Attrs(link.Attributes),
+		Attrs:   otlpconv.Map(link.Attributes),
 	}
 }
 
@@ -447,7 +447,7 @@ func assignEventSystemAndGroupID(ctx *spanContext, span *Span) {
 	case LogEventType:
 		sev, _ := span.Attrs[xattr.LogSeverity].(string)
 		if sev == "" {
-			sev = xotel.InfoSeverity
+			sev = bunotel.InfoSeverity
 		}
 
 		span.System = LogEventType + ":" + strings.ToLower(sev)

@@ -15,8 +15,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing/otlpconv"
-	"github.com/uptrace/uptrace/pkg/tracing/xotel"
+	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
@@ -180,9 +179,9 @@ func (s *MetricsServiceServer) export(
 	}
 
 	for _, rms := range req.ResourceMetrics {
-		p.resource = make(xotel.AttrMap, len(rms.Resource.Attributes))
-		otlpconv.ForEachAttr(rms.Resource.Attributes, func(key string, value any) {
-			p.resource[cleanPromName(key)] = value
+		p.resource = make(AttrMap, len(rms.Resource.Attributes))
+		otlpconv.ForEachKeyValue(rms.Resource.Attributes, func(key string, value any) {
+			p.resource[cleanAttrKey(key)] = fmt.Sprint(value)
 		})
 
 		for _, sm := range rms.ScopeMetrics {
@@ -219,7 +218,7 @@ type otlpProcessor struct {
 	ctx         context.Context
 	project     *bunconf.Project
 	projectAttr attribute.KeyValue
-	resource    xotel.AttrMap
+	resource    AttrMap
 }
 
 func (p *otlpProcessor) otlpGauge(
@@ -278,13 +277,13 @@ func (p *otlpProcessor) otlpSum(
 
 		switch value := dp.Value.(type) {
 		case *metricspb.NumberDataPoint_AsInt:
-			dest.StartTimeUnix = dp.StartTimeUnixNano
+			dest.StartTimeUnixNano = dp.StartTimeUnixNano
 			dest.CumPoint = &NumberPoint{
 				Int: value.AsInt,
 			}
 			p.enqueue(dest)
 		case *metricspb.NumberDataPoint_AsDouble:
-			dest.StartTimeUnix = dp.StartTimeUnixNano
+			dest.StartTimeUnixNano = dp.StartTimeUnixNano
 			dest.CumPoint = &NumberPoint{
 				Double: value.AsDouble,
 			}
@@ -309,9 +308,11 @@ func (p *otlpProcessor) otlpHistogram(
 
 		dest := p.nextMeasure(scope, metric, HistogramInstrument, dp.Attributes, dp.TimeUnixNano)
 		if isDelta {
+			dest.Sum = float32(dp.GetSum())
+			dest.Count = dp.Count
 			dest.Histogram = newBFloat16Histogram(dp.ExplicitBounds, dp.BucketCounts)
 		} else {
-			dest.StartTimeUnix = dp.StartTimeUnixNano
+			dest.StartTimeUnixNano = dp.StartTimeUnixNano
 			dest.CumPoint = &HistogramPoint{
 				Sum:          dp.GetSum(),
 				Count:        dp.Count,
@@ -336,6 +337,9 @@ func (p *otlpProcessor) otlpExpHistogram(
 
 		dest := p.nextMeasure(scope, metric, HistogramInstrument, dp.Attributes, dp.TimeUnixNano)
 		if isDelta {
+			dest.Sum = float32(dp.GetSum())
+			dest.Count = dp.Count
+
 			hist := make(bfloat16.Map)
 			dest.Histogram = hist
 
@@ -346,7 +350,7 @@ func (p *otlpProcessor) otlpExpHistogram(
 			populateBFloat16Hist(hist, base, int(dp.Positive.Offset), dp.Positive.BucketCounts, +1)
 			populateBFloat16Hist(hist, base, int(dp.Negative.Offset), dp.Negative.BucketCounts, -1)
 		} else {
-			dest.StartTimeUnix = dp.StartTimeUnixNano
+			dest.StartTimeUnixNano = dp.StartTimeUnixNano
 			dest.CumPoint = &ExpHistogramPoint{
 				Sum:       dp.GetSum(),
 				Count:     dp.Count,
@@ -373,17 +377,17 @@ func (p *otlpProcessor) nextMeasure(
 	labels []*commonpb.KeyValue,
 	unixNano uint64,
 ) *Measure {
-	attrs := make(xotel.AttrMap, len(p.resource)+len(labels))
+	attrs := make(AttrMap, len(p.resource)+len(labels))
 	attrs.Merge(p.resource)
-	otlpconv.ForEachAttr(labels, func(key string, value any) {
-		attrs[cleanPromName(key)] = value
+	otlpconv.ForEachKeyValue(labels, func(key string, value any) {
+		attrs[cleanAttrKey(key)] = fmt.Sprint(value)
 	})
 
 	out := new(Measure)
 
 	out.ProjectID = p.project.ID
 	// enqueue will check whether metric name is empty.
-	out.Metric = cleanPromName(metric.Name)
+	out.Metric = cleanMetricName(metric.Name)
 	out.Description = metric.Description
 	out.Unit = metric.Unit
 	out.Instrument = instrument
