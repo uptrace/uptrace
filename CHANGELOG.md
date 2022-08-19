@@ -1,6 +1,6 @@
 # Changelog
 
-To get started with Uptrace, see https://uptrace.dev/get/opentelemetry-tracing-tool.html
+To get started with Uptrace, see https://uptrace.dev/get/install.html
 
 ## v0.3.0 - Unreleased
 

@@ -39,8 +39,8 @@ uses OpenTelelemetry to collect data and ClickHouse database to store it.
 ## Getting started
 
 - [Docker example](example/docker) to try Uptrace with a single command
-- [Installation](https://uptrace.dev/get/opentelemetry-tracing-tool.html) guide with pre-compiled
-  binaries for Linux, MacOS, and Windows
+- [Installation](https://uptrace.dev/get/install.html) guide with pre-compiled binaries for Linux,
+  MacOS, and Windows
 
 We also provide guides for the most popular frameworks:
 
