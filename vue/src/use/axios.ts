@@ -12,6 +12,7 @@ export function useAxios(cfg: Config = {}) {
   let cancelToken: CancelTokenSource | null = null
 
   const {
+    status,
     pending: loading,
     promised,
     result,
@@ -66,6 +67,7 @@ export function useAxios(cfg: Config = {}) {
   }
 
   return {
+    status,
     loading,
 
     result,

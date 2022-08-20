@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/utf8util"
 )
 
@@ -46,16 +46,16 @@ func initSpanIndex(index *SpanIndex, span *Span) {
 	index.ServiceName = span.Attrs.ServiceName()
 	index.HostName = span.Attrs.HostName()
 
-	index.DBSystem, _ = span.Attrs[xattr.DBSystem].(string)
-	index.DBStatement, _ = span.Attrs[xattr.DBStatement].(string)
-	index.DBOperation, _ = span.Attrs[xattr.DBOperation].(string)
-	index.DBSqlTable, _ = span.Attrs[xattr.DBSqlTable].(string)
+	index.DBSystem, _ = span.Attrs[attrkey.DBSystem].(string)
+	index.DBStatement, _ = span.Attrs[attrkey.DBStatement].(string)
+	index.DBOperation, _ = span.Attrs[attrkey.DBOperation].(string)
+	index.DBSqlTable, _ = span.Attrs[attrkey.DBSqlTable].(string)
 
-	index.LogSeverity, _ = span.Attrs[xattr.LogSeverity].(string)
-	index.LogMessage, _ = span.Attrs[xattr.LogMessage].(string)
+	index.LogSeverity, _ = span.Attrs[attrkey.LogSeverity].(string)
+	index.LogMessage, _ = span.Attrs[attrkey.LogMessage].(string)
 
-	index.ExceptionType, _ = span.Attrs[xattr.ExceptionType].(string)
-	index.ExceptionMessage, _ = span.Attrs[xattr.ExceptionMessage].(string)
+	index.ExceptionType, _ = span.Attrs[attrkey.ExceptionType].(string)
+	index.ExceptionMessage, _ = span.Attrs[attrkey.ExceptionMessage].(string)
 
 	index.AllKeys = mapKeys(span.Attrs)
 	index.AttrKeys, index.AttrValues = attrKeysAndValues(span.Attrs)
@@ -71,19 +71,19 @@ func mapKeys(m AttrMap) []string {
 
 var (
 	indexedAttrs = []string{
-		xattr.ServiceName,
-		xattr.HostName,
+		attrkey.ServiceName,
+		attrkey.HostName,
 
-		xattr.DBSystem,
-		xattr.DBStatement,
-		xattr.DBOperation,
-		xattr.DBSqlTable,
+		attrkey.DBSystem,
+		attrkey.DBStatement,
+		attrkey.DBOperation,
+		attrkey.DBSqlTable,
 
-		xattr.LogSeverity,
-		xattr.LogMessage,
+		attrkey.LogSeverity,
+		attrkey.LogMessage,
 
-		xattr.ExceptionType,
-		xattr.ExceptionMessage,
+		attrkey.ExceptionType,
+		attrkey.ExceptionMessage,
 	}
 	indexedAttrSet = listToSet(indexedAttrs)
 )

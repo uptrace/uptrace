@@ -29,7 +29,7 @@ export default defineComponent({
     const percentiles = usePercentiles(() => {
       const { projectId } = route.value.params
       return {
-        url: `/api/tracing/${projectId}/percentiles`,
+        url: `/api/v1/tracing/${projectId}/percentiles`,
         params: props.axiosParams,
       }
     })

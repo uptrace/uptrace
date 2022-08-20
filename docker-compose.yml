@@ -20,16 +20,13 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
-  grafana:
-    image: grafana/grafana:8.5.2
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.58.0
     restart: on-failure
     volumes:
-      - ./config/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
-      - ./config/grafana/custom.ini:/etc/grafana/grafana.ini
-    ports:
-      - '3000:3000'
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
+      - ./config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml
+    # use host mode so we can export data to Uptrace
+    network_mode: host
 
   alertmanager:
     image: prom/alertmanager:v0.24.0

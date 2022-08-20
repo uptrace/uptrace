@@ -10,7 +10,7 @@ import {
   datetimeFull,
   relative,
   fromNow,
-} from '@/util/date'
+} from '@/util/fmt/date'
 
 export default Vue.component('XDate', {
   functional: true,

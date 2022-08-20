@@ -2,9 +2,12 @@ package bunapp
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"math/rand"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -12,6 +15,11 @@ import (
 	"github.com/prometheus/prometheus/notifier"
 	"github.com/prometheus/prometheus/promql"
 	"github.com/prometheus/prometheus/rules"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/sqlitedialect"
+	"github.com/uptrace/bun/driver/sqliteshim"
+	"github.com/uptrace/bun/extra/bundebug"
+	"github.com/uptrace/bun/extra/bunotel"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/bunrouter/extra/bunrouterotel"
 	"github.com/uptrace/bunrouter/extra/reqlog"
@@ -43,25 +51,34 @@ func StartCLI(c *cli.Context) (context.Context, *App, error) {
 	return Start(c.Context, c.String("config"), c.Command.Name)
 }
 
-func Start(ctx context.Context, configFile, service string) (context.Context, *App, error) {
+func Start(ctx context.Context, confPath, service string) (context.Context, *App, error) {
+	if confPath == "" {
+		var err error
+		confPath, err = findConfigPath()
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	conf, err := bunconf.ReadConfig(confPath, service)
+	if err != nil {
+		return nil, nil, err
+	}
+	return StartConfig(ctx, conf)
+}
+
+func findConfigPath() (string, error) {
 	files := []string{
-		configFile,
 		"uptrace.yml",
 		"config/uptrace.yml",
 		"/etc/uptrace/uptrace.yml",
 	}
-
-	var firstErr error
-
-	for _, configFile := range files {
-		conf, err := bunconf.ReadConfig(configFile, service)
-		if err == nil {
-			return StartConfig(ctx, conf)
+	for _, confPath := range files {
+		if _, err := os.Stat(confPath); err == nil {
+			return confPath, nil
 		}
-		firstErr = err
 	}
-
-	return context.TODO(), nil, firstErr
+	return "", fmt.Errorf("can't find uptrace.yml in usual locations")
 }
 
 func StartConfig(ctx context.Context, conf *bunconf.Config) (context.Context, *App, error) {
@@ -91,13 +108,14 @@ type App struct {
 	onStop    appHooks
 	onStopped appHooks
 
-	logger *otelzap.Logger
+	Logger *otelzap.Logger
 
 	router   *bunrouter.Router
 	apiGroup *bunrouter.Group
 
 	grpcServer *grpc.Server
 
+	DB *bun.DB
 	CH *ch.DB
 
 	QueryEngine     *promql.Engine
@@ -117,6 +135,7 @@ func New(ctx context.Context, conf *bunconf.Config) *App {
 	app.initZap()
 	app.initRouter()
 	app.initGRPC()
+	app.DB = app.newDB()
 	app.CH = app.newCH()
 
 	return app
@@ -139,7 +158,7 @@ func (app *App) OnStopped(name string, fn HookFunc) {
 	app.onStopped.Add(newHook(name, fn))
 }
 
-func (app *App) Debug() bool {
+func (app *App) Debugging() bool {
 	return app.conf.Debug
 }
 
@@ -164,7 +183,7 @@ func (app *App) Config() *bunconf.Config {
 func (app *App) initZap() {
 	var zapLogger *zap.Logger
 	var err error
-	if app.Debug() {
+	if app.Debugging() {
 		zapLogger, err = zap.NewDevelopment()
 	} else {
 		zapLogger, err = zap.NewProduction()
@@ -173,35 +192,30 @@ func (app *App) initZap() {
 		panic(err)
 	}
 
-	app.logger = otelzap.New(zapLogger, otelzap.WithMinLevel(zap.InfoLevel))
-	otelzap.ReplaceGlobals(app.logger)
+	app.Logger = otelzap.New(zapLogger, otelzap.WithMinLevel(zap.InfoLevel))
+	otelzap.ReplaceGlobals(app.Logger)
 
 	app.OnStopped("zap", func(ctx context.Context, _ *App) error {
-		_ = app.logger.Sync()
+		_ = app.Logger.Sync()
 		return nil
 	})
 }
 
-func (app *App) Logger() *otelzap.Logger {
-	return app.logger
-}
-
 func (app *App) Zap(ctx context.Context) otelzap.LoggerWithCtx {
-	return app.logger.Ctx(ctx)
+	return app.Logger.Ctx(ctx)
 }
 
 //------------------------------------------------------------------------------
 
 func (app *App) initRouter() {
 	app.router = app.newRouter()
-
-	app.apiGroup = app.router.NewGroup("/api")
+	app.apiGroup = app.router.NewGroup("/api/v1")
 }
 
 func (app *App) newRouter(opts ...bunrouter.Option) *bunrouter.Router {
 	opts = append(opts,
 		bunrouter.WithMiddleware(reqlog.NewMiddleware(
-			reqlog.WithVerbose(app.Debug()),
+			reqlog.WithVerbose(app.Debugging()),
 			reqlog.FromEnv("DEBUG"),
 		)),
 	)
@@ -215,7 +229,7 @@ func (app *App) newRouter(opts ...bunrouter.Option) *bunrouter.Router {
 
 	router := bunrouter.New(opts...)
 
-	if app.Debug() {
+	if app.Debugging() {
 		adapter := bunrouter.HTTPHandlerFunc
 
 		router.GET("/debug/pprof/", adapter(pprof.Index))
@@ -281,6 +295,28 @@ func (app *App) GRPCServer() *grpc.Server {
 
 //------------------------------------------------------------------------------
 
+func (app *App) newDB() *bun.DB {
+	sqldb, err := sql.Open(sqliteshim.ShimName, app.conf.DB.DSN)
+	if err != nil {
+		panic(err)
+	}
+
+	db := bun.NewDB(sqldb, sqlitedialect.New())
+	db.AddQueryHook(bundebug.NewQueryHook(
+		bundebug.WithEnabled(app.Debugging()),
+		bundebug.FromEnv("DEBUG"),
+	))
+	db.AddQueryHook(bunotel.NewQueryHook())
+
+	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
+		app.Logger.Error("db.Exec failed", zap.Error(err))
+	}
+
+	return db
+}
+
+//------------------------------------------------------------------------------
+
 func (app *App) newCH() *ch.DB {
 	opts := []ch.Option{
 		ch.WithQuerySettings(map[string]any{
@@ -326,7 +362,8 @@ func (app *App) newCH() *ch.DB {
 
 	fmter := db.Formatter().
 		WithNamedArg("DB", ch.Safe(db.Config().Database)).
-		WithNamedArg("TTL", ch.Safe(app.conf.CHSchema.TTL)).
+		WithNamedArg("SPANS_TTL", ch.Safe(app.conf.Spans.TTL)).
+		WithNamedArg("METRICS_TTL", ch.Safe(app.conf.Metrics.TTL)).
 		WithNamedArg("REPLICATED", ch.Safe(replicated)).
 		WithNamedArg("CODEC", ch.Safe(compression)).
 		WithNamedArg("CLUSTER", ch.Safe(app.conf.CHSchema.Cluster)).
@@ -335,7 +372,7 @@ func (app *App) newCH() *ch.DB {
 	db = db.WithFormatter(fmter)
 
 	db.AddQueryHook(chdebug.NewQueryHook(
-		chdebug.WithVerbose(app.Debug()),
+		chdebug.WithVerbose(app.Debugging()),
 		chdebug.FromEnv("DEBUG"),
 	))
 	db.AddQueryHook(chotel.NewQueryHook())

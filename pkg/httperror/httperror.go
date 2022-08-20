@@ -12,6 +12,9 @@ import (
 	"github.com/segmentio/encoding/json"
 )
 
+var ErrRequestTimeout = New(http.StatusRequestTimeout,
+	"request_timeout", "The server timed out waiting for the request")
+
 type Error interface {
 	error
 	HTTPStatusCode() int

@@ -36,7 +36,7 @@ export const useUser = defineStore(() => {
   getOrLoad()
 
   function reload() {
-    req = request({ url: '/api/users/current' })
+    req = request({ url: '/api/v1/users/current' })
     return req
   }
 
@@ -48,7 +48,7 @@ export const useUser = defineStore(() => {
   }
 
   function logout() {
-    return request({ method: 'POST', url: '/api/users/logout' }).then(() => {
+    return request({ method: 'POST', url: '/api/v1/users/logout' }).then(() => {
       reload().finally(() => {
         redirectToLogin()
       })

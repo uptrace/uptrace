@@ -14,7 +14,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"github.com/uptrace/uptrace/pkg/sqlparser"
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
-	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
@@ -54,10 +54,10 @@ func initSpan(ctx *spanContext, span *Span) {
 	initSpanAttrs(ctx, span)
 
 	if span.Attrs.ServiceName() == "" {
-		span.Attrs[xattr.ServiceName] = "unknown_service"
+		span.Attrs[attrkey.ServiceName] = "unknown_service"
 	}
 	if span.Attrs.HostName() == "" {
-		span.Attrs[xattr.HostName] = "unknown_host"
+		span.Attrs[attrkey.HostName] = "unknown_host"
 	}
 
 	if span.EventName != "" {
@@ -71,10 +71,10 @@ func initSpan(ctx *spanContext, span *Span) {
 }
 
 func initSpanAttrs(ctx *spanContext, span *Span) {
-	if s, _ := span.Attrs[xattr.HTTPUserAgent].(string); s != "" {
+	if s, _ := span.Attrs[attrkey.HTTPUserAgent].(string); s != "" {
 		initHTTPUserAgent(span.Attrs, s)
 	}
-	if msg, ok := span.Attrs[xattr.LogMessage].(string); ok {
+	if msg, ok := span.Attrs[attrkey.LogMessage].(string); ok {
 		initLogMessage(ctx, span, msg)
 	}
 	initLogSeverity(span.Attrs)
@@ -84,25 +84,25 @@ func initHTTPUserAgent(attrs AttrMap, str string) {
 	agent := ua.Parse(str)
 
 	if agent.Name != "" {
-		attrs[xattr.HTTPUserAgentName] = agent.Name
+		attrs[attrkey.HTTPUserAgentName] = agent.Name
 	}
 	if agent.Version != "" {
-		attrs[xattr.HTTPUserAgentVersion] = agent.Version
+		attrs[attrkey.HTTPUserAgentVersion] = agent.Version
 	}
 
 	if agent.OS != "" {
-		attrs[xattr.HTTPUserAgentOS] = agent.OS
+		attrs[attrkey.HTTPUserAgentOS] = agent.OS
 	}
 	if agent.OSVersion != "" {
-		attrs[xattr.HTTPUserAgentOSVersion] = agent.OSVersion
+		attrs[attrkey.HTTPUserAgentOSVersion] = agent.OSVersion
 	}
 
 	if agent.Device != "" {
-		attrs[xattr.HTTPUserAgentDevice] = agent.Device
+		attrs[attrkey.HTTPUserAgentDevice] = agent.Device
 	}
 
 	if agent.Bot {
-		attrs[xattr.HTTPUserAgentBot] = 1
+		attrs[attrkey.HTTPUserAgentBot] = 1
 	}
 }
 
@@ -110,21 +110,21 @@ func initHTTPUserAgent(attrs AttrMap, str string) {
 
 func initLogMessage(ctx *spanContext, span *Span, msg string) {
 	if msg == "" {
-		delete(span.Attrs, xattr.LogMessage)
+		delete(span.Attrs, attrkey.LogMessage)
 		return
 	}
 
 	if m, ok := logparser.IsJSON(msg); ok {
 		// Delete the attribute so we can override the message.
-		delete(span.Attrs, xattr.LogMessage)
+		delete(span.Attrs, attrkey.LogMessage)
 
 		spanFromJSONLog(span, m)
 
-		if s, ok := span.Attrs[xattr.LogMessage].(string); ok {
+		if s, ok := span.Attrs[attrkey.LogMessage].(string); ok {
 			msg = s
 		} else {
 			// Restore the attribute.
-			span.Attrs[xattr.LogMessage] = msg
+			span.Attrs[attrkey.LogMessage] = msg
 		}
 	}
 
@@ -144,11 +144,11 @@ func spanFromJSONLog(span *Span, src AttrMap) {
 		switch key {
 		case "level", "severity":
 			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(xattr.LogSeverity, s)
+				attrs.SetDefault(attrkey.LogSeverity, s)
 			}
 		case "message", "msg":
 			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(xattr.LogMessage, s)
+				attrs.SetDefault(attrkey.LogMessage, s)
 			}
 		case "time":
 			if tm := anyconv.Time(value); !tm.IsZero() {
@@ -160,15 +160,15 @@ func spanFromJSONLog(span *Span, src AttrMap) {
 			span.ParentID = anyconv.Uint64(value)
 		case "service":
 			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(xattr.ServiceName, s)
+				attrs.SetDefault(attrkey.ServiceName, s)
 			}
 		case "host", "hostname":
 			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(xattr.HostName, s)
+				attrs.SetDefault(attrkey.HostName, s)
 			}
 		case "logger":
 			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(xattr.LogSource, s)
+				attrs.SetDefault(attrkey.LogSource, s)
 			}
 		default:
 			attrs.SetDefault(key, value)
@@ -201,21 +201,21 @@ func promoteLogParamsToSpan(span *Span, params map[string]any) {
 }
 
 func initLogSeverity(attrs AttrMap) {
-	if found, ok := attrs[xattr.LogSeverity].(string); ok {
+	if found, ok := attrs[attrkey.LogSeverity].(string); ok {
 		if normalized := normalizeLogSeverity(found); normalized != "" {
 			if normalized != found {
-				attrs[xattr.LogSeverity] = normalized
+				attrs[attrkey.LogSeverity] = normalized
 			}
 			return
 		}
 		// We can't normalize the severity. Set the default.
-		attrs[xattr.LogSeverity] = bunotel.InfoSeverity
+		attrs[attrkey.LogSeverity] = bunotel.InfoSeverity
 	}
 
-	if attrs.Has(xattr.LogSeverityNumber) {
-		num := attrs.Uint64(xattr.LogSeverityNumber)
+	if attrs.Has(attrkey.LogSeverityNumber) {
+		num := attrs.Uint64(attrkey.LogSeverityNumber)
 		if sev := logSeverityFromNumber(num); sev != "" {
-			attrs[xattr.LogSeverity] = sev
+			attrs[attrkey.LogSeverity] = sev
 			return
 		}
 	}
@@ -332,37 +332,37 @@ func isSQLKeyword(s string) bool {
 }
 
 func assignSpanSystemAndGroupID(ctx *spanContext, span *Span) {
-	if s := span.Attrs.Text(xattr.RPCSystem); s != "" {
+	if s := span.Attrs.Text(attrkey.RPCSystem); s != "" {
 		span.System = RPCSpanType + ":" + span.Attrs.ServiceName()
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span,
-				xattr.RPCSystem,
-				xattr.RPCService,
-				xattr.RPCMethod,
+				attrkey.RPCSystem,
+				attrkey.RPCService,
+				attrkey.RPCMethod,
 			)
 		})
 		return
 	}
 
-	if s := span.Attrs.Text(xattr.MessagingSystem); s != "" {
+	if s := span.Attrs.Text(attrkey.MessagingSystem); s != "" {
 		span.System = MessagingSpanType + ":" + s
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span,
-				xattr.MessagingSystem,
-				xattr.MessagingOperation,
-				xattr.MessagingDestination,
-				xattr.MessagingDestinationKind,
+				attrkey.MessagingSystem,
+				attrkey.MessagingOperation,
+				attrkey.MessagingDestination,
+				attrkey.MessagingDestinationKind,
 			)
 		})
 		return
 	}
 
-	if s := span.Attrs.Text(xattr.DBSystem); s != "" {
+	if s := span.Attrs.Text(attrkey.DBSystem); s != "" {
 		span.System = DBSpanType + ":" + s
-		stmt, _ := span.Attrs[xattr.DBStatement].(string)
+		stmt, _ := span.Attrs[attrkey.DBStatement].(string)
 
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
-			hashSpan(digest, span, xattr.DBOperation, xattr.DBSqlTable)
+			hashSpan(digest, span, attrkey.DBOperation, attrkey.DBSqlTable)
 			if stmt != "" {
 				hashDBStmt(digest, stmt)
 			}
@@ -373,10 +373,10 @@ func assignSpanSystemAndGroupID(ctx *spanContext, span *Span) {
 		return
 	}
 
-	if span.Attrs.Has(xattr.HTTPRoute) || span.Attrs.Has(xattr.HTTPTarget) {
+	if span.Attrs.Has(attrkey.HTTPRoute) || span.Attrs.Has(attrkey.HTTPTarget) {
 		span.System = HTTPSpanType + ":" + span.Attrs.ServiceName()
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
-			hashSpan(digest, span, xattr.HTTPMethod, xattr.HTTPRoute)
+			hashSpan(digest, span, attrkey.HTTPMethod, attrkey.HTTPRoute)
 		})
 		return
 	}
@@ -410,7 +410,7 @@ func hashSpan(digest *xxhash.Digest, span *Span, keys ...string) {
 		digest.WriteString(span.Name)
 	}
 
-	if env, _ := span.Attrs[xattr.DeploymentEnvironment].(string); env != "" {
+	if env, _ := span.Attrs[attrkey.DeploymentEnvironment].(string); env != "" {
 		digest.WriteString(env)
 	}
 
@@ -445,7 +445,7 @@ func initSpanEvent(ctx *spanContext, dest *Span, hostSpan *Span) {
 func assignEventSystemAndGroupID(ctx *spanContext, span *Span) {
 	switch span.EventName {
 	case LogEventType:
-		sev, _ := span.Attrs[xattr.LogSeverity].(string)
+		sev, _ := span.Attrs[attrkey.LogSeverity].(string)
 		if sev == "" {
 			sev = bunotel.InfoSeverity
 		}
@@ -453,9 +453,9 @@ func assignEventSystemAndGroupID(ctx *spanContext, span *Span) {
 		span.System = LogEventType + ":" + strings.ToLower(sev)
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span,
-				xattr.LogSeverity,
-				xattr.LogSource,
-				xattr.LogFilepath,
+				attrkey.LogSeverity,
+				attrkey.LogSource,
+				attrkey.LogFilepath,
 			)
 			if span.logMessageHash != 0 {
 				digest.WriteString(fmt.Sprint(span.logMessageHash))
@@ -466,23 +466,23 @@ func assignEventSystemAndGroupID(ctx *spanContext, span *Span) {
 	case ExceptionEventType, ErrorEventType:
 		span.System = ExceptionEventType
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
-			hashSpan(digest, span, xattr.ExceptionType)
-			if s, _ := span.Attrs[xattr.ExceptionMessage].(string); s != "" {
+			hashSpan(digest, span, attrkey.ExceptionType)
+			if s, _ := span.Attrs[attrkey.ExceptionMessage].(string); s != "" {
 				hashMessage(ctx.digest, s)
 			}
 		})
 		span.EventName = joinTypeMessage(
-			span.Attrs.Text(xattr.ExceptionType),
-			span.Attrs.Text(xattr.ExceptionMessage),
+			span.Attrs.Text(attrkey.ExceptionType),
+			span.Attrs.Text(attrkey.ExceptionMessage),
 		)
 		return
 	case MessageEventType:
 		span.System = spanMessageEventType(span)
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span,
-				xattr.RPCSystem,
-				xattr.RPCService,
-				xattr.RPCMethod,
+				attrkey.RPCSystem,
+				attrkey.RPCService,
+				attrkey.RPCMethod,
 				"message.type",
 			)
 		})
@@ -501,16 +501,16 @@ func assignEventSystemAndGroupID(ctx *spanContext, span *Span) {
 }
 
 func logEventName(span *Span) string {
-	if msg, _ := span.Attrs[xattr.LogMessage].(string); msg != "" {
-		sev, _ := span.Attrs[xattr.LogSeverity].(string)
+	if msg, _ := span.Attrs[attrkey.LogMessage].(string); msg != "" {
+		sev, _ := span.Attrs[attrkey.LogSeverity].(string)
 		if sev != "" && !strings.HasPrefix(msg, sev) {
 			msg = sev + " " + msg
 		}
 		return msg
 	}
 
-	typ, _ := span.Attrs[xattr.ExceptionType].(string)
-	msg, _ := span.Attrs[xattr.ExceptionMessage].(string)
+	typ, _ := span.Attrs[attrkey.ExceptionType].(string)
+	msg, _ := span.Attrs[attrkey.ExceptionMessage].(string)
 	if typ != "" || msg != "" {
 		return joinTypeMessage(typ, msg)
 	}
@@ -519,10 +519,10 @@ func logEventName(span *Span) string {
 }
 
 func spanMessageEventType(span *Span) string {
-	if sys := span.Attrs.Text(xattr.RPCSystem); sys != "" {
+	if sys := span.Attrs.Text(attrkey.RPCSystem); sys != "" {
 		return MessageEventType + ":" + sys
 	}
-	if sys := span.Attrs.Text(xattr.MessagingSystem); sys != "" {
+	if sys := span.Attrs.Text(attrkey.MessagingSystem); sys != "" {
 		return MessageEventType + ":" + sys
 	}
 	return MessageEventType + ":unknown"
@@ -532,7 +532,7 @@ func spanMessageEventName(span *Span) string {
 	if span.EventName != MessageEventType {
 		return span.EventName
 	}
-	if op := span.Attrs.Text(xattr.MessagingOperation); op != "" {
+	if op := span.Attrs.Text(attrkey.MessagingOperation); op != "" {
 		return join(span.Name, op)
 	}
 	if typ := span.Attrs.Text("message.type"); typ != "" {

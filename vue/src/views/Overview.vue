@@ -52,13 +52,13 @@ import type { UseDateRange } from '@/use/date-range'
 import { useSystems } from '@/use/systems'
 
 // Components
-import DateRangePicker from '@/components/DateRangePicker.vue'
-import HelpCard from '@/components/HelpCard.vue'
+import DateRangePicker from '@/components/date/DateRangePicker.vue'
+import HelpCard from '@/tracing/HelpCard.vue'
 import SystemQuickMetrics from '@/components/SystemQuickMetrics.vue'
 
 // Utilities
 import { xsys } from '@/models/otelattr'
-import { day } from '@/util/date'
+import { day } from '@/util/fmt/date'
 
 export default defineComponent({
   name: 'Overview',

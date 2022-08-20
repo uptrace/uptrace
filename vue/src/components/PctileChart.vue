@@ -22,7 +22,7 @@ import EChart, { EChartProps } from '@/components/EChart.vue'
 // Utilities
 import { baseChartConfig, addChartTooltip, createTooltipFormatter } from '@/util/chart'
 import { num, durationShort } from '@/util/fmt'
-import { datetime } from '@/util/date'
+import { datetime } from '@/util/fmt/date'
 
 interface ChartData extends Record<string, unknown> {
   count: number[]

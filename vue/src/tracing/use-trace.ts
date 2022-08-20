@@ -27,7 +27,7 @@ export function useTrace() {
   const { loading, data, error } = useWatchAxios(() => {
     const { projectId, traceId } = route.value.params
     return {
-      url: `/api/tracing/${projectId}/traces/${traceId}`,
+      url: `/api/v1/tracing/${projectId}/traces/${traceId}`,
       params: {
         ...forceReloadParams.value,
       },

@@ -114,7 +114,7 @@ export default defineComponent({
       () => {
         const { projectId } = route.value.params
         return {
-          url: `/api/tracing/${projectId}/spans`,
+          url: `/api/v1/tracing/${projectId}/spans`,
           params: axiosParams.value,
         }
       },

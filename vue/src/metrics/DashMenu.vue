@@ -1,0 +1,164 @@
+<template>
+  <v-menu v-model="menu" offset-y>
+    <template #activator="{ on }">
+      <v-btn :loading="dashMan.pending" icon v-on="on">
+        <v-icon>mdi-menu</v-icon>
+      </v-btn>
+    </template>
+
+    <v-list>
+      <v-dialog v-if="dashboard.data" v-model="newDialog" max-width="500px">
+        <template #activator="{ on }">
+          <v-list-item ripple v-on="on">
+            <v-list-item-action>
+              <v-icon>mdi-playlist-plus</v-icon>
+            </v-list-item-action>
+            <v-list-item-content>
+              <v-list-item-title>New dashboard</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+        </template>
+
+        <DashNewForm @create="onCreateDashboard">
+          <template #prepend-actions>
+            <v-btn color="blue darken-1" text @click="closeDialog">Cancel</v-btn>
+          </template>
+        </DashNewForm>
+      </v-dialog>
+
+      <v-dialog v-if="dashboard.data" v-model="editDialog" max-width="500px">
+        <template #activator="{ on }">
+          <v-list-item v-if="!dashboard.isTemplate" ripple v-on="on">
+            <v-list-item-action>
+              <v-icon>mdi-playlist-edit</v-icon>
+            </v-list-item-action>
+            <v-list-item-content>
+              <v-list-item-title>Edit dashboard</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+        </template>
+
+        <DashEditForm :dashboard="dashboard.data" @update="onUpdateDashboard">
+          <template #prepend-actions>
+            <v-btn color="primary" text @click="closeDialog">Cancel</v-btn>
+          </template>
+        </DashEditForm>
+      </v-dialog>
+
+      <v-list-item ripple @click="cloneDashboard">
+        <v-list-item-action>
+          <v-icon>mdi-playlist-play</v-icon>
+        </v-list-item-action>
+        <v-list-item-content>
+          <v-list-item-title>Clone dashboard</v-list-item-title>
+        </v-list-item-content>
+      </v-list-item>
+
+      <v-list-item v-if="!dashboard.isTemplate" ripple @click="deleteDashboard">
+        <v-list-item-action>
+          <v-icon>mdi-playlist-minus</v-icon>
+        </v-list-item-action>
+        <v-list-item-content>
+          <v-list-item-title>Delete dashboard</v-list-item-title>
+        </v-list-item-content>
+      </v-list-item>
+    </v-list>
+  </v-menu>
+</template>
+
+<script lang="ts">
+import { defineComponent, shallowRef, PropType } from 'vue'
+
+// Composables
+import { useRouter } from '@/use/router'
+import { useDashManager, UseDashboards, UseDashboard, Dashboard } from '@/metrics/use-dashboards'
+
+// Components
+import DashNewForm from '@/metrics/DashNewForm.vue'
+import DashEditForm from '@/metrics/DashEditForm.vue'
+
+export default defineComponent({
+  name: 'DashMenu',
+  components: {
+    DashNewForm,
+    DashEditForm,
+  },
+
+  props: {
+    dashboards: {
+      type: Object as PropType<UseDashboards>,
+      required: true,
+    },
+    dashboard: {
+      type: Object as PropType<UseDashboard>,
+      required: true,
+    },
+  },
+
+  setup(props) {
+    const { router } = useRouter()
+    const menu = shallowRef(false)
+    const newDialog = shallowRef(false)
+    const editDialog = shallowRef(false)
+
+    const dashMan = useDashManager()
+
+    function onUpdateDashboard() {
+      editDialog.value = false
+      menu.value = false
+      props.dashboards.reload()
+    }
+
+    function onCreateDashboard(dash: Dashboard) {
+      newDialog.value = false
+      menu.value = false
+      props.dashboards.reload()
+      router.push({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+    }
+
+    function closeDialog() {
+      editDialog.value = false
+      newDialog.value = false
+      menu.value = false
+    }
+
+    function cloneDashboard() {
+      if (!props.dashboard.data) {
+        return
+      }
+
+      dashMan.clone(props.dashboard.data).then((dash) => {
+        props.dashboards.reload()
+        router.push({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+      })
+    }
+
+    function deleteDashboard() {
+      if (!props.dashboard.data) {
+        return
+      }
+
+      dashMan.del(props.dashboard.data).then(() => {
+        props.dashboards.reload()
+      })
+    }
+
+    return {
+      menu,
+      newDialog,
+      editDialog,
+
+      dashMan,
+
+      onUpdateDashboard,
+      onCreateDashboard,
+      closeDialog,
+
+      cloneDashboard,
+      deleteDashboard,
+    }
+  },
+})
+</script>
+
+<style lang="scss" scoped></style>

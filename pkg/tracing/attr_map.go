@@ -6,7 +6,7 @@ import (
 
 	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
-	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 )
 
 type AttrMap map[string]any
@@ -77,11 +77,11 @@ func (m AttrMap) Duration(key string) time.Duration {
 }
 
 func (m AttrMap) ServiceName() string {
-	s, _ := m[xattr.ServiceName].(string)
+	s, _ := m[attrkey.ServiceName].(string)
 	return s
 }
 
 func (m AttrMap) HostName() string {
-	s, _ := m[xattr.HostName].(string)
+	s, _ := m[attrkey.HostName].(string)
 	return s
 }

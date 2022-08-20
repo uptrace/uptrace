@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap"
@@ -124,7 +124,7 @@ func (s *Span) AddEvent(event *Span) {
 }
 
 func (s *Span) AdjustDurationSelf(child *Span) {
-	if child.Attrs.Text(xattr.SpanKind) == ConsumerSpanKind { // async span
+	if child.Attrs.Text(attrkey.SpanKind) == ConsumerSpanKind { // async span
 		return
 	}
 	if child.Time.After(s.EndTime()) {
@@ -231,8 +231,8 @@ func newFakeRoot(spans []*Span) *Span {
 	span.ID = rand.Uint64()
 	span.TraceID = sample.TraceID
 	span.Attrs = AttrMap{
-		xattr.SpanTime:       minTime,
-		xattr.SpanStatusCode: OKStatusCode,
+		attrkey.SpanTime:       minTime,
+		attrkey.SpanStatusCode: OKStatusCode,
 	}
 	return span
 }

@@ -44,7 +44,7 @@ export function useHosts(dateRange: UseDateRange, systems: UseSystems) {
   const { loading, data } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
-      url: `/api/tracing/${projectId}/hosts`,
+      url: `/api/v1/tracing/${projectId}/hosts`,
       params: {
         ...systems.axiosParams(),
         ...dateRange.axiosParams(),

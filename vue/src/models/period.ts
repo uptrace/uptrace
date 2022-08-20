@@ -1,4 +1,4 @@
-import { minute, hour, day } from '@/util/date'
+import { minute, hour, day } from '@/util/fmt/date'
 
 export interface Period {
   text: string

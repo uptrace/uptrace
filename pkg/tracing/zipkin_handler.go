@@ -13,7 +13,7 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/uuid"
 )
 
@@ -57,6 +57,7 @@ type ZipkinAnnotation struct {
 }
 
 func (h *ZipkinHandler) PostSpans(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
 	dec := json.NewDecoder(req.Body)
 
 	var zipkinSpans []ZipkinSpan
@@ -76,7 +77,7 @@ func (h *ZipkinHandler) PostSpans(w http.ResponseWriter, req bunrouter.Request) 
 			return err
 		}
 
-		h.sp.AddSpan(span)
+		h.sp.AddSpan(ctx, span)
 	}
 
 	w.WriteHeader(http.StatusAccepted)
@@ -114,26 +115,26 @@ func initSpanFromZipkin(dest *Span, src *ZipkinSpan) error {
 		dest.Attrs = make(AttrMap)
 	}
 	if src.LocalEndpoint.ServiceName != "" {
-		dest.Attrs.SetDefault(xattr.ServiceName, src.LocalEndpoint.ServiceName)
+		dest.Attrs.SetDefault(attrkey.ServiceName, src.LocalEndpoint.ServiceName)
 	}
 	if src.LocalEndpoint.IPV4 != "" {
-		dest.Attrs.SetDefault(xattr.NetHostIP, src.LocalEndpoint.IPV4)
+		dest.Attrs.SetDefault(attrkey.NetHostIP, src.LocalEndpoint.IPV4)
 	} else if src.LocalEndpoint.IPV6 != "" {
-		dest.Attrs.SetDefault(xattr.NetHostIP, src.LocalEndpoint.IPV6)
+		dest.Attrs.SetDefault(attrkey.NetHostIP, src.LocalEndpoint.IPV6)
 	}
 	if src.LocalEndpoint.Port != 0 {
-		dest.Attrs.SetDefault(xattr.NetHostPort, src.LocalEndpoint.Port)
+		dest.Attrs.SetDefault(attrkey.NetHostPort, src.LocalEndpoint.Port)
 	}
 	if src.RemoteEndpoint.ServiceName != "" {
-		dest.Attrs.SetDefault(xattr.PeerService, src.RemoteEndpoint.ServiceName)
+		dest.Attrs.SetDefault(attrkey.PeerService, src.RemoteEndpoint.ServiceName)
 	}
 	if src.RemoteEndpoint.IPV4 != "" {
-		dest.Attrs.SetDefault(xattr.NetPeerIP, src.RemoteEndpoint.IPV4)
+		dest.Attrs.SetDefault(attrkey.NetPeerIP, src.RemoteEndpoint.IPV4)
 	} else if src.RemoteEndpoint.IPV6 != "" {
-		dest.Attrs.SetDefault(xattr.NetHostIP, src.RemoteEndpoint.IPV6)
+		dest.Attrs.SetDefault(attrkey.NetHostIP, src.RemoteEndpoint.IPV6)
 	}
 	if src.RemoteEndpoint.Port != 0 {
-		dest.Attrs.SetDefault(xattr.NetPeerPort, src.RemoteEndpoint.Port)
+		dest.Attrs.SetDefault(attrkey.NetPeerPort, src.RemoteEndpoint.Port)
 	}
 
 	return nil

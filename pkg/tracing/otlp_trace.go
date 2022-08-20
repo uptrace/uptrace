@@ -12,7 +12,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
-	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	collectortrace "go.opentelemetry.io/proto/otlp/collector/trace/v1"
@@ -101,9 +101,9 @@ func (s *TraceServiceServer) process(
 		for _, ss := range rss.ScopeSpans {
 			lib := ss.Scope
 			if lib != nil {
-				resource[xattr.OtelLibraryName] = lib.Name
+				resource[attrkey.OtelLibraryName] = lib.Name
 				if lib.Version != "" {
-					resource[xattr.OtelLibraryVersion] = lib.Version
+					resource[attrkey.OtelLibraryVersion] = lib.Version
 				}
 			}
 
@@ -112,7 +112,7 @@ func (s *TraceServiceServer) process(
 				span := new(Span)
 				initSpanFromOTLP(span, resource, otlpSpan)
 				span.ProjectID = project.ID
-				s.sp.AddSpan(span)
+				s.sp.AddSpan(ctx, span)
 			}
 		}
 	}

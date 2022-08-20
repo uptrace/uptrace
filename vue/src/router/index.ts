@@ -1,5 +1,5 @@
 import Vue from 'vue'
-import VueRouter, { RouteConfig } from 'vue-router'
+import VueRouter, { RouteConfig, NavigationGuard } from 'vue-router'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
@@ -18,6 +18,7 @@ import HostOverview from '@/tracing/views/HostOverview.vue'
 import SlowestGroups from '@/tracing/views/SlowestGroups.vue'
 import SystemGroupList from '@/tracing/views/SystemGroupList.vue'
 
+import TracingHelp from '@/tracing/views/Help.vue'
 import Tracing from '@/tracing/views/Tracing.vue'
 import GroupList from '@/tracing/views/GroupList.vue'
 import SpanList from '@/tracing/views/SpanList.vue'
@@ -26,10 +27,12 @@ import TraceShow from '@/tracing/views/TraceShow.vue'
 import TraceFind from '@/tracing/views/TraceFind.vue'
 import SpanShow from '@/tracing/views/SpanShow.vue'
 
-import Metrics from '@/metrics/views/Metrics.vue'
+import MetricsLayout from '@/metrics/views/Layout.vue'
+import MetricsDash from '@/metrics/views/Dashboard.vue'
+import MetricsExplore from '@/metrics/views/Explore.vue'
+import MetricsHelp from '@/metrics/views/Help.vue'
 
 import Login from '@/views/Login.vue'
-import Help from '@/views/Help.vue'
 
 Vue.use(VueRouter)
 
@@ -62,12 +65,12 @@ const routes: RouteConfig[] = [
   {
     name: 'Help',
     path: '/help/:projectId(\\d+)',
-    component: Help,
+    component: TracingHelp,
   },
   {
     name: 'ProjectCreate',
     path: '/help/projects',
-    component: Help,
+    component: TracingHelp,
   },
 
   {
@@ -204,9 +207,34 @@ const routes: RouteConfig[] = [
   },
 
   {
-    name: 'Metrics',
     path: '/metrics/:projectId(\\d+)',
-    component: Metrics,
+    component: MetricsLayout,
+    children: [
+      {
+        path: '',
+        name: 'MetricsDashList',
+        component: MetricsDash,
+      },
+      {
+        path: ':dashId(\\d+)',
+        name: 'MetricsDashShow',
+        component: MetricsDash,
+      },
+      {
+        path: 'explore',
+        name: 'MetricsExplore',
+        component: MetricsExplore,
+      },
+    ],
+  },
+  {
+    path: '/metrics/:projectId(\\d+)/help',
+    name: 'MetricsHelp',
+    component: MetricsHelp,
+  },
+  {
+    path: '/metrics',
+    beforeEnter: redirectToProject('MetricsDashList'),
   },
 ]
 
@@ -215,5 +243,23 @@ const router = new VueRouter({
   base: process.env.BASE_URL,
   routes,
 })
+
+function redirectToProject(routeName: string): NavigationGuard {
+  return async (_to, _from, next) => {
+    const user = useUser()
+    await user.getOrLoad()
+
+    const first = user.projects[0]
+    if (first) {
+      next({
+        name: routeName,
+        params: { projectId: String(first.id) },
+      })
+      return
+    }
+
+    next({ name: 'ProjectCreate' })
+  }
+}
 
 export default router

@@ -25,7 +25,7 @@
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
                 <v-tab :to="{ name: 'SpanGroupList' }">Explore</v-tab>
                 <v-tab :to="{ name: 'LogGroupList', query: { system: 'log:all' } }">Logs</v-tab>
-                <v-tab :to="{ name: 'Metrics' }">Metrics</v-tab>
+                <v-tab :to="{ name: 'MetricsDashList' }">Metrics</v-tab>
                 <v-tab :to="{ name: 'Help' }">Help</v-tab>
               </template>
               <v-tab v-if="!user.isAuth" :to="{ name: 'Login' }">Login</v-tab>
@@ -95,15 +95,11 @@
         <v-row justify="center" align="center">
           <v-col cols="auto">
             <v-btn href="https://uptrace.dev/get/" target="_blank" text rounded small>
-              <v-icon left small class="mr-1">mdi-help-circle-outline</v-icon>
+              <v-icon small class="mr-1">mdi-help-circle-outline</v-icon>
               <span>Docs</span>
             </v-btn>
-            <v-btn href="https://discord.gg/YF8tdP8Pmk" target="_blank" text rounded small>
-              <v-icon left small class="mr-1">mdi-message-outline</v-icon>
-              <span>Discord</span>
-            </v-btn>
             <v-btn href="https://uptrace.dev/opentelemetry/" target="_blank" text rounded small>
-              <v-icon left small class="mr-1">mdi-open-source-initiative</v-icon>
+              <v-icon small class="mr-1">mdi-open-source-initiative</v-icon>
               <span>OpenTelemetry</span>
             </v-btn>
             <v-btn
@@ -113,11 +109,15 @@
               rounded
               small
             >
-              <v-icon left small class="mr-1">mdi-toy-brick-outline</v-icon>
+              <v-icon small class="mr-1">mdi-toy-brick-outline</v-icon>
               <span>Instrumentations</span>
             </v-btn>
+            <v-btn href="https://discord.gg/YF8tdP8Pmk" target="_blank" text rounded small>
+              <v-icon small class="mr-1">mdi-message-outline</v-icon>
+              <span>Discord</span>
+            </v-btn>
             <v-btn href="https://github.com/uptrace/uptrace" target="_blank" text rounded small>
-              <v-icon left small class="mr-1">mdi-github</v-icon>
+              <v-icon small class="mr-1">mdi-github</v-icon>
               <span>GitHub</span>
             </v-btn>
           </v-col>

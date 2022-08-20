@@ -75,7 +75,7 @@ export default defineComponent({
     const explore = useSpanExplore(() => {
       const { projectId } = route.value.params
       return {
-        url: `/api/tracing/${projectId}/groups`,
+        url: `/api/v1/tracing/${projectId}/groups`,
         params: axiosParams.value,
       }
     })

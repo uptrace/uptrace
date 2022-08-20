@@ -6,7 +6,7 @@ import { useRouteQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 
 // Utilities
-import { formatUTC, parseUTC, toUTC, toLocal, ceilDate, second, minute, day } from '@/util/date'
+import { formatUTC, parseUTC, toUTC, toLocal, ceilDate, second, minute, day } from '@/util/fmt/date'
 
 export type UseDateRange = ReturnType<typeof useDateRange>
 

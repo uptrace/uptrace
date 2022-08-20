@@ -10,7 +10,7 @@ import { defineComponent, computed, PropType } from 'vue'
 import EChart, { EChartProps } from '@/components/EChart.vue'
 
 // Utilities
-import { createFormatter, unitFromName } from '@/util/fmt'
+import { unitFromName } from '@/util/fmt'
 import { baseChartConfig, addChartTooltip, createTooltipFormatter } from '@/util/chart'
 
 export default defineComponent({
@@ -21,6 +21,10 @@ export default defineComponent({
     name: {
       type: String,
       required: true,
+    },
+    unit: {
+      type: String as PropType<Unit>,
+      default: undefined,
     },
     line: {
       type: Array as PropType<number[]>,
@@ -33,19 +37,26 @@ export default defineComponent({
   },
 
   setup(props) {
+    const unit = computed((): Unit => {
+      if (props.unit !== undefined) {
+        return props.unit
+      }
+      return unitFromName(props.name)
+    })
+
     const chart = computed(() => {
       const chart: Partial<EChartProps> = {
         width: 100,
         height: 30,
       }
 
-      const cfg = baseChartConfig()
-      addChartTooltip(cfg, {
+      const conf = baseChartConfig()
+      addChartTooltip(conf, {
         axisPointer: undefined,
-        formatter: createTooltipFormatter(createFormatter(unitFromName(props.name))),
+        formatter: createTooltipFormatter(unit.value),
       })
 
-      cfg.grid.push({
+      conf.grid.push({
         show: true,
         top: 2,
         left: 2,
@@ -54,7 +65,7 @@ export default defineComponent({
         borderWidth: 0,
       })
 
-      cfg.xAxis.push({
+      conf.xAxis.push({
         type: 'time',
         show: true,
         axisLine: { lineStyle: { color: colors.grey.lighten2 } },
@@ -63,14 +74,14 @@ export default defineComponent({
         splitLine: { show: false },
       })
 
-      cfg.yAxis.push({
+      conf.yAxis.push({
         type: 'value',
         show: false,
       })
 
-      plotLine(cfg, props.name, props.line, props.time)
+      plotLine(conf, props.name, props.line, props.time)
 
-      chart.option = cfg
+      chart.option = conf
       return chart
     })
 
@@ -78,8 +89,8 @@ export default defineComponent({
   },
 })
 
-function plotLine(cfg: any, name: string, line: number[], time: string[]) {
-  cfg.dataset.push({
+function plotLine(conf: any, name: string, line: number[], time: string[]) {
+  conf.dataset.push({
     source: {
       time,
       [name]: line,
@@ -87,7 +98,7 @@ function plotLine(cfg: any, name: string, line: number[], time: string[]) {
   })
 
   const color = colors.blue.base
-  cfg.series.push({
+  conf.series.push({
     type: 'line',
     name: name,
     encode: { x: 'time', y: name },

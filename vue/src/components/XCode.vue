@@ -1,5 +1,5 @@
 <template>
-  <v-sheet color="grey lighten-5" class="my-0 x-code" :class="{ 'x-code--wrap': wrap }">
+  <v-sheet class="x-code" :class="{ 'x-code--wrap': wrap }">
     <prism :code="code" :inline="inline" :language="language" />
   </v-sheet>
 </template>
@@ -43,6 +43,7 @@ export default defineComponent({
   margin: 16px 0;
   position: relative;
   padding: 12px;
+  background-color: map-get($grey, 'lighten-5');
 
   pre,
   code {

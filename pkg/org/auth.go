@@ -24,8 +24,8 @@ const (
 )
 
 var (
-	ErrUnauthorized   = httperror.Unauthorized("please log in")
-	ErrAccessedDenied = httperror.Forbidden("access denied")
+	ErrUnauthorized = httperror.Unauthorized("please log in")
+	ErrAccessDenied = httperror.Forbidden("access denied")
 )
 
 var GuestUser = &bunconf.User{
@@ -59,25 +59,33 @@ func ContextWithProject(ctx context.Context, project *bunconf.Project) context.C
 	return context.WithValue(ctx, projectCtxKey{}, project)
 }
 
-func NewAuthMiddleware(app *bunapp.App) bunrouter.MiddlewareFunc {
-	return func(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
-		return func(w http.ResponseWriter, req bunrouter.Request) error {
-			ctx := req.Context()
+type Middleware struct {
+	app *bunapp.App
+}
 
-			user := UserFromRequest(app, req)
-			if user == nil {
-				return ErrUnauthorized
-			}
-			ctx = ContextWithUser(ctx, user)
+func NewMiddleware(app *bunapp.App) *Middleware {
+	return &Middleware{
+		app: app,
+	}
+}
 
-			project, err := ProjectFromRequest(app, req)
-			if err != nil {
-				return err
-			}
-			ctx = ContextWithProject(ctx, project)
+func (m *Middleware) UserAndProject(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
+	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
 
-			return next(w, req.WithContext(ctx))
+		user := UserFromRequest(m.app, req)
+		if user == nil {
+			return ErrUnauthorized
 		}
+		ctx = ContextWithUser(ctx, user)
+
+		project, err := ProjectFromRequest(m.app, req)
+		if err != nil {
+			return err
+		}
+		ctx = ContextWithProject(ctx, project)
+
+		return next(w, req.WithContext(ctx))
 	}
 }
 

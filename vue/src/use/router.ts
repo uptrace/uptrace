@@ -13,6 +13,13 @@ export function useRouter() {
   return { router, route }
 }
 
+export function useRoute() {
+  const route = computed((): Route => {
+    return router.app.$root.$route
+  })
+  return route
+}
+
 //------------------------------------------------------------------------------
 
 export type Query = Record<string, any>

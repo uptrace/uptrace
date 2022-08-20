@@ -8,6 +8,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
@@ -128,7 +129,7 @@ func (h *ServiceHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 		service["system"] = f.System
 
 		stats := service["stats"].(map[string]any)
-		fillHoles(stats, f.TimeGTE, f.TimeLT, groupPeriod)
+		bunutil.FillHoles(stats, f.TimeGTE, f.TimeLT, groupPeriod)
 	}
 
 	return httputil.JSON(w, bunrouter.H{

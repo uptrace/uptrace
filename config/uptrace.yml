@@ -7,7 +7,7 @@
 ##
 ## To escape `$`, use `$$`, for example:
 ##
-##   foo: $$FooBar
+##   foo: $$FOO_BAR
 ##
 
 # Enable to log HTTP requests and ClickHouse queries.
@@ -36,11 +36,7 @@ ch:
 # Various options to tweak ClickHouse schema.
 ch_schema:
   # Compression codec, for example, LZ4 or ZSTD(3).
-  compression: Default
-
-  # Delete data after 30 days.
-  # Supports SQL interval syntax, for example, INTERVAL 30 DAY.
-  ttl: 30 DAY
+  compression: ZSTD(3)
 
   # Whether to create ReplicatedMergeTree instead of MergeTree.
   #replicated: false
@@ -50,7 +46,12 @@ ch_schema:
 
 # Spans processing options.
 spans:
+  # Delete data after 30 days.
+  # Supports SQL interval syntax, for example, INTERVAL 30 DAY.
+  ttl: 30 DAY
+
   # The size of Go chan used to buffer incoming spans.
+  # If the buffer is full, Uptrace starts to drop spans.
   #buffer_size: 100000
 
   # The number of spans to insert in a single query.
@@ -58,11 +59,36 @@ spans:
 
 # Metrics processing options.
 metrics:
+  # Delete data after 30 days.
+  # Supports SQL interval syntax, for example, INTERVAL 30 DAY.
+  ttl: 90 DAY
+
+  # List of attributes to drop for being noisy.
+  drop_attrs:
+    - telemetry.sdk.language
+    - telemetry.sdk.name
+    - telemetry.sdk.version
+
   # The size of Go chan used to buffer incoming measures.
+  # If the buffer is full, Uptrace starts to drop measures.
   #buffer_size: 100000
 
   # The number of measures to insert in a single query.
   #batch_size: 10000
+
+# Alerting rules.
+alerting:
+  rules:
+    - name: check goroutines
+      metrics:
+        - process.runtime.go.goroutines as $goroutines
+      expr: $goroutines >= 0 group by host.name
+      for: 5m
+      projects: [1]
+
+alertmanager:
+  urls:
+    - 'http://localhost:9093/api/v2/alerts'
 
 # To require authentication, uncomment the following section.
 # users:
@@ -71,16 +97,99 @@ metrics:
 #     password: uptrace
 
 projects:
-  # Conventionally, first project is used for self-monitoring.
+  # Conventionally, the first project is used for self-monitoring.
   - id: 1
     name: Uptrace
+    # Token grants write access to the project. Keep a secret.
     token: project1_secret_token
+    pinned_attrs:
+      - service.name
+      - host.name
+      - deployment.environment
 
   - id: 2
     name: My project
     token: project2_secret_token
+    pinned_attrs:
+      - service.name
+      - host.name
+      - deployment.environment
 
-# Uptrace uses Prometheus to send alerts and monitor metrics.
-prometheus:
-  # Path to the Prometheus config.
-  config: uptrace-prometheus.yml
+# SQLite database is used to store metadata such us metric names, dashboards, alerts, and so on.
+db:
+  dsn: 'file:uptrace.sqlite3'
+
+# Metrics dashboard templates.
+dashboards:
+  - id: go.runtime
+    name: Go Runtime
+
+    metrics:
+      - process.runtime.go.gc.pause_ns as $gc_pause
+      - process.runtime.go.mem.heap_inuse as $mem_in_use
+      - process.runtime.go.mem.heap_objects as $heap_objects
+      - process.runtime.go.goroutines as $goroutines
+    query:
+      - group by service.name | group by host.name
+      - max($gc_pause) as gc_pause_max
+      - $mem_in_use
+      - $heap_objects
+      - $goroutines
+    columns:
+      gc_pause_max: { unit: nanoseconds }
+
+    entries:
+      - name: Max GC stop-the-world pause
+        metrics:
+          - process.runtime.go.gc.pause_ns as $gc_pause
+        query: max($gc_pause) as gc_pause_max
+        columns:
+          gc_pause_max: { unit: nanoseconds }
+
+      - name: Heap memory in use
+        metrics:
+          - process.runtime.go.mem.heap_inuse as $mem_in_use
+        query: $mem_in_use
+        columns:
+          mem_in_use: { unit: bytes }
+
+      - name: Heap live objects
+        metrics:
+          - process.runtime.go.mem.heap_objects as $heap_objects
+        query: $heap_objects
+
+      - name: Goroutines
+        metrics:
+          - process.runtime.go.goroutines as $goroutines
+        query: $goroutines
+
+      - name: cgo calls
+        metrics:
+          - process.runtime.go.cgo.calls as $cgo_calls
+        query: $cgo_calls
+
+  - id: uptrace.projects
+    name: Uptrace Projects
+
+    metrics:
+      - uptrace.projects.spans as $spans
+      - uptrace.projects.measures as $measures
+    query:
+      - group by project_id
+      - per_min($spans) as spans_per_min
+      - per_min($measures) as measures_per_min
+
+  - id: uptrace.overview
+    name: Uptrace Hosts
+
+    metrics:
+      - uptrace.projects.spans as $spans
+      - uptrace.projects.measures as $measures
+      - uptrace.spans.buffer_size as $spans_buffer
+      - uptrace.metrics.buffer_size as $measures_buffer
+    query:
+      - group by host.name
+      - per_min($spans) as spans_per_min
+      - per_min($measures) as measures_per_min
+      - $spans_buffer
+      - $measures_buffer

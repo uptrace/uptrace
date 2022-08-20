@@ -2,7 +2,7 @@
   <v-hover v-slot="{ hover }">
     <v-card :flat="!hover" :color="hover ? 'white' : 'transparent'" class="mx-auto">
       <v-card-text class="text-center">
-        <a :href="to" :title="`Uptrace for ${name}`" target="_blank">
+        <a :href="to" :title="`${name} integration`" target="_blank">
           <v-img :src="icon" max-width="80" aspect-ratio="1" contain :alt="name" class="mx-auto" />
           <div class="mt-2 text-subtitle-1 text-no-wrap">{{ name }}</div>
         </a>

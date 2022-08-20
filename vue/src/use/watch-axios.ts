@@ -9,6 +9,7 @@ export type { AxiosRequestSource, AxiosRequestConfig }
 
 export function useWatchAxios(source: AxiosRequestSource, cfg: Config = {}) {
   const {
+    status,
     loading,
     data,
     error,
@@ -24,6 +25,7 @@ export function useWatchAxios(source: AxiosRequestSource, cfg: Config = {}) {
   )
 
   return {
+    status,
     loading,
 
     data,

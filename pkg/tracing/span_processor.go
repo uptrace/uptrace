@@ -13,7 +13,9 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
-	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric/instrument"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
 )
@@ -37,7 +39,7 @@ func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
 		ch:        make(chan *Span, cfg.Spans.BufferSize),
 		gate:      syncutil.NewGate(runtime.GOMAXPROCS(0)),
 
-		logger: app.Logger(),
+		logger: app.Logger,
 	}
 
 	app.WaitGroup().Add(1)
@@ -47,14 +49,33 @@ func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
 		p.processLoop(app.Context())
 	}()
 
+	bufferSize, _ := bunotel.Meter.AsyncInt64().Gauge("uptrace.spans.buffer_size")
+
+	if err := bunotel.Meter.RegisterCallback(
+		[]instrument.Asynchronous{
+			bufferSize,
+		},
+		func(ctx context.Context) {
+			bufferSize.Observe(ctx, int64(len(p.ch)))
+		},
+	); err != nil {
+		panic(err)
+	}
+
 	return p
 }
 
-func (s *SpanProcessor) AddSpan(span *Span) {
+func (p *SpanProcessor) AddSpan(ctx context.Context, span *Span) {
 	select {
-	case s.ch <- span:
+	case p.ch <- span:
 	default:
-		s.logger.Error("span buffer is full (consider increasing spans.buffer_size)")
+		p.logger.Error("span buffer is full (consider increasing spans.buffer_size)")
+		spanCounter.Add(
+			ctx,
+			1,
+			bunotel.ProjectIDAttr(span.ProjectID),
+			attribute.String("type", "dropped"),
+		)
 	}
 }
 
@@ -117,7 +138,12 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 	spanCtx := newSpanContext(ctx)
 	for _, span := range spans {
 		initSpan(spanCtx, span)
-		spanCounter.Add(ctx, 1, bunotel.ProjectID.Int64(int64(span.ProjectID)))
+		spanCounter.Add(
+			ctx,
+			1,
+			bunotel.ProjectIDAttr(span.ProjectID),
+			attribute.String("type", "inserted"),
+		)
 
 		indexedSpans = append(indexedSpans, SpanIndex{})
 		index := &indexedSpans[len(indexedSpans)-1]
@@ -131,7 +157,12 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 
 		for _, eventSpan := range span.Events {
 			initSpanEvent(spanCtx, eventSpan, span)
-			spanCounter.Add(ctx, 1, bunotel.ProjectID.Int64(int64(span.ProjectID)))
+			spanCounter.Add(
+				ctx,
+				1,
+				bunotel.ProjectIDAttr(span.ProjectID),
+				attribute.String("type", "inserted"),
+			)
 
 			indexedSpans = append(indexedSpans, SpanIndex{})
 			initSpanIndex(&indexedSpans[len(indexedSpans)-1], eventSpan)
@@ -173,6 +204,9 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 }
 
 func (s *SpanProcessor) notifyOnErrors(errors []*Span) {
+	// TODO: rework
+	return
+
 	alerts := make([]*notifier.Alert, len(errors))
 
 	for i, error := range errors {
@@ -186,7 +220,7 @@ func (s *SpanProcessor) notifyOnErrors(errors []*Span) {
 		if service := error.Attrs.ServiceName(); service != "" {
 			labels = append(labels, "service", service)
 		}
-		if sev, _ := error.Attrs[xattr.LogSeverity].(string); sev != "" {
+		if sev, _ := error.Attrs[attrkey.LogSeverity].(string); sev != "" {
 			labels = append(labels, "severity", sev)
 		}
 

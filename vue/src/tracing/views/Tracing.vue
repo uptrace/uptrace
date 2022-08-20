@@ -53,9 +53,9 @@ import { useUser } from '@/use/org'
 import { useSystems, SystemsFilter } from '@/use/systems'
 
 // Components
-import DateRangePicker from '@/components/DateRangePicker.vue'
+import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import SystemPicker from '@/components/SystemPicker.vue'
-import HelpCard from '@/components/HelpCard.vue'
+import HelpCard from '@/tracing/HelpCard.vue'
 
 interface Props {
   spanListRoute: string

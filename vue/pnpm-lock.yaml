@@ -28,6 +28,7 @@ specifiers:
   eslint: 8.19.0
   eslint-plugin-prettier: 4.2.1
   eslint-plugin-vue: 9.2.0
+  fuzzaldrin-plus: ^0.6.0
   lodash: 4.17.21
   numbro: 2.3.6
   prettier: 2.7.1
@@ -44,6 +45,7 @@ specifiers:
   vue-prism-component: 1.2.0
   vue-router: 3.5.4
   vue-template-compiler: 2.7.8
+  vuedraggable: ^2.24.3
   vuetify: 2.6.7
   vuetify-loader: 1.9.0
 
@@ -87,6 +89,7 @@ devDependencies:
   eslint: 8.19.0
   eslint-plugin-prettier: 4.2.1_eslint@8.19.0+prettier@2.7.1
   eslint-plugin-vue: 9.2.0_eslint@8.19.0
+  fuzzaldrin-plus: 0.6.0
   prettier: 2.7.1
   regenerator-runtime: 0.13.9
   sass: 1.32.8
@@ -94,6 +97,7 @@ devDependencies:
   typescript: 4.7.4
   vue-cli-plugin-vuetify: 2.5.1_08ec8fa83db80a833e2746ce107aa077
   vue-template-compiler: 2.7.8
+  vuedraggable: 2.24.3
   vuetify-loader: 1.9.0_vue@2.7.8+vuetify@2.6.7
 
 packages:
@@ -4303,6 +4307,10 @@ packages:
     resolution: {integrity: sha512-dsKNQNdj6xA3T+QlADDA7mOSlX0qiMINjn0cgr+eGHGsbSHzTabcIogz2+p/iqP1Xs6EP/sS2SbqH+brGTbq0g==}
     dev: true
 
+  /fuzzaldrin-plus/0.6.0:
+    resolution: {integrity: sha512-srIDThJHkdp3aPwJpR/HNzYZCRJwm07b/igxseoHSB7qR8e/gQp4F6lMGknE3TQI1Aq14TiFf/wzrHOp9LY/EA==}
+    dev: true
+
   /gensync/1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
@@ -6772,6 +6780,10 @@ packages:
       websocket-driver: 0.7.4
     dev: true
 
+  /sortablejs/1.10.2:
+    resolution: {integrity: sha512-YkPGufevysvfwn5rfdlGyrGjt7/CRHwvRPogD/lC+TnvcN29jDpCifKP+rBqf+LRldfXSTh+0CGLcSg0VIxq3A==}
+    dev: true
+
   /source-map-js/1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}
     engines: {node: '>=0.10.0'}
@@ -7436,6 +7448,12 @@ packages:
       '@vue/compiler-sfc': 2.7.8
       csstype: 3.1.0
     dev: false
+
+  /vuedraggable/2.24.3:
+    resolution: {integrity: sha512-6/HDXi92GzB+Hcs9fC6PAAozK1RLt1ewPTLjK0anTYguXLAeySDmcnqE8IC0xa7shvSzRjQXq3/+dsZ7ETGF3g==}
+    dependencies:
+      sortablejs: 1.10.2
+    dev: true
 
   /vuetify-loader/1.9.0_vue@2.7.8+vuetify@2.6.7:
     resolution: {integrity: sha512-qJGm35Ds7wgycdZxAUJPlwekNJ50OeO3/OL2fi1AtRwD94F00uXud7PIT0E/Svh6l8uP0JWiC01INS1N7vde+w==}

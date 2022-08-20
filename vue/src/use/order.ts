@@ -7,11 +7,11 @@ export interface Order {
   desc: boolean
 }
 
-export type UseOrder = ReturnType<typeof useOrder>
-
 export interface OrderConfig extends Partial<Order> {
   syncQuery?: boolean
 }
+
+export type UseOrder = ReturnType<typeof useOrder>
 
 export function useOrder(cfg: OrderConfig = {}) {
   cfg.column = cfg.column ?? ''
@@ -20,6 +20,8 @@ export function useOrder(cfg: OrderConfig = {}) {
 
   const column = shallowRef<string | undefined>(cfg.column)
   const desc = shallowRef(cfg.desc)
+
+  const axiosParamsLocked = shallowRef(false)
   const axiosParams = shallowRef<Record<string, any>>({})
 
   const icon = computed(() => {
@@ -30,29 +32,30 @@ export function useOrder(cfg: OrderConfig = {}) {
     () => {
       return {
         sort_by: column.value,
-        sort_dir: descAsc(desc.value),
+        sort_desc: desc.value,
       }
     },
     (params) => {
-      axiosParams.value = params
+      if (!axiosParamsLocked.value) {
+        axiosParams.value = params
+      }
     },
     { immediate: true, flush: 'sync' },
   )
 
   if (cfg.syncQuery) {
     useRouteQuery().sync({
-      fromQuery(query) {
-        const { sort_by, sort_dir } = query
-        if (sort_by) {
-          column.value = sort_by
-          desc.value = isDesc(sort_dir as string)
+      fromQuery(params) {
+        if (params.sort_by) {
+          column.value = params.sort_by
+          desc.value = params.sort_desc === '1'
         }
       },
       toQuery() {
         if (column.value) {
           return {
             sort_by: column.value,
-            sort_dir: descAsc(desc.value),
+            sort_desc: desc.value ? '1' : '0',
           }
         }
         return {}
@@ -87,6 +90,23 @@ export function useOrder(cfg: OrderConfig = {}) {
     return cls
   }
 
+  function lockAxiosParams() {
+    axiosParamsLocked.value = true
+  }
+
+  function unlockAxiosParams() {
+    axiosParamsLocked.value = false
+  }
+
+  function withLockedAxiosParams(cb: () => void) {
+    const oldValue = axiosParamsLocked.value
+    axiosParamsLocked.value = true
+
+    cb()
+
+    axiosParamsLocked.value = oldValue
+  }
+
   function reset() {
     column.value = ''
     desc.value = true
@@ -98,21 +118,13 @@ export function useOrder(cfg: OrderConfig = {}) {
     icon,
 
     axiosParams,
+    lockAxiosParams,
+    unlockAxiosParams,
+    withLockedAxiosParams,
 
     change,
     reset,
     toggle,
     thClass,
   })
-}
-
-function isDesc(s: string | undefined | null): boolean {
-  if (!s) {
-    return true
-  }
-  return s.toLowerCase() !== 'asc'
-}
-
-function descAsc(isDesc: boolean): string {
-  return isDesc ? 'desc' : 'asc'
 }

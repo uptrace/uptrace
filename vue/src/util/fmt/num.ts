@@ -27,6 +27,40 @@ export function num(n: number | undefined): string {
   return fixedMantissa(n, 1) + 'b'
 }
 
+export function numShort(n: number | undefined, opts = {}): string {
+  if (typeof n !== 'number' || n === 0) {
+    return '0'
+  }
+  if (Math.abs(n) < 0.01) {
+    return trimMantissa(n, 3, opts)
+  }
+  if (Math.abs(n) < 0.1) {
+    return trimMantissa(n, 2, opts)
+  }
+  if (Math.abs(n) < 100) {
+    return trimMantissa(n, 1, opts)
+  }
+  if (Math.abs(n) < 1000) {
+    return trimMantissa(n, 0, opts)
+  }
+  n /= 1000
+  if (Math.abs(n) < 100) {
+    return trimMantissa(n, 1, opts) + 'k'
+  }
+  if (Math.abs(n) < 1000) {
+    return trimMantissa(n, 0, opts) + 'k'
+  }
+  n /= 1000
+  if (Math.abs(n) < 100) {
+    return trimMantissa(n, 1, opts) + 'm'
+  }
+  if (Math.abs(n) < 1000) {
+    return trimMantissa(n, 0, opts) + 'm'
+  }
+  n /= 1000
+  return trimMantissa(n, 1, opts) + 'b'
+}
+
 export function percent(n: any): string {
   if (typeof n !== 'number' || Math.abs(n) < 0.0001) {
     return '0%'
@@ -75,4 +109,18 @@ export function bytes(n: number | undefined): string {
   }
 
   return trimMantissa(n, 0) + 'PB'
+}
+
+export function bytesShort(n: number | undefined, opts = {}): string {
+  if (typeof n !== 'number' || n === 0) {
+    return '0'
+  }
+  const s = numbro(n).format({
+    output: 'byte',
+    base: 'binary',
+    mantissa: 0,
+    ...opts,
+  })
+  // KiB -> KB.
+  return s.replace('i', '')
 }

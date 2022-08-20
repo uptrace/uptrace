@@ -2,10 +2,10 @@ package metrics
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"reflect"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/cespare/xxhash/v2"
@@ -14,6 +14,8 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bunotel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric/instrument"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
 	"golang.org/x/exp/slices"
@@ -23,26 +25,36 @@ type MeasureProcessor struct {
 	*bunapp.App
 
 	batchSize int
+	dropAttrs map[string]struct{}
 
 	ch   chan *Measure
 	gate *syncutil.Gate
 
 	c2d    *CumToDeltaConv
 	logger *otelzap.Logger
+
+	metricMapMu sync.RWMutex
+	metricMap   map[MetricKey]struct{}
 }
 
 func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
-	cfg := app.Config()
+	conf := app.Config()
 	p := &MeasureProcessor{
 		App: app,
 
-		batchSize: cfg.Metrics.BatchSize,
+		batchSize: conf.Metrics.BatchSize,
 
-		ch:   make(chan *Measure, cfg.Metrics.BufferSize),
+		ch:   make(chan *Measure, conf.Metrics.BufferSize),
 		gate: syncutil.NewGate(runtime.GOMAXPROCS(0)),
 
 		c2d:    NewCumToDeltaConv(bunconf.ScaleWithCPU(4000, 32000)),
-		logger: app.Logger(),
+		logger: app.Logger,
+
+		metricMap: make(map[MetricKey]struct{}),
+	}
+
+	if len(conf.Metrics.DropAttrs) > 0 {
+		p.dropAttrs = listToSet(conf.Metrics.DropAttrs)
 	}
 
 	app.WaitGroup().Add(1)
@@ -52,57 +64,79 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 		p.processLoop(app.Context())
 	}()
 
+	bufferSize, _ := bunotel.Meter.AsyncInt64().Gauge("uptrace.metrics.buffer_size")
+
+	if err := bunotel.Meter.RegisterCallback(
+		[]instrument.Asynchronous{
+			bufferSize,
+		},
+		func(ctx context.Context) {
+			bufferSize.Observe(ctx, int64(len(p.ch)))
+		},
+	); err != nil {
+		panic(err)
+	}
+
 	return p
 }
 
-func (s *MeasureProcessor) AddMeasure(measure *Measure) {
+func (p *MeasureProcessor) AddMeasure(ctx context.Context, measure *Measure) {
 	select {
-	case s.ch <- measure:
+	case p.ch <- measure:
 	default:
-		s.logger.Error("measure buffer is full (consider increasing metrics.buffer_size)")
+		p.logger.Error("measure buffer is full (consider increasing metrics.buffer_size)")
+		measureCounter.Add(
+			ctx,
+			1,
+			bunotel.ProjectIDAttr(measure.ProjectID),
+			attribute.String("type", "dropped"),
+		)
 	}
 }
 
-func (s *MeasureProcessor) processLoop(ctx context.Context) {
+func (p *MeasureProcessor) processLoop(ctx context.Context) {
 	const timeout = 5 * time.Second
 
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
-	measures := make([]*Measure, 0, s.batchSize)
+	measures := make([]*Measure, 0, p.batchSize)
 
 loop:
 	for {
 		select {
-		case measure := <-s.ch:
-			if !s.processMeasure(ctx, measure) {
+		case measure := <-p.ch:
+			if !p.processMeasure(ctx, measure) {
 				break
 			}
 
+			p.upsertMetric(ctx, measure)
+
 			measures = append(measures, measure)
-			metricCounter.Add(
+			measureCounter.Add(
 				ctx,
 				1,
-				bunotel.ProjectID.Int64(int64(measure.ProjectID)),
+				bunotel.ProjectIDAttr(measure.ProjectID),
+				attribute.String("type", "inserted"),
 			)
 
-			if len(measures) == s.batchSize {
-				s.flushMeasures(ctx, measures)
+			if len(measures) == p.batchSize {
+				p.flushMeasures(ctx, measures)
 				measures = make([]*Measure, 0, len(measures))
 			}
 		case <-timer.C:
 			if len(measures) > 0 {
-				s.flushMeasures(ctx, measures)
+				p.flushMeasures(ctx, measures)
 				measures = make([]*Measure, 0, len(measures))
 			}
 			timer.Reset(timeout)
-		case <-s.Done():
+		case <-p.Done():
 			break loop
 		}
 	}
 
 	if len(measures) > 0 {
-		s.flushMeasures(ctx, measures)
+		p.flushMeasures(ctx, measures)
 	}
 }
 
@@ -150,9 +184,9 @@ func (s *MeasureProcessor) convertNumberPoint(
 	}
 
 	if delta := point.Int - prevPoint.Int; delta > 0 {
-		measure.Sum = float32(delta)
+		measure.Sum = float64(delta)
 	} else if delta := point.Double - prevPoint.Double; delta > 0 {
-		measure.Sum = float32(delta)
+		measure.Sum = delta
 	}
 	return true
 }
@@ -175,7 +209,7 @@ func (s *MeasureProcessor) convertHistogramPoint(
 		return false
 	}
 
-	measure.Sum = float32(max(0, point.Sum-prevPoint.Sum))
+	measure.Sum = max(0, point.Sum-prevPoint.Sum)
 
 	for i, num := range point.BucketCounts {
 		prevNum := prevPoint.BucketCounts[i]
@@ -221,7 +255,7 @@ func (s *MeasureProcessor) convertExpHistogramPoint(
 		return false
 	}
 
-	measure.Sum = float32(max(0, point.Sum-prevPoint.Sum))
+	measure.Sum = max(0, point.Sum-prevPoint.Sum)
 
 	point.ZeroCount -= prevPoint.ZeroCount
 	for i, count := range point.Positive.BucketCounts {
@@ -260,21 +294,25 @@ func (s *MeasureProcessor) flushMeasures(ctx context.Context, measures []*Measur
 	}()
 }
 
-func (s *MeasureProcessor) _flushMeasures(ctx *measureContext, measures []*Measure) {
+func (p *MeasureProcessor) _flushMeasures(ctx *measureContext, measures []*Measure) {
 	for _, m := range measures {
-		initMeasure(ctx, m)
+		p.initMeasure(ctx, m)
 	}
 
-	if err := InsertMeasures(ctx, s.App, measures); err != nil {
-		s.Zap(ctx).Error("InsertMeasures failed", zap.Error(err))
+	if err := InsertMeasures(ctx, p.App, measures); err != nil {
+		p.Zap(ctx).Error("InsertMeasures failed", zap.Error(err))
 	}
 }
 
-func initMeasure(ctx *measureContext, measure *Measure) {
+func (p *MeasureProcessor) initMeasure(ctx *measureContext, measure *Measure) {
 	keys := make([]string, 0, len(measure.Attrs))
 	values := make([]string, 0, len(measure.Attrs))
 
 	for key := range measure.Attrs {
+		if _, ok := p.dropAttrs[key]; ok {
+			delete(measure.Attrs, key)
+			continue
+		}
 		keys = append(keys, key)
 	}
 	slices.Sort(keys)
@@ -282,7 +320,7 @@ func initMeasure(ctx *measureContext, measure *Measure) {
 	digest := ctx.ResettedDigest()
 
 	for _, key := range keys {
-		value := fmt.Sprint(measure.Attrs[key])
+		value := measure.Attrs[key]
 		values = append(values, value)
 
 		digest.WriteString(key)
@@ -291,8 +329,47 @@ func initMeasure(ctx *measureContext, measure *Measure) {
 
 	measure.Time = measure.Time.Truncate(time.Minute)
 	measure.AttrsHash = digest.Sum64()
-	measure.Keys = keys
-	measure.Values = values
+	measure.AttrKeys = keys
+	measure.AttrValues = values
+}
+
+type MetricKey struct {
+	ProjectID uint32
+	Metric    string
+}
+
+func (p *MeasureProcessor) upsertMetric(ctx context.Context, measure *Measure) {
+	key := MetricKey{
+		ProjectID: measure.ProjectID,
+		Metric:    measure.Metric,
+	}
+
+	p.metricMapMu.RLock()
+	_, ok := p.metricMap[key]
+	p.metricMapMu.RUnlock()
+	if ok {
+		return
+	}
+
+	p.metricMapMu.Lock()
+	defer p.metricMapMu.Unlock()
+
+	if _, ok := p.metricMap[key]; ok {
+		return
+	}
+	p.metricMap[key] = struct{}{}
+
+	metric := &Metric{
+		ProjectID:   measure.ProjectID,
+		Name:        measure.Metric,
+		Description: measure.Description,
+		Unit:        measure.Unit,
+		Instrument:  measure.Instrument,
+	}
+	if _, err := upsertMetric(ctx, p.App, metric); err != nil {
+		p.Zap(ctx).Error("CreateMetric failed", zap.Error(err))
+		return
+	}
 }
 
 //------------------------------------------------------------------------------
