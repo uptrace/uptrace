@@ -1,6 +1,10 @@
 package sqlparser
 
-import "io"
+import (
+	"io"
+
+	"github.com/uptrace/uptrace/pkg/bunlex"
+)
 
 type TokenType int8
 
@@ -25,7 +29,7 @@ func newToken(typ TokenType, text string) Token {
 
 type Tokenizer struct {
 	s   string
-	lex Lexer
+	lex bunlex.Lexer
 }
 
 func NewTokenizer(s string) *Tokenizer {
@@ -53,14 +57,14 @@ func (t *Tokenizer) NextToken() (Token, error) {
 		}
 	}
 
-	if isDigit(c) {
+	if bunlex.IsDigit(c) {
 		t.lex.Rewind()
 		return t.number(), nil
 	}
-	if isAlpha(c) {
+	if bunlex.IsAlpha(c) {
 		return t.ident(), nil
 	}
-	if isWhitespace(c) {
+	if bunlex.IsWhitespace(c) {
 		return t.byteToken(SpaceToken), nil
 	}
 
@@ -106,23 +110,6 @@ func (t *Tokenizer) quotedIdent(end byte) (Token, error) {
 	return newToken(QuotedIdentToken, s), nil
 }
 
-func isWhitespace(c byte) bool {
-	switch c {
-	case ' ', '\t':
-		return true
-	default:
-		return false
-	}
-}
-
-func isDigit(c byte) bool {
-	return c >= '0' && c <= '9'
-}
-
-func isAlpha(c byte) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-}
-
 func isIdent(c byte) bool {
-	return isAlpha(c) || isDigit(c) || c == '_'
+	return bunlex.IsAlnum(c) || c == '_'
 }

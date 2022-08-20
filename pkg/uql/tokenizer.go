@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/uptrace/uptrace/pkg/sqlparser"
+	"github.com/uptrace/uptrace/pkg/bunlex"
 )
 
 //go:generate parseme -struct=queryParser
@@ -43,7 +43,7 @@ func (t *Token) String() string {
 //------------------------------------------------------------------------------
 
 type tokenizer struct {
-	lex sqlparser.Lexer
+	lex bunlex.Lexer
 
 	tokens []Token
 	pos    int
@@ -104,14 +104,14 @@ func (l *tokenizer) readToken() (*Token, error) {
 		return l.token(BYTE_TOKEN, l.lex.Slice(start, start+1), start), nil
 	}
 
-	if isWhitespace(c) {
+	if bunlex.IsWhitespace(c) {
 		return l.readToken()
 	}
 
-	if isAlpha(c) {
+	if bunlex.IsAlpha(c) {
 		return l.ident(l.lex.Pos() - 1)
 	}
-	if isDigit(c) {
+	if bunlex.IsDigit(c) {
 		return l.number()
 	}
 
@@ -141,7 +141,7 @@ func (l *tokenizer) quotedValue(end byte) (*Token, error) {
 
 func (l *tokenizer) number() (*Token, error) {
 	start := l.lex.Pos() - 1
-	s, _ := l.lex.ReadSepFunc(l.lex.Pos()-1, l.isWordSep)
+	s, _ := l.lex.ReadSepFunc(l.lex.Pos()-1, l.isWordBoundary)
 
 	if _, err := time.ParseDuration(s); err == nil {
 		return l.token(DURATION_TOKEN, s, start), nil
@@ -175,8 +175,8 @@ func (l *tokenizer) token(id TokenID, s string, start int) *Token {
 	return &l.tokens[len(l.tokens)-1]
 }
 
-func (l *tokenizer) isWordSep(c byte) bool {
-	if isWhitespace(c) {
+func (l *tokenizer) isWordBoundary(c byte) bool {
+	if bunlex.IsWhitespace(c) {
 		return true
 	}
 
@@ -184,31 +184,12 @@ func (l *tokenizer) isWordSep(c byte) bool {
 	case '(', ')', '{', '}', ',', '|':
 		return true
 	case ':':
-		return isWhitespace(l.lex.PeekByte())
+		return bunlex.IsWhitespace(l.lex.PeekByte())
 	}
 
 	return false
 }
 
-//------------------------------------------------------------------------------
-
-func isWhitespace(c byte) bool {
-	switch c {
-	case ' ', '\t':
-		return true
-	default:
-		return false
-	}
-}
-
-func isDigit(c byte) bool {
-	return c >= '0' && c <= '9'
-}
-
-func isAlpha(c byte) bool {
-	return c >= 'a' && c <= 'z'
-}
-
 func isIdent(c byte) bool {
-	return isAlpha(c) || isDigit(c) || c == '_' || c == '.'
+	return bunlex.IsAlnum(c) || c == '_' || c == '.'
 }
