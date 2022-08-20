@@ -34,7 +34,7 @@ import (
 	"github.com/uptrace/uptrace"
 	"github.com/uptrace/uptrace/pkg"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunapp/migrations"
+	"github.com/uptrace/uptrace/pkg/bunapp/chmigrations"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/run"
 	"gopkg.in/yaml.v2"
@@ -67,7 +67,7 @@ func main() {
 		Commands: []*cli.Command{
 			versionCommand,
 			serveCommand,
-			newCHCommand(migrations.Migrations),
+			newCHCommand(chmigrations.Migrations),
 			// command.AlertManager,
 		},
 	}
@@ -370,7 +370,7 @@ var serveCommand = &cli.Command{
 }
 
 func runMigrations(ctx context.Context, db *ch.DB) error {
-	migrator := chmigrate.NewMigrator(db, migrations.Migrations)
+	migrator := chmigrate.NewMigrator(db, chmigrations.Migrations)
 
 	if err := migrator.Init(ctx); err != nil {
 		return err
