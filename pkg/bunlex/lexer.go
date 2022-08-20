@@ -1,4 +1,4 @@
-package sqlparser
+package bunlex
 
 import "fmt"
 
@@ -180,7 +180,7 @@ func (l *Lexer) Number() string {
 				l.Advance()
 			}
 		default:
-			if !isDigit(c) {
+			if !IsDigit(c) {
 				goto break_loop
 			}
 		}
