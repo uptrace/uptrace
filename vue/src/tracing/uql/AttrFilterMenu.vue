@@ -83,7 +83,7 @@ export default defineComponent({
 
       const { projectId } = route.value.params
       return {
-        url: `/api/tracing/${projectId}/suggestions/values`,
+        url: `/api/v1/tracing/${projectId}/suggestions/values`,
         params: {
           ...props.axiosParams,
           column: props.attrKey,

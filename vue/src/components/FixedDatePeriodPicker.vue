@@ -5,7 +5,7 @@
       <PeriodPickerMenu :value="dateRange.duration" :periods="periods" @input="onInputPeriod" />
     </span>
     <v-btn v-if="withReload" small outlined class="ml-2" @click="dateRange.forceReload">
-      <v-icon small class="mr-1">mdi-refresh</v-icon>
+      <v-icon small left>mdi-refresh</v-icon>
       <span>Reload</span>
     </v-btn>
   </span>
@@ -18,11 +18,11 @@ import { defineComponent, computed, onMounted, watchEffect, PropType } from 'vue
 import { UseDateRange } from '@/use/date-range'
 
 // Components
-import PeriodPickerMenu from '@/components/PeriodPickerMenu.vue'
+import PeriodPickerMenu from '@/components/date/PeriodPickerMenu.vue'
 
 // Utilities
 import { periodsForDays } from '@/models/period'
-import { hour } from '@/util/date'
+import { hour } from '@/util/fmt/date'
 
 export default defineComponent({
   name: 'FixedDatePeriodPicker',

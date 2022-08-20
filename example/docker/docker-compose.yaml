@@ -19,17 +19,6 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
-  grafana:
-    image: grafana/grafana:8.5.2
-    restart: on-failure
-    volumes:
-      - ../../config/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
-      - ../../config/grafana/custom.ini:/etc/grafana/grafana.ini
-    ports:
-      - '3000:3000'
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
-
   uptrace:
     image: 'uptrace/uptrace:latest'
     #image: 'uptrace/uptrace-dev:latest'
@@ -46,23 +35,26 @@ services:
       clickhouse:
         condition: service_healthy
 
-  loki:
-    image: qxip/cloki:latest
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.58.0
     restart: on-failure
-    environment:
-      CLICKHOUSE_SERVER: clickhouse
-      CLICKHOUSE_DB: uptrace
-    depends_on:
-      clickhouse:
-        condition: service_healthy
-    ports:
-      - '3100:3100' # UI and HTTP API
-
-  promtail:
-    image: grafana/promtail:2.5.0
     volumes:
-      - /var/log:/var/log
-    command: -config.file=/etc/promtail/config.yml
+      - ../../config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml
+    # use host mode so we can export data to Uptrace
+    network_mode: host
+
+  hotrod:
+    image: jaegertracing/example-hotrod:latest
+    ports:
+      - '8080:8080'
+    command: ['all', '-j', 'http://localhost:14318']
+    environment:
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6831
+    networks:
+      - jaeger-example
+    depends_on:
+      - otel-collector
 
 volumes:
   ch_data:

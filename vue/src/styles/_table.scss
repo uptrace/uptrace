@@ -1,0 +1,10 @@
+.v-data-table--narrow > .v-data-table__wrapper > table {
+  & > tbody > tr > td,
+  & > tbody > tr > th,
+  & > thead > tr > td,
+  & > thead > tr > th,
+  & > tfoot > tr > td,
+  & > tfoot > tr > th {
+    padding: 0 8px;
+  }
+}

@@ -9,7 +9,7 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/httputil"
-	"github.com/uptrace/uptrace/pkg/uql"
+	"github.com/uptrace/uptrace/pkg/tracing/upql"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
 )
@@ -103,13 +103,13 @@ func (h *SuggestionHandler) Values(w http.ResponseWriter, req bunrouter.Request)
 	if f.Column == "" {
 		return fmt.Errorf(`"column" query param is required`)
 	}
-	colName, err := uql.ParseName(f.Column)
+	colName, err := upql.ParseName(f.Column)
 	if err != nil {
 		return err
 	}
 
 	q := buildSpanIndexQuery(h.App, f, 0)
-	q = uqlColumn(q, colName, 0).Group(f.Column)
+	q = upqlColumn(q, colName, 0).Group(f.Column)
 	if !strings.HasPrefix(f.Column, "span.") {
 		q = q.Where("has(all_keys, ?)", f.Column)
 	}

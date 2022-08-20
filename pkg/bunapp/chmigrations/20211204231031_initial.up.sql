@@ -44,7 +44,7 @@ CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
 ENGINE = ?(REPLICATED)MergeTree()
 ORDER BY (project_id, "span.system", "span.group_id", "span.time")
 PARTITION BY toDate("span.time")
-TTL toDate("span.time") + INTERVAL ?TTL DELETE
+TTL toDate("span.time") + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1
 
 --migration:split
@@ -59,7 +59,7 @@ CREATE TABLE ?DB.spans_data ?ON_CLUSTER (
 ENGINE = ?(REPLICATED)MergeTree()
 ORDER BY (trace_id, id)
 PARTITION BY toDate(time)
-TTL toDate(time) + INTERVAL ?TTL DELETE
+TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 128
 
@@ -87,7 +87,7 @@ CREATE TABLE ?DB.span_system_minutes ?ON_CLUSTER (
 ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
 ORDER BY (project_id, time, system)
-TTL toDate(time) + INTERVAL ?TTL DELETE
+TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 128
 
@@ -119,7 +119,7 @@ CREATE TABLE ?DB.span_system_hours ?ON_CLUSTER (
 ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
 ORDER BY (project_id, time, system)
-TTL toDate(time) + INTERVAL ?TTL DELETE
+TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 128
 
@@ -153,7 +153,7 @@ CREATE TABLE ?DB.span_service_minutes ?ON_CLUSTER (
 ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
 ORDER BY (project_id, time, system, service)
-TTL toDate(time) + INTERVAL ?TTL DELETE
+TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 128
 
@@ -187,7 +187,7 @@ CREATE TABLE ?DB.span_service_hours ?ON_CLUSTER (
 ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
 ORDER BY (project_id, time, system, service)
-TTL toDate(time) + INTERVAL ?TTL DELETE
+TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 128
 
@@ -222,7 +222,7 @@ CREATE TABLE ?DB.span_host_minutes ?ON_CLUSTER (
 ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
 ORDER BY (project_id, time, system, host)
-TTL toDate(time) + INTERVAL ?TTL DELETE
+TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 128
 
@@ -256,7 +256,7 @@ CREATE TABLE ?DB.span_host_hours ?ON_CLUSTER (
 ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
 ORDER BY (project_id, time, system, host)
-TTL toDate(time) + INTERVAL ?TTL DELETE
+TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 128
 

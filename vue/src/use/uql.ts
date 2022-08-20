@@ -12,12 +12,6 @@ export const GROUP_ID_FILTER_RE = /^where\s+span\.group_id\s+=\s+(\S+)$/i
 
 export interface QueryPart {
   query: string
-  error?: string
-  disabled?: boolean
-}
-
-export interface Part {
-  query: string
   error: string
   disabled: boolean
 }
@@ -34,7 +28,7 @@ export function useUql(cfg: UqlConfig = {}) {
   const paramName = cfg.paramName ?? 'query'
 
   const rawMode = shallowRef(false)
-  const parts = shallowRef<Part[]>([])
+  const parts = shallowRef<QueryPart[]>([])
 
   const query = computed({
     set(s: string) {
@@ -62,7 +56,7 @@ export function useUql(cfg: UqlConfig = {}) {
     })
   }
 
-  function addPart(part: Part) {
+  function addPart(part: QueryPart) {
     parts.value.push(reactive(part))
     // eslint-disable-next-line no-self-assign
     parts.value = parts.value.slice()
@@ -121,7 +115,7 @@ export function useUql(cfg: UqlConfig = {}) {
   })
 }
 
-export function parseParts(query: any): Part[] {
+export function parseParts(query: any): QueryPart[] {
   if (typeof query !== 'string' || !query) {
     return []
   }
@@ -135,7 +129,7 @@ export function parseParts(query: any): Part[] {
     })
 }
 
-export function createPart(query = ''): Part {
+export function createPart(query = ''): QueryPart {
   return {
     query,
     error: '',
@@ -143,7 +137,7 @@ export function createPart(query = ''): Part {
   }
 }
 
-export function formatParts(parts: Part[]): string {
+export function formatParts(parts: QueryPart[]): string {
   return parts
     .filter((part) => part.query.length > 0)
     .map((part) => part.query)
@@ -155,7 +149,7 @@ export function createUqlEditor() {
 }
 
 export class UqlEditor {
-  parts: Part[]
+  parts: QueryPart[]
 
   constructor(s: any = '') {
     this.parts = parseParts(s)

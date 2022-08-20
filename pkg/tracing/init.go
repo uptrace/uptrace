@@ -17,7 +17,7 @@ const (
 	jsonContentType     = "application/json"
 )
 
-var spanCounter, _ = bunotel.Meter.SyncInt64().UpDownCounter(
+var spanCounter, _ = bunotel.Meter.SyncInt64().Counter(
 	"uptrace.projects.spans",
 	instrument.WithDescription("Number of processed spans"),
 )
@@ -43,7 +43,7 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 	spanHandler := NewSpanHandler(app)
 	traceHandler := NewTraceHandler(app)
 	suggestionHandler := NewSuggestionHandler(app)
-	authMiddleware := org.NewAuthMiddleware(app)
+	middleware := org.NewMiddleware(app)
 
 	api := app.APIGroup()
 
@@ -64,7 +64,7 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 	api.GET("/traces/search", traceHandler.FindTrace)
 
 	g := api.
-		Use(authMiddleware).
+		Use(middleware.UserAndProject).
 		NewGroup("/tracing/:project_id")
 
 	g.GET("/systems", sysHandler.List)

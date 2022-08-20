@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	InvalidInstrument   = ""
 	GaugeInstrument     = "gauge"
 	AdditiveInstrument  = "additive"
 	HistogramInstrument = "histogram"
@@ -30,14 +31,14 @@ type Measure struct {
 	Time      time.Time `ch:"type:DateTime"`
 	AttrsHash uint64
 
-	Sum       float32
+	Sum       float64
 	Count     uint64
-	Value     float32
+	Value     float64
 	Histogram bfloat16.Map `ch:"type:AggregateFunction(quantilesBFloat16(0.5, 0.9, 0.99), Float32)"`
 
-	Attrs  AttrMap  `ch:"-"`
-	Keys   []string `ch:"type:Array(LowCardinality(String))"`
-	Values []string `ch:"type:Array(LowCardinality(String))"`
+	Attrs      AttrMap  `ch:"-"`
+	AttrKeys   []string `ch:"type:Array(LowCardinality(String))"`
+	AttrValues []string `ch:"type:Array(LowCardinality(String))"`
 
 	StartTimeUnixNano uint64 `ch:"-"`
 	CumPoint          any    `ch:"-"`

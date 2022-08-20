@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"github.com/uptrace/uptrace/pkg/bunlex"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"golang.org/x/exp/constraints"
 )
@@ -59,13 +60,5 @@ func isValidMetricName(s string) bool {
 }
 
 func isAllowedMetricNameChar(c byte) bool {
-	return isAlpha(c) || isDigit(c) || c == '_' || c == '.'
-}
-
-func isDigit(c byte) bool {
-	return c >= '0' && c <= '9'
-}
-
-func isAlpha(c byte) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+	return bunlex.IsAlnum(c) || c == '_' || c == '.'
 }

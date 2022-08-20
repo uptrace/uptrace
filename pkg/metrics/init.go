@@ -2,14 +2,13 @@ package metrics
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
-	"github.com/uptrace/uptrace/pkg/httperror"
+	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/metric/instrument"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 )
@@ -21,9 +20,9 @@ const (
 
 var jsonMarshaler = &jsonpb.Marshaler{}
 
-var metricCounter, _ = bunotel.Meter.SyncInt64().UpDownCounter(
-	"uptrace.projects.metrics",
-	instrument.WithDescription("Number of processed metrics"),
+var measureCounter, _ = bunotel.Meter.SyncInt64().Counter(
+	"uptrace.projects.measures",
+	instrument.WithDescription("Number of processed measures"),
 )
 
 func Init(ctx context.Context, app *bunapp.App) {
@@ -37,74 +36,140 @@ func initGRPC(ctx context.Context, app *bunapp.App) {
 }
 
 func initRoutes(ctx context.Context, app *bunapp.App) {
-	router := app.Router()
+	middleware := NewMiddleware(app)
+	api := app.APIGroup().
+		NewGroup("/metrics/:project_id").
+		Use(middleware.UserAndProject)
 
-	router.WithGroup("/api/prometheus", func(g *bunrouter.Group) {
-		promHandler := NewPromHandler(app)
+	api.
+		WithGroup("", func(g *bunrouter.Group) {
+			metricHandler := NewMetricHandler(app)
 
-		g = g.Use(promHandler.CheckProjectAccess, promErrorHandler)
+			g.GET("", metricHandler.List)
 
-		g.GET("/api/v1/labels", promHandler.Labels)
-		g.POST("/api/v1/labels", promHandler.Labels)
-		g.GET("/api/v1/label/:label/values", promHandler.LabelValues)
-		g.POST("/api/v1/query_range", promHandler.QueryRange)
-		g.GET("/api/v1/query_range", promHandler.QueryRange)
-		g.POST("/api/v1/query", promHandler.QueryInstant)
-		g.GET("/api/v1/query", promHandler.QueryInstant)
-		g.GET("/api/v1/metadata", promHandler.Metadata)
-		g.GET("/api/v1/series", promHandler.Series)
-		g.POST("/api/v1/series", promHandler.Series)
-	})
-}
+			g = g.NewGroup("/:metric_id").Use(middleware.Metric)
 
-func promErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
-	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		err := next(w, req)
-		if err == nil {
-			return nil
-		}
-		switch err := err.(type) {
-		case *promError:
-			return err
-		default:
-			return newPromError(err)
-		}
-	}
+			g.GET("", metricHandler.Show)
+			g.GET("/attributes", metricHandler.Attributes)
+			g.GET("/where", metricHandler.Where)
+		})
+
+	api.
+		WithGroup("", func(g *bunrouter.Group) {
+			attrHandler := NewAttrHandler(app)
+
+			g.GET("/attributes", attrHandler.Keys)
+			g.GET("/where", attrHandler.Where)
+		})
+
+	api.
+		WithGroup("", func(g *bunrouter.Group) {
+			queryHandler := NewQueryHandler(app)
+
+			g.GET("/table", queryHandler.Table)
+			g.GET("/timeseries", queryHandler.Timeseries)
+		})
+
+	api.
+		WithGroup("/dashboards", func(g *bunrouter.Group) {
+			dashHandler := NewDashHandler(app)
+
+			g.POST("", dashHandler.Create)
+			g.GET("", dashHandler.List)
+
+			g = g.NewGroup("/:dash_id").Use(middleware.Dashboard)
+
+			g.GET("", dashHandler.Show)
+			g.POST("", dashHandler.Clone)
+			g.PUT("", dashHandler.Update)
+			g.DELETE("", dashHandler.Delete)
+		})
+
+	api.
+		Use(middleware.Dashboard).
+		WithGroup("/dashboards/:dash_id/entries", func(g *bunrouter.Group) {
+			dashEntryHandler := NewDashEntryHandler(app)
+
+			g.GET("", dashEntryHandler.List)
+			g.POST("", dashEntryHandler.Create)
+			g.PUT("", dashEntryHandler.UpdateOrder)
+			g.PUT("/:id", dashEntryHandler.Update)
+			g.DELETE("/:id", dashEntryHandler.Delete)
+		})
 }
 
 //------------------------------------------------------------------------------
 
-type promError struct {
-	Wrapped error `json:"error"`
+type Middleware struct {
+	*org.Middleware
+	app *bunapp.App
 }
 
-var _ httperror.Error = (*promError)(nil)
-
-func newPromError(err error) *promError {
-	return &promError{
-		Wrapped: err,
+func NewMiddleware(app *bunapp.App) Middleware {
+	return Middleware{
+		Middleware: org.NewMiddleware(app),
+		app:        app,
 	}
 }
 
-func (e *promError) Error() string {
-	if e.Wrapped == nil {
-		return ""
+type dashCtxKey struct{}
+
+func (m Middleware) Dashboard(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
+	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
+
+		dashID, err := req.Params().Uint64("dash_id")
+		if err != nil {
+			return err
+		}
+
+		dash, err := SelectDashboard(ctx, m.app, dashID)
+		if err != nil {
+			return err
+		}
+
+		project := org.ProjectFromContext(ctx)
+		if dash.ProjectID != project.ID {
+			return org.ErrAccessDenied
+		}
+
+		ctx = context.WithValue(ctx, dashCtxKey{}, dash)
+		return next(w, req.WithContext(ctx))
 	}
-	return e.Wrapped.Error()
 }
 
-func (e *promError) Unwrap() error {
-	return e.Wrapped
+func dashFromContext(ctx context.Context) *Dashboard {
+	return ctx.Value(dashCtxKey{}).(*Dashboard)
 }
 
-func (e *promError) HTTPStatusCode() int {
-	return http.StatusBadRequest
+//------------------------------------------------------------------------------
+
+type metricCtxKey struct{}
+
+func (m Middleware) Metric(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
+	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
+
+		metricID, err := req.Params().Uint64("metric_id")
+		if err != nil {
+			return err
+		}
+
+		metric, err := SelectMetric(ctx, m.app, metricID)
+		if err != nil {
+			return err
+		}
+
+		project := org.ProjectFromContext(ctx)
+		if metric.ProjectID != project.ID {
+			return org.ErrAccessDenied
+		}
+
+		ctx = context.WithValue(ctx, metricCtxKey{}, metric)
+		return next(w, req.WithContext(ctx))
+	}
 }
 
-func (e *promError) MarshalJSON() ([]byte, error) {
-	return json.Marshal(map[string]string{
-		"status":    "error",
-		"errorType": "error",
-		"error":     e.Error(),
-	})
+func metricFromContext(ctx context.Context) *Metric {
+	return ctx.Value(metricCtxKey{}).(*Metric)
 }

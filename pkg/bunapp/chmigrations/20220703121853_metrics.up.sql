@@ -5,18 +5,18 @@ CREATE TABLE ?DB.measure_minutes ?ON_CLUSTER (
   attrs_hash UInt64 Codec(Delta, ?CODEC),
 
   instrument LowCardinality(String) Codec(?CODEC),
-  sum SimpleAggregateFunction(sumWithOverflow, Float32) Codec(?CODEC),
+  sum SimpleAggregateFunction(sum, Float64) Codec(?CODEC),
   count SimpleAggregateFunction(sum, UInt64) Codec(T64, ?CODEC),
-  value SimpleAggregateFunction(anyLast, Float32) Codec(?CODEC),
+  value SimpleAggregateFunction(anyLast, Float64) Codec(?CODEC),
   histogram AggregateFunction(quantilesBFloat16(0.5, 0.9, 0.99), Float32) Codec(?CODEC),
 
-  keys Array(LowCardinality(String)) Codec(?CODEC),
-  values Array(LowCardinality(String)) Codec(?CODEC)
+  attr_keys Array(LowCardinality(String)) Codec(?CODEC),
+  attr_values Array(LowCardinality(String)) Codec(?CODEC)
 )
 ENGINE = ?(REPLICATED)AggregatingMergeTree
 PARTITION BY toDate(time)
 ORDER BY (project_id, metric, time, attrs_hash)
-TTL toDate(time) + INTERVAL ?TTL DELETE
+TTL toDate(time) + INTERVAL ?METRICS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1
 
 --migration:split
@@ -33,18 +33,18 @@ CREATE TABLE ?DB.measure_hours ?ON_CLUSTER (
   attrs_hash UInt64 Codec(Delta, ?CODEC),
 
   instrument LowCardinality(String) Codec(?CODEC),
-  sum SimpleAggregateFunction(sumWithOverflow, Float32) Codec(?CODEC),
+  sum SimpleAggregateFunction(sum, Float64) Codec(?CODEC),
   count SimpleAggregateFunction(sum, UInt64) Codec(T64, ?CODEC),
-  value SimpleAggregateFunction(anyLast, Float32) Codec(?CODEC),
+  value SimpleAggregateFunction(anyLast, Float64) Codec(?CODEC),
   histogram AggregateFunction(quantilesBFloat16(0.5, 0.9, 0.99), Float32) Codec(?CODEC),
 
-  keys Array(LowCardinality(String)) Codec(?CODEC),
-  values Array(LowCardinality(String)) Codec(?CODEC)
+  attr_keys Array(LowCardinality(String)) Codec(?CODEC),
+  attr_values Array(LowCardinality(String)) Codec(?CODEC)
 )
 ENGINE = ?(REPLICATED)AggregatingMergeTree
 PARTITION BY toDate(time)
 ORDER BY (project_id, metric, time, attrs_hash)
-TTL toDate(time) + INTERVAL ?TTL DELETE
+TTL toDate(time) + INTERVAL ?METRICS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1
 
 --migration:split
@@ -58,13 +58,13 @@ AS SELECT
   attrs_hash,
 
   anyLast(instrument) AS instrument,
-  sumWithOverflow(sum) AS sum,
+  sum(sum) AS sum,
   sum(count) AS count,
   anyLast(value) AS value,
   quantilesBFloat16MergeState(0.5, 0.9, 0.99)(histogram) AS histogram,
 
-  anyLast(keys) AS keys,
-  anyLast(values) AS values
+  anyLast(attr_keys) AS attr_keys,
+  anyLast(attr_values) AS attr_values
 FROM ?DB.measure_minutes
 GROUP BY project_id, metric, toStartOfHour(time), attrs_hash
 SETTINGS prefer_column_name_to_alias = 1

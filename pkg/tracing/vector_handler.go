@@ -14,7 +14,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing/xattr"
+	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -76,7 +76,7 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 		span := new(Span)
 		h.spanFromVector(ctx, span, m)
 		span.ProjectID = project.ID
-		h.sp.AddSpan(span)
+		h.sp.AddSpan(ctx, span)
 	}
 
 	return nil
@@ -92,7 +92,7 @@ func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, vector A
 
 	attrs := make(AttrMap, len(vector)+2)
 	span.Attrs = attrs
-	attrs[xattr.TelemetrySDKName] = vectorSDK
+	attrs[attrkey.TelemetrySDKName] = vectorSDK
 
 	for key, value := range vector {
 		switch key {
@@ -103,11 +103,11 @@ func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, vector A
 			}
 
 			if normalized := normalizeLogSeverity(found); normalized != "" {
-				attrs.SetDefault(xattr.LogSeverity, normalized)
+				attrs.SetDefault(attrkey.LogSeverity, normalized)
 			}
 		case "message":
 			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(xattr.LogMessage, s)
+				attrs.SetDefault(attrkey.LogMessage, s)
 			}
 		case "timestamp":
 			if s, _ := value.(string); s != "" {
@@ -121,15 +121,15 @@ func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, vector A
 			}
 		case "file":
 			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(xattr.LogFilepath, s)
+				attrs.SetDefault(attrkey.LogFilepath, s)
 			}
 		case "host", "hostname":
 			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(xattr.HostName, s)
+				attrs.SetDefault(attrkey.HostName, s)
 			}
 		case "source_type":
 			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(xattr.LogSource, s)
+				attrs.SetDefault(attrkey.LogSource, s)
 			}
 		default:
 			// Plain keys have a priority over discovered keys.

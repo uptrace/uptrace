@@ -7,18 +7,19 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"runtime"
 
 	"gopkg.in/yaml.v3"
 )
 
-func ReadConfig(configFile, service string) (*Config, error) {
-	configFile, err := filepath.Abs(configFile)
+func ReadConfig(confPath, service string) (*Config, error) {
+	confPath, err := filepath.Abs(confPath)
 	if err != nil {
 		return nil, err
 	}
 
-	configBytes, err := os.ReadFile(configFile)
+	configBytes, err := os.ReadFile(confPath)
 	if err != nil {
 		return nil, err
 	}
@@ -30,23 +31,27 @@ func ReadConfig(configFile, service string) (*Config, error) {
 		return nil, err
 	}
 
-	conf.BaseDir = filepath.Dir(configFile)
-	conf.FileName = filepath.Base(configFile)
+	conf.Path = confPath
 	conf.Service = service
 
 	if err := validateConfig(conf); err != nil {
-		return nil, fmt.Errorf("config is invalid: %w", err)
+		return nil, fmt.Errorf("invalid config %s: %w", conf.Path, err)
 	}
 
 	return conf, nil
 }
 
-func expandEnv(s string) string {
-	return os.Expand(s, func(str string) string {
-		if str == "$" { // escaping
+var envVarRe = regexp.MustCompile(`^[A-Z][A-Z0-9_]+$`)
+
+func expandEnv(conf string) string {
+	return os.Expand(conf, func(envVar string) string {
+		if envVar == "$" { // escaping
 			return "$"
 		}
-		return os.Getenv(str)
+		if !envVarRe.MatchString(envVar) {
+			return "$" + envVar
+		}
+		return os.Getenv(envVar)
 	})
 }
 
@@ -87,12 +92,8 @@ func validateConfig(conf *Config) error {
 		conf.Metrics.BufferSize = runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
 	}
 
-	if conf.Prometheus.Config == "" {
-		return fmt.Errorf(`"prometheus.config" must contain a valid path`)
-	}
-
-	if _, err := url.Parse(conf.Prometheus.ExternalURL); err != nil {
-		return err
+	if conf.DB.DSN == "" {
+		return fmt.Errorf(`db.dsn option is required`)
 	}
 
 	return nil
@@ -115,9 +116,8 @@ func validateProjects(projects []Project) error {
 }
 
 type Config struct {
-	BaseDir  string `yaml:"-"`
-	FileName string `yaml:"-"`
-	Service  string `yaml:"-"`
+	Path    string `yaml:"-"`
+	Service string `yaml:"-"`
 
 	Debug     bool   `yaml:"debug"`
 	SecretKey string `yaml:"secret_key"`
@@ -143,7 +143,6 @@ type Config struct {
 	CH CHConfig  `yaml:"ch"`
 
 	CHSchema struct {
-		TTL         string `yaml:"ttl"`
 		Compression string `yaml:"compression"`
 		Cluster     string `yaml:"cluster"`
 		Replicated  bool   `yaml:"replicated"`
@@ -151,11 +150,17 @@ type Config struct {
 	} `yaml:"ch_schema"`
 
 	Spans struct {
+		TTL string `yaml:"ttl"`
+
 		BufferSize int `yaml:"buffer_size"`
 		BatchSize  int `yaml:"batch_size"`
 	} `yaml:"spans"`
 
 	Metrics struct {
+		TTL string `yaml:"ttl"`
+
+		DropAttrs []string `yaml:"drop_attrs"`
+
 		BufferSize int `yaml:"buffer_size"`
 		BatchSize  int `yaml:"batch_size"`
 	} `yaml:"metrics"`
@@ -163,10 +168,15 @@ type Config struct {
 	Users    []User    `yaml:"users"`
 	Projects []Project `yaml:"projects"`
 
-	Prometheus struct {
-		Config      string `yaml:"config"`
-		ExternalURL string `yaml:"externalUrl"`
-	} `yaml:"prometheus"`
+	Alerting struct {
+		Rules []AlertRule `yaml:"rules"`
+	} `yaml:"alerting"`
+
+	Alertmanager struct {
+		URLs []string `yaml:"urls"`
+	} `yaml:"alertmanager"`
+
+	Dashboards []*Dashboard `yaml:"dashboards"`
 }
 
 type User struct {
@@ -176,9 +186,10 @@ type User struct {
 }
 
 type Project struct {
-	ID    uint32 `yaml:"id" json:"id"`
-	Name  string `yaml:"name" json:"name"`
-	Token string `yaml:"token" json:"token"`
+	ID          uint32   `yaml:"id" json:"id"`
+	Name        string   `yaml:"name" json:"name"`
+	Token       string   `yaml:"token" json:"token"`
+	PinnedAttrs []string `yaml:"pinned_attrs" json:"pinnedAttrs"`
 }
 
 func (c *Config) Scheme() string {

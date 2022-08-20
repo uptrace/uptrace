@@ -99,7 +99,7 @@ import { useTrace, UseTrace } from '@/tracing/use-trace'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
-import { hour } from '@/util/date'
+import { hour } from '@/util/fmt/date'
 
 export default defineComponent({
   name: 'TraceShow',

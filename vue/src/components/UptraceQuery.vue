@@ -8,7 +8,7 @@
       </v-col>
 
       <v-col cols="auto">
-        <SpanQueryHelpDialog :uql="uql" />
+        <slot name="actions" />
       </v-col>
     </v-row>
 
@@ -44,7 +44,7 @@
     </template>
 
     <v-row v-else-if="!uql.parts.length" no-gutters align="center">
-      <v-col class="mb-1 px-3 text-body-2">
+      <v-col class="mb-1 px-2 text-body-2">
         <div v-if="disabled" class="text--disabled">The query is empty...</div>
         <div v-else class="text--secondary cursor-pointer" @click="uql.rawMode = true">
           Click to edit the query...
@@ -103,11 +103,10 @@ import { createPart, Part, UseUql } from '@/use/uql'
 
 // Components
 import UptraceQueryChip from '@/components/UptraceQueryChip.vue'
-import SpanQueryHelpDialog from '@/tracing/SpanQueryHelpDialog.vue'
 
 export default defineComponent({
   name: 'UptraceQuery',
-  components: { SpanQueryHelpDialog, UptraceQueryChip },
+  components: { UptraceQueryChip },
 
   props: {
     uql: {

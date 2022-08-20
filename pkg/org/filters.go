@@ -11,8 +11,15 @@ import (
 )
 
 type OrderByMixin struct {
-	SortBy  string
-	SortDir string
+	SortBy   string
+	SortDesc bool
+}
+
+func (f OrderByMixin) SortDir() string {
+	if f.SortDesc {
+		return "desc"
+	}
+	return "asc"
 }
 
 var _ json.Marshaler = (*OrderByMixin)(nil)
@@ -20,16 +27,13 @@ var _ json.Marshaler = (*OrderByMixin)(nil)
 func (f OrderByMixin) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]any{
 		"column": f.SortBy,
-		"desc":   f.SortDir == "desc",
+		"desc":   f.SortDesc,
 	})
 }
 
 var _ urlstruct.ValuesUnmarshaler = (*OrderByMixin)(nil)
 
 func (f *OrderByMixin) UnmarshalValues(ctx context.Context, values url.Values) error {
-	if f.SortDir == "" {
-		f.SortDir = "desc"
-	}
 	return nil
 }
 
@@ -71,7 +75,7 @@ func TablePeriod(f *TimeFilter) time.Duration {
 }
 
 func TableGroupPeriod(f *TimeFilter) (tablePeriod, groupPeriod time.Duration) {
-	groupPeriod = CalcGroupPeriod(f, 200)
+	groupPeriod = GroupPeriod(f.TimeGTE, f.TimeLT)
 	if groupPeriod >= time.Hour {
 		tablePeriod = time.Hour
 	} else {
@@ -80,14 +84,33 @@ func TableGroupPeriod(f *TimeFilter) (tablePeriod, groupPeriod time.Duration) {
 	return tablePeriod, groupPeriod
 }
 
-func CalcGroupPeriod(f *TimeFilter, n int) time.Duration {
-	d := f.TimeLT.Sub(f.TimeGTE)
-	period := time.Minute
-	for i := 0; i < 100; i++ {
+func GroupPeriod(gte, lt time.Time) time.Duration {
+	return CalcGroupPeriod(gte, lt, 120)
+}
+
+var periods = []time.Duration{
+	time.Minute,
+	2 * time.Minute,
+	3 * time.Minute,
+	5 * time.Minute,
+	10 * time.Minute,
+	15 * time.Minute,
+	30 * time.Minute,
+	time.Hour,
+	2 * time.Hour,
+	3 * time.Hour,
+	4 * time.Hour,
+	5 * time.Hour,
+	6 * time.Hour,
+	12 * time.Hour,
+}
+
+func CalcGroupPeriod(gte, lt time.Time, n int) time.Duration {
+	d := lt.Sub(gte)
+	for _, period := range periods {
 		if int(d/period) <= n {
 			return period
 		}
-		period *= 2
 	}
 	return 24 * time.Hour
 }

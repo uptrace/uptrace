@@ -4,6 +4,7 @@ export enum xkey {
 
   itemId = 'item.id',
   itemName = 'item.name',
+  itemQuery = 'item.query',
   spanEvents = 'span.events',
 
   spanId = 'span.id',

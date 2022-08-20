@@ -24,7 +24,7 @@ import SpanCard from '@/tracing/SpanCard.vue'
 
 // Utilities
 import { Span } from '@/models/span'
-import { hour } from '@/util/date'
+import { hour } from '@/util/fmt/date'
 
 export default defineComponent({
   name: 'SpanShow',
@@ -54,7 +54,7 @@ function useSpan() {
   const { loading, data } = useWatchAxios(() => {
     const { projectId, traceId, spanId } = route.value.params
     return {
-      url: `/api/tracing/${projectId}/traces/${traceId}/${spanId}`,
+      url: `/api/v1/tracing/${projectId}/traces/${traceId}/${spanId}`,
     }
   })
 

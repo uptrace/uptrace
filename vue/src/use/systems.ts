@@ -35,7 +35,7 @@ export function useSystems(dateRange: UseDateRange) {
   const { loading, data } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
-      url: `/api/tracing/${projectId}/systems`,
+      url: `/api/v1/tracing/${projectId}/systems`,
       params: {
         ...dateRange.axiosParams(),
       },

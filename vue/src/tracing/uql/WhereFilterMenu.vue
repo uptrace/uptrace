@@ -210,7 +210,7 @@ export default defineComponent({
 
         const { projectId } = route.value.params
         return {
-          url: `/api/tracing/${projectId}/suggestions/attributes`,
+          url: `/api/v1/tracing/${projectId}/suggestions/attributes`,
           params: props.axiosParams,
         }
       },
@@ -261,7 +261,7 @@ export default defineComponent({
 
         const { projectId } = route.value.params
         return {
-          url: `/api/tracing/${projectId}/suggestions/values`,
+          url: `/api/v1/tracing/${projectId}/suggestions/values`,
           params: {
             ...props.axiosParams,
             column: column.value.text,
