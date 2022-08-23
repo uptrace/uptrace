@@ -20,8 +20,8 @@ services:
       - 'host.docker.internal:host-gateway'
 
   uptrace:
-    image: 'uptrace/uptrace:latest'
-    #image: 'uptrace/uptrace-dev:latest'
+    #image: 'uptrace/uptrace:latest'
+    image: 'uptrace/uptrace-dev:latest'
     volumes:
       - ./uptrace.yml:/etc/uptrace/uptrace.yml
     ports:
@@ -51,8 +51,6 @@ services:
     environment:
       - JAEGER_AGENT_HOST=jaeger
       - JAEGER_AGENT_PORT=6831
-    networks:
-      - jaeger-example
     depends_on:
       - otel-collector
 
