@@ -137,10 +137,6 @@ var serveCommand = &cli.Command{
 			logger.Error("ClickHouse migrations failed",
 				zap.Error(err))
 		}
-		if err := syncMetricsDashboards(ctx, app); err != nil {
-			logger.Error("syncMetricsDashboards failed",
-				zap.Error(err))
-		}
 
 		org.Init(ctx, app)
 		tracing.Init(ctx, app)
@@ -248,17 +244,6 @@ func runCHMigrations(ctx context.Context, db *ch.DB) error {
 	}
 
 	fmt.Printf("migrated to %s\n", group)
-	return nil
-}
-
-func syncMetricsDashboards(ctx context.Context, app *bunapp.App) error {
-	projects := app.Config().Projects
-	for i := range projects {
-		project := &projects[i]
-		if err := metrics.SyncDashboards(ctx, app, project.ID); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
