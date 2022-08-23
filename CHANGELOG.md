@@ -2,7 +2,7 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/install.html
 
-## v0.3.0 - Unreleased
+## v1.0.0 - Unreleased
 
 ### Added
 
