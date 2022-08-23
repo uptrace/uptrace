@@ -1,0 +1,26 @@
+id: uptrace.projects
+name: Uptrace Projects
+
+metrics:
+  - uptrace.projects.spans as $spans
+  - uptrace.projects.measures as $measures
+query:
+  - group by project_id
+  - per_min($spans) as spans_per_min
+  - per_min($measures) as measures_per_min
+
+---
+id: uptrace.overview
+name: Uptrace Hosts
+
+metrics:
+  - uptrace.projects.spans as $spans
+  - uptrace.projects.measures as $measures
+  - uptrace.spans.buffer_size as $spans_buffer
+  - uptrace.metrics.buffer_size as $measures_buffer
+query:
+  - group by host.name
+  - per_min($spans) as spans_per_min
+  - per_min($measures) as measures_per_min
+  - $spans_buffer
+  - $measures_buffer
