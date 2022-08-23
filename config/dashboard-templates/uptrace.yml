@@ -10,7 +10,7 @@ query:
   - per_min($measures) as measures_per_min
 
 ---
-id: uptrace.overview
+id: uptrace.hosts
 name: Uptrace Hosts
 
 metrics:
