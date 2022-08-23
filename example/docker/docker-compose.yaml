@@ -20,8 +20,8 @@ services:
       - 'host.docker.internal:host-gateway'
 
   uptrace:
-    #image: 'uptrace/uptrace:latest'
-    image: 'uptrace/uptrace-dev:latest'
+    image: 'uptrace/uptrace:latest'
+    #image: 'uptrace/uptrace-dev:latest'
     volumes:
       - ../../config/uptrace.yml:/etc/uptrace/uptrace.yml
     network_mode: host
