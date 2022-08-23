@@ -176,7 +176,7 @@ type Config struct {
 		URLs []string `yaml:"urls"`
 	} `yaml:"alertmanager"`
 
-	Dashboards []*Dashboard `yaml:"dashboards"`
+	Dashboards []string `yaml:"dashboards"`
 }
 
 type User struct {
