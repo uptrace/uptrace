@@ -1,0 +1,46 @@
+id: go.runtime
+name: Go Runtime
+
+metrics:
+  - process.runtime.go.gc.pause_ns as $gc_pause
+  - process.runtime.go.mem.heap_inuse as $mem_in_use
+  - process.runtime.go.mem.heap_objects as $heap_objects
+  - process.runtime.go.goroutines as $goroutines
+query:
+  - group by service.name | group by host.name
+  - max($gc_pause) as gc_pause_max
+  - $mem_in_use
+  - $heap_objects
+  - $goroutines
+columns:
+  gc_pause_max: { unit: nanoseconds }
+
+entries:
+  - name: Max GC stop-the-world pause
+    metrics:
+      - process.runtime.go.gc.pause_ns as $gc_pause
+    query: max($gc_pause) as gc_pause_max
+    columns:
+      gc_pause_max: { unit: nanoseconds }
+
+  - name: Heap memory in use
+    metrics:
+      - process.runtime.go.mem.heap_inuse as $mem_in_use
+    query: $mem_in_use
+    columns:
+      mem_in_use: { unit: bytes }
+
+  - name: Heap live objects
+    metrics:
+      - process.runtime.go.mem.heap_objects as $heap_objects
+    query: $heap_objects
+
+  - name: Goroutines
+    metrics:
+      - process.runtime.go.goroutines as $goroutines
+    query: $goroutines
+
+  - name: cgo calls
+    metrics:
+      - process.runtime.go.cgo.calls as $cgo_calls
+    query: $cgo_calls
