@@ -2,7 +2,7 @@ version: '3'
 
 services:
   clickhouse:
-    image: clickhouse/clickhouse-server:22.4
+    image: clickhouse/clickhouse-server:22.7
     restart: on-failure
     environment:
       CLICKHOUSE_DB: uptrace
@@ -23,14 +23,10 @@ services:
     #image: 'uptrace/uptrace:latest'
     image: 'uptrace/uptrace-dev:latest'
     volumes:
-      - ./uptrace.yml:/etc/uptrace/uptrace.yml
-    ports:
-      - '14317:14317' # OTLP
-      - '14318:14318' # UI and HTTP API
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
-    environment:
-      - DEBUG=2
+      - ../../config/uptrace.yml:/etc/uptrace/uptrace.yml
+    network_mode: host
+    # environment:
+    #   - DEBUG=2
     depends_on:
       clickhouse:
         condition: service_healthy
@@ -40,19 +36,7 @@ services:
     restart: on-failure
     volumes:
       - ../../config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml
-    # use host mode so we can export data to Uptrace
     network_mode: host
-
-  hotrod:
-    image: jaegertracing/example-hotrod:latest
-    ports:
-      - '8080:8080'
-    command: ['all', '-j', 'http://localhost:14318']
-    environment:
-      - JAEGER_AGENT_HOST=jaeger
-      - JAEGER_AGENT_PORT=6831
-    depends_on:
-      - otel-collector
 
 volumes:
   ch_data:
