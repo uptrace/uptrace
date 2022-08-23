@@ -35,6 +35,8 @@ type MeasureProcessor struct {
 
 	metricMapMu sync.RWMutex
 	metricMap   map[MetricKey]struct{}
+
+	dashSyncer *DashSyncer
 }
 
 func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
@@ -50,7 +52,8 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 		c2d:    NewCumToDeltaConv(bunconf.ScaleWithCPU(4000, 32000)),
 		logger: app.Logger,
 
-		metricMap: make(map[MetricKey]struct{}),
+		metricMap:  make(map[MetricKey]struct{}),
+		dashSyncer: NewDashSyncer(app),
 	}
 
 	if len(conf.Metrics.DropAttrs) > 0 {
@@ -366,9 +369,13 @@ func (p *MeasureProcessor) upsertMetric(ctx context.Context, measure *Measure) {
 		Unit:        measure.Unit,
 		Instrument:  measure.Instrument,
 	}
-	if _, err := upsertMetric(ctx, p.App, metric); err != nil {
+	inserted, err := upsertMetric(ctx, p.App, metric)
+	if err != nil {
 		p.Zap(ctx).Error("CreateMetric failed", zap.Error(err))
 		return
+	}
+	if inserted {
+		p.dashSyncer.Sync(ctx, metric.ProjectID)
 	}
 }
 
