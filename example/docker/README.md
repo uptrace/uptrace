@@ -2,8 +2,8 @@
 
 ## Getting started
 
-This example demonstrates how to quickly start Uptrace using Docker. To run Uptrace permanently, we
-recommend using a DEB/RPM [package](https://uptrace.dev/get/install.html#packages) or a pre-compiled
+This example demonstrates how to quickly start Uptrace using Docker. To run Uptrace permanently, you
+can use a DEB/RPM [package](https://uptrace.dev/get/install.html#packages) or a pre-compiled
 [binary](https://uptrace.dev/get/install.html#binaries).
 
 **Step 1**. Download the example using Git:
@@ -34,11 +34,10 @@ the data to appear.
 To configure OpenTelemetry for your programming language, see
 [documentation](https://uptrace.dev/docs/).
 
-## Grafana
+## HotRod
 
-This example comes with a pre-configured Grafana on http://localhost:3000 (`admin:admin`) that
-allows you to view metrics using
-[Prometheus data source](http://localhost:8080/get/opentelemetry-metrics-grafana.html#prometheus-data-source).
+The example also comes with HotRod example application running on
+[http://localhost:8080](http://localhost:8080).
 
 ## ClickHouse and OpenTelemetry
 

@@ -14,7 +14,6 @@ PROCESS_NAME="uptrace"
 
 FPM_DIR="$( cd "$( dirname ${BASH_SOURCE[0]} )" && pwd )"
 CONFIG_PATH="$REPO_DIR/config/uptrace.yml"
-PROM_CONFIG_PATH="$REPO_DIR/config/uptrace-prometheus.yml"
 SERVICE_PATH="$FPM_DIR/$SERVICE_NAME.service"
 ENVFILE_PATH="$FPM_DIR/$SERVICE_NAME.conf"
 PREINSTALL_PATH="$FPM_DIR/preinstall.sh"
