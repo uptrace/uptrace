@@ -16,12 +16,10 @@ uses OpenTelelemetry to collect data and ClickHouse database to store it.
 
 - OpenTelemetry [tracing](https://uptrace.dev/opentelemetry/distributed-tracing.html),
   [metrics](https://uptrace.dev/opentelemetry/metrics.html), and logs.
-- [Grafana](https://uptrace.dev/get/opentelemetry-metrics-grafana.html) integration to browse
-  [OpenTelemetry Metrics](https://uptrace.dev/opentelemetry/metrics.html).
-- Email/Slack notifications using Prometheus AlertManager.
+- Email/Slack/other notifications using Prometheus AlertManager.
 - Span/Trace grouping.
-- SQL-like query language.
-- Charts and Percentiles.
+- SQL-like query language to aggregate spans.
+- Promql-like language to aggregate metrics.
 - Systems, services, and hostnames dashboards.
 - Multiple users/projects via YAML config.
 
