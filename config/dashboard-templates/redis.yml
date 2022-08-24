@@ -1,0 +1,83 @@
+id: db.redis
+name: 'db: Redis'
+
+metrics:
+  - redis.memory.fragmentation_ratio as $fragmentation
+  - redis.connections.rejected as $conns_rejected
+  - redis.keys.evicted as $keys_evicted
+query:
+  - group by host.name
+  - $fragmentation
+  - per_min($conns_rejected) as conns_rejected
+  - per_min($keys_evicted) as keys_evicted
+
+entries:
+  - name: Fragmentation ratio
+    metrics:
+      - redis.memory.fragmentation_ratio as $fragmentation
+    query:
+      - $fragmentation
+
+  - name: Number of rejected connections
+    metrics:
+      - redis.connections.rejected as $conns_rejected
+    query:
+      - per_min($conns_rejected) as conns_rejected
+
+  - name: Number of evicted keys
+    metrics:
+      - redis.keys.evicted as $keys_evicted
+    query:
+      - per_min($keys_evicted) as keys_evicted
+
+  - name: Total number of keys and number of keys with a TTL
+    metrics:
+      - redis.db.keys as $db_keys
+      - redis.db.expires as $db_expires
+    query:
+      - $db_keys
+      - $db_expires
+
+  - name: Keyspace hit rate
+    metrics:
+      - redis.keyspace.hits as $hits
+      - redis.keyspace.misses as $misses
+    query:
+      - per_min($hits) as hits
+      - per_min($misses) as misses
+      - hits / (hits + misses) as hit_rate
+    columns:
+      hit_rate: { unit: percents }
+
+  - name: Number of processed commands
+    metrics:
+      - redis.commands as $commands
+    query:
+      - $commands
+
+  - name: Biggest input and output client buffers
+    metrics:
+      - redis.clients.max_input_buffer as $input
+      - redis.clients.max_outpu_buffer as $output
+    query:
+      - $input
+      - $output
+
+  - name: Number of bytes read and written from the network
+    metrics:
+      - redis.net.input as $input
+      - redis.net.output as $output
+    query:
+      - per_min($input) as input_per_min
+      - per_min($output) as output_per_min
+    columns:
+      input_per_min: { unit: bytes }
+      output_per_min: { unit: bytes }
+
+  - name: RSS memory
+    metrics:
+      - redis.memory.rss as $rss
+    query:
+      - $rss
+    columns:
+      rss: { unit: bytes }

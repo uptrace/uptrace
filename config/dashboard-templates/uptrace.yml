@@ -1,5 +1,5 @@
 id: uptrace.projects
-name: Uptrace Projects
+name: 'Uptrace: Projects'
 
 metrics:
   - uptrace.projects.spans as $spans
@@ -11,7 +11,7 @@ query:
 
 ---
 id: uptrace.hosts
-name: Uptrace Hosts
+name: 'Uptrace: Hosts'
 
 metrics:
   - uptrace.projects.spans as $spans
