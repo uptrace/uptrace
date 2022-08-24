@@ -1,5 +1,5 @@
 id: go.runtime
-name: Go Runtime
+name: 'Go: Runtime'
 
 metrics:
   - process.runtime.go.gc.pause_ns as $gc_pause
@@ -7,7 +7,8 @@ metrics:
   - process.runtime.go.mem.heap_objects as $heap_objects
   - process.runtime.go.goroutines as $goroutines
 query:
-  - group by service.name | group by host.name
+  - group by service.name
+  - group by host.name
   - max($gc_pause) as gc_pause_max
   - $mem_in_use
   - $heap_objects
@@ -19,28 +20,117 @@ entries:
   - name: Max GC stop-the-world pause
     metrics:
       - process.runtime.go.gc.pause_ns as $gc_pause
-    query: max($gc_pause) as gc_pause_max
+    query:
+      - max($gc_pause) as gc_pause_max
     columns:
       gc_pause_max: { unit: nanoseconds }
 
   - name: Heap memory in use
     metrics:
       - process.runtime.go.mem.heap_inuse as $mem_in_use
-    query: $mem_in_use
+    query:
+      - $mem_in_use
     columns:
       mem_in_use: { unit: bytes }
 
   - name: Heap live objects
     metrics:
       - process.runtime.go.mem.heap_objects as $heap_objects
-    query: $heap_objects
+    query:
+      - $heap_objects
 
   - name: Goroutines
     metrics:
       - process.runtime.go.goroutines as $goroutines
-    query: $goroutines
+    query:
+      - $goroutines
 
   - name: cgo calls
     metrics:
       - process.runtime.go.cgo.calls as $cgo_calls
-    query: $cgo_calls
+    query:
+      - $cgo_calls
+
+---
+id: go.sql_client
+name: 'Go: SQL client'
+
+metrics:
+  - go.sql.query_timing as $query_timing
+  - go.sql.connections_open as $conns_open
+query:
+  - group by service.name
+  - group by host.name
+  - per_min($query_timing) as queries
+  - p90($query_timing) as timing_p90
+  - p99($query_timing) as timing_p99
+  - $conns_open
+columns:
+  timing_p90: { unit: milliseconds }
+  timing_p99: { unit: milliseconds }
+
+entries:
+  - name: Number of queries
+    metrics:
+      - go.sql.query_timing as $query_timing
+    query:
+      - per_min($query_timing) as queries
+
+  - name: Query percentiles
+    chart_type: stacked-area
+    metrics:
+      - go.sql.query_timing as $query_timing
+    query:
+      - p50($query_timing) as timing_p50
+      - p90($query_timing) as timing_p90
+      - p99($query_timing) as timing_p99
+    columns:
+      timing_p50: { unit: milliseconds }
+      timing_p90: { unit: milliseconds }
+      timing_p99: { unit: milliseconds }
+
+  - name: Number of established connections both in use and idle
+    metrics:
+      - go.sql.connections_open as $conns_open
+    query:
+      - $conns_open
+
+  - name: Number of connections currently in use
+    metrics:
+      - go.sql.connections_in_use as $conns_in_use
+    query:
+      - $conns_in_use
+
+  - name: Number of idle connections
+    metrics:
+      - go.sql.connections_idle as $conns_idle
+    query:
+      - $conns_idle
+
+  - name: Connection wait count and duration
+    metrics:
+      - go.sql.connections_wait_count as $wait_count
+      - go.sql.connections_wait_duration as $wait_dur
+    query:
+      - per_min($wait_count) as wait_count
+      - per_min($wait_dur) as wait_dur
+    columns:
+      timing_p50: { unit: nanoseconds }
+
+  - name: Number of connections closed due to SetMaxIdleConns
+    metrics:
+      - go.sql.connections_closed_max_idle as $closed_max_idle
+    query:
+      - per_min($closed_max_idle) as closed_max_idle
+
+  - name: Number of connections closed due to SetConnMaxIdleTime
+    metrics:
+      - go.sql.connections_closed_max_idle_time as $closed_max_idle_time
+    query:
+      - per_min($closed_max_idle_time) as closed_max_idle_time
+
+  - name: Number of connections closed due to SetConnMaxLifetime
+    metrics:
+      - go.sql.connections_closed_max_lifetime as $closed_max_lifetime
+    query:
+      - per_min($closed_max_lifetime) as closed_max_lifetime

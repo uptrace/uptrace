@@ -1,0 +1,231 @@
+id: system.overview
+name: 'system: CPU/RAM/Swap'
+
+metrics:
+  - system.cpu.load_average.15m as $load_avg_15m
+  - system.cpu.time as $cpu_time
+  - system.memory.usage as $mem_usage
+  - system.paging.usage as $paging
+query:
+  - group by host.name
+  - $load_avg_15m
+  - per_min($cpu_time{state=wait}) as cpu_wait
+  - $mem_usage{state!=free} / $mem_usage as mem_util
+  - $paging{state!=free} / $paging as swap_util
+columns:
+  cpu_wait: { unit: seconds }
+  mem_util: { unit: percents }
+  swap_util: { unit: percents }
+
+entries:
+  - name: CPU 1 minute load average
+    metrics:
+      - system.cpu.load_average.1m as $load_avg_1m
+    query:
+      - $load_avg_1m
+
+  - name: CPU 5 minute load average
+    metrics:
+      - system.cpu.load_average.5m as $load_avg_5m
+    query:
+      - $load_avg_5m
+
+  - name: CPU 15 minute load average
+    metrics:
+      - system.cpu.load_average.15m as $load_avg_15m
+    query:
+      - $load_avg_15m
+
+  - name: CPU wait time
+    metrics:
+      - system.cpu.time as $cpu_time
+    query:
+      - per_min($cpu_time{state=wait}) as cpu_wait
+    columns:
+      cpu_wait: { unit: seconds }
+
+  - name: RAM utilization
+    metrics:
+      - system.memory.usage as $mem_usage
+    query:
+      - $mem_usage{state!=free} / $mem_usage as mem_util
+    columns:
+      mem_util: { unit: percents }
+
+  - name: Swap or pagefile utilization
+    metrics:
+      - system.paging.usage as $paging
+    query:
+      - $paging{state!=free} / $paging as swap_util
+    columns:
+      swap_util: { unit: percents }
+
+  - name: Number of page operations and faults
+    metrics:
+      - system.paging.operations as $page_ops
+      - system.paging.faults as $page_faults
+    query:
+      - per_min($page_ops) as page_ops
+      - per_min($page_faults) as page_faults
+
+---
+id: system.network
+name: 'system: Network Metrics'
+
+metrics:
+  - system.network.connections as $net_conns
+  - system.network.dropped as $packets_dropped
+  - system.network.errors as $net_errors
+  - system.network.io as $net_io
+query:
+  - group by host.name
+  - $net_conns
+  - $packets_dropped
+  - $net_errors
+  - per_min($net_io{direction=transmit}) as transmit
+  - per_min($net_io{direction=receive}) as receive
+columns:
+  transmit: { unit: bytes }
+  receive: { unit: bytes }
+
+entries:
+  - name: Network connections
+    metrics:
+      - system.network.connections as $net_conns
+      - http.server.duration as $srv_dur
+    query:
+      - $net_conns
+      - per_min($srv_dur) as req_per_min
+
+  - name: Network dropped packets
+    metrics:
+      - system.network.dropped as $packets_dropped
+    query:
+      - $packets_dropped
+
+  - name: Network errors
+    metrics:
+      - system.network.errors as $net_errors
+    query:
+      - $net_errors
+
+  - name: Network transmit/receive IO
+    metrics:
+      - system.network.io as $net_io
+    query:
+      - per_min($net_io{direction=transmit}) as transmit
+      - per_min($net_io{direction=receive}) as receive
+    columns:
+      transmit: { unit: bytes }
+      receive: { unit: bytes }
+
+  - name: Network transmit/receive packets
+    metrics:
+      - system.network.packets as $net_packets
+    query:
+      - per_min($net_packets{direction=transmit}) as transmit
+      - per_min($net_packets{direction=receive}) as receive
+
+---
+id: system.disk
+name: 'system: Disk Metrics'
+
+metrics:
+  - system.disk.io_time as $disk_time
+  - system.disk.io as $disk_io
+query:
+  - group by host.name
+  - group by device
+  - where device !~ "loop"
+  - $disk_time
+  - per_min($disk_io{direction=read}) as reads
+  - per_min($disk_io{direction=write}) as writes
+columns:
+  disk_time: { unit: seconds }
+
+entries:
+  - name: Time disk spent activated
+    metrics:
+      - system.disk.io_time as $disk_time
+    query:
+      - $disk_time
+
+  - name: Disk reads and writes
+    metrics:
+      - system.disk.io as $disk_io
+    query:
+      - per_min($disk_io{direction=read}) as reads
+      - per_min($disk_io{direction=write}) as writes
+
+  - name: Disk read/write operations
+    metrics:
+      - system.disk.operations as $disk_ops
+    query:
+      - per_min($disk_ops{direction=read}) as reads
+      - per_min($disk_ops{direction=write}) as writes
+
+  - name: Disk read/write time
+    metrics:
+      - system.disk.operation_time as $op_time
+    query:
+      - per_min($op_time{direction=read}) as read_time
+      - per_min($op_time{direction=write}) as write_time
+    columns:
+      read_time: { unit: seconds }
+      write_time: { unit: seconds }
+
+  - name: Disk pending operations
+    metrics:
+      - system.disk.pending_operations as $pending_ops
+    query:
+      - $pending_ops
+
+---
+id: hostmetrics.filesystem
+name: 'hostmetrics: Filesystem Metrics'
+
+metrics:
+  - system.filesystem.usage as $fs_usage
+  - system.filesystem.inodes.usage as $inodes
+query:
+  - group by host.name
+  - group by device
+  - where device !~ "loop"
+  - $fs_usage{state="used"} / $fs_usage as fs_util
+  - $inodes{state="used"} / $inodes as inode_util
+columns:
+  fs_util: { unit: percents }
+  inode_util: { unit: percents }
+
+entries:
+  - name: Filesystem utilization
+    metrics:
+      - system.filesystem.usage as $fs_usage
+    query:
+      - $fs_usage{state="used"} / $fs_usage as fs_util
+    columns:
+      fs_util: { unit: percents }
+
+  - name: Filesystem usage
+    chart_type: stacked-area
+    metrics:
+      - system.filesystem.usage as $fs_usage
+    query:
+      - $fs_usage group by state
+    columns:
+      fs_usage: { unit: bytes }
+
+  - name: inodes utilization
+    metrics:
+      - system.filesystem.inodes.usage as $inodes
+    query:
+      - $inodes{state="used"} / $inodes as inode_util
+    columns:
+      fs_util: { unit: percents }
+
+  - name: inodes usage
+    chart_type: stacked-area
+    metrics:
+      - system.filesystem.inodes.usage as $inodes
+    query:
+      - $inodes group by state
