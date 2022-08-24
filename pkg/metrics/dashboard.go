@@ -74,7 +74,6 @@ func InsertDashboard(ctx context.Context, app *bunapp.App, dash *Dashboard) erro
 
 	if _, err := app.DB.NewInsert().
 		Model(dash).
-		On("CONFLICT DO NOTHING").
 		Exec(ctx); err != nil {
 		return err
 	}

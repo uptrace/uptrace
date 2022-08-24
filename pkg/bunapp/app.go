@@ -302,6 +302,8 @@ func (app *App) newDB() *bun.DB {
 	}
 
 	db := bun.NewDB(sqldb, sqlitedialect.New())
+	db.SetMaxOpenConns(1)
+
 	db.AddQueryHook(bundebug.NewQueryHook(
 		bundebug.WithEnabled(app.Debugging()),
 		bundebug.FromEnv("DEBUG"),
@@ -309,6 +311,9 @@ func (app *App) newDB() *bun.DB {
 	db.AddQueryHook(bunotel.NewQueryHook())
 
 	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
+		app.Logger.Error("db.Exec failed", zap.Error(err))
+	}
+	if _, err := db.Exec("PRAGMA busy_timeout = 1000;"); err != nil {
 		app.Logger.Error("db.Exec failed", zap.Error(err))
 	}
 

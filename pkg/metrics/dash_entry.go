@@ -11,14 +11,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
 )
 
-const (
-	LineChartType        = "line"
-	AreaChartType        = "area"
-	BarChartType         = "bar"
-	StackedAreaChartType = "stacked-area"
-	StackedBarChartType  = "stacked-bar"
-)
-
 type DashEntry struct {
 	bun.BaseModel `bun:"dash_entries,alias:e"`
 

@@ -117,9 +117,12 @@ projects:
 
 # SQLite database is used to store metadata such us metric names, dashboards, alerts, and so on.
 db:
-  dsn: 'file:uptrace.sqlite3'
+  dsn: 'file:uptrace.sqlite3?_foreign_keys=1&_busy_timeout=1000'
 
 # Metrics dashboard templates.
 dashboards:
-  - https://raw.githubusercontent.com/uptrace/uptrace/master/config/dashboard-templates/go.yml
   - https://raw.githubusercontent.com/uptrace/uptrace/master/config/dashboard-templates/uptrace.yml
+  - https://raw.githubusercontent.com/uptrace/uptrace/master/config/dashboard-templates/system.yml
+  - https://raw.githubusercontent.com/uptrace/uptrace/master/config/dashboard-templates/go.yml
+  - https://raw.githubusercontent.com/uptrace/uptrace/master/config/dashboard-templates/http.yml
+  - https://raw.githubusercontent.com/uptrace/uptrace/master/config/dashboard-templates/redis.yml
