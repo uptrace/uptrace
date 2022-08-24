@@ -5,13 +5,11 @@ metrics:
   - system.cpu.load_average.15m as $load_avg_15m
   - system.cpu.time as $cpu_time
   - system.memory.usage as $mem_usage
-  - system.paging.usage as $paging
 query:
   - group by host.name
   - $load_avg_15m
   - per_min($cpu_time{state=wait}) as cpu_wait
   - $mem_usage{state!=free} / $mem_usage as mem_util
-  - $paging{state!=free} / $paging as swap_util
 columns:
   cpu_wait: { unit: seconds }
   mem_util: { unit: percents }
@@ -51,6 +49,15 @@ entries:
       - $mem_usage{state!=free} / $mem_usage as mem_util
     columns:
       mem_util: { unit: percents }
+
+  - name: RAM usage
+    chart_type: stacked-area
+    metrics:
+      - system.memory.usage as $mem_usage
+    query:
+      - $mem_usage group by state
+    columns:
+      mem_usage: { unit: bytes }
 
   - name: Swap or pagefile utilization
     metrics:
@@ -181,8 +188,8 @@ entries:
       - $pending_ops
 
 ---
-id: hostmetrics.filesystem
-name: 'hostmetrics: Filesystem Metrics'
+id: system.filesystem
+name: 'system: Filesystem Metrics'
 
 metrics:
   - system.filesystem.usage as $fs_usage

@@ -2,6 +2,7 @@ package upql
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -22,14 +23,26 @@ func ParseMetrics(ss []string) ([]Metric, error) {
 	return metrics, validateMetrics(metrics)
 }
 
+var aliasRE = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+
 func parseMetric(s string) (Metric, error) {
 	for _, sep := range []string{" as ", " AS "} {
 		if ss := strings.Split(s, sep); len(ss) == 2 {
 			name := strings.TrimSpace(ss[0])
 			alias := strings.TrimSpace(ss[1])
+
+			if !strings.HasPrefix(alias, "$") {
+				return Metric{}, fmt.Errorf("alias %q must start with a dollar sign", alias)
+			}
+			alias = strings.TrimPrefix(alias, "$")
+
+			if !aliasRE.MatchString(alias) {
+				return Metric{}, fmt.Errorf("invalid alias: %q", alias)
+			}
+
 			return Metric{
 				Name:  name,
-				Alias: strings.TrimPrefix(alias, "$"),
+				Alias: alias,
 			}, nil
 		}
 	}

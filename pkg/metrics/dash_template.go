@@ -255,10 +255,12 @@ func (b *DashBuilder) entry(tpl *bunconf.DashEntry) error {
 	}
 
 	b.entries = append(b.entries, &DashEntry{
-		Name:    tpl.Name,
-		Metrics: metrics,
-		Query:   tpl.Query,
-		Columns: tpl.Columns,
+		Name:        tpl.Name,
+		Description: tpl.Description,
+		ChartType:   tpl.ChartType,
+		Metrics:     metrics,
+		Query:       strings.Join(tpl.Query, " | "),
+		Columns:     tpl.Columns,
 	})
 	return nil
 }

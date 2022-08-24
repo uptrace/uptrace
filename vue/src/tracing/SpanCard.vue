@@ -30,6 +30,11 @@
       </v-row>
 
       <v-row align="end" class="px-4 text-subtitle-2 text-center">
+        <v-col v-if="span.attrs[xkey.deploymentEnvironment]" cols="auto">
+          <div class="grey--text font-weight-regular">Env</div>
+          <div>{{ span.attrs[xkey.deploymentEnvironment] }}</div>
+        </v-col>
+
         <v-col v-if="span.attrs[xkey.serviceName]" cols="auto">
           <div class="grey--text font-weight-regular">Service</div>
           <div>{{ span.attrs[xkey.serviceName] }}</div>
@@ -129,6 +134,7 @@ import { defineComponent, ref, computed, proxyRefs, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
+import { createUqlEditor } from '@/use/uql'
 
 // Components
 import FixedDatePeriodPicker from '@/components/FixedDatePeriodPicker.vue'
@@ -238,11 +244,14 @@ function useMeta(props: Props) {
 
   const groupRoute = computed(() => {
     return {
-      name: props.groupListRoute,
+      name: props.spanListRoute,
       query: {
         ...props.dateRange.queryParams(),
         system: props.span.system,
-        where: `${xkey.spanGroupId} = "${props.span.groupId}"`,
+        query: createUqlEditor()
+          .exploreAttr(xkey.spanGroupId)
+          .where(xkey.spanGroupId, '=', props.span.groupId)
+          .toString(),
       },
     }
   })
@@ -265,11 +274,14 @@ function useMeta(props: Props) {
     bs.push({
       text: truncate(eventOrSpanName(props.span), { length: 50 }),
       to: {
-        name: props.groupListRoute,
+        name: props.spanListRoute,
         query: {
           ...props.dateRange.queryParams(),
           system: props.span.system,
-          where: `${xkey.spanGroupId} = "${props.span.groupId}"`,
+          query: createUqlEditor()
+            .exploreAttr(xkey.spanGroupId)
+            .where(xkey.spanGroupId, '=', props.span.groupId)
+            .toString(),
         },
       },
       exact: true,

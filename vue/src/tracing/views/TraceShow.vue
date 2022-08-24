@@ -86,16 +86,17 @@
 <script lang="ts">
 import { defineComponent, computed, watch, proxyRefs } from 'vue'
 
+// Composables
+import { useTitle } from '@vueuse/core'
+import { useDateRange, UseDateRange } from '@/use/date-range'
+import { useTrace, UseTrace } from '@/tracing/use-trace'
+import { createUqlEditor } from '@/use/uql'
+
 // Components
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 import SystemBarChart from '@/components/SystemBarChart.vue'
 import TraceTabs from '@/tracing/TraceTabs.vue'
 import TraceError from '@/tracing/TraceError.vue'
-
-// Composables
-import { useTitle } from '@vueuse/core'
-import { useDateRange, UseDateRange } from '@/use/date-range'
-import { useTrace, UseTrace } from '@/tracing/use-trace'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
@@ -132,11 +133,14 @@ export default defineComponent({
       }
 
       return {
-        name: 'SpanGroupList',
+        name: 'SpanList',
         query: {
           ...dateRange.queryParams(),
           system: trace.root.system,
-          where: `${xkey.spanGroupId} = "${trace.root.groupId}"`,
+          query: createUqlEditor()
+            .exploreAttr(xkey.spanGroupId)
+            .where(xkey.spanGroupId, '=', trace.root.groupId)
+            .toString(),
         },
       }
     })
@@ -152,11 +156,11 @@ export default defineComponent({
           ...dateRange.queryParams(),
           system: xkey.allSystem,
           query: [
+            `where ${xkey.spanTraceId} = ${trace.root.traceId}`,
             `group by ${xkey.spanGroupId}`,
             xkey.spanCount,
             xkey.spanErrorCount,
             `{p50,p90,p99,sum}(${xkey.spanDuration})`,
-            `where ${xkey.spanTraceId} = "${trace.root.traceId}"`,
           ].join(' | '),
           plot: null,
         },
@@ -216,7 +220,10 @@ function useMeta(dateRange: UseDateRange, trace: UseTrace) {
           query: {
             ...dateRange.queryParams(),
             system: root.system,
-            where: `${xkey.spanGroupId} = "${root.groupId}"`,
+            query: createUqlEditor()
+              .exploreAttr(xkey.spanGroupId)
+              .where(xkey.spanGroupId, '=', root.groupId)
+              .toString(),
           },
         },
         exact: true,

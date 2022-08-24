@@ -61,7 +61,7 @@ func main() {
 			serveCommand,
 			command.NewCHCommand(chmigrations.Migrations),
 			command.NewBunCommand(bunmigrations.Migrations),
-			// command.AlertManager,
+			command.NewTemplateCommand(),
 		},
 	}
 

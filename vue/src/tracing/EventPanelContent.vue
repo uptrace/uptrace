@@ -38,6 +38,7 @@ import { defineComponent, PropType, computed } from 'vue'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { usePercentiles } from '@/use/percentiles'
+import { createUqlEditor } from '@/use/uql'
 
 // Components
 import PctileChart from '@/components/PctileChart.vue'
@@ -79,11 +80,14 @@ export default defineComponent({
 
     const groupRoute = computed(() => {
       return {
-        name: 'SpanGroupList',
+        name: 'SpanList',
         query: {
           ...props.dateRange.queryParams(),
           system: props.event.system,
-          where: `${xkey.spanGroupId} = "${props.event.groupId}"`,
+          query: createUqlEditor()
+            .exploreAttr(xkey.spanGroupId)
+            .where(xkey.spanGroupId, '=', props.event.groupId)
+            .toString(),
         },
       }
     })

@@ -22,7 +22,7 @@ func (d *Dashboard) Validate() error {
 		return fmt.Errorf("template id is required")
 	}
 	if err := d.validate(); err != nil {
-		return fmt.Errorf("invalid dashboard %s: %w", d.ID, err)
+		return fmt.Errorf("%s: %w", d.ID, err)
 	}
 	return nil
 }
@@ -35,6 +35,10 @@ func (d *Dashboard) validate() error {
 		return fmt.Errorf("either dashboard query or an entry is required")
 	}
 
+	if _, err := upql.ParseMetrics(d.Metrics); err != nil {
+		return err
+	}
+
 	for _, entry := range d.Entries {
 		if err := entry.Validate(); err != nil {
 			return err
@@ -45,22 +49,44 @@ func (d *Dashboard) validate() error {
 }
 
 type DashEntry struct {
-	Name    string                   `yaml:"name"`
-	Metrics []string                 `yaml:"metrics"`
-	Query   string                   `yaml:"query"`
-	Columns map[string]*MetricColumn `yaml:"columns"`
+	Name        string                   `yaml:"name"`
+	Description string                   `yaml:"description"`
+	ChartType   string                   `yaml:"chart_type"`
+	Metrics     []string                 `yaml:"metrics"`
+	Query       []string                 `yaml:"query"`
+	Columns     map[string]*MetricColumn `yaml:"columns"`
 }
+
+const (
+	LineChartType        = "line"
+	AreaChartType        = "area"
+	BarChartType         = "bar"
+	StackedAreaChartType = "stacked-area"
+	StackedBarChartType  = "stacked-bar"
+)
 
 func (e *DashEntry) Validate() error {
 	if e.Name == "" {
 		return fmt.Errorf("entry name is required")
 	}
+
+	switch e.ChartType {
+	case "", LineChartType, AreaChartType, BarChartType, StackedAreaChartType, StackedBarChartType:
+	default:
+		return fmt.Errorf("unknown chart type: %q", e.ChartType)
+	}
+
 	if len(e.Metrics) == 0 {
 		return fmt.Errorf("entry requires at least one metric")
 	}
-	if e.Query == "" {
+	if len(e.Query) == 0 {
 		return fmt.Errorf("entry query is required")
 	}
+
+	if _, err := upql.ParseMetrics(e.Metrics); err != nil {
+		return err
+	}
+
 	return nil
 }
 

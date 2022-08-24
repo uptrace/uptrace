@@ -159,10 +159,8 @@ export class UqlEditor {
     return formatParts(this.parts)
   }
 
-  reset() {
-    this.parts = []
-    this.add(buildGroupBy(xkey.spanGroupId))
-    return this
+  exploreAttr(attr: string) {
+    return this.add(buildGroupBy(attr))
   }
 
   add(query: string) {

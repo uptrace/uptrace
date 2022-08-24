@@ -43,7 +43,6 @@ func (n *Notifier) Send(ctx context.Context, alerts models.PostableAlerts) error
 		}
 	}
 
-	fmt.Println("DONE", firstErr)
 	return firstErr
 }
 

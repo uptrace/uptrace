@@ -147,17 +147,16 @@ export default defineComponent({
   setup(props) {
     function columnRoute(value: string) {
       let where: string
-
       if (value === '') {
-        where = `${props.attribute} does not exist`
+        where = `where ${props.column} not exists`
       } else {
-        where = `${props.attribute} = ${quote(value)}`
+        where = `where ${props.column} = ${quote(value)}`
       }
 
       const route = { ...props.baseColumnRoute }
       route.query = {
         ...route.query,
-        where,
+        query: `${route.query.query} | ${where}`,
       }
 
       return route
