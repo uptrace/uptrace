@@ -125,12 +125,12 @@ func (m *AlertManager) convert(
 	}
 
 	return &models.PostableAlert{
-		StartsAt:    strfmt.DateTime(alert.FiredAt),
-		EndsAt:      strfmt.DateTime(alert.ResolvedAt),
-		Annotations: annotations,
 		Alert: models.Alert{
 			Labels: labels,
 		},
+		Annotations: annotations,
+		StartsAt:    strfmt.DateTime(alert.FiredAt),
+		EndsAt:      strfmt.DateTime(alert.ResolvedAt),
 	}
 }
 

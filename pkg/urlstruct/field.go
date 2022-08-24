@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/prometheus/common/model"
 	"github.com/segmentio/encoding/json"
 	"github.com/vmihailenco/tagparser"
 )
@@ -261,10 +260,6 @@ func ParseDuration(s string) (time.Duration, error) {
 			return 0, fmt.Errorf("cannot parse %q duration (int64 overflow)", s)
 		}
 		return time.Duration(ns), nil
-	}
-
-	if d, err := model.ParseDuration(s); err == nil {
-		return time.Duration(d), nil
 	}
 
 	return time.ParseDuration(s)

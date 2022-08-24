@@ -10,7 +10,7 @@
 ##   foo: $$FOO_BAR
 ##
 
-# Enable to log HTTP requests and ClickHouse queries.
+# Enable to log HTTP requests and database queries.
 debug: false
 
 # Secret key that is used to sign JWT tokens etc.
@@ -97,7 +97,7 @@ alertmanager:
 #     password: uptrace
 
 projects:
-  # Conventionally, the first project is used for self-monitoring.
+  # Conventionally, the first project is used to monitor Uptrace itself.
   - id: 1
     name: Uptrace
     # Token grants write access to the project. Keep a secret.

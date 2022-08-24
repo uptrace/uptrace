@@ -298,12 +298,11 @@ func startAlerting(group *run.Group, app *bunapp.App) {
 		}
 	}
 
-	notifier := bunapp.NewNotifier(conf.Alertmanager.URLs)
 	for _, project := range projectMap {
 		man := alerting.NewManager(&alerting.ManagerConfig{
 			Engine:   metrics.NewAlertingEngine(app, project.id),
 			Rules:    project.rules,
-			AlertMan: metrics.NewAlertManager(app.DB, notifier, project.id),
+			AlertMan: metrics.NewAlertManager(app.DB, app.Notifier, project.id),
 			Logger:   app.Logger.Logger,
 		})
 

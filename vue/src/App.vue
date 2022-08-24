@@ -53,7 +53,7 @@
               target="_blank"
               dark
               class="deep-orange darken-3"
-              >Upgrade</v-btn
+              >Go Cloud</v-btn
             >
           </v-col>
           <v-col v-if="user.isAuth" cols="auto" class="d-none d-md-inline-block">
