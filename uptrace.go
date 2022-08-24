@@ -14,3 +14,13 @@ func DistFS() fs.FS {
 	}
 	return distFS
 }
+
+//go:embed config/dashboard-templates/*.yml
+var dashTemplatesFS embed.FS
+
+func DashTemplatesFS() fs.FS {
+	if fs, err := fs.Sub(dashTemplatesFS, "config/dashboard-templates"); err == nil {
+		return fs
+	}
+	return dashTemplatesFS
+}

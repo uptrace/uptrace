@@ -5,12 +5,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bunotel"
@@ -26,9 +28,8 @@ type DashSyncer struct {
 
 	httpClient *http.Client
 
-	mu            sync.Mutex
-	dashboards    []*bunconf.Dashboard
-	lastUpdatedAt time.Time
+	dashboardsOnce sync.Once
+	dashboards     []*bunconf.Dashboard
 
 	debouncerMapMu sync.Mutex
 	debouncerMap   map[uint32]*bunutil.Debouncer
@@ -54,64 +55,50 @@ func NewDashSyncer(app *bunapp.App) *DashSyncer {
 	return s
 }
 
-func (s *DashSyncer) dashboardTemplates(ctx context.Context) []*bunconf.Dashboard {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if time.Since(s.lastUpdatedAt) < 24*time.Hour {
-		return s.dashboards
-	}
-
-	dashboards, err := s.resolveDashboardTemplates(ctx)
-	if err != nil {
-		s.logger.ErrorContext(ctx, "resolveDashboardTemplates failed", zap.Error(err))
-		return s.dashboards
-	}
-
-	s.dashboards = dashboards
-	s.lastUpdatedAt = time.Now()
-
+func (s *DashSyncer) dashboardTemplates() []*bunconf.Dashboard {
+	s.dashboardsOnce.Do(func() {
+		s.dashboards = s.parseDashboards()
+	})
 	return s.dashboards
 }
 
-func (s *DashSyncer) resolveDashboardTemplates(ctx context.Context) ([]*bunconf.Dashboard, error) {
-	conf := s.app.Config()
+func (s *DashSyncer) parseDashboards() []*bunconf.Dashboard {
+	fsys := uptrace.DashTemplatesFS()
+
+	entries, err := fs.ReadDir(fsys, ".")
+	if err != nil {
+		return nil
+	}
 
 	var dashboards []*bunconf.Dashboard
 
-	for _, url := range conf.Dashboards {
-		got, err := s.getDashboards(ctx, url)
-		if err != nil {
-			return nil, err
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
 		}
+
+		data, err := fs.ReadFile(fsys, e.Name())
+		if err != nil {
+			s.logger.Error("ReadFile failed", zap.Error(err))
+			continue
+		}
+
+		got, err := s.parseYAML(data)
+		if err != nil {
+			s.logger.Error("parseYAML failed", zap.Error(err))
+			continue
+		}
+
 		dashboards = append(dashboards, got...)
 	}
 
-	return dashboards, nil
+	return dashboards
 }
 
-func (s *DashSyncer) getDashboards(ctx context.Context, url string) ([]*bunconf.Dashboard, error) {
-	var b []byte
-	var err error
-
-	for i := 0; i < 3; i++ {
-		if i > 0 {
-			time.Sleep(time.Second)
-		}
-
-		b, err = s.httpGet(ctx, url)
-		if err == nil {
-			break
-		}
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
+func (s *DashSyncer) parseYAML(data []byte) ([]*bunconf.Dashboard, error) {
 	var dashboards []*bunconf.Dashboard
 
-	dec := yaml.NewDecoder(bytes.NewReader(b))
+	dec := yaml.NewDecoder(bytes.NewReader(data))
 	for {
 		dashboard := new(bunconf.Dashboard)
 		if err := dec.Decode(&dashboard); err != nil {
@@ -159,7 +146,7 @@ func (s *DashSyncer) Sync(ctx context.Context, projectID uint32) {
 }
 
 func (s *DashSyncer) syncDashboards(ctx context.Context, projectID uint32) error {
-	templates := s.dashboardTemplates(ctx)
+	templates := s.dashboardTemplates()
 
 	dashMap, err := SelectDashboardMap(ctx, s.app, projectID)
 	if err != nil {
