@@ -9,7 +9,7 @@ import (
 
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/urfave/cli/v2"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func NewTemplateCommand() *cli.Command {

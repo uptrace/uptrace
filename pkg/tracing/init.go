@@ -2,7 +2,6 @@ package tracing
 
 import (
 	"context"
-	"sync"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -23,19 +22,21 @@ var spanCounter, _ = bunotel.Meter.SyncInt64().Counter(
 )
 
 func Init(ctx context.Context, app *bunapp.App) {
-	initGRPC(ctx, app)
-	initRoutes(ctx, app)
+	sp := NewSpanProcessor(app)
+
+	initGRPC(ctx, app, sp)
+	initRoutes(ctx, app, sp)
 }
 
-func initGRPC(ctx context.Context, app *bunapp.App) {
-	traceService := NewTraceServiceServer(app, GlobalSpanProcessor(app))
+func initGRPC(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
+	traceService := NewTraceServiceServer(app, sp)
 	collectortracepb.RegisterTraceServiceServer(app.GRPCServer(), traceService)
 
 	router := app.Router()
 	router.POST("/v1/traces", traceService.httpTraces)
 }
 
-func initRoutes(ctx context.Context, app *bunapp.App) {
+func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	router := app.Router()
 	sysHandler := NewSystemHandler(app)
 	serviceHandler := NewServiceHandler(app)
@@ -49,13 +50,13 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 
 	// https://zipkin.io/zipkin-api/#/default/post_spans
 	router.WithGroup("/api/v2", func(g *bunrouter.Group) {
-		zipkinHandler := NewZipkinHandler(app, GlobalSpanProcessor(app))
+		zipkinHandler := NewZipkinHandler(app, sp)
 
 		g.POST("/spans", zipkinHandler.PostSpans)
 	})
 
 	router.WithGroup("/api/v1", func(g *bunrouter.Group) {
-		vectorHandler := NewVectorHandler(app, GlobalSpanProcessor(app))
+		vectorHandler := NewVectorHandler(app, sp)
 
 		g.POST("/vector-logs", vectorHandler.Create)
 		g.POST("/vector/logs", vectorHandler.Create)
@@ -83,16 +84,4 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 		g.GET("/attributes", suggestionHandler.Attributes)
 		g.GET("/values", suggestionHandler.Values)
 	})
-}
-
-var (
-	spanProcessorOnce sync.Once
-	spanProcessor     *SpanProcessor
-)
-
-func GlobalSpanProcessor(app *bunapp.App) *SpanProcessor {
-	spanProcessorOnce.Do(func() {
-		spanProcessor = NewSpanProcessor(app)
-	})
-	return spanProcessor
 }

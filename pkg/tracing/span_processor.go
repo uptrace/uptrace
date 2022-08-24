@@ -7,9 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/prometheus/prometheus/model/labels"
-	promlabels "github.com/prometheus/prometheus/model/labels"
-	"github.com/prometheus/prometheus/notifier"
+	"github.com/go-openapi/strfmt"
+	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
@@ -26,6 +25,8 @@ type SpanProcessor struct {
 	batchSize int
 	ch        chan *Span
 	gate      *syncutil.Gate
+
+	notifier *bunapp.Notifier
 
 	logger *otelzap.Logger
 }
@@ -199,40 +200,40 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 	}
 
 	if len(errors) > 0 {
-		s.notifyOnErrors(errors)
+		s.notifyOnErrors(ctx, errors)
 	}
 }
 
-func (s *SpanProcessor) notifyOnErrors(errors []*Span) {
-	// TODO: rework
-	return
-
-	alerts := make([]*notifier.Alert, len(errors))
+func (s *SpanProcessor) notifyOnErrors(ctx context.Context, errors []*Span) {
+	alerts := make(models.PostableAlerts, len(errors))
 
 	for i, error := range errors {
-		labels := []string{
-			labels.AlertName, error.EventName,
-			"alert_kind", "error",
-			"project_id", strconv.FormatUint(uint64(error.ProjectID), 10),
-			"system", error.System,
-			"group_id", strconv.FormatUint(error.GroupID, 10),
+		labels := models.LabelSet{
+			"alertname":  error.EventName,
+			"alert_kind": "error",
+			"project_id": strconv.FormatUint(uint64(error.ProjectID), 10),
+			"system":     error.System,
+			"group_id":   strconv.FormatUint(error.GroupID, 10),
 		}
 		if service := error.Attrs.ServiceName(); service != "" {
-			labels = append(labels, "service", service)
+			labels["service"] = service
 		}
 		if sev, _ := error.Attrs[attrkey.LogSeverity].(string); sev != "" {
-			labels = append(labels, "severity", sev)
+			labels["severity"] = sev
 		}
+		traceURL := s.Config().SitePath(fmt.Sprintf("/traces/%s", error.TraceID.String()))
 
-		alerts[i] = &notifier.Alert{
-			Labels: promlabels.FromStrings(labels...),
-			Annotations: promlabels.FromStrings(
-				"span_name", error.Name,
-				"trace_id", error.TraceID.String(),
-			),
-			GeneratorURL: s.Config().SitePath(fmt.Sprintf("/traces/%s", error.TraceID.String())),
+		alerts[i] = &models.PostableAlert{
+			Alert: models.Alert{
+				Labels:       labels,
+				GeneratorURL: strfmt.URI(traceURL),
+			},
+			Annotations: models.LabelSet{
+				"span_name": error.Name,
+				"trace_id":  error.TraceID.String(),
+			},
 		}
 	}
 
-	s.NotifierManager.Send(alerts...)
+	s.Notifier.Send(ctx, alerts)
 }

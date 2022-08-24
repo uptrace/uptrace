@@ -20,7 +20,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type DashSyncer struct {

@@ -12,9 +12,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/prometheus/prometheus/notifier"
-	"github.com/prometheus/prometheus/promql"
-	"github.com/prometheus/prometheus/rules"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/sqliteshim"
@@ -118,9 +115,7 @@ type App struct {
 	DB *bun.DB
 	CH *ch.DB
 
-	QueryEngine     *promql.Engine
-	NotifierManager *notifier.Manager
-	RuleManager     *rules.Manager
+	Notifier *Notifier
 }
 
 func New(ctx context.Context, conf *bunconf.Config) *App {
@@ -137,6 +132,7 @@ func New(ctx context.Context, conf *bunconf.Config) *App {
 	app.initGRPC()
 	app.DB = app.newDB()
 	app.CH = app.newCH()
+	app.Notifier = NewNotifier(conf.Alertmanager.URLs)
 
 	return app
 }
@@ -303,6 +299,7 @@ func (app *App) newDB() *bun.DB {
 
 	db := bun.NewDB(sqldb, sqlitedialect.New())
 	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
 
 	db.AddQueryHook(bundebug.NewQueryHook(
 		bundebug.WithEnabled(app.Debugging()),
