@@ -205,12 +205,16 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 }
 
 func (s *SpanProcessor) notifyOnErrors(ctx context.Context, errors []*Span) {
+	conf := s.Config()
+	if !conf.Alerting.Errors.Enabled {
+		return
+	}
+
 	alerts := make(models.PostableAlerts, len(errors))
 
 	for i, error := range errors {
 		labels := models.LabelSet{
 			"alertname":  error.EventName,
-			"alert_kind": "error",
 			"project_id": strconv.FormatUint(uint64(error.ProjectID), 10),
 			"system":     error.System,
 			"group_id":   strconv.FormatUint(error.GroupID, 10),
@@ -220,6 +224,9 @@ func (s *SpanProcessor) notifyOnErrors(ctx context.Context, errors []*Span) {
 		}
 		if sev, _ := error.Attrs[attrkey.LogSeverity].(string); sev != "" {
 			labels["severity"] = sev
+		}
+		for k, v := range conf.Alerting.Errors.Labels {
+			labels[k] = v
 		}
 		traceURL := s.Config().SitePath(fmt.Sprintf("/traces/%s", error.TraceID.String()))
 

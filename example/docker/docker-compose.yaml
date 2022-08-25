@@ -38,6 +38,20 @@ services:
       - ../../config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml
     network_mode: host
 
+  alertmanager:
+    image: prom/alertmanager:v0.24.0
+    restart: on-failure
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+      - alertmanager_data:/alertmanager
+    ports:
+      - 9093:9093
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+
 volumes:
   ch_data:
+    driver: local
+  alertmanager_data:
     driver: local

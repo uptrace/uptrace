@@ -2,6 +2,7 @@ package bunconf
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/uptrace/uptrace/pkg/metrics/alerting"
@@ -97,7 +98,7 @@ type MetricColumn struct {
 type AlertRule struct {
 	Name        string            `yaml:"name"`
 	Metrics     []string          `yaml:"metrics"`
-	Expr        string            `yaml:"expr"`
+	Query       []string          `yaml:"query"`
 	For         time.Duration     `yaml:"for"`
 	Labels      map[string]string `yaml:"labels"`
 	Annotations map[string]string `yaml:"annotations"`
@@ -127,8 +128,8 @@ func (r *AlertRule) validate() error {
 	}
 	r.metrics = metrics
 
-	if r.Expr == "" {
-		return fmt.Errorf("rule expr is required")
+	if len(r.Query) == 0 {
+		return fmt.Errorf("rule query is required")
 	}
 	if len(r.Projects) == 0 {
 		return fmt.Errorf("at least on project is required")
@@ -140,7 +141,7 @@ func (r *AlertRule) RuleConfig() alerting.RuleConfig {
 	return alerting.RuleConfig{
 		Name:        r.Name,
 		Metrics:     r.metrics,
-		Expr:        r.Expr,
+		Query:       strings.Join(r.Query, " | "),
 		For:         r.For,
 		Labels:      r.Labels,
 		Annotations: r.Annotations,

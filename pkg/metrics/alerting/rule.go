@@ -47,14 +47,14 @@ type Rule struct {
 type RuleConfig struct {
 	Name        string
 	Metrics     []upql.Metric
-	Expr        string
+	Query       string
 	For         time.Duration
 	Labels      map[string]string
 	Annotations map[string]string
 }
 
 func (r *RuleConfig) ID() int64 {
-	return int64(xxhash.Sum64String(r.Name + "-" + r.Expr))
+	return int64(xxhash.Sum64String(r.Name + "-" + r.Query))
 }
 
 func NewRule(conf *RuleConfig, alerts []Alert) *Rule {
@@ -82,7 +82,7 @@ func (r *Rule) Alerts() []Alert {
 }
 
 func (r *Rule) Eval(ctx context.Context, engine Engine, tm time.Time) ([]Alert, error) {
-	timeseries, err := engine.Eval(ctx, r.conf.Metrics, r.conf.Expr, tm.Add(-r.conf.For), tm)
+	timeseries, err := engine.Eval(ctx, r.conf.Metrics, r.conf.Query, tm.Add(-r.conf.For), tm)
 	if err != nil {
 		return nil, err
 	}
