@@ -1,26 +1,28 @@
 CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
   project_id UInt32 Codec(DoubleDelta, ?CODEC),
-  "span.system" LowCardinality(String) Codec(?CODEC),
-  "span.group_id" UInt64 Codec(Delta, ?CODEC),
+  system LowCardinality(String) Codec(?CODEC),
+  group_id UInt64 Codec(Delta, ?CODEC),
 
-  "span.trace_id" UUID Codec(?CODEC),
-  "span.id" UInt64 Codec(?CODEC),
-  "span.parent_id" UInt64 Codec(?CODEC),
-  "span.name" LowCardinality(String) Codec(?CODEC),
-  "span.event_name" String Codec(?CODEC),
-  "span.kind" LowCardinality(String) Codec(?CODEC),
-  "span.time" DateTime Codec(Delta, ?CODEC),
-  "span.duration" Int64 Codec(Delta, ?CODEC),
-  "span.count" Float32 Codec(?CODEC),
+  trace_id UUID Codec(?CODEC),
+  id UInt64 Codec(?CODEC),
+  parent_id UInt64 Codec(?CODEC),
+  name LowCardinality(String) Codec(?CODEC),
+  event_name String Codec(?CODEC),
+  is_event UInt8 ALIAS event_name != '',
+  kind LowCardinality(String) Codec(?CODEC),
+  time DateTime Codec(Delta, ?CODEC),
+  duration Int64 Codec(Delta, ?CODEC),
+  count Float32 Codec(?CODEC),
 
-  "span.status_code" LowCardinality(String) Codec(?CODEC),
-  "span.status_message" String Codec(?CODEC),
+  status_code LowCardinality(String) Codec(?CODEC),
+  status_message String Codec(?CODEC),
 
-  "span.link_count" UInt8 Codec(?CODEC),
-  "span.event_count" UInt8 Codec(?CODEC),
-  "span.event_error_count" UInt8 Codec(?CODEC),
-  "span.event_log_count" UInt8 Codec(?CODEC),
+  link_count UInt8 Codec(?CODEC),
+  event_count UInt8 Codec(?CODEC),
+  event_error_count UInt8 Codec(?CODEC),
+  event_log_count UInt8 Codec(?CODEC),
 
+  all_keys Array(LowCardinality(String)) Codec(?CODEC),
   attr_keys Array(LowCardinality(String)) Codec(?CODEC),
   attr_values Array(String) Codec(?CODEC),
 
@@ -38,13 +40,13 @@ CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
   "exception.type" LowCardinality(String) Codec(?CODEC),
   "exception.message" String Codec(?CODEC),
 
-  INDEX idx_attr_keys attr_keys TYPE bloom_filter(0.01) GRANULARITY 8,
-  INDEX idx_duration "span.duration" TYPE minmax GRANULARITY 1
+  INDEX idx_attr_keys attr_keys TYPE bloom_filter(0.01) GRANULARITY 64,
+  INDEX idx_duration duration TYPE minmax GRANULARITY 1
 )
 ENGINE = ?(REPLICATED)MergeTree()
-ORDER BY (project_id, "span.system", "span.group_id", "span.time")
-PARTITION BY toDate("span.time")
-TTL toDate("span.time") + INTERVAL ?SPANS_TTL DELETE
+ORDER BY (project_id, system, group_id, time)
+PARTITION BY toDate(time)
+TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1
 
 --migration:split
@@ -97,13 +99,13 @@ CREATE MATERIALIZED VIEW ?DB.span_system_minutes_mv ?ON_CLUSTER
 TO ?DB.span_system_minutes AS
 SELECT
   project_id,
-  "span.system" AS system,
-  toStartOfMinute("span.time") AS time,
-  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32("span.duration"), toUInt32("span.count")) AS tdigest,
-  toUInt64(sum("span.count")) AS count,
-  countIf("span.status_code" = 'error') AS error_count
+  system,
+  toStartOfMinute(time) AS time,
+  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32(duration), toUInt32(count)) AS tdigest,
+  toUInt64(sum(count)) AS count,
+  countIf(status_code = 'error') AS error_count
 FROM ?DB.spans_index
-GROUP BY project_id, time, system
+GROUP BY project_id, toStartOfMinute(time), system
 SETTINGS prefer_column_name_to_alias = 1
 
 --migration:split
@@ -163,14 +165,14 @@ CREATE MATERIALIZED VIEW ?DB.span_service_minutes_mv ?ON_CLUSTER
 TO ?DB.span_service_minutes AS
 SELECT
   project_id,
-  "span.system" AS system,
+  system,
   "service.name" AS service,
-  toStartOfMinute("span.time") AS time,
-  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32("span.duration"), toUInt32("span.count")) AS tdigest,
-  toUInt64(sum("span.count")) AS count,
-  countIf("span.status_code" = 'error') AS error_count
+  toStartOfMinute(time) AS time,
+  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32(duration), toUInt32(count)) AS tdigest,
+  toUInt64(sum(count)) AS count,
+  countIf(status_code = 'error') AS error_count
 FROM ?DB.spans_index
-GROUP BY project_id, time, system, service
+GROUP BY project_id, toStartOfMinute(time), system, service
 SETTINGS prefer_column_name_to_alias = 1
 
 --migration:split
@@ -232,14 +234,14 @@ CREATE MATERIALIZED VIEW ?DB.span_host_minutes_mv ?ON_CLUSTER
 TO ?DB.span_host_minutes AS
 SELECT
   project_id,
-  "span.system" AS system,
+  system,
   "host.name" AS host,
-  toStartOfMinute("span.time") AS time,
-  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32("span.duration"), toUInt32("span.count")) AS tdigest,
-  toUInt64(sum("span.count")) AS count,
-  countIf("span.status_code" = 'error') AS error_count
+  toStartOfMinute(time) AS time,
+  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32(duration), toUInt32(count)) AS tdigest,
+  toUInt64(sum(count)) AS count,
+  countIf(status_code = 'error') AS error_count
 FROM ?DB.spans_index
-GROUP BY project_id, time, system, host
+GROUP BY project_id, toStartOfMinute(time), system, host
 SETTINGS prefer_column_name_to_alias = 1
 
 --migration:split

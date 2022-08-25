@@ -36,5 +36,9 @@ export function useProject() {
     )
   })
 
-  return proxyRefs({ grpc, http })
+  const pinnedAttrs = computed(() => {
+    return data.value?.pinnedAttrs ?? []
+  })
+
+  return proxyRefs({ grpc, http, pinnedAttrs })
 }

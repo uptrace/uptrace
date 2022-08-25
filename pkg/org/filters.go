@@ -88,6 +88,10 @@ func GroupPeriod(gte, lt time.Time) time.Duration {
 	return CalcGroupPeriod(gte, lt, 120)
 }
 
+func CompactGroupPeriod(gte, lt time.Time) time.Duration {
+	return CalcGroupPeriod(gte, lt, 60)
+}
+
 var periods = []time.Duration{
 	time.Minute,
 	2 * time.Minute,

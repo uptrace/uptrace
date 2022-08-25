@@ -13,12 +13,12 @@ type SpanIndex struct {
 
 	*Span
 
-	Count float32 `ch:"span.count"` // sampling adjusted count
+	Count float32
 
-	LinkCount       uint8 `ch:"span.link_count"`
-	EventCount      uint8 `ch:"span.event_count"`
-	EventErrorCount uint8 `ch:"span.event_error_count"`
-	EventLogCount   uint8 `ch:"span.event_log_count"`
+	LinkCount       uint8
+	EventCount      uint8
+	EventErrorCount uint8
+	EventLogCount   uint8
 
 	AllKeys    []string `ch:",lc"`
 	AttrKeys   []string `ch:",lc"`

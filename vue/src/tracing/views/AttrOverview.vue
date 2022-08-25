@@ -2,37 +2,36 @@
   <div>
     <v-card outlined rounded="lg" class="mb-4">
       <v-toolbar flat color="light-blue lighten-5">
-        <v-toolbar-title>Services</v-toolbar-title>
+        <v-toolbar-title>{{ attr }} overview</v-toolbar-title>
         <v-toolbar-items class="ml-5">
           <v-col align-self="center">
             <SystemPicker
               :date-range="dateRange"
               :systems="systems"
               :items="systems.items"
-              route-name="ServiceOverview"
               outlined
             />
           </v-col>
         </v-toolbar-items>
 
         <v-spacer />
+
         <v-btn :to="groupListRoute" small class="primary">View in explorer</v-btn>
       </v-toolbar>
 
       <v-card-text>
         <OverviewTable
           :date-range="dateRange"
-          :loading="services.loading"
-          :items="services.pageServices"
-          :order="services.order"
-          column="service"
-          :attribute="xkey.serviceName"
-          :base-column-route="groupListRoute"
+          :loading="overview.loading"
+          :items="overview.pagedGroups"
+          :order="overview.order"
+          :attr="attr"
+          :base-item-route="spanListRoute"
         />
       </v-card-text>
     </v-card>
 
-    <XPagination :pager="services.pager" />
+    <XPagination :pager="overview.pager" />
   </div>
 </template>
 
@@ -40,21 +39,19 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
-import { UseSystems } from '@/use/systems'
-import { useServices } from '@/use/services'
+import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { buildGroupBy } from '@/use/uql'
+import { UseSystems } from '@/use/systems'
+import { createUqlEditor } from '@/use/uql'
+import { useOverview } from '@/tracing/use-overview'
 
 // Components
-import OverviewTable from '@/components/OverviewTable.vue'
-import SystemPicker from '@/components/SystemPicker.vue'
-
-// Utilities
-import { xkey } from '@/models/otelattr'
+import SystemPicker from '@/tracing/SystemPicker.vue'
+import OverviewTable from '@/tracing/overview/OverviewTable.vue'
 
 export default defineComponent({
-  name: 'ServiceOverview',
-  components: { OverviewTable, SystemPicker },
+  name: 'AttrOverview',
+  components: { SystemPicker, OverviewTable },
 
   props: {
     dateRange: {
@@ -68,10 +65,22 @@ export default defineComponent({
   },
 
   setup(props) {
-    const services = useServices(props.dateRange, props.systems)
+    const { route } = useRouter()
+
+    const attr = computed(() => {
+      return route.value.params.attr
+    })
+
+    const overview = useOverview(() => {
+      return {
+        ...props.dateRange.axiosParams(),
+        ...props.systems.axiosParams(),
+        attr: attr.value,
+      }
+    })
 
     const query = computed(() => {
-      return buildGroupBy(xkey.serviceName)
+      return createUqlEditor().exploreAttr(attr.value).toString()
     })
 
     const groupListRoute = computed(() => {
@@ -79,17 +88,28 @@ export default defineComponent({
         name: 'SpanGroupList',
         query: {
           ...props.dateRange.queryParams(),
-          ...props.systems.axiosParams(),
+          ...props.systems.queryParams(),
+          query: query.value,
+        },
+      }
+    })
+
+    const spanListRoute = computed(() => {
+      return {
+        name: 'SpanList',
+        query: {
+          ...props.dateRange.queryParams(),
+          ...props.systems.queryParams(),
           query: query.value,
         },
       }
     })
 
     return {
-      xkey,
-
-      services,
+      attr,
+      overview,
       groupListRoute,
+      spanListRoute,
     }
   },
 })

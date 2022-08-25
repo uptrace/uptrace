@@ -38,13 +38,13 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 	disableColumnsAndGroups(f.parts)
 
 	q := buildSpanIndexQuery(h.App, f, f.Duration().Minutes()).
-		ColumnExpr("`span.id`").
-		ColumnExpr("`span.trace_id`").
+		ColumnExpr("id").
+		ColumnExpr("trace_id").
 		WithQuery(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if f.SortBy == "" {
 				return q
 			}
-			return q.OrderExpr(string(CHColumn(f.SortBy)) + " " + f.SortDir())
+			return q.OrderExpr(string(CHAttrExpr(f.SortBy)) + " " + f.SortDir())
 		}).
 		Limit(10).
 		Offset(f.Pager.GetOffset())
@@ -137,31 +137,31 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 
 	subq := h.CH.NewSelect().
 		Model((*SpanIndex)(nil)).
-		WithAlias("qsNaN", "quantilesTDigest(0.5, 0.9, 0.99)(`span.duration`)").
+		WithAlias("qsNaN", "quantilesTDigest(0.5, 0.9, 0.99)(duration)").
 		WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
-		ColumnExpr("sum(`span.count`) AS count").
-		ColumnExpr("sum(`span.count`) / ? AS rate", minutes).
-		ColumnExpr("toStartOfInterval(`span.time`, INTERVAL ? minute) AS time", minutes).
+		ColumnExpr("sum(count) AS count").
+		ColumnExpr("sum(count) / ? AS rate", minutes).
+		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_", minutes).
 		WithQuery(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if isEventSystem(f.System) {
 				return q
 			}
-			return q.ColumnExpr("sumIf(`span.count`, `span.status_code` = 'error') AS errorCount").
-				ColumnExpr("sumIf(`span.count`, `span.status_code` = 'error') / ? AS errorRate",
+			return q.ColumnExpr("sumIf(count, status_code = 'error') AS errorCount").
+				ColumnExpr("sumIf(count, status_code = 'error') / ? AS errorRate",
 					minutes).
 				ColumnExpr("round(qs[1]) AS p50").
 				ColumnExpr("round(qs[2]) AS p90").
 				ColumnExpr("round(qs[3]) AS p99")
 		}).
 		WithQuery(f.whereClause).
-		GroupExpr("time").
-		OrderExpr("time ASC").
+		GroupExpr("time_").
+		OrderExpr("time_ ASC").
 		Limit(10000)
 
 	if err := h.CH.NewSelect().
 		ColumnExpr("groupArray(count) AS count").
 		ColumnExpr("groupArray(rate) AS rate").
-		ColumnExpr("groupArray(time) AS time").
+		ColumnExpr("groupArray(time_) AS time").
 		WithQuery(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if isEventSystem(f.System) {
 				return q
@@ -208,14 +208,14 @@ func (h *SpanHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error 
 
 	subq := buildSpanIndexQuery(h.App, f, minutes)
 	subq = upqlColumn(subq, colName, minutes).
-		ColumnExpr("toStartOfInterval(`span.time`, toIntervalMinute(?)) AS time", minutes).
-		GroupExpr("time").
-		OrderExpr("time ASC")
+		ColumnExpr("toStartOfInterval(time, toIntervalMinute(?)) AS time_", minutes).
+		GroupExpr("time_").
+		OrderExpr("time_ ASC")
 
 	if err := h.CH.NewSelect().
 		ColumnExpr("groupArray(?) AS ?", ch.Ident(f.Column), ch.Ident(f.Column)).
-		ColumnExpr("groupArray(s.time) AS time").
-		TableExpr("(?) AS s", subq).
+		ColumnExpr("groupArray(time_) AS time").
+		TableExpr("(?)", subq).
 		GroupExpr("tuple()").
 		Limit(1000).
 		Scan(ctx, &m); err != nil {

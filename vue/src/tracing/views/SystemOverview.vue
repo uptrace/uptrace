@@ -61,7 +61,7 @@ import { buildGroupBy } from '@/use/uql'
 import { useSystemStats } from '@/use/system-stats'
 
 // Components
-import OverviewTable from '@/components/OverviewTable.vue'
+import OverviewTable from '@/tracing/overview/OverviewTable.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
