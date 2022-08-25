@@ -96,7 +96,7 @@ func (m *Manager) tick(tm time.Time) {
 			ruleConf := rule.Config()
 			span.SetAttributes(
 				attribute.String("rule.name", ruleConf.Name),
-				attribute.String("rule.expr", ruleConf.Expr),
+				attribute.String("rule.query", ruleConf.Query),
 			)
 
 			return m.evalRule(ctx, rule, tm)

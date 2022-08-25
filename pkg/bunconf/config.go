@@ -170,6 +170,11 @@ type Config struct {
 
 	Alerting struct {
 		Rules []AlertRule `yaml:"rules"`
+
+		Errors struct {
+			Enabled bool              `yaml:"enabled"`
+			Labels  map[string]string `yaml:"labels"`
+		} `yaml:"errors"`
 	} `yaml:"alerting"`
 
 	Alertmanager struct {

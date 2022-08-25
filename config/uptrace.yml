@@ -10,11 +10,49 @@
 ##   foo: $$FOO_BAR
 ##
 
-# Enable to log HTTP requests and database queries.
-debug: false
+projects:
+  # Conventionally, the first project is used to monitor Uptrace itself.
+  - id: 1
+    name: Uptrace
+    # Token grants write access to the project. Keep a secret.
+    token: project1_secret_token
+    pinned_attrs:
+      - service.name
+      - host.name
+      - deployment.environment
 
-# Secret key that is used to sign JWT tokens etc.
-secret_key: changeme
+  - id: 2
+    name: My project
+    token: project2_secret_token
+    pinned_attrs:
+      - service.name
+      - host.name
+      - deployment.environment
+
+# To require authentication, uncomment the following section.
+# users:
+#   - id: 1
+#     username: uptrace
+#     password: uptrace
+
+ch:
+  # Connection string for ClickHouse database. For example:
+  # clickhouse://<user>:<password>@<host>:<port>/<database>?sslmode=disable
+  #
+  # See https://clickhouse.uptrace.dev/guide/golang-clickhouse.html#options
+  dsn: 'clickhouse://default:@localhost:9000/uptrace?sslmode=disable'
+
+# Various options to tweak ClickHouse schema.
+# Whenever you change these options, you must reset the ClickHouse database with `ch reset`.
+ch_schema:
+  # Compression codec, for example, LZ4, ZSTD(3), or Default.
+  compression: ZSTD(3)
+
+  # Whether to use ReplicatedMergeTree instead of MergeTree.
+  replicated: false
+
+  # Cluster name for Distributed tables and ON CLUSTER clause.
+  #cluster: uptrace1
 
 listen:
   # OTLP/gRPC API
@@ -25,24 +63,6 @@ listen:
 # Public URL for Vue-powered UI.
 site:
   addr: 'http://localhost:14318'
-
-ch:
-  # Connection string for ClickHouse database. For example:
-  # clickhouse://<user>:<password>@<host>:<port>/<database>?sslmode=disable
-  #
-  # See https://clickhouse.uptrace.dev/
-  dsn: 'clickhouse://default:@localhost:9000/uptrace?sslmode=disable'
-
-# Various options to tweak ClickHouse schema.
-ch_schema:
-  # Compression codec, for example, LZ4 or ZSTD(3).
-  compression: ZSTD(3)
-
-  # Whether to create ReplicatedMergeTree instead of MergeTree.
-  #replicated: false
-
-  # Cluster name for Distributed tables and ON CLUSTER clause.
-  #cluster: uptrace1
 
 # Spans processing options.
 spans:
@@ -79,42 +99,45 @@ metrics:
 # Alerting rules.
 alerting:
   rules:
-    - name: check goroutines
+    - name: Network errors
       metrics:
-        - process.runtime.go.goroutines as $goroutines
-      expr: $goroutines >= 0 group by host.name
+        - system.network.errors as $net_errors
+      query:
+        - $net_errors > 0 group by host.name
+      # for the last 5 minutes
       for: 5m
-      projects: [1]
+      # in the project id=2
+      projects: [2]
 
+    - name: Filesystem usage >= 90%
+      metrics:
+        - system.filesystem.usage as $fs_usage
+      query:
+        - group by host.name
+        - group by device
+        - where device !~ "loop"
+        - $fs_usage{state="used"} / $fs_usage >= 0.9
+      for: 5m
+      projects: [2]
+
+  # Create alerts from error logs and span events.
+  errors:
+    enabled: true
+    labels:
+      alert_kind: error
+
+# AlertManager endpoints to create alerts and send notifications.
 alertmanager:
   urls:
     - 'http://localhost:9093/api/v2/alerts'
 
-# To require authentication, uncomment the following section.
-# users:
-#   - id: 1
-#     username: uptrace
-#     password: uptrace
-
-projects:
-  # Conventionally, the first project is used to monitor Uptrace itself.
-  - id: 1
-    name: Uptrace
-    # Token grants write access to the project. Keep a secret.
-    token: project1_secret_token
-    pinned_attrs:
-      - service.name
-      - host.name
-      - deployment.environment
-
-  - id: 2
-    name: My project
-    token: project2_secret_token
-    pinned_attrs:
-      - service.name
-      - host.name
-      - deployment.environment
-
-# SQLite database is used to store metadata such us metric names, dashboards, alerts, and so on.
+# SQLite database that is used to store metadata such us metric names, dashboards, alerts,
+# and so on.
 db:
   dsn: 'file:uptrace.sqlite3?_foreign_keys=1&_busy_timeout=1000'
+
+# Secret key that is used to sign JWT tokens etc.
+secret_key: 102c1a557c314fc28198acd017960843
+
+# Enable to log HTTP requests and database queries.
+debug: false

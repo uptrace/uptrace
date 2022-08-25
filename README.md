@@ -16,11 +16,11 @@ uses OpenTelelemetry to collect data and ClickHouse database to store it.
 
 - OpenTelemetry [tracing](https://uptrace.dev/opentelemetry/distributed-tracing.html),
   [metrics](https://uptrace.dev/opentelemetry/metrics.html), and logs.
-- Email/Slack/other notifications using Prometheus AlertManager.
+- Email/Slack/PagerDuty notifications using AlertManager.
 - Span/Trace grouping.
 - SQL-like query language to aggregate spans.
 - Promql-like language to aggregate metrics.
-- Systems, services, and hostnames dashboards.
+- Pre-built metrics [dashboards](config/dashboard-templates).
 - Multiple users/projects via YAML config.
 
 **Ingestion**:
@@ -28,6 +28,9 @@ uses OpenTelelemetry to collect data and ClickHouse database to store it.
 - OpenTelemetry protocol via gRPC (`:14317`) and HTTP (`:14318`).
 - Zipkin protocol support on `http://uptrace:14318/api/v2/spans`.
 - [Vector Logs](example/vector-logs) API support.
+
+Need more? Check available OpenTelemetry Collector
+[receivers](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver).
 
 **Roadmap**:
 
