@@ -128,7 +128,6 @@
 
 <script lang="ts">
 import { format } from 'sql-formatter'
-import { truncate } from 'lodash'
 import { defineComponent, ref, computed, proxyRefs, PropType } from 'vue'
 
 // Composables
@@ -272,7 +271,7 @@ function useMeta(props: Props) {
     })
 
     bs.push({
-      text: truncate(eventOrSpanName(props.span), { length: 50 }),
+      text: eventOrSpanName(props.span, 50),
       to: {
         name: props.spanListRoute,
         query: {

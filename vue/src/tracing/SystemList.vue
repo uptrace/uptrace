@@ -23,9 +23,9 @@
           <v-card flat :max-height="maxHeight">
             <v-list dense>
               <v-list-item
-                v-for="childItem in item.children"
-                :key="childItem.system"
-                :to="systemRoute(childItem.system)"
+                v-for="item in item.children"
+                :key="item.system"
+                :to="systemRoute(item.system)"
                 exact
                 @click="$emit('click:item')"
               >
@@ -37,7 +37,7 @@
           </v-card>
         </v-menu>
 
-        <v-list-item v-else :key="item.system + '-'" :to="systemRoute(item.system)" exact>
+        <v-list-item v-else :key="item.system" :to="systemRoute(item.system)" exact>
           <v-list-item-content>
             <v-list-item-title>{{ item.system }}</v-list-item-title>
           </v-list-item-content>
@@ -53,7 +53,7 @@ import { defineComponent, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { SystemTreeNode } from '@/use/systems'
+import { SystemTreeNode } from '@/tracing/system/use-systems'
 
 export default defineComponent({
   name: 'SystemList',
@@ -78,6 +78,7 @@ export default defineComponent({
 
     function systemRoute(system: string) {
       return {
+        name: route.value.name,
         query: {
           ...props.dateRange.queryParams(),
           system,

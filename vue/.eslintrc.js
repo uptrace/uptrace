@@ -19,6 +19,7 @@ module.exports = {
 
     'vue/multi-word-component-names': 'off',
     'vue/no-mutating-props': 'off',
+    'vue/no-template-shadow': 'off',
 
     '@typescript-eslint/no-unused-vars': ['error', { args: 'none' }],
     'no-unused-vars': [

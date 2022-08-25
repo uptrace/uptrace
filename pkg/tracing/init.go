@@ -42,9 +42,6 @@ func initGRPC(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 
 func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	router := app.Router()
-	sysHandler := NewSystemHandler(app)
-	serviceHandler := NewServiceHandler(app)
-	hostHandler := NewHostHandler(app)
 	spanHandler := NewSpanHandler(app)
 	traceHandler := NewTraceHandler(app)
 	suggestionHandler := NewSuggestionHandler(app)
@@ -72,10 +69,16 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 		Use(middleware.UserAndProject).
 		NewGroup("/tracing/:project_id")
 
-	g.GET("/systems", sysHandler.List)
-	g.GET("/systems-stats", sysHandler.Stats)
-	g.GET("/services", serviceHandler.List)
-	g.GET("/hosts", hostHandler.List)
+	api.
+		Use(middleware.UserAndProject).
+		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
+			sysHandler := NewSystemHandler(app)
+
+			g.GET("/systems", sysHandler.List)
+			g.GET("/systems-stats", sysHandler.Stats)
+			g.GET("/overview", sysHandler.Overview)
+		})
+
 	g.GET("/groups", spanHandler.ListGroups)
 	g.GET("/spans", spanHandler.ListSpans)
 	g.GET("/percentiles", spanHandler.Percentiles)

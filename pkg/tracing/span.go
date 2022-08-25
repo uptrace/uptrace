@@ -30,25 +30,25 @@ const (
 
 type Span struct {
 	ProjectID uint32 `json:"projectId"`
-	System    string `json:"system" ch:"span.system,lc"`
-	GroupID   uint64 `json:"groupId,string" ch:"span.group_id"`
+	System    string `json:"system" ch:",lc"`
+	GroupID   uint64 `json:"groupId,string"`
 
-	TraceID  uuid.UUID `json:"traceId" ch:"span.trace_id,type:UUID"`
-	ID       uint64    `json:"id,string" ch:"span.id"`
-	ParentID uint64    `json:"parentId,string,omitempty" ch:"span.parent_id"`
+	TraceID  uuid.UUID `json:"traceId" ch:"type:UUID"`
+	ID       uint64    `json:"id,string"`
+	ParentID uint64    `json:"parentId,string,omitempty"`
 
-	Name       string `json:"name" ch:"span.name,lc"`
-	EventName  string `json:"eventName,omitempty" ch:"span.event_name,lc"`
-	Kind       string `json:"kind" ch:"span.kind,lc"`
+	Name       string `json:"name" ch:",lc"`
+	EventName  string `json:"eventName,omitempty" ch:",lc"`
+	Kind       string `json:"kind" ch:",lc"`
 	Standalone bool   `json:"standalone,omitempty" ch:"-"`
 
-	Time         time.Time     `json:"time" ch:"span.time"`
-	Duration     time.Duration `json:"duration" ch:"span.duration"`
+	Time         time.Time     `json:"time"`
+	Duration     time.Duration `json:"duration"`
 	DurationSelf time.Duration `json:"durationSelf" msgpack:"-" ch:"-"`
 	StartPct     float64       `json:"startPct" msgpack:"-" ch:"-"`
 
-	StatusCode    string `json:"statusCode" ch:"span.status_code,lc"`
-	StatusMessage string `json:"statusMessage" ch:"span.status_message"`
+	StatusCode    string `json:"statusCode" ch:",lc"`
+	StatusMessage string `json:"statusMessage"`
 
 	Attrs  AttrMap     `json:"attrs" ch:"-"`
 	Events []*Span     `json:"events,omitempty" msgpack:"-" ch:"-"`

@@ -54,7 +54,7 @@ import { useSystems, SystemsFilter } from '@/use/systems'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
-import SystemPicker from '@/components/SystemPicker.vue'
+import SystemPicker from '@/tracing/SystemPicker.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
 
 interface Props {

@@ -41,3 +41,9 @@ export function truncateMiddle<T>(s: T, maxLen = 32, separator = '...'): T {
   const truncated = s.substr(0, frontChars) + separator + s.substr(s.length - backChars)
   return truncated as any
 }
+
+export function formatTemplate(format: string, ...args: any[]) {
+  return format.replace(/{(\d+)}/g, function (match, number) {
+    return typeof args[number] !== 'undefined' ? args[number] : match
+  })
+}

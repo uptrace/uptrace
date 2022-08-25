@@ -9,14 +9,11 @@ import { useUser } from '@/use/org'
 import { buildGroupBy } from '@/use/uql'
 import { System } from '@/use/systems'
 
-// Components
-import Overview from '@/views/Overview.vue'
-
+import Overview from '@/tracing/views/Overview.vue'
 import SystemOverview from '@/tracing/views/SystemOverview.vue'
-import ServiceOverview from '@/tracing/views/ServiceOverview.vue'
-import HostOverview from '@/tracing/views/HostOverview.vue'
 import SlowestGroups from '@/tracing/views/SlowestGroups.vue'
 import SystemGroupList from '@/tracing/views/SystemGroupList.vue'
+import AttrOverview from '@/tracing/views/AttrOverview.vue'
 
 import TracingHelp from '@/tracing/views/Help.vue'
 import Tracing from '@/tracing/views/Tracing.vue'
@@ -85,28 +82,6 @@ const routes: RouteConfig[] = [
     ],
   },
   {
-    path: '/services/:projectId(\\d+)',
-    component: Overview,
-    children: [
-      {
-        name: 'ServiceOverview',
-        path: '',
-        component: ServiceOverview,
-      },
-    ],
-  },
-  {
-    path: '/hosts/:projectId(\\d+)',
-    component: Overview,
-    children: [
-      {
-        name: 'HostOverview',
-        path: '',
-        component: HostOverview,
-      },
-    ],
-  },
-  {
     path: '/slowest-groups/:projectId(\\d+)',
     component: Overview,
     children: [
@@ -118,13 +93,24 @@ const routes: RouteConfig[] = [
     ],
   },
   {
-    path: '/overview/:projectId(\\d+)/:system',
+    path: '/systems/:projectId(\\d+)/:system',
     component: Overview,
     children: [
       {
         name: 'SystemGroupList',
         path: '',
         component: SystemGroupList,
+      },
+    ],
+  },
+  {
+    path: '/attributes/:projectId(\\d+)/:attr',
+    component: Overview,
+    children: [
+      {
+        name: 'AttrOverview',
+        path: '',
+        component: AttrOverview,
       },
     ],
   },
