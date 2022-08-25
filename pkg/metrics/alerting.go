@@ -117,7 +117,8 @@ func (m *AlertManager) convert(
 	}
 
 	labels["alertname"] = rule.Name
-	labels["metric_project_id"] = fmt.Sprint(m.projectID)
+	labels["rule_query"] = rule.Query
+	labels["project_id"] = fmt.Sprint(m.projectID)
 
 	annotations := make(models.LabelSet)
 	for k, v := range rule.Annotations {
