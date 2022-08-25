@@ -1,7 +1,7 @@
-# OpenTelemetry distributed tracing tool that monitors performance, errors, and logs
+# Distributed Tracing and Metrics using OpenTelemetry and ClickHouse
 
 [![build workflow](https://github.com/uptrace/uptrace/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/uptrace/uptrace/actions)
-[![Chat](https://discordapp.com/api/guilds/1000404569202884628/widget.png)](https://discord.gg/YF8tdP8Pmk)
+[![Chat](https://img.shields.io/badge/-telegram-red?color=white&logo=telegram&logoColor=black)](https://t.me/uptrace)
 
 Uptrace is an OpenTelemetry distributed tracing tool that monitors performance, errors, and logs. It
 uses OpenTelelemetry to collect data and ClickHouse database to store it.

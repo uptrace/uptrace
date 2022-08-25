@@ -3,6 +3,6 @@ contact_links:
   - name: Discussions
     url: https://github.com/uptrace/uptrace/discussions
     about: Ask a question via GitHub Discussions
-  - name: Discord Chat
-    url: https://discord.gg/YF8tdP8Pmk
-    about: Ask a question or chat on Discord server
+  - name: Telegram Channel
+    url: https://t.me/uptrace
+    about: Ask a question or chat on Telegram
