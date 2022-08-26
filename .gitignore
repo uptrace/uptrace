@@ -4,6 +4,7 @@
 
 /vue/dist/
 /vue/node_modules/
+.pnpm-debug.log
 
 *.db
 *.sqlite3

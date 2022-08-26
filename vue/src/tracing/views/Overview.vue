@@ -18,8 +18,6 @@
         <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
           <v-tabs background-color="transparent">
             <v-tab :to="{ name: 'Overview' }">Systems</v-tab>
-            <v-tab :to="{ name: 'ServiceOverview' }">Services</v-tab>
-            <v-tab :to="{ name: 'HostOverview' }">Hosts</v-tab>
             <v-tab
               v-for="system in chosenSystems"
               :key="system"
@@ -28,6 +26,12 @@
               {{ system }}
             </v-tab>
             <v-tab :to="{ name: 'SlowestGroups' }">Slowest groups</v-tab>
+            <v-tab
+              v-for="attr in project.pinnedAttrs"
+              :key="attr"
+              :to="{ name: 'AttrOverview', params: { attr } }"
+              >{{ attr }}</v-tab
+            >
           </v-tabs>
         </v-container>
       </div>
@@ -49,12 +53,13 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useTitle } from '@vueuse/core'
 import type { UseDateRange } from '@/use/date-range'
+import { useProject } from '@/use/project'
 import { useSystems } from '@/use/systems'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
-import SystemQuickMetrics from '@/components/SystemQuickMetrics.vue'
+import SystemQuickMetrics from '@/tracing/overview/SystemQuickMetrics.vue'
 
 // Utilities
 import { xsys } from '@/models/otelattr'
@@ -75,6 +80,7 @@ export default defineComponent({
     useTitle('Overview')
     props.dateRange.syncQuery()
 
+    const project = useProject()
     const systems = useSystems(props.dateRange)
 
     const chosenSystems = computed((): string[] => {
@@ -94,6 +100,7 @@ export default defineComponent({
     })
 
     return {
+      project,
       systems,
       chosenSystems,
     }

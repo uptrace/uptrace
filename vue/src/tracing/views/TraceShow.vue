@@ -101,6 +101,7 @@ import TraceError from '@/tracing/TraceError.vue'
 // Utilities
 import { xkey } from '@/models/otelattr'
 import { hour } from '@/util/fmt/date'
+import { eventOrSpanName } from '@/models/span'
 
 export default defineComponent({
   name: 'TraceShow',
@@ -214,9 +215,9 @@ function useMeta(dateRange: UseDateRange, trace: UseTrace) {
 
     if (root.system && root.groupId) {
       bs.push({
-        text: root.name,
+        text: eventOrSpanName(root, 60),
         to: {
-          name: 'SpanGroupList',
+          name: 'SpanList',
           query: {
             ...dateRange.queryParams(),
             system: root.system,

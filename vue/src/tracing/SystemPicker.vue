@@ -25,7 +25,7 @@ import { UseDateRange } from '@/use/date-range'
 import { buildSystemsTree, UseSystems, System } from '@/use/systems'
 
 // Components
-import SystemList from '@/components/SystemList.vue'
+import SystemList from '@/tracing/SystemList.vue'
 
 export default defineComponent({
   name: 'SystemPicker',

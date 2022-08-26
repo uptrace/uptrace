@@ -3,12 +3,14 @@
     <v-simple-table class="v-data-table--large">
       <thead class="v-data-table-header">
         <tr>
-          <ThOrder v-if="column" :value="column" :order="order">{{ column }}</ThOrder>
-          <ThOrder value="system" :order="order">System</ThOrder>
+          <ThOrder v-if="attr" value="attr" :order="order">{{ attr }}</ThOrder>
+          <ThOrder v-if="hasSystem" value="system" :order="order">System</ThOrder>
           <ThOrder value="rate" :order="order" align="center">Spans per minute</ThOrder>
-          <ThOrder value="errorPct" :order="order" align="center">Errors</ThOrder>
-          <ThOrder value="p50" :order="order" align="center">P50 latency</ThOrder>
-          <ThOrder value="p99" :order="order" align="center">P99 latency</ThOrder>
+          <ThOrder value="errorPct" :order="order" align="center">Error rate</ThOrder>
+          <ThOrder value="durationP50" :order="order" align="center">P50 latency</ThOrder>
+          <ThOrder value="durationP99" :order="order" align="center">P99 latency</ThOrder>
+          <ThOrder value="durationMax" :order="order" align="end">Max</ThOrder>
+          <th v-if="hasAction"></th>
         </tr>
       </thead>
 
@@ -28,13 +30,13 @@
 
       <tbody>
         <tr v-for="(item, i) in items" :key="i">
-          <td v-if="column" class="text-subtitle-1">
-            <router-link :to="columnRoute(item[column])" @click.native.stop>
-              {{ item[column] }}
+          <td v-if="attr" class="text-subtitle-1">
+            <router-link :to="itemRoute(item.attr)" @click.native.stop>
+              <XText :value="item.attr" :name="attr" />
             </router-link>
           </td>
-          <td class="text-subtitle-1">
-            <router-link :to="groupListRoute(item.system)" @click.native.stop>
+          <td v-if="hasSystem" class="text-subtitle-1">
+            <router-link :to="systemRoute(item.system)" @click.native.stop>
               {{ item.system }}
             </router-link>
           </td>
@@ -46,7 +48,7 @@
                 :time="item.stats.time"
                 class="mr-2"
               />
-              <XNum :value="item.rate" />
+              <XNum :value="item.rate" :unit="Unit.Rate" title="{0} per minute" />
             </div>
           </td>
           <td class="text-subtitle-2">
@@ -57,30 +59,36 @@
                 :time="item.stats.time"
                 class="mr-2"
               />
-              {{ percent(item.errorPct) }}
+              <XPct :a="item.errorCount" :b="item.count" />
             </div>
           </td>
           <td class="text-subtitle-2">
-            <div v-if="item.stats.p50" class="d-flex align-center">
+            <div v-if="item.stats.durationP50" class="d-flex align-center">
               <SparklineChart
                 name="p50"
-                :line="item.stats.p50"
+                :line="item.stats.durationP50"
                 :time="item.stats.time"
                 class="mr-2"
               />
-              <XDuration :duration="item.p50" />
+              <XDuration :duration="item.durationP50" />
             </div>
           </td>
           <td class="text-subtitle-2">
-            <div v-if="item.stats.p99" class="d-flex align-center">
+            <div v-if="item.stats.durationP99" class="d-flex align-center">
               <SparklineChart
                 name="p99"
-                :line="item.stats.p99"
+                :line="item.stats.durationP99"
                 :time="item.stats.time"
                 class="mr-2"
               />
-              <XDuration :duration="item.p99" />
+              <XDuration :duration="item.durationP99" />
             </div>
+          </td>
+          <td class="text-subtitle-2 text-right">
+            <XDuration v-if="item.durationMax !== undefined" :duration="item.durationMax" />
+          </td>
+          <td v-if="hasAction" class="text-center">
+            <slot name="action" :item="item" />
           </td>
         </tr>
       </tbody>
@@ -90,21 +98,20 @@
 
 <script lang="ts">
 import { Route } from 'vue-router'
-import { defineComponent, PropType } from 'vue'
+import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
 import { UseOrder } from '@/use/order'
-import type { OverviewItem } from '@/use/system-stats'
+import type { OverviewItem } from '@/tracing/overview/types'
 
 // Components
 import ThOrder from '@/components/ThOrder.vue'
 import SparklineChart from '@/components/SparklineChart.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { Unit } from '@/util/fmt'
 import { quote } from '@/util/string'
-import { percent } from '@/util/fmt'
 
 export default defineComponent({
   name: 'OverviewTable',
@@ -130,30 +137,34 @@ export default defineComponent({
       type: Object as PropType<UseOrder>,
       required: true,
     },
-    column: {
+    attr: {
       type: String,
       default: '',
     },
-    attribute: {
-      type: String,
-      default: '',
-    },
-    baseColumnRoute: {
+    baseItemRoute: {
       type: Object as PropType<Route>,
       default: undefined,
     },
   },
 
-  setup(props) {
-    function columnRoute(value: string) {
+  setup(props, ctx) {
+    const hasAction = computed(() => {
+      return 'action' in ctx.slots
+    })
+
+    const hasSystem = computed(() => {
+      return props.items.some((item) => item.system)
+    })
+
+    function itemRoute(value: string) {
       let where: string
       if (value === '') {
-        where = `where ${props.column} not exists`
+        where = `where ${props.attr} not exists`
       } else {
-        where = `where ${props.column} = ${quote(value)}`
+        where = `where ${props.attr} = ${quote(value)}`
       }
 
-      const route = { ...props.baseColumnRoute }
+      const route = { ...props.baseItemRoute }
       route.query = {
         ...route.query,
         query: `${route.query.query} | ${where}`,
@@ -162,7 +173,7 @@ export default defineComponent({
       return route
     }
 
-    function groupListRoute(system: string) {
+    function systemRoute(system: string) {
       return {
         name: 'SpanGroupList',
         query: {
@@ -173,11 +184,12 @@ export default defineComponent({
     }
 
     return {
-      xkey,
+      Unit,
+      hasAction,
+      hasSystem,
 
-      columnRoute,
-      groupListRoute,
-      percent,
+      itemRoute,
+      systemRoute,
     }
   },
 })
