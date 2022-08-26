@@ -162,7 +162,7 @@ import { quote } from '@/util/string'
 import 'vuetify/src/components/VDataTable/VDataTable.sass'
 
 export default defineComponent({
-  name: 'GroupTable',
+  name: 'GroupsTable',
   components: {
     ThOrder,
     LoadGroupSparkline,
@@ -262,7 +262,9 @@ export default defineComponent({
     }
 
     function exploreRoute(item: ExploreItem) {
-      const editor = props.uql ? props.uql.createEditor() : createUqlEditor().reset()
+      const editor = props.uql
+        ? props.uql.createEditor()
+        : createUqlEditor().exploreAttr(xkey.spanGroupId)
 
       for (let col of props.groupColumns) {
         const value = item[col.name]
@@ -272,7 +274,7 @@ export default defineComponent({
       return {
         name: props.spanListRoute,
         query: {
-          ...omit(route.value.query, 'sort_by', 'sort_dir'),
+          ...omit(route.value.query, 'column'),
           ...props.systems.axiosParams(),
           query: editor.toString(),
         },
