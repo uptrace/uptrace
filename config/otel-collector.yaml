@@ -20,6 +20,9 @@ receivers:
       memory:
       network:
       paging:
+  jaeger:
+    protocols:
+      grpc:
   filelog:
     include: [/var/log/syslog]
     start_at: beginning
@@ -46,9 +49,9 @@ exporters:
 service:
   pipelines:
     traces:
-      receivers: [otlp]
+      receivers: [otlp, jaeger]
       processors: [batch]
-      exporters: [otlp]
+      exporters: [otlp, logging]
     metrics:
       receivers: [otlp, hostmetrics]
       processors: [batch, resourcedetection]

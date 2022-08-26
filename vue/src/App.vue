@@ -53,8 +53,10 @@
               target="_blank"
               dark
               class="deep-orange darken-3"
-              >Go Cloud</v-btn
             >
+              <v-icon left>mdi-cloud</v-icon>
+              <span>Cloud</span>
+            </v-btn>
           </v-col>
           <v-col v-if="user.isAuth" cols="auto" class="d-none d-md-inline-block">
             <v-menu bottom offset-y>

@@ -87,14 +87,17 @@ export default defineComponent({
       },
     })
 
-    watchEffect(() => {
-      if (props.systems.activeSystem) {
-        return
-      }
-      if (props.items.length) {
-        props.systems.change(props.items[0].system)
-      }
-    })
+    watchEffect(
+      () => {
+        if (props.systems.activeSystem) {
+          return
+        }
+        if (props.items.length) {
+          props.systems.change(props.items[0].system)
+        }
+      },
+      { flush: 'post' },
+    )
 
     return { menu, attrs, systemsTree }
   },
