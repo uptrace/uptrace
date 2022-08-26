@@ -23,20 +23,6 @@ uses OpenTelelemetry to collect data and ClickHouse database to store it.
 - Pre-built metrics [dashboards](config/dashboard-templates).
 - Multiple users/projects via YAML config.
 
-**Ingestion**:
-
-- OpenTelemetry protocol via gRPC (`:14317`) and HTTP (`:14318`).
-- Zipkin protocol support on `http://uptrace:14318/api/v2/spans`.
-- [Vector Logs](example/vector-logs) API support.
-
-Need more? Check available OpenTelemetry Collector
-[receivers](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver).
-
-**Roadmap**:
-
-- ClickHouse S3 storage
-- mTLS support
-
 ## Getting started
 
 - [Docker example](example/docker) to try Uptrace with a single command
