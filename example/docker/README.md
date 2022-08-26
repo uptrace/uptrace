@@ -34,31 +34,15 @@ the data to appear.
 To configure OpenTelemetry for your programming language, see
 [documentation](https://uptrace.dev/docs/).
 
-## ClickHouse and OpenTelemetry
+## AlertManager
 
-To trace the ClickHouse database, you can setup a materialized view to export spans from the
-[system.opentelemetry_span_log table](https://clickhouse.com/docs/en/operations/system-tables/opentelemetry_span_log):
+This example comes with AlertManager which can be used to send notifications via email, Slack, or
+PagerDuty.
+
+To start sending notifications, update [AlertManager config](alertmanager/config.yml) and restart
+the example:
 
 ```shell
-docker-compose exec clickhouse clickhouse-client
+docker-compose stop
+docker-compose up -d
 ```
-
-```sql
-CREATE MATERIALIZED VIEW default.zipkin_spans
-ENGINE = URL('http://uptrace:14318/api/v2/spans', 'JSONEachRow')
-SETTINGS output_format_json_named_tuples_as_objects = 1,
-    output_format_json_array_of_rows = 1 AS
-SELECT
-    lower(hex(trace_id)) AS traceId,
-    case when parent_span_id = 0 then '' else lower(hex(parent_span_id)) end AS parentId,
-    lower(hex(span_id)) AS id,
-    operation_name AS name,
-    start_time_us AS timestamp,
-    finish_time_us - start_time_us AS duration,
-    cast(tuple('clickhouse'), 'Tuple(serviceName text)') AS localEndpoint,
-    attribute AS tags
-FROM system.opentelemetry_span_log
-```
-
-See ClickHouse [documentation](https://clickhouse.com/docs/en/operations/opentelemetry/) for
-details.
