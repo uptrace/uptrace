@@ -86,7 +86,7 @@ func SelectMetricByName(
 	return metric, nil
 }
 
-func upsertMetric(ctx context.Context, app *bunapp.App, m *Metric) (inserted bool, _ error) {
+func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) (inserted bool, _ error) {
 	m.CreatedAt = time.Now().Add(-time.Second)
 	m.UpdatedAt = m.CreatedAt
 

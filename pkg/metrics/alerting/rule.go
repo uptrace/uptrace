@@ -139,7 +139,7 @@ func (r *Rule) checkTimeseries(ts *upql.Timeseries, alert *Alert, tm time.Time) 
 	var dur time.Duration
 
 	for i := len(ts.Value) - 1; i >= 0; i-- {
-		if ts.Value[i] <= 0 {
+		if ts.Value[i] == 0 {
 			break
 		}
 		dur += time.Minute

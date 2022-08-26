@@ -137,6 +137,10 @@ var serveCommand = &cli.Command{
 			logger.Error("ClickHouse migrations failed",
 				zap.Error(err))
 		}
+		if err := createUptraceMetrics(ctx, app); err != nil {
+			logger.Error("createUptraceMetrics failed",
+				zap.Error(err))
+		}
 
 		org.Init(ctx, app)
 		tracing.Init(ctx, app)
@@ -244,6 +248,23 @@ func runCHMigrations(ctx context.Context, db *ch.DB) error {
 	}
 
 	fmt.Printf("migrated to %s\n", group)
+	return nil
+}
+
+func createUptraceMetrics(ctx context.Context, app *bunapp.App) error {
+	projects := app.Config().Projects
+	for i := range projects {
+		project := &projects[i]
+
+		if _, err := metrics.UpsertMetric(ctx, app, &metrics.Metric{
+			ProjectID:  project.ID,
+			Name:       "uptrace.spans.duration",
+			Unit:       "microseconds",
+			Instrument: metrics.HistogramInstrument,
+		}); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

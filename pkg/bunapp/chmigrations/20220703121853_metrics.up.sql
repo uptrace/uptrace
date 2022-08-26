@@ -68,3 +68,24 @@ AS SELECT
 FROM ?DB.measure_minutes
 GROUP BY project_id, metric, toStartOfHour(time), attrs_hash
 SETTINGS prefer_column_name_to_alias = 1
+
+--migration:split
+
+CREATE MATERIALIZED VIEW ?DB.spans_metrics_mv ?ON_CLUSTER
+TO ?DB.measure_minutes AS
+SELECT
+  project_id,
+  'uptrace.spans.duration' AS metric,
+  toStartOfMinute(time) AS time,
+  xxHash64(arrayStringConcat([system, "host.name", "service.name"], '-')) AS attrs_hash,
+
+  'histogram' AS instrument,
+  sum(duration) AS sum,
+  count() AS count,
+  quantilesBFloat16StateIf(0.5, 0.9, 0.99)(toFloat32(duration / 1000), duration > 0) AS histogram,
+
+  ['span.system', 'host.name', 'service.name'] AS attr_keys,
+  [system, "host.name", "service.name"] AS attr_values
+FROM ?DB.spans_index
+GROUP BY project_id, toStartOfMinute(time), system, "host.name", "service.name"
+SETTINGS prefer_column_name_to_alias = 1
