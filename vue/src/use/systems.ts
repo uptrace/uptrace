@@ -7,18 +7,20 @@ import { UseDateRange } from '@/use/date-range'
 import { useWatchAxios } from '@/use/watch-axios'
 
 // Utilities
-import { isEventSystem } from '@/models/otelattr'
+import { xsys, isEventSystem } from '@/models/otelattr'
 
 export interface System {
+  projectId: number
   system: string
   isEvent: boolean
 
   count: number
-  countPerMin: number
+  rate: number
   errorCount: number
+  errorPct: number
 
   dummy?: boolean
-  numChild?: number
+  numChildren?: number
 }
 
 export type SystemsFilter = (systems: System[]) => System[]
@@ -74,6 +76,12 @@ export function useSystems(dateRange: UseDateRange) {
     }
   }
 
+  function queryParams() {
+    return {
+      system: activeSystem.value,
+    }
+  }
+
   function change(system: string): void {
     activeSystem.value = system
   }
@@ -92,6 +100,7 @@ export function useSystems(dateRange: UseDateRange) {
     isEvent,
 
     axiosParams,
+    queryParams,
     change,
     reset,
   })
@@ -103,6 +112,13 @@ function addDummySystems(systems: System[]): System[] {
   }
   systems = cloneDeep(systems)
 
+  const allRate = systems.reduce((acc, v) => {
+    if (v.system !== xsys.internal) {
+      acc += v.rate
+    }
+    return acc
+  }, 0)
+
   const typeMap: Record<string, SystemTreeNode> = {}
 
   for (let sys of systems) {
@@ -112,24 +128,19 @@ function addDummySystems(systems: System[]): System[] {
     }
     const typ = sys.system.slice(0, i)
 
-    let typeSys = typeMap[typ]
-    if (!typeSys) {
-      typeSys = {
-        system: typ,
-        isEvent: false,
-        count: 0,
-        countPerMin: 0,
-        errorCount: 0,
-        dummy: true,
-        numChild: 0,
-      }
-      typeMap[typ] = typeSys
+    const typeSys = typeMap[typ]
+    if (typeSys) {
+      typeSys.rate += sys.rate
+      typeSys.numChildren!++
+      continue
     }
 
-    typeSys.count += sys.count
-    typeSys.countPerMin += sys.countPerMin
-    typeSys.errorCount += sys.errorCount
-    typeSys.numChild!++
+    typeMap[typ] = {
+      ...sys,
+      system: typ,
+      dummy: true,
+      numChildren: 1,
+    }
   }
 
   for (let sysType in typeMap) {
@@ -142,7 +153,7 @@ function addDummySystems(systems: System[]): System[] {
 
   systems = orderBy(systems, 'system')
 
-  const internalIndex = systems.findIndex((sys) => sys.system === 'internal')
+  const internalIndex = systems.findIndex((sys) => sys.system === xsys.internal)
   if (internalIndex >= 0) {
     const internal = systems[internalIndex]
     internal.dummy = true
@@ -151,22 +162,24 @@ function addDummySystems(systems: System[]): System[] {
   }
 
   systems.unshift({
-    system: 'all',
+    projectId: systems[0].projectId,
+    system: xsys.all,
     isEvent: false,
+    rate: allRate,
     count: 0,
-    countPerMin: 0,
     errorCount: 0,
+    errorPct: 0,
 
     dummy: true,
-    numChild: 0,
+    numChildren: 0,
   })
 
   return systems
 }
 
-export function buildSystemsTree(systems: SystemTreeNode[]): SystemTreeNode[] {
-  systems = cloneDeep(systems)
-  systems = systems.filter((sys) => sys.numChild !== 1)
+export function buildSystemsTree(rawSystems: System[]): SystemTreeNode[] {
+  let systems = cloneDeep(rawSystems) as SystemTreeNode[]
+  systems = systems.filter((sys) => sys.numChildren !== 1)
 
   systems.slice(0).forEach((sys) => {
     if (!sys.system.endsWith(':all')) {
@@ -175,7 +188,7 @@ export function buildSystemsTree(systems: SystemTreeNode[]): SystemTreeNode[] {
 
     const children = []
 
-    const prefix = sys.system.slice(0, -'all'.length)
+    const prefix = sys.system.slice(0, -xsys.all.length)
     for (let j = systems.length - 1; j >= 0; j--) {
       const child = systems[j]
       if (child.system == sys.system) {

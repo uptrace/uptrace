@@ -20,13 +20,9 @@ import (
 type SpanFilter struct {
 	*bunapp.App `urlstruct:"-"`
 
-	org.TimeFilter
 	org.OrderByMixin
 	urlstruct.Pager
-
-	ProjectID uint32
-	System    string
-	GroupID   uint64
+	SystemFilter
 
 	Query  string
 	Column string
@@ -37,16 +33,21 @@ type SpanFilter struct {
 
 func DecodeSpanFilter(app *bunapp.App, req bunrouter.Request) (*SpanFilter, error) {
 	f := &SpanFilter{App: app}
+
 	if err := bunapp.UnmarshalValues(req, f); err != nil {
 		return nil, err
 	}
+
+	f.ProjectID = org.ProjectFromContext(req.Context()).ID
+	f.parts = upql.Parse(f.Query)
+
 	return f, nil
 }
 
 var _ urlstruct.ValuesUnmarshaler = (*SpanFilter)(nil)
 
 func (f *SpanFilter) UnmarshalValues(ctx context.Context, values url.Values) error {
-	if err := f.TimeFilter.UnmarshalValues(ctx, values); err != nil {
+	if err := f.SystemFilter.UnmarshalValues(ctx, values); err != nil {
 		return err
 	}
 	if err := f.Pager.UnmarshalValues(ctx, values); err != nil {
@@ -55,32 +56,7 @@ func (f *SpanFilter) UnmarshalValues(ctx context.Context, values url.Values) err
 	if f.System == "" {
 		return errors.New("'system' query param is required")
 	}
-
-	f.parts = upql.Parse(f.Query)
-
 	return nil
-}
-
-func (f *SpanFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
-	q = q.Where("project_id = ?", f.ProjectID).
-		Where("`span.time` >= ?", f.TimeGTE).
-		Where("`span.time` < ?", f.TimeLT)
-
-	switch {
-	case f.System == AllSpanType:
-		q = q.Where("`span.system` != ?", InternalSpanType)
-	case strings.HasSuffix(f.System, ":all"):
-		system := strings.TrimSuffix(f.System, ":all")
-		q = q.Where("startsWith(`span.system`, ?)", system)
-	default:
-		q = q.Where("`span.system` = ?", f.System)
-	}
-
-	if f.GroupID != 0 {
-		q = q.Where("`span.group_id` = ?", f.GroupID)
-	}
-
-	return q
 }
 
 //------------------------------------------------------------------------------
@@ -234,30 +210,30 @@ func appendUQLColumn(b []byte, name upql.Name, minutes float64) []byte {
 	switch name.FuncName {
 	case "p50", "p75", "p90", "p99":
 		return chschema.AppendQuery(b, "quantileTDigest(?)(toFloat64OrDefault(?))",
-			quantileLevel(name.FuncName), CHColumn(name.AttrKey))
+			quantileLevel(name.FuncName), CHAttrExpr(name.AttrKey))
 	case "top3":
-		return chschema.AppendQuery(b, "topK(3)(?)", CHColumn(name.AttrKey))
+		return chschema.AppendQuery(b, "topK(3)(?)", CHAttrExpr(name.AttrKey))
 	case "top10":
-		return chschema.AppendQuery(b, "topK(10)(?)", CHColumn(name.AttrKey))
+		return chschema.AppendQuery(b, "topK(10)(?)", CHAttrExpr(name.AttrKey))
 	}
 
 	switch name.String() {
 	case attrkey.SpanCount:
-		return chschema.AppendQuery(b, "sum(`span.count`)")
+		return chschema.AppendQuery(b, "sum(count)")
 	case attrkey.SpanCountPerMin:
-		return chschema.AppendQuery(b, "sum(`span.count`) / ?", minutes)
+		return chschema.AppendQuery(b, "sum(count) / ?", minutes)
 	case attrkey.SpanErrorCount:
-		return chschema.AppendQuery(b, "sumIf(`span.count`, `span.status_code` = 'error')", minutes)
+		return chschema.AppendQuery(b, "sumIf(count, status_code = 'error')", minutes)
 	case attrkey.SpanErrorPct:
 		return chschema.AppendQuery(
-			b, "sumIf(`span.count`, `span.status_code` = 'error') / sum(`span.count`)", minutes)
+			b, "sumIf(count, status_code = 'error') / sum(count)", minutes)
 	default:
 		if name.FuncName != "" {
 			b = append(b, name.FuncName...)
 			b = append(b, '(')
 		}
 
-		b = AppendCHColumn(b, name.AttrKey)
+		b = AppendCHAttrExpr(b, name.AttrKey)
 
 		if name.FuncName != "" {
 			b = append(b, ')')
@@ -267,13 +243,13 @@ func appendUQLColumn(b []byte, name upql.Name, minutes float64) []byte {
 	}
 }
 
-func CHColumn(key string) ch.Safe {
-	return ch.Safe(AppendCHColumn(nil, key))
+func CHAttrExpr(key string) ch.Safe {
+	return ch.Safe(AppendCHAttrExpr(nil, key))
 }
 
-func AppendCHColumn(b []byte, key string) []byte {
+func AppendCHAttrExpr(b []byte, key string) []byte {
 	if strings.HasPrefix(key, "span.") {
-		return chschema.AppendIdent(b, key)
+		return chschema.AppendIdent(b, strings.TrimPrefix(key, "span."))
 	}
 
 	if _, ok := indexedAttrSet[key]; ok {

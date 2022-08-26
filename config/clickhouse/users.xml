@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<clickhouse>
+  <profiles>
+    <default>
+      <prefer_column_name_to_alias>1</prefer_column_name_to_alias>
+    </default>
+  </profiles>
+</clickhouse>

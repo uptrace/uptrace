@@ -44,6 +44,7 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 				"endpoint": app.Config().HTTPEndpoint(project),
 				"dsn":      app.Config().HTTPDsn(project),
 			},
+			"pinnedAttrs": project.PinnedAttrs,
 		})
 	})
 }
