@@ -114,9 +114,9 @@
               <v-icon small class="mr-1">mdi-toy-brick-outline</v-icon>
               <span>Instrumentations</span>
             </v-btn>
-            <v-btn href="https://discord.gg/YF8tdP8Pmk" target="_blank" text rounded small>
+            <v-btn href="https://t.me/uptrace" target="_blank" text rounded small>
               <v-icon small class="mr-1">mdi-message-outline</v-icon>
-              <span>Discord</span>
+              <span>Chat</span>
             </v-btn>
             <v-btn href="https://github.com/uptrace/uptrace" target="_blank" text rounded small>
               <v-icon small class="mr-1">mdi-github</v-icon>
