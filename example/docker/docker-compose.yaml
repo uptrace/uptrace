@@ -50,6 +50,21 @@ services:
       - '--config.file=/etc/alertmanager/config.yml'
       - '--storage.path=/alertmanager'
 
+  # jaeger-agent:
+  #   image: jaegertracing/jaeger-agent:latest
+  #   command: ['--reporter.grpc.host-port=localhost:14250']
+  #   network_mode: host
+
+  # jaeger-hot-rod:
+  #   image: jaegertracing/example-hotrod:latest
+  #   command: ['all']
+  #   network_mode: host
+  #   environment:
+  #     - JAEGER_AGENT_HOST=localhost
+  #     - JAEGER_AGENT_PORT=6831
+  #   depends_on:
+  #     - jaeger-agent
+
 volumes:
   ch_data:
     driver: local

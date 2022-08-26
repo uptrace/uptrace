@@ -28,7 +28,9 @@
           <DashToggleView v-else :dashboard="dashboard" @input:view="onChangeView" />
         </v-col>
         <v-spacer />
-        <DateRangePicker :date-range="dateRange" :range-days="90" sync-query />
+        <v-col cols="auto">
+          <DateRangePicker :date-range="dateRange" :range-days="90" sync-query />
+        </v-col>
       </v-row>
 
       <v-row v-if="!dashboard.status.hasData()">
