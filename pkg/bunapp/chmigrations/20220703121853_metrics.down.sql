@@ -11,3 +11,7 @@ DROP TABLE IF EXISTS ?DB.measure_hours ?ON_CLUSTER
 --migration:split
 
 DROP VIEW IF EXISTS ?DB.measure_hours_mv ?ON_CLUSTER
+
+--migration:split
+
+DROP VIEW IF EXISTS ?DB.spans_metrics_mv ?ON_CLUSTER

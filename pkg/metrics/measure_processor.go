@@ -369,7 +369,7 @@ func (p *MeasureProcessor) upsertMetric(ctx context.Context, measure *Measure) {
 		Unit:        measure.Unit,
 		Instrument:  measure.Instrument,
 	}
-	inserted, err := upsertMetric(ctx, p.App, metric)
+	inserted, err := UpsertMetric(ctx, p.App, metric)
 	if err != nil {
 		p.Zap(ctx).Error("CreateMetric failed", zap.Error(err))
 		return

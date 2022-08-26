@@ -24,3 +24,42 @@ query:
   - per_min($measures) as measures_per_min
   - $spans_buffer
   - $measures_buffer
+
+---
+id: uptrace.spans_by_host_name
+name: 'Spans: By host.name'
+
+metrics:
+  - uptrace.spans.duration as $spans
+query:
+  - group by host.name
+  - per_min($spans) as spans_per_min
+  - p50($spans) as p50
+  - p90($spans) as p90
+  - p99($spans) as p99
+
+---
+id: uptrace.spans_by_service_name
+name: 'Spans: By service.name'
+
+metrics:
+  - uptrace.spans.duration as $spans
+query:
+  - group by service.name
+  - per_min($spans) as spans_per_min
+  - p50($spans) as p50
+  - p90($spans) as p90
+  - p99($spans) as p99
+
+---
+id: uptrace.spans_by_system
+name: 'Spans: By span.system'
+
+metrics:
+  - uptrace.spans.duration as $spans
+query:
+  - group by span.system
+  - per_min($spans) as spans_per_min
+  - p50($spans) as p50
+  - p90($spans) as p90
+  - p99($spans) as p99

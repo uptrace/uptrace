@@ -86,6 +86,7 @@ export function useDateRange() {
   }
 
   function reload() {
+    updateNow()
     forceReload()
   }
 
