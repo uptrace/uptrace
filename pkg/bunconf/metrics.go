@@ -131,6 +131,12 @@ func (r *AlertRule) validate() error {
 	if len(r.Query) == 0 {
 		return fmt.Errorf("rule query is required")
 	}
+	if r.For == 0 {
+		return fmt.Errorf("rule duration is required")
+	}
+	if r.For%time.Minute != 0 {
+		return fmt.Errorf("rule duration must be in minutes, got %s", r.For)
+	}
 	if len(r.Projects) == 0 {
 		return fmt.Errorf("at least on project is required")
 	}
