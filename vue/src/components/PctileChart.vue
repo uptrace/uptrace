@@ -210,12 +210,7 @@ function countAndErrorRateChart(data: ChartData | undefined) {
       type: 'line',
       symbol: 'none',
       itemStyle: { color: colorSet.count },
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: colorSet.count },
-          { offset: 1, color: '#ffe' },
-        ]),
-      },
+      areaStyle: { opacity: 0.15 },
       encode: { x: 'time', y: 'rate' },
     })
 
@@ -240,12 +235,12 @@ function countAndErrorRateChart(data: ChartData | undefined) {
     top: 15,
     left: 45,
     right: 30,
-    height: 60,
+    height: 70,
   })
 
   return {
     name: 'rate',
-    height: 100,
+    height: 110,
     option: cfg,
   }
 }

@@ -1,7 +1,6 @@
 <template>
   <div>
     <PageToolbar :fluid="fluid">
-      <v-icon v-if="meta.external" class="mr-2">mdi-link-variant</v-icon>
       <v-breadcrumbs :items="meta.breadcrumbs" divider=">" large>
         <template #item="{ item }">
           <v-breadcrumbs-item :to="item.to" :exact="item.exact">
@@ -12,7 +11,7 @@
 
       <v-spacer />
 
-      <FixedDatePeriodPicker :date="span.time" :date-range="dateRange" />
+      <FixedDatePeriodPicker :date-range="dateRange" :date="span.time" />
     </PageToolbar>
 
     <v-container :fluid="fluid" class="py-4">
@@ -199,7 +198,11 @@ export default defineComponent({
     })
 
     const dbStatementPretty = computed((): string => {
-      return format(dbStatement.value)
+      try {
+        return format(dbStatement.value)
+      } catch (err) {
+        return ''
+      }
     })
 
     const excStacktrace = computed((): string => {
