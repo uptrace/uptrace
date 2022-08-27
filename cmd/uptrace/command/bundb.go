@@ -102,6 +102,10 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 						}
 					}
 
+					if err := migrator.TruncateTable(ctx); err != nil {
+						return err
+					}
+
 					group, err := migrator.Migrate(ctx)
 					if err != nil {
 						return err

@@ -218,6 +218,15 @@ func runBunMigrations(ctx context.Context, db *bun.DB) error {
 		return err
 	}
 
+	missing, err := migrator.MissingMigrations(ctx)
+	if err != nil {
+		return err
+	}
+	if len(missing) > 0 {
+		panic("migrations have been changed\n" +
+			"run `uptrace db reset` to reset the database before continuing")
+	}
+
 	group, err := migrator.Migrate(ctx)
 	if err != nil {
 		return err
@@ -236,6 +245,15 @@ func runCHMigrations(ctx context.Context, db *ch.DB) error {
 
 	if err := migrator.Init(ctx); err != nil {
 		return err
+	}
+
+	missing, err := migrator.MissingMigrations(ctx)
+	if err != nil {
+		return err
+	}
+	if len(missing) > 0 {
+		panic("migrations have been changed\n" +
+			"run `uptrace ch reset` to reset the database before continuing")
 	}
 
 	group, err := migrator.Migrate(ctx)
