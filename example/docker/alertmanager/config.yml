@@ -1,18 +1,18 @@
 global:
   # The smarthost and SMTP sender used for mail notifications.
   smtp_smarthost: 'smtp.gmail.com:587'
-  smtp_from: '[CHANGEME]@gmail.com'
-  smtp_auth_username: '[CHANGEME]@gmail.com'
-  smtp_auth_identity: '[CHANGEME]@gmail.com'
-  smtp_auth_password: '[CHANGEME]'
+  smtp_from: '[SENDER]@gmail.com'
+  smtp_auth_username: '[SENDER]@gmail.com'
+  smtp_auth_identity: '[SENDER]@gmail.com'
+  smtp_auth_password: '[APP_PASSWORD]'
 
 receivers:
   - name: 'team-X'
     email_configs:
-      - to: '[CHANGEME]@gmail.com'
+      - to: '[RECEIVER]@gmail.com'
     slack_configs:
       # https://api.slack.com/messaging/webhooks
-      - api_url: SLACK_WEBHOOK
+      - api_url: 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
         channel: '#channel'
 
 # The root route on which each incoming alert enters.

@@ -96,13 +96,16 @@ var serveCommand = &cli.Command{
 		projects := app.Config().Projects
 		project := &projects[len(projects)-1]
 
-		fmt.Printf("reading YAML config from    %s\n", conf.Path)
 		fmt.Printf("read the docs at            https://uptrace.dev/get/\n")
 		fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
+		fmt.Printf("Telegram chat               https://t.me/uptrace\n")
 		fmt.Println()
 
+		fmt.Printf("reading YAML config from    %s\n", conf.Path)
 		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", conf.GRPCDsn(project))
 		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", conf.HTTPDsn(project))
+		fmt.Println()
+
 		fmt.Printf("Open UI (site.addr)         %s\n", conf.SitePath("/"))
 		fmt.Println()
 

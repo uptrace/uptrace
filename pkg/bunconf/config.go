@@ -64,14 +64,14 @@ func validateConfig(conf *Config) error {
 		return fmt.Errorf(`can't parse "site.addr": %w`, err)
 	}
 
-	httpHost, httpPort, err := net.SplitHostPort(conf.Listen.HTTP)
+	httpHost, httpPort, err := splitHostPort(conf.Listen.HTTP)
 	if err != nil {
 		return fmt.Errorf(`can't parse "listen.http": %w`, err)
 	}
 	conf.Listen.HTTPHost = httpHost
 	conf.Listen.HTTPPort = httpPort
 
-	grpcHost, grpcPort, err := net.SplitHostPort(conf.Listen.GRPC)
+	grpcHost, grpcPort, err := splitHostPort(conf.Listen.GRPC)
 	if err != nil {
 		return fmt.Errorf(`can't parse "listen.grpc": %w`, err)
 	}
@@ -97,6 +97,17 @@ func validateConfig(conf *Config) error {
 	}
 
 	return nil
+}
+
+func splitHostPort(addr string) (string, string, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "", "", err
+	}
+	if host == "" {
+		host = "localhost"
+	}
+	return host, port, nil
 }
 
 func validateProjects(projects []Project) error {
@@ -171,10 +182,10 @@ type Config struct {
 	Alerting struct {
 		Rules []AlertRule `yaml:"rules"`
 
-		Errors struct {
+		AlertsFromErrors struct {
 			Enabled bool              `yaml:"enabled"`
 			Labels  map[string]string `yaml:"labels"`
-		} `yaml:"errors"`
+		} `yaml:"alerts_from_errors"`
 	} `yaml:"alerting"`
 
 	Alertmanager struct {
