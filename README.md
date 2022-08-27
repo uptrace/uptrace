@@ -23,6 +23,13 @@ uses OpenTelelemetry to collect data and ClickHouse database to store it.
 - Pre-built metrics [dashboards](config/dashboard-templates).
 - Multiple users/projects via YAML config.
 
+**Why Uptrace?**
+
+- Single UI for traces, logs, and metrics.
+- Efficient ingestion: more than 10K spans / second on a single core.
+- Excellent on-disk compression, for example, 1KB span can be compressed down to 40 bytes.
+- S3 storage support. Automatically upload cold data to S3-like storage.
+
 ## Getting started
 
 - [Docker example](example/docker) to try Uptrace with a single command

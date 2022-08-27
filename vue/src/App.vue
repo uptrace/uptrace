@@ -47,7 +47,7 @@
               @keyup.enter="jumpToTrace"
             />
           </v-col>
-          <v-col cols="auto" class="d-none d-md-inline-block">
+          <v-col cols="auto">
             <v-btn
               href="https://uptrace.dev/compare-open-source"
               target="_blank"
@@ -57,11 +57,10 @@
               <v-icon left>mdi-cloud</v-icon>
               <span>Cloud</span>
             </v-btn>
-          </v-col>
-          <v-col v-if="user.isAuth" cols="auto" class="d-none d-md-inline-block">
-            <v-menu bottom offset-y>
+
+            <v-menu v-if="user.isAuth" bottom offset-y>
               <template #activator="{ on }">
-                <v-btn icon v-on="on">
+                <v-btn icon class="ml-2" v-on="on">
                   <v-icon>mdi-dots-vertical</v-icon>
                 </v-btn>
               </template>

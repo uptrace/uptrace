@@ -32,16 +32,22 @@ type SpanProcessor struct {
 }
 
 func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
-	cfg := app.Config()
+	conf := app.Config()
+	maxprocs := runtime.GOMAXPROCS(0)
 	p := &SpanProcessor{
 		App: app,
 
-		batchSize: cfg.Spans.BatchSize,
-		ch:        make(chan *Span, cfg.Spans.BufferSize),
-		gate:      syncutil.NewGate(runtime.GOMAXPROCS(0)),
+		batchSize: conf.Spans.BatchSize,
+		ch:        make(chan *Span, conf.Spans.BufferSize),
+		gate:      syncutil.NewGate(maxprocs),
 
 		logger: app.Logger,
 	}
+
+	p.logger.Info("starting processing spans...",
+		zap.Int("threads", maxprocs),
+		zap.Int("batch_size", p.batchSize),
+		zap.Int("buffer_size", conf.Spans.BufferSize))
 
 	app.WaitGroup().Add(1)
 	go func() {
@@ -81,7 +87,7 @@ func (p *SpanProcessor) AddSpan(ctx context.Context, span *Span) {
 }
 
 func (s *SpanProcessor) processLoop(ctx context.Context) {
-	const timeout = time.Second
+	const timeout = 5 * time.Second
 
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
@@ -93,6 +99,16 @@ loop:
 		select {
 		case span := <-s.ch:
 			spans = append(spans, span)
+
+			if len(spans) < s.batchSize {
+				break
+			}
+			s.flushSpans(ctx, spans)
+			spans = make([]*Span, 0, len(spans))
+			if !timer.Stop() {
+				<-timer.C
+			}
+			timer.Reset(timeout)
 		case <-timer.C:
 			if len(spans) > 0 {
 				s.flushSpans(ctx, spans)
@@ -101,11 +117,6 @@ loop:
 			timer.Reset(timeout)
 		case <-s.Done():
 			break loop
-		}
-
-		if len(spans) == s.batchSize {
-			s.flushSpans(ctx, spans)
-			spans = make([]*Span, 0, len(spans))
 		}
 	}
 
