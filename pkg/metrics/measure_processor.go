@@ -41,13 +41,14 @@ type MeasureProcessor struct {
 
 func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 	conf := app.Config()
+	maxprocs := runtime.GOMAXPROCS(0)
 	p := &MeasureProcessor{
 		App: app,
 
 		batchSize: conf.Metrics.BatchSize,
 
 		ch:   make(chan *Measure, conf.Metrics.BufferSize),
-		gate: syncutil.NewGate(runtime.GOMAXPROCS(0)),
+		gate: syncutil.NewGate(maxprocs),
 
 		c2d:    NewCumToDeltaConv(bunconf.ScaleWithCPU(4000, 32000)),
 		logger: app.Logger,
@@ -60,6 +61,11 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 		p.dropAttrs = listToSet(conf.Metrics.DropAttrs)
 	}
 
+	p.logger.Info("starting processing metrics...",
+		zap.Int("threads", maxprocs),
+		zap.Int("batch_size", p.batchSize),
+		zap.Int("buffer_size", conf.Metrics.BufferSize))
+
 	app.WaitGroup().Add(1)
 	go func() {
 		defer app.WaitGroup().Done()
@@ -67,7 +73,7 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 		p.processLoop(app.Context())
 	}()
 
-	bufferSize, _ := bunotel.Meter.AsyncInt64().Gauge("uptrace.metrics.buffer_size")
+	bufferSize, _ := bunotel.Meter.AsyncInt64().Gauge("uptrace.measures.buffer_size")
 
 	if err := bunotel.Meter.RegisterCallback(
 		[]instrument.Asynchronous{
@@ -123,10 +129,15 @@ loop:
 				attribute.String("type", "inserted"),
 			)
 
-			if len(measures) == p.batchSize {
-				p.flushMeasures(ctx, measures)
-				measures = make([]*Measure, 0, len(measures))
+			if len(measures) < p.batchSize {
+				break
 			}
+			p.flushMeasures(ctx, measures)
+			measures = make([]*Measure, 0, len(measures))
+			if !timer.Stop() {
+				<-timer.C
+			}
+			timer.Reset(timeout)
 		case <-timer.C:
 			if len(measures) > 0 {
 				p.flushMeasures(ctx, measures)

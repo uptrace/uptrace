@@ -16,14 +16,38 @@ name: 'Uptrace: Hosts'
 metrics:
   - uptrace.projects.spans as $spans
   - uptrace.projects.measures as $measures
-  - uptrace.spans.buffer_size as $spans_buffer
-  - uptrace.metrics.buffer_size as $measures_buffer
+
 query:
   - group by host.name
-  - per_min($spans) as spans_per_min
-  - per_min($measures) as measures_per_min
-  - $spans_buffer
-  - $measures_buffer
+  - per_min($spans{type=inserted}) as spans_inserted
+  - per_min($spans{type=dropped}) as spans_dropped
+  - per_min($measures{type=inserted}) as measures_inserted
+  - per_min($measures{type=dropped}) as measures_dropped
+
+entries:
+  - name: Number of processed spans
+    metrics:
+      - uptrace.projects.spans as $spans
+    query:
+      - per_min($spans) group by type
+
+  - name: Spans buffer size
+    metrics:
+      - uptrace.spans.buffer_size as $spans_buffer
+    query:
+      - $spans_buffer
+
+  - name: Number of processed measures
+    metrics:
+      - uptrace.projects.measures as $measures
+    query:
+      - per_min($measures) group by type
+
+  - name: Measures buffer size
+    metrics:
+      - uptrace.measures.buffer_size as $measures_buffer
+    query:
+      - $measures_buffer
 
 ---
 id: uptrace.spans_by_host_name

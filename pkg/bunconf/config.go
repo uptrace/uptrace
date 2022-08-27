@@ -82,14 +82,14 @@ func validateConfig(conf *Config) error {
 		conf.Spans.BatchSize = ScaleWithCPU(1000, 32000)
 	}
 	if conf.Spans.BufferSize == 0 {
-		conf.Spans.BufferSize = runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
+		conf.Spans.BufferSize = 2 * runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
 	}
 
 	if conf.Metrics.BatchSize == 0 {
 		conf.Metrics.BatchSize = ScaleWithCPU(1000, 32000)
 	}
 	if conf.Metrics.BufferSize == 0 {
-		conf.Metrics.BufferSize = runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
+		conf.Metrics.BufferSize = 2 * runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
 	}
 
 	if conf.DB.DSN == "" {

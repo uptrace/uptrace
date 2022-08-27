@@ -3,10 +3,11 @@ package bunapp
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/segmentio/encoding/json"
 
 	"github.com/prometheus/alertmanager/api/v2/models"
 )

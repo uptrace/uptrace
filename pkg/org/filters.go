@@ -2,10 +2,11 @@ package org
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"time"
+
+	"github.com/segmentio/encoding/json"
 
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
