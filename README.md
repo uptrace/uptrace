@@ -43,17 +43,24 @@ We also provide guides for the most popular frameworks:
 The Business Source [License](LICENSE) is identical to Apache 2.0 with the only exception being that
 you can't use the code to create a cloud service or, in other words, resell the product to others.
 
-BSL is a more permissive license than, for example, AGPL, because it allows private changes to the
-code.
+BSL is adopted by MariaDB, Sentry, CockroachDB, Couchbase and many others. In most cases it is a
+more permissive license than, for example, AGPL, because it allows private changes to the code.
 
 In three years, the code also becomes available under Apache 2.0 license. You can learn more about
 BSL [here](https://mariadb.com/bsl-faq-adopting/).
+
+**Can I use Uptrace to monitor commercial or production-grade applications?**
+
+Yes, you can use Uptrace to monitor commercial applications and grant your employees access to the
+Uptrace app without obligations to pay anything.
 
 **Is the database schema stable?**
 
 Yes, but we are still making changes to the database schema and plan to switch to
 [ClickHouse dynamic subcolumns](https://github.com/ClickHouse/ClickHouse/pull/23932) when that
-feature is stable enough.
+feature is
+[stable](https://github.com/ClickHouse/ClickHouse/issues?q=is%3Aissue+is%3Aopen+label%3Acomp-type-object)
+enough.
 
 ## Contributing
 
