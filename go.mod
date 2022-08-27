@@ -19,7 +19,7 @@ require (
 	github.com/uptrace/bunrouter v1.0.18
 	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.18
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.18
-	github.com/uptrace/go-clickhouse v0.2.9-0.20220728135733-2683bc477fd6
+	github.com/uptrace/go-clickhouse v0.2.9-0.20220827075701-1c8299bc5cb1
 	github.com/uptrace/go-clickhouse/chdebug v0.2.9-0.20220728135733-2683bc477fd6
 	github.com/uptrace/go-clickhouse/chotel v0.2.9-0.20220728135733-2683bc477fd6
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.15
@@ -103,7 +103,7 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
-	golang.org/x/sys v0.0.0-20220808155132-1c4a2a72c664 // indirect
+	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -122,7 +122,7 @@ require (
 require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
-	github.com/uptrace/bun v1.1.7
+	github.com/uptrace/bun v1.1.8-0.20220827075503-42567d052280
 	github.com/uptrace/bun/dialect/sqlitedialect v1.1.7
 	github.com/uptrace/bun/driver/sqliteshim v1.1.7
 	github.com/uptrace/bun/extra/bundebug v1.1.7

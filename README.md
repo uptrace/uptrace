@@ -29,13 +29,6 @@ uses OpenTelelemetry to collect data and ClickHouse database to store it.
 - [Installation](https://uptrace.dev/get/install.html) guide with pre-compiled binaries for Linux,
   MacOS, and Windows
 
-We also provide guides for the most popular frameworks:
-
-- [Gin and GORM](https://uptrace.dev/get/opentelemetry-gin-gorm.html)
-- [Django](https://uptrace.dev/get/opentelemetry-django.html)
-- [Flask and SQLAlchemy](https://uptrace.dev/get/opentelemetry-flask-sqlalchemy.html)
-- [Rails](https://uptrace.dev/get/opentelemetry-rails.html)
-
 ## FAQ
 
 **What is the license?**
@@ -51,7 +44,7 @@ BSL [here](https://mariadb.com/bsl-faq-adopting/).
 
 **Can I use Uptrace to monitor commercial or production-grade applications?**
 
-Yes, you can use Uptrace to monitor commercial applications and grant your employees access to the
+Yes, you can use Uptrace to monitor commercial applications and provide your employees access to the
 Uptrace app without obligations to pay anything.
 
 **Is the database schema stable?**

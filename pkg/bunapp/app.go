@@ -30,6 +30,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 )
 
@@ -177,18 +178,17 @@ func (app *App) Config() *bunconf.Config {
 //------------------------------------------------------------------------------
 
 func (app *App) initZap() {
-	var zapLogger *zap.Logger
-	var err error
-	if app.Debugging() {
-		zapLogger, err = zap.NewDevelopment()
-	} else {
-		zapLogger, err = zap.NewProduction()
-	}
+	zapConf := zap.NewProductionConfig()
+	zapConf.Encoding = "console"
+	zapConf.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	logger, err := zapConf.Build()
 	if err != nil {
 		panic(err)
 	}
 
-	app.Logger = otelzap.New(zapLogger, otelzap.WithMinLevel(zap.InfoLevel))
+	app.Logger = otelzap.New(logger, otelzap.WithMinLevel(zap.InfoLevel))
+	zap.ReplaceGlobals(logger)
 	otelzap.ReplaceGlobals(app.Logger)
 
 	app.OnStopped("zap", func(ctx context.Context, _ *App) error {
