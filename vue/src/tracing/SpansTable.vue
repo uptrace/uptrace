@@ -27,7 +27,7 @@
         <tr class="v-data-table__empty-wrapper">
           <td colspan="99" class="py-16">
             <div class="mb-4">There are no matching spans. Try to change filters.</div>
-            <v-btn :to="{ name: 'Help' }">
+            <v-btn :to="{ name: 'TracingHelp' }">
               <v-icon left>mdi-help-circle-outline</v-icon>
               <span>Help</span>
             </v-btn>
@@ -61,7 +61,7 @@
       <v-sheet>
         <SpanCard
           v-if="dialog.activeSpan"
-          :key="dialog.activeSpan[xkey.spanId]"
+          :key="dialog.activeSpan.id"
           :date-range="dateRange"
           :span="dialog.activeSpan"
           :span-list-route="spanListRoute"

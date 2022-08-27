@@ -23,10 +23,10 @@
             <v-tabs optional class="ml-lg-10 ml-xl-16">
               <template v-if="user.isAuth && $route.params.projectId">
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
-                <v-tab :to="{ name: 'SpanGroupList' }">Explore</v-tab>
+                <v-tab :to="{ name: 'SpanGroupList' }">Traces</v-tab>
                 <v-tab :to="{ name: 'LogGroupList', query: { system: 'log:all' } }">Logs</v-tab>
                 <v-tab :to="{ name: 'MetricsDashList' }">Metrics</v-tab>
-                <v-tab :to="{ name: 'Help' }">Help</v-tab>
+                <v-tab :to="helpRoute">Help</v-tab>
               </template>
               <v-tab v-if="!user.isAuth" :to="{ name: 'Login' }">Login</v-tab>
             </v-tabs>
@@ -130,10 +130,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef } from 'vue'
+import { defineComponent, shallowRef, computed } from 'vue'
 
 // Composables
-import { useRouter, useRouteQuery } from '@/use/router'
+import { useRouter, useRoute, useRouteQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 import { useDateRange } from '@/use/date-range'
 import { useUser } from '@/use/org'
@@ -154,8 +154,21 @@ export default defineComponent({
     const dateRange = useDateRange()
 
     const { router } = useRouter()
+    const route = useRoute()
     const user = useUser()
     const traceId = shallowRef('')
+
+    const helpRoute = computed(() => {
+      if (route.value.name && route.value.name.startsWith('Metrics')) {
+        return {
+          name: 'MetricsHelp',
+        }
+      }
+      return {
+        name: 'TracingHelp',
+        params: { projectId: route.value.params.projectId },
+      }
+    })
 
     function jumpToTrace() {
       router.push({
@@ -168,6 +181,7 @@ export default defineComponent({
       dateRange,
       user,
       traceId,
+      helpRoute,
       jumpToTrace,
     }
   },

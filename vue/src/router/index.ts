@@ -60,7 +60,7 @@ const routes: RouteConfig[] = [
     component: Login,
   },
   {
-    name: 'Help',
+    name: 'TracingHelp',
     path: '/help/:projectId(\\d+)',
     component: TracingHelp,
   },
