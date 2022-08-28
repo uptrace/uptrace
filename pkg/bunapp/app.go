@@ -32,6 +32,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type appCtxKey struct{}
@@ -82,11 +83,9 @@ func findConfigPath() (string, error) {
 func StartConfig(ctx context.Context, conf *bunconf.Config) (context.Context, *App, error) {
 	rand.Seed(time.Now().UnixNano())
 
-	app := New(ctx, conf)
-
-	switch conf.Service {
-	case "serve":
-		setupOpentelemetry(app)
+	app, err := New(ctx, conf)
+	if err != nil {
+		return ctx, nil, err
 	}
 
 	return app.Context(), app, nil
@@ -119,7 +118,7 @@ type App struct {
 	Notifier *Notifier
 }
 
-func New(ctx context.Context, conf *bunconf.Config) *App {
+func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
 	app := &App{
 		startTime: time.Now(),
 		conf:      conf,
@@ -130,12 +129,21 @@ func New(ctx context.Context, conf *bunconf.Config) *App {
 
 	app.initZap()
 	app.initRouter()
-	app.initGRPC()
+	if err := app.initGRPC(); err != nil {
+		return nil, err
+	}
 	app.DB = app.newDB()
 	app.CH = app.newCH()
 	app.Notifier = NewNotifier(conf.Alertmanager.URLs)
 
-	return app
+	switch conf.Service {
+	case "serve":
+		if err := configureOpentelemetry(app); err != nil {
+			return nil, err
+		}
+	}
+
+	return app, nil
 }
 
 func (app *App) Stop() {
@@ -277,12 +285,26 @@ func (app *App) HTTPHandler() http.Handler {
 
 //------------------------------------------------------------------------------
 
-func (app *App) initGRPC() {
-	app.grpcServer = grpc.NewServer(
+func (app *App) initGRPC() error {
+	var opts []grpc.ServerOption
+
+	opts = append(opts,
 		grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
 		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
 		grpc.ReadBufferSize(512<<10),
 	)
+
+	if app.conf.Listen.GRPC.TLS != nil {
+		tlsConf, err := app.conf.Listen.GRPC.TLS.TLSConfig()
+		if err != nil {
+			return err
+		}
+		opts = append(opts, grpc.Creds(credentials.NewTLS(tlsConf)))
+	}
+
+	app.grpcServer = grpc.NewServer(opts...)
+
+	return nil
 }
 
 func (app *App) GRPCServer() *grpc.Server {

@@ -6,13 +6,16 @@ import (
 	"github.com/uptrace/uptrace-go/uptrace"
 )
 
-func setupOpentelemetry(app *App) {
-	project := &app.Config().Projects[0]
+func configureOpentelemetry(app *App) error {
+	conf := app.Config()
+	project := &conf.Projects[0]
 
-	uptrace.ConfigureOpentelemetry(
+	var options []uptrace.Option
+	options = append(options,
 		uptrace.WithDSN(app.conf.GRPCDsn(project)),
 		uptrace.WithServiceName(app.conf.Service),
 	)
+	uptrace.ConfigureOpentelemetry(options...)
 
 	app.OnStopped("uptrace.Shutdown", func(ctx context.Context, _ *App) error {
 		if false {
@@ -20,4 +23,6 @@ func setupOpentelemetry(app *App) {
 		}
 		return nil
 	})
+
+	return nil
 }
