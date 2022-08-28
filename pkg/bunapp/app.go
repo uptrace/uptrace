@@ -220,7 +220,7 @@ func (app *App) newRouter(opts ...bunrouter.Option) *bunrouter.Router {
 	opts = append(opts,
 		bunrouter.WithMiddleware(reqlog.NewMiddleware(
 			reqlog.WithVerbose(app.Debugging()),
-			reqlog.FromEnv("DEBUG"),
+			reqlog.FromEnv("BRDEBUG", "DEBUG"),
 		)),
 	)
 
@@ -325,7 +325,7 @@ func (app *App) newDB() *bun.DB {
 
 	db.AddQueryHook(bundebug.NewQueryHook(
 		bundebug.WithEnabled(app.Debugging()),
-		bundebug.FromEnv("DEBUG"),
+		bundebug.FromEnv("BUNDEBUG", "DEBUG"),
 	))
 	db.AddQueryHook(bunotel.NewQueryHook())
 
@@ -372,7 +372,7 @@ func (app *App) newCH() *ch.DB {
 
 	db.AddQueryHook(chdebug.NewQueryHook(
 		chdebug.WithVerbose(app.Debugging()),
-		chdebug.FromEnv("DEBUG"),
+		chdebug.FromEnv("CHDEBUG", "DEBUG"),
 	))
 	db.AddQueryHook(chotel.NewQueryHook())
 
