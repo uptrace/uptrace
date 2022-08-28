@@ -75,7 +75,7 @@ func (m *Manager) Run() {
 		close(done)
 	}()
 
-	nextCheck := time.Now().Add(-time.Minute / 2).Truncate(time.Minute)
+	nextCheck := time.Now().Truncate(time.Minute).Add(90 * time.Second)
 	for {
 		select {
 		case <-time.After(time.Until(nextCheck)):
@@ -83,7 +83,7 @@ func (m *Manager) Run() {
 			return
 		}
 
-		m.tick(nextCheck)
+		m.tick(nextCheck.Truncate(time.Minute))
 		nextCheck = nextCheck.Add(time.Minute)
 	}
 }
