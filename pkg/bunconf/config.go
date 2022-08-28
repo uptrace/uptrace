@@ -169,10 +169,10 @@ type Config struct {
 	Alerting struct {
 		Rules []AlertRule `yaml:"rules"`
 
-		AlertsFromErrors struct {
+		CreateAlertsFromSpans struct {
 			Enabled bool              `yaml:"enabled"`
 			Labels  map[string]string `yaml:"labels"`
-		} `yaml:"alerts_from_errors"`
+		} `yaml:"create_alerts_from_spans"`
 	} `yaml:"alerting"`
 
 	Alertmanager struct {

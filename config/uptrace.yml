@@ -27,7 +27,7 @@ projects:
       - host.name
       - deployment.environment
 
-  # Other projects can be used to monitor your application.
+  # Other projects can be used to monitor your applications.
   # To monitor micro-services or multiple related services, use a single project.
   - id: 2
     name: My project
@@ -100,7 +100,7 @@ alerting:
       projects: [1]
 
   # Create alerts from error logs and span events.
-  alerts_from_errors:
+  create_alerts_from_spans:
     enabled: true
     labels:
       alert_kind: error
