@@ -8,7 +8,10 @@ To get started with Uptrace, see https://uptrace.dev/get/install.html
 
 - Accept and store [OpenTelemetry Metrics](https://uptrace.dev/opentelemetry/metrics.html) in
   ClickHouse.
-- Send error notifications using AlertManager.
+- Added metrics monitoring using [alerting rules](https://uptrace.dev/get/alerting.html).
+- Added ability to send notifications via email/Slack/PagerDuty using
+  [AlertManager](https://uptrace.dev/get/alerting.html#AlertManager).
+- Added ability to configure [TLS](https://uptrace.dev/get/config.html#tls).
 - Expand env vars in the YAML config, for example:
 
 ```yaml
@@ -16,14 +19,12 @@ ch:
   dsn: 'clickhouse://${CLICKHOUSE_USER}:@${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT}/${CLICKHOUSE_DB}?sslmode=disable'
 ```
 
-- Uptrace will try to create ClickHouse database on start.
-
 ### Upgrading
 
 To upgrade, reset ClickHouse database and restart Uptrace:
 
 ```yaml
-uptrace ch reset
+uptrace ch reset sudo systemctl restart uptrace
 ```
 
 ### Changed

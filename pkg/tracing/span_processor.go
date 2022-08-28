@@ -217,7 +217,7 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 
 func (s *SpanProcessor) notifyOnErrors(ctx context.Context, errors []*Span) {
 	conf := s.Config()
-	if !conf.Alerting.AlertsFromErrors.Enabled {
+	if !conf.Alerting.CreateAlertsFromSpans.Enabled {
 		return
 	}
 
@@ -236,7 +236,7 @@ func (s *SpanProcessor) notifyOnErrors(ctx context.Context, errors []*Span) {
 		if sev, _ := error.Attrs[attrkey.LogSeverity].(string); sev != "" {
 			labels["severity"] = sev
 		}
-		for k, v := range conf.Alerting.AlertsFromErrors.Labels {
+		for k, v := range conf.Alerting.CreateAlertsFromSpans.Labels {
 			labels[k] = v
 		}
 		traceURL := s.Config().SitePath(fmt.Sprintf("/traces/%s", error.TraceID.String()))
