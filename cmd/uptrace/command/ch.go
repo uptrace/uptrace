@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/chmigrate"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/urfave/cli/v2"
@@ -52,7 +53,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH, migrations)
+					migrator := newMigrator(app, migrations)
 					return migrator.Init(ctx)
 				},
 			},
@@ -66,7 +67,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH, migrations)
+					migrator := newMigrator(app, migrations)
 
 					group, err := migrator.Migrate(ctx)
 					if err != nil {
@@ -92,7 +93,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH, migrations)
+					migrator := newMigrator(app, migrations)
 
 					group, err := migrator.Rollback(ctx)
 					if err != nil {
@@ -118,7 +119,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH, migrations)
+					migrator := newMigrator(app, migrations)
 
 					if err := migrator.Init(ctx); err != nil {
 						return err
@@ -161,7 +162,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH, migrations)
+					migrator := newMigrator(app, migrations)
 					return migrator.Lock(ctx)
 				},
 			},
@@ -175,7 +176,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH, migrations)
+					migrator := newMigrator(app, migrations)
 					return migrator.Unlock(ctx)
 				},
 			},
@@ -189,7 +190,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH, migrations)
+					migrator := newMigrator(app, migrations)
 
 					name := strings.Join(c.Args().Slice(), "_")
 					mf, err := migrator.CreateGoMigration(ctx, name)
@@ -211,7 +212,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH, migrations)
+					migrator := newMigrator(app, migrations)
 
 					name := strings.Join(c.Args().Slice(), "_")
 					files, err := migrator.CreateSQLMigrations(ctx, name)
@@ -236,7 +237,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := chmigrate.NewMigrator(app.CH, migrations)
+					migrator := newMigrator(app, migrations)
 
 					ms, err := migrator.MigrationsWithStatus(ctx)
 					if err != nil {
@@ -258,4 +259,45 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 			},
 		},
 	}
+}
+
+func newMigrator(app *bunapp.App, migrations *chmigrate.Migrations) *chmigrate.Migrator {
+	chSchema := app.Config().CHSchema
+
+	args := make(map[string]any)
+	args["CLUSTER"] = ch.Safe(chSchema.Cluster)
+	args["CODEC"] = ch.Safe(defaultValue(chSchema.Compression, "Default"))
+
+	if chSchema.Replicated {
+		args["REPLICATED"] = ch.Safe("Replicated")
+	} else {
+		args["REPLICATED"] = ch.Safe("")
+	}
+
+	if chSchema.Replicated {
+		args["ON_CLUSTER"] = ch.Safe("ON CLUSTER " + chSchema.Cluster)
+	} else {
+		args["ON_CLUSTER"] = ch.Safe("")
+	}
+
+	args["SPANS_STORAGE"] = defaultValue(chSchema.Spans.StoragePolicy, "default")
+	args["SPANS_TTL"] = ch.Safe(chSchema.Spans.TTLDelete)
+
+	args["METRICS_STORAGE"] = defaultValue(chSchema.Metrics.StoragePolicy, "default")
+	args["METRICS_TTL"] = ch.Safe(chSchema.Metrics.TTLDelete)
+
+	db := app.CH
+	fmter := db.Formatter()
+	for k, v := range args {
+		fmter = fmter.WithNamedArg(k, v)
+	}
+
+	return chmigrate.NewMigrator(db.WithFormatter(fmter), migrations)
+}
+
+func defaultValue(s1, s2 string) string {
+	if s1 != "" {
+		return s1
+	}
+	return s2
 }

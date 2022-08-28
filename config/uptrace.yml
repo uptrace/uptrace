@@ -117,7 +117,7 @@ alertmanager:
 
 ##
 ## Various options to tweak ClickHouse schema.
-## Whenever you change these options, you must reset the ClickHouse database with `ch reset`.
+## For changes to take effect, you need reset the ClickHouse database with `ch reset`.
 ##
 ch_schema:
   # Compression codec, for example, LZ4, ZSTD(3), or Default.
@@ -128,6 +128,16 @@ ch_schema:
 
   # Cluster name for Distributed tables and ON CLUSTER clause.
   #cluster: uptrace1
+
+  spans:
+    storage_policy: 'default'
+    # Delete spans data after 30 days.
+    ttl_delete: 30 DAY
+
+  metrics:
+    storage_policy: 'default'
+    # Delete metrics data after 90 days.
+    ttl_delete: 90 DAY
 
 ##
 ## Addresses on which Uptrace receives gRPC and HTTP requests.
@@ -164,10 +174,6 @@ spans:
 ## Metrics processing options.
 ##
 metrics:
-  # Delete data after 30 days.
-  # Supports SQL interval syntax, for example, INTERVAL 30 DAY.
-  ttl: 90 DAY
-
   # List of attributes to drop for being noisy.
   drop_attrs:
     - telemetry.sdk.language

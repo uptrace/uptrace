@@ -62,6 +62,7 @@ func main() {
 			command.NewCHCommand(chmigrations.Migrations),
 			command.NewBunCommand(bunmigrations.Migrations),
 			command.NewTemplateCommand(),
+			command.NewCHSchemaCommand(),
 		},
 	}
 

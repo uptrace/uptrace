@@ -17,7 +17,8 @@ ENGINE = ?(REPLICATED)AggregatingMergeTree
 PARTITION BY toDate(time)
 ORDER BY (project_id, metric, time, attrs_hash)
 TTL toDate(time) + INTERVAL ?METRICS_TTL DELETE
-SETTINGS ttl_only_drop_parts = 1
+SETTINGS ttl_only_drop_parts = 1,
+         storage_policy = ?METRICS_STORAGE
 
 --migration:split
 
@@ -45,7 +46,8 @@ ENGINE = ?(REPLICATED)AggregatingMergeTree
 PARTITION BY toDate(time)
 ORDER BY (project_id, metric, time, attrs_hash)
 TTL toDate(time) + INTERVAL ?METRICS_TTL DELETE
-SETTINGS ttl_only_drop_parts = 1
+SETTINGS ttl_only_drop_parts = 1,
+         storage_policy = ?METRICS_STORAGE
 
 --migration:split
 

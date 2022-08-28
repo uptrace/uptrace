@@ -345,32 +345,7 @@ func (app *App) newCH() *ch.DB {
 	}
 
 	db := ch.Connect(opts...)
-	chSchema := app.Config().CHSchema
-
-	compression := chSchema.Compression
-	if compression == "" {
-		compression = "Default"
-	}
-
-	replicated := ""
-	if chSchema.Replicated {
-		replicated = "Replicated"
-	}
-
-	onCluster := ""
-	if chSchema.Replicated {
-		onCluster = "ON CLUSTER " + chSchema.Cluster
-	}
-
-	fmter := db.Formatter().
-		WithNamedArg("DB", ch.Safe(db.Config().Database)).
-		WithNamedArg("SPANS_TTL", ch.Safe(app.conf.Spans.TTL)).
-		WithNamedArg("METRICS_TTL", ch.Safe(app.conf.Metrics.TTL)).
-		WithNamedArg("REPLICATED", ch.Safe(replicated)).
-		WithNamedArg("CODEC", ch.Safe(compression)).
-		WithNamedArg("CLUSTER", ch.Safe(app.conf.CHSchema.Cluster)).
-		WithNamedArg("ON_CLUSTER", ch.Safe(onCluster))
-
+	fmter := db.Formatter().WithNamedArg("DB", ch.Safe(db.Config().Database))
 	db = db.WithFormatter(fmter)
 
 	db.AddQueryHook(chdebug.NewQueryHook(
