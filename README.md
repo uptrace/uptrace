@@ -3,38 +3,34 @@
 [![build workflow](https://github.com/uptrace/uptrace/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/uptrace/uptrace/actions)
 [![Chat](https://img.shields.io/badge/-telegram-red?color=white&logo=telegram&logoColor=black)](https://t.me/uptrace)
 
-Uptrace is an OpenTelemetry distributed tracing tool that monitors performance, errors, and logs. It
+Uptrace is an open-source APM tool that supports distributed tracing, metrics, and logs. Uptrace
 uses OpenTelelemetry to collect data and ClickHouse database to store it.
-
-<p align="center">
-  <a href="https://uptrace.dev/open-source/?autoplay">
-    <img src="https://uptrace.dev/uptrace-os/poster.png" alt="Distributed tracing, errors, and logs">
-  </a>
-</p>
 
 **Features**:
 
-- OpenTelemetry [tracing](https://uptrace.dev/opentelemetry/distributed-tracing.html),
-  [metrics](https://uptrace.dev/opentelemetry/metrics.html), and logs.
+- OpenTelemetry tracing, metrics, and logs.
 - Email/Slack/PagerDuty notifications using AlertManager.
-- Span/Trace grouping.
+- Spans/logs grouping.
 - SQL-like query language to aggregate spans.
 - Promql-like language to aggregate metrics.
-- Pre-built metrics [dashboards](config/dashboard-templates).
+- Pre-built metrics dashboards.
 - Multiple users/projects via YAML config.
 
 **Why Uptrace?**
 
 - Single UI for traces, logs, and metrics.
 - Efficient ingestion: more than 10K spans / second on a single core.
-- Excellent on-disk compression, for example, 1KB span can be compressed down to 40 bytes.
-- S3 storage support. Automatically upload cold data to S3-like storage.
+- Excellent on-disk compression, for example, 1KB span can be compressed down to <40 bytes.
+- S3 storage support with ability to automatically upload cold data to S3-like storage.
 
 ## Getting started
 
-- [Docker example](example/docker) to try Uptrace with a single command
-- [Installation](https://uptrace.dev/get/install.html) guide with pre-compiled binaries for Linux,
-  MacOS, and Windows
+- [**Public demo**](https://app.uptrace.dev/play) to play with Uptrace.
+- [**Docker example**](example/docker) to install Uptrace with a single command.
+- [**Installation**](https://uptrace.dev/get/install.html) guide with pre-compiled binaries for
+  Linux, MacOS, and Windows.
+
+Have questions? Get help via [Telegram](https://t.me/uptrace).
 
 ## FAQ
 
