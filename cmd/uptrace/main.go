@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -31,6 +32,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/metrics/alerting"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/run"
+	"golang.org/x/net/http2"
 
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics"
@@ -110,17 +112,17 @@ var serveCommand = &cli.Command{
 		fmt.Printf("Open UI (site.addr)         %s\n", conf.SitePath("/"))
 		fmt.Println()
 
-		httpLn, err := net.Listen("tcp", conf.Listen.HTTP)
+		httpLn, err := net.Listen("tcp", conf.Listen.HTTP.Addr)
 		if err != nil {
 			logger.Error("net.Listen failed (edit listen.http YAML option)",
-				zap.Error(err), zap.String("addr", conf.Listen.HTTP))
+				zap.Error(err), zap.String("addr", conf.Listen.HTTP.Addr))
 			return err
 		}
 
-		grpcLn, err := net.Listen("tcp", conf.Listen.GRPC)
+		grpcLn, err := net.Listen("tcp", conf.Listen.GRPC.Addr)
 		if err != nil {
 			logger.Error("net.Listen failed (edit listen.grpc YAML option)",
-				zap.Error(err), zap.String("addr", conf.Listen.GRPC))
+				zap.Error(err), zap.String("addr", conf.Listen.GRPC.Addr))
 			return err
 		}
 
@@ -161,6 +163,15 @@ var serveCommand = &cli.Command{
 			handler = otelhttp.NewHandler(handler, "")
 			handler = cors.AllowAll().Handler(handler)
 			handler = httputil.PanicHandler{Next: handler}
+
+			if conf.Listen.HTTP.TLS != nil {
+				tlsConf, err := conf.Listen.HTTP.TLS.TLSConfig()
+				if err != nil {
+					return err
+				}
+				tlsConf.NextProtos = []string{http2.NextProtoTLS, "http/1.1"}
+				httpLn = tls.NewListener(httpLn, tlsConf)
+			}
 
 			httpServer := &http.Server{
 				ReadTimeout:  5 * time.Second,

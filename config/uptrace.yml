@@ -144,16 +144,25 @@ ch_schema:
 ##
 listen:
   # OTLP/gRPC API.
-  grpc: ':14317'
+  grpc:
+    addr: ':14317'
+    # tls:
+    #   cert_file: config/tls/uptrace.crt
+    #   key_file: config/tls/uptrace.key
+
   # OTLP/HTTP API and Uptrace HTTP API.
-  http: ':14318'
+  http:
+    addr: ':14318'
+    # tls:
+    #   cert_file: config/tls/uptrace.crt
+    #   key_file: config/tls/uptrace.key
 
 ##
 ## Various options for Uptrace UI.
 ##
 site:
-  # Public URL for Vue-powered UI.
-  addr: 'http://localhost:14318'
+  # Overrides public URL for Vue-powered UI in case you put Uptrace behind a proxy.
+  #addr: 'https://uptrace.mydomain.com'
 
 ##
 ## Spans processing options.

@@ -60,23 +60,19 @@ func validateConfig(conf *Config) error {
 		return err
 	}
 
+	if err := conf.Listen.GRPC.init(); err != nil {
+		return fmt.Errorf("invalid listen.grpc option: %w", err)
+	}
+	if err := conf.Listen.HTTP.init(); err != nil {
+		return fmt.Errorf("invalid listen.grpc option: %w", err)
+	}
+
+	if conf.Site.Addr == "" {
+		conf.Site.Addr = conf.HTTPEndpoint()
+	}
 	if _, err := url.Parse(conf.Site.Addr); err != nil {
-		return fmt.Errorf(`can't parse "site.addr": %w`, err)
+		return fmt.Errorf("invalid site.addr option: %w", err)
 	}
-
-	httpHost, httpPort, err := splitHostPort(conf.Listen.HTTP)
-	if err != nil {
-		return fmt.Errorf(`can't parse "listen.http": %w`, err)
-	}
-	conf.Listen.HTTPHost = httpHost
-	conf.Listen.HTTPPort = httpPort
-
-	grpcHost, grpcPort, err := splitHostPort(conf.Listen.GRPC)
-	if err != nil {
-		return fmt.Errorf(`can't parse "listen.grpc": %w`, err)
-	}
-	conf.Listen.GRPCHost = grpcHost
-	conf.Listen.GRPCPort = grpcPort
 
 	if conf.Spans.BatchSize == 0 {
 		conf.Spans.BatchSize = ScaleWithCPU(1000, 32000)
@@ -93,21 +89,10 @@ func validateConfig(conf *Config) error {
 	}
 
 	if conf.DB.DSN == "" {
-		return fmt.Errorf(`db.dsn option is required`)
+		return fmt.Errorf(`db.dsn option can not be empty`)
 	}
 
 	return nil
-}
-
-func splitHostPort(addr string) (string, string, error) {
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return "", "", err
-	}
-	if host == "" {
-		host = "localhost"
-	}
-	return host, port, nil
 }
 
 func validateProjects(projects []Project) error {
@@ -138,16 +123,8 @@ type Config struct {
 	} `yaml:"site"`
 
 	Listen struct {
-		HTTP string `yaml:"http"`
-		GRPC string `yaml:"grpc"`
-
-		// Calculated.
-
-		HTTPHost string `yaml:"-"`
-		HTTPPort string `yaml:"-"`
-
-		GRPCHost string `yaml:"-"`
-		GRPCPort string `yaml:"-"`
+		HTTP Listen `yaml:"http"`
+		GRPC Listen `yaml:"grpc"`
 	} `yaml:"listen"`
 
 	DB BunConfig `yaml:"db"`
@@ -157,7 +134,6 @@ type Config struct {
 		Compression string `yaml:"compression"`
 		Replicated  bool   `yaml:"replicated"`
 		Cluster     string `yaml:"cluster"`
-		// Distributed bool   `yaml:"distributed"`
 
 		Spans struct {
 			StoragePolicy string `yaml:"storage_policy"`
@@ -202,8 +178,41 @@ type Config struct {
 	Alertmanager struct {
 		URLs []string `yaml:"urls"`
 	} `yaml:"alertmanager"`
+}
 
-	Dashboards []string `yaml:"dashboards"`
+type Listen struct {
+	Addr string     `yaml:"addr"`
+	TLS  *TLSServer `yaml:"tls"`
+
+	Scheme string `yaml:"-"`
+	Host   string `yaml:"-"`
+	Port   string `yaml:"-"`
+}
+
+func (l *Listen) init() error {
+	host, port, err := net.SplitHostPort(l.Addr)
+	if err != nil {
+		return err
+	}
+
+	l.Host = host
+	if l.Host == "" {
+		l.Host = "localhost"
+	}
+	l.Port = port
+
+	l.Scheme = "http"
+	if l.TLS != nil {
+		tlsConf, err := l.TLS.TLSConfig()
+		if err != nil {
+			return err
+		}
+		if tlsConf != nil {
+			l.Scheme = "https"
+		}
+	}
+
+	return nil
 }
 
 type CHTableOverride struct {
@@ -223,26 +232,22 @@ type Project struct {
 	PinnedAttrs []string `yaml:"pinned_attrs" json:"pinnedAttrs"`
 }
 
-func (c *Config) Scheme() string {
-	return "http"
+func (c *Config) GRPCEndpoint() string {
+	return fmt.Sprintf("%s://%s:%s", c.Listen.GRPC.Scheme, c.Listen.GRPC.Host, c.Listen.GRPC.Port)
 }
 
-func (c *Config) GRPCEndpoint(project *Project) string {
-	return fmt.Sprintf("%s://%s:%s", c.Scheme(), c.Listen.GRPCHost, c.Listen.GRPCPort)
-}
-
-func (c *Config) HTTPEndpoint(project *Project) string {
-	return fmt.Sprintf("%s://%s:%s", c.Scheme(), c.Listen.HTTPHost, c.Listen.HTTPPort)
+func (c *Config) HTTPEndpoint() string {
+	return fmt.Sprintf("%s://%s:%s", c.Listen.HTTP.Scheme, c.Listen.HTTP.Host, c.Listen.HTTP.Port)
 }
 
 func (c *Config) GRPCDsn(project *Project) string {
 	return fmt.Sprintf("%s://%s@%s:%s/%d",
-		c.Scheme(), project.Token, c.Listen.GRPCHost, c.Listen.GRPCPort, project.ID)
+		c.Listen.GRPC.Scheme, project.Token, c.Listen.GRPC.Host, c.Listen.GRPC.Port, project.ID)
 }
 
 func (c *Config) HTTPDsn(project *Project) string {
 	return fmt.Sprintf("%s://%s@%s:%s/%d",
-		c.Scheme(), project.Token, c.Listen.HTTPHost, c.Listen.HTTPPort, project.ID)
+		c.Listen.HTTP.Scheme, project.Token, c.Listen.HTTP.Host, c.Listen.HTTP.Port, project.ID)
 }
 
 func (c *Config) SitePath(sitePath string) string {
