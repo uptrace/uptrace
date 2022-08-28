@@ -47,7 +47,8 @@ ENGINE = ?(REPLICATED)MergeTree()
 ORDER BY (project_id, system, group_id, time)
 PARTITION BY toDate(time)
 TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
-SETTINGS ttl_only_drop_parts = 1
+SETTINGS ttl_only_drop_parts = 1,
+         storage_policy = ?SPANS_STORAGE
 
 --migration:split
 
@@ -63,7 +64,8 @@ ORDER BY (trace_id, id)
 PARTITION BY toDate(time)
 TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
-         index_granularity = 128
+         index_granularity = 128,
+         storage_policy = ?SPANS_STORAGE
 
 --migration:split
 

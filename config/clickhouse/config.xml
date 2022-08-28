@@ -25,22 +25,24 @@
       <default>
         <!-- <keep_free_space_bytes>2147483648</keep_free_space_bytes> -->
       </default>
+
+      <tmp>
+        <path>/tmp/ch-disk/</path>
+      </tmp>
     </disks>
 
     <policies>
-      <hot_only>
-        <volumes>
-          <default>
-            <disk>default</disk>
-          </default>
-        </volumes>
-      </hot_only>
-
       <tiered>
+        <move_factor>0.05</move_factor>
+
         <volumes>
           <default>
             <disk>default</disk>
           </default>
+
+          <s3>
+            <disk>tmp</disk>
+          </s3>
         </volumes>
       </tiered>
     </policies>

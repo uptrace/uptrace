@@ -155,21 +155,32 @@ type Config struct {
 
 	CHSchema struct {
 		Compression string `yaml:"compression"`
-		Cluster     string `yaml:"cluster"`
 		Replicated  bool   `yaml:"replicated"`
-		Distributed bool   `yaml:"distributed"`
+		Cluster     string `yaml:"cluster"`
+		// Distributed bool   `yaml:"distributed"`
+
+		Spans struct {
+			StoragePolicy string `yaml:"storage_policy"`
+			TTLDelete     string `yaml:"ttl_delete"`
+		} `yaml:"spans"`
+
+		Metrics struct {
+			StoragePolicy string `yaml:"storage_policy"`
+			TTLDelete     string `yaml:"ttl_delete"`
+		} `yaml:"metrics"`
+
+		Tables struct {
+			SpansData  CHTableOverride `yaml:"spans_data"`
+			SpansIndex CHTableOverride `yaml:"spans_index"`
+		}
 	} `yaml:"ch_schema"`
 
 	Spans struct {
-		TTL string `yaml:"ttl"`
-
 		BufferSize int `yaml:"buffer_size"`
 		BatchSize  int `yaml:"batch_size"`
 	} `yaml:"spans"`
 
 	Metrics struct {
-		TTL string `yaml:"ttl"`
-
 		DropAttrs []string `yaml:"drop_attrs"`
 
 		BufferSize int `yaml:"buffer_size"`
@@ -193,6 +204,10 @@ type Config struct {
 	} `yaml:"alertmanager"`
 
 	Dashboards []string `yaml:"dashboards"`
+}
+
+type CHTableOverride struct {
+	TTL string `yaml:"ttl"`
 }
 
 type User struct {
