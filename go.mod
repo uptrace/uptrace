@@ -16,12 +16,12 @@ require (
 	github.com/rs/cors v1.8.2
 	github.com/segmentio/encoding v0.3.5
 	github.com/stretchr/testify v1.8.0
-	github.com/uptrace/bunrouter v1.0.18
-	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.18
-	github.com/uptrace/bunrouter/extra/reqlog v1.0.18
-	github.com/uptrace/go-clickhouse v0.2.9-0.20220827075701-1c8299bc5cb1
-	github.com/uptrace/go-clickhouse/chdebug v0.2.9-0.20220728135733-2683bc477fd6
-	github.com/uptrace/go-clickhouse/chotel v0.2.9-0.20220728135733-2683bc477fd6
+	github.com/uptrace/bunrouter v1.0.19-0.20220828135510-86ff9250b2fc
+	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.19-0.20220828135510-86ff9250b2fc
+	github.com/uptrace/bunrouter/extra/reqlog v1.0.19-0.20220828135510-86ff9250b2fc
+	github.com/uptrace/go-clickhouse v0.2.9-0.20220828135307-101b0312c333
+	github.com/uptrace/go-clickhouse/chdebug v0.2.9-0.20220828135307-101b0312c333
+	github.com/uptrace/go-clickhouse/chotel v0.2.9-0.20220828135307-101b0312c333
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.15
 	github.com/uptrace/uptrace-go v1.8.0
 	github.com/urfave/cli/v2 v2.11.1
@@ -76,8 +76,8 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-sqlite3 v1.14.14 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
@@ -108,13 +108,13 @@ require (
 	golang.org/x/tools v0.1.12 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/uint128 v1.2.0 // indirect
-	modernc.org/cc/v3 v3.36.0 // indirect
+	modernc.org/cc/v3 v3.36.1 // indirect
 	modernc.org/ccgo/v3 v3.16.8 // indirect
-	modernc.org/libc v1.16.17 // indirect
+	modernc.org/libc v1.16.19 // indirect
 	modernc.org/mathutil v1.4.1 // indirect
 	modernc.org/memory v1.1.1 // indirect
 	modernc.org/opt v0.1.3 // indirect
-	modernc.org/sqlite v1.18.0 // indirect
+	modernc.org/sqlite v1.18.1 // indirect
 	modernc.org/strutil v1.1.2 // indirect
 	modernc.org/token v1.0.0 // indirect
 )
@@ -122,11 +122,11 @@ require (
 require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.1 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
-	github.com/uptrace/bun v1.1.8-0.20220827075503-42567d052280
-	github.com/uptrace/bun/dialect/sqlitedialect v1.1.7
-	github.com/uptrace/bun/driver/sqliteshim v1.1.7
-	github.com/uptrace/bun/extra/bundebug v1.1.7
-	github.com/uptrace/bun/extra/bunotel v1.1.7
+	github.com/uptrace/bun v1.1.8-0.20220828135407-02144b36c300
+	github.com/uptrace/bun/dialect/sqlitedialect v1.1.8-0.20220828135407-02144b36c300
+	github.com/uptrace/bun/driver/sqliteshim v1.1.8-0.20220828135407-02144b36c300
+	github.com/uptrace/bun/extra/bundebug v1.1.8-0.20220828135407-02144b36c300
+	github.com/uptrace/bun/extra/bunotel v1.1.8-0.20220828135407-02144b36c300
 	google.golang.org/genproto v0.0.0-20220802133213-ce4fa296bf78 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
