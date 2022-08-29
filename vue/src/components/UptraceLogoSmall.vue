@@ -1,5 +1,5 @@
 <template>
-  <router-link class="d-inline-block" v-bind="$attrs" v-on="$listeners">
+  <a href="https://uptrace.dev/" class="d-inline-block" v-bind="$attrs" v-on="$listeners">
     <v-img
       src="/uptrace/logo-small.svg"
       :max-width="width"
@@ -8,7 +8,7 @@
       alt="Uptrace"
       class="shrink"
     />
-  </router-link>
+  </a>
 </template>
 
 <script lang="ts">
