@@ -330,6 +330,7 @@ func startAlerting(group *run.Group, app *bunapp.App) {
 
 	conf := app.Config()
 	projectMap := make(map[uint32]*Project)
+	var numValidRule int
 
 	for i := range conf.Alerting.Rules {
 		rule := &conf.Alerting.Rules[i]
@@ -338,6 +339,8 @@ func startAlerting(group *run.Group, app *bunapp.App) {
 			app.Logger.Error("rule.Validate failed", zap.Error(err))
 			continue
 		}
+
+		numValidRule++
 
 		for _, projectID := range rule.Projects {
 			project, ok := projectMap[projectID]
@@ -351,6 +354,9 @@ func startAlerting(group *run.Group, app *bunapp.App) {
 			project.rules = append(project.rules, rule.RuleConfig())
 		}
 	}
+
+	app.Logger.Info("starting monitoring metrics...",
+		zap.Int("rules", numValidRule))
 
 	for _, project := range projectMap {
 		man := alerting.NewManager(&alerting.ManagerConfig{

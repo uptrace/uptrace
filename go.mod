@@ -78,7 +78,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
-	github.com/mattn/go-sqlite3 v1.14.14 // indirect
+	github.com/mattn/go-sqlite3 v1.14.15 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
@@ -103,30 +103,30 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
+	golang.org/x/sys v0.0.0-20220825204002-c680a09ffe64 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/uint128 v1.2.0 // indirect
-	modernc.org/cc/v3 v3.36.1 // indirect
-	modernc.org/ccgo/v3 v3.16.8 // indirect
-	modernc.org/libc v1.16.19 // indirect
-	modernc.org/mathutil v1.4.1 // indirect
-	modernc.org/memory v1.1.1 // indirect
+	modernc.org/cc/v3 v3.36.3 // indirect
+	modernc.org/ccgo/v3 v3.16.9 // indirect
+	modernc.org/libc v1.17.1 // indirect
+	modernc.org/mathutil v1.5.0 // indirect
+	modernc.org/memory v1.2.1 // indirect
 	modernc.org/opt v0.1.3 // indirect
 	modernc.org/sqlite v1.18.1 // indirect
-	modernc.org/strutil v1.1.2 // indirect
-	modernc.org/token v1.0.0 // indirect
+	modernc.org/strutil v1.1.3 // indirect
+	modernc.org/token v1.0.1 // indirect
 )
 
 require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.1 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
-	github.com/uptrace/bun v1.1.8-0.20220829110144-68faac97f87e
-	github.com/uptrace/bun/dialect/sqlitedialect v1.1.8-0.20220829110144-68faac97f87e
-	github.com/uptrace/bun/driver/sqliteshim v1.1.8-0.20220829110144-68faac97f87e
-	github.com/uptrace/bun/extra/bundebug v1.1.8-0.20220829110144-68faac97f87e
-	github.com/uptrace/bun/extra/bunotel v1.1.8-0.20220829110144-68faac97f87e
+	github.com/uptrace/bun v1.1.8
+	github.com/uptrace/bun/dialect/sqlitedialect v1.1.8
+	github.com/uptrace/bun/driver/sqliteshim v1.1.8
+	github.com/uptrace/bun/extra/bundebug v1.1.8
+	github.com/uptrace/bun/extra/bunotel v1.1.8
 	google.golang.org/genproto v0.0.0-20220802133213-ce4fa296bf78 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
