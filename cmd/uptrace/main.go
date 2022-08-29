@@ -104,13 +104,16 @@ var serveCommand = &cli.Command{
 		fmt.Printf("Telegram chat               https://t.me/uptrace\n")
 		fmt.Println()
 
-		fmt.Printf("reading YAML config from    %s\n", conf.Path)
 		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", conf.GRPCDsn(project))
 		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", conf.HTTPDsn(project))
 		fmt.Println()
 
 		fmt.Printf("Open UI (site.addr)         %s\n", conf.SitePath("/"))
 		fmt.Println()
+
+		app.Logger.Info("starting Uptrace...",
+			zap.String("version", pkg.Version()),
+			zap.String("config", conf.Path))
 
 		httpLn, err := net.Listen("tcp", conf.Listen.HTTP.Addr)
 		if err != nil {
