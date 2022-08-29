@@ -21,8 +21,6 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/migrate"
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/go-clickhouse/chmigrate"
 	"github.com/uptrace/uptrace"
 	"github.com/uptrace/uptrace/cmd/uptrace/command"
 	"github.com/uptrace/uptrace/pkg"
@@ -142,7 +140,7 @@ var serveCommand = &cli.Command{
 			logger.Error("SQLite migrations failed",
 				zap.Error(err))
 		}
-		if err := runCHMigrations(ctx, app.CH); err != nil {
+		if err := runCHMigrations(ctx, app); err != nil {
 			logger.Error("ClickHouse migrations failed",
 				zap.Error(err))
 		}
@@ -258,8 +256,8 @@ func runBunMigrations(ctx context.Context, db *bun.DB) error {
 	return nil
 }
 
-func runCHMigrations(ctx context.Context, db *ch.DB) error {
-	migrator := chmigrate.NewMigrator(db, chmigrations.Migrations)
+func runCHMigrations(ctx context.Context, app *bunapp.App) error {
+	migrator := command.NewCHMigrator(app, chmigrations.Migrations)
 
 	if err := migrator.Init(ctx); err != nil {
 		return err
