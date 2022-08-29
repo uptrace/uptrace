@@ -75,7 +75,10 @@ func (m *Manager) Run() {
 		close(done)
 	}()
 
-	nextCheck := time.Now().Truncate(time.Minute).Add(90 * time.Second)
+	nextCheck := time.Now().
+		Add(30 * time.Second).
+		Truncate(time.Minute).
+		Add(30 * time.Second)
 	for {
 		select {
 		case <-time.After(time.Until(nextCheck)):
