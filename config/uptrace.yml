@@ -6,7 +6,7 @@
 ##
 ##   foo: $FOO
 ##   bar: ${BAR}
-##   $BAZ: baz
+##   baz: ${BAZ:default}
 ##
 ## To escape `$`, use `$$`, for example:
 ##
@@ -168,10 +168,6 @@ site:
 ## Spans processing options.
 ##
 spans:
-  # Delete data after 30 days.
-  # Supports SQL interval syntax, for example, INTERVAL 30 DAY.
-  ttl: 30 DAY
-
   # The size of the Go chan used to buffer incoming spans.
   # If the buffer is full, Uptrace starts to drop spans.
   #buffer_size: 100000
@@ -202,7 +198,7 @@ metrics:
 ##
 db:
   # SQLite connection string.
-  dsn: 'file:uptrace.sqlite3?_foreign_keys=1&_busy_timeout=1000'
+  dsn: 'file:${UPTRACE_DB_FILE:uptrace.sqlite3}?_foreign_keys=1&_busy_timeout=1000'
 
 # Secret key that is used to sign JWT tokens etc.
 secret_key: 102c1a557c314fc28198acd017960843
