@@ -38,8 +38,6 @@ func ReadConfig(confPath, service string) (*Config, error) {
 		return nil, fmt.Errorf("invalid config %s: %w", conf.Path, err)
 	}
 
-	fmt.Println(conf.DB.DSN)
-
 	return conf, nil
 }
 
