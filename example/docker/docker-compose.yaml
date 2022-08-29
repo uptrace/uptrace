@@ -23,10 +23,12 @@ services:
     #image: 'uptrace/uptrace:latest'
     image: 'uptrace/uptrace-dev:latest'
     volumes:
+      - uptrace_data:/var/lib/uptrace
       - ../../config/uptrace.yml:/etc/uptrace/uptrace.yml
     network_mode: host
-    # environment:
-    #   - DEBUG=2
+    environment:
+      - UPTRACE_DB_FILE=/var/lib/uptrace/uptrace.sqlite3
+      #- DEBUG=2
     depends_on:
       clickhouse:
         condition: service_healthy
@@ -66,6 +68,8 @@ services:
   #     - jaeger-agent
 
 volumes:
+  uptrace_data:
+    driver: local
   ch_data:
     driver: local
   alertmanager_data:
