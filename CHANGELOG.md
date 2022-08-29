@@ -21,15 +21,14 @@ ch:
 
 ### Upgrading
 
-To upgrade, reset ClickHouse database and restart Uptrace:
+To upgrade, grab the latest
+[uptrace.yml](https://github.com/uptrace/uptrace/blob/master/config/uptrace.yml) config, reset
+ClickHouse database, and restart Uptrace:
 
-```yaml
-uptrace ch reset sudo systemctl restart uptrace
+```shell
+uptrace ch reset
+sudo systemctl restart uptrace
 ```
-
-### Changed
-
-- Replace `site.scheme` and `site.host` config options with `site.addr`.
 
 ## v0.2.15 - Jun 8 2022
 
