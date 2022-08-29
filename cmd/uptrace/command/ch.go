@@ -53,7 +53,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := newMigrator(app, migrations)
+					migrator := NewCHMigrator(app, migrations)
 					return migrator.Init(ctx)
 				},
 			},
@@ -67,7 +67,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := newMigrator(app, migrations)
+					migrator := NewCHMigrator(app, migrations)
 
 					group, err := migrator.Migrate(ctx)
 					if err != nil {
@@ -93,7 +93,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := newMigrator(app, migrations)
+					migrator := NewCHMigrator(app, migrations)
 
 					group, err := migrator.Rollback(ctx)
 					if err != nil {
@@ -119,7 +119,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := newMigrator(app, migrations)
+					migrator := NewCHMigrator(app, migrations)
 
 					if err := migrator.Init(ctx); err != nil {
 						return err
@@ -162,7 +162,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := newMigrator(app, migrations)
+					migrator := NewCHMigrator(app, migrations)
 					return migrator.Lock(ctx)
 				},
 			},
@@ -176,7 +176,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := newMigrator(app, migrations)
+					migrator := NewCHMigrator(app, migrations)
 					return migrator.Unlock(ctx)
 				},
 			},
@@ -190,7 +190,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := newMigrator(app, migrations)
+					migrator := NewCHMigrator(app, migrations)
 
 					name := strings.Join(c.Args().Slice(), "_")
 					mf, err := migrator.CreateGoMigration(ctx, name)
@@ -212,7 +212,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := newMigrator(app, migrations)
+					migrator := NewCHMigrator(app, migrations)
 
 					name := strings.Join(c.Args().Slice(), "_")
 					files, err := migrator.CreateSQLMigrations(ctx, name)
@@ -237,7 +237,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := newMigrator(app, migrations)
+					migrator := NewCHMigrator(app, migrations)
 
 					ms, err := migrator.MigrationsWithStatus(ctx)
 					if err != nil {
@@ -261,7 +261,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 	}
 }
 
-func newMigrator(app *bunapp.App, migrations *chmigrate.Migrations) *chmigrate.Migrator {
+func NewCHMigrator(app *bunapp.App, migrations *chmigrate.Migrations) *chmigrate.Migrator {
 	chSchema := app.Config().CHSchema
 
 	args := make(map[string]any)
