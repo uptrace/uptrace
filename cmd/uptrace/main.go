@@ -18,7 +18,6 @@ import (
 	_ "github.com/mostynb/go-grpc-compression/snappy"
 	_ "github.com/mostynb/go-grpc-compression/zstd"
 	"github.com/rs/cors"
-	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/migrate"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace"
@@ -136,7 +135,7 @@ var serveCommand = &cli.Command{
 				zap.Error(err), zap.String("dsn", app.Config().CH.DSN))
 		}
 
-		if err := runBunMigrations(ctx, app.DB); err != nil {
+		if err := runBunMigrations(ctx, app); err != nil {
 			logger.Error("SQLite migrations failed",
 				zap.Error(err))
 		}
@@ -227,8 +226,8 @@ var serveCommand = &cli.Command{
 	},
 }
 
-func runBunMigrations(ctx context.Context, db *bun.DB) error {
-	migrator := migrate.NewMigrator(db, bunmigrations.Migrations)
+func runBunMigrations(ctx context.Context, app *bunapp.App) error {
+	migrator := migrate.NewMigrator(app.DB, bunmigrations.Migrations)
 
 	if err := migrator.Init(ctx); err != nil {
 		return err
@@ -252,7 +251,7 @@ func runBunMigrations(ctx context.Context, db *bun.DB) error {
 		return nil
 	}
 
-	fmt.Printf("migrated to %s\n", group)
+	app.Logger.Info("migrated SQLite database", zap.String("migrations", group.String()))
 	return nil
 }
 
@@ -281,7 +280,7 @@ func runCHMigrations(ctx context.Context, app *bunapp.App) error {
 		return nil
 	}
 
-	fmt.Printf("migrated to %s\n", group)
+	app.Logger.Info("migrated ClickHouse database", zap.String("migrations", group.String()))
 	return nil
 }
 
@@ -363,7 +362,7 @@ func startAlerting(group *run.Group, app *bunapp.App) {
 		man := alerting.NewManager(&alerting.ManagerConfig{
 			Engine:   metrics.NewAlertingEngine(app, project.id),
 			Rules:    project.rules,
-			AlertMan: metrics.NewAlertManager(app.DB, app.Notifier, project.id),
+			AlertMan: metrics.NewAlertManager(app.DB, app.Notifier, project.id, app.Logger),
 			Logger:   app.Logger.Logger,
 		})
 

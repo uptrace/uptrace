@@ -153,12 +153,10 @@ func (r *Rule) checkTimeseries(ts *upql.Timeseries, alert *Alert, tm time.Time) 
 			return true
 		}
 	case dur >= r.conf.For:
-		if alert.State != StateFiring {
-			alert.State = StateFiring
-			alert.FiredAt = tm
-			alert.ResolvedAt = time.Time{}
-			return true
-		}
+		alert.State = StateFiring
+		alert.FiredAt = tm
+		alert.ResolvedAt = time.Time{}
+		return true
 	}
 
 	return false

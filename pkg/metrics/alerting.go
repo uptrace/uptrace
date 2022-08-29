@@ -9,12 +9,14 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/uptrace/bun"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunlex"
 	"github.com/uptrace/uptrace/pkg/metrics/alerting"
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
+	"go.uber.org/zap"
 )
 
 type AlertingEngine struct {
@@ -80,15 +82,22 @@ type AlertManager struct {
 	db        *bun.DB
 	notifier  *bunapp.Notifier
 	projectID uint32
+	logger    *otelzap.Logger
 }
 
 var _ alerting.AlertManager = (*AlertManager)(nil)
 
-func NewAlertManager(db *bun.DB, notifier *bunapp.Notifier, projectID uint32) *AlertManager {
+func NewAlertManager(
+	db *bun.DB,
+	notifier *bunapp.Notifier,
+	projectID uint32,
+	logger *otelzap.Logger,
+) *AlertManager {
 	return &AlertManager{
 		db:        db,
 		notifier:  notifier,
 		projectID: projectID,
+		logger:    logger,
 	}
 }
 
@@ -98,7 +107,21 @@ func (m *AlertManager) SendAlerts(
 	postableAlerts := make(models.PostableAlerts, 0, len(alerts))
 
 	for i := range alerts {
-		postableAlert := m.convert(rule, &alerts[i])
+		alert := &alerts[i]
+
+		if alert.State == alerting.StateFiring {
+			m.logger.Info("alerting rule is firing",
+				zap.String("name", rule.Name),
+				zap.String("attrs", alert.Attrs.String()),
+				zap.Uint32("project_id", m.projectID))
+		} else {
+			m.logger.Info("alerting rule is resolved",
+				zap.String("name", rule.Name),
+				zap.String("attrs", alert.Attrs.String()),
+				zap.Uint32("project_id", m.projectID))
+		}
+
+		postableAlert := m.convert(rule, alert)
 		postableAlerts = append(postableAlerts, postableAlert)
 	}
 
