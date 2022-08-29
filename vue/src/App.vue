@@ -26,7 +26,6 @@
                 <v-tab :to="{ name: 'SpanGroupList' }">Traces</v-tab>
                 <v-tab :to="{ name: 'LogGroupList', query: { system: 'log:all' } }">Logs</v-tab>
                 <v-tab :to="{ name: 'MetricsDashList' }">Metrics</v-tab>
-                <v-tab :to="helpRoute">Help</v-tab>
               </template>
               <v-tab v-if="!user.isAuth" :to="{ name: 'Login' }">Login</v-tab>
             </v-tabs>
@@ -48,19 +47,13 @@
             />
           </v-col>
           <v-col cols="auto">
-            <v-btn
-              href="https://uptrace.dev/compare-open-source"
-              target="_blank"
-              dark
-              class="deep-orange darken-3"
-            >
-              <v-icon left>mdi-cloud</v-icon>
-              <span>Cloud</span>
+            <v-btn v-if="user.isAuth && $route.params.projectId" :to="helpRoute" icon>
+              <v-icon>mdi-help-circle</v-icon>
             </v-btn>
 
             <v-menu v-if="user.isAuth" bottom offset-y>
               <template #activator="{ on }">
-                <v-btn icon class="ml-2" v-on="on">
+                <v-btn icon v-on="on">
                   <v-icon>mdi-dots-vertical</v-icon>
                 </v-btn>
               </template>
