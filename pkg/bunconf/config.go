@@ -38,20 +38,36 @@ func ReadConfig(confPath, service string) (*Config, error) {
 		return nil, fmt.Errorf("invalid config %s: %w", conf.Path, err)
 	}
 
+	fmt.Println(conf.DB.DSN)
+
 	return conf, nil
 }
 
-var envVarRe = regexp.MustCompile(`^[A-Z][A-Z0-9_]+$`)
+var (
+	envVarRe        = regexp.MustCompile(`^[A-Z][A-Z0-9_]+$`)
+	envVarDefaultRe = regexp.MustCompile(`^([A-Z][A-Z0-9_]+):(.+)$`)
+)
 
 func expandEnv(conf string) string {
 	return os.Expand(conf, func(envVar string) string {
 		if envVar == "$" { // escaping
 			return "$"
 		}
-		if !envVarRe.MatchString(envVar) {
-			return "$" + envVar
+
+		if envVarRe.MatchString(envVar) {
+			return os.Getenv(envVar)
 		}
-		return os.Getenv(envVar)
+
+		if m := envVarDefaultRe.FindStringSubmatch(envVar); m != nil {
+			envVar = m[1]
+			defValue := m[2]
+			if found, ok := os.LookupEnv(envVar); ok {
+				return found
+			}
+			return defValue
+		}
+
+		return "$" + envVar
 	})
 }
 
