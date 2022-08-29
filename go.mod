@@ -122,11 +122,11 @@ require (
 require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.1 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
-	github.com/uptrace/bun v1.1.8-0.20220828135407-02144b36c300
-	github.com/uptrace/bun/dialect/sqlitedialect v1.1.8-0.20220828135407-02144b36c300
-	github.com/uptrace/bun/driver/sqliteshim v1.1.8-0.20220828135407-02144b36c300
-	github.com/uptrace/bun/extra/bundebug v1.1.8-0.20220828135407-02144b36c300
-	github.com/uptrace/bun/extra/bunotel v1.1.8-0.20220828135407-02144b36c300
+	github.com/uptrace/bun v1.1.8-0.20220829110144-68faac97f87e
+	github.com/uptrace/bun/dialect/sqlitedialect v1.1.8-0.20220829110144-68faac97f87e
+	github.com/uptrace/bun/driver/sqliteshim v1.1.8-0.20220829110144-68faac97f87e
+	github.com/uptrace/bun/extra/bundebug v1.1.8-0.20220829110144-68faac97f87e
+	github.com/uptrace/bun/extra/bunotel v1.1.8-0.20220829110144-68faac97f87e
 	google.golang.org/genproto v0.0.0-20220802133213-ce4fa296bf78 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

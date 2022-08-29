@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, watch, PropType } from 'vue'
+import { defineComponent, shallowRef, watchEffect, PropType } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'
@@ -48,21 +48,31 @@ export default defineComponent({
     const menu = shallowRef(false)
     const { router, route } = useRouter()
 
-    watch(
-      () => props.dashboards.items,
-      (dashboards) => {
-        if (route.value.params.dashId) {
-          return
-        }
+    watchEffect(
+      () => {
+        const dashboards = props.dashboards.items
         if (!dashboards.length) {
           return
         }
 
-        const found = dashboards[0]
-        router.replace({ name: 'MetricsDashShow', params: { dashId: found.id } })
+        const dashId = route.value.params.dashId
+        if (!dashId) {
+          redirectTo(dashboards[0])
+          return
+        }
+
+        const index = dashboards.findIndex((d) => d.id === dashId)
+        if (index === -1) {
+          redirectTo(dashboards[0])
+          return
+        }
       },
-      { immediate: true },
+      { flush: 'post' },
     )
+
+    function redirectTo(dash: Dashboard) {
+      router.replace({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+    }
 
     return { menu }
   },
