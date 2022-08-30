@@ -16,6 +16,7 @@ cd example/docker
 **Step 2**. Start the services using Docker:
 
 ```shell
+docker-compose pull
 docker-compose up -d
 ```
 
