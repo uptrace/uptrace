@@ -33,18 +33,8 @@
 
           <v-spacer />
 
-          <v-col cols="auto">
-            <v-text-field
-              v-model="traceId"
-              prepend-inner-icon="mdi-magnify"
-              placeholder="Jump to trace id..."
-              hide-details
-              flat
-              solo
-              background-color="grey lighten-4"
-              style="min-width: 300px; width: 300px"
-              @keyup.enter="jumpToTrace"
-            />
+          <v-col v-if="user.isAuth && $route.params.projectId" cols="auto">
+            <Search />
           </v-col>
           <v-col cols="auto">
             <v-btn v-if="user.isAuth && $route.params.projectId" :to="helpRoute" icon>
@@ -122,10 +112,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed } from 'vue'
+import { defineComponent, computed } from 'vue'
 
 // Composables
-import { useRouter, useRoute, useRouteQuery } from '@/use/router'
+import { useRoute, useRouteQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 import { useDateRange } from '@/use/date-range'
 import { useUser } from '@/use/org'
@@ -134,21 +124,20 @@ import { useUser } from '@/use/org'
 import UptraceLogoLarge from '@/components/UptraceLogoLarge.vue'
 import UptraceLogoSmall from '@/components/UptraceLogoSmall.vue'
 import ProjectPicker from '@/components/ProjectPicker.vue'
+import Search from '@/components/Search.vue'
 import XSnackbar from '@/components/XSnackbar.vue'
 
 export default defineComponent({
   name: 'App',
-  components: { UptraceLogoLarge, UptraceLogoSmall, ProjectPicker, XSnackbar },
+  components: { UptraceLogoLarge, UptraceLogoSmall, ProjectPicker, Search, XSnackbar },
 
   setup() {
     useRouteQuery()
     useForceReload()
     const dateRange = useDateRange()
 
-    const { router } = useRouter()
     const route = useRoute()
     const user = useUser()
-    const traceId = shallowRef('')
 
     const helpRoute = computed(() => {
       if (route.value.name && route.value.name.startsWith('Metrics')) {
@@ -162,19 +151,10 @@ export default defineComponent({
       }
     })
 
-    function jumpToTrace() {
-      router.push({
-        name: 'TraceFind',
-        params: { traceId: traceId.value.trim() },
-      })
-    }
-
     return {
       dateRange,
       user,
-      traceId,
       helpRoute,
-      jumpToTrace,
     }
   },
 })
