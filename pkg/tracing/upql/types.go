@@ -62,6 +62,15 @@ type Value struct {
 	Text string
 }
 
+func (v *Value) IsNum() bool {
+	switch v.Kind {
+	case NumberValue, DurationValue:
+		return true
+	default:
+		return false
+	}
+}
+
 func (v *Value) Append(b []byte) []byte {
 	switch v.Kind {
 	case StringValue:
