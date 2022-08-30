@@ -150,7 +150,7 @@ listen:
     #   cert_file: config/tls/uptrace.crt
     #   key_file: config/tls/uptrace.key
 
-  # OTLP/HTTP API and Uptrace HTTP API.
+  # OTLP/HTTP API and Uptrace API with UI.
   http:
     addr: ':14318'
     # tls:

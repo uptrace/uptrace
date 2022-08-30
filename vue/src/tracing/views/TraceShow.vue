@@ -18,6 +18,10 @@
           </v-breadcrumbs-item>
         </template>
       </v-breadcrumbs>
+
+      <v-spacer />
+
+      <FixedDateRangePicker v-if="trace.root" :date-range="dateRange" :around="trace.root.time" />
     </PageToolbar>
 
     <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="py-4">
@@ -93,6 +97,7 @@ import { useTrace, UseTrace } from '@/tracing/use-trace'
 import { createUqlEditor } from '@/use/uql'
 
 // Components
+import FixedDateRangePicker from '@/components/date/FixedDateRangePicker.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 import SystemBarChart from '@/components/SystemBarChart.vue'
 import TraceTabs from '@/tracing/TraceTabs.vue'
@@ -100,12 +105,12 @@ import TraceError from '@/tracing/TraceError.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
-import { hour } from '@/util/fmt/date'
 import { eventOrSpanName } from '@/models/span'
 
 export default defineComponent({
   name: 'TraceShow',
   components: {
+    FixedDateRangePicker,
     LoadPctileChart,
     SystemBarChart,
     TraceTabs,
@@ -173,7 +178,6 @@ export default defineComponent({
       (span) => {
         if (span) {
           useTitle(span.name)
-          dateRange.changeWithin(span.time, hour)
         }
       },
     )

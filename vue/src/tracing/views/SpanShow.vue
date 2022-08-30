@@ -17,6 +17,7 @@ import { defineComponent, computed, watch, proxyRefs } from 'vue'
 import { useTitle } from '@vueuse/core'
 import { useRouter } from '@/use/router'
 import { useDateRange } from '@/use/date-range'
+import { useForceReload } from '@/use/force-reload'
 import { useWatchAxios } from '@/use/watch-axios'
 
 // Components
@@ -24,7 +25,6 @@ import SpanCard from '@/tracing/SpanCard.vue'
 
 // Utilities
 import { Span } from '@/models/span'
-import { hour } from '@/util/fmt/date'
 
 export default defineComponent({
   name: 'SpanShow',
@@ -39,7 +39,6 @@ export default defineComponent({
       (span) => {
         if (span) {
           useTitle(span.name)
-          dateRange.changeWithin(span.time, hour)
         }
       },
     )
@@ -50,11 +49,13 @@ export default defineComponent({
 
 function useSpan() {
   const { route } = useRouter()
+  const { forceReloadParams } = useForceReload()
 
   const { loading, data } = useWatchAxios(() => {
     const { projectId, traceId, spanId } = route.value.params
     return {
       url: `/api/v1/tracing/${projectId}/traces/${traceId}/${spanId}`,
+      params: forceReloadParams.value,
     }
   })
 

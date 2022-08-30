@@ -11,7 +11,7 @@
 
       <v-spacer />
 
-      <FixedDatePeriodPicker :date-range="dateRange" :date="span.time" />
+      <FixedDateRangePicker :date-range="dateRange" :around="span.time" />
     </PageToolbar>
 
     <v-container :fluid="fluid" class="py-4">
@@ -135,7 +135,7 @@ import { UseDateRange } from '@/use/date-range'
 import { createUqlEditor } from '@/use/uql'
 
 // Components
-import FixedDatePeriodPicker from '@/components/FixedDatePeriodPicker.vue'
+import FixedDateRangePicker from '@/components/date/FixedDateRangePicker.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 import AttrsTable from '@/tracing/AttrsTable.vue'
 import EventPanels from '@/tracing/EventPanels.vue'
@@ -153,7 +153,7 @@ interface Props {
 export default defineComponent({
   name: 'SpanCard',
   components: {
-    FixedDatePeriodPicker,
+    FixedDateRangePicker,
     AttrsTable,
     EventPanels,
     LoadPctileChart,

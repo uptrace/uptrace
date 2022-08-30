@@ -57,17 +57,13 @@
       </tbody>
     </v-simple-table>
 
-    <v-dialog v-model="dialog.dialog" max-width="1280">
+    <v-dialog v-model="dialog.isActive" max-width="1280">
       <v-sheet>
-        <SpanCard
+        <SpanCardDateRange
           v-if="dialog.activeSpan"
-          :key="dialog.activeSpan.id"
-          :date-range="dateRange"
           :span="dialog.activeSpan"
           :span-list-route="spanListRoute"
           :group-list-route="groupListRoute"
-          fluid
-          show-toolbar
         />
       </v-sheet>
     </v-dialog>
@@ -85,7 +81,7 @@ import { UseDateRange } from '@/use/date-range'
 
 // Components
 import ThOrder from '@/components/ThOrder.vue'
-import SpanCard from '@/tracing/SpanCard.vue'
+import SpanCardDateRange from '@/tracing/SpanCardDateRange.vue'
 import SpanChips from '@/tracing/SpanChips.vue'
 
 // Utilities
@@ -97,7 +93,7 @@ export default defineComponent({
   components: {
     ThOrder,
     SpanChips,
-    SpanCard,
+    SpanCardDateRange,
   },
 
   props: {
@@ -140,17 +136,17 @@ export default defineComponent({
   },
 
   setup(props) {
-    function onSortBy() {
-      nextTick(() => {
-        props.order.desc = true
-      })
-    }
-
     const dialog = useDialog()
 
     useRouteQuery().onRouteUpdated(() => {
       dialog.close()
     })
+
+    function onSortBy() {
+      nextTick(() => {
+        props.order.desc = true
+      })
+    }
 
     return {
       xkey,
@@ -176,7 +172,7 @@ function useDialog() {
   }
 
   return proxyRefs({
-    dialog,
+    isActive: dialog,
     activeSpan,
 
     showSpan,
