@@ -1,10 +1,10 @@
 <template>
   <span>
     <span class="text-no-wrap">
-      <XDate :date="date" format="short" class="mr-2 text-subtitle-2" />
+      <XDate :date="around" format="short" class="mr-2 text-subtitle-2" />
       <PeriodPickerMenu :value="dateRange.duration" :periods="periods" @input="onInputPeriod" />
     </span>
-    <v-btn v-if="withReload" small outlined class="ml-2" @click="dateRange.forceReload">
+    <v-btn small outlined class="ml-2" @click="dateRange.reload()">
       <v-icon small left>mdi-refresh</v-icon>
       <span>Reload</span>
     </v-btn>
@@ -12,7 +12,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, onMounted, watchEffect, PropType } from 'vue'
+import { defineComponent, computed, onMounted, watch, watchEffect, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
@@ -25,27 +25,23 @@ import { periodsForDays } from '@/models/period'
 import { hour } from '@/util/fmt/date'
 
 export default defineComponent({
-  name: 'FixedDatePeriodPicker',
+  name: 'FixedDateRangePicker',
   components: {
     PeriodPickerMenu,
   },
 
   props: {
-    date: {
-      type: String,
-      required: true,
-    },
     dateRange: {
       type: Object as PropType<UseDateRange>,
+      required: true,
+    },
+    around: {
+      type: String,
       required: true,
     },
     rangeDays: {
       type: Number,
       default: 10,
-    },
-    withReload: {
-      type: Boolean,
-      default: false,
     },
   },
 
@@ -53,10 +49,6 @@ export default defineComponent({
     const periods = computed(() => {
       return periodsForDays(props.rangeDays)
     })
-
-    function onInputPeriod(ms: number) {
-      props.dateRange.changeWithin(new Date(props.date), ms)
-    }
 
     onMounted(() => {
       watchEffect(() => {
@@ -73,6 +65,18 @@ export default defineComponent({
         props.dateRange.changeDuration(periods.value[0].ms)
       })
     })
+
+    watch(
+      () => props.around,
+      (date) => {
+        props.dateRange.changeAround(date)
+      },
+      { immediate: true },
+    )
+
+    function onInputPeriod(ms: number) {
+      props.dateRange.changeDuration(ms)
+    }
 
     return { periods, onInputPeriod }
   },

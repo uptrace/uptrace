@@ -86,7 +86,6 @@ export function useDateRange() {
   }
 
   function reload() {
-    updateNow()
     forceReload()
   }
 
@@ -123,7 +122,7 @@ export function useDateRange() {
     updateNow(true)
   }
 
-  function changeWithin(dt: Date | string, ms = 0) {
+  function changeAround(dt: Date | string, ms = 0) {
     if (typeof dt === 'string') {
       dt = new Date(dt)
     }
@@ -274,7 +273,7 @@ export function useDateRange() {
     reset,
     change,
     changeDuration,
-    changeWithin,
+    changeAround,
 
     changeGTE,
     changeLT,
