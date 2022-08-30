@@ -263,12 +263,12 @@ func upqlWhere(q *ch.SelectQuery, ast *upql.Where, minutes float64) *ch.SelectQu
 	var having []byte
 
 	for _, cond := range ast.Conds {
-		bb, isAgg := upqlWhereCond(cond, minutes)
+		bb := upqlWhereCond(cond, minutes)
 		if bb == nil {
 			continue
 		}
 
-		if isAgg {
+		if isAggColumn(cond.Left) {
 			having = appendCond(having, cond, bb)
 		} else {
 			where = appendCond(where, cond, bb)
@@ -285,21 +285,25 @@ func upqlWhere(q *ch.SelectQuery, ast *upql.Where, minutes float64) *ch.SelectQu
 	return q
 }
 
-func upqlWhereCond(cond upql.Cond, minutes float64) (b []byte, isAgg bool) {
-	isAgg = isAggColumn(cond.Left)
+func upqlWhereCond(cond upql.Cond, minutes float64) []byte {
+	var b []byte
 
 	switch cond.Op {
 	case upql.ExistsOp, upql.DoesNotExistOp:
-		if isAgg {
-			return nil, false
+		if strings.HasPrefix(cond.Left.AttrKey, "span.") {
+			if cond.Op == upql.DoesNotExistOp {
+				b = append(b, '0')
+			} else {
+				b = append(b, '1')
+			}
+			return b
 		}
 
-		if strings.HasPrefix(cond.Left.AttrKey, "span.") {
-			b = append(b, '1')
-			return b, false
+		if cond.Op == upql.DoesNotExistOp {
+			b = append(b, "NOT "...)
 		}
 		b = chschema.AppendQuery(b, "has(all_keys, ?)", cond.Left.AttrKey)
-		return b, false
+		return b
 	case upql.ContainsOp, upql.DoesNotContainOp:
 		if cond.Op == upql.DoesNotContainOp {
 			b = append(b, "NOT "...)
@@ -312,7 +316,7 @@ func upqlWhereCond(cond upql.Cond, minutes float64) (b []byte, isAgg bool) {
 		b = chschema.AppendQuery(b, "[?]", ch.In(values))
 		b = append(b, ")"...)
 
-		return b, isAgg
+		return b
 	}
 
 	if cond.Right.IsNum() {
@@ -329,7 +333,7 @@ func upqlWhereCond(cond upql.Cond, minutes float64) (b []byte, isAgg bool) {
 
 	b = cond.Right.Append(b)
 
-	return b, isAgg
+	return b
 }
 
 func appendCond(b []byte, cond upql.Cond, bb []byte) []byte {
@@ -349,11 +353,18 @@ func disableColumnsAndGroups(parts []*upql.QueryPart) {
 			continue
 		}
 
-		switch part.AST.(type) {
+		switch ast := part.AST.(type) {
 		case *upql.Columns:
 			part.Disabled = true
 		case *upql.Group:
 			part.Disabled = true
+		case *upql.Where:
+			for _, cond := range ast.Conds {
+				if isAggColumn(cond.Left) {
+					part.Disabled = true
+					break
+				}
+			}
 		}
 	}
 }

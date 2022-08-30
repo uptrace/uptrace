@@ -77,7 +77,7 @@
                 <XNum :value="item[col.name]" :name="col.name" />
               </div>
 
-              <span v-else>{{ item[col.name] }}</span>
+              <XText v-else :value="item[col.name]" :name="col.name" class="word-break-all" />
             </td>
             <td v-if="hasTimeColumn" class="text-no-wrap">
               <slot name="time" :item="item">
