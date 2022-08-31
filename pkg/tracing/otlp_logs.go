@@ -80,7 +80,9 @@ func (s *LogsServiceServer) process(
 
 		for _, sl := range rl.ScopeLogs {
 			scope := sl.Scope
-			resource[attrkey.OtelLibraryName] = scope.Name
+			if scope.Name != "" {
+				resource[attrkey.OtelLibraryName] = scope.Name
+			}
 			if scope.Version != "" {
 				resource[attrkey.OtelLibraryVersion] = scope.Version
 			}

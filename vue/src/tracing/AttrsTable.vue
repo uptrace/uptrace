@@ -23,15 +23,19 @@
         <tr v-for="key in attrKeys" :key="key">
           <th>{{ key }}</th>
           <td>
-            <KeyValueFilterLink
-              :date-range="dateRange"
-              :name="key"
-              :value="span.attrs[key]"
-              :project-id="span.projectId"
-              :system="span.system"
-              :group-id="span.groupId"
-              :is-event="isEvent"
-            />
+            <CodeOrText :value="span.attrs[key]" :name="key">
+              <template #text>
+                <KeyValueFilterLink
+                  :date-range="dateRange"
+                  :name="key"
+                  :value="span.attrs[key]"
+                  :project-id="span.projectId"
+                  :system="span.system"
+                  :group-id="span.groupId"
+                  :is-event="isEvent"
+                />
+              </template>
+            </CodeOrText>
           </td>
         </tr>
       </tbody>
@@ -50,11 +54,12 @@ import { Span } from '@/models/span'
 import { UseDateRange } from '@/use/date-range'
 
 // Components
+import CodeOrText from '@/components/CodeOrText.vue'
 import KeyValueFilterLink from '@/tracing/KeyValueFilterLink.vue'
 
 export default defineComponent({
   name: 'AttrsTable',
-  components: { KeyValueFilterLink },
+  components: { CodeOrText, KeyValueFilterLink },
 
   props: {
     dateRange: {

@@ -69,8 +69,8 @@ alerting:
         - $net_errors > 0 group by host.name
       # for the last 5 minutes
       for: 5m
-      # in the project id=2
-      projects: [2]
+      # in the project id=1
+      projects: [1]
 
     - name: Filesystem usage >= 90%
       metrics:
@@ -81,7 +81,7 @@ alerting:
         - where device !~ "loop"
         - $fs_usage{state="used"} / $fs_usage >= 0.9
       for: 5m
-      projects: [2]
+      projects: [1]
 
     - name: Uptrace is dropping spans
       metrics:

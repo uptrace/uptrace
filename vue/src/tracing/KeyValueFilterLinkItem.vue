@@ -14,7 +14,7 @@
       </v-list>
     </v-menu>
 
-    <XText :value="value" :name="name" />
+    <AnyValue :value="value" :name="name" />
   </div>
 </template>
 

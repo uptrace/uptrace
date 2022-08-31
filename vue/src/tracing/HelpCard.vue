@@ -18,11 +18,11 @@
 
           <p>For Go, Python, and .NET, use <strong>OTLP/gRPC</strong> (port 14317):</p>
 
-          <XCode :code="`UPTRACE_DSN=${project.grpc.dsn}`" class="mb-4" />
+          <PrismCode :code="`UPTRACE_DSN=${project.grpc.dsn}`" class="mb-4" />
 
           <p>For Ruby and Node.JS, use <strong>OTLP/HTTP</strong> (port 14318):</p>
 
-          <XCode :code="`UPTRACE_DSN=${project.http.dsn}`" class="mb-4" />
+          <PrismCode :code="`UPTRACE_DSN=${project.http.dsn}`" class="mb-4" />
         </v-col>
       </v-row>
 
@@ -78,7 +78,7 @@
 
       <v-row>
         <v-col>
-          <XCode language="toml" :code="vectorConfig" />
+          <PrismCode language="toml" :code="vectorConfig" />
         </v-col>
       </v-row>
 
@@ -104,7 +104,7 @@
 
       <v-row>
         <v-col>
-          <XCode language="bash" :code="zipkinCurl" />
+          <PrismCode language="bash" :code="zipkinCurl" />
         </v-col>
       </v-row>
     </v-container>

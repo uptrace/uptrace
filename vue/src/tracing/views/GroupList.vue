@@ -8,7 +8,7 @@
             <span class="subtitle-1 text--secondary">{{ explore.errorMessage }}</span>
           </v-banner>
 
-          <XCode v-if="explore.query" :code="explore.query" language="sql" />
+          <PrismCode v-if="explore.query" :code="explore.query" language="sql" />
         </v-col>
       </v-row>
     </template>

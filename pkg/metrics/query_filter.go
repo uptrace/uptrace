@@ -89,7 +89,7 @@ func (f *QueryFilter) UnmarshalValues(ctx context.Context, values url.Values) (e
 		metric, err := SelectMetricByName(ctx, f.App, f.ProjectID, metricName)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				f.metricMap[metricAlias] = newInvalidMetric(metricName)
+				f.metricMap[metricAlias] = newInvalidMetric(f.ProjectID, metricName)
 				continue
 			}
 			return err

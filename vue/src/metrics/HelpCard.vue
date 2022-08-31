@@ -54,7 +54,7 @@
             following instructions for your programming language:
           </p>
 
-          <XCode :code="`UPTRACE_DSN=${project.http.dsn}`" />
+          <PrismCode :code="`UPTRACE_DSN=${project.http.dsn}`" />
         </v-col>
       </v-row>
 
@@ -80,7 +80,7 @@
 
           <p>Use the following Uptrace project DSN to configure OpenTelemetry Collector:</p>
 
-          <XCode :code="project.grpc.dsn" />
+          <PrismCode :code="project.grpc.dsn" />
         </v-col>
       </v-row>
 
