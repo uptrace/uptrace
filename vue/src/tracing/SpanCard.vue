@@ -67,7 +67,7 @@
               View trace
             </v-btn>
             <v-btn
-              v-if="$route.name !== groupListRoute"
+              v-if="$route.name !== groupListRoute && $route.name !== spanListRoute"
               depressed
               small
               :to="meta.groupRoute"
