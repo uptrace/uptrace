@@ -21,7 +21,12 @@
 
       <v-spacer />
 
-      <FixedDateRangePicker v-if="trace.root" :date-range="dateRange" :around="trace.root.time" />
+      <FixedDateRangePicker
+        v-if="trace.root"
+        :date-range="dateRange"
+        :around="trace.root.time"
+        show-reload
+      />
     </PageToolbar>
 
     <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="py-4">

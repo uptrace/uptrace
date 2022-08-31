@@ -4,7 +4,7 @@
       <XDate :date="around" format="short" class="mr-2 text-subtitle-2" />
       <PeriodPickerMenu :value="dateRange.duration" :periods="periods" @input="onInputPeriod" />
     </span>
-    <v-btn small outlined class="ml-2" @click="dateRange.reload()">
+    <v-btn v-if="showReload" small outlined class="ml-2" @click="dateRange.reload()">
       <v-icon small left>mdi-refresh</v-icon>
       <span>Reload</span>
     </v-btn>
@@ -42,6 +42,10 @@ export default defineComponent({
     rangeDays: {
       type: Number,
       default: 10,
+    },
+    showReload: {
+      type: Boolean,
+      default: false,
     },
   },
 
