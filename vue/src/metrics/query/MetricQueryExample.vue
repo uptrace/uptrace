@@ -1,7 +1,7 @@
 <template>
   <div class="mb-4">
     <p class="mb-1"><slot name="description" /></p>
-    <XCode :code="query" />
+    <PrismCode :code="query" />
   </div>
 </template>
 

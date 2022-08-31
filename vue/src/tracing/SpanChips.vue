@@ -76,7 +76,9 @@ export default defineComponent({
       const chips: SpanChip[] = []
 
       const service = props.span.attrs[xkey.serviceName]
-      chips.push({ key: xkey.serviceName, value: service, text: service })
+      if (service) {
+        chips.push({ key: xkey.serviceName, value: service, text: service })
+      }
 
       if (props.traceMode) {
         const spanSystem = props.span.system

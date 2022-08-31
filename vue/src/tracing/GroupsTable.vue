@@ -77,7 +77,7 @@
                 <XNum :value="item[col.name]" :name="col.name" />
               </div>
 
-              <XText v-else :value="item[col.name]" :name="col.name" class="word-break-all" />
+              <AnyValue v-else :value="item[col.name]" :name="col.name" />
             </td>
             <td v-if="hasTimeColumn" class="text-no-wrap">
               <slot name="time" :item="item">

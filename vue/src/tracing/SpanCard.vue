@@ -100,14 +100,14 @@
               </v-tab-item>
 
               <v-tab-item value="dbStatement">
-                <XCode :code="dbStatement" language="sql" />
+                <PrismCode :code="dbStatement" language="sql" />
               </v-tab-item>
               <v-tab-item value="dbStatementPretty">
-                <XCode :code="dbStatementPretty" language="sql" />
+                <PrismCode :code="dbStatementPretty" language="sql" />
               </v-tab-item>
 
               <v-tab-item value="excStacktrace">
-                <XCode :code="excStacktrace" />
+                <PrismCode :code="excStacktrace" />
               </v-tab-item>
 
               <v-tab-item value="events">

@@ -24,8 +24,9 @@ type Metric struct {
 	UpdatedAt time.Time `json:"updatedAt" bun:",nullzero,default:CURRENT_TIMESTAMP"`
 }
 
-func newInvalidMetric(metricName string) *Metric {
+func newInvalidMetric(projectID uint32, metricName string) *Metric {
 	return &Metric{
+		ProjectID:  projectID,
 		Name:       metricName,
 		Instrument: InvalidInstrument,
 	}

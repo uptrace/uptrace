@@ -32,7 +32,7 @@
         <tr v-for="(item, i) in items" :key="i">
           <td v-if="attr" class="text-subtitle-1">
             <router-link :to="itemRoute(item.attr)" @click.native.stop>
-              <XText :value="item.attr" :name="attr" />
+              <AnyValue :value="item.attr" :name="attr" />
             </router-link>
           </td>
           <td v-if="hasSystem" class="text-subtitle-1">

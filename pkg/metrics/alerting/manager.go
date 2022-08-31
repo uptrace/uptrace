@@ -76,7 +76,7 @@ func (m *Manager) Run() {
 	}()
 
 	nextCheck := time.Now().
-		Add(30 * time.Second).
+		Add(time.Minute).
 		Truncate(time.Minute).
 		Add(30 * time.Second)
 	for {

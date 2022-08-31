@@ -7,10 +7,10 @@
 
     <v-tabs-items v-model="activeTab">
       <v-tab-item value="grpc">
-        <XCode language="yaml" :code="otlpGrpc"></XCode>
+        <PrismCode language="yaml" :code="otlpGrpc"></PrismCode>
       </v-tab-item>
       <v-tab-item value="http">
-        <XCode language="yaml" :code="otlpHttp"></XCode>
+        <PrismCode language="yaml" :code="otlpHttp"></PrismCode>
       </v-tab-item>
     </v-tabs-items>
   </v-card>
