@@ -4,6 +4,8 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/uptrace/uptrace/pkg/bunlex"
+	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 )
 
@@ -100,4 +102,33 @@ func Array(vs []*commonpb.AnyValue) ([]string, bool) {
 		log.Printf("unsupported attribute value %T", value)
 		return nil, false
 	}
+}
+
+func CleanAttrKey(s string) string {
+	if isValidAttrKey(s) {
+		return s
+	}
+
+	r := make([]byte, 0, len(s))
+	for _, c := range []byte(s) {
+		if isAllowedAttrKeyChar(c) {
+			r = append(r, c)
+		} else {
+			r = append(r, '_')
+		}
+	}
+	return unsafeconv.String(r)
+}
+
+func isValidAttrKey(s string) bool {
+	for _, c := range []byte(s) {
+		if !isAllowedAttrKeyChar(c) {
+			return false
+		}
+	}
+	return true
+}
+
+func isAllowedAttrKeyChar(c byte) bool {
+	return bunlex.IsAlnum(c) || c == '_' || c == '.'
 }

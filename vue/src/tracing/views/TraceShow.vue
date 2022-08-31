@@ -26,8 +26,8 @@
 
     <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="py-4">
       <v-row v-if="trace.root" class="px-4 text-body-2">
-        <v-col>
-          {{ trace.root.name }}
+        <v-col class="word-break-all">
+          {{ eventOrSpanName(trace.root.name) }}
         </v-col>
       </v-row>
 
@@ -190,6 +190,7 @@ export default defineComponent({
       axiosParams,
       groupRoute,
       exploreTraceRoute,
+      eventOrSpanName,
     }
   },
 })

@@ -47,7 +47,7 @@ services:
     image: prom/alertmanager:v0.24.0
     restart: on-failure
     volumes:
-      - .../../config/alertmanager.yml:/etc/alertmanager/config.yml
+      - ../../config/alertmanager.yml:/etc/alertmanager/config.yml
       - alertmanager_data:/alertmanager
     ports:
       - 9093:9093
@@ -60,6 +60,13 @@ services:
     restart: on-failure
     ports:
       - '8025:8025'
+
+  vector:
+    image: timberio/vector:0.24.X-alpine
+    volumes:
+      - ./vector.toml:/etc/vector/vector.toml:ro
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
 
   # jaeger-agent:
   #   image: jaegertracing/jaeger-agent:latest

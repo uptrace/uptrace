@@ -16,7 +16,7 @@
 
     <v-container :fluid="fluid" class="py-4">
       <v-row class="px-4 text-subtitle-1">
-        <v-col>
+        <v-col class="word-break-all">
           <template v-if="span.eventName">
             <span>{{ span.eventName }}</span>
             <template v-if="span.name">
