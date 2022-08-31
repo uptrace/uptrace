@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -58,15 +59,31 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 
 	var group syncutil.Group
 
-	for _, span := range spans {
+	for i, span := range spans {
+		i := i
 		span := span
+
 		group.Go(func() error {
-			return SelectSpan(ctx, h.App, span)
+			switch err := SelectSpan(ctx, h.App, span); err {
+			case nil:
+				return nil
+			case sql.ErrNoRows:
+				spans[i] = nil
+				return nil
+			default:
+				return err
+			}
 		})
 	}
 
 	if err := group.Err(); err != nil {
 		return err
+	}
+
+	for i := len(spans) - 1; i >= 0; i-- {
+		if spans[i] == nil {
+			spans = append(spans[:i], spans[i+1:]...)
+		}
 	}
 
 	return httputil.JSON(w, bunrouter.H{

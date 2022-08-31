@@ -90,6 +90,8 @@ func otlpSpanID(b []byte) uint64 {
 
 func otlpTraceID(b []byte) uuid.UUID {
 	switch len(b) {
+	case 0:
+		return uuid.UUID{}
 	case 16:
 		u, err := uuid.FromBytes(b)
 		if err != nil {

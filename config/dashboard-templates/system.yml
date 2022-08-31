@@ -1,5 +1,5 @@
 id: system.overview
-name: 'system: CPU/RAM/Swap'
+name: 'System: CPU/RAM/Swap'
 
 metrics:
   - system.cpu.load_average.15m as $load_avg_15m
@@ -77,7 +77,7 @@ entries:
 
 ---
 id: system.network
-name: 'system: Network Metrics'
+name: 'System: Network Metrics'
 
 metrics:
   - system.network.connections as $net_conns
@@ -135,7 +135,7 @@ entries:
 
 ---
 id: system.disk
-name: 'system: Disk Metrics'
+name: 'System: Disk Metrics'
 
 metrics:
   - system.disk.io_time as $disk_time
@@ -189,7 +189,7 @@ entries:
 
 ---
 id: system.filesystem
-name: 'system: Filesystem Metrics'
+name: 'System: Filesystem Metrics'
 
 metrics:
   - system.filesystem.usage as $fs_usage

@@ -226,6 +226,13 @@ export default defineComponent({
         xkey.rpcMethod,
         xkey.httpMethod,
         xkey.httpStatusCode,
+        xkey.dbOperation,
+        xkey.dbSqlTables,
+        xkey.logSeverity,
+        xkey.logSource,
+        xkey.logFilePath,
+        xkey.logFileName,
+        xkey.exceptionType,
       ] as string[]
 
       return columnSuggestions.items

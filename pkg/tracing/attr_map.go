@@ -81,6 +81,13 @@ func (m AttrMap) ServiceName() string {
 	return s
 }
 
+func (m AttrMap) ServiceNameOrUnknown() string {
+	if service := m.ServiceName(); service != "" {
+		return service
+	}
+	return "unknown"
+}
+
 func (m AttrMap) HostName() string {
 	s, _ := m[attrkey.HostName].(string)
 	return s

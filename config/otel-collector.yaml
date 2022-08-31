@@ -23,12 +23,39 @@ receivers:
   jaeger:
     protocols:
       grpc:
-  filelog:
-    include: [/var/log/syslog]
+  filelog/syslog:
+    include: ['/var/log/syslog']
     start_at: beginning
     operators:
-      - type: syslog_parser
-        protocol: rfc3164
+      - type: add
+        field: attributes.log.source
+        value: syslog
+  filelog/docker:
+    include: ['/var/lib/docker/containers/*/*.log']
+    start_at: end
+    include_file_path: true
+    include_file_name: false
+    resource: { 'log.source': 'docker' }
+    operators:
+      - type: json_parser
+        id: parser-docker
+        output: extract_metadata_from_filepath
+        timestamp:
+          parse_from: attributes.time
+          layout: '%Y-%m-%dT%H:%M:%S.%LZ'
+      - type: regex_parser
+        id: extract_metadata_from_filepath
+        regex: '^.*containers/(?P<container_id>[^_]+)/.*log$'
+        parse_from: attributes["log.file.path"]
+        output: parse_body
+      - type: move
+        id: parse_body
+        from: attributes.log
+        to: body
+        output: time
+      - type: remove
+        id: time
+        field: attributes.time
 
 processors:
   resourcedetection:
@@ -44,7 +71,7 @@ exporters:
     endpoint: localhost:14317
     tls:
       insecure: true
-    headers: { 'uptrace-dsn': 'http://project2_secret_token@localhost:14317/2' }
+    headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14317/1' }
 
 service:
   pipelines:
@@ -53,11 +80,15 @@ service:
       processors: [batch]
       exporters: [otlp, logging]
     metrics:
-      receivers: [otlp, hostmetrics]
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp]
+    metrics/hostmetrics:
+      receivers: [hostmetrics]
       processors: [batch, resourcedetection]
       exporters: [otlp]
     logs:
-      receivers: [otlp, filelog]
+      receivers: [otlp, filelog/syslog, filelog/docker]
       processors: [batch]
       exporters: [otlp]
 

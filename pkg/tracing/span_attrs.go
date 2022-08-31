@@ -53,13 +53,6 @@ func newSpanContext(ctx context.Context) *spanContext {
 func initSpan(ctx *spanContext, span *Span) {
 	initSpanAttrs(ctx, span)
 
-	if span.Attrs.ServiceName() == "" {
-		span.Attrs[attrkey.ServiceName] = "unknown_service"
-	}
-	if span.Attrs.HostName() == "" {
-		span.Attrs[attrkey.HostName] = "unknown_host"
-	}
-
 	if span.EventName != "" {
 		assignEventSystemAndGroupID(ctx, span)
 	} else {
@@ -333,7 +326,7 @@ func isSQLKeyword(s string) bool {
 
 func assignSpanSystemAndGroupID(ctx *spanContext, span *Span) {
 	if s := span.Attrs.Text(attrkey.RPCSystem); s != "" {
-		span.System = RPCSpanType + ":" + span.Attrs.ServiceName()
+		span.System = RPCSpanType + ":" + span.Attrs.ServiceNameOrUnknown()
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span,
 				attrkey.RPCSystem,
@@ -374,7 +367,7 @@ func assignSpanSystemAndGroupID(ctx *spanContext, span *Span) {
 	}
 
 	if span.Attrs.Has(attrkey.HTTPRoute) || span.Attrs.Has(attrkey.HTTPTarget) {
-		span.System = HTTPSpanType + ":" + span.Attrs.ServiceName()
+		span.System = HTTPSpanType + ":" + span.Attrs.ServiceNameOrUnknown()
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span, attrkey.HTTPMethod, attrkey.HTTPRoute)
 		})
@@ -382,7 +375,7 @@ func assignSpanSystemAndGroupID(ctx *spanContext, span *Span) {
 	}
 
 	if span.ParentID == 0 || span.Kind != InternalSpanKind {
-		span.System = ServiceSpanType + ":" + span.Attrs.ServiceName()
+		span.System = ServiceSpanType + ":" + span.Attrs.ServiceNameOrUnknown()
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span)
 		})
@@ -408,10 +401,6 @@ func hashSpan(digest *xxhash.Digest, span *Span, keys ...string) {
 		digest.WriteString(span.EventName)
 	} else {
 		digest.WriteString(span.Name)
-	}
-
-	if env, _ := span.Attrs[attrkey.DeploymentEnvironment].(string); env != "" {
-		digest.WriteString(env)
 	}
 
 	for _, key := range keys {
