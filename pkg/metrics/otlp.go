@@ -181,7 +181,7 @@ func (s *MetricsServiceServer) export(
 	for _, rms := range req.ResourceMetrics {
 		p.resource = make(AttrMap, len(rms.Resource.Attributes))
 		otlpconv.ForEachKeyValue(rms.Resource.Attributes, func(key string, value any) {
-			p.resource[cleanAttrKey(key)] = fmt.Sprint(value)
+			p.resource[key] = fmt.Sprint(value)
 		})
 
 		for _, sm := range rms.ScopeMetrics {
@@ -381,14 +381,14 @@ func (p *otlpProcessor) nextMeasure(
 	attrs := make(AttrMap, len(p.resource)+len(labels))
 	attrs.Merge(p.resource)
 	otlpconv.ForEachKeyValue(labels, func(key string, value any) {
-		attrs[cleanAttrKey(key)] = fmt.Sprint(value)
+		attrs[key] = fmt.Sprint(value)
 	})
 
 	out := new(Measure)
 
 	out.ProjectID = p.project.ID
 	// enqueue will check whether metric name is empty.
-	out.Metric = cleanMetricName(metric.Name)
+	out.Metric = otlpconv.CleanAttrKey(metric.Name)
 	out.Description = metric.Description
 	out.Unit = bununit.FromString(metric.Unit)
 	out.Instrument = instrument

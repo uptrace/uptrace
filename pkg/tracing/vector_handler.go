@@ -14,6 +14,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -133,7 +134,7 @@ func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, vector A
 			}
 		default:
 			// Plain keys have a priority over discovered keys.
-			attrs[key] = value
+			attrs[otlpconv.CleanAttrKey(key)] = value
 		}
 	}
 }
