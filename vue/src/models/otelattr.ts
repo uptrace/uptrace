@@ -48,6 +48,9 @@ export enum xkey {
   exceptionStacktrace = 'exception.stacktrace',
 
   logSeverity = 'log.severity',
+  logSource = 'log.source',
+  logFilePath = 'log.file.path',
+  logFileName = 'log.file.name',
   logMessage = 'log.message',
 
   codeFunction = 'code.function',

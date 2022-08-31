@@ -3,7 +3,6 @@ package tracing
 import (
 	"context"
 	"errors"
-	"fmt"
 	"math/rand"
 	"reflect"
 	"time"
@@ -44,8 +43,6 @@ func NewLogsServiceServer(app *bunapp.App, sp *SpanProcessor) *LogsServiceServer
 func (s *LogsServiceServer) Export(
 	ctx context.Context, req *collectorlogs.ExportLogsServiceRequest,
 ) (*collectorlogs.ExportLogsServiceResponse, error) {
-	fmt.Println("UP")
-
 	if ctx.Err() == context.Canceled {
 		return nil, status.Error(codes.Canceled, "Client cancelled, abandoning.")
 	}
@@ -102,7 +99,9 @@ func (s *LogsServiceServer) convLog(resource AttrMap, lr *logspb.LogRecord) *Spa
 
 	span.ID = rand.Uint64()
 	span.ParentID = otlpSpanID(lr.SpanId)
-	span.TraceID = otlpTraceID(lr.TraceId)
+	if lr.TraceId != nil {
+		span.TraceID = otlpTraceID(lr.TraceId)
+	}
 
 	span.EventName = LogEventType
 	span.Kind = InternalSpanKind
