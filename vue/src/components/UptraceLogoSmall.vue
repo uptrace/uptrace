@@ -1,5 +1,10 @@
 <template>
-  <a href="https://uptrace.dev/" class="d-inline-block" v-bind="$attrs" v-on="$listeners">
+  <a
+    href="https://uptrace.dev/compare-open-source"
+    class="d-inline-block"
+    v-bind="$attrs"
+    v-on="$listeners"
+  >
     <v-img
       src="/uptrace/logo-small.svg"
       :max-width="width"
