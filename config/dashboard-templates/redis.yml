@@ -1,5 +1,5 @@
 id: db.redis
-name: 'db: Redis'
+name: 'DB: Redis'
 
 metrics:
   - redis.memory.fragmentation_ratio as $fragmentation
@@ -7,6 +7,7 @@ metrics:
   - redis.keys.evicted as $keys_evicted
 query:
   - group by host.name
+  - group by redis.version
   - $fragmentation
   - per_min($conns_rejected) as conns_rejected
   - per_min($keys_evicted) as keys_evicted

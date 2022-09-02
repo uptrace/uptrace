@@ -155,10 +155,16 @@ func (s *CHStorage) subquery(
 		GroupExpr("metric")
 
 	if len(f.Filters) > 0 {
-		q = s.filters(q, f.Filters)
+		q, err = s.filters(q, f.Filters)
+		if err != nil {
+			return nil, err
+		}
 	}
 	for _, filters := range f.Where {
-		q = s.filters(q, filters)
+		q, err = s.filters(q, filters)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(f.Grouping) > 0 {
@@ -222,7 +228,7 @@ func (s *CHStorage) subquery(
 	return q, nil
 }
 
-func (s *CHStorage) filters(q *ch.SelectQuery, filters []ast.Filter) *ch.SelectQuery {
+func (s *CHStorage) filters(q *ch.SelectQuery, filters []ast.Filter) (*ch.SelectQuery, error) {
 	var b []byte
 	for i := range filters {
 		filter := &filters[i]
@@ -252,9 +258,11 @@ func (s *CHStorage) filters(q *ch.SelectQuery, filters []ast.Filter) *ch.SelectQ
 			b = chschema.AppendQuery(b, "? LIKE ?", col, filter.RHS)
 		case ast.FilterNotLike:
 			b = chschema.AppendQuery(b, "? NOT LIKE ?", col, filter.RHS)
+		default:
+			return nil, fmt.Errorf("unsupported op: %s", filter.Op)
 		}
 	}
-	return q.Where(unsafeconv.String(b))
+	return q.Where(unsafeconv.String(b)), nil
 }
 
 func (s *CHStorage) agg(

@@ -9,6 +9,31 @@ query:
   - per_min($spans) as spans_per_min
   - per_min($measures) as measures_per_min
 
+entries:
+  - name: Number of processed spans
+    metrics:
+      - uptrace.projects.spans as $spans
+    query:
+      - per_min($spans) group by type
+
+  - name: Spans buffer size
+    metrics:
+      - uptrace.spans.buffer_size as $spans_buffer
+    query:
+      - $spans_buffer
+
+  - name: Number of processed measures
+    metrics:
+      - uptrace.projects.measures as $measures
+    query:
+      - per_min($measures) group by type
+
+  - name: Measures buffer size
+    metrics:
+      - uptrace.measures.buffer_size as $measures_buffer
+    query:
+      - $measures_buffer
+
 ---
 id: uptrace.hosts
 name: 'Uptrace: Hosts'
