@@ -66,7 +66,7 @@
               :order="tableQuery.order"
               :axios-params="axiosParams"
               :column-map="dashboard.columnMap"
-              @click="itemViewer.show"
+              v-on="itemViewer.listeners"
             >
             </MetricItemsTable>
           </v-card-text>
@@ -137,6 +137,10 @@ import DashGrid from '@/metrics/DashGrid.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
+
+interface Props {
+  dashboard: UseDashboard
+}
 
 export default defineComponent({
   name: 'DashTable',
@@ -257,7 +261,7 @@ export default defineComponent({
       tableQueryMan,
       axiosParams,
 
-      itemViewer: useItemViewer(),
+      itemViewer: useItemViewer(props),
 
       onSave,
       onCancel,
@@ -265,21 +269,30 @@ export default defineComponent({
   },
 })
 
-function useItemViewer() {
+function useItemViewer(props: Props) {
   const dialog = shallowRef(false)
   const activeItem = shallowRef<TableItem>()
   const baseQuery = shallowRef('')
+
+  const listeners = computed(() => {
+    if (props.dashboard.isTemplate && !props.dashboard.entries.length) {
+      return {}
+    }
+    return {
+      click: show,
+    }
+  })
+
+  watch(activeItem, (item) => {
+    baseQuery.value = item ? item[xkey.itemQuery] : ''
+  })
 
   function show(item: TableItem) {
     activeItem.value = item
     dialog.value = true
   }
 
-  watch(activeItem, (item) => {
-    baseQuery.value = item ? item[xkey.itemQuery] : ''
-  })
-
-  return proxyRefs({ dialog, active: activeItem, baseQuery, show })
+  return proxyRefs({ dialog, active: activeItem, baseQuery, listeners })
 }
 </script>
 

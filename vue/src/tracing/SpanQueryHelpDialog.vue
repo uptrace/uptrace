@@ -77,7 +77,11 @@
         <v-card-actions>
           <v-spacer />
           <v-btn text color="primary" @click="dialog = false">Close</v-btn>
-          <v-btn text color="primary" href="https://uptrace.dev/docs/querying.html" target="_blank"
+          <v-btn
+            text
+            color="primary"
+            href="https://uptrace.dev/get/querying-spans.html"
+            target="_blank"
             >Read more</v-btn
           >
         </v-card-actions>

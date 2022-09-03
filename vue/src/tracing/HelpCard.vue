@@ -85,7 +85,9 @@
       <v-row>
         <v-col class="text-subtitle-1">
           See
-          <a href="https://uptrace.dev/docs/logging.html" target="_blank">documentation</a>
+          <a href="https://uptrace.dev/opentelemetry/structured-logging.html" target="_blank"
+            >documentation</a
+          >
           for more details.
         </v-col>
       </v-row>

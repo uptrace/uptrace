@@ -3,7 +3,7 @@
     <v-card outlined>
       <v-toolbar color="light-blue lighten-5" flat>
         <v-toolbar-title>Dashboard entry</v-toolbar-title>
-        <v-btn icon href="https://uptrace.dev/docs/querying-metrics.html" target="_blank"
+        <v-btn icon href="https://uptrace.dev/get/querying-metrics.html" target="_blank"
           ><v-icon>mdi-help-circle-outline</v-icon></v-btn
         >
 
