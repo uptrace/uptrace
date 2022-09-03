@@ -33,7 +33,7 @@ distro. To get some test data, just reload the UI few times. It usually takes ab
 the data to appear.
 
 To configure OpenTelemetry for your programming language, see
-[documentation](https://uptrace.dev/docs/).
+[documentation](https://uptrace.dev/get/).
 
 ## Alerting
 

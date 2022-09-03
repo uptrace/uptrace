@@ -8,4 +8,4 @@ To run this example:
 vector --config vector.toml
 ```
 
-See [Logging](https://uptrace.dev/docs/logging.html) documentation for details.
+See [Logging](https://uptrace.dev/opentelemetry/structured-logging.html) documentation for details.

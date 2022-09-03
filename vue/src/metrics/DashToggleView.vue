@@ -24,7 +24,7 @@
     </v-btn-toggle>
     <v-btn
       icon
-      href="https://uptrace.dev/docs/querying-metrics.html#dashboards"
+      href="https://uptrace.dev/get/querying-metrics.html#dashboards"
       target="_blank"
       class="ml-1"
     >

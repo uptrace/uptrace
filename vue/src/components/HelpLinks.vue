@@ -9,9 +9,8 @@
         <v-card-text class="text-subtitle-1 text--primary">
           <ul>
             <li>
-              <a href="https://uptrace.dev/docs/" target="_blank">Documentation</a> - getting
-              started with OpenTelemetry distro for Uptrace, for example, uptrace-go or
-              uptrace-python.
+              <a href="https://uptrace.dev/get/" target="_blank">Documentation</a> - getting started
+              with OpenTelemetry distro for Uptrace, for example, uptrace-go or uptrace-python.
             </li>
             <li>
               <a href="https://uptrace.dev/opentelemetry/" target="_blank">OpenTelemetry</a> -

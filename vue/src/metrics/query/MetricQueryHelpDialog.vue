@@ -147,7 +147,7 @@
             <v-btn
               text
               color="primary"
-              href="https://uptrace.dev/docs/querying-metrics.html"
+              href="https://uptrace.dev/get/querying-metrics.html"
               target="_blank"
               >Read more</v-btn
             >
