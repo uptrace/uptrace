@@ -23,14 +23,10 @@ uses OpenTelelemetry to collect data and ClickHouse database to store it.
 - Excellent on-disk compression, for example, 1KB span can be compressed down to <40 bytes.
 - S3 storage support with ability to automatically upload cold data to S3-like storage.
 
-## Getting started
+## Quickstart
 
-- [**Public demo**](https://app.uptrace.dev/play) to play with Uptrace.
-- [**Docker example**](example/docker) to install Uptrace with a single command.
-- [**Installation**](https://uptrace.dev/get/install.html) guide with pre-compiled binaries for
-  Linux, MacOS, and Windows.
-
-Have questions? Get help via [Telegram](https://t.me/uptrace).
+- Run [Docker example](example/docker) or play with [public demo](https://app.uptrace.dev/play).
+- Follow [getting started guide](https://uptrace.dev/get/get-started.html).
 
 ## FAQ
 
@@ -39,8 +35,9 @@ Have questions? Get help via [Telegram](https://t.me/uptrace).
 The Business Source [License](LICENSE) is identical to Apache 2.0 with the only exception being that
 you can't use the code to create a cloud service or, in other words, resell the product to others.
 
-BSL is adopted by MariaDB, Sentry, CockroachDB, Couchbase and many others. In most cases it is a
-more permissive license than, for example, AGPL, because it allows private changes to the code.
+BSL is adopted by MariaDB, Sentry, CockroachDB, Couchbase and many others. In most cases, it is a
+more permissive license than, for example, AGPL, because it allows you to make private changes to
+the code.
 
 In three years, the code also becomes available under Apache 2.0 license. You can learn more about
 BSL [here](https://mariadb.com/bsl-faq-adopting/).
