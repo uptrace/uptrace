@@ -30,13 +30,13 @@ export function useWatchAxiosConfig(source: AxiosRequestSource, cb: AxiosWatchCa
     req: AxiosRequestConfig | undefined,
     _prevReq: AxiosRequestConfig | undefined,
     onInvalidate: InvalidateCbRegistrator,
-  ) => {
+  ): Promise<any> => {
     abortCtrl = new AbortController()
-    cb(req, prevReq, onInvalidate, abortCtrl)
-      .catch(() => {})
-      .finally(() => {
-        abortCtrl = undefined
-      })
+    const promise = cb(req, prevReq, onInvalidate, abortCtrl).catch(() => {})
+    promise.finally(() => {
+      abortCtrl = undefined
+    })
+    return promise
   }
 
   let handler: VueCallBack<AxiosRequestConfig> = (req, _prevReq, onInvalidate): void => {
@@ -72,17 +72,19 @@ export function useWatchAxiosConfig(source: AxiosRequestSource, cb: AxiosWatchCa
 
     if (req) {
       if (abortCtrl && !reqChanged(req)) {
-        return
+        return Promise.reject()
       }
       return wrappedCB(req, prevReq, onInvalidate)
     }
 
     if (prevReq) {
       if (abortCtrl) {
-        return
+        return Promise.reject()
       }
       return wrappedCB(prevReq, undefined, onInvalidate)
     }
+
+    return Promise.reject()
   }
 
   function reqChanged(req: AxiosRequestConfig | undefined) {
