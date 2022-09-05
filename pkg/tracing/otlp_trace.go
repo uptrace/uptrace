@@ -101,7 +101,9 @@ func (s *TraceServiceServer) process(
 		for _, ss := range rss.ScopeSpans {
 			lib := ss.Scope
 			if lib != nil {
-				resource[attrkey.OtelLibraryName] = lib.Name
+				if lib.Name != "" {
+					resource[attrkey.OtelLibraryName] = lib.Name
+				}
 				if lib.Version != "" {
 					resource[attrkey.OtelLibraryVersion] = lib.Version
 				}
