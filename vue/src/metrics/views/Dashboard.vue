@@ -124,8 +124,9 @@ export default defineComponent({
     })
 
     function onCreateDash(dash: Dashboard) {
-      router.replace({ name: 'MetricsDashShow', params: { dashId: dash.id } })
-      dashboards.reload()
+      dashboards.reload().then(() => {
+        router.replace({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+      })
     }
 
     function onChangeView() {

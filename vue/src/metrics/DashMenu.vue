@@ -19,7 +19,7 @@
           </v-list-item>
         </template>
 
-        <DashNewForm @create="onCreateDashboard">
+        <DashNewForm @create="onCreateDash">
           <template #prepend-actions>
             <v-btn color="blue darken-1" text @click="closeDialog">Cancel</v-btn>
           </template>
@@ -38,14 +38,14 @@
           </v-list-item>
         </template>
 
-        <DashEditForm :dashboard="dashboard.data" @update="onUpdateDashboard">
+        <DashEditForm :dashboard="dashboard.data" @update="onUpdateDash">
           <template #prepend-actions>
             <v-btn color="primary" text @click="closeDialog">Cancel</v-btn>
           </template>
         </DashEditForm>
       </v-dialog>
 
-      <v-list-item ripple @click="cloneDashboard">
+      <v-list-item ripple @click="cloneDash">
         <v-list-item-action>
           <v-icon>mdi-playlist-play</v-icon>
         </v-list-item-action>
@@ -54,7 +54,7 @@
         </v-list-item-content>
       </v-list-item>
 
-      <v-list-item v-if="!dashboard.isTemplate" ripple @click="deleteDashboard">
+      <v-list-item v-if="!dashboard.isTemplate" ripple @click="deleteDash">
         <v-list-item-action>
           <v-icon>mdi-playlist-minus</v-icon>
         </v-list-item-action>
@@ -103,17 +103,18 @@ export default defineComponent({
 
     const dashMan = useDashManager()
 
-    function onUpdateDashboard() {
+    function onUpdateDash() {
       editDialog.value = false
       menu.value = false
       props.dashboards.reload()
     }
 
-    function onCreateDashboard(dash: Dashboard) {
+    function onCreateDash(dash: Dashboard) {
       newDialog.value = false
       menu.value = false
-      props.dashboards.reload()
-      router.push({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+      props.dashboards.reload().then(() => {
+        router.push({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+      })
     }
 
     function closeDialog() {
@@ -122,18 +123,19 @@ export default defineComponent({
       menu.value = false
     }
 
-    function cloneDashboard() {
+    function cloneDash() {
       if (!props.dashboard.data) {
         return
       }
 
       dashMan.clone(props.dashboard.data).then((dash) => {
-        props.dashboards.reload()
-        router.push({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+        props.dashboards.reload().then(() => {
+          router.push({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+        })
       })
     }
 
-    function deleteDashboard() {
+    function deleteDash() {
       if (!props.dashboard.data) {
         return
       }
@@ -150,12 +152,12 @@ export default defineComponent({
 
       dashMan,
 
-      onUpdateDashboard,
-      onCreateDashboard,
+      onUpdateDash,
+      onCreateDash,
       closeDialog,
 
-      cloneDashboard,
-      deleteDashboard,
+      cloneDash,
+      deleteDash,
     }
   },
 })
