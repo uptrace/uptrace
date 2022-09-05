@@ -23,7 +23,7 @@
         <v-col v-if="dashboard.data" cols="auto">
           <div v-if="dashboard.isTemplate">
             <DashLockedIcon />
-            <DashCloneBtn :dashboard="dashboard" class="ml-2" @update:clone="dashboards.reload()" />
+            <DashCloneBtn :dashboard="dashboard" class="ml-2" @click:clone="onCloneDash" />
           </div>
           <DashToggleView v-else :dashboard="dashboard" @input:view="onChangeView" />
         </v-col>
@@ -129,6 +129,12 @@ export default defineComponent({
       })
     }
 
+    function onCloneDash(dash: Dashboard) {
+      dashboards.reload().then(() => {
+        router.replace({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+      })
+    }
+
     function onChangeView() {
       editing.value = true
     }
@@ -140,6 +146,7 @@ export default defineComponent({
       editing,
 
       onCreateDash,
+      onCloneDash,
       onChangeView,
     }
   },

@@ -38,6 +38,11 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 	}
 	disableColumnsAndGroups(f.parts)
 
+	if isAggAttr(f.SortBy) {
+		f.SortBy = attrkey.SpanDuration
+		f.SortDesc = true
+	}
+
 	q := buildSpanIndexQuery(h.App, f, f.Duration().Minutes()).
 		ColumnExpr("id").
 		ColumnExpr("trace_id").

@@ -188,7 +188,11 @@ func isAggColumn(col upql.Name) bool {
 	if col.FuncName != "" {
 		return true
 	}
-	switch col.AttrKey {
+	return isAggAttr(col.AttrKey)
+}
+
+func isAggAttr(attrKey string) bool {
+	switch attrKey {
 	case attrkey.SpanCount, attrkey.SpanCountPerMin, attrkey.SpanErrorCount, attrkey.SpanErrorPct:
 		return true
 	default:

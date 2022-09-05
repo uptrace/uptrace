@@ -5,7 +5,6 @@
 </template>
 
 <script lang="ts">
-import { useRouter } from '@/use/router'
 import { defineComponent, PropType } from 'vue'
 
 // Utilities
@@ -22,13 +21,11 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
-    const { router } = useRouter()
     const dashMan = useDashManager()
 
     function cloneDashboard() {
       dashMan.clone(props.dashboard.data!).then((dash) => {
-        ctx.emit('update:clone', dash)
-        router.push({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+        ctx.emit('click:clone', dash)
       })
     }
 
