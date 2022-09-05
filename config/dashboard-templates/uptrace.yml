@@ -1,4 +1,4 @@
-id: uptrace.projects
+id: uptrace.collector.projects
 name: 'Uptrace: Projects'
 
 metrics:
@@ -35,7 +35,7 @@ entries:
       - $measures_buffer
 
 ---
-id: uptrace.hosts
+id: uptrace.collector.hosts
 name: 'Uptrace: Hosts'
 
 metrics:
@@ -75,7 +75,7 @@ entries:
       - $measures_buffer
 
 ---
-id: uptrace.spans_by_host_name
+id: uptrace.collector.spans_by_host
 name: 'Spans: By host.name'
 
 metrics:
@@ -88,7 +88,7 @@ query:
   - p99($spans) as p99
 
 ---
-id: uptrace.spans_by_service_name
+id: uptrace.spans_by_service
 name: 'Spans: By service.name'
 
 metrics:
@@ -101,7 +101,7 @@ query:
   - p99($spans) as p99
 
 ---
-id: uptrace.spans_by_system
+id: uptrace.collector.spans_by_system
 name: 'Spans: By span.system'
 
 metrics:

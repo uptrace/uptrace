@@ -2,7 +2,12 @@
   <span>
     <span class="text-no-wrap">
       <XDate :date="around" format="short" class="mr-2 text-subtitle-2" />
-      <PeriodPickerMenu :value="dateRange.duration" :periods="periods" @input="onInputPeriod" />
+      <PeriodPickerMenu
+        v-if="dateRange.duration"
+        :value="dateRange.duration"
+        :periods="periods"
+        @input="onInputPeriod"
+      />
     </span>
     <v-btn v-if="showReload" small outlined class="ml-2" @click="dateRange.reload()">
       <v-icon small left>mdi-refresh</v-icon>
@@ -60,13 +65,13 @@ export default defineComponent({
           return
         }
 
-        const period = periods.value.find((p) => p.ms === hour)
+        const period = periods.value.find((p) => p.milliseconds === hour)
         if (period) {
-          props.dateRange.changeDuration(period.ms)
+          props.dateRange.changeAround(props.around, period.milliseconds)
           return
         }
 
-        props.dateRange.changeDuration(periods.value[0].ms)
+        props.dateRange.changeAround(props.around, periods.value[0].milliseconds)
       })
     })
 
@@ -79,7 +84,7 @@ export default defineComponent({
     )
 
     function onInputPeriod(ms: number) {
-      props.dateRange.changeDuration(ms)
+      props.dateRange.changeAround(props.around, ms)
     }
 
     return { periods, onInputPeriod }

@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/urfave/cli/v2"
@@ -72,6 +73,10 @@ func validateYAML(b []byte) error {
 			return err
 		}
 
+		const prefix = "uptrace."
+		if !strings.HasPrefix(dashboard.ID, prefix) {
+			return fmt.Errorf("%s must have %q prefix", dashboard.ID, prefix)
+		}
 		if err := dashboard.Validate(); err != nil {
 			return err
 		}

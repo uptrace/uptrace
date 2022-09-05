@@ -1,4 +1,4 @@
-id: http.server
+id: uptrace.http.server_by_service_host
 name: 'HTTP: Server'
 
 metrics:
