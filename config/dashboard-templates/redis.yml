@@ -1,4 +1,4 @@
-id: db.redis
+id: uptrace.db.redis_by_host_redis_version
 name: 'DB: Redis'
 
 metrics:

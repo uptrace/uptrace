@@ -1,4 +1,4 @@
-id: system.overview
+id: uptrace.system.overview_by_host
 name: 'System: CPU/RAM/Swap'
 
 metrics:
@@ -76,7 +76,7 @@ entries:
       - per_min($page_faults) as page_faults
 
 ---
-id: system.network
+id: uptrace.system.network_by_host
 name: 'System: Network Metrics'
 
 metrics:
@@ -134,7 +134,7 @@ entries:
       - per_min($net_packets{direction=receive}) as receive
 
 ---
-id: system.disk
+id: uptrace.system.disk_by_host_device
 name: 'System: Disk Metrics'
 
 metrics:
@@ -188,7 +188,7 @@ entries:
       - $pending_ops
 
 ---
-id: system.filesystem
+id: uptrace.system.filesystem_by_host_device
 name: 'System: Filesystem Metrics'
 
 metrics:

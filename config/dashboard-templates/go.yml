@@ -1,4 +1,4 @@
-id: go.runtime
+id: uptrace.go.runtime_by_service_host
 name: 'Go: Runtime'
 
 metrics:
@@ -52,7 +52,7 @@ entries:
       - $cgo_calls
 
 ---
-id: go.sql_client
+id: uptrace.go.sql_client_by_service_host
 name: 'Go: SQL client'
 
 metrics:

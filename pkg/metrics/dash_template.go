@@ -34,7 +34,7 @@ type DashSyncer struct {
 	debouncerMapMu sync.Mutex
 	debouncerMap   map[uint32]*bunutil.Debouncer
 
-	logger otelzap.Logger
+	logger *otelzap.Logger
 }
 
 func NewDashSyncer(app *bunapp.App) *DashSyncer {
@@ -44,6 +44,7 @@ func NewDashSyncer(app *bunapp.App) *DashSyncer {
 			Transport: otelhttp.NewTransport(http.DefaultTransport),
 		},
 		debouncerMap: make(map[uint32]*bunutil.Debouncer),
+		logger:       app.Logger,
 	}
 
 	ctx := app.Context()
@@ -174,6 +175,7 @@ func (s *DashSyncer) syncDashboards(ctx context.Context, projectID uint32) error
 		builder := &DashBuilder{
 			metricMap: metricMap,
 			dash:      dash,
+			logger:    s.logger,
 		}
 		if err := builder.Build(tpl); err != nil {
 			return fmt.Errorf("building dashboard %s failed: %w", tpl.ID, err)
@@ -197,6 +199,7 @@ type DashBuilder struct {
 	metricMap map[string]*Metric
 	dash      *Dashboard
 	entries   []*DashEntry
+	logger    *otelzap.Logger
 }
 
 func (b *DashBuilder) Build(tpl *bunconf.Dashboard) error {
@@ -237,6 +240,9 @@ func (b *DashBuilder) entry(tpl *bunconf.DashEntry) error {
 
 	for _, metric := range metrics {
 		if _, ok := b.metricMap[metric.Name]; !ok {
+			b.logger.Debug("metric not found",
+				zap.Uint32("project_id", b.dash.ProjectID),
+				zap.String("metric", metric.Name))
 			return nil
 		}
 	}
@@ -255,6 +261,9 @@ func (b *DashBuilder) entry(tpl *bunconf.DashEntry) error {
 func (b *DashBuilder) Save(ctx context.Context, app *bunapp.App) error {
 	for _, metric := range b.dash.Metrics {
 		if _, ok := b.metricMap[metric.Name]; !ok {
+			b.logger.Debug("metric not found",
+				zap.Uint32("project_id", b.dash.ProjectID),
+				zap.String("metric", metric.Name))
 			return nil
 		}
 	}
