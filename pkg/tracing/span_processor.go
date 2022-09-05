@@ -225,7 +225,7 @@ func (s *SpanProcessor) notifyOnErrors(ctx context.Context, errors []*Span) {
 
 	for i, error := range errors {
 		labels := models.LabelSet{
-			"alertname":  error.EventName,
+			"alertname":  "New error has occurred",
 			"project_id": strconv.FormatUint(uint64(error.ProjectID), 10),
 			"system":     error.System,
 			"group_id":   strconv.FormatUint(error.GroupID, 10),
@@ -247,8 +247,9 @@ func (s *SpanProcessor) notifyOnErrors(ctx context.Context, errors []*Span) {
 				GeneratorURL: strfmt.URI(traceURL),
 			},
 			Annotations: models.LabelSet{
-				"span_name": error.Name,
-				"trace_id":  error.TraceID.String(),
+				"span_name":  error.Name,
+				"event_name": error.EventName,
+				"trace_id":   error.TraceID.String(),
 			},
 		}
 	}
