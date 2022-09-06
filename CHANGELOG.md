@@ -2,7 +2,7 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
-## v1.0.0 - Unreleased
+## v1.0.0 - Sep 6 2022
 
 ### Added
 
