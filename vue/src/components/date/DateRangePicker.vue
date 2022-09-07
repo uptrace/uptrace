@@ -75,13 +75,13 @@ export default defineComponent({
           return
         }
 
-        const period = periods.value.find((p) => p.ms === props.defaultPeriod)
+        const period = periods.value.find((p) => p.milliseconds === props.defaultPeriod)
         if (period) {
-          props.dateRange.changeDuration(period.ms)
+          props.dateRange.changeDuration(period.milliseconds)
           return
         }
 
-        props.dateRange.changeDuration(periods.value[0].ms)
+        props.dateRange.changeDuration(periods.value[0].milliseconds)
       })
     })
 
