@@ -62,6 +62,18 @@ ch:
 ##
 alerting:
   rules:
+    - name: Redis read hit rate < 90%
+      metrics:
+        - redis_keyspace_read_hits as $hits
+        - redis_keyspace_read_misses as $misses
+      query:
+        - group by cluster
+        - group by bdb
+        - group by node
+        - $hits / ($hits + $misses) < 0.9
+      for: 5m
+      projects: [1]
+
     - name: Network errors
       metrics:
         - system.network.errors as $net_errors

@@ -23,6 +23,22 @@ receivers:
   jaeger:
     protocols:
       grpc:
+  prometheus_simple/cluster1:
+    collection_interval: 10s
+    endpoint: 'localhost:8070'
+    metrics_path: '/'
+    tls:
+      insecure: false
+      insecure_skip_verify: true
+      min_version: '1.0'
+  prometheus_simple/cluster2:
+    collection_interval: 10s
+    endpoint: 'localhost:8071'
+    metrics_path: '/'
+    tls:
+      insecure: false
+      insecure_skip_verify: true
+      min_version: '1.0'
 
 processors:
   resourcedetection:
@@ -41,13 +57,16 @@ exporters:
     headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14317/1' }
 
 service:
+  # telemetry:
+  #   logs:
+  #     level: DEBUG
   pipelines:
     traces:
       receivers: [otlp, jaeger]
       processors: [batch]
       exporters: [otlp, logging]
     metrics:
-      receivers: [otlp]
+      receivers: [otlp, prometheus_simple/cluster1, prometheus_simple/cluster2]
       processors: [batch]
       exporters: [otlp]
     metrics/hostmetrics:

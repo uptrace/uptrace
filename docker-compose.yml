@@ -21,14 +21,10 @@ services:
       - 'host.docker.internal:host-gateway'
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.58.0
+    image: otel/opentelemetry-collector-contrib:0.59.0
     restart: on-failure
-    user: '0:0' # required for logs
-    privileged: true # required for logs
     volumes:
       - ./config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/log:/var/log:ro
     network_mode: host
 
   alertmanager:
@@ -49,8 +45,34 @@ services:
     ports:
       - '8025:8025'
 
+  redis1:
+    image: redislabs/redis:latest
+    restart: on-failure
+    volumes:
+      - redislabs_data_1:/opt/redislabs
+    ports:
+      - '8443:8443'
+      - '9443:9443'
+      - '12000:12000'
+      - '8070:8070'
+    privileged: true
+
+  redis2:
+    image: redislabs/redis:latest
+    restart: on-failure
+    ports:
+      - '8444:8443'
+      - '9444:9443'
+      - '12001:12000'
+      - '8071:8070'
+    privileged: true
+
 volumes:
   ch_data:
     driver: local
   alertmanager_data:
+    driver: local
+  redislabs_data_1:
+    driver: local
+  redislabs_data_2:
     driver: local
