@@ -109,8 +109,8 @@ alerting:
 ## AlertManager client configuration.
 ## See https://uptrace.dev/get/alerting.html for details.
 ##
-## Note that this is NOT AlertManager configuration and AlertManager must be configured
-## separately. See https://prometheus.io/docs/alerting/latest/configuration/ for details.
+## Note that this is NOT an AlertManager config and you need to configure AlertManager separately.
+## See https://prometheus.io/docs/alerting/latest/configuration/ for details.
 ##
 alertmanager_client:
   # AlertManager API endpoints that Uptrace uses to manage alerts.
