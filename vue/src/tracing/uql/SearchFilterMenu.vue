@@ -167,8 +167,12 @@ function useAttrSet(attrKeys: Ref<string[]>) {
         attrKeys: [xkey.spanName, xkey.spanEventName],
       },
       {
-        value: 'log or error',
-        attrKeys: [xkey.exceptionType, xkey.exceptionMessage, xkey.logSeverity, xkey.logMessage],
+        value: 'log',
+        attrKeys: [xkey.logSeverity, xkey.logMessage],
+      },
+      {
+        value: 'exception',
+        attrKeys: [xkey.exceptionType, xkey.exceptionMessage],
       },
       {
         value: 'code',
