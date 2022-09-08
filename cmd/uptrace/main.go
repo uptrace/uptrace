@@ -122,31 +122,13 @@ var serveCommand = &cli.Command{
 		grpcLn, err := net.Listen("tcp", conf.Listen.GRPC.Addr)
 		if err != nil {
 			logger.Error("net.Listen failed (edit listen.grpc YAML option)",
-				zap.Error(err), zap.String("addr", conf.Listen.GRPC.Addr))
+				zap.String("addr", conf.Listen.GRPC.Addr),
+				zap.Error(err))
 			return err
 		}
 
-		if err := app.DB.Ping(); err != nil {
-			logger.Error("SQLite Ping failed (edit sqlite.file YAML option)",
-				zap.Error(err))
-		}
-		if err := app.CH.Ping(ctx); err != nil {
-			logger.Error("ClickHouse Ping failed (edit ch.dsn YAML option)",
-				zap.Error(err), zap.String("dsn", app.Config().CH.DSN))
-		}
-
-		if err := runBunMigrations(ctx, app); err != nil {
-			logger.Error("SQLite migrations failed",
-				zap.Error(err))
-		}
-		if err := runCHMigrations(ctx, app); err != nil {
-			logger.Error("ClickHouse migrations failed",
-				zap.Error(err))
-		}
-		if err := createUptraceMetrics(ctx, app); err != nil {
-			logger.Error("createUptraceMetrics failed",
-				zap.Error(err))
-		}
+		initSqlite(ctx, app)
+		initClickhouse(ctx, app)
 
 		org.Init(ctx, app)
 		tracing.Init(ctx, app)
@@ -226,6 +208,23 @@ var serveCommand = &cli.Command{
 	},
 }
 
+func initSqlite(ctx context.Context, app *bunapp.App) {
+	if err := app.DB.Ping(); err != nil {
+		app.Logger.Panic("SQLite Ping failed; make sure dir is writable (edit db.dsn YAML option)",
+			zap.String("dsn", app.Config().DB.DSN),
+			zap.Error(err))
+	}
+
+	if err := runBunMigrations(ctx, app); err != nil {
+		app.Logger.Error("SQLite migrations failed",
+			zap.Error(err))
+	}
+	if err := createUptraceMetrics(ctx, app); err != nil {
+		app.Logger.Error("createUptraceMetrics failed",
+			zap.Error(err))
+	}
+}
+
 func runBunMigrations(ctx context.Context, app *bunapp.App) error {
 	migrator := migrate.NewMigrator(app.DB, bunmigrations.Migrations)
 
@@ -255,6 +254,35 @@ func runBunMigrations(ctx context.Context, app *bunapp.App) error {
 	return nil
 }
 
+func createUptraceMetrics(ctx context.Context, app *bunapp.App) error {
+	projects := app.Config().Projects
+	for i := range projects {
+		project := &projects[i]
+
+		if _, err := metrics.UpsertMetric(ctx, app, &metrics.Metric{
+			ProjectID:  project.ID,
+			Name:       "uptrace.spans.duration",
+			Unit:       "microseconds",
+			Instrument: metrics.HistogramInstrument,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func initClickhouse(ctx context.Context, app *bunapp.App) {
+	if err := app.CH.Ping(ctx); err != nil {
+		app.Logger.Panic("ClickHouse Ping failed (edit ch.dsn YAML option)",
+			zap.String("dsn", app.Config().CH.DSN),
+			zap.Error(err))
+	}
+	if err := runCHMigrations(ctx, app); err != nil {
+		app.Logger.Error("ClickHouse migrations failed",
+			zap.Error(err))
+	}
+}
+
 func runCHMigrations(ctx context.Context, app *bunapp.App) error {
 	migrator := command.NewCHMigrator(app, chmigrations.Migrations)
 
@@ -281,23 +309,6 @@ func runCHMigrations(ctx context.Context, app *bunapp.App) error {
 	}
 
 	app.Logger.Info("migrated ClickHouse database", zap.String("migrations", group.String()))
-	return nil
-}
-
-func createUptraceMetrics(ctx context.Context, app *bunapp.App) error {
-	projects := app.Config().Projects
-	for i := range projects {
-		project := &projects[i]
-
-		if _, err := metrics.UpsertMetric(ctx, app, &metrics.Metric{
-			ProjectID:  project.ID,
-			Name:       "uptrace.spans.duration",
-			Unit:       "microseconds",
-			Instrument: metrics.HistogramInstrument,
-		}); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
