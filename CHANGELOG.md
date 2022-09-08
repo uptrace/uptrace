@@ -2,7 +2,7 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
-## v1.0.1 - Sep 8 2022
+## v1.0.2 - Sep 8 2022
 
 - Rename `alertmanager` YAML section to `alertmanager_client` so users don't get confused.
 
