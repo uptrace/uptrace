@@ -134,7 +134,7 @@ func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
 	}
 	app.DB = app.newDB()
 	app.CH = app.newCH()
-	app.Notifier = NewNotifier(conf.Alertmanager.URLs)
+	app.Notifier = NewNotifier(conf.AlertmanagerClient.URLs)
 
 	switch conf.Service {
 	case "serve":
