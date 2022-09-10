@@ -79,7 +79,6 @@ const (
 	LogMessage        = "log.message"
 	LogSeverity       = "log.severity"
 	LogSeverityNumber = "log.severity_number"
-	LogSource         = "log.source"
 	LogFilepath       = "log.filepath"
 
 	ExceptionType       = "exception.type"
