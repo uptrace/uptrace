@@ -128,10 +128,6 @@ func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, vector A
 			if s, _ := value.(string); s != "" {
 				attrs.SetDefault(attrkey.HostName, s)
 			}
-		case "source_type":
-			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(attrkey.LogSource, s)
-			}
 		default:
 			// Plain keys have a priority over discovered keys.
 			attrs[otlpconv.CleanAttrKey(key)] = value

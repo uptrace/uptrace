@@ -189,9 +189,9 @@ type Config struct {
 		} `yaml:"create_alerts_from_spans"`
 	} `yaml:"alerting"`
 
-	Alertmanager struct {
+	AlertmanagerClient struct {
 		URLs []string `yaml:"urls"`
-	} `yaml:"alertmanager"`
+	} `yaml:"alertmanager_client"`
 }
 
 type Listen struct {

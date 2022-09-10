@@ -54,7 +54,7 @@ type RuleConfig struct {
 }
 
 func (r *RuleConfig) ID() int64 {
-	return int64(xxhash.Sum64String(r.Name + "-" + r.Query))
+	return int64(xxhash.Sum64String(r.Name))
 }
 
 func NewRule(conf *RuleConfig, alerts []Alert) *Rule {

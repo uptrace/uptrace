@@ -1,32 +1,44 @@
-# Distributed Tracing and Metrics using OpenTelemetry and ClickHouse
+# Distributed Tracing, Metrics, and Logs using OpenTelemetry and ClickHouse
 
 [![build workflow](https://github.com/uptrace/uptrace/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/uptrace/uptrace/actions)
 [![Chat](https://img.shields.io/badge/-telegram-red?color=white&logo=telegram&logoColor=black)](https://t.me/uptrace)
 
 Uptrace is an open-source APM tool that supports distributed tracing, metrics, and logs. Uptrace
-uses OpenTelelemetry to collect data and ClickHouse database to store it.
+uses OpenTelelemetry to collect data and ClickHouse database to store it. ClickHouse is the only
+dependency.
 
 **Features**:
 
-- OpenTelemetry tracing, metrics, and logs.
-- Email/Slack/PagerDuty notifications using AlertManager.
 - Spans/logs grouping.
 - SQL-like query language to aggregate spans.
-- Promql-like language to aggregate metrics.
+- Promql-like language to aggregate and monitor metrics.
+- Email/Slack/PagerDuty notifications using AlertManager.
 - Pre-built metrics dashboards.
 - Multiple users/projects via YAML config.
 
 **Why Uptrace?**
 
-- Single UI for traces, logs, and metrics.
+- Single UI for traces, metrics, and logs.
 - Efficient ingestion: more than 10K spans / second on a single core.
-- Excellent on-disk compression, for example, 1KB span can be compressed down to <40 bytes.
+- Excellent on-disk compression with ZSTD, for example, 1KB span can be compressed down to <40
+  bytes.
 - S3 storage support with ability to automatically upload cold data to S3-like storage.
+
+![Uptrace Home](https://uptrace.dev/get/uptrace/home.png)
 
 ## Quickstart
 
-- Run [Docker example](example/docker) or play with [public demo](https://app.uptrace.dev/play).
-- Follow [getting started guide](https://uptrace.dev/get/get-started.html).
+Spend few minutes to decide if you need Uptrace by running a
+[docker-compose example](example/docker). You can also play with public
+[Uptrace demo](https://app.uptrace.dev/play).
+
+Then follow the [getting started guide](https://uptrace.dev/get/get-started.html) to properly setup
+Uptrace by downloading a Go binary or installing a DEB/RPM package.
+
+## Telegram
+
+Have questions? Get help via [Telegram](https://t.me/uptrace) or
+[start a discussion](https://github.com/uptrace/uptrace/discussions) on GitHub.
 
 ## FAQ
 
@@ -45,7 +57,7 @@ BSL [here](https://mariadb.com/bsl-faq-adopting/).
 **Can I use Uptrace to monitor commercial or production-grade applications?**
 
 Yes, you can use Uptrace to monitor commercial applications and provide your employees access to the
-Uptrace app without obligations to pay anything.
+Uptrace app without any limitations.
 
 **Is the database schema stable?**
 

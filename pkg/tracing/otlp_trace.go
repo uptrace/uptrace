@@ -109,9 +109,9 @@ func (s *TraceServiceServer) process(
 				}
 			}
 
-			for _, otlpSpan := range ss.Spans {
-				// TODO(vmihailenco): allocate spans in batches
-				span := new(Span)
+			mem := make([]Span, len(ss.Spans))
+			for i, otlpSpan := range ss.Spans {
+				span := &mem[i]
 				initSpanFromOTLP(span, resource, otlpSpan)
 				span.ProjectID = project.ID
 				s.sp.AddSpan(ctx, span)
