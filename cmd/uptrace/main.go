@@ -127,8 +127,12 @@ var serveCommand = &cli.Command{
 			return err
 		}
 
-		initSqlite(ctx, app)
-		initClickhouse(ctx, app)
+		if err := initSqlite(ctx, app); err != nil {
+			return err
+		}
+		if err := initClickhouse(ctx, app); err != nil {
+			return err
+		}
 
 		org.Init(ctx, app)
 		tracing.Init(ctx, app)
@@ -208,21 +212,26 @@ var serveCommand = &cli.Command{
 	},
 }
 
-func initSqlite(ctx context.Context, app *bunapp.App) {
+func initSqlite(ctx context.Context, app *bunapp.App) error {
 	if err := app.DB.Ping(); err != nil {
-		app.Logger.Panic("SQLite Ping failed; make sure dir is writable (edit db.dsn YAML option)",
+		app.Logger.Error("SQLite Ping failed; make sure dir is writable (edit db.dsn YAML option)",
 			zap.String("dsn", app.Config().DB.DSN),
 			zap.Error(err))
+		return err
 	}
 
 	if err := runBunMigrations(ctx, app); err != nil {
 		app.Logger.Error("SQLite migrations failed",
 			zap.Error(err))
+		return err
 	}
+
 	if err := createUptraceMetrics(ctx, app); err != nil {
 		app.Logger.Error("createUptraceMetrics failed",
 			zap.Error(err))
 	}
+
+	return nil
 }
 
 func runBunMigrations(ctx context.Context, app *bunapp.App) error {
@@ -271,16 +280,21 @@ func createUptraceMetrics(ctx context.Context, app *bunapp.App) error {
 	return nil
 }
 
-func initClickhouse(ctx context.Context, app *bunapp.App) {
+func initClickhouse(ctx context.Context, app *bunapp.App) error {
 	if err := app.CH.Ping(ctx); err != nil {
-		app.Logger.Panic("ClickHouse Ping failed (edit ch.dsn YAML option)",
+		app.Logger.Error("ClickHouse Ping failed (edit ch.dsn YAML option)",
 			zap.String("dsn", app.Config().CH.DSN),
 			zap.Error(err))
+		return err
 	}
+
 	if err := runCHMigrations(ctx, app); err != nil {
 		app.Logger.Error("ClickHouse migrations failed",
 			zap.Error(err))
+		return err
 	}
+
+	return nil
 }
 
 func runCHMigrations(ctx context.Context, app *bunapp.App) error {
