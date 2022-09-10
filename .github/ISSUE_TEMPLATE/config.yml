@@ -1,8 +1,0 @@
-blank_issues_enabled: true
-contact_links:
-  - name: Discussions
-    url: https://github.com/uptrace/uptrace/discussions
-    about: Ask a question via GitHub Discussions
-  - name: Telegram Channel
-    url: https://t.me/uptrace
-    about: Ask a question or chat on Telegram

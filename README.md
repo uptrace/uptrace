@@ -32,7 +32,7 @@ Spend few minutes to decide if you need Uptrace by running a
 [docker-compose example](example/docker). You can also play with public
 [Uptrace demo](https://app.uptrace.dev/play).
 
-Then follow [getting started guide](https://uptrace.dev/get/get-started.html) to properly setup
+Then follow the [getting started guide](https://uptrace.dev/get/get-started.html) to properly setup
 Uptrace by downloading a Go binary or installing a DEB/RPM package.
 
 ## Telegram
