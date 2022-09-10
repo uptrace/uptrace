@@ -57,7 +57,7 @@ BSL [here](https://mariadb.com/bsl-faq-adopting/).
 **Can I use Uptrace to monitor commercial or production-grade applications?**
 
 Yes, you can use Uptrace to monitor commercial applications and provide your employees access to the
-Uptrace app without obligations to pay anything.
+Uptrace app without any limitations.
 
 **Is the database schema stable?**
 
