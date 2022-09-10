@@ -10,7 +10,7 @@ can use a DEB/RPM [package](https://uptrace.dev/get/install.html#packages) or a 
 
 ```shell
 git clone https://github.com/uptrace/uptrace.git
-cd example/docker
+cd uptrace/example/docker
 ```
 
 **Step 2**. Start the services using Docker:

@@ -118,12 +118,14 @@ alerting:
       alert_kind: error
 
 ##
-## AlertManager endpoints to create alerts and send notifications.
-## AlertManager itself is configured separately.
-##
+## AlertManager client configuration.
 ## See https://uptrace.dev/get/alerting.html for details.
 ##
-alertmanager:
+## Note that this is NOT an AlertManager config and you need to configure AlertManager separately.
+## See https://prometheus.io/docs/alerting/latest/configuration/ for details.
+##
+alertmanager_client:
+  # AlertManager API endpoints that Uptrace uses to manage alerts.
   urls:
     - 'http://localhost:9093/api/v2/alerts'
 
@@ -210,6 +212,9 @@ metrics:
 ##
 db:
   # SQLite connection string.
+  #
+  # Uptrace automatically creates SQLite database file in the current working directory.
+  # Make sure the directory is writable by Uptrace process.
   dsn: 'file:${UPTRACE_DB_FILE:uptrace.sqlite3}?_foreign_keys=1&_busy_timeout=1000'
 
 # Secret key that is used to sign JWT tokens etc.

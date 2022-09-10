@@ -26,7 +26,7 @@ export function useTimeseries(axiosReq: AxiosRequestSource) {
   })
 
   const queryParts = computed((): QueryPart[] => {
-    return data.value?.query ?? []
+    return data.value?.queryParts ?? []
   })
 
   const hasError = computed((): boolean => {
@@ -114,11 +114,11 @@ export function useTableQuery(
   })
 
   const baseQueryParts = computed((): QueryPart[] => {
-    return data.value?.baseQuery ?? []
+    return data.value?.baseQueryParts ?? []
   })
 
   const queryParts = computed((): QueryPart[] => {
-    return data.value?.query ?? []
+    return data.value?.queryParts ?? []
   })
 
   const hasError = computed((): boolean => {

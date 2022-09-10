@@ -1,15 +1,21 @@
 [Unit]
-Description=Uptrace
-After=network.target
+Description = Uptrace
+After       = network.target
 
 [Service]
-ExecStart=/usr/bin/uptrace $UPTRACE_OPTIONS serve
-EnvironmentFile=/etc/uptrace/uptrace.conf
-KillMode=mixed
-Restart=on-failure
-Type=simple
-User=uptrace
-Group=uptrace
+Type     = simple
+KillMode = mixed
+
+User  = uptrace
+Group = uptrace
+
+WorkingDirectory = /var/lib/uptrace
+
+ExecStart       = /usr/bin/uptrace $UPTRACE_OPTIONS serve
+EnvironmentFile = /etc/uptrace/uptrace.conf
+
+Restart    = always
+RestartSec = 1s
 
 [Install]
-WantedBy=multi-user.target
+WantedBy = multi-user.target

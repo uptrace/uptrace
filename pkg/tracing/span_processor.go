@@ -251,6 +251,8 @@ func (s *SpanProcessor) notifyOnErrors(ctx context.Context, errors []*Span) {
 				"event_name": error.EventName,
 				"trace_id":   error.TraceID.String(),
 			},
+			StartsAt: strfmt.DateTime(error.Time),
+			// EndsAt:   strfmt.DateTime(time.Now().Add(time.Minute)),
 		}
 	}
 

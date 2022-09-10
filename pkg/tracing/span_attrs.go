@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"strconv"
 	"strings"
 
 	"github.com/cespare/xxhash/v2"
@@ -158,10 +159,6 @@ func spanFromJSONLog(span *Span, src AttrMap) {
 		case "host", "hostname":
 			if s, _ := value.(string); s != "" {
 				attrs.SetDefault(attrkey.HostName, s)
-			}
-		case "logger":
-			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(attrkey.LogSource, s)
 			}
 		default:
 			attrs.SetDefault(key, value)
@@ -443,11 +440,9 @@ func assignEventSystemAndGroupID(ctx *spanContext, span *Span) {
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(digest, span,
 				attrkey.LogSeverity,
-				attrkey.LogSource,
-				attrkey.LogFilepath,
 			)
 			if span.logMessageHash != 0 {
-				digest.WriteString(fmt.Sprint(span.logMessageHash))
+				digest.WriteString(strconv.FormatUint(span.logMessageHash, 10))
 			}
 		})
 		span.EventName = logEventName(span)

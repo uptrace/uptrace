@@ -1,3 +1,5 @@
+# See https://prometheus.io/docs/alerting/latest/configuration/ for details.
+
 global:
   # The smarthost and SMTP sender used for mail notifications.
   smtp_smarthost: 'mailhog:1025'
@@ -8,6 +10,7 @@ receivers:
   - name: 'team-X'
     email_configs:
       - to: 'some-receiver@example.com'
+        send_resolved: true
 
 # The root route on which each incoming alert enters.
 route:

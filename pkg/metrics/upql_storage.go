@@ -62,7 +62,7 @@ func (s *CHStorage) MakeTimeseries() []upql.Timeseries {
 func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeseries, error) {
 	metric, ok := s.conf.MetricMap[f.Metric]
 	if !ok {
-		return nil, fmt.Errorf("can't find metric by alias %q", f.Metric)
+		return nil, fmt.Errorf("can't find metric with alias %q", f.Metric)
 	}
 
 	subq, err := s.subquery(s.db.NewSelect(), metric, f)

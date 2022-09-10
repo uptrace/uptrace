@@ -217,7 +217,7 @@ func (c *compiler) where(expr *ast.Where) error {
 	}
 
 	if !found {
-		return fmt.Errorf("can't find metric by alias %q", alias)
+		return fmt.Errorf("can't find metric with alias %q", alias)
 	}
 	return nil
 }
@@ -251,7 +251,7 @@ func (c *compiler) groupingName(name string) error {
 	}
 
 	if alias != "" && !found {
-		return fmt.Errorf("can't find metric by alias %q", alias)
+		return fmt.Errorf("can't find metric with alias %q", alias)
 	}
 	return nil
 }
