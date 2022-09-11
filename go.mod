@@ -8,8 +8,8 @@ require (
 	github.com/bradleyjkemp/cupaloy v2.3.0+incompatible
 	github.com/cespare/xxhash/v2 v2.1.2
 	github.com/codemodus/kace v0.5.1
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gogo/protobuf v1.3.2
+	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/klauspost/compress v1.15.9
 	github.com/mileusna/useragent v1.1.0
 	github.com/mostynb/go-grpc-compression v1.1.16

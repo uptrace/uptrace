@@ -46,6 +46,13 @@ projects:
 #     password: uptrace
 
 ##
+## You can also configure groups of users that share the same token audience.
+##
+# user_templates:
+#   - id: 2
+#     audience: uptrace-users
+
+##
 ## ClickHouse database credentials.
 ##
 ch:

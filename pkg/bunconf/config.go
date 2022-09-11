@@ -177,8 +177,9 @@ type Config struct {
 		BatchSize  int `yaml:"batch_size"`
 	} `yaml:"metrics"`
 
-	Users    []User    `yaml:"users"`
-	Projects []Project `yaml:"projects"`
+	Users         []User         `yaml:"users"`
+	UserTemplates []UserTemplate `yaml:"user_templates"`
+	Projects      []Project      `yaml:"projects"`
 
 	Alerting struct {
 		Rules []AlertRule `yaml:"rules"`
@@ -237,6 +238,11 @@ type User struct {
 	ID       uint64 `yaml:"id" json:"id"`
 	Username string `yaml:"username" json:"username"`
 	Password string `yaml:"password" json:"-"`
+}
+
+type UserTemplate struct {
+	ID       uint64 `yaml:"id" json:"id"`
+	Audience string `yaml:"audience" json:"audience"`
 }
 
 type Project struct {
