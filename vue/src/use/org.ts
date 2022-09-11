@@ -8,7 +8,7 @@ import { useAxios } from '@/use/axios'
 
 export interface User {
   id: number
-  name: string
+  username: string
 }
 
 export interface Project {
@@ -20,7 +20,7 @@ export const useUser = defineStore(() => {
   const { loading, data, request } = useAxios()
 
   const user = computed((): User => {
-    return data.value?.user ?? { id: 0, name: 'Guest' }
+    return data.value?.user ?? { id: 0, username: 'Guest' }
   })
 
   const isAuth = computed((): boolean => {
