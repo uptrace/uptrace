@@ -1,20 +1,21 @@
 id: uptrace.db.postgresql_by_host_database
 name: 'DB: PostgreSQL dbs'
 
-metrics:
-  - postgresql.backends as $backends
-  - postgresql.db_size as $db_size
-  - postgresql.commits as $commits
-  - postgresql.rollbacks as $rollbacks
-query:
-  - group by host.name
-  - group by database
-  - $backends
-  - $db_size
-  - $commits
-  - $rollbacks
-columns:
-  db_size: { unit: bytes }
+table:
+  metrics:
+    - postgresql.backends as $backends
+    - postgresql.db_size as $db_size
+    - postgresql.commits as $commits
+    - postgresql.rollbacks as $rollbacks
+  query:
+    - group by host.name
+    - group by database
+    - $backends
+    - $db_size
+    - $commits
+    - $rollbacks
+  columns:
+    db_size: { unit: bytes }
 
 entries:
   - name: Number of backends (connections)
@@ -64,17 +65,18 @@ entries:
 id: uptrace.db.postgresql_by_host_database_table
 name: 'DB: PostgreSQL tables'
 
-metrics:
-  - postgresql.rows as $rows
-  - postgresql.operations as $ops
-  - postgresql.blocks_read as $blocks_read
-query:
-  - group by host.name
-  - group by database
-  - group by table
-  - $rows
-  - per_min($ops) as ops
-  - per_min($blocks_read) as blocks_read
+table:
+  metrics:
+    - postgresql.rows as $rows
+    - postgresql.operations as $ops
+    - postgresql.blocks_read as $blocks_read
+  query:
+    - group by host.name
+    - group by database
+    - group by table
+    - $rows
+    - per_min($ops) as ops
+    - per_min($blocks_read) as blocks_read
 
 entries:
   - name: Number of rows in the table

@@ -67,8 +67,8 @@ func (f *QueryFilter) UnmarshalValues(ctx context.Context, values url.Values) (e
 	if len(f.Metrics) == 0 {
 		return errors.New("at least one metric id is required")
 	}
-	if len(f.Metrics) > 5 {
-		return errors.New("at most 5 metric ids are allowed")
+	if len(f.Metrics) > numMetricLimit {
+		return errors.New("at most 6 metrics are allowed")
 	}
 	if len(f.Metrics) != len(f.Aliases) {
 		return fmt.Errorf("got %d metrics and %d aliases", len(f.Metrics), len(f.Aliases))

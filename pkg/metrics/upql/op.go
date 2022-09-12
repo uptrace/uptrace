@@ -63,3 +63,36 @@ func lteOp(v1, v2 float64) float64 {
 	}
 	return 0
 }
+
+func andOp(v1, v2 float64) float64 {
+	if v1 != 0 && v2 != 0 {
+		return v2
+	}
+	return 0
+}
+
+func orOp(v1, v2 float64) float64 {
+	if v1 != 0 || v2 != 0 {
+		return v1
+	}
+	return 0
+}
+
+func delta(ts *Timeseries) {
+	if len(ts.Value) == 0 {
+		return
+	}
+
+	prevNum := ts.Value[0]
+	ts.Value[0] = 0
+	value := ts.Value[1:]
+
+	for i, num := range value {
+		if delta := num - prevNum; delta >= 0 {
+			value[i] = delta
+		} else {
+			value[i] = 0
+		}
+		prevNum = num
+	}
+}

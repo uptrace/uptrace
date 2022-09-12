@@ -1,23 +1,22 @@
 <template>
   <div>
+    <v-row v-if="dashboard.tableGauges.length" dense>
+      <v-col v-for="gauge in dashboard.tableGauges" :key="gauge.id" cols="auto">
+        <DashGauge :date-range="dateRange" :gauge="gauge" />
+      </v-col>
+    </v-row>
+
     <v-row v-if="tableQuery.status.hasData()">
       <v-col>
         <v-sheet outlined rounded="lg" class="pa-2 px-4">
-          <DashQueryBuilder :date-range="dateRange" :metrics="metricNames" :uql="baseUql">
-            <template #prepend-actions>
-              <v-btn
-                v-if="tableQueryMan.isDirty"
-                :loading="tableQueryMan.pending"
-                small
-                depressed
-                class="mr-4"
-                @click="tableQueryMan.save"
-              >
-                <v-icon small left>mdi-check</v-icon>
-                <span>Save</span>
-              </v-btn>
-            </template>
-          </DashQueryBuilder>
+          <MetricQueryBuilder
+            :date-range="dateRange"
+            :metrics="activeMetrics"
+            :uql="uql"
+            show-dash-group-by
+            :disabled="!dashboard.metrics.length"
+          >
+          </MetricQueryBuilder>
         </v-sheet>
       </v-col>
     </v-row>
@@ -125,15 +124,16 @@ import { defineComponent, shallowRef, computed, proxyRefs, watch, PropType } fro
 import { UseDateRange } from '@/use/date-range'
 import { useTitle } from '@vueuse/core'
 import { useUql } from '@/use/uql'
-import { UseMetrics } from '@/metrics/use-metrics'
-import { useDashQueryManager, UseDashboard } from '@/metrics/use-dashboards'
+import { useActiveMetrics, UseMetrics } from '@/metrics/use-metrics'
+import { UseDashboard } from '@/metrics/use-dashboards'
 import { useTableQuery, TableItem } from '@/metrics/use-query'
 
 // Components
-import DashQueryBuilder from '@/metrics/query/DashQueryBuilder.vue'
 import MetricItemsTable from '@/metrics/MetricItemsTable.vue'
+import MetricQueryBuilder from '@/metrics/query/MetricQueryBuilder.vue'
 import DashTableForm from '@/metrics/DashTableForm.vue'
 import DashGrid from '@/metrics/DashGrid.vue'
+import DashGauge from '@/metrics/DashGauge.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
@@ -145,10 +145,11 @@ interface Props {
 export default defineComponent({
   name: 'DashTable',
   components: {
-    DashQueryBuilder,
     MetricItemsTable,
+    MetricQueryBuilder,
     DashTableForm,
     DashGrid,
+    DashGauge,
   },
 
   props: {
@@ -174,15 +175,12 @@ export default defineComponent({
     useTitle(computed(() => `${props.dashboard.data?.name} | Metrics`))
 
     const dialog = shallowRef(false)
-    const baseUql = useUql()
-    const tableQueryMan = useDashQueryManager(props.dashboard)
+    const uql = useUql()
 
-    const metricNames = computed((): string[] | undefined => {
-      if (!props.dashboard.status.isResolved()) {
-        return []
-      }
-      return props.dashboard.metrics.map((m) => m.name)
-    })
+    const activeMetrics = useActiveMetrics(
+      computed(() => props.metrics.items),
+      computed(() => props.dashboard.metrics),
+    )
 
     const axiosParams = computed(() => {
       const dashData = props.dashboard.data
@@ -194,8 +192,6 @@ export default defineComponent({
         ...props.dateRange.axiosParams(),
         metrics: dashData.metrics.map((m) => m.name),
         aliases: dashData.metrics.map((m) => m.alias),
-        dash_id: dashData.id, // TODO: remove
-        base_query: dashData.baseQuery,
         query: dashData.query,
       }
     })
@@ -203,30 +199,20 @@ export default defineComponent({
     const tableQuery = useTableQuery(axiosParams, { syncQuery: true })
 
     watch(
-      () => props.dashboard.data?.baseQuery ?? '',
+      () => props.dashboard.data?.query ?? '',
       (query) => {
-        baseUql.query = query
+        uql.query = query
       },
       { immediate: true },
     )
 
     watch(
-      () => baseUql.query,
+      () => uql.query,
       (query) => {
         if (props.dashboard.data) {
-          props.dashboard.data.baseQuery = query
+          props.dashboard.data.query = query
         }
       },
-    )
-
-    watch(
-      () => tableQuery.baseQueryParts,
-      (queryParts) => {
-        if (queryParts) {
-          baseUql.syncParts(queryParts)
-        }
-      },
-      { immediate: true },
     )
 
     watch(
@@ -255,10 +241,9 @@ export default defineComponent({
       xkey,
       dialog,
 
-      baseUql,
-      metricNames,
+      uql,
+      activeMetrics,
       tableQuery,
-      tableQueryMan,
       axiosParams,
 
       itemViewer: useItemViewer(props),

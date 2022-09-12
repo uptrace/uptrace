@@ -1,16 +1,17 @@
 id: uptrace.db.redis_by_host_redis_version
 name: 'DB: Redis'
 
-metrics:
-  - redis.memory.fragmentation_ratio as $fragmentation
-  - redis.connections.rejected as $conns_rejected
-  - redis.keys.evicted as $keys_evicted
-query:
-  - group by host.name
-  - group by redis.version
-  - $fragmentation
-  - per_min($conns_rejected) as conns_rejected
-  - per_min($keys_evicted) as keys_evicted
+table:
+  metrics:
+    - redis.memory.fragmentation_ratio as $fragmentation
+    - redis.connections.rejected as $conns_rejected
+    - redis.keys.evicted as $keys_evicted
+  query:
+    - group by host.name
+    - group by redis.version
+    - $fragmentation
+    - per_min($conns_rejected) as conns_rejected
+    - per_min($keys_evicted) as keys_evicted
 
 entries:
   - name: Fragmentation ratio

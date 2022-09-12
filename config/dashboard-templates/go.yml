@@ -1,20 +1,21 @@
 id: uptrace.go.runtime_by_service_host
 name: 'Go: Runtime'
 
-metrics:
-  - process.runtime.go.gc.pause_ns as $gc_pause
-  - process.runtime.go.mem.heap_inuse as $mem_in_use
-  - process.runtime.go.mem.heap_objects as $heap_objects
-  - process.runtime.go.goroutines as $goroutines
-query:
-  - group by service.name
-  - group by host.name
-  - max($gc_pause) as gc_pause_max
-  - $mem_in_use
-  - $heap_objects
-  - $goroutines
-columns:
-  gc_pause_max: { unit: nanoseconds }
+table:
+  metrics:
+    - process.runtime.go.gc.pause_ns as $gc_pause
+    - process.runtime.go.mem.heap_inuse as $mem_in_use
+    - process.runtime.go.mem.heap_objects as $heap_objects
+    - process.runtime.go.goroutines as $goroutines
+  query:
+    - group by service.name
+    - group by host.name
+    - max($gc_pause) as gc_pause_max
+    - $mem_in_use
+    - $heap_objects
+    - $goroutines
+  columns:
+    gc_pause_max: { unit: nanoseconds }
 
 entries:
   - name: Max GC stop-the-world pause
@@ -63,19 +64,20 @@ entries:
 id: uptrace.go.sql_client_by_service_host
 name: 'Go: SQL client'
 
-metrics:
-  - go.sql.query_timing as $query_timing
-  - go.sql.connections_open as $conns_open
-query:
-  - group by service.name
-  - group by host.name
-  - per_min($query_timing) as queries
-  - p90($query_timing) as timing_p90
-  - p99($query_timing) as timing_p99
-  - $conns_open
-columns:
-  timing_p90: { unit: milliseconds }
-  timing_p99: { unit: milliseconds }
+table:
+  metrics:
+    - go.sql.query_timing as $query_timing
+    - go.sql.connections_open as $conns_open
+  query:
+    - group by service.name
+    - group by host.name
+    - per_min($query_timing) as queries
+    - p90($query_timing) as timing_p90
+    - p99($query_timing) as timing_p99
+    - $conns_open
+  columns:
+    timing_p90: { unit: milliseconds }
+    timing_p99: { unit: milliseconds }
 
 entries:
   - name: Number of queries
@@ -85,17 +87,17 @@ entries:
       - per_min($query_timing) as queries
 
   - name: Query percentiles
-    chart_type: stacked-area
+    chart_type: area
     metrics:
       - go.sql.query_timing as $query_timing
     query:
-      - p50($query_timing) as timing_p50
-      - p90($query_timing) as timing_p90
-      - p99($query_timing) as timing_p99
+      - p50($query_timing) as p50
+      - p90($query_timing) as p90
+      - p99($query_timing) as p99
     columns:
-      timing_p50: { unit: milliseconds }
-      timing_p90: { unit: milliseconds }
-      timing_p99: { unit: milliseconds }
+      p50: { unit: milliseconds }
+      p90: { unit: milliseconds }
+      p99: { unit: milliseconds }
 
   - name: Number of established connections both in use and idle
     metrics:

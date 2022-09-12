@@ -1,17 +1,18 @@
 id: uptrace.db.mysql_by_host
 name: 'DB: MySQL'
 
-metrics:
-  - mysql.buffer_pool.usage as $pool_usage
-  - mysql.row_operations as $row_ops
-  - mysql.buffer_pool.operations as $pool_ops
-query:
-  - group by host.name
-  - $pool_usage
-  - per_min($row_ops{operation='inserted'}) as inserted
-  - per_min($pool_ops) as pool_ops
-columns:
-  pool_size: { unit: bytes }
+table:
+  metrics:
+    - mysql.buffer_pool.usage as $pool_usage
+    - mysql.row_operations as $row_ops
+    - mysql.buffer_pool.operations as $pool_ops
+  query:
+    - group by host.name
+    - $pool_usage
+    - per_min($row_ops{operation='inserted'}) as inserted
+    - per_min($pool_ops) as pool_ops
+  columns:
+    pool_size: { unit: bytes }
 
 entries:
   - name: Number of bytes in the InnoDB buffer pool

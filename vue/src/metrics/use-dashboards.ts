@@ -22,6 +22,21 @@ export interface Dashboard {
   metrics: MetricAlias[] | null
   query: string
   columnMap: Record<string, MetricColumn>
+
+  gauges: DashGauge[]
+}
+
+export interface DashGauge {
+  id: string
+  projectId: number
+  dashId: string
+
+  name: string
+  template: string
+
+  metrics: MetricAlias[]
+  query: string
+  columnMap: Record<string, MetricColumn>
 }
 
 export interface DashEntry {
@@ -159,7 +174,15 @@ export function useDashboard() {
   })
 
   const isGridFull = computed((): boolean => {
-    return entries.value.length >= 10
+    return entries.value.length >= 20
+  })
+
+  const tableGauges = computed((): DashGauge[] => {
+    return data.value?.tableGauges ?? []
+  })
+
+  const gridGauges = computed((): DashGauge[] => {
+    return data.value?.gridGauges ?? []
   })
 
   const metrics = computed({
@@ -206,6 +229,8 @@ export function useDashboard() {
     active: dashboard,
     isTemplate,
     isGridFull,
+    tableGauges,
+    gridGauges,
     entries: entries,
 
     metrics,

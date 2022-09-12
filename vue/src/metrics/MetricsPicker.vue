@@ -57,7 +57,7 @@ export default defineComponent({
   setup(props, ctx) {
     const activeMetrics = computed(() => {
       const metrics = props.value.slice()
-      if (metrics.length < 5) {
+      if (metrics.length < 6) {
         metrics.push({ name: '', alias: '' })
       }
       return metrics

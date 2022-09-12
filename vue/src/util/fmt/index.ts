@@ -7,6 +7,10 @@ export * from './unit'
 export * from './duration'
 export * from './num'
 
+export function fmt(val: any, unit: Unit | string, ...args: any[]): string {
+  return createFormatter(unit)(val, ...args)
+}
+
 export type Formatter = (val: any, ...args: any[]) => string
 
 export function createFormatter(unit: string | Unit | Formatter): Formatter {

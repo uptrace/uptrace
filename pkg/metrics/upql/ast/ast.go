@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/uptrace/uptrace/pkg/bununit"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
@@ -45,6 +47,7 @@ func (n Name) String() string {
 
 type Number struct {
 	Text string
+	Kind ValueKind
 }
 
 func (n *Number) String() string {
@@ -56,11 +59,26 @@ func (n *Number) Float32() float32 {
 }
 
 func (n *Number) Float64() float64 {
-	f, err := strconv.ParseFloat(n.Text, 64)
-	if err != nil {
-		panic(err)
+	switch n.Kind {
+	case ValueDuration:
+		dur, err := time.ParseDuration(n.Text)
+		if err != nil {
+			panic(err)
+		}
+		return float64(dur)
+	case ValueBytes:
+		bytes, err := bununit.ParseBytes(n.Text)
+		if err != nil {
+			panic(err)
+		}
+		return float64(bytes)
+	default:
+		f, err := strconv.ParseFloat(n.Text, 64)
+		if err != nil {
+			panic(err)
+		}
+		return f
 	}
-	return f
 }
 
 type FilteredName struct {
@@ -83,6 +101,14 @@ func (n *FilteredName) String() string {
 type FuncCall struct {
 	Func string
 	Args []Expr
+}
+
+func (fn *FuncCall) String() string {
+	args := make([]string, len(fn.Args))
+	for i, arg := range fn.Args {
+		args[i] = arg.String()
+	}
+	return fn.Func + "(" + strings.Join(args, ", ") + ")"
 }
 
 type BinaryExpr struct {
@@ -132,11 +158,11 @@ type Filter struct {
 	Sep BoolOp
 	LHS string
 	Op  FilterOp
-	RHS string
+	RHS Value
 }
 
 func (f *Filter) String() string {
-	b := make([]byte, len(f.LHS)+len(f.Op)+len(f.RHS))
+	b := make([]byte, len(f.LHS)+len(f.Op)+len(f.RHS.Text))
 	b = f.AppendString(b)
 	return unsafeconv.String(b)
 }
@@ -153,13 +179,45 @@ func (f *Filter) AppendString(b []byte) []byte {
 		b = append(b, f.Op...)
 	}
 
-	if isIdent(f.RHS) {
-		b = append(b, f.RHS...)
+	if isIdent(f.RHS.Text) {
+		b = append(b, f.RHS.Text...)
 	} else {
-		b = strconv.AppendQuote(b, f.RHS)
+		b = strconv.AppendQuote(b, f.RHS.Text)
 	}
 
 	return b
+}
+
+type Value struct {
+	Text string
+	Kind ValueKind
+}
+
+type ValueKind int
+
+const (
+	ValueText ValueKind = iota
+	ValueDuration
+	ValueBytes
+)
+
+func (v *Value) Value(unit string) (any, error) {
+	switch v.Kind {
+	case ValueDuration:
+		dur, err := time.ParseDuration(v.Text)
+		if err != nil {
+			return nil, err
+		}
+		return bununit.ConvertValue(float64(dur), bununit.Nanoseconds, unit)
+	case ValueBytes:
+		bytes, err := bununit.ParseBytes(v.Text)
+		if err != nil {
+			return nil, err
+		}
+		return bununit.ConvertValue(float64(bytes), bununit.Bytes, unit)
+	default:
+		return v.Text, nil
+	}
 }
 
 //------------------------------------------------------------------------------

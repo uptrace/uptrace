@@ -47,7 +47,10 @@ func (e *Engine) Run(query []*QueryPart) []Timeseries {
 		}
 
 		if expr.Alias == "" {
-			if expr, ok := expr.Expr.(*BinaryExpr); ok {
+			switch expr := expr.Expr.(type) {
+			case *BinaryExpr:
+				setTimeseriesMetric(tmp, expr.AST.String())
+			case *FuncCall:
 				setTimeseriesMetric(tmp, expr.AST.String())
 			}
 
@@ -100,6 +103,8 @@ func (e *Engine) eval(expr Expr) ([]Timeseries, error) {
 		}
 
 		return timeseries, nil
+	case *FuncCall:
+		return e.callFunc(expr)
 	default:
 		return nil, fmt.Errorf("unsupported expr: %T", expr)
 	}
@@ -162,6 +167,10 @@ func (e *Engine) binaryExpr(expr *BinaryExpr) ([]Timeseries, error) {
 		return e.join(lhs, rhs, ltOp)
 	case "<=":
 		return e.join(lhs, rhs, lteOp)
+	case "and":
+		return e.join(lhs, rhs, andOp)
+	case "or":
+		return e.join(lhs, rhs, orOp)
 	default:
 		return nil, fmt.Errorf("unsupported binary op: %q", expr.Op)
 	}
@@ -253,6 +262,10 @@ func (e *Engine) binaryExprNum(lhs, rhs float64, op ast.BinaryOp) ([]Timeseries,
 		return e.evalBinaryExprNum(lhs, rhs, ltOp)
 	case "<=":
 		return e.evalBinaryExprNum(lhs, rhs, lteOp)
+	case "and":
+		return e.evalBinaryExprNum(lhs, rhs, andOp)
+	case "or":
+		return e.evalBinaryExprNum(lhs, rhs, orOp)
 	default:
 		return nil, fmt.Errorf("unsupported binary op: %q", op)
 	}
@@ -296,6 +309,10 @@ func (e *Engine) binaryExprNumLeft(
 		return e.evalBinaryExprNumLeft(lhs, rhs, ltOp)
 	case "<=":
 		return e.evalBinaryExprNumLeft(lhs, rhs, lteOp)
+	case "and":
+		return e.evalBinaryExprNumLeft(lhs, rhs, andOp)
+	case "or":
+		return e.evalBinaryExprNumLeft(lhs, rhs, orOp)
 	default:
 		return nil, fmt.Errorf("unsupported binary op: %q", op)
 	}
@@ -351,6 +368,10 @@ func (e *Engine) binaryExprNumRight(
 		return e.evalBinaryExprNumRight(lhs, rhs, ltOp)
 	case "<=":
 		return e.evalBinaryExprNumRight(lhs, rhs, lteOp)
+	case "and":
+		return e.evalBinaryExprNumRight(lhs, rhs, andOp)
+	case "or":
+		return e.evalBinaryExprNumRight(lhs, rhs, orOp)
 	default:
 		return nil, fmt.Errorf("unsupported binary op: %q", op)
 	}
@@ -378,4 +399,26 @@ func (e *Engine) evalBinaryExprNumRight(
 	}
 
 	return joined, nil
+}
+
+func (e *Engine) callFunc(fn *FuncCall) ([]Timeseries, error) {
+	switch fn.Func {
+	case "delta":
+		if len(fn.Args) != 1 {
+			return nil, fmt.Errorf("delta func expects a single argument")
+		}
+
+		timeseries, err := e.eval(fn.Args[0])
+		if err != nil {
+			return nil, err
+		}
+
+		for i := range timeseries {
+			delta(&timeseries[i])
+		}
+
+		return timeseries, nil
+	default:
+		return nil, fmt.Errorf("unknown func: %s", fn.Func)
+	}
 }

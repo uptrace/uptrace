@@ -21,7 +21,7 @@
       <v-card-text v-if="!items.length">There are no any suggestions.</v-card-text>
 
       <v-list v-else dense>
-        <v-list-item v-for="item in filteredItems" :key="item.value" @click="onClick(item)">
+        <v-list-item v-for="(item, i) in filteredItems" :key="i" @click="onClick(item)">
           <slot name="item" :item="item">
             <v-list-item-content>
               <v-list-item-title style="text-overflow: clip">

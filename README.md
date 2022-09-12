@@ -3,9 +3,12 @@
 [![build workflow](https://github.com/uptrace/uptrace/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/uptrace/uptrace/actions)
 [![Chat](https://img.shields.io/badge/-telegram-red?color=white&logo=telegram&logoColor=black)](https://t.me/uptrace)
 
-Uptrace is an open-source APM tool that supports distributed tracing, metrics, and logs. Uptrace
-uses OpenTelelemetry to collect data and ClickHouse database to store it. ClickHouse is the only
-dependency.
+Uptrace is an open-source APM tool that supports distributed tracing, metrics, and logs. You can use
+it to monitor applications and set up automatic alerts to receive notifications via email, Slack,
+Telegram, and others.
+
+Uptrace uses OpenTelelemetry to collect data and ClickHouse database to store it. ClickHouse is the
+only dependency.
 
 **Features**:
 
@@ -23,12 +26,13 @@ dependency.
 - Excellent on-disk compression with ZSTD, for example, 1KB span can be compressed down to <40
   bytes.
 - S3 storage support with ability to automatically upload cold data to S3-like storage.
+- Automatic alerts with notifications via email, Slack, Telegram, and others.
 
 ![Uptrace Home](https://uptrace.dev/get/uptrace/home.png)
 
 ## Quickstart
 
-Spend few minutes to decide if you need Uptrace by running a
+First spend few minutes to decide if you need Uptrace by running a
 [docker-compose example](example/docker). You can also play with public
 [Uptrace demo](https://app.uptrace.dev/play).
 
@@ -56,8 +60,8 @@ BSL [here](https://mariadb.com/bsl-faq-adopting/).
 
 **Can I use Uptrace to monitor commercial or production-grade applications?**
 
-Yes, you can use Uptrace to monitor commercial applications and provide your employees access to the
-Uptrace app without any limitations.
+Yes, you can use Uptrace to monitor your applications and provide employees access to the Uptrace
+app without any limitations.
 
 **Is the database schema stable?**
 

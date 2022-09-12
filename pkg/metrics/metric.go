@@ -106,3 +106,9 @@ func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) (inserted boo
 	inserted = m.UpdatedAt.Equal(m.CreatedAt)
 	return inserted, nil
 }
+
+//------------------------------------------------------------------------------
+
+type MetricColumn struct {
+	Unit string `yaml:"unit" json:"unit"`
+}

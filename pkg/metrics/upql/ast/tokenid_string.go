@@ -13,11 +13,13 @@ func _() {
 	_ = x[IDENT_TOKEN-2]
 	_ = x[VALUE_TOKEN-3]
 	_ = x[NUMBER_TOKEN-4]
+	_ = x[DURATION_TOKEN-5]
+	_ = x[BYTES_TOKEN-6]
 }
 
-const _TokenID_name = "EOF_TOKENBYTE_TOKENIDENT_TOKENVALUE_TOKENNUMBER_TOKEN"
+const _TokenID_name = "EOF_TOKENBYTE_TOKENIDENT_TOKENVALUE_TOKENNUMBER_TOKENDURATION_TOKENBYTES_TOKEN"
 
-var _TokenID_index = [...]uint8{0, 9, 19, 30, 41, 53}
+var _TokenID_index = [...]uint8{0, 9, 19, 30, 41, 53, 67, 78}
 
 func (i TokenID) String() string {
 	if i < 0 || i >= TokenID(len(_TokenID_index)-1) {

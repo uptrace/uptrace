@@ -78,7 +78,9 @@ export default defineComponent({
 
   setup(props) {
     useTitle('Overview')
+
     props.dateRange.syncQuery()
+    props.dateRange.roundUp = false
 
     const project = useProject()
     const systems = useSystems(props.dateRange)

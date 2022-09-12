@@ -151,6 +151,7 @@ func sortTable(columns []*ColumnInfo, table []map[string]any, f *QueryFilter) {
 	row := table[0]
 	if _, ok := row[f.SortBy]; !ok {
 		f.SortBy = columns[0].Name
+		f.SortDesc = true
 	}
 
 	switch v := row[f.SortBy]; v.(type) {
@@ -177,6 +178,56 @@ func sortTable(columns []*ColumnInfo, table []map[string]any, f *QueryFilter) {
 	default:
 		panic(fmt.Errorf("unsupported value type: %T", v))
 	}
+}
+
+//------------------------------------------------------------------------------
+
+func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	f, err := decodeQueryFilter(h.App, req)
+	if err != nil {
+		return err
+	}
+
+	for _, part := range f.allParts {
+		if part.Error.Wrapped != nil {
+			continue
+		}
+
+		switch part.AST.(type) {
+		case *ast.Grouping:
+			part.Error.Wrapped = errors.New("grouping is forbidden")
+		}
+	}
+
+	storage := NewCHStorage(ctx, h.App.CH, &CHStorageConfig{
+		ProjectID:  f.ProjectID,
+		TimeFilter: f.TimeFilter,
+		MetricMap:  f.metricMap,
+
+		TableName:      measureTableForWhere(h.App, &f.TimeFilter),
+		GroupingPeriod: f.TimeFilter.Duration(),
+	})
+	engine := upql.NewEngine(storage)
+	timeseries := engine.Run(f.allParts)
+
+	columns, table := convertToTable(timeseries)
+
+	var values map[string]any
+	if len(table) > 0 {
+		values = table[0]
+		delete(values, attrkey.ItemQuery)
+	} else {
+		values = make(map[string]any)
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"baseQueryParts": f.baseQueryParts,
+		"queryParts":     f.queryParts,
+		"columns":        columns,
+		"values":         values,
+	})
 }
 
 //------------------------------------------------------------------------------

@@ -7,7 +7,6 @@ import (
 	"github.com/uptrace/bun"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
 )
 
@@ -21,10 +20,10 @@ type Dashboard struct {
 	Name      string `json:"name"`
 	BaseQuery string `json:"baseQuery" bun:",nullzero"`
 
-	IsTable bool                             `json:"isTable" bun:",nullzero"`
-	Metrics []upql.Metric                    `json:"metrics" bun:",nullzero"`
-	Query   string                           `json:"query" bun:",nullzero"`
-	Columns map[string]*bunconf.MetricColumn `json:"columnMap" bun:",nullzero"`
+	IsTable bool                     `json:"isTable" bun:",nullzero"`
+	Metrics []upql.Metric            `json:"metrics" bun:",nullzero"`
+	Query   string                   `json:"query" bun:",nullzero"`
+	Columns map[string]*MetricColumn `json:"columnMap" bun:",nullzero"`
 }
 
 func (d *Dashboard) Validate() error {
@@ -69,7 +68,7 @@ func SelectDashboardMap(
 
 func InsertDashboard(ctx context.Context, app *bunapp.App, dash *Dashboard) error {
 	if dash.Columns == nil {
-		dash.Columns = make(map[string]*bunconf.MetricColumn)
+		dash.Columns = make(map[string]*MetricColumn)
 	}
 
 	if _, err := app.DB.NewInsert().

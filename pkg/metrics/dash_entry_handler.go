@@ -8,7 +8,6 @@ import (
 	"github.com/uptrace/bunrouter"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 )
@@ -36,8 +35,8 @@ func (h *DashEntryHandler) Create(w http.ResponseWriter, req bunrouter.Request) 
 	if err != nil {
 		return err
 	}
-	if len(entries) >= 10 {
-		return fmt.Errorf("dashboards can't have more than 10 entries")
+	if len(entries) >= numEntryLimit {
+		return fmt.Errorf("dashboards can't have more than 20 entries")
 	}
 
 	entry := new(DashEntry)
@@ -48,7 +47,7 @@ func (h *DashEntryHandler) Create(w http.ResponseWriter, req bunrouter.Request) 
 	entry.ProjectID = project.ID
 	entry.DashID = dash.ID
 	if entry.Columns == nil {
-		entry.Columns = make(map[string]*bunconf.MetricColumn)
+		entry.Columns = make(map[string]*MetricColumn)
 	}
 
 	if _, err := h.App.DB.NewInsert().
@@ -79,8 +78,8 @@ func (h *DashEntryHandler) Update(w http.ResponseWriter, req bunrouter.Request) 
 	if len(entry.Metrics) == 0 {
 		return errors.New("at least one query is required")
 	}
-	if len(entry.Metrics) > 5 {
-		return errors.New("you can't have more than 5 queries on a single chart")
+	if len(entry.Metrics) > numMetricLimit {
+		return errors.New("you can't have more than 6 queries on a single chart")
 	}
 
 	entryID, err := req.Params().Uint64("id")
