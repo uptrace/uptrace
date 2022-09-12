@@ -23,11 +23,31 @@ columns:
 entries:
   - name: Available memory
     metrics:
-      - node_available_memory as $mem_available
+      - redis_used_memory as $used_mem
+      - node_available_memory as $available_mem
+      - node_provisional_memory as $provis_mem
+      - node_provisional_memory_no_overbooking as $provis_mem_no_overbooking
     query:
-      - $mem_available
+      - $used_mem
+      - $available_mem
+      - $provis_mem
+      - $provis_mem_no_overbooking
     columns:
-      mem_available: { unit: bytes }
+      used_mem: { unit: bytes }
+      available_mem: { unit: bytes }
+      provis_mem: { unit: bytes }
+      provis_mem_no_overbooking: { unit: bytes }
+
+  # listener_total_req
+  # listener_egress_bytes
+
+  - name: CPU usage
+    metrics:
+      - node_cpu_idle as $cpu_idle
+    query:
+      - 1 - $cpu_idle as cpu_usage
+    columns:
+      cpu_usage: { unit: bytes }
 
   - name: Number of connections
     metrics:

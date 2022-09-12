@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -18,15 +17,12 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
 type DashSyncer struct {
 	app *bunapp.App
-
-	httpClient *http.Client
 
 	dashboardsOnce sync.Once
 	dashboards     []*bunconf.Dashboard
@@ -39,10 +35,7 @@ type DashSyncer struct {
 
 func NewDashSyncer(app *bunapp.App) *DashSyncer {
 	s := &DashSyncer{
-		app: app,
-		httpClient: &http.Client{
-			Transport: otelhttp.NewTransport(http.DefaultTransport),
-		},
+		app:          app,
 		debouncerMap: make(map[uint32]*bunutil.Debouncer),
 		logger:       app.Logger,
 	}
@@ -108,25 +101,15 @@ func (s *DashSyncer) parseYAML(data []byte) ([]*bunconf.Dashboard, error) {
 			}
 			return nil, err
 		}
+
+		if err := dashboard.Validate(); err != nil {
+			return nil, err
+		}
+
 		dashboards = append(dashboards, dashboard)
 	}
 
 	return dashboards, nil
-}
-
-func (s *DashSyncer) httpGet(ctx context.Context, url string) ([]byte, error) {
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := s.httpClient.Do(req.WithContext(ctx))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	return io.ReadAll(resp.Body)
 }
 
 func (s *DashSyncer) Sync(ctx context.Context, projectID uint32) {
@@ -160,10 +143,6 @@ func (s *DashSyncer) syncDashboards(ctx context.Context, projectID uint32) error
 	}
 
 	for _, tpl := range templates {
-		if err := tpl.Validate(); err != nil {
-			return err
-		}
-
 		dash, ok := dashMap[tpl.ID]
 		if !ok {
 			dash = &Dashboard{

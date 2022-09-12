@@ -59,7 +59,7 @@ entries:
   - name: Biggest input and output client buffers
     metrics:
       - redis.clients.max_input_buffer as $input
-      - redis.clients.max_outpu_buffer as $output
+      - redis.clients.max_output_buffer as $output
     query:
       - $input
       - $output
