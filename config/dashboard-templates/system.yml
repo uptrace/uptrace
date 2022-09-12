@@ -10,10 +10,12 @@ query:
   - $load_avg_15m
   - per_min($cpu_time{state=wait}) as cpu_wait
   - $mem_usage{state!=free} / $mem_usage as mem_util
+  - $mem_usage{state=used} as mem_used
 columns:
   cpu_wait: { unit: seconds }
   mem_util: { unit: percents }
   swap_util: { unit: percents }
+  mem_used: { unit: bytes }
 
 entries:
   - name: CPU 1 minute load average
@@ -67,13 +69,26 @@ entries:
     columns:
       swap_util: { unit: percents }
 
-  - name: Number of page operations and faults
+  - name: Swap or pagefile usage
+    chart_type: stacked-area
+    metrics:
+      - system.paging.usage as $paging
+    query:
+      - $paging group by state
+    columns:
+      paging: { unit: bytes }
+
+  - name: Number of page operations
     metrics:
       - system.paging.operations as $page_ops
+    query:
+      - per_min($page_ops) as page_ops group by direction
+
+  - name: Number of page faults
+    metrics:
       - system.paging.faults as $page_faults
     query:
-      - per_min($page_ops) as page_ops
-      - per_min($page_faults) as page_faults
+      - per_min($page_faults) as page_faults group by type
 
 ---
 id: uptrace.system.network_by_host

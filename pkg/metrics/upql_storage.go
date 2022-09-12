@@ -409,7 +409,7 @@ func isValueInstrument(instrument string) bool {
 }
 
 func unsupportedInstrumentFunc(instrument, fn string) error {
-	return fmt.Errorf("%s does not support %s", instrument, fn)
+	return fmt.Errorf("%s instrument does not support %s", instrument, fn)
 }
 
 func CHColumn(key string) ch.Safe {

@@ -33,6 +33,14 @@ entries:
     columns:
       mem_in_use: { unit: bytes }
 
+  - name: Bytes of allocated heap objects
+    metrics:
+      - process.runtime.go.mem.heap_alloc as $heap_alloc
+    query:
+      - $heap_alloc
+    columns:
+      heap_alloc: { unit: bytes }
+
   - name: Heap live objects
     metrics:
       - process.runtime.go.mem.heap_objects as $heap_objects
@@ -49,7 +57,7 @@ entries:
     metrics:
       - process.runtime.go.cgo.calls as $cgo_calls
     query:
-      - $cgo_calls
+      - delta($cgo_calls)
 
 ---
 id: uptrace.go.sql_client_by_service_host
