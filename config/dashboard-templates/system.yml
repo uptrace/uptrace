@@ -1,21 +1,22 @@
 id: uptrace.system.overview_by_host
 name: 'System: CPU/RAM/Swap'
 
-metrics:
-  - system.cpu.load_average.15m as $load_avg_15m
-  - system.cpu.time as $cpu_time
-  - system.memory.usage as $mem_usage
-query:
-  - group by host.name
-  - $load_avg_15m
-  - per_min($cpu_time{state=wait}) as cpu_wait
-  - $mem_usage{state!=free} / $mem_usage as mem_util
-  - $mem_usage{state=used} as mem_used
-columns:
-  cpu_wait: { unit: seconds }
-  mem_util: { unit: percents }
-  swap_util: { unit: percents }
-  mem_used: { unit: bytes }
+table:
+  metrics:
+    - system.cpu.load_average.15m as $load_avg_15m
+    - system.cpu.time as $cpu_time
+    - system.memory.usage as $mem_usage
+  query:
+    - group by host.name
+    - $load_avg_15m
+    - per_min($cpu_time{state=wait}) as cpu_wait
+    - $mem_usage{state!=free} / $mem_usage as mem_util
+    - $mem_usage{state=used} as mem_used
+  columns:
+    cpu_wait: { unit: seconds }
+    mem_util: { unit: percents }
+    swap_util: { unit: percents }
+    mem_used: { unit: bytes }
 
 entries:
   - name: CPU 1 minute load average
@@ -94,21 +95,22 @@ entries:
 id: uptrace.system.network_by_host
 name: 'System: Network Metrics'
 
-metrics:
-  - system.network.connections as $net_conns
-  - system.network.dropped as $packets_dropped
-  - system.network.errors as $net_errors
-  - system.network.io as $net_io
-query:
-  - group by host.name
-  - $net_conns
-  - $packets_dropped
-  - $net_errors
-  - per_min($net_io{direction=transmit}) as transmit
-  - per_min($net_io{direction=receive}) as receive
-columns:
-  transmit: { unit: bytes }
-  receive: { unit: bytes }
+table:
+  metrics:
+    - system.network.connections as $net_conns
+    - system.network.dropped as $packets_dropped
+    - system.network.errors as $net_errors
+    - system.network.io as $net_io
+  query:
+    - group by host.name
+    - $net_conns
+    - $packets_dropped
+    - $net_errors
+    - per_min($net_io{direction=transmit}) as transmit
+    - per_min($net_io{direction=receive}) as receive
+  columns:
+    transmit: { unit: bytes }
+    receive: { unit: bytes }
 
 entries:
   - name: Network connections
@@ -152,18 +154,19 @@ entries:
 id: uptrace.system.disk_by_host_device
 name: 'System: Disk Metrics'
 
-metrics:
-  - system.disk.io_time as $disk_time
-  - system.disk.io as $disk_io
-query:
-  - group by host.name
-  - group by device
-  - where device !~ "loop"
-  - $disk_time
-  - per_min($disk_io{direction=read}) as reads
-  - per_min($disk_io{direction=write}) as writes
-columns:
-  disk_time: { unit: seconds }
+table:
+  metrics:
+    - system.disk.io_time as $disk_time
+    - system.disk.io as $disk_io
+  query:
+    - group by host.name
+    - group by device
+    - where device !~ "loop"
+    - $disk_time
+    - per_min($disk_io{direction=read}) as reads
+    - per_min($disk_io{direction=write}) as writes
+  columns:
+    disk_time: { unit: seconds }
 
 entries:
   - name: Time disk spent activated
@@ -206,18 +209,19 @@ entries:
 id: uptrace.system.filesystem_by_host_device
 name: 'System: Filesystem Metrics'
 
-metrics:
-  - system.filesystem.usage as $fs_usage
-  - system.filesystem.inodes.usage as $inodes
-query:
-  - group by host.name
-  - group by device
-  - where device !~ "loop"
-  - $fs_usage{state="used"} / $fs_usage as fs_util
-  - $inodes{state="used"} / $inodes as inode_util
-columns:
-  fs_util: { unit: percents }
-  inode_util: { unit: percents }
+table:
+  metrics:
+    - system.filesystem.usage as $fs_usage
+    - system.filesystem.inodes.usage as $inodes
+  query:
+    - group by host.name
+    - group by device
+    - where device !~ "loop"
+    - $fs_usage{state="used"} / $fs_usage as fs_util
+    - $inodes{state="used"} / $inodes as inode_util
+  columns:
+    fs_util: { unit: percents }
+    inode_util: { unit: percents }
 
 entries:
   - name: Filesystem utilization

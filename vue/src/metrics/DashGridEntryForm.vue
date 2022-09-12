@@ -36,7 +36,7 @@
           </v-col>
           <v-col>
             <v-sheet max-width="800" class="text-subtitle-1 text--primary">
-              Select up to 5 metrics that you want to plot or use in arithmetic expressions.
+              Select up to 6 metrics that you want to plot or use in arithmetic expressions.
             </v-sheet>
           </v-col>
         </v-row>

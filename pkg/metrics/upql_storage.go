@@ -155,13 +155,13 @@ func (s *CHStorage) subquery(
 		GroupExpr("metric")
 
 	if len(f.Filters) > 0 {
-		q, err = s.filters(q, f.Filters)
+		q, err = s.filters(q, metric, f.Filters)
 		if err != nil {
 			return nil, err
 		}
 	}
 	for _, filters := range f.Where {
-		q, err = s.filters(q, filters)
+		q, err = s.filters(q, metric, filters)
 		if err != nil {
 			return nil, err
 		}
@@ -228,12 +228,18 @@ func (s *CHStorage) subquery(
 	return q, nil
 }
 
-func (s *CHStorage) filters(q *ch.SelectQuery, filters []ast.Filter) (*ch.SelectQuery, error) {
+func (s *CHStorage) filters(
+	q *ch.SelectQuery, metric *Metric, filters []ast.Filter,
+) (*ch.SelectQuery, error) {
 	var b []byte
 	for i := range filters {
 		filter := &filters[i]
 
 		col := CHColumn(filter.LHS)
+		val, err := filter.RHS.Value(metric.Unit)
+		if err != nil {
+			return nil, err
+		}
 
 		if i > 0 {
 			b = append(b, ' ')
@@ -247,17 +253,17 @@ func (s *CHStorage) filters(q *ch.SelectQuery, filters []ast.Filter) (*ch.Select
 
 		switch filter.Op {
 		case ast.FilterEqual:
-			b = chschema.AppendQuery(b, "? = ?", col, filter.RHS)
+			b = chschema.AppendQuery(b, "? = ?", col, val)
 		case ast.FilterNotEqual:
-			b = chschema.AppendQuery(b, "? != ?", col, filter.RHS)
+			b = chschema.AppendQuery(b, "? != ?", col, val)
 		case ast.FilterRegexp:
-			b = chschema.AppendQuery(b, "match(?, ?)", col, filter.RHS)
+			b = chschema.AppendQuery(b, "match(?, ?)", col, val)
 		case ast.FilterNotRegexp:
-			b = chschema.AppendQuery(b, "NOT match(?, ?)", col, filter.RHS)
+			b = chschema.AppendQuery(b, "NOT match(?, ?)", col, val)
 		case ast.FilterLike:
-			b = chschema.AppendQuery(b, "? LIKE ?", col, filter.RHS)
+			b = chschema.AppendQuery(b, "? LIKE ?", col, val)
 		case ast.FilterNotLike:
-			b = chschema.AppendQuery(b, "? NOT LIKE ?", col, filter.RHS)
+			b = chschema.AppendQuery(b, "? NOT LIKE ?", col, val)
 		default:
 			return nil, fmt.Errorf("unsupported op: %s", filter.Op)
 		}
@@ -309,6 +315,9 @@ func (s *CHStorage) agg(
 			return q, nil
 		case "min", "max":
 			q = q.ColumnExpr("?(value) AS value", ch.Safe(f.Func))
+			return q, nil
+		case "count":
+			q = q.ColumnExpr("toFloat64(count()) AS value")
 			return q, nil
 		default:
 			return nil, unsupportedInstrumentFunc(metric.Instrument, f.Func)

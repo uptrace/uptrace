@@ -13,12 +13,25 @@ services:
       retries: 30
     volumes:
       - ch_data:/var/lib/clickhouse
-      - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/config.xml
     ports:
       - '8123:8123'
       - '9000:9000'
     extra_hosts:
       - 'host.docker.internal:host-gateway'
+
+  uptrace:
+    #image: 'uptrace/uptrace:latest'
+    image: 'uptrace/uptrace-dev:latest'
+    volumes:
+      - uptrace_data:/var/lib/uptrace
+      - uptrace.yml:/etc/uptrace/uptrace.yml
+    network_mode: host
+    environment:
+      - UPTRACE_DB_FILE=/var/lib/uptrace/uptrace.sqlite3
+      #- DEBUG=2
+    depends_on:
+      clickhouse:
+        condition: service_healthy
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.59.0
@@ -45,7 +58,33 @@ services:
     ports:
       - '8025:8025'
 
+  redis1:
+    image: redislabs/redis:latest
+    restart: on-failure
+    volumes:
+      - redislabs_data_1:/opt/redislabs
+    ports:
+      - '8443:8443'
+      - '9443:9443'
+      - '12000:12000'
+      - '8070:8070'
+    privileged: true
+
+  redis2:
+    image: redislabs/redis:latest
+    restart: on-failure
+    volumes:
+      - redislabs_data_2:/opt/redislabs
+    ports:
+      - '8444:8443'
+      - '9444:9443'
+      - '12001:12000'
+      - '8071:8070'
+    privileged: true
+
 volumes:
+  uptrace_data:
+    driver: local
   ch_data:
     driver: local
   alertmanager_data:

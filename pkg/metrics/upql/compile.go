@@ -48,6 +48,13 @@ type ParenExpr struct {
 	Expr Expr
 }
 
+type FuncCall struct {
+	AST *ast.FuncCall
+
+	Func string
+	Args []Expr
+}
+
 type compiler struct {
 	storage    Storage
 	exprs      []NamedExpr
@@ -64,29 +71,29 @@ func compile(storage Storage, parts []*QueryPart) []NamedExpr {
 			continue
 		}
 
-		switch ast := part.AST.(type) {
+		switch expr := part.AST.(type) {
 		case *ast.Selector:
 			pos := len(c.timeseries)
-			expr := c.selector(ast.Expr.Expr)
+			sel := c.selector(expr.Expr.Expr)
 
 			for _, ts := range c.timeseries[pos:] {
-				if ast.GroupByAll {
+				if expr.GroupByAll {
 					ts.GroupByAll = true
 				} else {
-					ts.Grouping = append(ts.Grouping, ast.Grouping...)
+					ts.Grouping = append(ts.Grouping, expr.Grouping...)
 				}
 				ts.Part = part
 			}
 
 			c.exprs = append(c.exprs, NamedExpr{
 				Part:  part,
-				Expr:  expr,
-				Alias: ast.Expr.Alias,
+				Expr:  sel,
+				Alias: expr.Expr.Alias,
 			})
 		case *ast.Where, *ast.Grouping:
 			// see below
 		default:
-			panic(fmt.Errorf("unknown ast: %T", ast))
+			panic(fmt.Errorf("unknown ast: %T", expr))
 		}
 	}
 
@@ -95,13 +102,13 @@ func compile(storage Storage, parts []*QueryPart) []NamedExpr {
 			continue
 		}
 
-		switch ast := part.AST.(type) {
+		switch expr := part.AST.(type) {
 		case *ast.Where:
-			if err := c.where(ast); err != nil {
+			if err := c.where(expr); err != nil {
 				part.Error.Wrapped = err
 			}
 		case *ast.Grouping:
-			if err := c.grouping(ast); err != nil {
+			if err := c.grouping(expr); err != nil {
 				part.Error.Wrapped = err
 			}
 		}
@@ -176,8 +183,42 @@ func (c *compiler) selector(expr ast.Expr) Expr {
 		}
 	case *ast.Number:
 		return expr
+	case *ast.FuncCall:
+		return c.funcCall(expr)
 	default:
 		panic(fmt.Errorf("unknown selector expr: %T", expr))
+	}
+}
+
+func (c *compiler) funcCall(fn *ast.FuncCall) Expr {
+	switch fn.Func {
+	case "delta":
+		// continue below
+	default:
+		if len(fn.Args) == 1 {
+			switch arg := fn.Args[0].(type) {
+			case *ast.Name:
+				if arg.Func == "" {
+					arg.Func = fn.Func
+					return c.selector(arg)
+				}
+			case *ast.FilteredName:
+				if arg.Name.Func == "" {
+					arg.Name.Func = fn.Func
+					return c.selector(arg)
+				}
+			}
+		}
+	}
+
+	args := make([]Expr, len(fn.Args))
+	for i, arg := range fn.Args {
+		args[i] = c.selector(arg)
+	}
+	return &FuncCall{
+		AST:  fn,
+		Func: fn.Func,
+		Args: args,
 	}
 }
 

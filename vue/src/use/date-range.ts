@@ -1,19 +1,30 @@
 import { min, addMilliseconds, subMilliseconds, differenceInMilliseconds } from 'date-fns'
-import { ref, computed, proxyRefs } from 'vue'
+import { shallowRef, computed, proxyRefs } from 'vue'
 
 // Composables
 import { useRouteQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 
 // Utilities
-import { formatUTC, parseUTC, toUTC, toLocal, ceilDate, second, minute, day } from '@/util/fmt/date'
+import {
+  formatUTC,
+  parseUTC,
+  toUTC,
+  toLocal,
+  ceilDate,
+  truncDate,
+  second,
+  minute,
+  day,
+} from '@/util/fmt/date'
 
 export type UseDateRange = ReturnType<typeof useDateRange>
 
 export function useDateRange() {
-  const lt = ref<Date>()
-  const isNow = ref(false)
-  const duration = ref(0)
+  const roundUp = shallowRef(false)
+  const lt = shallowRef<Date>()
+  const isNow = shallowRef(false)
+  const duration = shallowRef(0)
 
   let updateNowTimer: ReturnType<typeof setTimeout> | null
   const { forceReload, forceReloadParams } = useForceReload()
@@ -62,7 +73,7 @@ export function useDateRange() {
     }
 
     isNow.value = true
-    const nowVal = ceilDate(new Date(), minute)
+    const nowVal = roundUp.value ? ceilDate(new Date(), minute) : truncDate(new Date(), minute)
 
     if (nowVal <= lt.value!) {
       return false
@@ -77,7 +88,7 @@ export function useDateRange() {
     return true
   }
 
-  function resetNow() {
+  function resetNowTimer() {
     if (updateNowTimer) {
       clearTimeout(updateNowTimer)
       updateNowTimer = null
@@ -86,6 +97,7 @@ export function useDateRange() {
   }
 
   function reload() {
+    updateNow()
     forceReload()
   }
 
@@ -95,7 +107,7 @@ export function useDateRange() {
   }
 
   function reset() {
-    resetNow()
+    resetNowTimer()
     lt.value = undefined
     duration.value = 0
   }
@@ -104,7 +116,7 @@ export function useDateRange() {
     const durVal = ltVal.getTime() - gteVal.getTime()
     lt.value = ltVal
     duration.value = durVal
-    resetNow()
+    resetNowTimer()
   }
 
   function changeDuration(ms: number): void {
@@ -143,7 +155,7 @@ export function useDateRange() {
   }
 
   function changeLT(dt: Date) {
-    resetNow()
+    resetNowTimer()
     lt.value = dt
   }
 
@@ -158,7 +170,7 @@ export function useDateRange() {
   })
 
   function prevPeriod() {
-    resetNow()
+    resetNowTimer()
     lt.value = subMilliseconds(lt.value!, duration.value)
   }
 
@@ -257,6 +269,7 @@ export function useDateRange() {
   }
 
   return proxyRefs({
+    roundUp,
     gte,
     lt,
 

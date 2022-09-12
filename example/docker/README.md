@@ -1,4 +1,4 @@
-# Uptrace Open Source demo
+# Uptrace Docker demo
 
 ## Getting started
 

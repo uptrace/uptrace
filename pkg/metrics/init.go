@@ -14,6 +14,11 @@ import (
 )
 
 const (
+	numMetricLimit = 6
+	numEntryLimit  = 20
+)
+
+const (
 	protobufContentType = "application/x-protobuf"
 	jsonContentType     = "application/json"
 )
@@ -66,8 +71,9 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 		WithGroup("", func(g *bunrouter.Group) {
 			queryHandler := NewQueryHandler(app)
 
-			g.GET("/table", queryHandler.Table)
 			g.GET("/timeseries", queryHandler.Timeseries)
+			g.GET("/table", queryHandler.Table)
+			g.GET("/gauge", queryHandler.Gauge)
 		})
 
 	api.

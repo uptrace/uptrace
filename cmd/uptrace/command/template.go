@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/uptrace/uptrace/pkg/bunconf"
+	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
@@ -62,7 +62,7 @@ func NewTemplateCommand() *cli.Command {
 }
 
 func validateYAML(b []byte) error {
-	dashboard := new(bunconf.Dashboard)
+	dashboard := new(metrics.DashboardTpl)
 
 	dec := yaml.NewDecoder(bytes.NewReader(b))
 	for {

@@ -65,41 +65,41 @@ ch:
 ##
 alerting:
   rules:
-    - name: Network errors
+    - name: Redis shard is down
       metrics:
-        - system.network.errors as $net_errors
+        - redis_up as $redis_up
       query:
-        - $net_errors > 0 group by host.name
-      # for the last 5 minutes
-      for: 5m
-      # in the project id=1
-      projects: [1]
-
-    - name: Filesystem usage >= 90%
-      metrics:
-        - system.filesystem.usage as $fs_usage
-      query:
-        - group by host.name
-        - group by device
-        - where device !~ "loop"
-        - $fs_usage{state="used"} / $fs_usage >= 0.9
+        - group by cluster
+        - group by bdb
+        - group by node
+        - $redis_up == 0
       for: 5m
       projects: [1]
 
-    - name: Uptrace is dropping spans
+    - name: Memory fragmentation is too high
       metrics:
-        - uptrace.projects.spans as $spans
+        - redis_used_memory as $mem_used
+        - redis_mem_fragmentation_ratio as $fragmentation
       query:
-        - $spans{type=dropped} > 0
-      for: 1m
+        - group by cluster
+        - group by bdb
+        - group by node
+        - $mem_used > 32mb and $fragmentation > 3
+      for: 5m
       projects: [1]
 
-    - name: Always firing (for fun and testing)
+    - name: Redis read hit rate < 90%
       metrics:
-        - process.runtime.go.goroutines as $goroutines
+        - redis_keyspace_read_hits as $hits
+        - redis_keyspace_read_misses as $misses
       query:
-        - $goroutines >= 0 group by host.name
-      for: 1m
+        - group by cluster
+        - group by bdb
+        - group by node
+        - delta($hits) as _hits
+        - delta($misses) as _misses
+        - _hits / (_hits + _misses) < 0.9
+      for: 5m
       projects: [1]
 
   # Create alerts from error logs and span events.

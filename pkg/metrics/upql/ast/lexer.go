@@ -3,8 +3,11 @@ package ast
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/uptrace/uptrace/pkg/bunlex"
+	"github.com/uptrace/uptrace/pkg/bununit"
 )
 
 //go:generate stringer -type=TokenID
@@ -16,6 +19,8 @@ const (
 	IDENT_TOKEN
 	VALUE_TOKEN
 	NUMBER_TOKEN
+	DURATION_TOKEN
+	BYTES_TOKEN
 )
 
 var eofToken = &Token{ID: EOF_TOKEN}
@@ -134,22 +139,40 @@ func (l *lexer) charToken(id TokenID) *Token {
 
 func (l *lexer) quotedValue(end byte) (*Token, error) {
 	start := l.lex.Pos() - 1
-
 	s, err := l.lex.ReadUnquoted(end)
 	if err != nil {
 		return nil, err
 	}
-
-	l.tokens = append(l.tokens, Token{
-		ID:    VALUE_TOKEN,
-		Text:  s,
-		Start: start,
-	})
-	return &l.tokens[len(l.tokens)-1], nil
+	return l.token(VALUE_TOKEN, s, start), nil
 }
 
 func (l *lexer) number() *Token {
-	return l.token(NUMBER_TOKEN, l.lex.Number(), l.lex.Pos())
+	start := l.lex.Pos()
+	s, _ := l.lex.ReadSepFunc(start, l.isWordBoundary)
+	if _, err := time.ParseDuration(s); err == nil {
+		return l.token(DURATION_TOKEN, s, start)
+	}
+	if _, err := bununit.ParseBytes(s); err == nil {
+		return l.token(BYTES_TOKEN, s, start)
+	}
+	if _, err := strconv.ParseFloat(s, 64); err == nil {
+		return l.token(NUMBER_TOKEN, s, start)
+	}
+	return l.token(VALUE_TOKEN, s, start)
+}
+
+func (l *lexer) isWordBoundary(c byte) bool {
+	if bunlex.IsWhitespace(c) {
+		return true
+	}
+
+	switch c {
+	case '+', '-', '/', '%', '*', '=', '<', '>', '!',
+		'(', ')', '{', '}', ',', '|':
+		return true
+	default:
+		return false
+	}
 }
 
 func (l *lexer) ident(start int) (*Token, error) {

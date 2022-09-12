@@ -6,8 +6,20 @@ export function num(n: number | undefined): string {
   if (typeof n !== 'number' || n === 0) {
     return '0'
   }
+  if (Math.abs(n) < 0.00001) {
+    return trimMantissa(n, 7)
+  }
+  if (Math.abs(n) < 0.0001) {
+    return trimMantissa(n, 6)
+  }
+  if (Math.abs(n) < 0.001) {
+    return trimMantissa(n, 5)
+  }
+  if (Math.abs(n) < 0.01) {
+    return trimMantissa(n, 4)
+  }
   if (Math.abs(n) < 1) {
-    return trimMantissa(n, 3)
+    return trimMantissa(n, 2)
   }
   if (Math.abs(n) < 1000) {
     return trimMantissa(n, 1)

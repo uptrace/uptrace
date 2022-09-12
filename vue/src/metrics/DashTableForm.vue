@@ -37,7 +37,7 @@
           </v-col>
           <v-col>
             <v-sheet max-width="800" class="px-4 text-subtitle-1 text--primary">
-              Select up to 5 metrics you want to display for each row in the table. The selected
+              Select up to 6 metrics you want to display for each row in the table. The selected
               metrics should have some common attributes that will be used to join metrics together.
             </v-sheet>
           </v-col>

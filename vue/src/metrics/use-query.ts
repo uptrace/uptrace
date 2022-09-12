@@ -113,10 +113,6 @@ export function useTableQuery(
     return data.value?.columns ?? []
   })
 
-  const baseQueryParts = computed((): QueryPart[] => {
-    return data.value?.baseQueryParts ?? []
-  })
-
   const queryParts = computed((): QueryPart[] => {
     return data.value?.queryParts ?? []
   })
@@ -156,7 +152,6 @@ export function useTableQuery(
     loading,
     items: pagedItems,
 
-    baseQueryParts,
     queryParts,
     hasError,
     columns,
@@ -168,4 +163,48 @@ export function useTableQuery(
 export function hasMetricAlias(query: string, alias: string): boolean {
   alias = escapeRe('$' + alias)
   return new RegExp(`${alias}([^a-z0-9]|$)`).test(query)
+}
+
+//------------------------------------------------------------------------------
+
+export type UseGaugeQuery = ReturnType<typeof useTableQuery>
+
+export function useGaugeQuery(axiosParamsSource: () => Record<string, any>) {
+  const { route } = useRouter()
+
+  const { status, loading, data, reload } = useWatchAxios(() => {
+    const { projectId } = route.value.params
+    return {
+      url: `/api/v1/metrics/${projectId}/gauge`,
+      params: axiosParamsSource(),
+    }
+  })
+
+  const values = computed((): TableItem => {
+    return data.value?.values ?? {}
+  })
+
+  const columns = computed((): ColumnInfo[] => {
+    return data.value?.columns ?? []
+  })
+
+  const baseQueryParts = computed((): QueryPart[] => {
+    return data.value?.baseQueryParts ?? []
+  })
+
+  const queryParts = computed((): QueryPart[] => {
+    return data.value?.queryParts ?? []
+  })
+
+  return proxyRefs({
+    status,
+    loading,
+
+    baseQueryParts,
+    queryParts,
+    values,
+    columns,
+
+    reload,
+  })
 }

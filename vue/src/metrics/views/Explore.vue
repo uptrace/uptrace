@@ -18,7 +18,7 @@
           </v-col>
           <v-col>
             <v-sheet max-width="800" class="text-subtitle-1 text--primary">
-              Select up to 5 metrics you want to display for each row in the table. The selected
+              Select up to 6 metrics you want to display for each row in the table. The selected
               metrics should have some common attributes that will be used to join metrics together.
             </v-sheet>
           </v-col>
@@ -117,6 +117,9 @@ export default defineComponent({
   },
 
   setup(props) {
+    props.dateRange.syncQuery()
+    props.dateRange.roundUp = false
+
     const uql = useUql({ query: 'group by all' })
     const metricAliases = shallowRef<MetricAlias[]>([])
 

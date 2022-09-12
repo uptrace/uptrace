@@ -7,7 +7,6 @@ import (
 	"github.com/uptrace/bunrouter"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
 	"github.com/uptrace/uptrace/pkg/org"
@@ -40,7 +39,7 @@ func (h *DashHandler) Create(w http.ResponseWriter, req bunrouter.Request) error
 	dash.Name = in.Name
 	dash.ProjectID = project.ID
 	if dash.Columns == nil {
-		dash.Columns = make(map[string]*bunconf.MetricColumn)
+		dash.Columns = make(map[string]*MetricColumn)
 	}
 
 	if err := InsertDashboard(ctx, h.App, dash); err != nil {
@@ -64,10 +63,10 @@ func (h *DashHandler) Update(w http.ResponseWriter, req bunrouter.Request) error
 		Name      *string `json:"name"`
 		BaseQuery *string `json:"baseQuery"`
 
-		IsTable *bool                            `json:"isTable"`
-		Metrics []upql.Metric                    `json:"metrics"`
-		Query   *string                          `json:"query"`
-		Columns map[string]*bunconf.MetricColumn `json:"columnMap"`
+		IsTable *bool                    `json:"isTable"`
+		Metrics []upql.Metric            `json:"metrics"`
+		Query   *string                  `json:"query"`
+		Columns map[string]*MetricColumn `json:"columnMap"`
 	}
 	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
 		return err
@@ -183,13 +182,20 @@ func (h *DashHandler) Show(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 	dashboard := dashFromContext(ctx)
 
+	tableGauges, gridGauges, err := SelectDashGauges(ctx, h.App, dashboard.ID)
+	if err != nil {
+		return err
+	}
+
 	entries, err := SelectDashEntries(ctx, h.App, dashboard)
 	if err != nil {
 		return err
 	}
 
 	return httputil.JSON(w, bunrouter.H{
-		"dashboard": dashboard,
-		"entries":   entries,
+		"dashboard":   dashboard,
+		"tableGauges": tableGauges,
+		"gridGauges":  gridGauges,
+		"entries":     entries,
 	})
 }

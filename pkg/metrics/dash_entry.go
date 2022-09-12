@@ -7,7 +7,6 @@ import (
 	"github.com/uptrace/bun"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
 )
 
@@ -23,9 +22,9 @@ type DashEntry struct {
 	Weight      int    `json:"weight"`
 	ChartType   string `json:"chartType" bun:",nullzero,default:'line'"`
 
-	Metrics []upql.Metric                    `json:"metrics"`
-	Query   string                           `json:"query"`
-	Columns map[string]*bunconf.MetricColumn `json:"columnMap" bun:",nullzero"`
+	Metrics []upql.Metric            `json:"metrics"`
+	Query   string                   `json:"query"`
+	Columns map[string]*MetricColumn `json:"columnMap" bun:",nullzero"`
 }
 
 func (e *DashEntry) Validate() error {
@@ -39,20 +38,6 @@ func (e *DashEntry) Validate() error {
 		return fmt.Errorf("entry query is required")
 	}
 	return nil
-}
-
-func SelectDashEntry(
-	ctx context.Context, app *bunapp.App, dashID, entryID uint64,
-) (*DashEntry, error) {
-	entry := new(DashEntry)
-	if err := app.DB.NewSelect().
-		Model(entry).
-		Where("dash_id = ?", dashID).
-		Where("id = ?", entryID).
-		Scan(ctx); err != nil {
-		return nil, err
-	}
-	return entry, nil
 }
 
 func SelectDashEntries(
@@ -76,7 +61,7 @@ func InsertDashEntries(ctx context.Context, app *bunapp.App, entries []*DashEntr
 
 	for _, entry := range entries {
 		if entry.Columns == nil {
-			entry.Columns = make(map[string]*bunconf.MetricColumn)
+			entry.Columns = make(map[string]*MetricColumn)
 		}
 	}
 

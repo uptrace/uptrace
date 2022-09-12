@@ -51,7 +51,26 @@ CREATE TABLE dash_entries (
 
   metrics varchar(1000) NOT NULL,
   query varchar(1000) NOT NULL,
-  columns varchar(1000)
+  columns varchar(1000) NOT NULL
+);
+
+--bun:split
+
+CREATE TABLE dash_gauges (
+  id INTEGER PRIMARY KEY,
+
+  project_id int4 NOT NULL,
+  dash_id int8 NOT NULL REFERENCES dashboards (id) ON DELETE CASCADE,
+  dash_kind varchar(100) NOT NULL,
+
+  name varchar(1000) NOT NULL,
+  description varchar(1000),
+  weight int4 NOT NULL,
+  template varchar(1000) NOT NULL,
+
+  metrics varchar(1000) NOT NULL,
+  query varchar(1000) NOT NULL,
+  columns varchar(1000) NOT NULL
 );
 
 --bun:split
