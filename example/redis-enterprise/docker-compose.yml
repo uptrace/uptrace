@@ -82,6 +82,12 @@ services:
       - '8071:8070'
     privileged: true
 
+  redis-client:
+    build:
+      dockerfile: ./redis-client/Dockerfile
+      context: .
+    network_mode: host
+
 volumes:
   uptrace_data:
     driver: local

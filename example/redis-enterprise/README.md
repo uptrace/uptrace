@@ -1,5 +1,12 @@
 # Uptrace demo for monitoring Redis Enterprise clusters
 
+This example demonstrates how to monitor Redis Enterprise clusters using Uptrace and OpenTelemetry
+Collector. To run this example, you need to:
+
+1. [Start docker containers](#starting-containers)
+2. [Create a Redis cluster](#creating-redis-cluster)
+3. Open [Metrics](http://localhost:14318/metrics/1) tab in Uptrace UI
+
 ## Starting containers
 
 **Step 1**. Download the example using Git:
@@ -24,11 +31,12 @@ docker-compose logs uptrace
 
 **Step 4**. Open Uptrace UI at [http://localhost:14318](http://localhost:14318)
 
-## Creating Redis Enterprise cluster
+## Creating Redis cluster
 
 To create a Redis Enterprise cluster, open [https://localhost:8443/](https://localhost:8443/) and
 then follow official
-[instructions](https://docs.redis.com/latest/rs/installing-upgrading/get-started-docker/).
+[instructions](https://docs.redis.com/latest/rs/installing-upgrading/get-started-docker/) to create
+a cluster and a database on the port `:12000`.
 
 Once everything is done, you should be able to connect to the created Redis database:
 
