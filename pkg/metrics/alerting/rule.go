@@ -82,7 +82,8 @@ func (r *Rule) Alerts() []Alert {
 }
 
 func (r *Rule) Eval(ctx context.Context, engine Engine, tm time.Time) ([]Alert, error) {
-	timeseries, err := engine.Eval(ctx, r.conf.Metrics, r.conf.Query, tm.Add(-r.conf.For), tm)
+	dur := r.conf.For + time.Minute // for delta func
+	timeseries, err := engine.Eval(ctx, r.conf.Metrics, r.conf.Query, tm.Add(-dur), tm)
 	if err != nil {
 		return nil, err
 	}
@@ -147,6 +148,7 @@ func (r *Rule) checkTimeseries(ts *upql.Timeseries, alert *Alert, tm time.Time) 
 
 	switch {
 	case dur == 0:
+		// TODO: should we keep sending the alert for some time?
 		if alert.State != StateActive {
 			alert.State = StateActive
 			alert.ResolvedAt = tm
