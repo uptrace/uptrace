@@ -344,6 +344,7 @@ gauges:
       - redis_process_cpu_usage_percent as $cpu_usage
     query:
       - $cpu_usage
+    template: $cpu_usage%
 
   - name: Clients
     description: Number of client connections to the specific shard
