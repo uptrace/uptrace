@@ -13,7 +13,7 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 - Accept and store [OpenTelemetry Metrics](https://uptrace.dev/opentelemetry/metrics.html) in
   ClickHouse.
 - Added metrics monitoring using [alerting rules](https://uptrace.dev/get/alerting.html).
-- Added ability to send notifications via email/Slack/PagerDuty using
+- Added ability to send notifications via email/Slack/Telegram using
   [AlertManager](https://uptrace.dev/get/alerting.html#AlertManager).
 - Added ability to configure [TLS](https://uptrace.dev/get/config.html#tls).
 - Expand env vars in the YAML config, for example:

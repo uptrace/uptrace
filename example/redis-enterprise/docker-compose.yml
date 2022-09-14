@@ -24,7 +24,7 @@ services:
     image: 'uptrace/uptrace-dev:latest'
     volumes:
       - uptrace_data:/var/lib/uptrace
-      - uptrace.yml:/etc/uptrace/uptrace.yml
+      - ./uptrace.yml:/etc/uptrace/uptrace.yml
     network_mode: host
     environment:
       - UPTRACE_DB_FILE=/var/lib/uptrace/uptrace.sqlite3
@@ -37,14 +37,14 @@ services:
     image: otel/opentelemetry-collector-contrib:0.59.0
     restart: on-failure
     volumes:
-      - ./config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml
+      - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml
     network_mode: host
 
   alertmanager:
     image: prom/alertmanager:v0.24.0
     restart: on-failure
     volumes:
-      - ./config/alertmanager.yml:/etc/alertmanager/config.yml
+      - ../../config/alertmanager.yml:/etc/alertmanager/config.yml
       - alertmanager_data:/alertmanager
     ports:
       - 9093:9093
@@ -59,7 +59,7 @@ services:
       - '8025:8025'
 
   redis1:
-    image: redislabs/redis:latest
+    image: redislabs/redis:6.2.18-42
     restart: on-failure
     volumes:
       - redislabs_data_1:/opt/redislabs
@@ -71,7 +71,7 @@ services:
     privileged: true
 
   redis2:
-    image: redislabs/redis:latest
+    image: redislabs/redis:6.2.18-42
     restart: on-failure
     volumes:
       - redislabs_data_2:/opt/redislabs

@@ -15,7 +15,7 @@ only dependency.
 - Spans/logs grouping.
 - SQL-like query language to aggregate spans.
 - Promql-like language to aggregate and monitor metrics.
-- Email/Slack/PagerDuty notifications using AlertManager.
+- Email/Slack/Telegram notifications using AlertManager.
 - Pre-built metrics dashboards.
 - Multiple users/projects via YAML config.
 

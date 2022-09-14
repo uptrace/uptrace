@@ -86,6 +86,6 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .border-bottom {
-  border-bottom: 6px map-get($blue, 'lighten-4') solid;
+  border-bottom: 6px map-get($blue, 'darken-2') solid;
 }
 </style>

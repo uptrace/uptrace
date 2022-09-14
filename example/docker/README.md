@@ -38,7 +38,7 @@ To configure OpenTelemetry for your programming language, see
 ## Alerting
 
 Uptrace can monitor metrics using [alerting rules](https://uptrace.dev/get/alerting.html#alerting)
-and send notifications via email/Slack/PagerDuty using AlertManager integration.
+and send notifications via email/Slack/Telegram using AlertManager integration.
 
 This example uses MailHog to test email notifications. Open
 [http://localhost:8025](http://localhost:8025) to view available notifications and
