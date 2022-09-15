@@ -44,6 +44,9 @@ Once everything is done, you should be able to connect to the created Redis data
 redis-cli -p 12000
 ```
 
+Then you can open Uptrace at [http://localhost:14318](http://localhost:14318) and navigate to
+"Metrics" tab to view available dashboards.
+
 ## Alerting
 
 Uptrace can monitor metrics using [alerting rules](https://uptrace.dev/get/alerting.html#alerting)
