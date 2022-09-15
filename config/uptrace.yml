@@ -40,13 +40,11 @@ projects:
 ##
 ## To require authentication, uncomment the following section.
 ##
-users:
-  - id: 1
-    username: uptrace
-    password: uptrace
-  - id: 2
-    username: admin
-    password: admin
+# users:
+#   - username: uptrace
+#     password: uptrace
+#   - username: admin
+#     password: admin
 
 ##
 ## You can also specify auth providers, instead of username+password login.
@@ -55,8 +53,6 @@ users:
 #   # Cloudflare user provider: uses Cloudflare Zero Trust Access (Identity)
 #   # See https://developers.cloudflare.com/cloudflare-one/identity/ for more info.
 #   cloudflare:
-#     # The common ID shared by all users from this provider.
-#     id: 2
 #     # The base URL of the Cloudflare Zero Trust team.
 #     team_url: https://myteam.cloudflareaccess.com
 #     # The Application Audience (AUD) Tag for this application.
