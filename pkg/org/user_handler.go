@@ -1,13 +1,13 @@
 package org
 
 import (
-	"database/sql"
 	"net/http"
 	"time"
 
 	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 )
 
@@ -22,20 +22,22 @@ func NewUserHandler(app *bunapp.App) *UserHandler {
 }
 
 func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) error {
-	user := UserFromRequest(h.App, req)
-	if user == nil {
-		return ErrUnauthorized
+	user, err := UserFromContext(req.Context())
+	if err != nil {
+		return err
 	}
-
-	cfg := h.Config()
 
 	return httputil.JSON(w, bunrouter.H{
 		"user":     user,
-		"projects": cfg.Projects,
+		"projects": h.Config().Projects,
 	})
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error {
+	if len(h.Config().Users) == 0 {
+		return httperror.InternalServerError("Configure some users before continuing")
+	}
+
 	var in struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
@@ -46,10 +48,10 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 
 	user := findUserByPassword(h.App, in.Username, in.Password)
 	if user == nil {
-		return sql.ErrNoRows
+		return httperror.BadRequest("user with such credentials not found")
 	}
 
-	token, err := encodeUserToken(h.App, user.ID, tokenTTL)
+	token, err := encodeUserToken(h.Config().SecretKey, user.Username, tokenTTL)
 	if err != nil {
 		return err
 	}
