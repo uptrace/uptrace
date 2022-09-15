@@ -40,13 +40,13 @@ projects:
 ##
 ## To require authentication, uncomment the following section.
 ##
-users:
-  - id: 1
-    username: uptrace
-    password: uptrace
-  - id: 2
-    username: admin
-    password: admin
+# users:
+#   - id: 1
+#     username: uptrace
+#     password: uptrace
+#   - id: 2
+#     username: admin
+#     password: admin
 
 ##
 ## You can also specify auth providers, instead of username+password login.
