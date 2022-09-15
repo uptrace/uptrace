@@ -5,10 +5,12 @@ import (
 	"crypto/subtle"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -90,18 +92,31 @@ func (m *Middleware) UserAndProject(next bunrouter.HandlerFunc) bunrouter.Handle
 }
 
 func UserFromRequest(app *bunapp.App, req bunrouter.Request) *bunconf.User {
-	ctx := req.Context()
-
-	users := app.Config().Users
-	if len(users) == 0 {
+	if !app.Config().AuthRequired() {
 		return GuestUser
 	}
 
-	cookie, err := req.Cookie(tokenCookieName)
-	if err != nil {
+	if user := tryCookieFromRequest(app, req); user != nil {
+		return user
+	}
+
+	if user := tryCloudflareFromRequest(app, req); user != nil {
+		return user
+	}
+
+	return nil
+}
+
+func tryCookieFromRequest(app *bunapp.App, req bunrouter.Request) *bunconf.User {
+	if len(app.Config().Users) == 0 {
 		return nil
 	}
-	if cookie.Value == "" {
+
+	ctx := req.Context()
+
+	cookie, err := req.Cookie(tokenCookieName)
+
+	if err != nil || cookie.Value == "" {
 		return nil
 	}
 
@@ -111,6 +126,7 @@ func UserFromRequest(app *bunapp.App, req bunrouter.Request) *bunconf.User {
 		return nil
 	}
 
+	users := app.Config().Users
 	for i := range users {
 		user := &users[i]
 		if user.ID == userID {
@@ -119,6 +135,55 @@ func UserFromRequest(app *bunapp.App, req bunrouter.Request) *bunconf.User {
 	}
 
 	return nil
+}
+
+func tryCloudflareFromRequest(app *bunapp.App, req bunrouter.Request) *bunconf.User {
+	if !app.Config().CloudflareAuthEnabled() {
+		return nil
+	}
+
+	// Adapted from https://developers.cloudflare.com/cloudflare-one/identity/authorization-cookie/validating-json/
+
+	headers := req.Header
+	accessJWT := headers.Get("Cf-Access-Jwt-Assertion")
+	if accessJWT == "" {
+		return nil
+	}
+
+	// TODO(aramperes): Initialize this on startup instead
+	var (
+		ctx        = req.Context()
+		teamDomain = app.Config().UserProviders.Cloudflare.TeamURL
+		certsURL   = fmt.Sprintf("%s/cdn-cgi/access/certs", teamDomain)
+		policyAUD  = app.Config().UserProviders.Cloudflare.Audience
+
+		config = &oidc.Config{
+			ClientID: policyAUD,
+		}
+		keySet   = oidc.NewRemoteKeySet(ctx, certsURL)
+		verifier = oidc.NewVerifier(teamDomain, keySet, config)
+	)
+
+	token, err := verifier.Verify(ctx, accessJWT)
+	if err != nil {
+		app.Zap(ctx).Error("verifyCloudflareToken failed", zap.Error(err))
+		return nil
+	}
+
+	var claims struct {
+		Email string `json:"email"`
+	}
+
+	if err := token.Claims(&claims); err != nil {
+		app.Zap(ctx).Error("parseCloudflareToken failed", zap.Error(err))
+		return nil
+	}
+
+	return &bunconf.User{
+		// Note, all cloudflare users will share this ID for now.
+		ID:       app.Config().UserProviders.Cloudflare.ID,
+		Username: claims.Email,
+	}
 }
 
 func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*bunconf.Project, error) {
