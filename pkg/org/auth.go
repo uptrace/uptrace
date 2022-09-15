@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
@@ -210,9 +210,9 @@ func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*bunconf.Projec
 var jwtSigningMethod = jwt.SigningMethodHS256
 
 func encodeUserToken(app *bunapp.App, userID uint64, ttl time.Duration) (string, error) {
-	claims := &jwt.StandardClaims{
+	claims := &jwt.RegisteredClaims{
 		Subject:   strconv.FormatUint(userID, 10),
-		ExpiresAt: time.Now().Add(ttl).Unix(),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
 	}
 	token := jwt.NewWithClaims(jwtSigningMethod, claims)
 
@@ -221,7 +221,7 @@ func encodeUserToken(app *bunapp.App, userID uint64, ttl time.Duration) (string,
 }
 
 func decodeUserToken(app *bunapp.App, jwtToken string) (uint64, error) {
-	token, err := jwt.ParseWithClaims(jwtToken, &jwt.StandardClaims{},
+	token, err := jwt.ParseWithClaims(jwtToken, &jwt.RegisteredClaims{},
 		func(token *jwt.Token) (any, error) {
 			return []byte(app.Config().SecretKey), nil
 		})
@@ -233,7 +233,7 @@ func decodeUserToken(app *bunapp.App, jwtToken string) (uint64, error) {
 		return 0, errors.New("invalid JWT token")
 	}
 
-	claims := token.Claims.(*jwt.StandardClaims)
+	claims := token.Claims.(*jwt.RegisteredClaims)
 
 	id, err := strconv.ParseUint(claims.Subject, 10, 64)
 	if err != nil {
