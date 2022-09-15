@@ -49,6 +49,21 @@ users:
     password: admin
 
 ##
+## You can also specify auth providers, instead of username+password login.
+##
+# user_providers:
+#   # Cloudflare user provider: uses Cloudflare Zero Trust Access (Identity)
+#   # See https://developers.cloudflare.com/cloudflare-one/identity/ for more info.
+#   cloudflare:
+#     # The common ID shared by all users from this provider.
+#     id: 2
+#     # The base URL of the Cloudflare Zero Trust team.
+#     team_url: https://myteam.cloudflareaccess.com
+#     # The Application Audience (AUD) Tag for this application.
+#     # You can retrieve this from the Cloudflare Zero Trust 'Access' Dashboard.
+#     audience: bea6df23b944e4a0cd178609ba1bb64dc98dfe1f66ae7b918e563f6cf28b37e0
+
+##
 ## ClickHouse database credentials.
 ##
 ch:
