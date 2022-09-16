@@ -9,6 +9,8 @@
 
           <v-form v-model="isValid" @submit.prevent="submit">
             <v-card flat class="px-14 py-8">
+              <v-alert v-if="error" type="error">{{ error }}</v-alert>
+
               <v-text-field
                 v-model="username"
                 prepend-inner-icon="mdi-account"
@@ -42,7 +44,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch } from 'vue'
+import { upperFirst } from 'lodash'
+import { defineComponent, shallowRef, watch } from 'vue'
 
 // Composables
 import { useTitle } from '@vueuse/core'
@@ -60,14 +63,15 @@ export default defineComponent({
     const { router } = useRouter()
     const user = useUser()
 
-    const isValid = ref(false)
+    const isValid = shallowRef(false)
     const rules = {
       username: [requiredRule],
       password: [requiredRule],
     }
+    const error = shallowRef('')
 
-    const username = ref('uptrace')
-    const password = ref('uptrace')
+    const username = shallowRef('uptrace')
+    const password = shallowRef('uptrace')
 
     const { loading, request } = useAxios()
 
@@ -81,9 +85,17 @@ export default defineComponent({
     )
 
     function submit() {
-      login().then(() => {
-        user.reload()
-      })
+      login()
+        .then(() => {
+          error.value = ''
+          user.reload()
+        })
+        .catch((err) => {
+          const msg = err.response?.data?.message
+          if (msg) {
+            error.value = upperFirst(msg)
+          }
+        })
     }
 
     function login() {
@@ -97,8 +109,9 @@ export default defineComponent({
     }
 
     return {
-      rules,
       isValid,
+      rules,
+      error,
 
       username,
       password,

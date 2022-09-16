@@ -177,9 +177,9 @@ type Config struct {
 		BatchSize  int `yaml:"batch_size"`
 	} `yaml:"metrics"`
 
-	Users         []User         `yaml:"users"`
-	UserProviders *UserProviders `yaml:"user_providers"`
-	Projects      []Project      `yaml:"projects"`
+	Users         []User        `yaml:"users"`
+	UserProviders UserProviders `yaml:"user_providers"`
+	Projects      []Project     `yaml:"projects"`
 
 	Alerting struct {
 		Rules []AlertRule `yaml:"rules"`
@@ -235,7 +235,6 @@ type CHTableOverride struct {
 }
 
 type User struct {
-	ID       uint64 `yaml:"id" json:"id"`
 	Username string `yaml:"username" json:"username"`
 	Password string `yaml:"password" json:"-"`
 }
@@ -245,7 +244,6 @@ type UserProviders struct {
 }
 
 type CloudflareProvider struct {
-	ID       uint64 `yaml:"id" json:"id"`
 	TeamURL  string `yaml:"team_url" json:"team_url"`
 	Audience string `yaml:"audience" json:"audience"`
 }
@@ -282,14 +280,6 @@ func (c *Config) SitePath(sitePath string) string {
 	}
 	u.Path = path.Join(u.Path, sitePath)
 	return u.String()
-}
-
-func (c *Config) CloudflareAuthEnabled() bool {
-	return c.UserProviders != nil && c.UserProviders.Cloudflare != nil
-}
-
-func (c *Config) AuthRequired() bool {
-	return len(c.Users) > 0 || c.CloudflareAuthEnabled()
 }
 
 type BunConfig struct {

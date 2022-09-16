@@ -7,7 +7,6 @@ import { defineStore } from '@/use/store'
 import { useAxios } from '@/use/axios'
 
 export interface User {
-  id: number
   username: string
 }
 
@@ -19,12 +18,12 @@ export interface Project {
 export const useUser = defineStore(() => {
   const { loading, data, request } = useAxios()
 
-  const user = computed((): User => {
-    return data.value?.user ?? { id: 0, username: 'Guest' }
+  const user = computed((): User | undefined => {
+    return data.value?.user
   })
 
   const isAuth = computed((): boolean => {
-    return Boolean(user.value.id)
+    return user.value !== undefined
   })
 
   const projects = computed((): Project[] => {
