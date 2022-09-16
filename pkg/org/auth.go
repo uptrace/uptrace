@@ -4,14 +4,9 @@ import (
 	"context"
 	"crypto/subtle"
 	"database/sql"
-	"errors"
-	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
-	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
@@ -30,9 +25,8 @@ var (
 	ErrAccessDenied = httperror.Forbidden("access denied")
 )
 
-var GuestUser = &bunconf.User{
-	ID:       1,
-	Username: "guest",
+var AnonymousUser = &bunconf.User{
+	Username: "anonymous",
 }
 
 type (
@@ -63,11 +57,39 @@ func ContextWithProject(ctx context.Context, project *bunconf.Project) context.C
 
 type Middleware struct {
 	app *bunapp.App
+
+	userProviders []UserProvider
 }
 
 func NewMiddleware(app *bunapp.App) *Middleware {
+	var userProviders []UserProvider
+
+	conf := app.Config()
+
+	if len(conf.Users) > 0 {
+		userProviders = append(userProviders, NewJWTProvider(conf.SecretKey))
+	}
+	if conf.UserProviders.Cloudflare != nil {
+		userProviders = append(userProviders, NewCloudflareProvider(conf.UserProviders.Cloudflare))
+	}
+
 	return &Middleware{
-		app: app,
+		app:           app,
+		userProviders: userProviders,
+	}
+}
+
+func (m *Middleware) User(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
+	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
+
+		user := m.userFromRequest(req)
+		if user == nil {
+			return ErrUnauthorized
+		}
+		ctx = ContextWithUser(ctx, user)
+
+		return next(w, req.WithContext(ctx))
 	}
 }
 
@@ -75,7 +97,7 @@ func (m *Middleware) UserAndProject(next bunrouter.HandlerFunc) bunrouter.Handle
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
 
-		user := UserFromRequest(m.app, req)
+		user := m.userFromRequest(req)
 		if user == nil {
 			return ErrUnauthorized
 		}
@@ -91,99 +113,25 @@ func (m *Middleware) UserAndProject(next bunrouter.HandlerFunc) bunrouter.Handle
 	}
 }
 
-func UserFromRequest(app *bunapp.App, req bunrouter.Request) *bunconf.User {
-	if !app.Config().AuthRequired() {
-		return GuestUser
-	}
-
-	if user := tryCookieFromRequest(app, req); user != nil {
-		return user
-	}
-
-	if user := tryCloudflareFromRequest(app, req); user != nil {
-		return user
-	}
-
-	return nil
-}
-
-func tryCookieFromRequest(app *bunapp.App, req bunrouter.Request) *bunconf.User {
-	if len(app.Config().Users) == 0 {
-		return nil
-	}
-
+func (m *Middleware) userFromRequest(req bunrouter.Request) *bunconf.User {
 	ctx := req.Context()
 
-	cookie, err := req.Cookie(tokenCookieName)
-
-	if err != nil || cookie.Value == "" {
-		return nil
+	if len(m.userProviders) == 0 {
+		return AnonymousUser
 	}
 
-	userID, err := decodeUserToken(app, cookie.Value)
-	if err != nil {
-		app.Zap(ctx).Error("decodeUserToken failed", zap.Error(err))
-		return nil
-	}
-
-	users := app.Config().Users
-	for i := range users {
-		user := &users[i]
-		if user.ID == userID {
-			return user
+	for _, provider := range m.userProviders {
+		user, err := provider.Auth(req)
+		if err != nil {
+			if err != errNoUser {
+				m.app.Zap(ctx).Error("Auth failed", zap.Error(err))
+			}
+			continue
 		}
+		return user
 	}
 
 	return nil
-}
-
-func tryCloudflareFromRequest(app *bunapp.App, req bunrouter.Request) *bunconf.User {
-	if !app.Config().CloudflareAuthEnabled() {
-		return nil
-	}
-
-	// Adapted from https://developers.cloudflare.com/cloudflare-one/identity/authorization-cookie/validating-json/
-
-	headers := req.Header
-	accessJWT := headers.Get("Cf-Access-Jwt-Assertion")
-	if accessJWT == "" {
-		return nil
-	}
-
-	// TODO(aramperes): Initialize this on startup instead
-	var (
-		ctx        = req.Context()
-		teamDomain = app.Config().UserProviders.Cloudflare.TeamURL
-		certsURL   = fmt.Sprintf("%s/cdn-cgi/access/certs", teamDomain)
-		policyAUD  = app.Config().UserProviders.Cloudflare.Audience
-
-		config = &oidc.Config{
-			ClientID: policyAUD,
-		}
-		keySet   = oidc.NewRemoteKeySet(ctx, certsURL)
-		verifier = oidc.NewVerifier(teamDomain, keySet, config)
-	)
-
-	token, err := verifier.Verify(ctx, accessJWT)
-	if err != nil {
-		app.Zap(ctx).Error("verifyCloudflareToken failed", zap.Error(err))
-		return nil
-	}
-
-	var claims struct {
-		Email string `json:"email"`
-	}
-
-	if err := token.Claims(&claims); err != nil {
-		app.Zap(ctx).Error("parseCloudflareToken failed", zap.Error(err))
-		return nil
-	}
-
-	return &bunconf.User{
-		// Note, all cloudflare users will share this ID for now.
-		ID:       app.Config().UserProviders.Cloudflare.ID,
-		Username: claims.Email,
-	}
 }
 
 func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*bunconf.Project, error) {
@@ -203,44 +151,6 @@ func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*bunconf.Projec
 	}
 
 	return project, nil
-}
-
-//------------------------------------------------------------------------------
-
-var jwtSigningMethod = jwt.SigningMethodHS256
-
-func encodeUserToken(app *bunapp.App, userID uint64, ttl time.Duration) (string, error) {
-	claims := &jwt.StandardClaims{
-		Subject:   strconv.FormatUint(userID, 10),
-		ExpiresAt: time.Now().Add(ttl).Unix(),
-	}
-	token := jwt.NewWithClaims(jwtSigningMethod, claims)
-
-	key := []byte(app.Config().SecretKey)
-	return token.SignedString(key)
-}
-
-func decodeUserToken(app *bunapp.App, jwtToken string) (uint64, error) {
-	token, err := jwt.ParseWithClaims(jwtToken, &jwt.StandardClaims{},
-		func(token *jwt.Token) (any, error) {
-			return []byte(app.Config().SecretKey), nil
-		})
-	if err != nil {
-		return 0, err
-	}
-
-	if !token.Valid {
-		return 0, errors.New("invalid JWT token")
-	}
-
-	claims := token.Claims.(*jwt.StandardClaims)
-
-	id, err := strconv.ParseUint(claims.Subject, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-
-	return id, nil
 }
 
 //------------------------------------------------------------------------------

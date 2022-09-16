@@ -14,6 +14,7 @@ func Init(ctx context.Context, app *bunapp.App) {
 }
 
 func registerRoutes(ctx context.Context, app *bunapp.App) {
+	middleware := NewMiddleware(app)
 	userHandler := NewUserHandler(app)
 
 	g := app.APIGroup()
@@ -21,6 +22,9 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 	g.WithGroup("/users", func(g *bunrouter.Group) {
 		g.POST("/login", userHandler.Login)
 		g.POST("/logout", userHandler.Logout)
+
+		g = g.Use(middleware.User)
+
 		g.GET("/current", userHandler.Current)
 	})
 
