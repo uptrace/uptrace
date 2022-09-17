@@ -66,7 +66,7 @@ func NewMiddleware(app *bunapp.App) *Middleware {
 
 	conf := app.Config()
 
-	if len(conf.Users) > 0 {
+	if len(conf.Users) > 0 || conf.UserProviders.OIDC != nil {
 		userProviders = append(userProviders, NewJWTProvider(conf.SecretKey))
 	}
 	if conf.UserProviders.Cloudflare != nil {
@@ -116,7 +116,7 @@ func (m *Middleware) UserAndProject(next bunrouter.HandlerFunc) bunrouter.Handle
 func (m *Middleware) userFromRequest(req bunrouter.Request) *bunconf.User {
 	ctx := req.Context()
 
-	if len(m.userProviders) == 0 {
+	if len(m.userProviders) == 0 && m.app.Config().UserProviders.OIDC == nil {
 		return AnonymousUser
 	}
 

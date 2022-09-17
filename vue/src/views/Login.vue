@@ -11,6 +11,7 @@
             <v-card flat class="px-14 py-8">
               <v-alert v-if="error" type="error">{{ error }}</v-alert>
 
+              <!-- Basic Login (username/password) -->
               <v-text-field
                 v-model="username"
                 prepend-inner-icon="mdi-account"
@@ -35,6 +36,14 @@
                   Sign in
                 </v-btn>
               </v-card-actions>
+
+              <!-- SSO Methods -->
+              <v-col v-if="methods.oidc" align-self="center">
+                <v-spacer></v-spacer>
+                <v-btn :loading="loading" type="button" :href="methods.oidc.url" color="primary">
+                  Single Sign-On ({{ methods.oidc.name || 'OpenID Connect' }})
+                </v-btn>
+              </v-col>
             </v-card>
           </v-form>
         </v-card>
@@ -55,6 +64,13 @@ import { useUser } from '@/use/org'
 
 const requiredRule = (v: string) => (v && v.length != 0) || 'Field is required'
 
+interface LoginMethods {
+  oidc?: {
+    name: string
+    url: string
+  }
+}
+
 export default defineComponent({
   name: 'Login',
 
@@ -70,6 +86,8 @@ export default defineComponent({
     }
     const error = shallowRef('')
 
+    const methods = shallowRef({} as LoginMethods)
+
     const username = shallowRef('uptrace')
     const password = shallowRef('uptrace')
 
@@ -83,6 +101,17 @@ export default defineComponent({
         }
       },
     )
+
+    request({ method: 'GET', url: '/api/v1/sso/methods' })
+      .then((resp) => {
+        methods.value = resp.data
+      })
+      .catch((err) => {
+        const msg = err.response?.data?.message
+        if (msg) {
+          error.value = upperFirst(msg)
+        }
+      })
 
     function submit() {
       login()
@@ -112,6 +141,8 @@ export default defineComponent({
       isValid,
       rules,
       error,
+
+      methods,
 
       username,
       password,
