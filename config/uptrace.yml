@@ -58,6 +58,28 @@ projects:
 #     # The Application Audience (AUD) Tag for this application.
 #     # You can retrieve this from the Cloudflare Zero Trust 'Access' Dashboard.
 #     audience: bea6df23b944e4a0cd178609ba1bb64dc98dfe1f66ae7b918e563f6cf28b37e0
+#
+#   # OpenID Connect (Single Sign-On)
+#   oidc:
+#     # Display name for the button in the login form.
+#     # Default to 'OpenID Connect'
+#     display_name: Keycloak
+#     # The base URL for the OIDC provider.
+#     issuer_url: http://localhost:8080/realms/uptrace
+#     # The OAuth 2.0 Client ID
+#     client_id: uptrace
+#     # The OAuth 2.0 Client Secret
+#     client_secret: iSDz4G0n3CMQbcRW1hGTaN9PzNoeF6Kv
+#     # The public-facing Uptrace URL to redirect authenticated users to.
+#     # Must be configured in the OIDC provider as well.
+#     redirect_url: http://localhost:14318/api/v1/sso/oidc/callback
+#     # Additional OAuth 2.0 scopes to request from the OIDC provider.
+#     # Defaults to 'email'.
+#     scopes:
+#       - email
+#     # The OIDC UserInfo claim to use as unique user identifier.
+#     # Defaults to 'email'.
+#     claim: email
 
 ##
 ## ClickHouse database credentials.
