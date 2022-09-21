@@ -116,7 +116,7 @@ func (m *Middleware) UserAndProject(next bunrouter.HandlerFunc) bunrouter.Handle
 func (m *Middleware) userFromRequest(req bunrouter.Request) *bunconf.User {
 	ctx := req.Context()
 
-	if len(m.userProviders) == 0 && m.app.Config().UserProviders.OIDC == nil {
+	if len(m.userProviders) == 0 {
 		return AnonymousUser
 	}
 
