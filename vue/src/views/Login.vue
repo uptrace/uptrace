@@ -7,6 +7,25 @@
             <v-toolbar-title>Log in</v-toolbar-title>
           </v-toolbar>
 
+          <v-card flat class="px-14 py-8">
+            <v-btn
+              :loading="loading"
+              :href="methods.oidc.url"
+              color="red darken-3"
+              dark
+              large
+              width="100%"
+            >
+              {{ methods.oidc.name || 'OpenID Connect' }}
+            </v-btn>
+          </v-card>
+
+          <div class="d-flex align-center">
+            <v-divider />
+            <div class="mx-2 grey--text text--lighten-1">or</div>
+            <v-divider />
+          </div>
+
           <v-form v-model="isValid" @submit.prevent="submit">
             <v-card flat class="px-14 py-8">
               <v-alert v-if="error" type="error">{{ error }}</v-alert>
@@ -36,14 +55,6 @@
                   Sign in
                 </v-btn>
               </v-card-actions>
-
-              <!-- SSO Methods -->
-              <v-col v-if="methods.oidc" align-self="center">
-                <v-spacer></v-spacer>
-                <v-btn :loading="loading" type="button" :href="methods.oidc.url" color="primary">
-                  Single Sign-On ({{ methods.oidc.name || 'OpenID Connect' }})
-                </v-btn>
-              </v-col>
             </v-card>
           </v-form>
         </v-card>
