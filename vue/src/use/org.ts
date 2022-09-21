@@ -5,6 +5,7 @@ import router from '@/router'
 // Composables
 import { defineStore } from '@/use/store'
 import { useAxios } from '@/use/axios'
+import { useWatchAxios } from '@/use/watch-axios'
 
 export interface User {
   username: string
@@ -68,4 +69,12 @@ export const useUser = defineStore(() => {
 
 export function redirectToLogin() {
   router.push({ name: 'Login' }).catch(() => {})
+}
+
+export function useSso() {
+  const { loading, data } = useWatchAxios(() => {
+    return { url: '/api/v1/sso/methods' }
+  })
+
+  return proxyRefs({ loading, methods: data })
 }

@@ -7,24 +7,26 @@
             <v-toolbar-title>Log in</v-toolbar-title>
           </v-toolbar>
 
-          <v-card flat class="px-14 py-8">
-            <v-btn
-              :loading="loading"
-              :href="methods.oidc.url"
-              color="red darken-3"
-              dark
-              large
-              width="100%"
-            >
-              {{ methods.oidc.name || 'OpenID Connect' }}
-            </v-btn>
-          </v-card>
+          <template v-if="sso.methods">
+            <v-card flat class="px-14 py-8">
+              <v-btn
+                :loading="loading"
+                :href="sso.methods.oidc.url"
+                color="red darken-3"
+                dark
+                large
+                width="100%"
+              >
+                {{ sso.methods.oidc.name || 'OpenID Connect' }}
+              </v-btn>
+            </v-card>
 
-          <div class="d-flex align-center">
-            <v-divider />
-            <div class="mx-2 grey--text text--lighten-1">or</div>
-            <v-divider />
-          </div>
+            <div class="d-flex align-center">
+              <v-divider />
+              <div class="mx-2 grey--text text--lighten-1">or</div>
+              <v-divider />
+            </div>
+          </template>
 
           <v-form v-model="isValid" @submit.prevent="submit">
             <v-card flat class="px-14 py-8">
@@ -71,16 +73,9 @@ import { defineComponent, shallowRef, watch } from 'vue'
 import { useTitle } from '@vueuse/core'
 import { useAxios } from '@/use/axios'
 import { useRouter } from '@/use/router'
-import { useUser } from '@/use/org'
+import { useUser, useSso } from '@/use/org'
 
 const requiredRule = (v: string) => (v && v.length != 0) || 'Field is required'
-
-interface LoginMethods {
-  oidc?: {
-    name: string
-    url: string
-  }
-}
 
 export default defineComponent({
   name: 'Login',
@@ -89,6 +84,7 @@ export default defineComponent({
     useTitle('Log in')
     const { router } = useRouter()
     const user = useUser()
+    const sso = useSso()
 
     const isValid = shallowRef(false)
     const rules = {
@@ -96,8 +92,6 @@ export default defineComponent({
       password: [requiredRule],
     }
     const error = shallowRef('')
-
-    const methods = shallowRef({} as LoginMethods)
 
     const username = shallowRef('uptrace')
     const password = shallowRef('uptrace')
@@ -112,17 +106,6 @@ export default defineComponent({
         }
       },
     )
-
-    request({ method: 'GET', url: '/api/v1/sso/methods' })
-      .then((resp) => {
-        methods.value = resp.data
-      })
-      .catch((err) => {
-        const msg = err.response?.data?.message
-        if (msg) {
-          error.value = upperFirst(msg)
-        }
-      })
 
     function submit() {
       login()
@@ -149,11 +132,11 @@ export default defineComponent({
     }
 
     return {
+      sso,
+
       isValid,
       rules,
       error,
-
-      methods,
 
       username,
       password,
