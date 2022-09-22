@@ -66,11 +66,11 @@ func NewMiddleware(app *bunapp.App) *Middleware {
 
 	conf := app.Config()
 
-	if len(conf.Users) > 0 || conf.UserProviders.OIDC != nil {
+	if len(conf.Auth.Users) > 0 || len(conf.Auth.OIDC) > 0 {
 		userProviders = append(userProviders, NewJWTProvider(conf.SecretKey))
 	}
-	if conf.UserProviders.Cloudflare != nil {
-		userProviders = append(userProviders, NewCloudflareProvider(conf.UserProviders.Cloudflare))
+	for _, cloudflare := range conf.Auth.Cloudflare {
+		userProviders = append(userProviders, NewCloudflareProvider(cloudflare))
 	}
 
 	return &Middleware{
@@ -156,7 +156,7 @@ func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*bunconf.Projec
 //------------------------------------------------------------------------------
 
 func findUserByPassword(app *bunapp.App, username string, password string) *bunconf.User {
-	users := app.Config().Users
+	users := app.Config().Auth.Users
 	for i := range users {
 		user := &users[i]
 		if subtle.ConstantTimeCompare([]byte(user.Username), []byte(username)) == 1 &&

@@ -1,7 +1,6 @@
 package org
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
@@ -20,70 +19,70 @@ import (
 )
 
 type SSOHandler struct {
-	app  *bunapp.App
-	oidc *OIDCProvider
+	*bunapp.App
+
+	methods []*SSOMethod
 }
 
-type Methods struct {
-	OIDC *OIDCMethod `json:"oidc"`
-}
-
-func NewSSOHandler(app *bunapp.App) *SSOHandler {
-	conf := app.Config()
-	ctx := app.Context()
-
-	var oidc *OIDCProvider
-	if conf.UserProviders.OIDC != nil {
-		if provider, err := NewOIDCProvider(ctx, conf.UserProviders.OIDC); provider != nil {
-			oidc = provider
-		} else if err != nil {
-			app.Zap(ctx).Error("Failed to initialize OIDC user provider", zap.Error(err))
-		}
-	}
-
-	return &SSOHandler{
-		app:  app,
-		oidc: oidc,
-	}
-}
-
-func (h *SSOHandler) ListMethods(w http.ResponseWriter, req bunrouter.Request) error {
-	app := h.app
-	ctx := req.Context()
-
-	methods := &Methods{}
-
-	if h.oidc != nil {
-		oidc, err := h.oidc.Start(w, req)
-		if err != nil {
-			app.Zap(ctx).Error("Failed to start OIDC flow", zap.Error(err))
-		} else if oidc != nil {
-			methods.OIDC = oidc
-		}
-	}
-
-	return httputil.JSON(w, methods)
-}
-
-//------------------------------------------------------------------------------
-
-type OIDCMethod struct {
+type SSOMethod struct {
+	ID          string `json:"id"`
 	DisplayName string `json:"name"`
 	RedirectURL string `json:"url"`
 }
 
-type OIDCProvider struct {
-	conf *bunconf.OIDCProvider
+func NewSSOHandler(app *bunapp.App, router *bunrouter.Group) *SSOHandler {
+	conf := app.Config()
+	methods := make([]*SSOMethod, 0)
 
+	for _, oidcConf := range conf.Auth.OIDC {
+		if oidcConf.RedirectURL == "" {
+			oidcConf.RedirectURL = conf.SitePath(fmt.Sprintf("/api/v1/sso/%s/callback", oidcConf.ID))
+		}
+
+		handler, err := NewSSOMethodHandler(app, oidcConf)
+		if err != nil {
+			app.Logger.Error("failed to initialize OIDC user provider", zap.Error(err))
+			continue
+		}
+
+		methods = append(methods, &SSOMethod{
+			ID:          oidcConf.ID,
+			DisplayName: oidcConf.DisplayName,
+			RedirectURL: fmt.Sprintf("/api/v1/sso/%s/start", oidcConf.ID),
+		})
+
+		router.GET(fmt.Sprintf("/%s/start", oidcConf.ID), handler.Start)
+		router.GET(fmt.Sprintf("/%s/callback", oidcConf.ID), handler.Callback)
+	}
+
+	return &SSOHandler{
+		App:     app,
+		methods: methods,
+	}
+}
+
+func (h *SSOHandler) ListMethods(w http.ResponseWriter, req bunrouter.Request) error {
+	return httputil.JSON(w, bunrouter.H{
+		"methods": h.methods,
+	})
+}
+
+//------------------------------------------------------------------------------
+
+type SSOMethodHandler struct {
+	*bunapp.App
+
+	conf     *bunconf.OIDCProvider
 	provider *oidc.Provider
 	oauth    *oauth2.Config
 }
 
 const stateCookieName = "oidc-state"
 
-func NewOIDCProvider(ctx context.Context, conf *bunconf.OIDCProvider) (*OIDCProvider, error) {
-	provider, err := oidc.NewProvider(ctx, conf.IssuerURL)
-
+func NewSSOMethodHandler(
+	app *bunapp.App, conf *bunconf.OIDCProvider,
+) (*SSOMethodHandler, error) {
+	provider, err := oidc.NewProvider(app.Context(), conf.IssuerURL)
 	if err != nil {
 		return nil, err
 	}
@@ -104,39 +103,57 @@ func NewOIDCProvider(ctx context.Context, conf *bunconf.OIDCProvider) (*OIDCProv
 		Scopes:       scopes,
 	}
 
-	return &OIDCProvider{
+	return &SSOMethodHandler{
+		App:      app,
 		conf:     conf,
 		provider: provider,
 		oauth:    oauth,
 	}, nil
 }
 
-func (p *OIDCProvider) Start(w http.ResponseWriter, req bunrouter.Request) (*OIDCMethod, error) {
-	// Generates a 'state' token to prevent CSRF attacks (will be validated when redirected back to app)
+func (h *SSOMethodHandler) Start(w http.ResponseWriter, req bunrouter.Request) error {
+	// Generates a 'state' token to prevent CSRF attacks.
+	// It will be validated when redirected back to the app.
 	state, err := randState(32)
-
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	stateCookie := &http.Cookie{
+	http.SetCookie(w, &http.Cookie{
 		Name:     stateCookieName,
 		Value:    state,
 		MaxAge:   int(time.Hour.Seconds()),
 		HttpOnly: true,
-	}
+	})
 
-	http.SetCookie(w, stateCookie)
-
-	method := &OIDCMethod{
-		RedirectURL: p.oauth.AuthCodeURL(state),
-		DisplayName: p.conf.DisplayName,
-	}
-
-	return method, nil
+	http.Redirect(w, req.Request, h.oauth.AuthCodeURL(state), http.StatusFound)
+	return nil
 }
 
-func (p *OIDCProvider) Exchange(w http.ResponseWriter, req bunrouter.Request) (*bunconf.User, error) {
+func (h *SSOMethodHandler) Callback(w http.ResponseWriter, req bunrouter.Request) error {
+	user, err := h.exchange(w, req)
+	if err != nil {
+		return err
+	}
+
+	token, err := encodeUserToken(h.Config().SecretKey, user.Username, tokenTTL)
+	if err != nil {
+		return err
+	}
+
+	cookie := bunapp.NewCookie(h.App, req)
+	cookie.Name = tokenCookieName
+	cookie.Value = token
+	cookie.MaxAge = int(tokenTTL.Seconds())
+	http.SetCookie(w, cookie)
+
+	http.Redirect(w, req.Request, "/", http.StatusFound)
+	return nil
+}
+
+func (h *SSOMethodHandler) exchange(
+	w http.ResponseWriter, req bunrouter.Request,
+) (*bunconf.User, error) {
 	ctx := req.Context()
 
 	existingState, _ := req.Cookie(stateCookieName)
@@ -157,12 +174,12 @@ func (p *OIDCProvider) Exchange(w http.ResponseWriter, req bunrouter.Request) (*
 	}
 	http.SetCookie(w, emptyState)
 
-	token, err := p.oauth.Exchange(ctx, req.URL.Query().Get("code"))
+	token, err := h.oauth.Exchange(ctx, req.URL.Query().Get("code"))
 	if err != nil {
 		return nil, fmt.Errorf("oidc: failed to exchange code: %w", err)
 	}
 
-	userInfo, err := p.provider.UserInfo(ctx, oauth2.StaticTokenSource(token))
+	userInfo, err := h.provider.UserInfo(ctx, oauth2.StaticTokenSource(token))
 	if err != nil {
 		return nil, fmt.Errorf("oidc: failed to get user info: %w", err)
 	}
@@ -175,8 +192,8 @@ func (p *OIDCProvider) Exchange(w http.ResponseWriter, req bunrouter.Request) (*
 	}
 
 	claim := "preferred_username"
-	if len(p.conf.Claim) > 0 {
-		claim = p.conf.Claim
+	if len(h.conf.Claim) > 0 {
+		claim = h.conf.Claim
 	}
 
 	var username string
@@ -206,25 +223,4 @@ func randState(nByte int) (string, error) {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(b), nil
-}
-
-func (h *SSOHandler) OIDCCallback(w http.ResponseWriter, req bunrouter.Request) error {
-	user, err := h.oidc.Exchange(w, req)
-	if err != nil {
-		return err
-	}
-
-	token, err := encodeUserToken(h.app.Config().SecretKey, user.Username, tokenTTL)
-	if err != nil {
-		return err
-	}
-
-	cookie := bunapp.NewCookie(h.app, req)
-	cookie.Name = tokenCookieName
-	cookie.Value = token
-	cookie.MaxAge = int(tokenTTL.Seconds())
-	http.SetCookie(w, cookie)
-
-	http.Redirect(w, req.Request, "/", http.StatusFound)
-	return nil
 }

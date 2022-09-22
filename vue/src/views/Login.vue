@@ -7,17 +7,19 @@
             <v-toolbar-title>Log in</v-toolbar-title>
           </v-toolbar>
 
-          <template v-if="sso.methods">
+          <template v-if="sso.methods.length">
             <v-card flat class="px-14 py-8">
               <v-btn
+                v-for="sso in sso.methods"
+                :key="sso.id"
                 :loading="loading"
-                :href="sso.methods.oidc.url"
+                :href="sso.url"
                 color="red darken-3"
                 dark
                 large
                 width="100%"
               >
-                {{ sso.methods.oidc.name || 'OpenID Connect' }}
+                {{ sso.name || 'OpenID Connect' }}
               </v-btn>
             </v-card>
 

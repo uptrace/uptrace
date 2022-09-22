@@ -71,10 +71,19 @@ export function redirectToLogin() {
   router.push({ name: 'Login' }).catch(() => {})
 }
 
+interface SsoMethod {
+  name: string
+  url: string
+}
+
 export function useSso() {
   const { loading, data } = useWatchAxios(() => {
     return { url: '/api/v1/sso/methods' }
   })
 
-  return proxyRefs({ loading, methods: data })
+  const methods = computed((): SsoMethod[] => {
+    return data.value?.methods ?? []
+  })
+
+  return proxyRefs({ loading, methods })
 }

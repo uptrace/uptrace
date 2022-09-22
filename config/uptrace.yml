@@ -40,46 +40,41 @@ projects:
 ##
 ## To require authentication, uncomment the following section.
 ##
-# users:
-#   - username: uptrace
-#     password: uptrace
-#   - username: admin
-#     password: admin
+auth:
+  users:
+    - username: uptrace
+      password: uptrace
+    - username: admin
+      password: admin
 
-##
-## You can also specify auth providers, instead of username+password login.
-##
-# user_providers:
-#   # Cloudflare user provider: uses Cloudflare Zero Trust Access (Identity)
-#   # See https://developers.cloudflare.com/cloudflare-one/identity/ for more info.
-#   cloudflare:
-#     # The base URL of the Cloudflare Zero Trust team.
-#     team_url: https://myteam.cloudflareaccess.com
-#     # The Application Audience (AUD) Tag for this application.
-#     # You can retrieve this from the Cloudflare Zero Trust 'Access' Dashboard.
-#     audience: bea6df23b944e4a0cd178609ba1bb64dc98dfe1f66ae7b918e563f6cf28b37e0
-#
-#   # OpenID Connect (Single Sign-On)
-#   oidc:
-#     # Display name for the button in the login form.
-#     # Default to 'OpenID Connect'
-#     display_name: Keycloak
-#     # The base URL for the OIDC provider.
-#     issuer_url: http://localhost:8080/realms/uptrace
-#     # The OAuth 2.0 Client ID
-#     client_id: uptrace
-#     # The OAuth 2.0 Client Secret
-#     client_secret: iSDz4G0n3CMQbcRW1hGTaN9PzNoeF6Kv
-#     # The public-facing Uptrace URL to redirect authenticated users to.
-#     # Must be configured in the OIDC provider as well.
-#     redirect_url: http://localhost:14318/api/v1/sso/oidc/callback
-#     # Additional OAuth 2.0 scopes to request from the OIDC provider.
-#     # Defaults to 'profile'. 'openid' is requested by default and need not be specified.
-#     scopes:
-#       - profile
-#     # The OIDC UserInfo claim to use as the user's username.
-#     # Defaults to 'preferred_username'.
-#     claim: preferred_username
+  # Cloudflare user provider: uses Cloudflare Zero Trust Access (Identity)
+  # See https://developers.cloudflare.com/cloudflare-one/identity/ for more info.
+  cloudflare:
+    # The base URL of the Cloudflare Zero Trust team.
+    - team_url: https://myteam.cloudflareaccess.com
+      # The Application Audience (AUD) Tag for this application.
+      # You can retrieve this from the Cloudflare Zero Trust 'Access' Dashboard.
+      audience: bea6df23b944e4a0cd178609ba1bb64dc98dfe1f66ae7b918e563f6cf28b37e0
+
+  # OpenID Connect (Single Sign-On)
+  oidc:
+    - id: keycloak
+      # Display name for the button in the login form.
+      # Default to 'OpenID Connect'
+      display_name: Keycloak
+      # The base URL for the OIDC provider.
+      issuer_url: http://localhost:8080/realms/uptrace
+      # The OAuth 2.0 Client ID
+      client_id: uptrace
+      # The OAuth 2.0 Client Secret
+      client_secret: ogbhd8Q0X0e5AZFGSG3m9oirPvnetqkA
+      # Additional OAuth 2.0 scopes to request from the OIDC provider.
+      # Defaults to 'profile'. 'openid' is requested by default and need not be specified.
+      scopes:
+        - profile
+      # The OIDC UserInfo claim to use as the user's username.
+      # Defaults to 'preferred_username'.
+      claim: preferred_username
 
 ##
 ## ClickHouse database credentials.

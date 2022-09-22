@@ -16,7 +16,6 @@ func Init(ctx context.Context, app *bunapp.App) {
 func registerRoutes(ctx context.Context, app *bunapp.App) {
 	middleware := NewMiddleware(app)
 	userHandler := NewUserHandler(app)
-	ssoHandler := NewSSOHandler(app)
 
 	g := app.APIGroup()
 
@@ -29,13 +28,11 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 		g.GET("/current", userHandler.Current)
 	})
 
-	// TODO: If there is more than one SSO provider, make this more granular
-	if app.Config().UserProviders.OIDC != nil {
-		g.WithGroup("/sso", func(g *bunrouter.Group) {
-			g.GET("/methods", ssoHandler.ListMethods)
-			g.GET("/oidc/callback", ssoHandler.OIDCCallback)
-		})
-	}
+	g.WithGroup("/sso", func(g *bunrouter.Group) {
+		ssoHandler := NewSSOHandler(app, g)
+
+		g.GET("/methods", ssoHandler.ListMethods)
+	})
 
 	g.GET("/projects/:project_id", func(w http.ResponseWriter, req bunrouter.Request) error {
 		projectID, err := req.Params().Uint32("project_id")
