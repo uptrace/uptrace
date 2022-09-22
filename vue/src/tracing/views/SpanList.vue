@@ -27,6 +27,8 @@
 
           <v-row class="px-4 pb-4">
             <v-col>
+              <LoadPctileChart :axios-params="axiosParams" class="pa-4" />
+
               <SpansTable
                 :date-range="dateRange"
                 :loading="spans.loading"
@@ -64,13 +66,14 @@ import UptraceQuery from '@/components/UptraceQuery.vue'
 import SpanFilters from '@/tracing/uql/SpanFilters.vue'
 import SpansTable from '@/tracing/SpansTable.vue'
 import { SpanChip } from '@/tracing/SpanChips.vue'
+import LoadPctileChart from '@/components/LoadPctileChart.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'SpanList',
-  components: { UptraceQuery, SpanFilters, SpansTable },
+  components: { UptraceQuery, SpanFilters, SpansTable, LoadPctileChart },
 
   props: {
     dateRange: {
