@@ -24,11 +24,12 @@ services:
     #image: 'uptrace/uptrace-dev:latest'
     volumes:
       - uptrace_data:/var/lib/uptrace
-      - ../../config/uptrace.yml:/etc/uptrace/uptrace.yml
-    network_mode: host
-    environment:
-      - UPTRACE_DB_FILE=/var/lib/uptrace/uptrace.sqlite3
-      #- DEBUG=2
+      - ./uptrace.yml:/etc/uptrace/uptrace.yml
+    #environment:
+    #  - DEBUG=2
+    ports:
+      - '14317:14317'
+      - '14318:14318'
     depends_on:
       clickhouse:
         condition: service_healthy
@@ -41,7 +42,9 @@ services:
       - ../../config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/log:/var/log:ro
-    network_mode: host
+    ports:
+      - '4317:4317'
+      - '4318:4318'
 
   alertmanager:
     image: prom/alertmanager:v0.24.0
