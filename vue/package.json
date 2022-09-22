@@ -10,6 +10,7 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "@mdi/font": "^7.0.96",
     "@vueuse/core": "9.1.1",
     "axios": "0.27.2",
     "axios-retry": "3.3.1",
@@ -21,6 +22,7 @@
     "numbro": "2.3.6",
     "prismjs": "1.29.0",
     "querystring-es3": "0.2.1",
+    "roboto-fontface": "^0.10.0",
     "sql-formatter": "10.0.0",
     "vue": "2.7.10",
     "vue-frag": "1.4.1",
