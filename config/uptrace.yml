@@ -74,12 +74,12 @@ projects:
 #     # Must be configured in the OIDC provider as well.
 #     redirect_url: http://localhost:14318/api/v1/sso/oidc/callback
 #     # Additional OAuth 2.0 scopes to request from the OIDC provider.
-#     # Defaults to 'email'.
+#     # Defaults to 'profile'. 'openid' is requested by default and need not be specified.
 #     scopes:
-#       - email
-#     # The OIDC UserInfo claim to use as unique user identifier.
-#     # Defaults to 'email'.
-#     claim: email
+#       - profile
+#     # The OIDC UserInfo claim to use as the user's username.
+#     # Defaults to 'preferred_username'.
+#     claim: preferred_username
 
 ##
 ## ClickHouse database credentials.

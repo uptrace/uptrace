@@ -88,12 +88,20 @@ func NewOIDCProvider(ctx context.Context, conf *bunconf.OIDCProvider) (*OIDCProv
 		return nil, err
 	}
 
+	scopes := []string{oidc.ScopeOpenID}
+
+	if len(conf.Scopes) > 0 {
+		scopes = append(scopes, conf.Scopes...)
+	} else {
+		scopes = append(scopes, "profile")
+	}
+
 	oauth := &oauth2.Config{
 		ClientID:     conf.ClientID,
 		ClientSecret: conf.ClientSecret,
 		RedirectURL:  conf.RedirectURL,
 		Endpoint:     provider.Endpoint(),
-		Scopes:       append(conf.Scopes, oidc.ScopeOpenID),
+		Scopes:       scopes,
 	}
 
 	return &OIDCProvider{
@@ -128,7 +136,7 @@ func (p *OIDCProvider) Start(w http.ResponseWriter, req bunrouter.Request) (*OID
 	return method, nil
 }
 
-func (p *OIDCProvider) TryExchange(w http.ResponseWriter, req bunrouter.Request) (*bunconf.User, error) {
+func (p *OIDCProvider) Exchange(w http.ResponseWriter, req bunrouter.Request) (*bunconf.User, error) {
 	ctx := req.Context()
 
 	existingState, _ := req.Cookie(stateCookieName)
@@ -159,9 +167,36 @@ func (p *OIDCProvider) TryExchange(w http.ResponseWriter, req bunrouter.Request)
 		return nil, fmt.Errorf("oidc: failed to get user info: %w", err)
 	}
 
+	var claims *map[string]interface{}
+	err = userInfo.Claims(&claims)
+
+	if err != nil {
+		return nil, fmt.Errorf("oidc: failed to read claims: %w", err)
+	}
+
+	claim := "preferred_username"
+	if len(p.conf.Claim) > 0 {
+		claim = p.conf.Claim
+	}
+
+	var username string
+	usernameClaim := (*claims)[claim]
+
+	switch usernameClaim := usernameClaim.(type) {
+	case string:
+		username = usernameClaim
+	case nil:
+		return nil, fmt.Errorf("oidc: claim is unset: %s", claim)
+	default:
+		return nil, fmt.Errorf("oidc: claim must be a string: %s", claim)
+	}
+
+	if len(username) == 0 {
+		return nil, fmt.Errorf("oidc: claim is empty: %s", claim)
+	}
+
 	return &bunconf.User{
-		// TODO: is there a username?
-		Username: userInfo.Email,
+		Username: username,
 	}, nil
 }
 
@@ -174,7 +209,7 @@ func randState(nByte int) (string, error) {
 }
 
 func (h *SSOHandler) OIDCCallback(w http.ResponseWriter, req bunrouter.Request) error {
-	user, err := h.oidc.TryExchange(w, req)
+	user, err := h.oidc.Exchange(w, req)
 	if err != nil {
 		return err
 	}

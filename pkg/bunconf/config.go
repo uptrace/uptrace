@@ -256,6 +256,7 @@ type OIDCProvider struct {
 	ClientSecret string   `yaml:"client_secret" json:"client_secret"`
 	RedirectURL  string   `yaml:"redirect_url" json:"redirect_url"`
 	Scopes       []string `yaml:"scopes" json:"scopes"`
+	Claim        string   `yaml:"claim" json:"claim"`
 }
 
 type Project struct {
