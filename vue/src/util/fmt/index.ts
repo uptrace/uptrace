@@ -24,18 +24,18 @@ export function createFormatter(unit: string | Unit | Formatter): Formatter {
     case Unit.Date:
       return datetime
     case Unit.Nanoseconds:
-      return (val: any, ...args: any[]) => {
-        return duration(adjustNumber(val, 0.001), ...args)
-      }
-    case Unit.Microseconds:
       return duration
-    case Unit.Milliseconds:
+    case Unit.Microseconds:
       return (val: any, ...args: any[]) => {
         return duration(adjustNumber(val, 1e3), ...args)
       }
-    case Unit.Seconds:
+    case Unit.Milliseconds:
       return (val: any, ...args: any[]) => {
         return duration(adjustNumber(val, 1e6), ...args)
+      }
+    case Unit.Seconds:
+      return (val: any, ...args: any[]) => {
+        return duration(adjustNumber(val, 1e9), ...args)
       }
     case Unit.Bytes:
       return bytes
@@ -50,18 +50,18 @@ export function createShortFormatter(unit: Unit | string): Formatter {
     case Unit.Date:
       return datetime
     case Unit.Nanoseconds:
-      return (val: any, ...args: any[]) => {
-        return durationShort(adjustNumber(val, 0.001), ...args)
-      }
-    case Unit.Microseconds:
       return durationShort
-    case Unit.Milliseconds:
+    case Unit.Microseconds:
       return (val: any, ...args: any[]) => {
         return durationShort(adjustNumber(val, 1e3), ...args)
       }
-    case Unit.Seconds:
+    case Unit.Milliseconds:
       return (val: any, ...args: any[]) => {
         return durationShort(adjustNumber(val, 1e6), ...args)
+      }
+    case Unit.Seconds:
+      return (val: any, ...args: any[]) => {
+        return durationShort(adjustNumber(val, 1e9), ...args)
       }
     case Unit.Bytes:
       return bytesShort
@@ -97,7 +97,7 @@ function noneShort(v: unknown): string {
 
 function adjustNumber(v: any, mod: number): any {
   if (typeof v === 'number') {
-    return v * mod
+    return v / mod
   }
   return v
 }
