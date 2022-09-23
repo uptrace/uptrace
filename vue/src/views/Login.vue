@@ -7,10 +7,34 @@
             <v-toolbar-title>Log in</v-toolbar-title>
           </v-toolbar>
 
+          <template v-if="sso.methods.length">
+            <v-card flat class="px-14 py-8">
+              <v-btn
+                v-for="sso in sso.methods"
+                :key="sso.id"
+                :loading="loading"
+                :href="sso.url"
+                color="red darken-3"
+                dark
+                large
+                width="100%"
+              >
+                {{ sso.name || 'OpenID Connect' }}
+              </v-btn>
+            </v-card>
+
+            <div class="d-flex align-center">
+              <v-divider />
+              <div class="mx-2 grey--text text--lighten-1">or</div>
+              <v-divider />
+            </div>
+          </template>
+
           <v-form v-model="isValid" @submit.prevent="submit">
             <v-card flat class="px-14 py-8">
               <v-alert v-if="error" type="error">{{ error }}</v-alert>
 
+              <!-- Basic Login (username/password) -->
               <v-text-field
                 v-model="username"
                 prepend-inner-icon="mdi-account"
@@ -51,7 +75,7 @@ import { defineComponent, shallowRef, watch } from 'vue'
 import { useTitle } from '@vueuse/core'
 import { useAxios } from '@/use/axios'
 import { useRouter } from '@/use/router'
-import { useUser } from '@/use/org'
+import { useUser, useSso } from '@/use/org'
 
 const requiredRule = (v: string) => (v && v.length != 0) || 'Field is required'
 
@@ -62,6 +86,7 @@ export default defineComponent({
     useTitle('Log in')
     const { router } = useRouter()
     const user = useUser()
+    const sso = useSso()
 
     const isValid = shallowRef(false)
     const rules = {
@@ -109,6 +134,8 @@ export default defineComponent({
     }
 
     return {
+      sso,
+
       isValid,
       rules,
       error,

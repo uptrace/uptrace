@@ -34,7 +34,7 @@ func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) erro
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error {
-	if len(h.Config().Users) == 0 {
+	if len(h.Config().Auth.Users) == 0 {
 		return httperror.InternalServerError("Configure some users before continuing")
 	}
 
