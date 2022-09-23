@@ -28,6 +28,12 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 		g.GET("/current", userHandler.Current)
 	})
 
+	g.WithGroup("/sso", func(g *bunrouter.Group) {
+		ssoHandler := NewSSOHandler(app, g)
+
+		g.GET("/methods", ssoHandler.ListMethods)
+	})
+
 	g.GET("/projects/:project_id", func(w http.ResponseWriter, req bunrouter.Request) error {
 		projectID, err := req.Params().Uint32("project_id")
 		if err != nil {
