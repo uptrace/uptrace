@@ -157,8 +157,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 
 	m := make(map[string]interface{})
 
-	subq := h.CH.NewSelect().
-		Model((*SpanIndex)(nil)).
+	subq := buildSpanIndexQuery(h.App, f, f.Duration().Minutes()).
 		WithAlias("qsNaN", "quantilesTDigest(0.5, 0.9, 0.99)(duration)").
 		WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
 		ColumnExpr("sum(count) AS count").
