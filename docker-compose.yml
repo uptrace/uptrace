@@ -25,7 +25,9 @@ services:
     restart: on-failure
     volumes:
       - ./config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml
-    network_mode: host
+    ports:
+      - '4317:4317'
+      - '4318:4318'
 
   alertmanager:
     image: prom/alertmanager:v0.24.0
