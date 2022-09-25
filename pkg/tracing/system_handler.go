@@ -88,7 +88,7 @@ func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 		ColumnExpr("qs[4] AS stats__durationMax").
 		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_", groupPeriod.Minutes()).
 		TableExpr("?", tableName).
-		Where("system != ?", InternalSpanType).
+		Where("system != ?", SystemInternalSpan).
 		WithQuery(f.whereClause).
 		GroupExpr("system, time_").
 		OrderExpr("system ASC, time_ ASC").

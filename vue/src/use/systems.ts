@@ -12,6 +12,7 @@ import { xsys, isEventSystem } from '@/models/otelattr'
 export interface System {
   projectId: number
   system: string
+  text: string
   isEvent: boolean
 
   count: number
@@ -45,7 +46,10 @@ export function useSystems(dateRange: UseDateRange) {
   })
 
   const systems = computed((): System[] => {
-    return addDummySystems(data.value?.systems ?? [])
+    const systems = data.value?.systems ?? []
+    systems.forEach((item: System) => (item.text = item.system))
+
+    return addDummySystems(systems ?? [])
   })
 
   const hasNoData = computed(() => {
@@ -112,13 +116,6 @@ function addDummySystems(systems: System[]): System[] {
   }
   systems = cloneDeep(systems)
 
-  const allRate = systems.reduce((acc, v) => {
-    if (v.system !== xsys.internal) {
-      acc += v.rate
-    }
-    return acc
-  }, 0)
-
   const typeMap: Record<string, SystemTreeNode> = {}
 
   for (let sys of systems) {
@@ -160,19 +157,6 @@ function addDummySystems(systems: System[]): System[] {
     systems.splice(internalIndex, 1)
     systems.unshift(internal)
   }
-
-  systems.unshift({
-    projectId: systems[0].projectId,
-    system: xsys.all,
-    isEvent: false,
-    rate: allRate,
-    count: 0,
-    errorCount: 0,
-    errorPct: 0,
-
-    dummy: true,
-    numChildren: 0,
-  })
 
   return systems
 }

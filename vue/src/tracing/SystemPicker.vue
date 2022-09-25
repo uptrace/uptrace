@@ -2,7 +2,7 @@
   <v-menu v-model="menu" offset-y>
     <template #activator="{ on }">
       <v-btn style="text-transform: none" v-bind="attrs" v-on="on">
-        <span class="px-4">{{ systems.activeSystem || 'Choose system' }}</span>
+        <span class="px-4">{{ activeItem.text || 'Choose system' }}</span>
         <v-icon right size="24">mdi-menu-down</v-icon>
       </v-btn>
     </template>
@@ -27,6 +27,9 @@ import { buildSystemsTree, UseSystems, System } from '@/use/systems'
 // Components
 import SystemList from '@/tracing/SystemList.vue'
 
+// Utilities
+import { xsys } from '@/models/otelattr'
+
 export default defineComponent({
   name: 'SystemPicker',
   components: { SystemList },
@@ -42,6 +45,10 @@ export default defineComponent({
     },
     items: {
       type: Array as PropType<System[]>,
+      required: true,
+    },
+    allSystem: {
+      type: String,
       required: true,
     },
     outlined: {
@@ -64,12 +71,31 @@ export default defineComponent({
       return { dark: true, class: 'blue darken-1 elevation-5' }
     })
 
+    const items = computed(() => {
+      const items = [...props.items]
+      items.unshift({
+        projectId: items[0].projectId,
+        system: props.allSystem,
+        text: xsys.all,
+        isEvent: true,
+        dummy: true,
+      })
+      return items
+    })
+
     const systemsTree = computed(() => {
-      const tree = buildSystemsTree(props.items)
+      const tree = buildSystemsTree(items.value)
       if (tree.length === 1 && tree[0].children) {
-        return props.items
+        return items.value
       }
       return tree
+    })
+
+    const activeItem = computed(() => {
+      return (
+        items.value.find((item: System) => item.system === props.systems.activeSystem) ||
+        items.value[0]
+      )
     })
 
     useRouteQuery().sync({
@@ -92,14 +118,19 @@ export default defineComponent({
         if (props.systems.activeSystem) {
           return
         }
-        if (props.items.length) {
-          props.systems.change(props.items[0].system)
+        if (items.value.length) {
+          props.systems.change(items.value[0].system)
         }
       },
       { flush: 'post' },
     )
 
-    return { menu, attrs, systemsTree }
+    return {
+      menu,
+      activeItem,
+      attrs,
+      systemsTree,
+    }
   },
 })
 </script>
