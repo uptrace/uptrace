@@ -24,7 +24,9 @@
               <template v-if="user.isAuth && $route.params.projectId">
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
                 <v-tab :to="{ name: 'SpanGroupList' }">Traces</v-tab>
-                <v-tab :to="{ name: 'LogGroupList', query: { system: 'log:all' } }">Logs</v-tab>
+                <v-tab :to="{ name: 'LogGroupList', query: { system: xsys.allSpans } }"
+                  >Events</v-tab
+                >
                 <v-tab :to="{ name: 'MetricsDashList' }">Metrics</v-tab>
               </template>
               <v-tab v-if="!user.isAuth" :to="{ name: 'Login' }">Login</v-tab>
@@ -127,6 +129,9 @@ import ProjectPicker from '@/components/ProjectPicker.vue'
 import Search from '@/components/Search.vue'
 import XSnackbar from '@/components/XSnackbar.vue'
 
+// Utilities
+import { xsys } from '@/models/otelattr'
+
 export default defineComponent({
   name: 'App',
   components: { UptraceLogoLarge, UptraceLogoSmall, ProjectPicker, Search, XSnackbar },
@@ -152,6 +157,7 @@ export default defineComponent({
     })
 
     return {
+      xsys,
       dateRange,
       user,
       helpRoute,

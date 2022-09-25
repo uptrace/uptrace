@@ -59,6 +59,8 @@ export enum xkey {
 
 export enum xsys {
   all = 'all',
+  allEvents = 'all:events',
+  allSpans = 'all:spans',
   internal = 'internal',
 
   error = 'error',
@@ -86,6 +88,7 @@ export function isEventSystem(system: string | undefined): boolean {
   return (
     isErrorSystem(system) ||
     system === xsys.event ||
+    system === xsys.allEvents ||
     system.startsWith(xsys.logPrefix) ||
     system.startsWith(xsys.messagePrefix)
   )

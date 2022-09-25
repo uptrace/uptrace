@@ -2,7 +2,7 @@ import Vue from 'vue'
 import VueRouter, { RouteConfig, NavigationGuard } from 'vue-router'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { xkey, xsys, isEventSystem } from '@/models/otelattr'
 
 // Composables
 import { useUser } from '@/use/org'
@@ -122,6 +122,10 @@ const routes: RouteConfig[] = [
       query: buildGroupBy(xkey.spanGroupId),
       spanListRoute: 'SpanList',
       groupListRoute: 'SpanGroupList',
+      systemsFilter: (items: System[]) => {
+        return items.filter((item: System) => !isEventSystem(item.system))
+      },
+      allSystem: xsys.allSpans,
     },
     children: [
       {
@@ -149,17 +153,9 @@ const routes: RouteConfig[] = [
       spanListRoute: 'LogList',
       groupListRoute: 'LogGroupList',
       systemsFilter: (items: System[]) => {
-        items = items.filter((item: System) => item.system.startsWith('log:'))
-
-        if (items.length === 0) {
-          items.push({
-            system: 'log:all',
-            isEvent: true,
-          } as System)
-        }
-
-        return items
+        return items.filter((item: System) => isEventSystem(item.system))
       },
+      allSystem: xsys.allEvents,
       showLogql: true,
     },
     children: [
