@@ -11,6 +11,8 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
+	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	"go.opentelemetry.io/otel/trace"
 
 	"go.uber.org/zap"
 )
@@ -128,6 +130,13 @@ func (m *Middleware) userFromRequest(req bunrouter.Request) *bunconf.User {
 			}
 			continue
 		}
+
+		if span := trace.SpanFromContext(ctx); span.IsRecording() {
+			span.SetAttributes(
+				semconv.EnduserIDKey.String(user.Username),
+			)
+		}
+
 		return user
 	}
 
