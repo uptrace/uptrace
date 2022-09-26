@@ -28,6 +28,8 @@ services:
     ports:
       - '4317:4317'
       - '4318:4318'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
 
   alertmanager:
     image: prom/alertmanager:v0.24.0
@@ -57,6 +59,19 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
     command: start-dev
 
+  # postgres:
+  #   image: postgres:14.2-alpine
+  #   restart: on-failure
+  #   environment:
+  #     PGDATA: /var/lib/postgresql/data/pgdata
+  #     POSTGRES_USER: uptrace
+  #     POSTGRES_PASSWORD: uptrace
+  #     POSTGRES_DB: uptrace
+  #   volumes:
+  #     - 'pg_data:/var/lib/postgresql/data/pgdata'
+  #   ports:
+  #     - '5432:5432'
+
 volumes:
   ch_data:
     driver: local
@@ -65,4 +80,6 @@ volumes:
   redislabs_data_1:
     driver: local
   redislabs_data_2:
+    driver: local
+  pg_data:
     driver: local

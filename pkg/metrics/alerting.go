@@ -158,21 +158,23 @@ func (m *AlertManager) convert(
 	}
 }
 
-type Alerts struct {
-	RuleID int64
-	Alerts []alerting.Alert
+type RuleAlerts struct {
+	bun.BaseModel `bun:"rule_alerts,alias:m"`
+
+	RuleID int64            `bun:",pk"`
+	Alerts []alerting.Alert `bun:"type:json"`
 }
 
 func (m *AlertManager) SaveAlerts(
 	ctx context.Context, rule *alerting.RuleConfig, alerts []alerting.Alert,
 ) error {
-	model := &Alerts{
+	model := &RuleAlerts{
 		RuleID: rule.ID(),
 		Alerts: alerts,
 	}
 	_, err := m.db.NewInsert().
 		Model(model).
-		On("CONFLICT DO UPDATE").
+		On("CONFLICT (rule_id) DO UPDATE").
 		Set("alerts = EXCLUDED.alerts").
 		Exec(ctx)
 	return err
@@ -181,7 +183,7 @@ func (m *AlertManager) SaveAlerts(
 func (m *AlertManager) LoadAlerts(
 	ctx context.Context, rule *alerting.RuleConfig,
 ) ([]alerting.Alert, error) {
-	model := new(Alerts)
+	model := new(RuleAlerts)
 	if err := m.db.NewSelect().
 		Model(model).
 		Where("rule_id = ?", rule.ID()).
