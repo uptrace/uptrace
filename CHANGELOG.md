@@ -2,6 +2,22 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
+## v1.1.0 - Unreleased
+
+- Added additional ways to authenticate users using
+  [Keycloak](https://uptrace.dev/get/auth-keycloak.html),
+  [Google Cloud](https://uptrace.dev/get/auth-keycloak.html), and
+  [Cloudflare](https://uptrace.dev/get/auth-cloudflare.html). Contributed by
+  [@aramperes](https://github.com/aramperes).
+
+- Added gauges support to Metrics UI.
+
+- Renamed Logs tab to Events and moved all events there.
+
+- Added support for PostgreSQL database instead of SQLite.
+
+- [Docker example](example/docker) is updated to work on Windows.
+
 ## v1.0.2 - Sep 8 2022
 
 - Rename `alertmanager` YAML section to `alertmanager_client` so users don't get confused.
