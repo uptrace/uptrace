@@ -25,7 +25,7 @@ receivers:
       grpc:
   prometheus_simple/cluster1:
     collection_interval: 10s
-    endpoint: 'localhost:8070'
+    endpoint: 'redis1:8070'
     metrics_path: '/'
     tls:
       insecure: false
@@ -33,7 +33,7 @@ receivers:
       min_version: '1.0'
   prometheus_simple/cluster2:
     collection_interval: 10s
-    endpoint: 'localhost:8071'
+    endpoint: 'redis2:8070'
     metrics_path: '/'
     tls:
       insecure: false
@@ -51,7 +51,7 @@ exporters:
   logging:
     logLevel: debug
   otlp:
-    endpoint: localhost:14317
+    endpoint: uptrace:14317
     tls:
       insecure: true
     headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14317/1' }
