@@ -6,9 +6,11 @@
         <v-toolbar-items class="ml-5">
           <v-col align-self="center">
             <SystemPicker
+              v-if="systems.items.length"
               :date-range="dateRange"
               :systems="systems"
               :items="systems.items"
+              :all-system="xsys.all"
               outlined
             />
           </v-col>
@@ -48,6 +50,9 @@ import { useOverview } from '@/tracing/use-overview'
 // Components
 import SystemPicker from '@/tracing/SystemPicker.vue'
 import OverviewTable from '@/tracing/overview/OverviewTable.vue'
+
+// Utilities
+import { xsys } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'AttrOverview',
@@ -106,6 +111,7 @@ export default defineComponent({
     })
 
     return {
+      xsys,
       attr,
       overview,
       groupListRoute,
