@@ -244,10 +244,10 @@ func isEventSystem(s string) bool {
 		s = s[:idx]
 	}
 	switch s {
-	case EventType,
-		LogEventType,
-		ExceptionEventType,
-		MessageEventType:
+	case SystemEvent,
+		SystemLogEvent,
+		SystemExceptionEvent,
+		SystemMessageEvent:
 		return true
 	default:
 		return false
@@ -260,7 +260,7 @@ func isLogSystem(s string) bool {
 
 func isErrorSystem(s string) bool {
 	switch s {
-	case ExceptionEventType, "log:error", "log:fatal", "log:panic":
+	case SystemExceptionEvent, "log:error", "log:fatal", "log:panic":
 		return true
 	default:
 		return false

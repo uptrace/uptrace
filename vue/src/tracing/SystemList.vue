@@ -12,7 +12,7 @@
           <template #activator="{ on, attrs }">
             <v-list-item :to="systemRoute(item.system)" exact v-bind="attrs" v-on="on">
               <v-list-item-content>
-                <v-list-item-title>{{ item.system }}</v-list-item-title>
+                <v-list-item-title>{{ item.text }}</v-list-item-title>
               </v-list-item-content>
               <v-list-item-icon class="align-self-center">
                 <v-icon>mdi-menu-right</v-icon>
@@ -25,7 +25,7 @@
               <v-list-item
                 v-for="item in item.children"
                 :key="item.system"
-                :to="systemRoute(item.system)"
+                :to="systemRoute(item.text)"
                 exact
                 @click="$emit('click:item')"
               >
@@ -39,7 +39,7 @@
 
         <v-list-item v-else :key="item.system" :to="systemRoute(item.system)" exact>
           <v-list-item-content>
-            <v-list-item-title>{{ item.system }}</v-list-item-title>
+            <v-list-item-title>{{ item.text }}</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
       </template>

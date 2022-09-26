@@ -88,7 +88,7 @@ func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, vector A
 	span.ID = rand.Uint64()
 
 	span.Kind = InternalSpanKind
-	span.EventName = LogEventType
+	span.EventName = SystemLogEvent
 	span.StatusCode = OKStatusCode
 
 	attrs := make(AttrMap, len(vector)+2)

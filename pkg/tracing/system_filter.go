@@ -49,8 +49,12 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 	switch {
 	case f.System == "":
 		// nothing
-	case f.System == AllSpanType:
-		q = q.Where("system != ?", InternalSpanType)
+	case f.System == SystemAllEvents:
+		q = q.Where("is_event")
+	case f.System == SystemAllSpans:
+		q = q.Where("NOT is_event")
+	case f.System == SystemAll:
+		q = q.Where("system != ?", SystemInternalSpan)
 	case strings.HasSuffix(f.System, ":all"):
 		system := strings.TrimSuffix(f.System, ":all")
 		q = q.Where("startsWith(system, ?)", system)

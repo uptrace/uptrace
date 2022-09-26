@@ -8,7 +8,13 @@
       <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
         <v-row align="center" justify="space-between" class="mb-4">
           <v-col cols="auto">
-            <SystemPicker :date-range="dateRange" :systems="systems" :items="systemsItems" />
+            <SystemPicker
+              v-if="systemsItems.length"
+              :date-range="dateRange"
+              :systems="systems"
+              :items="systemsItems"
+              :all-system="allSystem"
+            />
           </v-col>
 
           <v-col cols="auto">
@@ -90,6 +96,10 @@ export default defineComponent({
     systemsFilter: {
       type: Function as PropType<SystemsFilter>,
       default: undefined,
+    },
+    allSystem: {
+      type: String,
+      required: true,
     },
   },
 
