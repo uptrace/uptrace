@@ -25,7 +25,9 @@ services:
     volumes:
       - uptrace_data:/var/lib/uptrace
       - ./uptrace.yml:/etc/uptrace/uptrace.yml
-    network_mode: host
+    ports:
+      - '14317:14317'
+      - '14318:14318'
     environment:
       - UPTRACE_DB_FILE=/var/lib/uptrace/uptrace.sqlite3
       #- DEBUG=2
@@ -38,7 +40,9 @@ services:
     restart: on-failure
     volumes:
       - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml
-    network_mode: host
+    ports:
+      - '4317:4317'
+      - '4318:4318'
 
   alertmanager:
     image: prom/alertmanager:v0.24.0
@@ -86,7 +90,6 @@ services:
     build:
       dockerfile: ./redis-client/Dockerfile
       context: .
-    network_mode: host
 
 volumes:
   uptrace_data:

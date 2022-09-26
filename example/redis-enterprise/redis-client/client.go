@@ -15,14 +15,14 @@ func main() {
 
 	go func() {
 		rdb := redis.NewClient(&redis.Options{
-			Addr: ":12000",
+			Addr: "redis1:12000",
 		})
 		genLoad(ctx, rdb)
 	}()
 
 	go func() {
 		rdb := redis.NewClient(&redis.Options{
-			Addr: ":12001",
+			Addr: "redis2:12000",
 		})
 		genLoad(ctx, rdb)
 	}()
