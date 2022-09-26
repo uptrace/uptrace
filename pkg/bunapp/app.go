@@ -13,8 +13,9 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/dialect/sqlitedialect"
-	"github.com/uptrace/bun/driver/sqliteshim"
+	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bundebug"
 	"github.com/uptrace/bun/extra/bunotel"
 	"github.com/uptrace/bunrouter"
@@ -33,6 +34,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	_ "modernc.org/sqlite"
 )
 
 type appCtxKey struct{}
@@ -314,29 +316,33 @@ func (app *App) GRPCServer() *grpc.Server {
 //------------------------------------------------------------------------------
 
 func (app *App) newDB() *bun.DB {
-	sqldb, err := sql.Open(sqliteshim.ShimName, app.conf.DB.DSN)
-	if err != nil {
-		panic(err)
-	}
-
-	db := bun.NewDB(sqldb, sqlitedialect.New())
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
-
+	db := app.newBunDB()
 	db.AddQueryHook(bundebug.NewQueryHook(
 		bundebug.WithEnabled(app.Debugging()),
 		bundebug.FromEnv("BUNDEBUG", "DEBUG"),
 	))
 	db.AddQueryHook(bunotel.NewQueryHook())
-
-	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
-		app.Logger.Error("db.Exec failed", zap.Error(err))
-	}
-	if _, err := db.Exec("PRAGMA busy_timeout = 1000;"); err != nil {
-		app.Logger.Error("db.Exec failed", zap.Error(err))
-	}
-
 	return db
+}
+
+func (app *App) newBunDB() *bun.DB {
+	switch driverName := app.conf.DB.Driver; driverName {
+	case "", "sqlite":
+		sqldb, err := sql.Open("sqlite", app.conf.DB.DSN)
+		if err != nil {
+			panic(err)
+		}
+
+		db := bun.NewDB(sqldb, sqlitedialect.New())
+		db.SetMaxOpenConns(1)
+		db.SetMaxIdleConns(1)
+		return db
+	case "postgres":
+		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(app.conf.DB.DSN)))
+		return bun.NewDB(sqldb, pgdialect.New())
+	default:
+		panic(fmt.Errorf("unsupported database/sql driver: %q", driverName))
+	}
 }
 
 //------------------------------------------------------------------------------

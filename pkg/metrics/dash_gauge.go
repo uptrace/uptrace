@@ -19,9 +19,10 @@ type DashGauge struct {
 
 	ID uint64 `json:"id,string" bun:",pk,autoincrement"`
 
-	ProjectID uint32 `json:"projectId"`
-	DashID    uint64 `json:"dashId,string"`
-	DashKind  string `json:"-"`
+	ProjectID uint32     `json:"projectId"`
+	DashID    uint64     `json:"dashId,string"`
+	Dash      *Dashboard `json:"-" bun:"rel:belongs-to,on_delete:CASCADE"`
+	DashKind  string     `json:"-"`
 
 	Name        string `json:"name"`
 	Description string `json:"description"`

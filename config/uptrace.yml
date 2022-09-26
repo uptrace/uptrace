@@ -228,15 +228,17 @@ metrics:
   #batch_size: 10000
 
 ##
-## SQLite database that is used to store metadata such us metric names, dashboards, alerts,
+## SQLite/PostgreSQL db that is used to store metadata such us metric names, dashboards, alerts,
 ## and so on.
 ##
 db:
-  # SQLite connection string.
+  # Either sqlite or postgres.
+  driver: sqlite
+  # Database connection string.
   #
   # Uptrace automatically creates SQLite database file in the current working directory.
   # Make sure the directory is writable by Uptrace process.
-  dsn: 'file:${UPTRACE_DB_FILE:uptrace.sqlite3}?_foreign_keys=1&_busy_timeout=1000'
+  dsn: 'file:uptrace.sqlite3?_pragma=foreign_keys(1)&_pragma=busy_timeout(1000)'
 
 # Secret key that is used to sign JWT tokens etc.
 secret_key: 102c1a557c314fc28198acd017960843
