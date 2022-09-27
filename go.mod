@@ -46,9 +46,12 @@ require (
 	github.com/go-openapi/strfmt v0.21.2
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/prometheus/alertmanager v0.24.0
+	github.com/uptrace/bun/dialect/pgdialect v1.1.8
+	github.com/uptrace/bun/driver/pgdriver v1.1.8
 	golang.org/x/net v0.0.0-20220826154423-83b083e8dc8b
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094
 	gopkg.in/yaml.v2 v2.4.0
+	modernc.org/sqlite v1.18.1
 )
 
 require (
@@ -104,7 +107,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v0.31.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
+	golang.org/x/crypto v0.0.0-20220826181053-bd7e27e6170d // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/sys v0.0.0-20220825204002-c680a09ffe64 // indirect
 	golang.org/x/text v0.3.7 // indirect
@@ -112,13 +115,13 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	lukechampine.com/uint128 v1.2.0 // indirect
+	mellium.im/sasl v0.3.0 // indirect
 	modernc.org/cc/v3 v3.36.3 // indirect
 	modernc.org/ccgo/v3 v3.16.9 // indirect
 	modernc.org/libc v1.17.1 // indirect
 	modernc.org/mathutil v1.5.0 // indirect
 	modernc.org/memory v1.2.1 // indirect
 	modernc.org/opt v0.1.3 // indirect
-	modernc.org/sqlite v1.18.1 // indirect
 	modernc.org/strutil v1.1.3 // indirect
 	modernc.org/token v1.0.1 // indirect
 )
@@ -128,7 +131,6 @@ require (
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/uptrace/bun v1.1.8
 	github.com/uptrace/bun/dialect/sqlitedialect v1.1.8
-	github.com/uptrace/bun/driver/sqliteshim v1.1.8
 	github.com/uptrace/bun/extra/bundebug v1.1.8
 	github.com/uptrace/bun/extra/bunotel v1.1.8
 	google.golang.org/genproto v0.0.0-20220802133213-ce4fa296bf78 // indirect
