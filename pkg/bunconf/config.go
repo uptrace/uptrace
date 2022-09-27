@@ -294,7 +294,8 @@ func (c *Config) SitePath(sitePath string) string {
 }
 
 type BunConfig struct {
-	DSN string `yaml:"dsn"`
+	Driver string `yaml:"driver"`
+	DSN    string `yaml:"dsn"`
 }
 
 type CHConfig struct {

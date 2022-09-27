@@ -13,9 +13,10 @@ import (
 type DashEntry struct {
 	bun.BaseModel `bun:"dash_entries,alias:e"`
 
-	ID        uint64 `json:"id,string" bun:",pk,autoincrement"`
-	DashID    uint64 `json:"dashId,string"`
-	ProjectID uint32 `json:"projectId"`
+	ID        uint64     `json:"id,string" bun:",pk,autoincrement"`
+	DashID    uint64     `json:"dashId,string"`
+	Dash      *Dashboard `json:"-" bun:"rel:belongs-to,on_delete:CASCADE"`
+	ProjectID uint32     `json:"projectId"`
 
 	Name        string `json:"name"`
 	Description string `json:"description,nullzero"`
