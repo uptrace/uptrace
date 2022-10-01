@@ -40,11 +40,43 @@ projects:
 ##
 ## To require authentication, uncomment the following section.
 ##
-# users:
-#   - username: uptrace
-#     password: uptrace
-#   - username: admin
-#     password: admin
+auth:
+  # users:
+  #   - username: uptrace
+  #     password: uptrace
+  #   - username: admin
+  #     password: admin
+
+  # # Cloudflare user provider: uses Cloudflare Zero Trust Access (Identity)
+  # # See https://developers.cloudflare.com/cloudflare-one/identity/ for more info.
+  # cloudflare:
+  #   # The base URL of the Cloudflare Zero Trust team.
+  #   - team_url: https://myteam.cloudflareaccess.com
+  #     # The Application Audience (AUD) Tag for this application.
+  #     # You can retrieve this from the Cloudflare Zero Trust 'Access' Dashboard.
+  #     audience: bea6df23b944e4a0cd178609ba1bb64dc98dfe1f66ae7b918e563f6cf28b37e0
+
+  # # OpenID Connect (Single Sign-On)
+  # oidc:
+  #   # The ID is used in API endpoints, for example, in redirect URL
+  #   # `http://<uptrace-host>/api/v1/sso/<oidc-id>/callback`.
+  #   - id: keycloak
+  #     # Display name for the button in the login form.
+  #     # Default to 'OpenID Connect'
+  #     display_name: Keycloak
+  #     # The base URL for the OIDC provider.
+  #     issuer_url: http://localhost:8080/realms/uptrace
+  #     # The OAuth 2.0 Client ID
+  #     client_id: uptrace
+  #     # The OAuth 2.0 Client Secret
+  #     client_secret: ogbhd8Q0X0e5AZFGSG3m9oirPvnetqkA
+  #     # Additional OAuth 2.0 scopes to request from the OIDC provider.
+  #     # Defaults to 'profile'. 'openid' is requested by default and need not be specified.
+  #     scopes:
+  #       - profile
+  #     # The OIDC UserInfo claim to use as the user's username.
+  #     # Defaults to 'preferred_username'.
+  #     claim: preferred_username
 
 ##
 ## ClickHouse database credentials.
@@ -196,15 +228,17 @@ metrics:
   #batch_size: 10000
 
 ##
-## SQLite database that is used to store metadata such us metric names, dashboards, alerts,
+## SQLite/PostgreSQL db that is used to store metadata such us metric names, dashboards, alerts,
 ## and so on.
 ##
 db:
-  # SQLite connection string.
+  # Either sqlite or postgres.
+  driver: sqlite
+  # Database connection string.
   #
   # Uptrace automatically creates SQLite database file in the current working directory.
   # Make sure the directory is writable by Uptrace process.
-  dsn: 'file:/var/lib/uptrace/uptrace.sqlite3?_foreign_keys=1&_busy_timeout=1000'
+  dsn: 'file:uptrace.sqlite3?_pragma=foreign_keys(1)&_pragma=busy_timeout(1000)'
 
 # Secret key that is used to sign JWT tokens etc.
 secret_key: 102c1a557c314fc28198acd017960843
