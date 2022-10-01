@@ -39,7 +39,7 @@ First spend few minutes to decide if you need Uptrace by running a
 Then follow the [getting started guide](https://uptrace.dev/get/get-started.html) to properly setup
 Uptrace by downloading a Go binary or installing a DEB/RPM package.
 
-## Telegram
+## Help
 
 Have questions? Get help via [Telegram](https://t.me/uptrace) or
 [start a discussion](https://github.com/uptrace/uptrace/discussions) on GitHub.
