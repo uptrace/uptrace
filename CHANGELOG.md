@@ -2,7 +2,7 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
-## v1.1.0 - Unreleased
+## v1.1.0 - Oct 1 2022
 
 - Added additional ways to authenticate users via
   [Keycloak](https://uptrace.dev/get/auth-keycloak.html),

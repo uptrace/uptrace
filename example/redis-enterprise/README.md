@@ -1,7 +1,11 @@
 # Uptrace demo for monitoring Redis Enterprise clusters
 
 This example demonstrates how to monitor Redis Enterprise clusters using Uptrace and OpenTelemetry
-Collector. To run this example, you need to:
+Collector. It accompanies the
+[Uptrace integration with Redis Enterprise Software ](https://docs.redis.com/latest/rs/clusters/monitoring/uptrace-integration/)
+documentation.
+
+To run this example, you need to:
 
 1. [Start docker containers](#starting-containers)
 2. [Create a Redis cluster](#creating-redis-cluster)
