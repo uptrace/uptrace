@@ -1,11 +1,11 @@
-# Distributed Tracing, Metrics, and Logs using OpenTelemetry and ClickHouse
+# Open-source APM tool with support for distributed tracing, metrics, and logs
 
 [![build workflow](https://github.com/uptrace/uptrace/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/uptrace/uptrace/actions)
 [![Chat](https://img.shields.io/badge/-telegram-red?color=white&logo=telegram&logoColor=black)](https://t.me/uptrace)
 
 Uptrace is an open-source APM tool that supports distributed tracing, metrics, and logs. You can use
 it to monitor applications and set up automatic alerts to receive notifications via email, Slack,
-Telegram, and others.
+Telegram, and more.
 
 Uptrace uses OpenTelelemetry to collect data and ClickHouse database to store it. ClickHouse is the
 only dependency.
@@ -18,6 +18,7 @@ only dependency.
 - Email/Slack/Telegram notifications using AlertManager.
 - Pre-built metrics dashboards.
 - Multiple users/projects via YAML config.
+- Single sign-on (SSO) using OpenID Connect: Keycloak, Cloudflare, Google Cloud, and others.
 
 **Why Uptrace?**
 
@@ -25,8 +26,8 @@ only dependency.
 - Efficient ingestion: more than 10K spans / second on a single core.
 - Excellent on-disk compression with ZSTD, for example, 1KB span can be compressed down to <40
   bytes.
-- S3 storage support with ability to automatically upload cold data to S3-like storage.
-- Automatic alerts with notifications via email, Slack, Telegram, and others.
+- S3 storage support with ability to automatically upload cold data to S3-like storage or HDD.
+- Automatic alerts with notifications via email, Slack, Telegram, and more.
 
 ![Uptrace Home](https://uptrace.dev/get/uptrace/home.png)
 

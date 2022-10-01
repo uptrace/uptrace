@@ -4,19 +4,26 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 ## v1.1.0 - Unreleased
 
-- Added additional ways to authenticate users using
+- Added additional ways to authenticate users via
   [Keycloak](https://uptrace.dev/get/auth-keycloak.html),
   [Google Cloud](https://uptrace.dev/get/auth-keycloak.html), and
   [Cloudflare](https://uptrace.dev/get/auth-cloudflare.html). Contributed by
   [@aramperes](https://github.com/aramperes).
 
-- Added gauges support to Metrics UI.
+- Added gauges support to Metrics UI. Only used in Redis Enterprise
+  [example](example/redis-enterprise) for now.
 
 - Renamed Logs tab to Events and moved all events there.
 
-- Added support for PostgreSQL database instead of SQLite.
+- Added support for PostgreSQL database instead of SQLite. This requires resetting SQLite database
+  with:
+
+```shell
+uptrace db reset
+```
 
 - [Docker example](example/docker) is updated to work on Windows.
+- Added [Redis Enterprise](example/redis-enterprise) example and metrics dashboards.
 
 ## v1.0.2 - Sep 8 2022
 
