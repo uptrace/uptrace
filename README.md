@@ -83,3 +83,7 @@ enough.
 ## Contributing
 
 See [Contributing to Uptrace](https://uptrace.dev/get/contributing.html).
+
+<a href="https://github.com/uptrace/uptrace/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=uptrace/uptrace" />
+</a>
