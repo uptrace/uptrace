@@ -145,6 +145,7 @@ function addDummySystems(systems: System[]): System[] {
     systems.push({
       ...sys,
       system: sys.system + ':all',
+      text: sys.system + ':all',
     })
   }
 
