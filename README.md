@@ -72,6 +72,11 @@ but to forbid other companies creating a cloud service using the code.
 We provide a [monitoring service](https://uptrace.dev/) ourselves in order to monetize our work and
 sustain development efforts.
 
+**Are you open-source?**
+
+Technically, the BSL license is classified as source-available, but we will continue to use the term
+open-source on the basis that the source code is open. Our competitors do the same.
+
 **Is the database schema stable?**
 
 Yes, but we are still making changes to the database schema and plan to switch to
