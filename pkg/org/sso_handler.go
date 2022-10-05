@@ -191,7 +191,10 @@ func (h *SSOMethodHandler) exchange(
 		return nil, fmt.Errorf("oidc: failed to read claims: %w", err)
 	}
 
+	// This default claim works with Keycloak, but not with Google Cloud
+	// which only supports `email` claim.
 	claim := "preferred_username"
+
 	if len(h.conf.Claim) > 0 {
 		claim = h.conf.Claim
 	}
