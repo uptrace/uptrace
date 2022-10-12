@@ -1,5 +1,5 @@
 import { format } from 'sql-formatter'
-import { orderBy } from 'lodash'
+import { orderBy } from 'lodash-es'
 import { computed, watch, proxyRefs } from 'vue'
 
 // Composables

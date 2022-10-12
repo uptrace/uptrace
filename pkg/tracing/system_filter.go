@@ -2,8 +2,6 @@ package tracing
 
 import (
 	"context"
-	"crypto"
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -24,12 +22,6 @@ type SystemFilter struct {
 	GroupID   uint64
 	Envs      []string
 	Services  []string
-}
-
-func (f *SystemFilter) HashKey(ns string) string {
-	digester := crypto.MD5.New()
-	fmt.Fprint(digester, ns, f.ProjectID, f.TimeGTE, f.TimeLT, f.Envs, f.Services)
-	return string(digester.Sum(nil))
 }
 
 func DecodeSystemFilter(app *bunapp.App, req bunrouter.Request) (*SystemFilter, error) {

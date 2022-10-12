@@ -33,7 +33,7 @@
 </template>
 
 <script lang="ts">
-import { truncate } from 'lodash'
+import { truncate } from 'lodash-es'
 import { defineComponent, shallowRef, PropType } from 'vue'
 
 // Composables

@@ -4,6 +4,7 @@ specifiers:
   '@mdi/font': ^7.0.96
   '@types/chai': 4.3.3
   '@types/lodash': 4.14.184
+  '@types/lodash-es': ^4.17.6
   '@types/mocha': 9.1.1
   '@types/prismjs': 1.26.0
   '@typescript-eslint/eslint-plugin': 5.35.1
@@ -31,6 +32,7 @@ specifiers:
   eslint-plugin-vue: 9.4.0
   fuzzaldrin-plus: ^0.6.0
   lodash: 4.17.21
+  lodash-es: ^4.17.21
   numbro: 2.3.6
   prettier: 2.7.1
   prismjs: 1.29.0
@@ -61,6 +63,7 @@ dependencies:
   echarts: 5.3.3
   element-resize-detector: 1.2.4
   lodash: 4.17.21
+  lodash-es: 4.17.21
   numbro: 2.3.6
   prismjs: 1.29.0
   querystring-es3: 0.2.1
@@ -75,6 +78,7 @@ dependencies:
 devDependencies:
   '@types/chai': 4.3.3
   '@types/lodash': 4.14.184
+  '@types/lodash-es': 4.17.6
   '@types/mocha': 9.1.1
   '@types/prismjs': 1.26.0
   '@typescript-eslint/eslint-plugin': 5.35.1_pfwtupu3r4wxmgbx6hj7gwmyuu
@@ -1592,6 +1596,12 @@ packages:
 
   /@types/json-schema/7.0.11:
     resolution: {integrity: sha512-wOuvG1SN4Us4rez+tylwwwCV1psiNVOkJeM3AUWUNWg/jDQY2+HE/444y5gc+jBmRqASOm2Oeh5c1axHobwRKQ==}
+    dev: true
+
+  /@types/lodash-es/4.17.6:
+    resolution: {integrity: sha512-R+zTeVUKDdfoRxpAryaQNRKk3105Rrgx2CFRClIgRGaqDTdjsm8h6IYA8ir584W3ePzkZfst5xIgDwYrlh9HLg==}
+    dependencies:
+      '@types/lodash': 4.14.184
     dev: true
 
   /@types/lodash/4.14.184:
@@ -5412,6 +5422,10 @@ packages:
     dependencies:
       p-locate: 5.0.0
     dev: true
+
+  /lodash-es/4.17.21:
+    resolution: {integrity: sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw==}
+    dev: false
 
   /lodash.debounce/4.0.8:
     resolution: {integrity: sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==}

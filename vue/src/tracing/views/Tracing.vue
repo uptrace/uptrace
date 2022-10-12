@@ -58,7 +58,7 @@
 </template>
 
 <script lang="ts">
-import { clone } from 'lodash'
+import { clone } from 'lodash-es'
 import { defineComponent, computed, proxyRefs, PropType } from 'vue'
 
 // Composables

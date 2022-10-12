@@ -1,4 +1,4 @@
-import { truncate } from 'lodash'
+import { truncate } from 'lodash-es'
 
 export type AttrMap = { [key: string]: any }
 

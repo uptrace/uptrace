@@ -1,4 +1,4 @@
-import { omit, cloneDeep, debounce } from 'lodash'
+import { omit, cloneDeep, debounce } from 'lodash-es'
 import { Route } from 'vue-router'
 import { shallowRef, computed, watch, onBeforeMount, onBeforeUnmount } from 'vue'
 

@@ -1,14 +1,14 @@
+import { debounce } from 'lodash-es'
 import axios from 'axios'
 import { shallowRef, computed, watch } from 'vue'
 
 // Composables
 import { useSnackbar } from '@/use/snackbar'
 
-type AsyncFunc = (...args: any[]) => Promise<any>
+// Utilities
+import { sentence } from '@/util/string'
 
-export interface Config {
-  ignoreErrors?: boolean
-}
+type AsyncFunc = (...args: any[]) => Promise<any>
 
 export enum StatusValue {
   Unset = 'unset',
@@ -97,12 +97,46 @@ export function usePromise(fn: AsyncFunc, cfg: Config = {}) {
     id++
   }
 
-  const errorMessage = computed(() => {
+  if (cfg.debounce) {
+    const debounced = debounce(promised, cfg.debounce)
+
+    const oldCancel = cancel
+    cancel = () => {
+      oldCancel()
+      debounced.cancel()
+    }
+
+    const oldResolve = resolve
+    const oldReject = reject
+
+    promised = (...args: any[]): Promise<any> => {
+      debounced(...args)
+      return new Promise((promiseResolve, promiseReject) => {
+        resolve = (res: any): void => {
+          oldResolve(res)
+          promiseResolve(res)
+        }
+        reject = (err: any): void => {
+          oldReject(err)
+          promiseReject(err)
+        }
+      })
+    }
+  }
+
+  const errorCode = computed((): string => {
+    return error.value?.response?.data?.code ?? ''
+  })
+
+  const errorMessage = computed((): string => {
     const msg = error.value?.response?.data?.message
     if (msg) {
       return msg
     }
-    return asString(error.value)
+    if (error.value) {
+      return asString(error.value)
+    }
+    return ''
   })
 
   if (!cfg.ignoreErrors) {
@@ -112,7 +146,7 @@ export function usePromise(fn: AsyncFunc, cfg: Config = {}) {
       }
       switch (error.response?.status) {
         case 400:
-        case 500:
+        case 403:
           snackbar.notifyError(errorMessage.value)
       }
     })
@@ -125,13 +159,12 @@ export function usePromise(fn: AsyncFunc, cfg: Config = {}) {
     promised,
     result,
     error,
+    errorCode,
     errorMessage,
 
     cancel,
   }
 }
-
-//------------------------------------------------------------------------------
 
 class Status {
   static Unset = new Status(StatusValue.Unset)
@@ -166,19 +199,41 @@ class Status {
     return this.value === StatusValue.Reloading
   }
 
+  pending(): boolean {
+    switch (this.value) {
+      case StatusValue.Resolved:
+      case StatusValue.Rejected:
+        return false
+      default:
+        return true
+    }
+  }
+
   hasData(): boolean {
     switch (this.value) {
       case StatusValue.Resolved:
       case StatusValue.Reloading:
         return true
+      default:
+        return false
     }
-    return false
   }
 }
 
-function asString(s: string | Error): string {
-  if (typeof s === 'string') {
-    return s
+export interface Config {
+  debounce?: number
+  ignoreErrors?: boolean
+}
+
+function asString(s: string | Error | undefined): string {
+  if (!s) {
+    return ''
   }
-  return s.message
+  if (typeof s === 'string') {
+    return sentence(s)
+  }
+  if (s.message) {
+    return sentence(s.message)
+  }
+  return ''
 }

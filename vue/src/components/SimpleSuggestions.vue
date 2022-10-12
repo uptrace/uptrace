@@ -27,7 +27,7 @@
 </template>
 
 <script lang="ts">
-import { truncate } from 'lodash'
+import { truncate } from 'lodash-es'
 import { defineComponent, PropType } from 'vue'
 
 // Composables

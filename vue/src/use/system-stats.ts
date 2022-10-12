@@ -1,4 +1,4 @@
-import { orderBy } from 'lodash'
+import { orderBy } from 'lodash-es'
 import { ref, computed, watch, proxyRefs } from 'vue'
 
 // Composables

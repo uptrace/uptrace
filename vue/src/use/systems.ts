@@ -1,4 +1,4 @@
-import { cloneDeep, orderBy } from 'lodash'
+import { cloneDeep, orderBy } from 'lodash-es'
 import { shallowRef, computed, proxyRefs } from 'vue'
 
 // Composables

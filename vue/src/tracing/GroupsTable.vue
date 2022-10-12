@@ -138,7 +138,7 @@
 </template>
 
 <script lang="ts">
-import { truncate } from 'lodash'
+import { truncate } from 'lodash-es'
 import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
