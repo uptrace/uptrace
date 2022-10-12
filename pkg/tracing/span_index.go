@@ -24,10 +24,11 @@ type SpanIndex struct {
 	AttrKeys   []string `ch:",lc"`
 	AttrValues []string `ch:",lc"`
 
+	DeploymentEnvironment string `ch:"deployment.environment,lc"`
+
+	Service     string `ch:",lc"`
 	ServiceName string `ch:"service.name,lc"`
 	HostName    string `ch:"host.name,lc"`
-
-	DeploymentEnvironment string `ch:"deployment.environment,lc"`
 
 	DBSystem    string `ch:"db.system,lc"`
 	DBStatement string `ch:"db.statement"`
@@ -45,6 +46,9 @@ func initSpanIndex(index *SpanIndex, span *Span) {
 	index.Span = span
 	index.Count = 1
 
+	index.DeploymentEnvironment, _ = span.Attrs[attrkey.DeploymentEnvironment].(string)
+
+	index.Service, _ = span.Attrs[attrkey.Service].(string)
 	index.ServiceName = span.Attrs.ServiceName()
 	index.HostName = span.Attrs.HostName()
 
@@ -58,7 +62,6 @@ func initSpanIndex(index *SpanIndex, span *Span) {
 
 	index.ExceptionType, _ = span.Attrs[attrkey.ExceptionType].(string)
 	index.ExceptionMessage, _ = span.Attrs[attrkey.ExceptionMessage].(string)
-	index.DeploymentEnvironment, _ = span.Attrs[attrkey.DeploymentEnvironment].(string)
 
 	index.AllKeys = mapKeys(span.Attrs)
 	index.AttrKeys, index.AttrValues = attrKeysAndValues(span.Attrs)

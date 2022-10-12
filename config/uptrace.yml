@@ -23,7 +23,7 @@ projects:
     # Token grants write access to the project. Keep a secret.
     token: project1_secret_token
     pinned_attrs:
-      - service.name
+      - service
       - host.name
       - deployment.environment
 
@@ -33,7 +33,7 @@ projects:
     name: My project
     token: project2_secret_token
     pinned_attrs:
-      - service.name
+      - service
       - host.name
       - deployment.environment
 

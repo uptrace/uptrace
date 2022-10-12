@@ -26,6 +26,9 @@ CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
   attr_keys Array(LowCardinality(String)) Codec(?CODEC),
   attr_values Array(String) Codec(?CODEC),
 
+  "deployment.environment" LowCardinality(String) Codec(?CODEC),
+
+  service LowCardinality(String) Codec(?CODEC),
   "service.name" LowCardinality(String) Codec(?CODEC),
   "host.name" LowCardinality(String) Codec(?CODEC),
 
@@ -33,7 +36,6 @@ CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
   "db.statement" String Codec(?CODEC),
   "db.operation" LowCardinality(String) Codec(?CODEC),
   "db.sql.table" LowCardinality(String) Codec(?CODEC),
-  "deployment.environment" LowCardinality(String) Codec(?CODEC),
 
   "log.severity" LowCardinality(String) Codec(?CODEC),
   "log.message" String Codec(?CODEC),
@@ -173,7 +175,7 @@ TO ?DB.span_service_minutes AS
 SELECT
   project_id,
   system,
-  "service.name" AS service,
+  service,
   toStartOfMinute(time) AS time,
   quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32(duration), toUInt32(count)) AS tdigest,
   toUInt64(sum(count)) AS count,
