@@ -5,6 +5,13 @@
     </template>
 
     <PageToolbar :loading="systems.loading" :fluid="$vuetify.breakpoint.mdAndDown">
+      <StickyFilter
+        v-if="envs.items.length > 1"
+        v-model="envs.active"
+        :loading="envs.loading"
+        :items="envs.items"
+        label="env"
+      />
       <v-spacer />
       <DateRangePicker :date-range="dateRange" />
     </PageToolbar>
@@ -40,7 +47,7 @@
     <v-container :fluid="$vuetify.breakpoint.mdAndDown">
       <v-row>
         <v-col>
-          <router-view :date-range="dateRange" :systems="systems" />
+          <router-view :date-range="dateRange" :envs="envs" :systems="systems" />
         </v-col>
       </v-row>
     </v-container>
@@ -53,6 +60,8 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useTitle } from '@vueuse/core'
 import type { UseDateRange } from '@/use/date-range'
+import StickyFilter from '@/tracing/StickyFilter.vue'
+import { useEnvs } from '@/tracing/use-sticky-filters'
 import { useProject } from '@/use/project'
 import { useSystems } from '@/use/systems'
 
@@ -67,7 +76,7 @@ import { day } from '@/util/fmt/date'
 
 export default defineComponent({
   name: 'Overview',
-  components: { DateRangePicker, HelpCard, SystemQuickMetrics },
+  components: { DateRangePicker, StickyFilter, HelpCard, SystemQuickMetrics },
 
   props: {
     dateRange: {
@@ -82,8 +91,16 @@ export default defineComponent({
     props.dateRange.syncQuery()
     props.dateRange.roundUp = false
 
+    const envs = useEnvs(props.dateRange)
+
     const project = useProject()
-    const systems = useSystems(props.dateRange)
+    const systems = useSystems(() => {
+      return {
+        ...props.dateRange.axiosParams(),
+        ...envs.axiosParams(),
+        // ...services.axiosParams(),
+      }
+    })
 
     const chosenSystems = computed((): string[] => {
       if (props.dateRange.duration > 3 * day) {
@@ -103,6 +120,7 @@ export default defineComponent({
 
     return {
       project,
+      envs,
       systems,
       chosenSystems,
     }

@@ -165,7 +165,7 @@ func (h *SystemHandler) Overview(w http.ResponseWriter, req bunrouter.Request) e
 
 	switch attrKey {
 	case attrkey.ServiceName:
-		groups, err = h.selectServices(ctx, f)
+		groups, err = h.selectServicesGroups(ctx, f)
 		if err != nil {
 			return err
 		}
@@ -188,7 +188,7 @@ func (h *SystemHandler) Overview(w http.ResponseWriter, req bunrouter.Request) e
 
 //------------------------------------------------------------------------------
 
-func (h *SystemHandler) selectServices(
+func (h *SystemHandler) selectServicesGroups(
 	ctx context.Context, f *SystemFilter,
 ) ([]map[string]any, error) {
 	tableName, groupPeriod := spanServiceTableInterval(h.App, &f.TimeFilter, org.CompactGroupPeriod)
@@ -447,4 +447,80 @@ func (h *SystemHandler) selectGroups(
 	}
 
 	return groups, nil
+}
+
+//------------------------------------------------------------------------------
+
+func (h *SystemHandler) ListEnvs(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	f, err := DecodeSystemFilter(h.App, req)
+	if err != nil {
+		return err
+	}
+
+	envs, err := h.selectEnvs(ctx, f)
+	if err != nil {
+		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"items": envs,
+	})
+}
+
+func (h *SystemHandler) selectEnvs(ctx context.Context, f *SystemFilter) ([]string, error) {
+	var envs []string
+
+	tableName := spanSystemTableForWhere(f.App, &f.TimeFilter)
+	if err := h.CH.NewSelect().
+		ColumnExpr("DISTINCT deployment.environment").
+		TableExpr("? AS s", tableName).
+		WithQuery(f.whereClause).
+		Where("notEmpty(deployment.environment)").
+		OrderExpr("deployment.environment ASC").
+		Limit(100).
+		ScanColumns(ctx, &envs); err != nil {
+		return nil, err
+	}
+
+	return envs, nil
+}
+
+//------------------------------------------------------------------------------
+
+func (h *SystemHandler) ListServices(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	f, err := DecodeSystemFilter(h.App, req)
+	if err != nil {
+		return err
+	}
+
+	services, err := h.selectServices(ctx, f)
+	if err != nil {
+		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"items": services,
+	})
+}
+
+func (h *SystemHandler) selectServices(ctx context.Context, f *SystemFilter) ([]string, error) {
+	var services []string
+
+	tableName := spanSystemTableForWhere(f.App, &f.TimeFilter)
+	if err := h.CH.NewSelect().
+		ColumnExpr("DISTINCT service").
+		TableExpr("? AS s", tableName).
+		WithQuery(f.whereClause).
+		Where("notEmpty(service)").
+		OrderExpr("service ASC").
+		Limit(100).
+		ScanColumns(ctx, &services); err != nil {
+		return nil, err
+	}
+
+	return services, nil
 }

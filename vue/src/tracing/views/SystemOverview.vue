@@ -57,6 +57,7 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
+import { UseEnvs, UseServices } from '@/tracing/use-sticky-filters'
 import { buildGroupBy } from '@/use/uql'
 import { useSystemStats } from '@/use/system-stats'
 
@@ -75,16 +76,32 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
+    envs: {
+      type: Object as PropType<UseEnvs>,
+      required: true,
+    },
+    services: {
+      type: Object as PropType<UseServices>,
+      default: undefined,
+    },
   },
 
   setup(props) {
-    const systems = useSystemStats(props.dateRange)
+    const systems = useSystemStats(() => {
+      return {
+        ...props.dateRange.axiosParams(),
+        ...props.envs.axiosParams(),
+        // ...props.services.axiosParams(),
+      }
+    })
 
     const exploreRoute = computed(() => {
       return {
         name: 'SpanGroupList',
         query: {
           ...props.dateRange.axiosParams(),
+          ...props.envs.axiosParams(),
+          // ...props.services.axiosParams(),
           system: xkey.allSystem,
           query: buildGroupBy(xkey.spanSystem),
         },

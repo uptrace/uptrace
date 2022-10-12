@@ -7,13 +7,22 @@
     <div class="border">
       <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
         <v-row align="center" justify="space-between" class="mb-4">
-          <v-col cols="auto">
-            <SystemPicker
-              v-if="systemsItems.length"
-              :date-range="dateRange"
-              :systems="systems"
-              :items="systemsItems"
-              :all-system="allSystem"
+          <v-col class="d-flex align-center">
+            <div class="mr-4">
+              <SystemPicker
+                v-if="systemsItems.length"
+                :date-range="dateRange"
+                :systems="systems"
+                :items="systemsItems"
+                :all-system="allSystem"
+              />
+            </div>
+            <StickyFilter
+              v-if="envs.items.length > 1"
+              v-model="envs.active"
+              :loading="envs.loading"
+              :items="envs.items"
+              label="env"
             />
           </v-col>
 
@@ -39,6 +48,7 @@
       <router-view
         :date-range="dateRange"
         :systems="systems"
+        :envs="envs"
         :query="query"
         :span-list-route="spanListRoute"
         :group-list-route="groupListRoute"
@@ -55,12 +65,14 @@ import { defineComponent, computed, proxyRefs, PropType } from 'vue'
 import { useRouter } from '@/use/router'
 import { useTitle } from '@vueuse/core'
 import { UseDateRange } from '@/use/date-range'
+import { useEnvs } from '@/tracing/use-sticky-filters'
 import { useUser } from '@/use/org'
 import { useSystems, SystemsFilter } from '@/use/systems'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import SystemPicker from '@/tracing/SystemPicker.vue'
+import StickyFilter from '@/tracing/StickyFilter.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
 
 interface Props {
@@ -73,6 +85,7 @@ export default defineComponent({
   components: {
     DateRangePicker,
     SystemPicker,
+    StickyFilter,
     HelpCard,
   },
 
@@ -108,7 +121,13 @@ export default defineComponent({
     props.dateRange.syncQuery()
 
     const user = useUser()
-    const systems = useSystems(props.dateRange)
+    const envs = useEnvs(props.dateRange)
+    // const services = useServices(props.dateRange)
+    const systems = useSystems(() => {
+      return {
+        ...props.dateRange.axiosParams(),
+      }
+    })
 
     const systemsItems = computed(() => {
       if (props.systemsFilter) {
@@ -118,6 +137,7 @@ export default defineComponent({
     })
 
     return {
+      envs,
       user,
       systems,
       systemsItems,

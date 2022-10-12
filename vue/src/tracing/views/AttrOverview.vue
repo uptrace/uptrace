@@ -43,6 +43,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
+import { UseEnvs, UseServices } from '@/tracing/use-sticky-filters'
 import { UseSystems } from '@/use/systems'
 import { createUqlEditor } from '@/use/uql'
 import { useOverview } from '@/tracing/use-overview'
@@ -63,6 +64,14 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
+    envs: {
+      type: Object as PropType<UseEnvs>,
+      required: true,
+    },
+    services: {
+      type: Object as PropType<UseServices>,
+      default: undefined,
+    },
     systems: {
       type: Object as PropType<UseSystems>,
       required: true,
@@ -79,6 +88,8 @@ export default defineComponent({
     const overview = useOverview(() => {
       return {
         ...props.dateRange.axiosParams(),
+        ...props.envs.axiosParams(),
+        // ...props.services.axiosParams(),
         ...props.systems.axiosParams(),
         attr: attr.value,
       }

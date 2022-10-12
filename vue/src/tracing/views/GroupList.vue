@@ -90,6 +90,7 @@ import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
+import { UseEnvs, UseServices } from '@/tracing/use-sticky-filters'
 import { UseSystems } from '@/use/systems'
 import { useUql } from '@/use/uql'
 import { useSpanExplore } from '@/tracing/use-span-explore'
@@ -111,6 +112,14 @@ export default defineComponent({
     systems: {
       type: Object as PropType<UseSystems>,
       required: true,
+    },
+    envs: {
+      type: Object as PropType<UseEnvs>,
+      required: true,
+    },
+    services: {
+      type: Object as PropType<UseServices>,
+      default: undefined,
     },
     query: {
       type: String,
@@ -137,6 +146,8 @@ export default defineComponent({
     const axiosParams = computed(() => {
       return {
         ...props.dateRange.axiosParams(),
+        ...props.envs.axiosParams(),
+        // ...props.services.axiosParams(),
         ...uql.axiosParams(),
         system: props.systems.activeSystem,
       }
