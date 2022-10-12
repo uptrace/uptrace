@@ -91,7 +91,6 @@ export default defineComponent({
       return {
         ...props.dateRange.axiosParams(),
         ...props.envs.axiosParams(),
-        // ...props.services.axiosParams(),
       }
     })
 
@@ -101,7 +100,6 @@ export default defineComponent({
         query: {
           ...props.dateRange.axiosParams(),
           ...props.envs.axiosParams(),
-          // ...props.services.axiosParams(),
           system: xkey.allSystem,
           query: buildGroupBy(xkey.spanSystem),
         },

@@ -122,7 +122,6 @@ export default defineComponent({
 
     const user = useUser()
     const envs = useEnvs(props.dateRange)
-    // const services = useServices(props.dateRange)
     const systems = useSystems(() => {
       return {
         ...props.dateRange.axiosParams(),
