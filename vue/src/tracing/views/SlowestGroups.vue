@@ -84,6 +84,7 @@ export default defineComponent({
       return {
         ...props.dateRange.axiosParams(),
         ...props.envs.axiosParams(),
+        // ...props.services.axiosParams(),
         system: system,
         query,
       }

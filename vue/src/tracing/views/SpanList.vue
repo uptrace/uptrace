@@ -119,6 +119,7 @@ export default defineComponent({
         ...props.dateRange.axiosParams(),
         ...uql.axiosParams(),
         ...props.envs.axiosParams(),
+        // ...props.services.axiosParams(),
         system: props.systems.activeSystem,
       }
     })
