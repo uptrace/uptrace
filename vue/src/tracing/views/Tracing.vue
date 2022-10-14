@@ -22,7 +22,14 @@
               v-model="envs.active"
               :loading="envs.loading"
               :items="envs.items"
-              label="env"
+              param-name="env"
+            />
+            <StickyFilter
+              v-if="services.items.length > 1"
+              v-model="services.active"
+              :loading="services.loading"
+              :items="services.items"
+              param-name="service"
             />
           </v-col>
 
@@ -65,7 +72,7 @@ import { defineComponent, computed, proxyRefs, PropType } from 'vue'
 import { useRouter } from '@/use/router'
 import { useTitle } from '@vueuse/core'
 import { UseDateRange } from '@/use/date-range'
-import { useEnvs } from '@/tracing/use-sticky-filters'
+import { useEnvs, useServices } from '@/tracing/use-sticky-filters'
 import { useUser } from '@/use/org'
 import { useSystems, SystemsFilter } from '@/use/systems'
 
@@ -122,7 +129,8 @@ export default defineComponent({
 
     const user = useUser()
     const envs = useEnvs(props.dateRange)
-    // const services = useServices(props.dateRange)
+    const services = useServices(props.dateRange)
+
     const systems = useSystems(() => {
       return {
         ...props.dateRange.axiosParams(),
@@ -138,6 +146,7 @@ export default defineComponent({
 
     return {
       envs,
+      services,
       user,
       systems,
       systemsItems,

@@ -38,8 +38,10 @@ func initSpanFromOTLP(dest *Span, resource AttrMap, src *tracepb.Span) {
 		dest.Attrs[key] = value
 	})
 	if rand.Float64() < 0.5 {
+		dest.Attrs[attrkey.ServiceName] = "service1"
 		dest.Attrs[attrkey.DeploymentEnvironment] = "stage"
 	} else {
+		dest.Attrs[attrkey.ServiceName] = "service2"
 		dest.Attrs[attrkey.DeploymentEnvironment] = "prod"
 	}
 

@@ -10,7 +10,14 @@
         v-model="envs.active"
         :loading="envs.loading"
         :items="envs.items"
-        label="env"
+        param-name="env"
+      />
+      <StickyFilter
+        v-if="services.items.length > 1"
+        v-model="services.active"
+        :loading="services.loading"
+        :items="services.items"
+        param-name="service"
       />
       <v-spacer />
       <DateRangePicker :date-range="dateRange" />
@@ -61,7 +68,7 @@ import { defineComponent, computed, PropType } from 'vue'
 import { useTitle } from '@vueuse/core'
 import type { UseDateRange } from '@/use/date-range'
 import StickyFilter from '@/tracing/StickyFilter.vue'
-import { useEnvs } from '@/tracing/use-sticky-filters'
+import { useEnvs, useServices } from '@/tracing/use-sticky-filters'
 import { useProject } from '@/use/project'
 import { useSystems } from '@/use/systems'
 
@@ -92,13 +99,14 @@ export default defineComponent({
     props.dateRange.roundUp = false
 
     const envs = useEnvs(props.dateRange)
+    const services = useServices(props.dateRange)
 
     const project = useProject()
     const systems = useSystems(() => {
       return {
         ...props.dateRange.axiosParams(),
         ...envs.axiosParams(),
-        // ...services.axiosParams(),
+        ...services.axiosParams(),
       }
     })
 
@@ -121,6 +129,7 @@ export default defineComponent({
     return {
       project,
       envs,
+      services,
       systems,
       chosenSystems,
     }
