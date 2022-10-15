@@ -77,7 +77,7 @@ sustain development efforts.
 Technically, the BSL license is classified as source-available, but we continue to use the term
 open-source on the basis that the source code is open.
 
-Existing SEO practices don't leave use much choice and our competitors do more or less the same.
+Existing SEO practices don't leave us much choice and our competitors do more or less the same.
 
 **Is the database schema stable?**
 
