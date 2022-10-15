@@ -1,7 +1,12 @@
 <template>
   <XPlaceholder>
     <template v-if="systems.hasNoData" #placeholder>
-      <HelpCard :date-range="dateRange" :loading="systems.loading" />
+      <HelpCard
+        :date-range="dateRange"
+        :envs="envs"
+        :services="services"
+        :loading="systems.loading"
+      />
     </template>
 
     <div class="border">
@@ -56,6 +61,7 @@
         :date-range="dateRange"
         :systems="systems"
         :envs="envs"
+        :services="services"
         :query="query"
         :span-list-route="spanListRoute"
         :group-list-route="groupListRoute"
@@ -134,6 +140,8 @@ export default defineComponent({
     const systems = useSystems(() => {
       return {
         ...props.dateRange.axiosParams(),
+        ...envs.axiosParams(),
+        ...services.axiosParams(),
       }
     })
 

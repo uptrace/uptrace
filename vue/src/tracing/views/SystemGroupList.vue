@@ -58,7 +58,7 @@ export default defineComponent({
     },
     services: {
       type: Object as PropType<UseServices>,
-      default: undefined,
+      required: true,
     },
   },
 
@@ -77,7 +77,7 @@ export default defineComponent({
       return {
         ...props.dateRange.axiosParams(),
         ...props.envs.axiosParams(),
-        // ...props.services.axiosParams(),
+        ...props.services.axiosParams(),
         system: system.value,
         query: buildGroupBy(xkey.spanGroupId),
       }

@@ -119,7 +119,7 @@ export default defineComponent({
     },
     services: {
       type: Object as PropType<UseServices>,
-      default: undefined,
+      required: true,
     },
     query: {
       type: String,
@@ -147,7 +147,7 @@ export default defineComponent({
       return {
         ...props.dateRange.axiosParams(),
         ...props.envs.axiosParams(),
-        // ...props.services.axiosParams(),
+        ...props.services.axiosParams(),
         ...uql.axiosParams(),
         system: props.systems.activeSystem,
       }

@@ -79,6 +79,7 @@ var (
 	indexedAttrs = []string{
 		attrkey.DeploymentEnvironment,
 		attrkey.ServiceName,
+		attrkey.Service,
 		attrkey.HostName,
 
 		attrkey.DBSystem,

@@ -1,7 +1,12 @@
 <template>
   <XPlaceholder>
     <template v-if="systems.hasNoData" #placeholder>
-      <HelpCard :date-range="dateRange" :loading="systems.loading" />
+      <HelpCard
+        :date-range="dateRange"
+        :envs="envs"
+        :services="services"
+        :loading="systems.loading"
+      />
     </template>
 
     <PageToolbar :loading="systems.loading" :fluid="$vuetify.breakpoint.mdAndDown">
@@ -54,7 +59,12 @@
     <v-container :fluid="$vuetify.breakpoint.mdAndDown">
       <v-row>
         <v-col>
-          <router-view :date-range="dateRange" :envs="envs" :systems="systems" />
+          <router-view
+            :date-range="dateRange"
+            :envs="envs"
+            :services="services"
+            :systems="systems"
+          />
         </v-col>
       </v-row>
     </v-container>
@@ -67,13 +77,13 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useTitle } from '@vueuse/core'
 import type { UseDateRange } from '@/use/date-range'
-import StickyFilter from '@/tracing/StickyFilter.vue'
 import { useEnvs, useServices } from '@/tracing/use-sticky-filters'
 import { useProject } from '@/use/project'
 import { useSystems } from '@/use/systems'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
+import StickyFilter from '@/tracing/StickyFilter.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
 import SystemQuickMetrics from '@/tracing/overview/SystemQuickMetrics.vue'
 
