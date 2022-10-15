@@ -15,8 +15,6 @@ import (
 type SystemFilter struct {
 	org.TimeFilter
 
-	App *bunapp.App
-
 	ProjectID uint32
 	System    string
 	GroupID   uint64
@@ -28,7 +26,6 @@ func DecodeSystemFilter(app *bunapp.App, req bunrouter.Request) (*SystemFilter, 
 	project := org.ProjectFromContext(req.Context())
 
 	f := &SystemFilter{
-		App:       app,
 		ProjectID: project.ID,
 	}
 

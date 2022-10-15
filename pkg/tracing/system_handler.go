@@ -472,7 +472,7 @@ func (h *SystemHandler) ListEnvs(w http.ResponseWriter, req bunrouter.Request) e
 func (h *SystemHandler) selectEnvs(ctx context.Context, f *SystemFilter) ([]string, error) {
 	var envs []string
 
-	tableName := spanSystemTableForWhere(f.App, &f.TimeFilter)
+	tableName := spanSystemTableForWhere(h.App, &f.TimeFilter)
 	if err := h.CH.NewSelect().
 		ColumnExpr("DISTINCT deployment.environment").
 		TableExpr("? AS s", tableName).
@@ -510,7 +510,7 @@ func (h *SystemHandler) ListServices(w http.ResponseWriter, req bunrouter.Reques
 func (h *SystemHandler) selectServices(ctx context.Context, f *SystemFilter) ([]string, error) {
 	var services []string
 
-	tableName := spanSystemTableForWhere(f.App, &f.TimeFilter)
+	tableName := spanSystemTableForWhere(h.App, &f.TimeFilter)
 	if err := h.CH.NewSelect().
 		ColumnExpr("DISTINCT service").
 		TableExpr("? AS s", tableName).
