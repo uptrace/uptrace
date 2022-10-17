@@ -110,6 +110,7 @@ export default defineComponent({
       return {
         name: 'SpanGroupList',
         query: {
+          ...route.value.query,
           ...explore.order.axiosParams, // ?
           ...props.dateRange.queryParams(),
           query,

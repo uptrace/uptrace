@@ -95,6 +95,7 @@ export default defineComponent({
       return {
         name: 'SpanGroupList',
         query: {
+          ...route.value.query,
           ...explore.order.axiosParams,
           system: system.value,
           query: buildGroupBy(xkey.spanGroupId),

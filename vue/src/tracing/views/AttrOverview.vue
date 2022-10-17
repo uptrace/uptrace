@@ -103,7 +103,7 @@ export default defineComponent({
       return {
         name: 'SpanGroupList',
         query: {
-          ...props.dateRange.queryParams(),
+          ...route.value.query,
           ...props.systems.queryParams(),
           query: query.value,
         },
@@ -114,7 +114,7 @@ export default defineComponent({
       return {
         name: 'SpanList',
         query: {
-          ...props.dateRange.queryParams(),
+          ...route.value.query,
           ...props.systems.queryParams(),
           query: query.value,
         },
