@@ -1,12 +1,7 @@
 <template>
   <XPlaceholder>
     <template v-if="systems.hasNoData" #placeholder>
-      <HelpCard
-        :date-range="dateRange"
-        :envs="envs"
-        :services="services"
-        :loading="systems.loading"
-      />
+      <HelpCard :date-range="dateRange" :loading="systems.loading" />
     </template>
 
     <PageToolbar :loading="systems.loading" :fluid="$vuetify.breakpoint.mdAndDown">

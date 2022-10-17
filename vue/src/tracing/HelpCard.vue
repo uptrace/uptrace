@@ -1,27 +1,14 @@
 <template>
-  <div class="container--fixed">
+  <div class="container--fixed-sm">
     <PageToolbar :loading="loading">
-      <StickyFilter
-        v-if="envs.items.length > 1"
-        v-model="envs.active"
-        :loading="envs.loading"
-        :items="envs.items"
-        param-name="env"
-      />
-      <StickyFilter
-        v-if="services.items.length > 1"
-        v-model="services.active"
-        :loading="services.loading"
-        :items="services.items"
-        param-name="service"
-      />
+      <v-toolbar-title>Send data to Uptrace</v-toolbar-title>
 
       <v-spacer />
+
       <DateRangePicker v-if="dateRange" :date-range="dateRange" />
     </PageToolbar>
 
     <v-container class="mb-6 px-4 py-6">
-      <span class="text-h5 mb-3">Send data to Uptrace</span>
       <v-row>
         <v-col class="text-subtitle-1">
           <p>
@@ -131,12 +118,10 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
-import { UseEnvs, UseServices } from '@/tracing/use-sticky-filters'
 import { useProject } from '@/use/project'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
-import StickyFilter from '@/tracing/StickyFilter.vue'
 import CollectorTabs from '@/components/CollectorTabs.vue'
 import DistroIcons from '@/components/DistroIcons.vue'
 import FrameworkIcons from '@/components/FrameworkIcons.vue'
@@ -145,28 +130,19 @@ export default defineComponent({
   name: 'HelpCard',
   components: {
     DateRangePicker,
-    StickyFilter,
     CollectorTabs,
     DistroIcons,
     FrameworkIcons,
   },
 
   props: {
-    dateRange: {
-      type: Object as PropType<UseDateRange>,
-      default: undefined,
-    },
-    envs: {
-      type: Object as PropType<UseEnvs>,
-      required: true,
-    },
-    services: {
-      type: Object as PropType<UseServices>,
-      required: true,
-    },
     loading: {
       type: Boolean,
       default: false,
+    },
+    dateRange: {
+      type: Object as PropType<UseDateRange>,
+      default: undefined,
     },
   },
 

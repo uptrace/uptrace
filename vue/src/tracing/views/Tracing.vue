@@ -3,8 +3,6 @@
     <template v-if="systems.hasNoData" #placeholder>
       <HelpCard
         :date-range="dateRange"
-        :envs="envs"
-        :services="services"
         :loading="systems.loading"
       />
     </template>

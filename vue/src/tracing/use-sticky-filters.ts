@@ -2,7 +2,7 @@ import { computed, proxyRefs } from 'vue'
 
 // Composables
 import { useStorage } from '@/use/local-storage'
-import { useRoute } from '@/use/router'
+import { useRoute, useRouteQuery } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { useWatchAxios } from '@/use/watch-axios'
 
@@ -15,8 +15,6 @@ export function useEnvs(dateRange: UseDateRange) {
     ...stickyFilter,
   })
 }
-
-export type UseServices = ReturnType<typeof useServices>
 
 export function useServices(dateRange: UseDateRange) {
   const stickyFilter = useStickyFilter('services', dateRange)
@@ -57,6 +55,33 @@ function useStickyFilter(id: string, dateRange: UseDateRange) {
     },
     set(items) {
       lastActive.value = items
+    },
+  })
+
+  useRouteQuery().sync({
+    fromQuery(params) {
+      if (!Object.keys(params).length) {
+        return
+      }
+
+      const paramValue = params[id]
+
+      if (!paramValue) {
+        active.value = []
+        return
+      }
+
+      if (Array.isArray(paramValue)) {
+        active.value = paramValue
+      } else if (typeof paramValue === 'string') {
+        active.value = [paramValue]
+      }
+    },
+    toQuery() {
+      if (lastActive.value.length) {
+        return { [id]: lastActive.value }
+      }
+      return {}
     },
   })
 
