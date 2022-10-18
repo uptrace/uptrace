@@ -80,12 +80,13 @@ export default defineComponent({
 
     const groupRoute = computed(() => {
       return {
-        name: 'SpanList',
+        name: 'LogList',
+        params: { projectId: props.event.projectId },
         query: {
           ...props.dateRange.queryParams(),
           system: props.event.system,
           query: createUqlEditor()
-            .exploreAttr(xkey.spanGroupId)
+            .exploreAttr(xkey.spanGroupId, true)
             .where(xkey.spanGroupId, '=', props.event.groupId)
             .toString(),
         },

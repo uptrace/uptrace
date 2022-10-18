@@ -59,7 +59,7 @@ import { defineComponent, computed, PropType } from 'vue'
 import { UseDateRange } from '@/use/date-range'
 import { useRoute } from '@/use/router'
 import { UseEnvs, UseServices } from '@/tracing/use-sticky-filters'
-import { buildGroupBy } from '@/use/uql'
+import { exploreAttr } from '@/use/uql'
 import { useSystemStats } from '@/use/system-stats'
 
 // Components
@@ -104,7 +104,7 @@ export default defineComponent({
         query: {
           ...route.value.query,
           system: xkey.allSystem,
-          query: buildGroupBy(xkey.spanSystem),
+          query: exploreAttr(xkey.spanSystem),
         },
       }
     })

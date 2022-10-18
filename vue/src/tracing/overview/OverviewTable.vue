@@ -110,6 +110,7 @@ import ThOrder from '@/components/ThOrder.vue'
 import SparklineChart from '@/components/SparklineChart.vue'
 
 // Utilities
+import { isEventSystem } from '@/models/otelattr'
 import { Unit } from '@/util/fmt'
 import { quote } from '@/util/string'
 
@@ -175,7 +176,7 @@ export default defineComponent({
 
     function systemRoute(system: string) {
       return {
-        name: 'SpanGroupList',
+        name: isEventSystem(system) ? 'LogGroupList' : 'SpanGroupList',
         query: {
           ...props.dateRange.queryParams(),
           system,

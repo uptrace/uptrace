@@ -1,10 +1,7 @@
 <template>
   <XPlaceholder>
     <template v-if="systems.hasNoData" #placeholder>
-      <HelpCard
-        :date-range="dateRange"
-        :loading="systems.loading"
-      />
+      <HelpCard :date-range="dateRange" :loading="systems.loading" />
     </template>
 
     <div class="border">

@@ -264,7 +264,7 @@ export default defineComponent({
     function exploreRoute(item: ExploreItem) {
       const editor = props.uql
         ? props.uql.createEditor()
-        : createUqlEditor().exploreAttr(xkey.spanGroupId)
+        : createUqlEditor().exploreAttr(xkey.spanGroupId, props.systems.isEvent)
 
       for (let col of props.groupColumns) {
         const value = item[col.name]
@@ -272,7 +272,7 @@ export default defineComponent({
       }
 
       return {
-        name: props.spanListRoute,
+        name: props.systems.isEvent ? 'LogGroupList' : 'SpanGroupList',
         query: {
           ...props.systems.axiosParams(),
           query: editor.toString(),

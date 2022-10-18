@@ -66,14 +66,7 @@
             <v-btn v-if="meta.traceRoute" depressed small :to="meta.traceRoute" exact>
               View trace
             </v-btn>
-            <v-btn
-              v-if="$route.name !== groupListRoute && $route.name !== spanListRoute"
-              depressed
-              small
-              :to="meta.groupRoute"
-              exact
-              class="ml-2"
-            >
+            <v-btn v-if="meta.groupRoute" depressed small :to="meta.groupRoute" exact class="ml-2">
               View group
             </v-btn>
           </div>
@@ -141,7 +134,7 @@ import AttrsTable from '@/tracing/AttrsTable.vue'
 import EventPanels from '@/tracing/EventPanels.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { xkey, isEventSystem } from '@/models/otelattr'
 import { spanName, eventOrSpanName, Span } from '@/models/span'
 
 interface Props {
@@ -245,13 +238,21 @@ function useMeta(props: Props) {
   })
 
   const groupRoute = computed(() => {
+    switch (route.value.name) {
+      case 'SpanList':
+      case 'LogList':
+      case 'SpanGroupList':
+      case 'LogGroupList':
+        return undefined
+    }
+
     return {
-      name: props.spanListRoute,
+      name: isEventSystem(props.span.system) ? 'LogGroupList' : 'SpanGroupList',
       query: {
         ...props.dateRange.queryParams(),
         system: props.span.system,
         query: createUqlEditor()
-          .exploreAttr(xkey.spanGroupId)
+          .exploreAttr(xkey.spanGroupId, isEventSystem(props.span.system))
           .where(xkey.spanGroupId, '=', props.span.groupId)
           .toString(),
       },
