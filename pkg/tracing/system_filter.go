@@ -18,16 +18,20 @@ type SystemFilter struct {
 	ProjectID uint32
 	System    string
 	GroupID   uint64
+	Envs      []string
+	Services  []string
 }
 
 func DecodeSystemFilter(app *bunapp.App, req bunrouter.Request) (*SystemFilter, error) {
-	f := new(SystemFilter)
+	project := org.ProjectFromContext(req.Context())
+
+	f := &SystemFilter{
+		ProjectID: project.ID,
+	}
 
 	if err := bunapp.UnmarshalValues(req, f); err != nil {
 		return nil, err
 	}
-
-	f.ProjectID = org.ProjectFromContext(req.Context()).ID
 
 	return f, nil
 }
@@ -64,6 +68,13 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 
 	if f.GroupID != 0 {
 		q = q.Where("group_id = ?", f.GroupID)
+	}
+
+	if len(f.Envs) > 0 {
+		q = q.Where("deployment.environment IN (?)", ch.In(f.Envs))
+	}
+	if len(f.Services) > 0 {
+		q = q.Where("service IN (?)", ch.In(f.Services))
 	}
 
 	return q

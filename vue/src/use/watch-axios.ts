@@ -1,28 +1,59 @@
-import { useAxios, Config } from '@/use/axios'
+import { watch, proxyRefs } from 'vue'
+
+import { useAxios, AxiosConfig } from '@/use/axios'
 import {
   useWatchAxiosConfig,
   AxiosRequestSource,
+  AxiosParamsSource,
+  AxiosWatchOptions as BaseAxiosWatchOptions,
   AxiosRequestConfig,
 } from '@/use/watch-axios-config'
 
-export type { AxiosRequestSource, AxiosRequestConfig }
+export type { AxiosRequestSource, AxiosParamsSource, AxiosRequestConfig }
 
-export function useWatchAxios(source: AxiosRequestSource, cfg: Config = {}) {
+export interface AxiosWatchOptions extends BaseAxiosWatchOptions, AxiosConfig {
+  once?: boolean
+}
+
+export function watchAxios(source: AxiosRequestSource, options: AxiosWatchOptions = {}) {
+  return proxyRefs(useWatchAxios(source, options))
+}
+
+export function useWatchAxios(source: AxiosRequestSource, options: AxiosWatchOptions = {}) {
+  options.immediate = true
+  if (options.debounce === undefined) {
+    options.debounce = 10
+  }
+  if (options.notEqual === undefined) {
+    options.notEqual = true
+  }
+
   const {
     status,
     loading,
     data,
     error,
+    errorMessage,
 
     request,
-  } = useAxios(cfg)
+  } = useAxios({ debounce: options.debounce })
 
-  const { reload, abort } = useWatchAxiosConfig(
+  const { reload, abort, stopWatch } = useWatchAxiosConfig(
     source,
     (config, oldConfig, onInvalidate, abortCtrl) => {
-      return request(config, abortCtrl)
+      return request(config!, abortCtrl)
     },
+    options,
   )
+
+  if (options.once) {
+    const stopSelf = watch(status, (status) => {
+      if (status.isResolved()) {
+        stopWatch()
+        stopSelf()
+      }
+    })
+  }
 
   return {
     status,
@@ -30,6 +61,7 @@ export function useWatchAxios(source: AxiosRequestSource, cfg: Config = {}) {
 
     data,
     error,
+    errorMessage,
 
     abort,
     reload,

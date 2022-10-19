@@ -35,7 +35,7 @@
 </template>
 
 <script lang="ts">
-import { truncate } from 'lodash'
+import { truncate } from 'lodash-es'
 import { defineComponent, computed, PropType } from 'vue'
 
 // Utilities

@@ -24,9 +24,7 @@
               <template v-if="user.isAuth && $route.params.projectId">
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
                 <v-tab :to="{ name: 'SpanGroupList' }">Traces</v-tab>
-                <v-tab :to="{ name: 'LogGroupList', query: { system: xsys.allSpans } }"
-                  >Events</v-tab
-                >
+                <v-tab :to="{ name: 'LogGroupList' }">Events</v-tab>
                 <v-tab :to="{ name: 'MetricsDashList' }">Metrics</v-tab>
               </template>
               <v-tab v-if="!user.isAuth" :to="{ name: 'Login' }">Login</v-tab>

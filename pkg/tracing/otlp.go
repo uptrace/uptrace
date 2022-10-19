@@ -4,10 +4,12 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
+	"math/rand"
 	"time"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
+	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"go.uber.org/zap"
@@ -35,6 +37,13 @@ func initSpanFromOTLP(dest *Span, resource AttrMap, src *tracepb.Span) {
 	otlpconv.ForEachKeyValue(src.Attributes, func(key string, value any) {
 		dest.Attrs[key] = value
 	})
+	if rand.Float64() < 0.5 {
+		dest.Attrs[attrkey.ServiceName] = "service1"
+		dest.Attrs[attrkey.DeploymentEnvironment] = "stage"
+	} else {
+		dest.Attrs[attrkey.ServiceName] = "service2"
+		dest.Attrs[attrkey.DeploymentEnvironment] = "prod"
+	}
 
 	dest.Events = make([]*Span, len(src.Events))
 	for i, event := range src.Events {

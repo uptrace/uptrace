@@ -74,6 +74,9 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
 			sysHandler := NewSystemHandler(app)
 
+			g.GET("/envs", sysHandler.ListEnvs)
+			g.GET("/services", sysHandler.ListServices)
+
 			g.GET("/systems", sysHandler.List)
 			g.GET("/systems-stats", sysHandler.Stats)
 			g.GET("/overview", sysHandler.Overview)

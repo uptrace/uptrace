@@ -126,8 +126,6 @@
                 :is-event="isEventSystem(item[xkey.spanSystem])"
                 :axios-params="axiosParams"
                 :where="groupBasedWhere(item)"
-                :span-list-route="spanListRoute"
-                :group-list-route="groupListRoute"
               />
             </td>
           </tr>
@@ -138,7 +136,7 @@
 </template>
 
 <script lang="ts">
-import { truncate } from 'lodash'
+import { truncate } from 'lodash-es'
 import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
@@ -214,14 +212,6 @@ export default defineComponent({
       type: Object as PropType<Record<string, any>>,
       default: undefined,
     },
-    spanListRoute: {
-      type: String,
-      default: 'SpanList',
-    },
-    groupListRoute: {
-      type: String,
-      default: 'SpanGroupList',
-    },
   },
 
   setup(props) {
@@ -264,7 +254,7 @@ export default defineComponent({
     function exploreRoute(item: ExploreItem) {
       const editor = props.uql
         ? props.uql.createEditor()
-        : createUqlEditor().exploreAttr(xkey.spanGroupId)
+        : createUqlEditor().exploreAttr(xkey.spanGroupId, props.systems.isEvent)
 
       for (let col of props.groupColumns) {
         const value = item[col.name]
@@ -272,9 +262,9 @@ export default defineComponent({
       }
 
       return {
-        name: props.spanListRoute,
+        name: props.systems.isEvent ? 'LogList' : 'SpanList',
         query: {
-          ...props.systems.axiosParams(),
+          ...props.systems.queryParams(),
           query: editor.toString(),
         },
       }

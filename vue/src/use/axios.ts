@@ -1,14 +1,22 @@
-import axios, { AxiosRequestConfig, CancelTokenSource, AxiosResponse } from 'axios'
+import axios, {
+  AxiosRequestConfig as BaseAxiosRequestConfig,
+  CancelTokenSource,
+  AxiosResponse,
+} from 'axios'
 import { computed } from 'vue'
 
 // Composables
-import { usePromise, Config } from '@/use/promise'
+import { usePromise, Config as PromiseConfig } from '@/use/promise'
 
-export type { Config }
+export type AxiosConfig = PromiseConfig
 
 export type AxiosParams = Record<string, string | undefined>
 
-export function useAxios(cfg: Config = {}) {
+export interface AxiosRequestConfig extends BaseAxiosRequestConfig {
+  ignore?: boolean
+}
+
+export function useAxios(cfg: AxiosConfig = {}) {
   let cancelToken: CancelTokenSource | null = null
 
   const {
@@ -17,25 +25,29 @@ export function useAxios(cfg: Config = {}) {
     promised,
     result,
     error,
+    errorCode,
+    errorMessage,
     cancel,
-  } = usePromise((config: AxiosRequestConfig | null | undefined) => {
-    if (config === null) {
+  } = usePromise((req: AxiosRequestConfig | null | undefined) => {
+    if (req === null) {
+      return Promise.reject(null)
+    }
+    if (!isValidReq(req)) {
+      return Promise.reject(undefined)
+    }
+    if (req && req.ignore) {
       return Promise.reject(null)
     }
 
-    if (!isValidConfig(config)) {
-      return Promise.reject(undefined)
-    }
-
-    if (config && !config.cancelToken) {
+    if (req && !req.cancelToken) {
       cancelToken = axios.CancelToken.source()
-      config = {
-        ...config,
+      req = {
+        ...req,
         cancelToken: cancelToken.token,
       }
     }
 
-    return axios.request(config!)
+    return axios.request(req!)
   }, cfg)
 
   const data = computed(() => {
@@ -73,32 +85,34 @@ export function useAxios(cfg: Config = {}) {
     result,
     data,
     error,
+    errorCode,
+    errorMessage,
 
     request,
     abort,
   }
 }
 
-function isValidConfig(config: AxiosRequestConfig | undefined): boolean {
-  if (config === undefined) {
+function isValidReq(req: AxiosRequestConfig | undefined): boolean {
+  if (req === undefined) {
     return false
   }
 
-  if (config.url && config.url.includes('undefined')) {
+  if (req.url && req.url.includes('undefined')) {
     return false
   }
 
-  if ('params' in config && config.params === undefined) {
+  if ('params' in req && req.params === undefined) {
     return false
   }
-  if (config.params && !isValidData(config.params)) {
+  if (req.params && !isValidData(req.params)) {
     return false
   }
 
-  if ('data' in config && config.data === undefined) {
+  if ('data' in req && req.data === undefined) {
     return false
   }
-  if (config.data && !isValidData(config.data)) {
+  if (req.data && !isValidData(req.data)) {
     return false
   }
 

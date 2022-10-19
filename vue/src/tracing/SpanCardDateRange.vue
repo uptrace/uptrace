@@ -1,12 +1,5 @@
 <template>
-  <SpanCard
-    :date-range="dateRange"
-    :span="span"
-    :span-list-route="spanListRoute"
-    :group-list-route="groupListRoute"
-    fluid
-    show-toolbar
-  />
+  <SpanCard :date-range="dateRange" :span="span" fluid show-toolbar />
 </template>
 
 <script lang="ts">
@@ -28,14 +21,6 @@ export default defineComponent({
   props: {
     span: {
       type: Object as PropType<Span>,
-      required: true,
-    },
-    spanListRoute: {
-      type: String,
-      required: true,
-    },
-    groupListRoute: {
-      type: String,
       required: true,
     },
   },

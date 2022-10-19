@@ -34,7 +34,8 @@ import { defineComponent, shallowRef, watch, computed, PropType } from 'vue'
 import { UseSystems } from '@/use/systems'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { buildGroupBy } from '@/use/uql'
+import { UseEnvs, UseServices } from '@/tracing/use-sticky-filters'
+import { exploreAttr } from '@/use/uql'
 import { useSpanExplore } from '@/tracing/use-span-explore'
 import { useUql } from '@/use/uql'
 
@@ -53,6 +54,14 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
+    envs: {
+      type: Object as PropType<UseEnvs>,
+      required: true,
+    },
+    services: {
+      type: Object as PropType<UseServices>,
+      required: true,
+    },
     systems: {
       type: Object as PropType<UseSystems>,
       required: true,
@@ -62,18 +71,20 @@ export default defineComponent({
   setup(props) {
     const { route } = useRouter()
     const system = xsys.all
-    const query = buildGroupBy(xkey.spanGroupId) + ' | where not span.is_event'
+    const query = exploreAttr(xkey.spanGroupId) + ' | where not span.is_event'
 
     const activeColumns = shallowRef<string[]>([])
 
     const uql = useUql({
-      query: buildGroupBy(xkey.spanGroupId),
+      query: exploreAttr(xkey.spanGroupId),
       syncQuery: true,
     })
 
     const axiosParams = computed(() => {
       return {
         ...props.dateRange.axiosParams(),
+        ...props.envs.axiosParams(),
+        ...props.services.axiosParams(),
         system: system,
         query,
       }
@@ -99,8 +110,9 @@ export default defineComponent({
       return {
         name: 'SpanGroupList',
         query: {
+          ...route.value.query,
           ...explore.order.axiosParams, // ?
-          ...props.dateRange.queryParams(),
+          system,
           query,
         },
       }
