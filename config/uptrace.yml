@@ -26,6 +26,8 @@ projects:
       - service
       - host.name
       - deployment.environment
+    group_by_env: false
+    group_funcs_by_service: false
 
   # Other projects can be used to monitor your applications.
   # To monitor micro-services or multiple related services, use a single project.
@@ -36,6 +38,8 @@ projects:
       - service
       - host.name
       - deployment.environment
+    group_by_env: false
+    group_funcs_by_service: false
 
 ##
 ## To require authentication, uncomment the following section.
