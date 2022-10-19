@@ -126,8 +126,6 @@
                 :is-event="isEventSystem(item[xkey.spanSystem])"
                 :axios-params="axiosParams"
                 :where="groupBasedWhere(item)"
-                :span-list-route="spanListRoute"
-                :group-list-route="groupListRoute"
               />
             </td>
           </tr>
@@ -214,14 +212,6 @@ export default defineComponent({
       type: Object as PropType<Record<string, any>>,
       default: undefined,
     },
-    spanListRoute: {
-      type: String,
-      default: 'SpanList',
-    },
-    groupListRoute: {
-      type: String,
-      default: 'SpanGroupList',
-    },
   },
 
   setup(props) {
@@ -272,9 +262,9 @@ export default defineComponent({
       }
 
       return {
-        name: props.systems.isEvent ? 'LogGroupList' : 'SpanGroupList',
+        name: props.systems.isEvent ? 'LogList' : 'SpanList',
         query: {
-          ...props.systems.axiosParams(),
+          ...props.systems.queryParams(),
           query: editor.toString(),
         },
       }

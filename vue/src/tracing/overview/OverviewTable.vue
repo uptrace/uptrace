@@ -102,6 +102,7 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
+import { useRoute } from '@/use/router'
 import { UseOrder } from '@/use/order'
 import type { OverviewItem } from '@/tracing/overview/types'
 
@@ -149,6 +150,8 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
+    const route = useRoute()
+
     const hasAction = computed(() => {
       return 'action' in ctx.slots
     })
@@ -178,7 +181,7 @@ export default defineComponent({
       return {
         name: isEventSystem(system) ? 'LogGroupList' : 'SpanGroupList',
         query: {
-          ...props.dateRange.queryParams(),
+          ...route.value.query,
           system,
         },
       }

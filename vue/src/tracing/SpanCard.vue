@@ -165,14 +165,6 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
-    spanListRoute: {
-      type: String,
-      default: 'SpanList',
-    },
-    groupListRoute: {
-      type: String,
-      default: 'SpanGroupList',
-    },
   },
 
   setup(props) {
@@ -265,7 +257,7 @@ function useMeta(props: Props) {
     bs.push({
       text: props.span.system,
       to: {
-        name: props.groupListRoute,
+        name: isEventSystem(props.span.system) ? 'LogGroupList' : 'SpanGroupList',
         query: {
           ...props.dateRange.queryParams(),
           system: props.span.system,
@@ -277,7 +269,7 @@ function useMeta(props: Props) {
     bs.push({
       text: eventOrSpanName(props.span, 50),
       to: {
-        name: props.spanListRoute,
+        name: isEventSystem(props.span.system) ? 'LogList' : 'SpanList',
         query: {
           ...props.dateRange.queryParams(),
           system: props.span.system,

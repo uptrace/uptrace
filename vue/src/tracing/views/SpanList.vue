@@ -5,7 +5,7 @@
         :uql="uql"
         :systems="systems"
         :axios-params="axiosParams"
-        :group-list-route="groupListRoute"
+        :agg-disabled="['LogGroupList', 'SpanGroupList'].indexOf($route.name) === -1"
         @click:reset="resetQuery"
       />
     </UptraceQuery>
@@ -15,7 +15,7 @@
         <v-card rounded="lg" outlined class="mb-4">
           <v-toolbar flat color="light-blue lighten-5">
             <v-toolbar-title>
-              <span>{{ spanListRoute == 'SpanList' ? 'Spans' : 'Logs' }}</span>
+              <span>{{ $route.name === 'SpanList' ? 'Spans' : 'Logs' }}</span>
             </v-toolbar-title>
 
             <v-spacer />
@@ -37,8 +37,6 @@
                 :order="spans.order"
                 :pager="spans.pager"
                 :system="systems.activeSystem"
-                :span-list-route="spanListRoute"
-                :group-list-route="groupListRoute"
                 @click:chip="onChipClick"
               />
             </v-col>
@@ -97,14 +95,6 @@ export default defineComponent({
       type: String,
       required: true,
     },
-    spanListRoute: {
-      type: String,
-      required: true,
-    },
-    groupListRoute: {
-      type: String,
-      required: true,
-    },
   },
 
   setup(props) {
@@ -160,7 +150,9 @@ export default defineComponent({
     watch(
       () => props.query,
       () => {
-        resetQuery()
+        if (!route.value.query.query) {
+          resetQuery()
+        }
       },
       { immediate: true },
     )
@@ -176,6 +168,7 @@ export default defineComponent({
     }
 
     return {
+      route,
       uql,
       axiosParams,
       spans,
