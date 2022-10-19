@@ -16,12 +16,11 @@ services:
     ports:
       - '8123:8123'
       - '9000:9000'
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
 
   uptrace:
-    image: 'uptrace/uptrace:latest'
+    image: 'uptrace/uptrace:1.1'
     #image: 'uptrace/uptrace-dev:latest'
+    restart: on-failure
     volumes:
       - uptrace_data:/var/lib/uptrace
       - ./uptrace.yml:/etc/uptrace/uptrace.yml
@@ -68,8 +67,6 @@ services:
     image: timberio/vector:0.24.X-alpine
     volumes:
       - ./vector.toml:/etc/vector/vector.toml:ro
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
 
   # jaeger-agent:
   #   image: jaegertracing/jaeger-agent:latest
