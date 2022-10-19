@@ -214,8 +214,8 @@ var serveCommand = &cli.Command{
 
 func initSqlite(ctx context.Context, app *bunapp.App) error {
 	if err := app.DB.Ping(); err != nil {
-		conf := app.DB.Config()
-		if conf.Driver == "sqlite" {
+		conf := app.Config()
+		if conf.DB.Driver == "sqlite" {
 			app.Logger.Error("SQLite Ping failed; make sure dir is writable (edit db.dsn YAML option)",
 				zap.String("dsn", app.Config().DB.DSN),
 				zap.Error(err))
