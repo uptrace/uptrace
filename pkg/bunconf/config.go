@@ -260,10 +260,12 @@ type OIDCProvider struct {
 }
 
 type Project struct {
-	ID          uint32   `yaml:"id" json:"id"`
-	Name        string   `yaml:"name" json:"name"`
-	Token       string   `yaml:"token" json:"token"`
-	PinnedAttrs []string `yaml:"pinned_attrs" json:"pinnedAttrs"`
+	ID                  uint32   `yaml:"id" json:"id"`
+	Name                string   `yaml:"name" json:"name"`
+	Token               string   `yaml:"token" json:"token"`
+	PinnedAttrs         []string `yaml:"pinned_attrs" json:"pinnedAttrs"`
+	GroupByEnv          bool     `yaml:"group_by_env" json:"groupByEnv"`
+	GroupFuncsByService bool     `yaml:"group_funcs_by_service" json:"groupFuncsByService"`
 }
 
 func (c *Config) GRPCEndpoint() string {
