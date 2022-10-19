@@ -102,6 +102,7 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
+import { useRoute } from '@/use/router'
 import { UseOrder } from '@/use/order'
 import type { OverviewItem } from '@/tracing/overview/types'
 
@@ -110,6 +111,7 @@ import ThOrder from '@/components/ThOrder.vue'
 import SparklineChart from '@/components/SparklineChart.vue'
 
 // Utilities
+import { isEventSystem } from '@/models/otelattr'
 import { Unit } from '@/util/fmt'
 import { quote } from '@/util/string'
 
@@ -148,6 +150,8 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
+    const route = useRoute()
+
     const hasAction = computed(() => {
       return 'action' in ctx.slots
     })
@@ -175,9 +179,9 @@ export default defineComponent({
 
     function systemRoute(system: string) {
       return {
-        name: 'SpanGroupList',
+        name: isEventSystem(system) ? 'LogGroupList' : 'SpanGroupList',
         query: {
-          ...props.dateRange.queryParams(),
+          ...route.value.query,
           system,
         },
       }

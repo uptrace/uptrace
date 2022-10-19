@@ -30,14 +30,14 @@ import { UseSystems } from '@/use/systems'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseEnvs, UseServices } from '@/tracing/use-sticky-filters'
-import { buildGroupBy } from '@/use/uql'
+import { exploreAttr } from '@/use/uql'
 import { useSpanExplore } from '@/tracing/use-span-explore'
 
 // Components
 import GroupsTable from '@/tracing/GroupsTable.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { xkey, isEventSystem } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'SystemGroupList',
@@ -79,7 +79,7 @@ export default defineComponent({
         ...props.envs.axiosParams(),
         ...props.services.axiosParams(),
         system: system.value,
-        query: buildGroupBy(xkey.spanGroupId),
+        query: exploreAttr(xkey.spanGroupId, isEventSystem(system.value)),
       }
     })
 
@@ -93,11 +93,12 @@ export default defineComponent({
 
     const exploreRoute = computed(() => {
       return {
-        name: 'SpanGroupList',
+        name: isEventSystem(system.value) ? 'LogGroupList' : 'SpanGroupList',
         query: {
+          ...route.value.query,
           ...explore.order.axiosParams,
           system: system.value,
-          query: buildGroupBy(xkey.spanGroupId),
+          query: exploreAttr(xkey.spanGroupId, isEventSystem(system.value)),
         },
       }
     })

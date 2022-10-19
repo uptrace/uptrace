@@ -24,10 +24,10 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { buildWhere, buildGroupBy } from '@/use/uql'
+import { buildWhere, exploreAttr } from '@/use/uql'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { xkey, isEventSystem } from '@/models/otelattr'
 import { truncateMiddle } from '@/util/string'
 import { createFormatter, unitFromName } from '@/util/fmt'
 
@@ -74,11 +74,15 @@ export default defineComponent({
     const menu = shallowRef(false)
     const { route } = useRouter()
 
+    const isEvent = computed(() => {
+      return isEventSystem(props.system)
+    })
+
     const query = computed(() => {
       if (route.value.query.query) {
         return route.value.query.query
       }
-      const query = buildGroupBy(xkey.spanGroupId)
+      const query = exploreAttr(xkey.spanGroupId, isEvent.value)
       if (props.groupId) {
         return query + ` | where ${xkey.spanGroupId} = ${props.groupId}`
       }
@@ -90,8 +94,8 @@ export default defineComponent({
         return []
       }
 
-      const groupLink = link({ query: buildGroupBy(props.name) })
-      groupLink.to.name = 'SpanGroupList'
+      const groupLink = link({ query: exploreAttr(props.name, isEvent.value) })
+      groupLink.to.name = isEvent.value ? 'LogGroupList' : 'SpanGroupList'
 
       const items = [
         {

@@ -18,7 +18,7 @@
         :uql="uql"
         :systems="systems"
         :axios-params="axiosParams"
-        :group-list-route="groupListRoute"
+        :agg-disabled="['LogGroupList', 'SpanGroupList'].indexOf($route.name) === -1"
         @click:reset="resetQuery"
       />
     </UptraceQuery>
@@ -72,8 +72,6 @@
               :plot-columns="activeColumns"
               :order="explore.order"
               :axios-params="axiosParams"
-              :span-list-route="spanListRoute"
-              :group-list-route="groupListRoute"
             />
           </v-card-text>
         </v-card>
@@ -129,10 +127,6 @@ export default defineComponent({
       type: String,
       required: true,
     },
-    groupListRoute: {
-      type: String,
-      required: true,
-    },
   },
 
   setup(props) {
@@ -182,7 +176,9 @@ export default defineComponent({
     watch(
       () => props.query,
       () => {
-        resetQuery()
+        if (!route.value.query.query) {
+          resetQuery()
+        }
       },
       { immediate: true },
     )
@@ -192,6 +188,7 @@ export default defineComponent({
     }
 
     return {
+      route,
       activeColumns,
       uql,
       axiosParams,

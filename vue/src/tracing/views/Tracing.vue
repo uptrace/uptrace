@@ -1,10 +1,7 @@
 <template>
   <XPlaceholder>
     <template v-if="systems.hasNoData" #placeholder>
-      <HelpCard
-        :date-range="dateRange"
-        :loading="systems.loading"
-      />
+      <HelpCard :date-range="dateRange" :loading="systems.loading" />
     </template>
 
     <div class="border">
@@ -46,7 +43,7 @@
             <v-tabs :key="$route.fullPath" background-color="transparent">
               <v-tab :to="routes.groupList" exact-path>Groups</v-tab>
               <v-tab :to="routes.spanList" exact-path>{{
-                spanListRoute == 'SpanList' ? 'Spans' : 'Logs'
+                $route.name.startsWith('Span') ? 'Spans' : 'Logs'
               }}</v-tab>
             </v-tabs>
           </v-col>
@@ -73,7 +70,7 @@ import { clone } from 'lodash-es'
 import { defineComponent, computed, proxyRefs, PropType } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
+import { useRouter, useRoute } from '@/use/router'
 import { useTitle } from '@vueuse/core'
 import { UseDateRange } from '@/use/date-range'
 import { useEnvs, useServices } from '@/tracing/use-sticky-filters'
@@ -131,6 +128,7 @@ export default defineComponent({
     useTitle('Explore spans')
     props.dateRange.syncQuery()
 
+    const route = useRoute()
     const user = useUser()
     const envs = useEnvs(props.dateRange)
     const services = useServices(props.dateRange)
@@ -151,6 +149,7 @@ export default defineComponent({
     })
 
     return {
+      route,
       envs,
       services,
       user,

@@ -101,9 +101,9 @@ export default defineComponent({
 
     const groupListRoute = computed(() => {
       return {
-        name: 'SpanGroupList',
+        name: props.systems.isEvent ? 'LogGroupList' : 'SpanGroupList',
         query: {
-          ...props.dateRange.queryParams(),
+          ...route.value.query,
           ...props.systems.queryParams(),
           query: query.value,
         },
@@ -114,7 +114,7 @@ export default defineComponent({
       return {
         name: 'SpanList',
         query: {
-          ...props.dateRange.queryParams(),
+          ...route.value.query,
           ...props.systems.queryParams(),
           query: query.value,
         },
