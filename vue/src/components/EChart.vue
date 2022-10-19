@@ -5,7 +5,7 @@
 </template>
 
 <script lang="ts">
-import { debounce } from 'lodash'
+import { debounce } from 'lodash-es'
 import * as echarts from 'echarts'
 import { defineComponent, shallowRef, watch, onMounted, onUnmounted, PropType } from 'vue'
 

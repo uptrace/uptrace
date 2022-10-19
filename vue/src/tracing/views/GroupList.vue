@@ -18,7 +18,7 @@
         :uql="uql"
         :systems="systems"
         :axios-params="axiosParams"
-        :group-list-route="groupListRoute"
+        :agg-disabled="['LogGroupList', 'SpanGroupList'].indexOf($route.name) === -1"
         @click:reset="resetQuery"
       />
     </UptraceQuery>
@@ -72,8 +72,6 @@
               :plot-columns="activeColumns"
               :order="explore.order"
               :axios-params="axiosParams"
-              :span-list-route="spanListRoute"
-              :group-list-route="groupListRoute"
             />
           </v-card-text>
         </v-card>
@@ -90,6 +88,7 @@ import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
+import { UseEnvs, UseServices } from '@/tracing/use-sticky-filters'
 import { UseSystems } from '@/use/systems'
 import { useUql } from '@/use/uql'
 import { useSpanExplore } from '@/tracing/use-span-explore'
@@ -112,15 +111,19 @@ export default defineComponent({
       type: Object as PropType<UseSystems>,
       required: true,
     },
+    envs: {
+      type: Object as PropType<UseEnvs>,
+      required: true,
+    },
+    services: {
+      type: Object as PropType<UseServices>,
+      required: true,
+    },
     query: {
       type: String,
       required: true,
     },
     spanListRoute: {
-      type: String,
-      required: true,
-    },
-    groupListRoute: {
       type: String,
       required: true,
     },
@@ -137,6 +140,8 @@ export default defineComponent({
     const axiosParams = computed(() => {
       return {
         ...props.dateRange.axiosParams(),
+        ...props.envs.axiosParams(),
+        ...props.services.axiosParams(),
         ...uql.axiosParams(),
         system: props.systems.activeSystem,
       }
@@ -171,7 +176,9 @@ export default defineComponent({
     watch(
       () => props.query,
       () => {
-        resetQuery()
+        if (!route.value.query.query) {
+          resetQuery()
+        }
       },
       { immediate: true },
     )
@@ -181,6 +188,7 @@ export default defineComponent({
     }
 
     return {
+      route,
       activeColumns,
       uql,
       axiosParams,

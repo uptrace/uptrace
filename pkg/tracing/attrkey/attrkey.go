@@ -32,9 +32,11 @@ const (
 	SpanEventErrorCount = "span.event_error_count"
 	SpanEventLogCount   = "span.event_log_count"
 
-	ServiceName = "service.name"
-	PeerService = "peer.service"
-	HostName    = "host.name"
+	Service        = "service"
+	ServiceName    = "service.name"
+	ServiceVersion = "service.version"
+	PeerService    = "peer.service"
+	HostName       = "host.name"
 
 	RPCSystem  = "rpc.system"
 	RPCService = "rpc.service"

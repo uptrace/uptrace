@@ -7,13 +7,29 @@
     <div class="border">
       <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
         <v-row align="center" justify="space-between" class="mb-4">
-          <v-col cols="auto">
-            <SystemPicker
-              v-if="systemsItems.length"
-              :date-range="dateRange"
-              :systems="systems"
-              :items="systemsItems"
-              :all-system="allSystem"
+          <v-col class="d-flex align-center">
+            <div class="mr-4">
+              <SystemPicker
+                v-if="systemsItems.length"
+                :date-range="dateRange"
+                :systems="systems"
+                :items="systemsItems"
+                :all-system="allSystem"
+              />
+            </div>
+            <StickyFilter
+              v-if="envs.items.length > 1"
+              v-model="envs.active"
+              :loading="envs.loading"
+              :items="envs.items"
+              param-name="env"
+            />
+            <StickyFilter
+              v-if="services.items.length > 1"
+              v-model="services.active"
+              :loading="services.loading"
+              :items="services.items"
+              param-name="service"
             />
           </v-col>
 
@@ -27,7 +43,7 @@
             <v-tabs :key="$route.fullPath" background-color="transparent">
               <v-tab :to="routes.groupList" exact-path>Groups</v-tab>
               <v-tab :to="routes.spanList" exact-path>{{
-                spanListRoute == 'SpanList' ? 'Spans' : 'Logs'
+                $route.name.startsWith('Span') ? 'Spans' : 'Logs'
               }}</v-tab>
             </v-tabs>
           </v-col>
@@ -39,6 +55,8 @@
       <router-view
         :date-range="dateRange"
         :systems="systems"
+        :envs="envs"
+        :services="services"
         :query="query"
         :span-list-route="spanListRoute"
         :group-list-route="groupListRoute"
@@ -48,19 +66,21 @@
 </template>
 
 <script lang="ts">
-import { clone } from 'lodash'
+import { clone } from 'lodash-es'
 import { defineComponent, computed, proxyRefs, PropType } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
+import { useRouter, useRoute } from '@/use/router'
 import { useTitle } from '@vueuse/core'
 import { UseDateRange } from '@/use/date-range'
+import { useEnvs, useServices } from '@/tracing/use-sticky-filters'
 import { useUser } from '@/use/org'
 import { useSystems, SystemsFilter } from '@/use/systems'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import SystemPicker from '@/tracing/SystemPicker.vue'
+import StickyFilter from '@/tracing/StickyFilter.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
 
 interface Props {
@@ -73,6 +93,7 @@ export default defineComponent({
   components: {
     DateRangePicker,
     SystemPicker,
+    StickyFilter,
     HelpCard,
   },
 
@@ -107,8 +128,18 @@ export default defineComponent({
     useTitle('Explore spans')
     props.dateRange.syncQuery()
 
+    const route = useRoute()
     const user = useUser()
-    const systems = useSystems(props.dateRange)
+    const envs = useEnvs(props.dateRange)
+    const services = useServices(props.dateRange)
+
+    const systems = useSystems(() => {
+      return {
+        ...props.dateRange.axiosParams(),
+        ...envs.axiosParams(),
+        ...services.axiosParams(),
+      }
+    })
 
     const systemsItems = computed(() => {
       if (props.systemsFilter) {
@@ -118,6 +149,9 @@ export default defineComponent({
     })
 
     return {
+      route,
+      envs,
+      services,
       user,
       systems,
       systemsItems,

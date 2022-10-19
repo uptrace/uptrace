@@ -1,11 +1,10 @@
-import { orderBy } from 'lodash'
+import { orderBy } from 'lodash-es'
 import { ref, computed, watch, proxyRefs } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'
 import { usePager } from '@/use/pager'
 import { useOrder } from '@/use/order'
-import { UseDateRange } from '@/use/date-range'
 import { useWatchAxios } from '@/use/watch-axios'
 
 // Utilities
@@ -42,7 +41,7 @@ interface TypeItem {
 
 export type UseSystemStats = ReturnType<typeof useSystemStats>
 
-export function useSystemStats(dateRange: UseDateRange) {
+export function useSystemStats(params: () => Record<string, any>) {
   const { route } = useRouter()
   const pager = usePager({ perPage: 15 })
   const order = useOrder({ column: 'system', desc: false })
@@ -52,9 +51,7 @@ export function useSystemStats(dateRange: UseDateRange) {
     const { projectId } = route.value.params
     return {
       url: `/api/v1/tracing/${projectId}/systems-stats`,
-      params: {
-        ...dateRange.axiosParams(),
-      },
+      params: params(),
     }
   })
 

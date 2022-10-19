@@ -1,3 +1,10 @@
+export function sentence(s: string): string {
+  if (!s) {
+    return ''
+  }
+  return s.charAt(0).toUpperCase() + s.substring(1)
+}
+
 export function escapeRe(s: string) {
   return s.replace(/[\\^$*+?.()|[\]{}]/g, '\\$&')
 }

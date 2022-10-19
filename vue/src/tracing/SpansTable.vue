@@ -59,12 +59,7 @@
 
     <v-dialog v-model="dialog.isActive" max-width="1280">
       <v-sheet>
-        <SpanCardDateRange
-          v-if="dialog.activeSpan"
-          :span="dialog.activeSpan"
-          :span-list-route="spanListRoute"
-          :group-list-route="groupListRoute"
-        />
+        <SpanCardDateRange v-if="dialog.activeSpan" :span="dialog.activeSpan" />
       </v-sheet>
     </v-dialog>
   </div>
@@ -124,14 +119,6 @@ export default defineComponent({
     columns: {
       type: Array as PropType<string[]>,
       default: () => [],
-    },
-    spanListRoute: {
-      type: String,
-      required: true,
-    },
-    groupListRoute: {
-      type: String,
-      required: true,
     },
   },
 

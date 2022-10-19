@@ -159,8 +159,8 @@ export class UqlEditor {
     return formatParts(this.parts)
   }
 
-  exploreAttr(attr: string) {
-    return this.add(buildGroupBy(attr))
+  exploreAttr(column: string, isEventSystem = false) {
+    return this.add(exploreAttr(column, isEventSystem))
   }
 
   add(query: string) {
@@ -250,12 +250,14 @@ export function buildWhere(column: string, op: string, value?: any) {
   return `where ${column} ${op} ${quote(value)}`
 }
 
-export function buildGroupBy(column: string) {
-  const ss = [
-    `group by ${column}`,
-    xkey.spanCountPerMin,
-    xkey.spanErrorPct,
-    `{p50,p90,p99}(${xkey.spanDuration})`,
-  ]
+export function exploreAttr(column: string, isEventSystem = false) {
+  const ss = isEventSystem
+    ? [`group by ${column}`, xkey.spanCountPerMin]
+    : [
+        `group by ${column}`,
+        xkey.spanCountPerMin,
+        xkey.spanErrorPct,
+        `{p50,p90,p99}(${xkey.spanDuration})`,
+      ]
   return ss.join(QUERY_PART_SEP)
 }

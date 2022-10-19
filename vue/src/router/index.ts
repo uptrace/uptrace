@@ -6,7 +6,7 @@ import { xkey, xsys, isEventSystem } from '@/models/otelattr'
 
 // Composables
 import { useUser } from '@/use/org'
-import { buildGroupBy } from '@/use/uql'
+import { exploreAttr } from '@/use/uql'
 import { System } from '@/use/systems'
 
 import Overview from '@/tracing/views/Overview.vue'
@@ -119,7 +119,7 @@ const routes: RouteConfig[] = [
     path: '/explore/:projectId(\\d+)',
     component: Tracing,
     props: {
-      query: buildGroupBy(xkey.spanGroupId),
+      query: exploreAttr(xkey.spanGroupId),
       spanListRoute: 'SpanList',
       groupListRoute: 'SpanGroupList',
       systemsFilter: (items: System[]) => {
@@ -149,7 +149,7 @@ const routes: RouteConfig[] = [
     path: '/logs/:projectId(\\d+)',
     component: Tracing,
     props: {
-      query: `group by ${xkey.spanGroupId} | ${xkey.spanCountPerMin}`,
+      query: exploreAttr(xkey.spanGroupId, true),
       spanListRoute: 'LogList',
       groupListRoute: 'LogGroupList',
       systemsFilter: (items: System[]) => {

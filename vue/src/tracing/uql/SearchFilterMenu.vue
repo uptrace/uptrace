@@ -56,7 +56,7 @@
 </template>
 
 <script lang="ts">
-import { isEqual } from 'lodash'
+import { isEqual } from 'lodash-es'
 import { defineComponent, proxyRefs, shallowRef, computed, Ref, PropType } from 'vue'
 
 // Composables

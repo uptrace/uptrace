@@ -67,6 +67,9 @@ func initSpan(ctx *spanContext, span *Span) {
 }
 
 func initSpanAttrs(ctx *spanContext, span *Span) {
+	if service := serviceNameAndVersion(span.Attrs); service != "" {
+		span.Attrs[attrkey.Service] = service
+	}
 	if s, _ := span.Attrs[attrkey.HTTPUserAgent].(string); s != "" {
 		initHTTPUserAgent(span.Attrs, s)
 	}
@@ -100,6 +103,17 @@ func initHTTPUserAgent(attrs AttrMap, str string) {
 	if agent.Bot {
 		attrs[attrkey.HTTPUserAgentBot] = 1
 	}
+}
+
+func serviceNameAndVersion(attrs AttrMap) string {
+	name, _ := attrs[attrkey.ServiceName].(string)
+	if name == "" {
+		return ""
+	}
+	if version := attrs.Text(attrkey.ServiceVersion); version != "" {
+		return name + "@" + version
+	}
+	return name
 }
 
 //------------------------------------------------------------------------------

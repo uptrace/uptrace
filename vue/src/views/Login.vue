@@ -68,7 +68,7 @@
 </template>
 
 <script lang="ts">
-import { upperFirst } from 'lodash'
+import { upperFirst } from 'lodash-es'
 import { defineComponent, shallowRef, watch } from 'vue'
 
 // Composables

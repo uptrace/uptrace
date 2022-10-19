@@ -39,3 +39,13 @@ code {
     padding-right: 0;
   }
 }
+
+.v-select--fit {
+  flex: fit-content 0 0 !important;
+
+  &:not(.v-autocomplete) {
+    input {
+      width: 0;
+    }
+  }
+}
