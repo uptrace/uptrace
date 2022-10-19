@@ -130,17 +130,13 @@ const routes: RouteConfig[] = [
     children: [
       {
         name: 'SpanGroupList',
-        path: 'groups',
+        path: '',
         component: GroupList,
       },
       {
         name: 'SpanList',
         path: 'spans',
         component: SpanList,
-      },
-      {
-        path: '',
-        redirect: { name: 'SpanGroupList' },
       },
     ],
   },
@@ -160,14 +156,14 @@ const routes: RouteConfig[] = [
     },
     children: [
       {
+        name: 'LogGroupList',
+        path: '',
+        component: GroupList,
+      },
+      {
         name: 'LogList',
         path: 'spans',
         component: SpanList,
-      },
-      {
-        name: 'LogGroupList',
-        path: 'groups',
-        component: GroupList,
       },
     ],
   },
