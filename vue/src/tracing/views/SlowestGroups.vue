@@ -112,11 +112,8 @@ export default defineComponent({
         query: {
           ...route.value.query,
           ...explore.order.axiosParams, // ?
-          ...props.dateRange.queryParams(),
           system,
           query,
-          chart: 'columns',
-          column: `p50(${xkey.spanDuration})`,
         },
       }
     })

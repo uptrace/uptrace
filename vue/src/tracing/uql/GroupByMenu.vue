@@ -1,7 +1,7 @@
 <template>
   <v-menu v-model="menu" offset-y :close-on-content-click="false">
     <template #activator="{ on, attrs }">
-      <v-btn text class="v-btn--filter" :disabled="aggDisabled" v-bind="attrs" v-on="on">
+      <v-btn text class="v-btn--filter" :disabled="disabled" v-bind="attrs" v-on="on">
         Group by
       </v-btn>
     </template>
@@ -86,7 +86,7 @@ export default defineComponent({
       type: Object as PropType<AxiosParams>,
       required: true,
     },
-    aggDisabled: {
+    disabled: {
       type: Boolean,
       default: false,
     },

@@ -13,7 +13,7 @@
     <v-divider vertical class="mx-2" />
 
     <WhereFilterMenu :systems="systems" :uql="uql" :axios-params="axiosParams" />
-    <AggFilterMenu :uql="uql" :axios-params="axiosParams" :agg-disabled="aggDisabled" />
+    <AggFilterMenu :uql="uql" :axios-params="axiosParams" :disabled="aggDisabled" />
     <GroupByMenu :uql="uql" :axios-params="axiosParams" :disabled="aggDisabled" />
 
     <v-divider vertical class="mx-2" />

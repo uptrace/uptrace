@@ -1,9 +1,7 @@
 <template>
   <v-menu v-model="menu" offset-y :close-on-content-click="false">
     <template #activator="{ on, attrs }">
-      <v-btn :disabled="aggDisabled" text class="v-btn--filter" v-bind="attrs" v-on="on">
-        Agg
-      </v-btn>
+      <v-btn :disabled="disabled" text class="v-btn--filter" v-bind="attrs" v-on="on"> Agg </v-btn>
     </template>
     <v-form ref="form" v-model="isValid" @submit.prevent="addFilter">
       <v-card width="400px">
@@ -128,7 +126,7 @@ export default defineComponent({
       type: Object as PropType<AxiosParams>,
       required: true,
     },
-    aggDisabled: {
+    disabled: {
       type: Boolean,
       default: false,
     },
