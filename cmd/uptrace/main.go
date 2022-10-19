@@ -214,14 +214,21 @@ var serveCommand = &cli.Command{
 
 func initSqlite(ctx context.Context, app *bunapp.App) error {
 	if err := app.DB.Ping(); err != nil {
-		app.Logger.Error("SQLite Ping failed; make sure dir is writable (edit db.dsn YAML option)",
-			zap.String("dsn", app.Config().DB.DSN),
-			zap.Error(err))
+		conf := app.DB.Config()
+		if conf.Driver == "sqlite" {
+			app.Logger.Error("SQLite Ping failed; make sure dir is writable (edit db.dsn YAML option)",
+				zap.String("dsn", app.Config().DB.DSN),
+				zap.Error(err))
+		} else {
+			app.Logger.Error("PostgreSQL Ping failed (edit db.dsn YAML option)",
+				zap.String("dsn", app.Config().DB.DSN),
+				zap.Error(err))
+		}
 		return err
 	}
 
 	if err := runBunMigrations(ctx, app); err != nil {
-		app.Logger.Error("SQLite migrations failed",
+		app.Logger.Error("SQL migrations failed",
 			zap.Error(err))
 		return err
 	}

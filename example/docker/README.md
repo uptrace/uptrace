@@ -3,7 +3,7 @@
 ## Getting started
 
 This example demonstrates how to quickly start Uptrace using Docker. To run Uptrace permanently, you
-can use a DEB/RPM [package](https://uptrace.dev/get/install.html#packages) or a pre-compiled
+can also use a DEB/RPM [package](https://uptrace.dev/get/install.html#packages) or a pre-compiled
 [binary](https://uptrace.dev/get/install.html#binaries).
 
 **Step 1**. Download the example using Git:
