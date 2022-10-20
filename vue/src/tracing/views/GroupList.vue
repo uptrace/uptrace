@@ -18,7 +18,7 @@
         :uql="uql"
         :systems="systems"
         :axios-params="axiosParams"
-        :agg-disabled="['LogGroupList', 'SpanGroupList'].indexOf($route.name) === -1"
+        :agg-disabled="['EventGroupList', 'SpanGroupList'].indexOf($route.name) === -1"
         @click:reset="resetQuery"
       />
     </UptraceQuery>

@@ -262,7 +262,7 @@ export default defineComponent({
       }
 
       return {
-        name: props.systems.isEvent ? 'LogList' : 'SpanList',
+        name: props.systems.isEvent ? 'EventList' : 'SpanList',
         query: {
           ...props.systems.queryParams(),
           query: editor.toString(),
