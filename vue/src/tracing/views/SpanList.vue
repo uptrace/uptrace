@@ -5,7 +5,7 @@
         :uql="uql"
         :systems="systems"
         :axios-params="axiosParams"
-        :agg-disabled="['LogGroupList', 'SpanGroupList'].indexOf($route.name) === -1"
+        :agg-disabled="['EventGroupList', 'SpanGroupList'].indexOf($route.name) === -1"
         @click:reset="resetQuery"
       />
     </UptraceQuery>
@@ -15,7 +15,7 @@
         <v-card rounded="lg" outlined class="mb-4">
           <v-toolbar flat color="light-blue lighten-5">
             <v-toolbar-title>
-              <span>{{ $route.name === 'SpanList' ? 'Spans' : 'Logs' }}</span>
+              <span>{{ $route.name === 'SpanList' ? 'Spans' : 'Events' }}</span>
             </v-toolbar-title>
 
             <v-spacer />

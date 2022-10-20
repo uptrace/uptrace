@@ -80,7 +80,7 @@ export default defineComponent({
 
     const groupRoute = computed(() => {
       return {
-        name: 'LogList',
+        name: 'EventList',
         params: { projectId: props.event.projectId },
         query: {
           ...props.dateRange.queryParams(),
