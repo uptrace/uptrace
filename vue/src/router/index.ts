@@ -142,12 +142,12 @@ const routes: RouteConfig[] = [
   },
 
   {
-    path: '/logs/:projectId(\\d+)',
+    path: '/events/:projectId(\\d+)',
     component: Tracing,
     props: {
       query: exploreAttr(xkey.spanGroupId, true),
-      spanListRoute: 'LogList',
-      groupListRoute: 'LogGroupList',
+      spanListRoute: 'EventList',
+      groupListRoute: 'EventGroupList',
       systemsFilter: (items: System[]) => {
         return items.filter((item: System) => isEventSystem(item.system))
       },
@@ -156,12 +156,12 @@ const routes: RouteConfig[] = [
     },
     children: [
       {
-        name: 'LogGroupList',
+        name: 'EventGroupList',
         path: '',
         component: GroupList,
       },
       {
-        name: 'LogList',
+        name: 'EventList',
         path: 'spans',
         component: SpanList,
       },
