@@ -232,14 +232,14 @@ function useMeta(props: Props) {
   const groupRoute = computed(() => {
     switch (route.value.name) {
       case 'SpanList':
-      case 'LogList':
+      case 'EventList':
       case 'SpanGroupList':
-      case 'LogGroupList':
+      case 'EventGroupList':
         return undefined
     }
 
     return {
-      name: isEventSystem(props.span.system) ? 'LogGroupList' : 'SpanGroupList',
+      name: isEventSystem(props.span.system) ? 'EventGroupList' : 'SpanGroupList',
       query: {
         ...props.dateRange.queryParams(),
         system: props.span.system,
@@ -257,7 +257,7 @@ function useMeta(props: Props) {
     bs.push({
       text: props.span.system,
       to: {
-        name: isEventSystem(props.span.system) ? 'LogGroupList' : 'SpanGroupList',
+        name: isEventSystem(props.span.system) ? 'EventGroupList' : 'SpanGroupList',
         query: {
           ...props.dateRange.queryParams(),
           system: props.span.system,
@@ -269,7 +269,7 @@ function useMeta(props: Props) {
     bs.push({
       text: eventOrSpanName(props.span, 50),
       to: {
-        name: isEventSystem(props.span.system) ? 'LogList' : 'SpanList',
+        name: isEventSystem(props.span.system) ? 'EventList' : 'SpanList',
         query: {
           ...props.dateRange.queryParams(),
           system: props.span.system,

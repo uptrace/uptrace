@@ -93,7 +93,7 @@ export default defineComponent({
 
     const exploreRoute = computed(() => {
       return {
-        name: isEventSystem(system.value) ? 'LogGroupList' : 'SpanGroupList',
+        name: isEventSystem(system.value) ? 'EventGroupList' : 'SpanGroupList',
         query: {
           ...route.value.query,
           ...explore.order.axiosParams,
