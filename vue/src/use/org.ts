@@ -14,6 +14,10 @@ export interface User {
 export interface Project {
   id: number
   name: string
+  groupByEnv: boolean
+  groupFuncsByService: boolean
+  pinnedAttrs: string[]
+  token: string
 }
 
 export const useUser = defineStore(() => {
