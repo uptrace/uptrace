@@ -3,6 +3,7 @@ import { computed, proxyRefs } from 'vue'
 import router from '@/router'
 
 // Composables
+import { useRoute } from '@/use/router'
 import { defineStore } from '@/use/store'
 import { useAxios } from '@/use/axios'
 import { useWatchAxios } from '@/use/watch-axios'
@@ -21,6 +22,7 @@ export interface Project {
 }
 
 export const useUser = defineStore(() => {
+  const route = useRoute()
   const { loading, data, request } = useAxios()
 
   const user = computed((): User | undefined => {
@@ -33,6 +35,19 @@ export const useUser = defineStore(() => {
 
   const projects = computed((): Project[] => {
     return data.value?.projects ?? []
+  })
+
+  const activeProject = computed((): Project | undefined => {
+    const projectId = parseInt(route.value.params.projectId)
+    if (!projectId) {
+      return
+    }
+    for (let p of projects.value) {
+      if (p.id === projectId) {
+        return p
+      }
+    }
+    return undefined
   })
 
   let req: Promise<any>
@@ -64,6 +79,7 @@ export const useUser = defineStore(() => {
     current: user,
     isAuth,
     projects,
+    activeProject,
 
     reload,
     getOrLoad,
