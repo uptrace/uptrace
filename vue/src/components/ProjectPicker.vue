@@ -68,16 +68,7 @@ export default defineComponent({
 
     const activeProject = computed({
       get(): Project | undefined {
-        const projectId = parseInt(route.value.params.projectId)
-        if (!projectId) {
-          return
-        }
-
-        for (let p of user.projects) {
-          if (p.id === projectId) {
-            return p
-          }
-        }
+        return user.activeProject
       },
       set(project: Project) {
         let routeName = route.value.name as string

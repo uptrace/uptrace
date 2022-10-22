@@ -35,7 +35,6 @@ import { defineComponent, computed, ref } from 'vue'
 
 // Composables
 import { useTitle } from '@vueuse/core'
-import { useRouter } from '@/use/router'
 import { useUser, Project } from '@/use/org'
 
 export default defineComponent({
@@ -43,29 +42,17 @@ export default defineComponent({
 
   setup() {
     const disabled = ref(true)
-    const { route } = useRouter()
     const user = useUser()
 
     const project = computed((): Project | undefined => {
-      const projectId = parseInt(route.value.params.projectId)
-      if (!projectId) {
-        return
-      }
-
-      for (let p of user.projects) {
-        if (p.id === projectId) {
-          return p
-        }
-      }
-
-      return undefined
+      return user.activeProject
     })
 
     const title = computed((): string => {
       return project.value?.name ?? 'Project'
     })
 
-    useTitle(title.value)
+    useTitle(title)
 
     return { project, disabled }
   },
