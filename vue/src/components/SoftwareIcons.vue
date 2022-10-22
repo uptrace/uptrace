@@ -9,9 +9,6 @@
 <script lang="ts">
 import { defineComponent, computed } from 'vue'
 
-// Composables
-import { useRouter } from '@/use/router'
-
 // Components
 import Devicon from '@/components/Devicon.vue'
 
@@ -27,8 +24,6 @@ export default defineComponent({
   },
 
   setup(props) {
-    const { route } = useRouter()
-
     const items = computed(() => {
       const items = []
 
@@ -88,6 +83,16 @@ export default defineComponent({
           to: receiverLink('mysql'),
         },
         {
+          name: 'SQLServer',
+          icon: '/devicon/microsoftsqlserver-original.svg',
+          to: receiverLink('pulsar'),
+        },
+        {
+          name: 'Riak',
+          icon: '/devicon/riak.svg',
+          to: receiverLink('riak'),
+        },
+        {
           name: 'Redis',
           icon: '/devicon/redis-original.svg',
           to: receiverLink('redis'),
@@ -96,6 +101,11 @@ export default defineComponent({
           name: 'MongoDB',
           icon: '/devicon/mongodb-original.svg',
           to: receiverLink('mongodb'),
+        },
+        {
+          name: 'Apache',
+          icon: '/devicon/apache-original.svg',
+          to: receiverLink('apache'),
         },
         {
           name: 'Nginx',
@@ -122,22 +132,43 @@ export default defineComponent({
           icon: '/devicon/devicon-original.svg',
           to: receiverLink('memcached'),
         },
+
+        {
+          name: 'Foundry',
+          icon: '/devicon/cloud-foundry.svg',
+          to: receiverLink('cloudfoundry'),
+        },
+        {
+          name: 'CouchDB',
+          icon: '/devicon/couchdb-original.svg',
+          to: receiverLink('couchdb'),
+        },
+        {
+          name: 'Elastic',
+          icon: '/devicon/elastic-search.svg',
+          to: receiverLink('elasticsearch'),
+        },
+        {
+          name: 'IIS',
+          icon: '/devicon/iis.svg',
+          to: receiverLink('iis'),
+        },
+        {
+          name: 'InfluxDB',
+          icon: '/devicon/influxdb.svg',
+          to: receiverLink('influxdb'),
+        },
+        {
+          name: 'RabbitMQ',
+          icon: '/devicon/rabbitmq.svg',
+          to: receiverLink('rabbitmq'),
+        },
+        {
+          name: 'Pulsar',
+          icon: '/devicon/pulsar.svg',
+          to: receiverLink('pulsar'),
+        },
       )
-
-      const projectId = route.value.params.projectId
-      if (projectId) {
-        items.push({
-          name: 'Slack',
-          icon: '/devicon/slack-original.svg',
-          to: `/projects/${projectId}/notifications/slack`,
-        })
-
-        items.push({
-          name: 'PagerDuty',
-          icon: '/devicon/pagerduty-original.svg',
-          to: `/projects/${projectId}/notifications/pagerduty`,
-        })
-      }
 
       return items
     })

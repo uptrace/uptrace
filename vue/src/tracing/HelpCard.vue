@@ -38,7 +38,7 @@
     </PageToolbar>
 
     <v-container class="mb-6 px-4 py-6">
-      <FrameworkIcons />
+      <SoftwareIcons :show-frameworks="true" />
     </v-container>
 
     <PageToolbar :loading="loading">
@@ -124,7 +124,7 @@ import { useProject } from '@/use/project'
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import CollectorTabs from '@/components/CollectorTabs.vue'
 import DistroIcons from '@/components/DistroIcons.vue'
-import FrameworkIcons from '@/components/FrameworkIcons.vue'
+import SoftwareIcons from '@/components/SoftwareIcons.vue'
 
 export default defineComponent({
   name: 'HelpCard',
@@ -132,7 +132,7 @@ export default defineComponent({
     DateRangePicker,
     CollectorTabs,
     DistroIcons,
-    FrameworkIcons,
+    SoftwareIcons,
   },
 
   props: {
