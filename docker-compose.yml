@@ -6,6 +6,8 @@ services:
     restart: on-failure
     environment:
       CLICKHOUSE_DB: uptrace
+      REPLICA: replica1
+      KEEPER_ID: 1
     healthcheck:
       test: ['CMD', 'wget', '--spider', '-q', 'localhost:8123/ping']
       interval: 1s
