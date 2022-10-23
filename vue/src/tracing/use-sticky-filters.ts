@@ -1,7 +1,6 @@
-import { computed, proxyRefs } from 'vue'
+import { shallowRef, computed, proxyRefs } from 'vue'
 
 // Composables
-import { useStorage } from '@/use/local-storage'
 import { useRoute, useRouteQuery } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { useWatchAxios } from '@/use/watch-axios'
@@ -16,6 +15,8 @@ export function useEnvs(dateRange: UseDateRange) {
   })
 }
 
+export type UseServices = ReturnType<typeof useServices>
+
 export function useServices(dateRange: UseDateRange) {
   const stickyFilter = useStickyFilter('services', dateRange)
 
@@ -26,13 +27,7 @@ export function useServices(dateRange: UseDateRange) {
 
 function useStickyFilter(id: string, dateRange: UseDateRange) {
   const route = useRoute()
-
-  const { item: lastActive } = useStorage<string[]>(
-    computed(() => {
-      return `${id}:active:${route.value.params.projectId}`
-    }),
-    [],
-  )
+  const lastActive = shallowRef<string[]>([])
 
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId } = route.value.params
