@@ -15,11 +15,17 @@
     class="mr-2 v-select--fit"
     @change="$emit('input', $event)"
   >
+    <template #selection="{ index, item }">
+      <div v-if="index === 2" class="v-select__selection">, {{ value.length - 2 }} more</div>
+      <div v-else-if="index < 2" class="v-select__selection text-truncate">
+        {{ comma(item, index) }}
+      </div>
+    </template>
   </v-autocomplete>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed, PropType } from 'vue'
+import { defineComponent, shallowRef, PropType } from 'vue'
 
 export default defineComponent({
   name: 'StickyFilter',
@@ -43,22 +49,26 @@ export default defineComponent({
     },
   },
 
-  setup(props) {
+  setup() {
     const menu = shallowRef(false)
 
-    const attrs = computed(() => {
-      if (props.outlined) {
-        return { outlined: true }
+    function comma(item: string, index: number): string {
+      if (index > 0) {
+        return ', ' + item
       }
-      return { dark: true, class: 'blue darken-1 elevation-5' }
-    })
+      return item
+    }
 
     return {
       menu,
-      attrs,
+      comma,
     }
   },
 })
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.v-select__selection {
+  max-width: 100px;
+}
+</style>
