@@ -115,7 +115,7 @@ func isNumColumn(v any) bool {
 
 func NewSpanIndexQuery(app *bunapp.App) *ch.SelectQuery {
 	return app.CH.NewSelect().
-		TableExpr("? AS s", app.DistTable("spans_index"))
+		TableExpr("? AS s", app.DistTable("spans_index_buffer"))
 }
 
 func buildSpanIndexQuery(app *bunapp.App, f *SpanFilter, minutes float64) *ch.SelectQuery {

@@ -200,12 +200,18 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 		index.EventLogCount = uint8(logCount)
 	}
 
-	if _, err := s.CH.NewInsert().Model(&dataSpans).Exec(ctx); err != nil {
+	if _, err := s.CH.NewInsert().
+		Model(&dataSpans).
+		ModelTableExpr("?", s.DistTable("spans_data_buffer")).
+		Exec(ctx); err != nil {
 		s.Zap(ctx).Error("ch.Insert failed",
 			zap.Error(err), zap.String("table", "spans_data"))
 	}
 
-	if _, err := s.CH.NewInsert().Model(&indexedSpans).Exec(ctx); err != nil {
+	if _, err := s.CH.NewInsert().
+		Model(&indexedSpans).
+		ModelTableExpr("?", s.DistTable("spans_index_buffer")).
+		Exec(ctx); err != nil {
 		s.Zap(ctx).Error("ch.Insert failed",
 			zap.Error(err), zap.String("table", "spans_index"))
 	}

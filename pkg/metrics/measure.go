@@ -53,14 +53,17 @@ func (m AttrMap) Merge(other AttrMap) {
 }
 
 func InsertMeasures(ctx context.Context, app *bunapp.App, measures []*Measure) error {
-	_, err := app.CH.NewInsert().Model(&measures).Exec(ctx)
+	_, err := app.CH.NewInsert().
+		Model(&measures).
+		ModelTableExpr("?", app.DistTable("measure_minutes_buffer")).
+		Exec(ctx)
 	return err
 }
 
 func measureTableForWhere(app *bunapp.App, f *org.TimeFilter) ch.Ident {
 	switch org.TablePeriod(f) {
 	case time.Minute:
-		return app.DistTable("measure_minutes")
+		return app.DistTable("measure_minutes_buffer")
 	case time.Hour:
 		return app.DistTable("measure_hours")
 	}
@@ -73,7 +76,7 @@ func measureTableForGroup(
 	tablePeriod, groupPeriod := org.TableGroupPeriod(f)
 	switch tablePeriod {
 	case time.Minute:
-		return app.DistTable("measure_minutes"), groupPeriod
+		return app.DistTable("measure_minutes_buffer"), groupPeriod
 	case time.Hour:
 		return app.DistTable("measure_hours"), groupPeriod
 	}
