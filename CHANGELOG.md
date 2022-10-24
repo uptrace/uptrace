@@ -9,13 +9,13 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 - Tweaked spans grouping and added 2 releated options:
 
-  - `project.group_by_env` - group spans by deployment.environment attribute.
-  - `project.group_funcs_by_service` - group funcs spans by service.name attribute.
+  - `project.group_by_env` - group spans by `deployment.environment` attribute.
+  - `project.group_funcs_by_service` - group funcs spans by `service.name` attribute.
 
 - Changed ClickHouse schema to not use column names with dots in them which causes issues with
   migrations, for example, such columns could not be renamed.
 
-  You must reset the ClickHouse schema with:
+  If you have an existing ClickHouse database, you will have to reset it with:
 
 ```shell
 uptrace ch reset

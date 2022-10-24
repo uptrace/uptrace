@@ -74,8 +74,8 @@ func (c *spanContext) Project(projectID uint32) (*bunconf.Project, bool) {
 	return project, true
 }
 
-// initSpan initializes spans. See initEvent for events.
-func initSpan(ctx *spanContext, span *Span) {
+// initSpan initializes spans.
+func initSpanOrEvent(ctx *spanContext, span *Span) {
 	if span.EventName != "" {
 		panic("not reached")
 	}
@@ -86,9 +86,13 @@ func initSpan(ctx *spanContext, span *Span) {
 	}
 
 	initSpanAttrs(ctx, span)
-	assignSpanSystemAndGroupID(ctx, project, span)
-	if span.Name == "" {
-		span.Name = "<empty>"
+	if span.EventName != "" {
+		assignEventSystemAndGroupID(ctx, project, span)
+	} else {
+		assignSpanSystemAndGroupID(ctx, project, span)
+		if span.Name == "" {
+			span.Name = "<empty>"
+		}
 	}
 }
 
