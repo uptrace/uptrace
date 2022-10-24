@@ -101,7 +101,6 @@ export default defineComponent({
     useTitle('Overview')
 
     props.dateRange.syncQuery()
-    props.dateRange.roundUp = false
 
     const envs = useEnvs(props.dateRange)
     const services = useServices(props.dateRange)

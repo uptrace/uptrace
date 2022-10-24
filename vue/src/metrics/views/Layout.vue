@@ -44,7 +44,6 @@ export default defineComponent({
 
   setup(props) {
     props.dateRange.syncQuery()
-    props.dateRange.roundUp = false
 
     const metrics = useMetrics()
 

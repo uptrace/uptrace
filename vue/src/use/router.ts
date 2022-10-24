@@ -41,11 +41,13 @@ export const useRouteQuery = defineStore(() => {
   const items = shallowRef<QueryItem[]>([])
 
   const query = computed((): Query | undefined => {
-    if (!route.value.matched.length) {
-      return
-    }
-
     let query: Query = {}
+
+    for (let key in route.value.query) {
+      if (key.startsWith('utm_')) {
+        query[key] = route.value.query[key]
+      }
+    }
 
     for (let item of items.value) {
       if (!item.toQuery) {
@@ -53,9 +55,10 @@ export const useRouteQuery = defineStore(() => {
       }
 
       const q = item.toQuery()
-      if (q) {
-        Object.assign(query, cloneDeep(q))
+      if (!q) {
+        return undefined
       }
+      Object.assign(query, cloneDeep(q))
     }
 
     return query
@@ -74,18 +77,27 @@ export const useRouteQuery = defineStore(() => {
       }
     }
 
-    ignoreNext = omit(route, 'matched') as Route
-    ignoreNext.query = query
+    const onSuccess = () => {
+      ignoreNext = omit(route, 'matched') as Route
+      ignoreNext.query = query
+    }
 
     if (isFreshRoute) {
       isFreshRoute = false
-      router.replace({ query, hash: route.hash }).catch(() => {})
+      router
+        .replace({ query, hash: route.hash })
+        .then(onSuccess)
+        .catch(() => {})
     } else {
-      router.push({ query, hash: route.hash }).catch(() => {})
+      router
+        .push({ query, hash: route.hash })
+        .then(onSuccess)
+        .catch(() => {})
     }
   }, 100)
 
   function sync(item: QueryItem) {
+    //TODO: vue3
     items.value.push(item)
     // eslint-disable-next-line no-self-assign
     items.value = items.value.slice()
@@ -96,6 +108,9 @@ export const useRouteQuery = defineStore(() => {
         items.value.splice(idx, 1)
         // eslint-disable-next-line no-self-assign
         items.value = items.value.slice()
+      } else {
+        // eslint-disable-next-line no-console
+        console.error("can't find the hook")
       }
     }
 
@@ -103,8 +118,8 @@ export const useRouteQuery = defineStore(() => {
 
     if (item.fromQuery) {
       onBeforeMount(() => {
-        if (lastFreshRoute.value && item.fromQuery) {
-          item.fromQuery(lastFreshRoute.value.query)
+        if (lastFreshRoute.value) {
+          item.fromQuery!(lastFreshRoute.value.query)
         }
       })
     }
@@ -123,6 +138,9 @@ export const useRouteQuery = defineStore(() => {
         routeUpdatedHooks.value.splice(idx, 1)
         // eslint-disable-next-line no-self-assign
         routeUpdatedHooks.value = routeUpdatedHooks.value.slice()
+      } else {
+        // eslint-disable-next-line no-console
+        console.error("can't find the hook")
       }
     })
 
@@ -167,8 +185,10 @@ export const useRouteQuery = defineStore(() => {
       if (ignoreNext && routeEqual(route, ignoreNext)) {
         return
       }
+
       isFreshRoute = true
       updateQueryDebounced(route, query.value)
+      ignoreNext = omit(route, 'matched') as Route
     },
     { flush: 'post' },
   )
@@ -191,7 +211,9 @@ function routeEqual(r1: Route, r2: Route): boolean {
 }
 
 function paramsEqual(p1: Record<string, any>, p2: Record<string, any>): boolean {
-  return JSON.stringify(p1, Object.keys(p1).sort()) === JSON.stringify(p2, Object.keys(p2).sort())
+  const k1 = Object.keys(p1).sort()
+  const k2 = Object.keys(p2).sort()
+  return JSON.stringify(p1, k1) === JSON.stringify(p2, k2)
 }
 
 function queryEqual(q1: Query | undefined, q2: Query | undefined): boolean {
