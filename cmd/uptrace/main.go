@@ -160,9 +160,9 @@ var serveCommand = &cli.Command{
 			}
 
 			httpServer := &http.Server{
-				ReadTimeout:  5 * time.Second,
-				WriteTimeout: 5 * time.Second,
-				IdleTimeout:  60 * time.Second,
+				ReadTimeout:  10 * time.Second,
+				WriteTimeout: time.Minute,
+				IdleTimeout:  3 * time.Minute,
 				Handler:      handler,
 			}
 
