@@ -149,7 +149,7 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 
 	spanCtx := newSpanContext(ctx, s.App)
 	for _, span := range spans {
-		initSpan(spanCtx, span)
+		initSpanOrEvent(spanCtx, span)
 		spanCounter.Add(
 			ctx,
 			1,

@@ -26,6 +26,10 @@ projects:
       - service.name
       - host.name
       - deployment.environment
+    # Group spans by deployment.environment attribute.
+    group_by_env: false
+    # Group funcs spans by service.name attribute.
+    group_funcs_by_service: false
 
   # Other projects can be used to monitor your applications.
   # To monitor micro-services or multiple related services, use a single project.
@@ -36,6 +40,10 @@ projects:
       - service.name
       - host.name
       - deployment.environment
+    # Group spans by deployment.environment attribute.
+    group_by_env: false
+    # Group funcs spans by service.name attribute.
+    group_funcs_by_service: false
 
 ##
 ## To require authentication, uncomment the following section.
