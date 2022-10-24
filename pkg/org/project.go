@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func SelectProjectByID(
+func SelectProject(
 	ctx context.Context, app *bunapp.App, projectID uint32,
 ) (*bunconf.Project, error) {
 	projects := app.Config().Projects

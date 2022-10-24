@@ -94,5 +94,6 @@ const (
 	TelemetrySDKVersion  = "telemetry.sdk.version"
 	TelemetrySDKLanguage = "telemetry.sdk.language"
 
+	CodeFunction          = "code.function"
 	DeploymentEnvironment = "deployment.environment"
 )
