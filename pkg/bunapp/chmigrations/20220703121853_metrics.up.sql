@@ -76,18 +76,18 @@ SETTINGS prefer_column_name_to_alias = 1
 CREATE MATERIALIZED VIEW ?DB.spans_metrics_mv ?ON_CLUSTER
 TO ?DB.measure_minutes AS
 SELECT
-  project_id,
+  _project_id AS project_id,
   'uptrace.spans.duration' AS metric,
-  toStartOfMinute(time) AS time,
-  xxHash64(arrayStringConcat([system, "host.name", "service.name"], '-')) AS attrs_hash,
+  toStartOfMinute(_time) AS time,
+  xxHash64(arrayStringConcat([_system, _host_name, _service_name], '-')) AS attrs_hash,
 
   'histogram' AS instrument,
-  sum(duration) AS sum,
+  sum(_duration) AS sum,
   count() AS count,
-  quantilesBFloat16StateIf(0.5, 0.9, 0.99)(toFloat32(duration / 1000), duration > 0) AS histogram,
+  quantilesBFloat16StateIf(0.5, 0.9, 0.99)(toFloat32(_duration / 1000), _duration > 0) AS histogram,
 
   ['span.system', 'host.name', 'service.name'] AS attr_keys,
-  [system, "host.name", "service.name"] AS attr_values
+  [_system, _host_name, _service_name] AS attr_values
 FROM ?DB.spans_index
-GROUP BY project_id, toStartOfMinute(time), system, "host.name", "service.name"
+GROUP BY project_id, time, _system, _host_name, _service_name
 SETTINGS prefer_column_name_to_alias = 1

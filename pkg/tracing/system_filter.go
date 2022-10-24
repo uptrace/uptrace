@@ -20,6 +20,8 @@ type SystemFilter struct {
 	GroupID   uint64
 	Envs      []string
 	Services  []string
+
+	prefixEnabled bool
 }
 
 func DecodeSystemFilter(app *bunapp.App, req bunrouter.Request) (*SystemFilter, error) {
@@ -46,36 +48,43 @@ func (f *SystemFilter) UnmarshalValues(ctx context.Context, values url.Values) e
 }
 
 func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
-	q = q.Where("project_id = ?", f.ProjectID).
-		Where("time >= ?", f.TimeGTE).
-		Where("time < ?", f.TimeLT)
+	q = q.Where("? = ?", f.prefix("project_id"), f.ProjectID).
+		Where("? >= ?", f.prefix("time"), f.TimeGTE).
+		Where("? < ?", f.prefix("time"), f.TimeLT)
 
 	switch {
 	case f.System == "":
 		// nothing
 	case f.System == SystemAllEvents:
-		q = q.Where("is_event")
+		q = q.Where("?", f.prefix("is_event"))
 	case f.System == SystemAllSpans:
-		q = q.Where("NOT is_event")
+		q = q.Where("NOT ?", f.prefix("is_event"))
 	case f.System == SystemAll:
-		q = q.Where("system != ?", SystemInternalSpan)
+		q = q.Where("? != ?", f.prefix("system"), SystemInternalSpan)
 	case strings.HasSuffix(f.System, ":all"):
 		system := strings.TrimSuffix(f.System, ":all")
-		q = q.Where("startsWith(system, ?)", system)
+		q = q.Where("startsWith(?, ?)", f.prefix("system"), system)
 	default:
-		q = q.Where("system = ?", f.System)
+		q = q.Where("? = ?", f.prefix("system"), f.System)
 	}
 
 	if f.GroupID != 0 {
-		q = q.Where("group_id = ?", f.GroupID)
+		q = q.Where("? = ?", f.prefix("group_id"), f.GroupID)
 	}
 
 	if len(f.Envs) > 0 {
-		q = q.Where("deployment.environment IN (?)", ch.In(f.Envs))
+		q = q.Where("? IN (?)", f.prefix("deployment_environment"), ch.In(f.Envs))
 	}
 	if len(f.Services) > 0 {
-		q = q.Where("service IN (?)", ch.In(f.Services))
+		q = q.Where("? IN (?)", f.prefix("service"), ch.In(f.Services))
 	}
 
 	return q
+}
+
+func (f *SystemFilter) prefix(name string) ch.Ident {
+	if f.prefixEnabled {
+		return ch.Ident("_" + name)
+	}
+	return ch.Ident(name)
 }

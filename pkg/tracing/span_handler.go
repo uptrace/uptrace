@@ -44,8 +44,8 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 	}
 
 	q := buildSpanIndexQuery(h.App, f, f.Duration().Minutes()).
-		ColumnExpr("id").
-		ColumnExpr("trace_id").
+		ColumnExpr("_id").
+		ColumnExpr("_trace_id").
 		WithQuery(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if f.SortBy == "" {
 				return q
@@ -158,31 +158,31 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 	m := make(map[string]interface{})
 
 	subq := buildSpanIndexQuery(h.App, f, f.Duration().Minutes()).
-		WithAlias("qsNaN", "quantilesTDigest(0.5, 0.9, 0.99)(duration)").
+		WithAlias("qsNaN", "quantilesTDigest(0.5, 0.9, 0.99)(_duration)").
 		WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
-		ColumnExpr("sum(count) AS count").
-		ColumnExpr("sum(count) / ? AS rate", minutes).
-		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_", minutes).
+		ColumnExpr("sum(_count) AS count").
+		ColumnExpr("sum(_count) / ? AS rate", minutes).
+		ColumnExpr("toStartOfInterval(_time, INTERVAL ? minute) AS time", minutes).
 		WithQuery(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if isEventSystem(f.System) {
 				return q
 			}
-			return q.ColumnExpr("sumIf(count, status_code = 'error') AS errorCount").
-				ColumnExpr("sumIf(count, status_code = 'error') / ? AS errorRate",
+			return q.ColumnExpr("sumIf(_count, _status_code = 'error') AS errorCount").
+				ColumnExpr("sumIf(_count, _status_code = 'error') / ? AS errorRate",
 					minutes).
 				ColumnExpr("round(qs[1]) AS p50").
 				ColumnExpr("round(qs[2]) AS p90").
 				ColumnExpr("round(qs[3]) AS p99")
 		}).
 		WithQuery(f.whereClause).
-		GroupExpr("time_").
-		OrderExpr("time_ ASC").
+		GroupExpr("time").
+		OrderExpr("time ASC").
 		Limit(10000)
 
 	if err := h.CH.NewSelect().
 		ColumnExpr("groupArray(count) AS count").
 		ColumnExpr("groupArray(rate) AS rate").
-		ColumnExpr("groupArray(time_) AS time").
+		ColumnExpr("groupArray(time) AS time").
 		WithQuery(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if isEventSystem(f.System) {
 				return q
@@ -229,13 +229,13 @@ func (h *SpanHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error 
 
 	subq := buildSpanIndexQuery(h.App, f, minutes)
 	subq = upqlColumn(subq, colName, minutes).
-		ColumnExpr("toStartOfInterval(time, toIntervalMinute(?)) AS time_", minutes).
-		GroupExpr("time_").
-		OrderExpr("time_ ASC")
+		ColumnExpr("toStartOfInterval(_time, toIntervalMinute(?)) AS time", minutes).
+		GroupExpr("time").
+		OrderExpr("time ASC")
 
 	if err := h.CH.NewSelect().
 		ColumnExpr("groupArray(?) AS ?", ch.Ident(f.Column), ch.Ident(f.Column)).
-		ColumnExpr("groupArray(time_) AS time").
+		ColumnExpr("groupArray(time) AS time").
 		TableExpr("(?)", subq).
 		GroupExpr("tuple()").
 		Limit(1000).

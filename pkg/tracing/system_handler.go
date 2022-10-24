@@ -474,11 +474,11 @@ func (h *SystemHandler) selectEnvs(ctx context.Context, f *SystemFilter) ([]stri
 
 	tableName := spanSystemTableForWhere(h.App, &f.TimeFilter)
 	if err := h.CH.NewSelect().
-		ColumnExpr("DISTINCT deployment.environment").
+		ColumnExpr("DISTINCT deployment_environment").
 		TableExpr("? AS s", tableName).
 		WithQuery(f.whereClause).
-		Where("notEmpty(deployment.environment)").
-		OrderExpr("deployment.environment ASC").
+		Where("notEmpty(deployment_environment)").
+		OrderExpr("deployment_environment ASC").
 		Limit(100).
 		ScanColumns(ctx, &envs); err != nil {
 		return nil, err

@@ -40,3 +40,8 @@ ENGINE = Distributed(?CLUSTER, currentDatabase(), span_host_hours)
 
 CREATE TABLE measure_minutes_dist ?ON_CLUSTER AS measure_minutes
 ENGINE = Distributed(?CLUSTER, currentDatabase(), measure_minutes)
+
+--migration:split
+
+CREATE TABLE measure_hours_dist ?ON_CLUSTER AS measure_hours
+ENGINE = Distributed(?CLUSTER, currentDatabase(), measure_hours)
