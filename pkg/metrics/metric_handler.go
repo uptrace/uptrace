@@ -195,7 +195,7 @@ func selectAttrKeys(ctx context.Context, app *bunapp.App, metric *Metric) ([]str
 	keys := make([]string, 0)
 	if err := app.CH.NewSelect().
 		ColumnExpr("arrayJoin(attr_keys) AS key").
-		TableExpr("?", app.DistTable("measure_minutes")).
+		TableExpr("?", app.DistTable("measure_minutes_buffer")).
 		Where("project_id = ?", metric.ProjectID).
 		Where("metric = ?", metric.Name).
 		Where("time >= ?", time.Now().Add(-time.Hour)).

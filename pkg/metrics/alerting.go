@@ -56,7 +56,7 @@ func (e *AlertingEngine) Eval(
 		},
 		MetricMap: metricMap,
 
-		TableName:      e.app.DistTable("measure_minutes"),
+		TableName:      e.app.DistTable("measure_minutes_buffer"),
 		GroupingPeriod: time.Minute,
 
 		GroupByTime: true,
