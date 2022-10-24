@@ -76,10 +76,6 @@ func (c *spanContext) Project(projectID uint32) (*bunconf.Project, bool) {
 
 // initSpan initializes spans.
 func initSpanOrEvent(ctx *spanContext, span *Span) {
-	if span.EventName != "" {
-		panic("not reached")
-	}
-
 	project, ok := ctx.Project(span.ProjectID)
 	if !ok {
 		return
