@@ -1,8 +1,8 @@
 import { min, addMilliseconds, subMilliseconds, differenceInMilliseconds } from 'date-fns'
-import { shallowRef, computed, proxyRefs } from 'vue'
+import { shallowRef, computed, proxyRefs, watch, onBeforeUnmount, getCurrentInstance } from 'vue'
 
 // Composables
-import { useRouteQuery } from '@/use/router'
+import { useRoute, useRouteQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 
 // Utilities
@@ -15,13 +15,29 @@ import {
   truncDate,
   second,
   minute,
+  hour,
   day,
 } from '@/util/fmt/date'
 
+const UPDATE_NOW_TIMER_DELAY = 5 * minute
+
 export type UseDateRange = ReturnType<typeof useDateRange>
 
-export function useDateRange() {
-  const roundUp = shallowRef(false)
+interface Config {
+  prefix?: string
+}
+
+interface ParamsConfig {
+  prefix?: string
+  optional?: boolean
+  offset?: number
+}
+
+export function useDateRange(conf: Config = {}) {
+  const route = useRoute()
+  let _roundUp = false
+  const defaultPrefix = conf.prefix ?? 'time_'
+
   const lt = shallowRef<Date>()
   const isNow = shallowRef(false)
   const duration = shallowRef(0)
@@ -67,28 +83,42 @@ export function useDateRange() {
     },
   })
 
+  watch(
+    () => route.value.name,
+    () => {
+      updateNow()
+    },
+    { flush: 'post' },
+  )
+
+  if (getCurrentInstance()) {
+    onBeforeUnmount(() => {
+      if (updateNowTimer) {
+        clearTimeout(updateNowTimer)
+        updateNowTimer = null
+      }
+    })
+  }
+
   function updateNow(force = false): boolean {
-    if (!force && !isNow.value) {
+    if (force) {
+      isNow.value = true
+    } else if (!isNow.value) {
       return false
     }
 
-    isNow.value = true
-    const nowVal = roundUp.value ? ceilDate(new Date(), minute) : truncDate(new Date(), minute)
-
-    if (nowVal <= lt.value!) {
-      return false
-    }
-    lt.value = nowVal
+    const now = _roundUp ? ceilDate(new Date(), minute) : truncDate(new Date(), minute)
+    lt.value = now
 
     if (updateNowTimer) {
       clearTimeout(updateNowTimer)
     }
-    updateNowTimer = setTimeout(updateNow, 5 * minute)
+    updateNowTimer = setTimeout(updateNow, UPDATE_NOW_TIMER_DELAY)
 
     return true
   }
 
-  function resetNowTimer() {
+  function resetUpdateNowTimer() {
     if (updateNowTimer) {
       clearTimeout(updateNowTimer)
       updateNowTimer = null
@@ -107,7 +137,7 @@ export function useDateRange() {
   }
 
   function reset() {
-    resetNowTimer()
+    resetUpdateNowTimer()
     lt.value = undefined
     duration.value = 0
   }
@@ -116,7 +146,7 @@ export function useDateRange() {
     const durVal = ltVal.getTime() - gteVal.getTime()
     lt.value = ltVal
     duration.value = durVal
-    resetNowTimer()
+    resetUpdateNowTimer()
   }
 
   function changeDuration(ms: number): void {
@@ -132,6 +162,16 @@ export function useDateRange() {
 
     duration.value = ms
     updateNow(true)
+  }
+
+  function contains(dt: Date | string): boolean {
+    if (!isValid.value) {
+      return false
+    }
+    if (typeof dt === 'string') {
+      dt = new Date(dt)
+    }
+    return dt >= gte.value! && dt < lt.value!
   }
 
   function changeAround(dt: Date | string, ms = 0) {
@@ -155,7 +195,7 @@ export function useDateRange() {
   }
 
   function changeLT(dt: Date) {
-    resetNowTimer()
+    resetUpdateNowTimer()
     lt.value = dt
   }
 
@@ -170,7 +210,7 @@ export function useDateRange() {
   })
 
   function prevPeriod() {
-    resetNowTimer()
+    resetUpdateNowTimer()
     lt.value = subMilliseconds(lt.value!, duration.value)
   }
 
@@ -190,86 +230,113 @@ export function useDateRange() {
 
   //------------------------------------------------------------------------------
 
-  function queryParams() {
+  function syncQuery(conf: ParamsConfig = {}) {
+    useRouteQuery().sync({
+      fromQuery(params) {
+        parseQueryParams(params, conf)
+      },
+      toQuery() {
+        return queryParams(conf)
+      },
+    })
+  }
+
+  function queryParams(conf: ParamsConfig = {}) {
+    const prefix = conf.prefix ?? defaultPrefix
+
     if (!isValid.value) {
       return {}
     }
-    if (isNow.value) {
-      return {
-        ['time_dur']: duration.value / second,
-      }
-    }
 
     return {
-      ['time_gte']: formatUTC(gte.value!),
-      ['time_dur']: duration.value / second,
+      [prefix + 'gte']: formatUTC(gte.value!),
+      [prefix + 'dur']: duration.value / second,
     }
   }
 
-  function parseQueryParams(params: Record<string, any>) {
-    const dur = params['time_dur']
-    const gte = params['time_gte']
+  function parseQueryParams(params: Record<string, any>, conf: ParamsConfig = {}) {
+    if (!Object.keys(params)) {
+      return
+    }
+
+    const prefix = conf.prefix ?? defaultPrefix
+
+    const within = params[prefix + 'within']
+    if (typeof within === 'string') {
+      const dt = parseUTC(within)
+      changeAround(dt, hour)
+      return
+    }
+
+    const dur = params[prefix + 'dur']
+    const gteParam = params[prefix + 'gte']
     if (!dur) {
       return
     }
 
     duration.value = parseInt(dur, 10) * second
 
-    if (typeof gte === 'string') {
-      changeGTE(parseUTC(gte))
-    } else {
-      updateNow(true)
+    if (typeof gteParam === 'string') {
+      const gte = parseUTC(gteParam)
+      const lt = addMilliseconds(gte, duration.value)
+      const ms = differenceInMilliseconds(lt, new Date())
+      if (Math.abs(ms) > UPDATE_NOW_TIMER_DELAY) {
+        changeLT(lt)
+        return
+      }
     }
+
+    updateNow(true)
   }
 
-  function axiosParams() {
+  function axiosParams(conf: ParamsConfig = {}) {
+    const prefix = conf.prefix ?? defaultPrefix
+
     if (!isValid.value) {
+      if (conf.optional) {
+        return {}
+      }
       return {
-        time_gte: undefined,
-        time_lt: undefined,
+        [prefix + 'gte']: undefined,
+        [prefix + 'lt']: undefined,
       }
     }
 
     let gteVal = gte.value!
     let ltVal = lt.value!
 
+    if (conf.offset) {
+      gteVal = addMilliseconds(gteVal, conf.offset)
+      ltVal = addMilliseconds(ltVal, conf.offset)
+    }
+
     const params: Record<string, any> = {
       ...forceReloadParams.value,
-      time_gte: gteVal.toISOString(),
-      time_lt: ltVal.toISOString(),
+      [prefix + 'gte']: gteVal.toISOString(),
+      [prefix + 'lt']: ltVal.toISOString(),
     }
 
     return params
   }
 
-  function lokiParams() {
-    if (!isValid.value) {
-      return {
-        start: undefined,
-        end: undefined,
-      }
-    }
+  function roundUp() {
+    _roundUp = true
+    updateNow()
 
-    return {
-      ...forceReloadParams.value,
-      start: gte.value!.getTime() * 1e6,
-      end: lt.value!.getTime() * 1e6,
-    }
-  }
-
-  function syncQuery() {
-    useRouteQuery().sync({
-      fromQuery(q) {
-        parseQueryParams(q)
-      },
-      toQuery() {
-        return queryParams()
-      },
+    onBeforeUnmount(() => {
+      _roundUp = false
+      updateNow()
     })
   }
 
+  function toArray() {
+    if (isValid.value) {
+      return [gte.value, lt.value]
+    }
+    return []
+  }
+
   return proxyRefs({
-    roundUp,
     gte,
     lt,
 
@@ -286,6 +353,7 @@ export function useDateRange() {
     reset,
     change,
     changeDuration,
+    contains,
     changeAround,
 
     changeGTE,
@@ -297,8 +365,11 @@ export function useDateRange() {
     nextPeriod,
 
     queryParams,
-    axiosParams,
-    lokiParams,
+    parseQueryParams,
     syncQuery,
+    roundUp,
+
+    axiosParams,
+    toArray,
   })
 }

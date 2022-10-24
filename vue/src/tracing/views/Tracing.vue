@@ -127,6 +127,7 @@ export default defineComponent({
   setup(props) {
     useTitle('Explore spans')
     props.dateRange.syncQuery()
+    props.dateRange.roundUp()
 
     const route = useRoute()
     const user = useUser()

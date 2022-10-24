@@ -118,7 +118,6 @@ export default defineComponent({
 
   setup(props) {
     props.dateRange.syncQuery()
-    props.dateRange.roundUp = false
 
     const uql = useUql({ query: 'group by all' })
     const metricAliases = shallowRef<MetricAlias[]>([])

@@ -1,4 +1,6 @@
-module.exports = {
+const { defineConfig } = require('@vue/cli-service')
+
+module.exports = defineConfig({
   transpileDependencies: ['vuetify'],
   devServer: {
     port: 19876,
@@ -8,17 +10,16 @@ module.exports = {
         target: 'http://localhost:14318',
         changeOrigin: true,
       },
-      '^/\\d+/loki': {
-        target: 'http://localhost:14318',
-        changeOrigin: true,
-      },
     },
   },
+  configureWebpack: (config) => {
+    config.resolve.fallback = {
+      querystring: require.resolve('querystring-es3'),
+    }
+  },
   chainWebpack: (config) => {
-    config.resolve.fallback = { querystring: require.resolve('querystring-es3') }
-
     config.plugin('html').tap((args) => {
-      args[0].title = 'Distributed Tracing using OpenTelemetry and ClickHouse'
+      args[0].title = 'Uptrace: Open Source APM'
       return args
     })
   },
@@ -32,4 +33,4 @@ module.exports = {
       },
     },
   },
-}
+})
