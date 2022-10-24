@@ -55,12 +55,12 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 	switch {
 	case f.System == "":
 		// nothing
+	case f.System == SystemAll:
+		// nothing
 	case f.System == SystemAllEvents:
 		q = q.Where("?", f.prefix("is_event"))
 	case f.System == SystemAllSpans:
 		q = q.Where("NOT ?", f.prefix("is_event"))
-	case f.System == SystemAll:
-		q = q.Where("? != ?", f.prefix("system"), SystemInternalSpan)
 	case strings.HasSuffix(f.System, ":all"):
 		system := strings.TrimSuffix(f.System, ":all")
 		q = q.Where("startsWith(?, ?)", f.prefix("system"), system)

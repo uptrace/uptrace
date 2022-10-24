@@ -151,7 +151,7 @@ func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*bunconf.Projec
 		return nil, err
 	}
 
-	project, err := SelectProjectByID(ctx, app, projectID)
+	project, err := SelectProject(ctx, app, projectID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrUnauthorized

@@ -147,7 +147,7 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 	seenErrors := make(map[uint64]bool) // basic deduplication
 	var errors []*Span
 
-	spanCtx := newSpanContext(ctx)
+	spanCtx := newSpanContext(ctx, s.App)
 	for _, span := range spans {
 		initSpan(spanCtx, span)
 		spanCounter.Add(
@@ -168,7 +168,9 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 		var logCount int
 
 		for _, eventSpan := range span.Events {
-			initSpanEvent(spanCtx, eventSpan, span)
+			initEventFromHostSpan(eventSpan, span)
+			initEvent(spanCtx, eventSpan)
+
 			spanCounter.Add(
 				ctx,
 				1,

@@ -40,7 +40,7 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 			return err
 		}
 
-		project, err := SelectProjectByID(ctx, app, projectID)
+		project, err := SelectProject(ctx, app, projectID)
 		if err != nil {
 			return err
 		}
