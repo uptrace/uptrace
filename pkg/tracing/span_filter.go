@@ -40,6 +40,7 @@ func DecodeSpanFilter(app *bunapp.App, req bunrouter.Request) (*SpanFilter, erro
 
 	f.ProjectID = org.ProjectFromContext(req.Context()).ID
 	f.parts = upql.Parse(f.Query)
+	f.prefixEnabled = true
 
 	return f, nil
 }
@@ -223,14 +224,14 @@ func appendUPQLColumn(b []byte, name upql.Name, minutes float64) []byte {
 
 	switch name.String() {
 	case attrkey.SpanCount:
-		return chschema.AppendQuery(b, "sum(count)")
+		return chschema.AppendQuery(b, "sum(_count)")
 	case attrkey.SpanCountPerMin:
-		return chschema.AppendQuery(b, "sum(count) / ?", minutes)
+		return chschema.AppendQuery(b, "sum(_count) / ?", minutes)
 	case attrkey.SpanErrorCount:
-		return chschema.AppendQuery(b, "sumIf(count, status_code = 'error')", minutes)
+		return chschema.AppendQuery(b, "sumIf(_count, _status_code = 'error')", minutes)
 	case attrkey.SpanErrorPct:
 		return chschema.AppendQuery(
-			b, "sumIf(count, status_code = 'error') / sum(count)", minutes)
+			b, "sumIf(_count, _status_code = 'error') / sum(_count)", minutes)
 	default:
 		if name.FuncName != "" {
 			b = append(b, name.FuncName...)
@@ -253,13 +254,16 @@ func CHAttrExpr(key string) ch.Safe {
 
 func AppendCHAttrExpr(b []byte, key string) []byte {
 	if strings.HasPrefix(key, "span.") {
-		return chschema.AppendIdent(b, strings.TrimPrefix(key, "span."))
+		key = "_" + strings.TrimPrefix(key, "span.")
+		return chschema.AppendIdent(b, key)
 	}
 
 	if _, ok := indexedAttrSet[key]; ok {
+		key = "_" + strings.ReplaceAll(key, ".", "_")
 		return chschema.AppendIdent(b, key)
 	}
-	return chschema.AppendQuery(b, "attr_values[indexOf(attr_keys, ?)]", key)
+
+	return chschema.AppendQuery(b, "_attr_values[indexOf(_attr_keys, ?)]", key)
 }
 
 func upqlWhere(q *ch.SelectQuery, ast *upql.Where, minutes float64) *ch.SelectQuery {
@@ -306,7 +310,7 @@ func upqlWhereCond(cond upql.Cond, minutes float64) []byte {
 		if cond.Op == upql.DoesNotExistOp {
 			b = append(b, "NOT "...)
 		}
-		b = chschema.AppendQuery(b, "has(all_keys, ?)", cond.Left.AttrKey)
+		b = chschema.AppendQuery(b, "has(_all_keys, ?)", cond.Left.AttrKey)
 		return b
 	case upql.ContainsOp, upql.DoesNotContainOp:
 		if cond.Op == upql.DoesNotContainOp {

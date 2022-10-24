@@ -13,33 +13,32 @@ type SpanIndex struct {
 
 	*Span
 
-	Count float32
+	Count           float32 `ch:"_count"`
+	LinkCount       uint8   `ch:"_link_count"`
+	EventCount      uint8   `ch:"_event_count"`
+	EventErrorCount uint8   `ch:"_event_error_count"`
+	EventLogCount   uint8   `ch:"_event_log_count"`
 
-	LinkCount       uint8
-	EventCount      uint8
-	EventErrorCount uint8
-	EventLogCount   uint8
+	AllKeys    []string `ch:"_all_keys,lc"`
+	AttrKeys   []string `ch:"_attr_keys,lc"`
+	AttrValues []string `ch:"_attr_values,lc"`
 
-	AllKeys    []string `ch:",lc"`
-	AttrKeys   []string `ch:",lc"`
-	AttrValues []string `ch:",lc"`
+	DeploymentEnvironment string `ch:"_deployment_environment,lc"`
 
-	DeploymentEnvironment string `ch:"deployment.environment,lc"`
+	Service     string `ch:"_service,lc"`
+	ServiceName string `ch:"_service_name,lc"`
+	HostName    string `ch:"_host_name,lc"`
 
-	Service     string `ch:",lc"`
-	ServiceName string `ch:"service.name,lc"`
-	HostName    string `ch:"host.name,lc"`
+	DBSystem    string `ch:"_db_system,lc"`
+	DBStatement string `ch:"_db_statement"`
+	DBOperation string `ch:"_db_operation,lc"`
+	DBSqlTable  string `ch:"_db_sql_table,lc"`
 
-	DBSystem    string `ch:"db.system,lc"`
-	DBStatement string `ch:"db.statement"`
-	DBOperation string `ch:"db.operation,lc"`
-	DBSqlTable  string `ch:"db.sql.table,lc"`
+	LogSeverity string `ch:"_log_severity,lc"`
+	LogMessage  string `ch:"_log_message"`
 
-	LogSeverity string `ch:"log.severity,lc"`
-	LogMessage  string `ch:"log.message"`
-
-	ExceptionType    string `ch:"exception.type,lc"`
-	ExceptionMessage string `ch:"exception.message"`
+	ExceptionType    string `ch:"_exception_type,lc"`
+	ExceptionMessage string `ch:"_exception_message"`
 }
 
 func initSpanIndex(index *SpanIndex, span *Span) {
