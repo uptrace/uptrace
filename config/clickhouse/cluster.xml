@@ -5,7 +5,7 @@
 
   <macros>
     <cluster>cluster1</cluster>
-    <shard>shard1</shard>
+    <shard from_env="SHARD" />
     <replica from_env="REPLICA" />
   </macros>
 
@@ -16,13 +16,22 @@
   <remote_servers>
     <uptrace1>
       <shard>
-        <internal_replication>true</internal_replication>
         <replica>
           <host>clickhouse-1</host>
           <port>9000</port>
         </replica>
         <replica>
           <host>clickhouse-2</host>
+          <port>9000</port>
+        </replica>
+      </shard>
+      <shard>
+        <replica>
+          <host>clickhouse-3</host>
+          <port>9000</port>
+        </replica>
+        <replica>
+          <host>clickhouse-4</host>
           <port>9000</port>
         </replica>
       </shard>
@@ -36,6 +45,14 @@
     </node>
     <node>
       <host>clickhouse-2</host>
+      <port>2181</port>
+    </node>
+    <node>
+      <host>clickhouse-3</host>
+      <port>2181</port>
+    </node>
+    <node>
+      <host>clickhouse-4</host>
       <port>2181</port>
     </node>
   </zookeeper>

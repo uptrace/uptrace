@@ -60,10 +60,11 @@ import { isEqual } from 'lodash-es'
 import { defineComponent, proxyRefs, shallowRef, computed, Ref, PropType } from 'vue'
 
 // Composables
+import { useRouter } from '@/use/router'
 import { UseUql } from '@/use/uql'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { xkey, xsys } from '@/models/otelattr'
 import { quote } from '@/util/string'
 
 export default defineComponent({
@@ -77,6 +78,7 @@ export default defineComponent({
   },
 
   setup(props) {
+    const { router, route } = useRouter()
     const menu = shallowRef(false)
 
     const rules = [
@@ -112,18 +114,6 @@ export default defineComponent({
       xkey.dbStatement,
     ]
 
-    const isEventAttrKey = computed(() => {
-      return attrKeys.value.some((attrKey) => {
-        const candidates = [
-          xkey.exceptionType,
-          xkey.exceptionMessage,
-          xkey.logSeverity,
-          xkey.logMessage,
-        ]
-        return candidates.indexOf(attrKey as xkey) >= 0
-      })
-    })
-
     function addFilter() {
       if (!isValid.value) {
         menu.value = false
@@ -135,10 +125,13 @@ export default defineComponent({
 
       const editor = props.uql.createEditor()
       editor.add(`where {${key}} contains ${quotedValue}`)
-      if (isEventAttrKey.value) {
-        editor.add(`where ${xkey.spanIsEvent}`)
-      }
-      props.uql.commitEdits(editor)
+      router.push({
+        query: {
+          ...route.value.query,
+          system: xsys.all, // TODO: pick a better system
+          query: editor.toString(),
+        },
+      })
 
       menu.value = false
     }

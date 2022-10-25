@@ -70,8 +70,8 @@ export default defineComponent({
 
   setup(props) {
     const { route } = useRouter()
-    const system = xsys.all
-    const query = exploreAttr(xkey.spanGroupId) + ' | where not span.is_event'
+    const system = xsys.allSpans
+    const query = exploreAttr(xkey.spanGroupId)
 
     const activeColumns = shallowRef<string[]>([])
 

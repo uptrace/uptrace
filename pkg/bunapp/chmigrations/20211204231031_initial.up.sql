@@ -8,7 +8,6 @@ CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
   _parent_id UInt64 Codec(?CODEC),
   _name LowCardinality(String) Codec(?CODEC),
   _event_name String Codec(?CODEC),
-  _is_event UInt8 ALIAS _event_name != '',
   _kind LowCardinality(String) Codec(?CODEC),
   _time DateTime Codec(Delta, ?CODEC),
   _duration Int64 Codec(Delta, ?CODEC),

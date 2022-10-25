@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <clickhouse>
-  <listen_host>::</listen_host>
+  <listen_host>0.0.0.0</listen_host>
   <keeper_server>
     <tcp_port>2181</tcp_port>
     <server_id from_env="KEEPER_ID" />
@@ -22,6 +22,18 @@
       <server>
         <id>2</id>
         <hostname>clickhouse-2</hostname>
+        <port>9234</port>
+      </server>
+
+      <server>
+        <id>3</id>
+        <hostname>clickhouse-3</hostname>
+        <port>9234</port>
+      </server>
+
+      <server>
+        <id>4</id>
+        <hostname>clickhouse-4</hostname>
         <port>9234</port>
       </server>
     </raft_configuration>
