@@ -157,7 +157,7 @@ SELECT
 
   sum(count) AS count,
   sum(error_count) AS error_count
-FROM span_system_minutes
+FROM ?DB.span_system_minutes
 GROUP BY project_id, toStartOfHour(time), deployment_environment, service, system
 SETTINGS prefer_column_name_to_alias = 1
 

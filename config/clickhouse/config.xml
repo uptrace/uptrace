@@ -11,15 +11,6 @@
     </server>
   </openSSL>
 
-  <macros>
-    <cluster>cluster1</cluster>
-    <shard>shard1</shard>
-    <replica from_env="REPLICA" />
-  </macros>
-
-  <default_replica_path>/clickhouse/tables/{uuid}/{cluster}-{shard}</default_replica_path>
-  <default_replica_name>{replica}</default_replica_name>
-
   <storage_configuration>
     <disks>
       <default>
@@ -47,16 +38,4 @@
       </tiered>
     </policies>
   </storage_configuration>
-
-  <remote_servers>
-    <uptrace1>
-      <shard>
-        <internal_replication>true</internal_replication>
-        <replica>
-          <host>clickhouse</host>
-          <port>9000</port>
-        </replica>
-      </shard>
-    </uptrace1>
-  </remote_servers>
 </clickhouse>

@@ -7,7 +7,7 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 - Added 2 quick filters by `deployment.environment` and `service.name` attributes. More to come in
   the next release.
 
-- Tweaked spans grouping and added 2 releated options:
+- Tweaked spans grouping and added 2 related options:
 
   - `project.group_by_env` - group spans by `deployment.environment` attribute.
   - `project.group_funcs_by_service` - group funcs spans by `service.name` attribute.
