@@ -163,7 +163,7 @@ func (h *SystemHandler) Overview(w http.ResponseWriter, req bunrouter.Request) e
 	var groups []map[string]any
 
 	switch attrKey {
-	case attrkey.ServiceName:
+	case attrkey.Service:
 		groups, err = h.selectServicesGroups(ctx, f)
 		if err != nil {
 			return err
@@ -284,7 +284,7 @@ func (h *SystemHandler) selectHosts(
 	isEvent := isEventSystem(f.System)
 
 	subq := h.CH.NewSelect().
-		ColumnExpr("host AS attr").
+		ColumnExpr("host_name AS attr").
 		ColumnExpr("sum(count) AS stats__count").
 		ColumnExpr("sum(count) / ? AS stats__rate", groupPeriod.Minutes()).
 		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_",

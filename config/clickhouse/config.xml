@@ -24,7 +24,7 @@
 
     <policies>
       <tiered>
-        <move_factor>0.05</move_factor>
+        <move_factor>0.1</move_factor>
 
         <volumes>
           <default>
