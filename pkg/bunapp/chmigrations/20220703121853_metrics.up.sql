@@ -22,7 +22,7 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE TABLE ?DB.measure_minutes_buffer AS ?DB.measure_minutes
+CREATE TABLE ?DB.measure_minutes_buffer ?ON_CLUSTER AS ?DB.measure_minutes
 ENGINE = Buffer(?DB, measure_minutes, 8, 10, 30, 10000, 1000000, 10000000, 100000000)
 
 --migration:split

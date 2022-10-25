@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  clickhouse:
+  clickhouse-1:
     image: clickhouse/clickhouse-server:22.7
     restart: on-failure
     environment:
@@ -14,11 +14,33 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - ch_data:/var/lib/clickhouse
+      - ch1_data:/var/lib/clickhouse
       - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/config.xml
+      - ./config/clickhouse/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml
+      - ./config/clickhouse/keeper.xml:/etc/clickhouse-server/config.d/keeper.xml
+      - ./config/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml
     ports:
       - '8123:8123'
       - '9000:9000'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+  clickhouse-2:
+    image: clickhouse/clickhouse-server:22.7
+    restart: on-failure
+    hostname: clickhouse-2
+    environment:
+      CLICKHOUSE_DB: uptrace
+      REPLICA: replica2
+      KEEPER_ID: 2
+    volumes:
+      - ch2_data:/var/lib/clickhouse
+      - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/config.xml
+      - ./config/clickhouse/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml
+      - ./config/clickhouse/keeper.xml:/etc/clickhouse-server/config.d/keeper.xml
+      - ./config/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml
+    ports:
+      - '9001:9000'
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
@@ -75,13 +97,11 @@ services:
   #     - '5432:5432'
 
 volumes:
-  ch_data:
+  ch1_data:
+    driver: local
+  ch2_data:
     driver: local
   alertmanager_data:
-    driver: local
-  redislabs_data_1:
-    driver: local
-  redislabs_data_2:
     driver: local
   pg_data:
     driver: local
