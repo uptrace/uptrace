@@ -31,7 +31,7 @@
 import { defineComponent, shallowRef, watch, computed, PropType } from 'vue'
 
 // Composables
-import { UseSystems } from '@/use/systems'
+import { UseSystems } from '@/tracing/use-systems'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseEnvs, UseServices } from '@/tracing/use-sticky-filters'

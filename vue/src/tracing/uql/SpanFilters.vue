@@ -27,7 +27,7 @@ import { defineComponent, PropType } from 'vue'
 
 // Composables
 import { AxiosParams } from '@/use/axios'
-import { UseSystems } from '@/use/systems'
+import { UseSystems } from '@/tracing/use-systems'
 import { UseUql } from '@/use/uql'
 
 // Components

@@ -22,8 +22,9 @@ import { defineComponent, computed, reactive, watch, PropType } from 'vue'
 
 // Composables
 import { UseUql } from '@/use/uql'
-import { defaultMetricColumn, Metric, MetricAlias } from '@/metrics/use-metrics'
+import { defaultMetricColumn } from '@/metrics/use-metrics'
 import { hasMetricAlias } from '@/metrics/use-query'
+import { Metric, MetricAlias } from '@/metrics/types'
 
 // Components
 import MetricPicker from '@/metrics/MetricPicker.vue'
@@ -78,7 +79,7 @@ export default defineComponent({
       },
     )
 
-    function applyMetric(metric: MetricAlias, newMetric: string) {
+    function applyMetric(metric: MetricAlias, newMetric: MetricAlias) {
       if (hasMetricAlias(props.uql.query, metric.alias)) {
         updateMetricAlias(metric.alias, newMetric.alias)
       } else {

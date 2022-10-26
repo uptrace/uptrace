@@ -32,8 +32,7 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { ChartType } from '@/metrics/use-dashboards'
-import { MetricColumn } from '@/metrics/use-metrics'
-import { Timeseries } from '@/metrics/use-query'
+import { MetricColumn, Timeseries } from '@/metrics/types'
 
 // Components
 import EChart, { EChartProps } from '@/components/EChart.vue'

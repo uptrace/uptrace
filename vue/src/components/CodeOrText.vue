@@ -79,7 +79,7 @@ function parseJSON(s: string): any {
   }
 }
 
-export function isJson(value: unknown): value is string {
+export function isJson(value: string): boolean {
   if (value.length < 2) {
     return false
   }

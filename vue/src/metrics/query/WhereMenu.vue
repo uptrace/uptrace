@@ -42,7 +42,7 @@ import { defineComponent, shallowRef, PropType } from 'vue'
 import { AxiosParams } from '@/use/axios'
 import { Suggestion } from '@/use/suggestions'
 import { UseUql } from '@/use/uql'
-import { Metric } from '@/metrics/use-metrics'
+import { Metric } from '@/metrics/types'
 
 // Components
 import WhereSuggestions from '@/metrics/query/WhereSuggestions.vue'

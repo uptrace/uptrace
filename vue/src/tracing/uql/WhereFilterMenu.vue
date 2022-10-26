@@ -143,7 +143,7 @@ import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { AxiosParams } from '@/use/axios'
-import { UseSystems } from '@/use/systems'
+import { UseSystems } from '@/tracing/use-systems'
 import { useSuggestions, Suggestion } from '@/use/suggestions'
 import { UseUql } from '@/use/uql'
 

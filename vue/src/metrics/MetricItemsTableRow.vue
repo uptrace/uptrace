@@ -10,6 +10,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Compsables
 import { useRouter } from '@/use/router'
 import { useTimeseries } from '@/metrics/use-query'
+import { Timeseries } from '@/metrics/types'
 
 export default defineComponent({
   name: 'MetricItemsTableRow',
@@ -46,7 +47,7 @@ export default defineComponent({
     })
 
     const metrics = computed(() => {
-      const metrics = {}
+      const metrics: Record<string, Timeseries> = {}
       for (let ts of timeseries.items) {
         metrics[ts.metric] = ts
       }

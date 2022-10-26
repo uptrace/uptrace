@@ -1,10 +1,12 @@
+import { Unit } from '@/util/fmt'
+
 export interface Metric {
   id: string
   projectId: number
 
   name: string
   description: string
-  unit: string
+  unit: Unit
   instrument: Instrument
 
   createdAt: string
@@ -21,6 +23,7 @@ export interface MetricAlias {
 }
 
 export enum Instrument {
+  Invalid = 'invalid',
   Gauge = 'gauge',
   Additive = 'additive',
   Counter = 'counter',
@@ -28,13 +31,13 @@ export enum Instrument {
 }
 
 export interface MetricColumn {
-  unit: string
+  unit: Unit
 }
 
 export interface Timeseries {
   metric: string
   name: string
-  unit: string
+  unit: Unit
   attrs: Record<string, string>
   value: number[]
   time: string[]
@@ -48,6 +51,6 @@ export interface Timeseries {
 
 export interface ColumnInfo {
   name: string
-  unit: string
+  unit: Unit
   isGroup?: boolean
 }

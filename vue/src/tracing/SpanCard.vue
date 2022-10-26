@@ -140,7 +140,6 @@ import { spanName, eventOrSpanName, Span } from '@/models/span'
 interface Props {
   dateRange: UseDateRange
   span: Span
-  groupListRoute: string
 }
 
 export default defineComponent({

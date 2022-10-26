@@ -88,7 +88,7 @@ import { defineComponent, shallowRef, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
-import { UseTrace, TraceSpan } from '@/use/trace'
+import { UseTrace, TraceSpan } from '@/tracing/use-trace'
 
 // Components
 import SpanCard from '@/tracing/SpanCard.vue'

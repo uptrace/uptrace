@@ -143,7 +143,7 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseOrder } from '@/use/order'
-import { UseSystems } from '@/use/systems'
+import { UseSystems } from '@/tracing/use-systems'
 import { ExploreItem, ColumnInfo } from '@/tracing/use-span-explore'
 import { createUqlEditor, UseUql } from '@/use/uql'
 

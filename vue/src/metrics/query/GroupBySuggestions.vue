@@ -16,7 +16,7 @@ import { defineComponent, PropType } from 'vue'
 import { useRouter } from '@/use/router'
 import { AxiosParams } from '@/use/axios'
 import { useSuggestions } from '@/use/suggestions'
-import { Metric } from '@/metrics/use-metrics'
+import { Metric } from '@/metrics/types'
 
 // Components
 import SearchableList from '@/components/SearchableList.vue'

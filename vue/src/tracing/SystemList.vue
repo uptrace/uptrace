@@ -53,7 +53,7 @@ import { defineComponent, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { SystemTreeNode } from '@/tracing/system/use-systems'
+import { SystemTreeNode } from '@/tracing/use-systems'
 
 export default defineComponent({
   name: 'SystemList',

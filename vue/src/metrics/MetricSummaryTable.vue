@@ -29,7 +29,7 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Utilities
-import { Timeseries } from '@/metrics/use-query'
+import { Timeseries } from '@/metrics/types'
 
 export default defineComponent({
   name: 'MetricSummaryTable',

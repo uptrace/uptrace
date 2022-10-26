@@ -35,7 +35,7 @@ import { defineComponent, computed, PropType } from 'vue'
 import { useRoute } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseUql } from '@/use/uql'
-import { ActiveMetric } from '@/metrics/use-metrics'
+import { ActiveMetric } from '@/metrics/types'
 import { useDashAttrs } from '@/metrics/use-dashboards'
 
 // Components

@@ -57,7 +57,7 @@ import colors from 'vuetify/lib/util/colors'
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
-import { System } from '@/use/systems'
+import { System } from '@/tracing/use-systems'
 
 // Components
 import SystemQuickMetricCard from '@/tracing/overview/SystemQuickMetricCard.vue'
