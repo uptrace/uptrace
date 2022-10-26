@@ -43,7 +43,7 @@ import { ColoredSystem } from '@/models/colored-system'
 import { percent } from '@/util/fmt'
 
 export default defineComponent({
-  name: 'SystemBarChart',
+  name: 'SpanSystemBarChart',
 
   props: {
     loading: {

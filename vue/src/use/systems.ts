@@ -148,14 +148,6 @@ function addDummySystems(systems: System[]): System[] {
 
   systems = orderBy(systems, 'system')
 
-  const internalIndex = systems.findIndex((sys) => sys.system === xsys.internal)
-  if (internalIndex >= 0) {
-    const internal = systems[internalIndex]
-    internal.dummy = true
-    systems.splice(internalIndex, 1)
-    systems.unshift(internal)
-  }
-
   return systems
 }
 
