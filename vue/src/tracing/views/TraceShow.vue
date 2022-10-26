@@ -79,7 +79,7 @@
 
       <v-row>
         <v-col>
-          <SystemBarChart :systems="trace.coloredSystems" />
+          <SpanSystemBarChart :systems="trace.coloredSystems" />
         </v-col>
       </v-row>
 
@@ -104,7 +104,7 @@ import { createUqlEditor } from '@/use/uql'
 // Components
 import FixedDateRangePicker from '@/components/date/FixedDateRangePicker.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
-import SystemBarChart from '@/components/SystemBarChart.vue'
+import SpanSystemBarChart from '@/components/SpanSystemBarChart.vue'
 import TraceTabs from '@/tracing/TraceTabs.vue'
 import TraceError from '@/tracing/TraceError.vue'
 
@@ -117,7 +117,7 @@ export default defineComponent({
   components: {
     FixedDateRangePicker,
     LoadPctileChart,
-    SystemBarChart,
+    SpanSystemBarChart,
     TraceTabs,
     TraceError,
   },

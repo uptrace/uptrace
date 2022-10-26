@@ -61,16 +61,14 @@ export enum xsys {
   all = 'all',
   allEvents = 'all:events',
   allSpans = 'all:spans',
-  internal = 'internal',
 
-  error = 'error',
-  exception = 'exception',
+  funcs = 'funcs',
+  exceptions = 'exceptions',
   logWarn = 'log:warn',
   logError = 'log:error',
   logFatal = 'log:fatal',
   logPanic = 'log:panic',
-
-  event = 'event',
+  otherEvents = 'other-events',
 
   logPrefix = 'log:',
   messagePrefix = 'message:',
@@ -87,7 +85,7 @@ export function isEventSystem(system: string | undefined): boolean {
   }
   return (
     isErrorSystem(system) ||
-    system === xsys.event ||
+    system === xsys.otherEvents ||
     system === xsys.allEvents ||
     system.startsWith(xsys.logPrefix) ||
     system.startsWith(xsys.messagePrefix)
@@ -99,8 +97,7 @@ export function isErrorSystem(system: string | undefined): boolean {
     return false
   }
   switch (system) {
-    case xsys.error:
-    case xsys.exception:
+    case xsys.exceptions:
     case xsys.logError:
     case xsys.logFatal:
     case xsys.logPanic:
