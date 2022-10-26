@@ -2,7 +2,7 @@
   <v-menu v-model="menu" offset-y>
     <template #activator="{ on }">
       <v-btn style="text-transform: none" v-bind="attrs" v-on="on">
-        <span class="px-4">{{ activeItem.text || 'Choose system' }}</span>
+        <span>{{ systems.activeSystem || 'Choose system' }}</span>
         <v-icon right size="24">mdi-menu-down</v-icon>
       </v-btn>
     </template>
