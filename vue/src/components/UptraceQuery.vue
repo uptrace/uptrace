@@ -99,7 +99,7 @@
 import { defineComponent, shallowRef, computed, watch, proxyRefs, PropType } from 'vue'
 
 // Composables
-import { createPart, Part, UseUql } from '@/use/uql'
+import { createPart, QueryPart, UseUql } from '@/use/uql'
 
 // Components
 import UptraceQueryChip from '@/components/UptraceQueryChip.vue'
@@ -161,12 +161,12 @@ function usePartEditor(uql: UseUql) {
     startEditing(uql.parts.length - 1, part)
   }
 
-  function startEditing(i: number, part: Part) {
+  function startEditing(i: number, part: QueryPart) {
     partIndex.value = i
     partQuery.value = part.query
   }
 
-  function applyEdits(part: Part) {
+  function applyEdits(part: QueryPart) {
     if (partQuery.value !== part.query) {
       part.error = ''
     }

@@ -10,7 +10,7 @@ import { defineComponent, computed, PropType } from 'vue'
 import EChart, { EChartProps } from '@/components/EChart.vue'
 
 // Utilities
-import { unitFromName } from '@/util/fmt'
+import { unitFromName, Unit } from '@/util/fmt'
 import { baseChartConfig, addChartTooltip, createTooltipFormatter } from '@/util/chart'
 
 export default defineComponent({

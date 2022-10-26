@@ -140,9 +140,10 @@ import { defineComponent, shallowRef, reactive, computed, watch, proxyRefs, Prop
 // Composables
 import { UseDateRange } from '@/use/date-range'
 import { useUql } from '@/use/uql'
-import { useActiveMetrics, UseMetrics, MetricColumn } from '@/metrics/use-metrics'
+import { useActiveMetrics, UseMetrics } from '@/metrics/use-metrics'
 import { useDashManager, UseDashboard } from '@/metrics/use-dashboards'
 import { UseTableQuery } from '@/metrics/use-query'
+import { MetricColumn } from '@/metrics/types'
 
 // Components
 import UnitPicker from '@/components/UnitPicker.vue'
@@ -194,7 +195,7 @@ export default defineComponent({
     )
 
     const columnMap = computed((): Record<string, MetricColumn> => {
-      const columnMap = {}
+      const columnMap: Record<string, MetricColumn> = {}
 
       for (let col of props.tableQuery.columns) {
         if (!col.isGroup) {

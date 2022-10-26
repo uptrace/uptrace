@@ -60,8 +60,8 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { UseOrder } from '@/use/order'
-import { MetricColumn } from '@/metrics/use-metrics'
-import { ColumnInfo, TableItem } from '@/metrics/use-query'
+import { TableItem } from '@/metrics/use-query'
+import { MetricColumn, ColumnInfo } from '@/metrics/types'
 
 // Components
 import ThOrder from '@/components/ThOrder.vue'

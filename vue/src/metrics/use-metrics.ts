@@ -1,4 +1,4 @@
-import { computed, proxyRefs, ComputedRef } from 'vue'
+import { computed, proxyRefs, ShallowRef, ComputedRef } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'
@@ -60,7 +60,7 @@ export function metricShortName(name: string): string {
 
 export function useActiveMetrics(
   metrics: ComputedRef<Metric[]>,
-  metricAliases: ComputedRef<MetricAlias[]>,
+  metricAliases: ShallowRef<MetricAlias[]>,
 ) {
   return computed((): ActiveMetric[] => {
     const active: ActiveMetric[] = []

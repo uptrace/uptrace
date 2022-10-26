@@ -22,7 +22,7 @@
 import { defineComponent, ref, PropType } from 'vue'
 
 // Composables
-import { UseTrace } from '@/use/trace'
+import { UseTrace } from '@/tracing/use-trace'
 import { UseDateRange } from '@/use/date-range'
 
 // Components

@@ -18,7 +18,7 @@ import { defineComponent, PropType } from 'vue'
 import MetricSummaryTable from '@/metrics/MetricSummaryTable.vue'
 
 // Utilities
-import { Timeseries } from '@/metrics/use-query'
+import { Timeseries } from '@/metrics/types'
 
 export default defineComponent({
   name: 'MetricSummary',

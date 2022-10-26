@@ -24,7 +24,7 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
-import { TraceSpan, UseTrace } from '@/use/trace'
+import { TraceSpan, UseTrace } from '@/tracing/use-trace'
 
 // Utilities
 import { durationFixed } from '@/util/fmt/duration'

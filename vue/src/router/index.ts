@@ -7,7 +7,7 @@ import { xkey, xsys, isEventSystem } from '@/models/otelattr'
 // Composables
 import { useUser } from '@/use/org'
 import { exploreAttr } from '@/use/uql'
-import { System } from '@/use/systems'
+import { System } from '@/tracing/use-systems'
 
 import Overview from '@/tracing/views/Overview.vue'
 import SystemOverview from '@/tracing/views/SystemOverview.vue'

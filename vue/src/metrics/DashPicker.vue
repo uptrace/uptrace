@@ -24,7 +24,7 @@ import { defineComponent, shallowRef, watchEffect, PropType } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'
-import { UseDashboards } from '@/metrics/use-dashboards'
+import { UseDashboards, Dashboard } from '@/metrics/use-dashboards'
 
 // Components
 import DashTree from '@/metrics/DashTree.vue'

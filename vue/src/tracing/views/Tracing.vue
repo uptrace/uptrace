@@ -75,7 +75,7 @@ import { useTitle } from '@vueuse/core'
 import { UseDateRange } from '@/use/date-range'
 import { useEnvs, useServices } from '@/tracing/use-sticky-filters'
 import { useUser } from '@/use/org'
-import { useSystems, SystemsFilter } from '@/use/systems'
+import { useSystems, SystemsFilter } from '@/tracing/use-systems'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'

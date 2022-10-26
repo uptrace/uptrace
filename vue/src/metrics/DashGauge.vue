@@ -19,6 +19,7 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
+import { UseDateRange } from '@/use/date-range'
 import { DashGauge } from '@/metrics/use-dashboards'
 import { useGaugeQuery } from '@/metrics/use-query'
 
@@ -46,7 +47,7 @@ export default defineComponent({
   setup(props) {
     const gaugeQuery = useGaugeQuery(() => {
       if (!props.gauge.metrics.length) {
-        return
+        return { _: undefined }
       }
 
       return {

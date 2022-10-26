@@ -22,7 +22,7 @@ import { defineComponent, shallowRef, computed, watchEffect, PropType } from 'vu
 // Composables
 import { useRouteQuery } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { buildSystemsTree, UseSystems, System } from '@/use/systems'
+import { buildSystemsTree, UseSystems, System } from '@/tracing/use-systems'
 
 // Components
 import SystemList from '@/tracing/SystemList.vue'
@@ -78,6 +78,10 @@ export default defineComponent({
         system: props.allSystem,
         text: xsys.all,
         isEvent: true,
+        count: 0,
+        rate: 0,
+        errorCount: 0,
+        errorPct: 0,
         dummy: true,
       })
       return items

@@ -88,8 +88,9 @@ import { defineComponent, shallowRef, reactive, computed, watch, PropType } from
 // Composables
 import { UseDateRange } from '@/use/date-range'
 import { useUql } from '@/use/uql'
-import { useActiveMetrics, UseMetrics, MetricAlias } from '@/metrics/use-metrics'
+import { useActiveMetrics, UseMetrics } from '@/metrics/use-metrics'
 import { useTableQuery } from '@/metrics/use-query'
+import { MetricAlias } from '@/metrics/types'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
@@ -143,7 +144,7 @@ export default defineComponent({
     const tableQuery = useTableQuery(axiosParams)
 
     const columnMap = computed((): Record<string, MetricColumn> => {
-      const columnMap = {}
+      const columnMap: Record<string, MetricColumn> = {}
 
       for (let col of tableQuery.columns) {
         if (!col.isGroup) {

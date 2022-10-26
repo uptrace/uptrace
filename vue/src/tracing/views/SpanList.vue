@@ -56,7 +56,7 @@ import { defineComponent, computed, watch, PropType } from 'vue'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseEnvs, UseServices } from '@/tracing/use-sticky-filters'
-import { UseSystems } from '@/use/systems'
+import { UseSystems } from '@/tracing/use-systems'
 import { useUql } from '@/use/uql'
 import { useSpans } from '@/tracing/use-spans'
 

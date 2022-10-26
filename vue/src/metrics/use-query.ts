@@ -4,7 +4,7 @@ import { reactive, computed, watch, proxyRefs, ComputedRef } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { usePager } from '@/use/pager'
-import { useOrder, Order } from '@/use/order'
+import { useOrder, Order, OrderConfig } from '@/use/order'
 import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
 import { QueryPart } from '@/use/uql'
 
@@ -71,7 +71,7 @@ export type UseTableQuery = ReturnType<typeof useTableQuery>
 
 export function useTableQuery(
   axiosParams: ComputedRef<Record<string, any>>,
-  orderConf = undefined,
+  orderConf: OrderConfig = {},
 ) {
   const { route } = useRouter()
   const pager = usePager()

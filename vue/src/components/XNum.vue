@@ -1,5 +1,5 @@
 <script lang="ts">
-import Vue from 'vue'
+import Vue, { PropType } from 'vue'
 
 // Utilities
 import { unitFromName, createFormatter, Unit } from '@/util/fmt'

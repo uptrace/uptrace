@@ -3,7 +3,7 @@ import { computed, proxyRefs } from 'vue'
 import { useRouter } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
 
-interface ConnDetails {
+export interface ConnDetails {
   endpoint: string
   dsn: string
 }

@@ -1,6 +1,6 @@
 export interface Tree<T> {
   parent: T | null
-  children: T[] | null
+  children?: T[]
 }
 
 type Func<T> = (child: T, parent: T | null) => boolean

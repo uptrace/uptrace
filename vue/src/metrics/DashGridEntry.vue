@@ -173,10 +173,10 @@ export default defineComponent({
     })
 
     watch(
-      () => timeseries.baseQuery,
-      (baseQuery) => {
-        if (baseQuery) {
-          ctx.emit('input:base-query', baseQuery)
+      () => timeseries.baseQueryParts,
+      (baseQueryParts) => {
+        if (baseQueryParts) {
+          ctx.emit('input:base-query', baseQueryParts)
         }
       },
     )

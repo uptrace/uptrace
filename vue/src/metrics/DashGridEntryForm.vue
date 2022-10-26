@@ -161,8 +161,9 @@ import {
 import { UseDateRange } from '@/use/date-range'
 import { useUql } from '@/use/uql'
 import { useDashEntryManager, UseDashboard, DashEntry, ChartType } from '@/metrics/use-dashboards'
-import { useActiveMetrics, UseMetrics, MetricColumn } from '@/metrics/use-metrics'
+import { useActiveMetrics, UseMetrics } from '@/metrics/use-metrics'
 import { UseTimeseries } from '@/metrics/use-query'
+import { MetricColumn } from '@/metrics/types'
 
 // Components
 import BtnSelectMenu from '@/components/BtnSelectMenu.vue'
@@ -217,7 +218,7 @@ export default defineComponent({
     )
 
     const columnMap = computed((): Record<string, MetricColumn> => {
-      const columnMap = {}
+      const columnMap: Record<string, MetricColumn> = {}
 
       for (let ts of props.timeseries.items) {
         columnMap[ts.metric] = {
