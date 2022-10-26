@@ -11,9 +11,11 @@ import (
 )
 
 type Alert struct {
-	ID    uint64     `json:"id,string"`
-	State AlertState `json:"state,omitzero"`
-	Attrs upql.Attrs `json:"attrs,omitzero"`
+	ID         uint64                      `json:"id,string"`
+	State      AlertState                  `json:"state,omitzero"`
+	Attrs      upql.Attrs                  `json:"attrs,omitzero"`
+	Timeseries *upql.Timeseries            `json:"timeseries"`
+	Metrics    map[string]*upql.Timeseries `json:"timeseries"`
 
 	LastSeenAt time.Time `json:"lastSeenAt"`
 	FiredAt    time.Time `json:"firedAt"`
@@ -83,7 +85,7 @@ func (r *Rule) Alerts() []Alert {
 
 func (r *Rule) Eval(ctx context.Context, engine Engine, tm time.Time) ([]Alert, error) {
 	dur := r.conf.For + time.Minute // for delta func
-	timeseries, err := engine.Eval(ctx, r.conf.Metrics, r.conf.Query, tm.Add(-dur), tm)
+	timeseries, metrics, err := engine.Eval(ctx, r.conf.Metrics, r.conf.Query, tm.Add(-dur), tm)
 	if err != nil {
 		return nil, err
 	}
@@ -100,19 +102,32 @@ func (r *Rule) Eval(ctx context.Context, engine Engine, tm time.Time) ([]Alert, 
 
 		alert, ok := r.alertMap[hash]
 		if ok {
-			alert.LastSeenAt = tm
 			delete(unused, alert.ID)
 		} else {
 			alert = &Alert{
-				ID:         hash,
-				State:      StateActive,
-				Attrs:      ts.Attrs,
-				LastSeenAt: tm,
+				ID:    hash,
+				State: StateActive,
+				Attrs: ts.Attrs,
 			}
 			r.alertMap[hash] = alert
 		}
 
+		alert.Timeseries = ts
+		alert.Metrics = make(map[string]*upql.Timeseries)
+		alert.LastSeenAt = tm
+
 		if r.checkTimeseries(ts, alert, tm) {
+			for metricName, timeseries := range metrics {
+				for i := range timeseries {
+					ts2 := &timeseries[i]
+
+					buf = ts2.Attrs.Bytes(buf[:0])
+					if xxhash.Sum64(buf) == hash {
+						alert.Metrics[metricName] = ts2
+					}
+				}
+			}
+
 			alerts = append(alerts, *alert)
 		}
 	}

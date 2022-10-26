@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -303,10 +304,11 @@ type BunConfig struct {
 type CHConfig struct {
 	DSN string `yaml:"dsn"`
 
-	Addr     string `yaml:"addr"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	Database string `yaml:"database"`
+	Addr             string        `yaml:"addr"`
+	User             string        `yaml:"user"`
+	Password         string        `yaml:"password"`
+	Database         string        `yaml:"database"`
+	MaxExecutionTime time.Duration `yaml:"max_execution_time"`
 }
 
 func ScaleWithCPU(min, max int) int {

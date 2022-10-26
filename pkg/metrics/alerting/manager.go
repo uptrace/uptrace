@@ -36,7 +36,7 @@ type AlertManager interface {
 type Engine interface {
 	Eval(
 		ctx context.Context, metrics []upql.Metric, expr string, gte, lt time.Time,
-	) ([]upql.Timeseries, error)
+	) ([]upql.Timeseries, map[string][]upql.Timeseries, error)
 }
 
 func NewManager(conf *ManagerConfig) *Manager {

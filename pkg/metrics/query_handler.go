@@ -64,7 +64,7 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 		GroupingPeriod: f.TimeFilter.Duration(),
 	})
 	engine := upql.NewEngine(storage)
-	timeseries := engine.Run(f.allParts)
+	timeseries, _ := engine.Run(f.allParts)
 
 	columns, table := convertToTable(timeseries)
 	sortTable(columns, table, f)
@@ -210,7 +210,7 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 		GroupingPeriod: f.TimeFilter.Duration(),
 	})
 	engine := upql.NewEngine(storage)
-	timeseries := engine.Run(f.allParts)
+	timeseries, _ := engine.Run(f.allParts)
 
 	columns, table := convertToTable(timeseries)
 
@@ -269,7 +269,7 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 		FillHoles:   true,
 	})
 	engine := upql.NewEngine(storage)
-	timeseries := engine.Run(f.allParts)
+	timeseries, _ := engine.Run(f.allParts)
 
 	timeseries2 := make([]Timeseries, len(timeseries))
 

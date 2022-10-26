@@ -79,7 +79,7 @@ services:
       - ./config/clickhouse/keeper.xml:/etc/clickhouse-server/config.d/keeper.xml
       - ./config/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml
     ports:
-      - '9004:9000'
+      - '9003:9000'
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 

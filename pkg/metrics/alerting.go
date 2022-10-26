@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -35,15 +36,15 @@ func NewAlertingEngine(app *bunapp.App, projectID uint32) *AlertingEngine {
 
 func (e *AlertingEngine) Eval(
 	ctx context.Context, metrics []upql.Metric, expr string, gte, lt time.Time,
-) ([]upql.Timeseries, error) {
+) ([]upql.Timeseries, map[string][]upql.Timeseries, error) {
 	metricMap := make(map[string]*Metric, len(metrics))
 	for _, m := range metrics {
 		metric, err := SelectMetricByName(ctx, e.app, e.projectID, m.Name)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				return nil, fmt.Errorf("metric %q not found", m.Name)
+				return nil, nil, fmt.Errorf("metric %q not found", m.Name)
 			}
-			return nil, err
+			return nil, nil, err
 		}
 		metricMap[m.Alias] = metric
 	}
@@ -65,15 +66,15 @@ func (e *AlertingEngine) Eval(
 	engine := upql.NewEngine(storage)
 
 	parts := upql.Parse(expr)
-	timeseries := engine.Run(parts)
+	timeseries, data := engine.Run(parts)
 
 	for _, part := range parts {
 		if part.Error.Wrapped != nil {
-			return nil, part.Error.Wrapped
+			return nil, nil, part.Error.Wrapped
 		}
 	}
 
-	return timeseries, nil
+	return timeseries, data, nil
 }
 
 //------------------------------------------------------------------------------
@@ -109,16 +110,21 @@ func (m *AlertManager) SendAlerts(
 	for i := range alerts {
 		alert := &alerts[i]
 
+		fields := []zap.Field{
+			zap.String("name", rule.Name),
+			zap.Uint32("project_id", m.projectID),
+		}
+		for _, attr := range alert.Attrs {
+			fields = append(fields, zap.String(attr.Key, attr.Value))
+		}
+		for metric, ts := range alert.Metrics {
+			fields = append(fields, zap.Float64(metric, ts.Value[len(ts.Value)-1]))
+		}
+
 		if alert.State == alerting.StateFiring {
-			m.logger.Info("alerting rule is firing",
-				zap.String("name", rule.Name),
-				zap.String("attrs", alert.Attrs.String()),
-				zap.Uint32("project_id", m.projectID))
+			m.logger.Info("alerting rule is firing", fields...)
 		} else {
-			m.logger.Info("alerting rule is resolved",
-				zap.String("name", rule.Name),
-				zap.String("attrs", alert.Attrs.String()),
-				zap.Uint32("project_id", m.projectID))
+			m.logger.Info("alerting rule is resolved", fields...)
 		}
 
 		postableAlert := m.convert(rule, alert)
@@ -140,12 +146,18 @@ func (m *AlertManager) convert(
 	}
 
 	labels["alertname"] = rule.Name
-	labels["project_id"] = fmt.Sprint(m.projectID)
+	labels["uptrace_project_id"] = fmt.Sprint(m.projectID)
 
 	annotations := make(models.LabelSet)
-	annotations["rule_query"] = rule.Query
+	annotations["uptrace_query"] = rule.Query
+
 	for k, v := range rule.Annotations {
 		annotations[cleanLabelName(k)] = v
+	}
+
+	for metric, ts := range alert.Metrics {
+		lastValue := ts.Value[len(ts.Value)-1]
+		annotations[cleanLabelName(metric)] = strconv.FormatFloat(lastValue, 'f', -1, 64)
 	}
 
 	return &models.PostableAlert{
