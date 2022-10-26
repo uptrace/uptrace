@@ -348,14 +348,20 @@ func (app *App) newBunDB() *bun.DB {
 //------------------------------------------------------------------------------
 
 func (app *App) newCH() *ch.DB {
+	conf := app.conf.CH
+
+	settings := map[string]any{
+		"prefer_column_name_to_alias": 1,
+	}
+	if seconds := int(conf.MaxExecutionTime.Seconds()); seconds > 0 {
+		settings["max_execution_time"] = seconds
+	}
+
 	opts := []ch.Option{
-		ch.WithQuerySettings(map[string]any{
-			"prefer_column_name_to_alias": 1,
-		}),
+		ch.WithQuerySettings(settings),
 		ch.WithAutoCreateDatabase(true),
 	}
 
-	conf := app.conf.CH
 	if conf.DSN != "" {
 		opts = append(opts, ch.WithDSN(conf.DSN))
 	}
@@ -370,6 +376,9 @@ func (app *App) newCH() *ch.DB {
 	}
 	if conf.Database != "" {
 		opts = append(opts, ch.WithDatabase(conf.Database))
+	}
+	if conf.MaxExecutionTime != 0 {
+		opts = append(opts, ch.WithReadTimeout(conf.MaxExecutionTime+5*time.Second))
 	}
 
 	db := ch.Connect(opts...)

@@ -96,6 +96,9 @@ ch:
   # See https://clickhouse.uptrace.dev/guide/golang-clickhouse.html#options
   dsn: 'clickhouse://default:@localhost:9000/uptrace?sslmode=disable'
 
+  # Maximum query execution time.
+  max_execution_time: 30s
+
 ##
 ## Alerting rules for monitoring metrics.
 ##

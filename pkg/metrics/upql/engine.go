@@ -27,14 +27,14 @@ func NewEngine(storage Storage) *Engine {
 	}
 }
 
-func (e *Engine) Run(query []*QueryPart) []Timeseries {
+func (e *Engine) Run(query []*QueryPart) ([]Timeseries, map[string][]Timeseries) {
 	for k := range e.vars {
 		delete(e.vars, k)
 	}
 
-	var timeseries []Timeseries
+	exprs, metrics := compile(e.storage, query)
+	var result []Timeseries
 
-	exprs := compile(e.storage, query)
 	for _, expr := range exprs {
 		if expr.Part.Error.Wrapped != nil {
 			continue
@@ -54,7 +54,7 @@ func (e *Engine) Run(query []*QueryPart) []Timeseries {
 				setTimeseriesMetric(tmp, expr.AST.String())
 			}
 
-			timeseries = append(timeseries, tmp...)
+			result = append(result, tmp...)
 			continue
 		}
 
@@ -71,11 +71,11 @@ func (e *Engine) Run(query []*QueryPart) []Timeseries {
 		e.vars[expr.Alias] = tmp
 
 		if !strings.HasPrefix(expr.Alias, "_") {
-			timeseries = append(timeseries, tmp...)
+			result = append(result, tmp...)
 		}
 	}
 
-	return timeseries
+	return result, metrics
 }
 
 func (e *Engine) eval(expr Expr) ([]Timeseries, error) {

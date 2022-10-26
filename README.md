@@ -1,4 +1,4 @@
-# Open-source APM tool with support for distributed tracing, metrics, and logs
+# Open source APM: OpenTelemetry traces, metrics, and logs
 
 [![build workflow](https://github.com/uptrace/uptrace/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/uptrace/uptrace/actions)
 [![Chat](https://img.shields.io/badge/-telegram-red?color=white&logo=telegram&logoColor=black)](https://t.me/uptrace)

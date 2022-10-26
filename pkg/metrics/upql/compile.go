@@ -21,6 +21,7 @@ type NamedExpr struct {
 }
 
 type TimeseriesExpr struct {
+	Name       string
 	Metric     string
 	Func       string
 	Filters    []ast.Filter
@@ -61,7 +62,7 @@ type compiler struct {
 	timeseries []*TimeseriesExpr
 }
 
-func compile(storage Storage, parts []*QueryPart) []NamedExpr {
+func compile(storage Storage, parts []*QueryPart) ([]NamedExpr, map[string][]Timeseries) {
 	c := &compiler{
 		storage: storage,
 	}
@@ -145,7 +146,13 @@ func compile(storage Storage, parts []*QueryPart) []NamedExpr {
 
 	wg.Wait()
 
-	return c.exprs
+	metrics := make(map[string][]Timeseries)
+
+	for _, expr := range c.timeseries {
+		metrics[expr.Name] = expr.Timeseries
+	}
+
+	return c.exprs, metrics
 }
 
 func (c *compiler) selector(expr ast.Expr) Expr {
@@ -153,6 +160,7 @@ func (c *compiler) selector(expr ast.Expr) Expr {
 	case *ast.Name:
 		if strings.HasPrefix(expr.Name, "$") {
 			ts := &TimeseriesExpr{
+				Name:   expr.String(),
 				Metric: strings.TrimPrefix(expr.Name, "$"),
 				Func:   expr.Func,
 			}
@@ -164,6 +172,7 @@ func (c *compiler) selector(expr ast.Expr) Expr {
 		}
 	case *ast.FilteredName:
 		ts := &TimeseriesExpr{
+			Name:    expr.String(),
 			Metric:  strings.TrimPrefix(expr.Name.Name, "$"),
 			Func:    expr.Name.Func,
 			Filters: expr.Filters,

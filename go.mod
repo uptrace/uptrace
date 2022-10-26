@@ -18,9 +18,9 @@ require (
 	github.com/uptrace/bunrouter v1.0.19-0.20220828135510-86ff9250b2fc
 	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.19-0.20220828135510-86ff9250b2fc
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.19-0.20220828135510-86ff9250b2fc
-	github.com/uptrace/go-clickhouse v0.2.9-0.20220828135307-101b0312c333
-	github.com/uptrace/go-clickhouse/chdebug v0.2.9-0.20220828135307-101b0312c333
-	github.com/uptrace/go-clickhouse/chotel v0.2.9-0.20220828135307-101b0312c333
+	github.com/uptrace/go-clickhouse v0.2.10-0.20221026103840-a449a11056a4
+	github.com/uptrace/go-clickhouse/chdebug v0.2.10-0.20221026103840-a449a11056a4
+	github.com/uptrace/go-clickhouse/chotel v0.2.10-0.20221026103840-a449a11056a4
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.15
 	github.com/uptrace/uptrace-go v1.8.0
 	github.com/urfave/cli/v2 v2.11.1
@@ -35,7 +35,7 @@ require (
 	go.opentelemetry.io/proto/otlp v0.18.0
 	go.uber.org/zap v1.21.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
+	golang.org/x/exp v0.0.0-20220827204233-334a2380cb91
 	google.golang.org/grpc v1.48.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -109,7 +109,7 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20220826181053-bd7e27e6170d // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/sys v0.0.0-20220825204002-c680a09ffe64 // indirect
+	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
