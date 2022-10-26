@@ -1,16 +1,16 @@
 <template>
   <v-menu v-model="menu" offset-y transition="slide-x-transition" :close-on-content-click="false">
     <template #activator="{ on, attrs }">
-      <span class="mr-2">
-        <v-btn icon v-bind="attrs" v-on="on">
-          <v-icon small>mdi-calendar-blank</v-icon>
-        </v-btn>
-        <v-btn v-if="dateRange.hasNextPeriod" text small class="px-1" v-bind="attrs" v-on="on">
-          <span><XDate :date="dateRange.gte" :format="format" /> - </span>
-          <XDate :date="dateRange.lt" :format="format" />
-        </v-btn>
-      </span>
+      <v-btn v-if="dateRange.isNow" icon v-bind="attrs" v-on="on">
+        <v-icon small>mdi-calendar-blank</v-icon>
+      </v-btn>
+      <v-btn v-else-if="dateRange.isValid" text small class="px-1" v-bind="attrs" v-on="on">
+        <v-icon small left>mdi-calendar-blank</v-icon>
+        <span><XDate :date="dateRange.gte" :format="format" /> - </span>
+        <XDate :date="dateRange.lt" :format="format" />
+      </v-btn>
     </template>
+
     <v-card width="auto">
       <v-card-text class="pa-5">
         <CustomDurationPicker :value="dateRange.duration" @input="applyDuration" />
