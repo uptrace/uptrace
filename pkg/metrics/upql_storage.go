@@ -313,8 +313,11 @@ func (s *CHStorage) agg(
 		case "sum":
 			q = q.ColumnExpr("sum(value) AS value")
 			return q, nil
-		case "min", "max":
-			q = q.ColumnExpr("?(value) AS value", ch.Safe(f.Func))
+		case "min":
+			q = q.ColumnExpr("toFloat32(min(value)) AS value")
+			return q, nil
+		case "max":
+			q = q.ColumnExpr("toFloat32(max(value)) AS value")
 			return q, nil
 		case "count":
 			q = q.ColumnExpr("toFloat64(count()) AS value")
@@ -331,8 +334,11 @@ func (s *CHStorage) agg(
 		case "avg":
 			q = q.ColumnExpr("avg(value) AS value")
 			return q, nil
-		case "min", "max":
-			q = q.ColumnExpr("?(value) AS value", ch.Safe(f.Func))
+		case "min":
+			q = q.ColumnExpr("toFloat32(min(value)) AS value")
+			return q, nil
+		case "max":
+			q = q.ColumnExpr("toFloat32(max(value)) AS value")
 			return q, nil
 		default:
 			return nil, unsupportedInstrumentFunc(metric.Instrument, f.Func)
