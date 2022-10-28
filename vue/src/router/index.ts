@@ -16,6 +16,7 @@ import SystemGroupList from '@/tracing/views/SystemGroupList.vue'
 import AttrOverview from '@/tracing/views/AttrOverview.vue'
 
 import TracingHelp from '@/tracing/views/Help.vue'
+import ProjectSettings from '@/org/views/ProjectSettings.vue'
 import Tracing from '@/tracing/views/Tracing.vue'
 import GroupList from '@/tracing/views/GroupList.vue'
 import SpanList from '@/tracing/views/SpanList.vue'
@@ -68,6 +69,11 @@ const routes: RouteConfig[] = [
     name: 'ProjectCreate',
     path: '/help/projects',
     component: TracingHelp,
+  },
+  {
+    name: 'ProjectSettings',
+    path: '/projects/:projectId(\\d+)',
+    component: ProjectSettings,
   },
 
   {
