@@ -12,8 +12,10 @@ const (
 	SpanParentID = "span.parent_id"
 	SpanTraceID  = "span.trace_id"
 
-	SpanName         = "span.name"
-	SpanEventName    = "span.event_name"
+	SpanName      = "span.name"
+	SpanEventName = "span.event_name"
+	SpanIsEvent   = "span.is_event"
+
 	SpanKind         = "span.kind"
 	SpanTime         = "span.time"
 	SpanDuration     = "span.duration"

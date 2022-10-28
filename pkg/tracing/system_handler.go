@@ -43,7 +43,7 @@ func (h *SystemHandler) List(w http.ResponseWriter, req bunrouter.Request) error
 		ColumnExpr("sum(count) / ? AS rate", minutes).
 		ColumnExpr("sum(error_count) AS errorCount").
 		ColumnExpr("sum(error_count) / sum(count) AS errorPct").
-		TableExpr("?", tableName).
+		TableExpr("? AS s", tableName).
 		WithQuery(f.whereClause).
 		GroupExpr("system").
 		OrderExpr("system ASC").
@@ -87,7 +87,7 @@ func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 		ColumnExpr("qs[3] AS stats__durationP99").
 		ColumnExpr("qs[4] AS stats__durationMax").
 		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_", groupPeriod.Minutes()).
-		TableExpr("?", tableName).
+		TableExpr("? AS s", tableName).
 		WithQuery(f.whereClause).
 		GroupExpr("system, time_").
 		OrderExpr("system ASC, time_ ASC").
@@ -199,7 +199,7 @@ func (h *SystemHandler) selectServicesGroups(
 		ColumnExpr("sum(count) / ? AS stats__rate", groupPeriod.Minutes()).
 		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_",
 			groupPeriod.Minutes()).
-		TableExpr("?", tableName).
+		TableExpr("? AS s", tableName).
 		WithQuery(f.whereClause).
 		GroupExpr("attr, time_").
 		OrderExpr("attr, time_ ASC").
@@ -289,7 +289,7 @@ func (h *SystemHandler) selectHosts(
 		ColumnExpr("sum(count) / ? AS stats__rate", groupPeriod.Minutes()).
 		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_",
 			groupPeriod.Minutes()).
-		TableExpr("?", tableName).
+		TableExpr("? AS s", tableName).
 		WithQuery(f.whereClause).
 		GroupExpr("attr, time_").
 		OrderExpr("attr, time_ ASC")
