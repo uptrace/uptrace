@@ -1,6 +1,6 @@
 <template>
   <v-row align="end">
-    <v-col v-for="distro in distros" :key="distro.name" cols="6" sm="3" lg="2" class="flex-grow-1">
+    <v-col v-for="distro in distros" :key="distro.name" cols="6" sm="3" class="flex-grow-1">
       <Devicon :name="distro.name" :icon="distro.icon" :to="distro.to" />
     </v-col>
   </v-row>
@@ -48,6 +48,11 @@ export default defineComponent({
           name: 'Java',
           icon: '/devicon/java-original.svg',
           to: link('java'),
+        },
+        {
+          name: 'PHP',
+          icon: '/devicon/php-original.svg',
+          to: link('php'),
         },
       ]
     })
