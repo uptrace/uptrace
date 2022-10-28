@@ -7,19 +7,13 @@ import { useRoute } from '@/use/router'
 import { defineStore } from '@/use/store'
 import { useAxios } from '@/use/axios'
 import { useWatchAxios } from '@/use/watch-axios'
+import { Project } from '@/use/project'
 
 export interface User {
   username: string
 }
 
-export interface Project {
-  id: number
-  name: string
-  groupByEnv: boolean
-  groupFuncsByService: boolean
-  pinnedAttrs: string[]
-  token: string
-}
+export type { Project }
 
 export const useUser = defineStore(() => {
   const route = useRoute()

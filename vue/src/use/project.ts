@@ -3,6 +3,15 @@ import { computed, proxyRefs } from 'vue'
 import { useRouter } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
 
+export interface Project {
+  id: number
+  name: string
+  groupByEnv: boolean
+  groupFuncsByService: boolean
+  pinnedAttrs: string[]
+  token: string
+}
+
 export interface ConnDetails {
   endpoint: string
   dsn: string
@@ -16,6 +25,10 @@ export function useProject() {
     return {
       url: `/api/v1/projects/${projectId}`,
     }
+  })
+
+  const project = computed((): Project | undefined => {
+    return data.value?.project
   })
 
   const grpc = computed((): ConnDetails => {
@@ -37,8 +50,8 @@ export function useProject() {
   })
 
   const pinnedAttrs = computed(() => {
-    return data.value?.pinnedAttrs ?? []
+    return project.value?.pinnedAttrs ?? []
   })
 
-  return proxyRefs({ grpc, http, pinnedAttrs })
+  return proxyRefs({ data: project, grpc, http, pinnedAttrs })
 }

@@ -46,6 +46,7 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 		}
 
 		return httputil.JSON(w, bunrouter.H{
+			"project": project,
 			"grpc": bunrouter.H{
 				"endpoint": app.Config().GRPCEndpoint(),
 				"dsn":      app.Config().GRPCDsn(project),
@@ -54,7 +55,6 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 				"endpoint": app.Config().HTTPEndpoint(),
 				"dsn":      app.Config().HTTPDsn(project),
 			},
-			"pinnedAttrs": project.PinnedAttrs,
 		})
 	})
 }
