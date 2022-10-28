@@ -40,7 +40,6 @@ func DecodeSpanFilter(app *bunapp.App, req bunrouter.Request) (*SpanFilter, erro
 
 	f.ProjectID = org.ProjectFromContext(req.Context()).ID
 	f.parts = upql.Parse(f.Query)
-	f.prefixEnabled = true
 
 	return f, nil
 }
@@ -224,14 +223,17 @@ func appendUPQLColumn(b []byte, name upql.Name, minutes float64) []byte {
 
 	switch name.String() {
 	case attrkey.SpanCount:
-		return chschema.AppendQuery(b, "sum(_count)")
+		return chschema.AppendQuery(b, "sum(s.count)")
 	case attrkey.SpanCountPerMin:
-		return chschema.AppendQuery(b, "sum(_count) / ?", minutes)
+		return chschema.AppendQuery(b, "sum(s.count) / ?", minutes)
 	case attrkey.SpanErrorCount:
-		return chschema.AppendQuery(b, "sumIf(_count, _status_code = 'error')", minutes)
+		return chschema.AppendQuery(b, "sumIf(s.count, s.status_code = 'error')", minutes)
 	case attrkey.SpanErrorPct:
 		return chschema.AppendQuery(
-			b, "sumIf(_count, _status_code = 'error') / sum(_count)", minutes)
+			b, "sumIf(s.count, s.status_code = 'error') / sum(s.count)", minutes)
+	case attrkey.SpanIsEvent:
+		return chschema.AppendQuery(
+			b, "s.system IN ('other-events', 'log', 'exceptions', 'message')")
 	default:
 		if name.FuncName != "" {
 			b = append(b, name.FuncName...)
@@ -254,16 +256,16 @@ func CHAttrExpr(key string) ch.Safe {
 
 func AppendCHAttrExpr(b []byte, key string) []byte {
 	if strings.HasPrefix(key, "span.") {
-		key = "_" + strings.TrimPrefix(key, "span.")
+		key = strings.TrimPrefix(key, "span.")
 		return chschema.AppendIdent(b, key)
 	}
 
 	if _, ok := indexedAttrSet[key]; ok {
-		key = "_" + strings.ReplaceAll(key, ".", "_")
+		key = strings.ReplaceAll(key, ".", "_")
 		return chschema.AppendIdent(b, key)
 	}
 
-	return chschema.AppendQuery(b, "_attr_values[indexOf(_attr_keys, ?)]", key)
+	return chschema.AppendQuery(b, "attr_values[indexOf(attr_keys, ?)]", key)
 }
 
 func upqlWhere(q *ch.SelectQuery, ast *upql.Where, minutes float64) *ch.SelectQuery {

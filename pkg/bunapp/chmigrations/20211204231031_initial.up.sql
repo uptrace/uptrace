@@ -1,54 +1,55 @@
 CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
-  _project_id UInt32 Codec(DoubleDelta, ?CODEC),
-  _system LowCardinality(String) Codec(?CODEC),
-  _group_id UInt64 Codec(Delta, ?CODEC),
+  project_id UInt32 Codec(DoubleDelta, ?CODEC),
+  system LowCardinality(String) Codec(?CODEC),
+  group_id UInt64 Codec(Delta, ?CODEC),
 
-  _trace_id UUID Codec(?CODEC),
-  _id UInt64 Codec(?CODEC),
-  _parent_id UInt64 Codec(?CODEC),
-  _name LowCardinality(String) Codec(?CODEC),
-  _event_name String Codec(?CODEC),
-  _kind LowCardinality(String) Codec(?CODEC),
-  _time DateTime Codec(Delta, ?CODEC),
-  _duration Int64 Codec(Delta, ?CODEC),
-  _count Float32 Codec(?CODEC),
+  trace_id UUID Codec(?CODEC),
+  id UInt64 Codec(T64, ?CODEC),
+  parent_id UInt64 Codec(?CODEC),
+  name LowCardinality(String) Codec(?CODEC),
+  event_name String Codec(?CODEC),
+  kind LowCardinality(String) Codec(?CODEC),
 
-  _status_code LowCardinality(String) Codec(?CODEC),
-  _status_message String Codec(?CODEC),
+  time DateTime Codec(Delta, ?CODEC),
+  duration Int64 Codec(T64, ?CODEC),
+  count Float32 Codec(?CODEC),
 
-  _link_count UInt8 Codec(?CODEC),
-  _event_count UInt8 Codec(?CODEC),
-  _event_error_count UInt8 Codec(?CODEC),
-  _event_log_count UInt8 Codec(?CODEC),
+  status_code LowCardinality(String) Codec(?CODEC),
+  status_message String Codec(?CODEC),
 
-  _all_keys Array(LowCardinality(String)) Codec(?CODEC),
-  _attr_keys Array(LowCardinality(String)) Codec(?CODEC),
-  _attr_values Array(String) Codec(?CODEC),
+  link_count UInt8 Codec(?CODEC),
+  event_count UInt8 Codec(?CODEC),
+  event_error_count UInt8 Codec(?CODEC),
+  event_log_count UInt8 Codec(?CODEC),
 
-  _deployment_environment LowCardinality(String) Codec(?CODEC),
+  all_keys Array(LowCardinality(String)) Codec(?CODEC),
+  attr_keys Array(LowCardinality(String)) Codec(?CODEC),
+  attr_values Array(String) Codec(?CODEC),
 
-  _service LowCardinality(String) Codec(?CODEC),
-  _service_name LowCardinality(String) Codec(?CODEC),
-  _host_name LowCardinality(String) Codec(?CODEC),
+  deployment_environment LowCardinality(String) Codec(?CODEC),
 
-  _db_system LowCardinality(String) Codec(?CODEC),
-  _db_statement String Codec(?CODEC),
-  _db_operation LowCardinality(String) Codec(?CODEC),
-  _db_sql_table LowCardinality(String) Codec(?CODEC),
+  service LowCardinality(String) Codec(?CODEC),
+  service_name LowCardinality(String) Codec(?CODEC),
+  host_name LowCardinality(String) Codec(?CODEC),
 
-  _log_severity LowCardinality(String) Codec(?CODEC),
-  _log_message String Codec(?CODEC),
+  db_system LowCardinality(String) Codec(?CODEC),
+  db_statement String Codec(?CODEC),
+  db_operation LowCardinality(String) Codec(?CODEC),
+  db_sql_table LowCardinality(String) Codec(?CODEC),
 
-  _exception_type LowCardinality(String) Codec(?CODEC),
-  _exception_message String Codec(?CODEC),
+  log_severity LowCardinality(String) Codec(?CODEC),
+  log_message String Codec(?CODEC),
 
-  INDEX idx_attr_keys _attr_keys TYPE bloom_filter(0.01) GRANULARITY 64,
-  INDEX idx_duration _duration TYPE minmax GRANULARITY 1
+  exception_type LowCardinality(String) Codec(?CODEC),
+  exception_message String Codec(?CODEC),
+
+  INDEX idx_attr_keys attr_keys TYPE bloom_filter(0.01) GRANULARITY 64,
+  INDEX idx_duration duration TYPE minmax GRANULARITY 1
 )
 ENGINE = ?(REPLICATED)MergeTree()
-ORDER BY (_project_id, _system, _group_id, _time)
-PARTITION BY toDate(_time)
-TTL toDate(_time) + INTERVAL ?SPANS_TTL DELETE
+ORDER BY (project_id, system, group_id, time)
+PARTITION BY toDate(time)
+TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          storage_policy = ?SPANS_STORAGE
 
@@ -56,7 +57,7 @@ SETTINGS ttl_only_drop_parts = 1,
 
 CREATE TABLE ?DB.spans_data ?ON_CLUSTER (
   trace_id UUID Codec(?CODEC),
-  id UInt64 Codec(?CODEC),
+  id UInt64 Codec(T64, ?CODEC),
   parent_id UInt64 Codec(?CODEC),
   time DateTime Codec(Delta, ?CODEC),
   data String Codec(?CODEC)
@@ -106,18 +107,18 @@ SETTINGS ttl_only_drop_parts = 1,
 CREATE MATERIALIZED VIEW ?DB.span_system_minutes_mv ?ON_CLUSTER
 TO ?DB.span_system_minutes AS
 SELECT
-  _project_id AS project_id,
-  _deployment_environment AS deployment_environment,
-  _service AS service,
-  _system AS system,
+  project_id,
+  deployment_environment,
+  service,
+  system,
 
-  toStartOfMinute(_time) AS time,
-  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32(_duration), toUInt32(_count)) AS tdigest,
+  toStartOfMinute(time) AS time,
+  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32(duration), toUInt32(count)) AS tdigest,
 
-  toUInt64(sum(_count)) AS count,
-  toUInt64(sumIf(_count, _status_code = 'error')) AS error_count
+  toUInt64(sum(count)) AS count,
+  toUInt64(sumIf(count, status_code = 'error')) AS error_count
 FROM ?DB.spans_index
-GROUP BY project_id, time, deployment_environment, service, system
+GROUP BY project_id, toStartOfMinute(time), deployment_environment, service, system
 SETTINGS prefer_column_name_to_alias = 1
 
 --migration:split
@@ -187,18 +188,18 @@ SETTINGS ttl_only_drop_parts = 1,
 CREATE MATERIALIZED VIEW ?DB.span_service_minutes_mv ?ON_CLUSTER
 TO ?DB.span_service_minutes AS
 SELECT
-  _project_id AS project_id,
-  _deployment_environment AS deployment_environment,
-  _system AS system,
-  _service AS service,
+  project_id,
+  deployment_environment,
+  system,
+  service,
 
-  toStartOfMinute(_time) AS time,
-  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32(_duration), toUInt32(_count)) AS tdigest,
+  toStartOfMinute(time) AS time,
+  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32(duration), toUInt32(count)) AS tdigest,
 
-  toUInt64(sum(_count)) AS count,
-  toUInt64(sumIf(_count, _status_code = 'error')) AS error_count
+  toUInt64(sum(count)) AS count,
+  toUInt64(sumIf(count, status_code = 'error')) AS error_count
 FROM ?DB.spans_index
-GROUP BY project_id, time, deployment_environment, system, service
+GROUP BY project_id, toStartOfMinute(time), deployment_environment, system, service
 SETTINGS prefer_column_name_to_alias = 1
 
 --migration:split
@@ -269,19 +270,19 @@ SETTINGS ttl_only_drop_parts = 1,
 CREATE MATERIALIZED VIEW ?DB.span_host_minutes_mv ?ON_CLUSTER
 TO ?DB.span_host_minutes AS
 SELECT
-  _project_id AS project_id,
-  _deployment_environment AS deployment_environment,
-  _service AS service,
-  _system AS system,
-  _host_name AS host_name,
+  project_id,
+  deployment_environment,
+  service,
+  system,
+  host_name,
 
-  toStartOfMinute(_time) AS time,
-  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32(_duration), toUInt32(_count)) AS tdigest,
+  toStartOfMinute(time) AS time,
+  quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32(duration), toUInt32(count)) AS tdigest,
 
-  toUInt64(sum(_count)) AS count,
-  toUInt64(sumIf(_count, _status_code = 'error')) AS error_count
+  toUInt64(sum(count)) AS count,
+  toUInt64(sumIf(count, status_code = 'error')) AS error_count
 FROM ?DB.spans_index
-GROUP BY project_id, time, deployment_environment, service, system, host_name
+GROUP BY project_id, toStartOfMinute(time), deployment_environment, service, system, host_name
 SETTINGS prefer_column_name_to_alias = 1
 
 --migration:split

@@ -20,8 +20,6 @@ type SystemFilter struct {
 	GroupID   uint64
 	Envs      []string
 	Services  []string
-
-	prefixEnabled bool
 }
 
 func DecodeSystemFilter(app *bunapp.App, req bunrouter.Request) (*SystemFilter, error) {
@@ -48,9 +46,9 @@ func (f *SystemFilter) UnmarshalValues(ctx context.Context, values url.Values) e
 }
 
 func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
-	q = q.Where("? = ?", f.prefix("project_id"), f.ProjectID).
-		Where("? >= ?", f.prefix("time"), f.TimeGTE).
-		Where("? < ?", f.prefix("time"), f.TimeLT)
+	q = q.Where("s.project_id = ?", f.ProjectID).
+		Where("s.time >= ?", f.TimeGTE).
+		Where("s.time < ?", f.TimeLT)
 
 	switch {
 	case f.System == "":
@@ -58,33 +56,26 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 	case f.System == SystemAll:
 		// nothing
 	case f.System == SystemAllEvents:
-		q = q.Where("? != ''", f.prefix("event_name"))
+		q = q.Where("s.system IN ('other-events', 'log', 'exceptions', 'message')")
 	case f.System == SystemAllSpans:
-		q = q.Where("? = ''", f.prefix("event_name"))
+		q = q.Where("s.system NOT IN ('other-events', 'log', 'exceptions', 'message')")
 	case strings.HasSuffix(f.System, ":all"):
 		system := strings.TrimSuffix(f.System, ":all")
-		q = q.Where("startsWith(?, ?)", f.prefix("system"), system)
+		q = q.Where("startsWith(s.system, ?)", system)
 	default:
-		q = q.Where("? = ?", f.prefix("system"), f.System)
+		q = q.Where("s.system = ?", f.System)
 	}
 
 	if f.GroupID != 0 {
-		q = q.Where("? = ?", f.prefix("group_id"), f.GroupID)
+		q = q.Where("s.group_id = ?", f.GroupID)
 	}
 
 	if len(f.Envs) > 0 {
-		q = q.Where("? IN (?)", f.prefix("deployment_environment"), ch.In(f.Envs))
+		q = q.Where("s.deployment_environment IN (?)", ch.In(f.Envs))
 	}
 	if len(f.Services) > 0 {
-		q = q.Where("? IN (?)", f.prefix("service"), ch.In(f.Services))
+		q = q.Where("s.service IN (?)", ch.In(f.Services))
 	}
 
 	return q
-}
-
-func (f *SystemFilter) prefix(name string) ch.Ident {
-	if f.prefixEnabled {
-		return ch.Ident("_" + name)
-	}
-	return ch.Ident(name)
 }
