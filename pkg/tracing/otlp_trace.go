@@ -16,7 +16,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	collectortrace "go.opentelemetry.io/proto/otlp/collector/trace/v1"
-	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -78,23 +77,6 @@ func (s *TraceServiceServer) Export(
 func (s *TraceServiceServer) process(
 	ctx context.Context, project *bunconf.Project, resourceSpans []*tracepb.ResourceSpans,
 ) {
-	for _, rs := range resourceSpans {
-		if len(rs.ScopeSpans) == 0 {
-			for _, ils := range rs.InstrumentationLibrarySpans {
-				scopeSpans := tracepb.ScopeSpans{
-					Scope: &commonpb.InstrumentationScope{
-						Name:    ils.InstrumentationLibrary.Name,
-						Version: ils.InstrumentationLibrary.Version,
-					},
-					Spans:     ils.Spans,
-					SchemaUrl: ils.SchemaUrl,
-				}
-				rs.ScopeSpans = append(rs.ScopeSpans, &scopeSpans)
-			}
-		}
-		rs.InstrumentationLibrarySpans = nil
-	}
-
 	for _, rss := range resourceSpans {
 		resource := AttrMap(otlpconv.Map(rss.Resource.Attributes))
 
