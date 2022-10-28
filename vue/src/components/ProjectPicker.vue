@@ -2,7 +2,7 @@
   <div v-frag>
     <v-toolbar-title
       v-if="!autocompleteActive && user.projects.length"
-      class="cursor-pointer"
+      class="d-inline-flex cursor-pointer"
       @click="onClickActiveProject"
     >
       <span>{{ activeProject.name }}</span>
@@ -27,6 +27,17 @@
       @blur="onBlur"
     >
     </v-autocomplete>
+
+    <v-btn
+      v-if="!autocompleteActive && activeProject"
+      :to="{ name: 'ProjectSettings', params: { projectId: activeProject.id } }"
+      icon
+      small
+      title="Project settings"
+      class="d-inline-flex"
+    >
+      <v-icon size="20">mdi-cog</v-icon>
+    </v-btn>
   </div>
 </template>
 
@@ -57,16 +68,7 @@ export default defineComponent({
 
     const activeProject = computed({
       get(): Project | undefined {
-        const projectId = parseInt(route.value.params.projectId)
-        if (!projectId) {
-          return
-        }
-
-        for (let p of user.projects) {
-          if (p.id === projectId) {
-            return p
-          }
-        }
+        return user.activeProject
       },
       set(project: Project) {
         let routeName = route.value.name as string
