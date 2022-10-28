@@ -146,29 +146,6 @@ func (s *MetricsServiceServer) export(
 	req *collectormetricspb.ExportMetricsServiceRequest,
 	project *bunconf.Project,
 ) (*collectormetricspb.ExportMetricsServiceResponse, error) {
-	var numMetric int
-
-	for _, rm := range req.ResourceMetrics {
-		if len(rm.ScopeMetrics) == 0 {
-			for _, ilm := range rm.InstrumentationLibraryMetrics {
-				scopeMetrics := metricspb.ScopeMetrics{
-					Scope: &commonpb.InstrumentationScope{
-						Name:    ilm.InstrumentationLibrary.Name,
-						Version: ilm.InstrumentationLibrary.Version,
-					},
-					Metrics:   ilm.Metrics,
-					SchemaUrl: ilm.SchemaUrl,
-				}
-				rm.ScopeMetrics = append(rm.ScopeMetrics, &scopeMetrics)
-			}
-			rm.InstrumentationLibraryMetrics = nil
-		}
-
-		for _, sm := range rm.ScopeMetrics {
-			numMetric += len(sm.Metrics)
-		}
-	}
-
 	p := otlpProcessor{
 		App: s.App,
 
