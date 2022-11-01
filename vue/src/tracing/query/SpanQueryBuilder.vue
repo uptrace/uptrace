@@ -35,13 +35,13 @@
       stateless
       width="500"
     >
-      <SpanFacets :uql="uql" :axios-params="axiosParams" @input="drawer = $event" />
+      <SpanFacets :uql="uql" :axios-params="spanFacetsParams" @input="drawer = $event" />
     </v-navigation-drawer>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
 import { AxiosParams } from '@/use/axios'
@@ -93,8 +93,15 @@ export default defineComponent({
     },
   },
 
-  setup() {
+  setup(props) {
     const drawer = shallowRef(false)
+
+    const spanFacetsParams = computed(() => {
+      if (drawer.value) {
+        return props.axiosParams
+      }
+      return null
+    })
 
     function onClickOutside() {
       drawer.value = false
@@ -104,7 +111,7 @@ export default defineComponent({
       return drawer.value
     }
 
-    return { AttrKey, drawer, onClickOutside, closeConditional }
+    return { AttrKey, drawer, spanFacetsParams, onClickOutside, closeConditional }
   },
 })
 </script>

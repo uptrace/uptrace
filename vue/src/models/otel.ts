@@ -30,6 +30,7 @@ export enum AttrKey {
   spanErrorPct = 'span.error_pct',
 
   deploymentEnvironment = 'deployment.environment',
+  service = 'service',
   serviceName = 'service.name',
   serviceVersion = 'service.version',
   hostName = 'host.name',

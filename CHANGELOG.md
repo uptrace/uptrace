@@ -14,6 +14,8 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
   - `project.group_by_env` - group spans by `deployment.environment` attribute.
   - `project.group_funcs_by_service` - group funcs spans by `service.name` attribute.
 
+- Added project settings page where you can check available settings and project DSN.
+
 - Changed ClickHouse schema to not use column names with dots in them which causes various issues
   with migrations, for example, such columns could not be renamed.
 
