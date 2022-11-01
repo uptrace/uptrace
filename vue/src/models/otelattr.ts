@@ -84,9 +84,9 @@ export function isEventSystem(system: string | undefined): boolean {
     return false
   }
   return (
+    system === xsys.allEvents ||
     isErrorSystem(system) ||
     system === xsys.otherEvents ||
-    system === xsys.allEvents ||
     system.startsWith(xsys.logPrefix) ||
     system.startsWith(xsys.messagePrefix)
   )

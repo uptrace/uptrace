@@ -1,7 +1,7 @@
 <template>
   <XPlaceholder>
     <UptraceQuery :uql="uql" class="mt-1 mb-3">
-      <SpanFilters
+      <SpanQueryBuilder
         :uql="uql"
         :systems="systems"
         :axios-params="axiosParams"
@@ -62,7 +62,7 @@ import { useSpans } from '@/tracing/use-spans'
 
 // Components
 import UptraceQuery from '@/components/UptraceQuery.vue'
-import SpanFilters from '@/tracing/uql/SpanFilters.vue'
+import SpanQueryBuilder from '@/tracing/query/SpanQueryBuilder.vue'
 import SpansTable from '@/tracing/SpansTable.vue'
 import { SpanChip } from '@/tracing/SpanChips.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
@@ -71,8 +71,8 @@ import LoadPctileChart from '@/components/LoadPctileChart.vue'
 import { xkey } from '@/models/otelattr'
 
 export default defineComponent({
-  name: 'SpanList',
-  components: { UptraceQuery, SpanFilters, SpansTable, LoadPctileChart },
+  name: 'TracingSpans',
+  components: { UptraceQuery, SpanQueryBuilder, SpansTable, LoadPctileChart },
 
   props: {
     dateRange: {
