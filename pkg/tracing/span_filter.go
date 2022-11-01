@@ -308,7 +308,7 @@ func upqlWhereCond(cond upql.Cond, minutes float64) []byte {
 		if cond.Op == upql.DoesNotExistOp {
 			b = append(b, "NOT "...)
 		}
-		b = chschema.AppendQuery(b, "has(_all_keys, ?)", cond.Left.AttrKey)
+		b = chschema.AppendQuery(b, "has(s.all_keys, ?)", cond.Left.AttrKey)
 		return b
 	case upql.ContainsOp, upql.DoesNotContainOp:
 		if cond.Op == upql.DoesNotContainOp {

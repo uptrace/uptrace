@@ -5,16 +5,16 @@
         Group by
       </v-btn>
     </template>
-    <v-form ref="form" v-model="isValid" @submit.prevent="addFilter">
+    <v-form ref="form" v-model="isValid">
       <v-card width="400px">
         <v-card-text class="py-6">
           <v-row>
             <v-col class="space-around no-transform">
               <UqlChip
-                v-for="columnUql in groupColumns"
-                :key="columnUql"
+                v-for="column in groupColumns"
+                :key="column"
                 :uql="uql"
-                :group="columnUql"
+                :group="column"
                 @click="menu = false"
               />
             </v-col>
@@ -45,7 +45,8 @@
           <v-row>
             <v-spacer />
             <v-col cols="auto">
-              <v-btn type="submit" :disabled="!isValid" class="primary">Group by</v-btn>
+              <v-btn :disabled="!isValid" class="mr-2 secondary" @click="add">Add</v-btn>
+              <v-btn :disabled="!isValid" class="primary" @click="replace">Replace</v-btn>
             </v-col>
           </v-row>
         </v-card-text>
@@ -99,6 +100,7 @@ export default defineComponent({
 
   setup(props) {
     const { route } = useRouter()
+
     const menu = shallowRef(false)
     const column = shallowRef<Suggestion>()
 
@@ -117,28 +119,37 @@ export default defineComponent({
         const { projectId } = route.value.params
         return {
           url: `/api/v1/tracing/${projectId}/suggestions/attributes`,
-          params: props.axiosParams,
+          params: {
+            ...props.axiosParams,
+          },
         }
       },
       { suggestSearchInput: true },
     )
 
-    function addFilter() {
+    function add() {
+      updateQuery(false)
+    }
+
+    function replace() {
+      updateQuery(true)
+    }
+
+    function updateQuery(replace = false) {
       if (!column.value) {
         return
       }
 
-      fastGroupBy(column.value.text)
+      const editor = props.uql.createEditor()
+      if (replace) {
+        editor.replaceGroupBy(column.value.text)
+      } else {
+        editor.addGroupBy(column.value.text)
+      }
+      props.uql.commitEdits(editor)
 
       column.value = undefined
       form.value.resetValidation()
-    }
-
-    function fastGroupBy(column: string) {
-      const editor = props.uql.createEditor()
-      editor.replaceGroupBy(column)
-      props.uql.commitEdits(editor)
-
       menu.value = false
     }
 
@@ -153,7 +164,8 @@ export default defineComponent({
       groupColumns,
       column,
 
-      addFilter,
+      add,
+      replace,
     }
   },
 })
