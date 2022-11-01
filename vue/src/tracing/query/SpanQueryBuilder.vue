@@ -8,12 +8,10 @@
       :attr-key="AttrKey.spanStatusCode"
       label="Status"
     />
-    <AttrFilterMenu
-      :uql="uql"
-      :axios-params="axiosParams"
-      :attr-key="AttrKey.spanKind"
-      label="Kind"
-    />
+    <v-btn text class="v-btn--filter" @click="drawer = true">
+      Filters
+      <v-icon color="green">mdi-new-box</v-icon>
+    </v-btn>
 
     <v-divider vertical class="mx-2" />
 
@@ -25,11 +23,25 @@
     <SpanQueryHelpDialog />
     <v-btn text class="v-btn--filter" @click="$emit('click:reset')">Reset</v-btn>
     <v-btn text class="v-btn--filter" @click="uql.rawMode = true">Edit</v-btn>
+
+    <v-navigation-drawer
+      v-model="drawer"
+      v-click-outside="{
+        handler: onClickOutside,
+        closeConditional,
+      }"
+      app
+      temporary
+      stateless
+      width="500"
+    >
+      <SpanFacets :uql="uql" :axios-params="axiosParams" @input="drawer = $event" />
+    </v-navigation-drawer>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue'
+import { defineComponent, shallowRef, PropType } from 'vue'
 
 // Composables
 import { AxiosParams } from '@/use/axios'
@@ -44,6 +56,7 @@ import WhereFilterMenu from '@/tracing/query/WhereFilterMenu.vue'
 import AggFilterMenu from '@/tracing/query/AggFilterMenu.vue'
 import GroupByMenu from '@/tracing/query/GroupByMenu.vue'
 import SpanQueryHelpDialog from '@/tracing/query/SpanQueryHelpDialog.vue'
+import SpanFacets from '@/tracing/query/SpanFacets.vue'
 
 // Utilities
 import { AttrKey } from '@/models/otel'
@@ -58,6 +71,7 @@ export default defineComponent({
     AggFilterMenu,
     GroupByMenu,
     SpanQueryHelpDialog,
+    SpanFacets,
   },
 
   props: {
@@ -80,7 +94,17 @@ export default defineComponent({
   },
 
   setup() {
-    return { AttrKey }
+    const drawer = shallowRef(false)
+
+    function onClickOutside() {
+      drawer.value = false
+    }
+
+    function closeConditional() {
+      return drawer.value
+    }
+
+    return { AttrKey, drawer, onClickOutside, closeConditional }
   },
 })
 </script>
