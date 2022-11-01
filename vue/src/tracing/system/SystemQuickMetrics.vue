@@ -103,7 +103,7 @@ export default defineComponent({
       }
 
       for (let system of props.systems) {
-        if (system.dummy) {
+        if (system.system.endsWith(':all')) {
           continue
         }
 
