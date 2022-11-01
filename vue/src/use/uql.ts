@@ -238,6 +238,10 @@ export class UqlEditor {
     return this
   }
 
+  addGroupBy(column: string) {
+    return this.add(`group by ${column}`)
+  }
+
   replaceGroupBy(column: string) {
     return this.replaceOrUnshift(/^group\s+by\s+/i, `group by ${column}`)
   }
