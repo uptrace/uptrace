@@ -4,16 +4,18 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 ## v1.2.0 - Unreleased
 
-- Added 2 quick filters by `deployment.environment` and `service.name` attributes. More to come in
-  the next release.
+- Added ability to filter spans using facets.
+- Added ability to select multiple systems.
+- Added 2 quick filters by `deployment.environment` and `service.name` attributes on the Overview
+  page.
 
 - Tweaked spans grouping and added 2 related options:
 
   - `project.group_by_env` - group spans by `deployment.environment` attribute.
   - `project.group_funcs_by_service` - group funcs spans by `service.name` attribute.
 
-- Changed ClickHouse schema to not use column names with dots in them which causes issues with
-  migrations, for example, such columns could not be renamed.
+- Changed ClickHouse schema to not use column names with dots in them which causes various issues
+  with migrations, for example, such columns could not be renamed.
 
   If you have an existing ClickHouse database, you will have to reset it with:
 
