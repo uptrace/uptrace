@@ -85,7 +85,7 @@
             </div>
           </td>
           <td class="text-subtitle-2 text-right">
-            <XDuration v-if="item.durationMax !== undefined" :duration="item.durationMax" />
+            <XDuration v-if="'durationMax' in item" :duration="item.durationMax" />
           </td>
           <td v-if="hasAction" class="text-center">
             <slot name="action" :item="item" />

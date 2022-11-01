@@ -14,7 +14,7 @@
     </template>
 
     <UptraceQuery :uql="uql" class="mt-1 mb-3">
-      <SpanFilters
+      <SpanQueryBuilder
         :uql="uql"
         :systems="systems"
         :axios-params="axiosParams"
@@ -95,12 +95,12 @@ import { useSpanExplore } from '@/tracing/use-span-explore'
 
 // Components
 import UptraceQuery from '@/components/UptraceQuery.vue'
-import SpanFilters from '@/tracing/uql/SpanFilters.vue'
+import SpanQueryBuilder from '@/tracing/query/SpanQueryBuilder.vue'
 import GroupsTable from '@/tracing/GroupsTable.vue'
 
 export default defineComponent({
-  name: 'GroupList',
-  components: { UptraceQuery, SpanFilters, GroupsTable },
+  name: 'TracingGroups',
+  components: { UptraceQuery, SpanQueryBuilder, GroupsTable },
 
   props: {
     dateRange: {

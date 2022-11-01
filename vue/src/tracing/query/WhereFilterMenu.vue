@@ -150,7 +150,7 @@ import { UseUql } from '@/use/uql'
 // Components
 import SimpleSuggestions from '@/components/SimpleSuggestions.vue'
 import UqlChip from '@/components/UqlChip.vue'
-import AttrFilterMenu from '@/tracing/uql/AttrFilterMenu.vue'
+import AttrFilterMenu from '@/tracing/query/AttrFilterMenu.vue'
 
 // Utilities
 import { requiredRule } from '@/util/validation'

@@ -124,18 +124,24 @@ func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
+	spanOnlyColumns := []string{
+		"errorCount",
+		"errorPct",
+		"durationP50",
+		"durationP90",
+		"durationP99",
+		"durationMax",
+	}
 	for _, sys := range systems {
 		isEvent := isEventSystem(sys["system"].(string))
 		sys["isEvent"] = isEvent
 
 		stats := sys["stats"].(map[string]any)
 		if isEvent {
-			delete(stats, "errorCount")
-			delete(stats, "errorPct")
-			delete(stats, "durationP50")
-			delete(stats, "durationP90")
-			delete(stats, "durationP99")
-			delete(stats, "durationMax")
+			for _, col := range spanOnlyColumns {
+				delete(sys, col)
+				delete(stats, col)
+			}
 		}
 		bunutil.FillHoles(stats, f.TimeGTE, f.TimeLT, groupPeriod)
 	}

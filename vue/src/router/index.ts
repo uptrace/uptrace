@@ -18,8 +18,8 @@ import AttrOverview from '@/tracing/views/AttrOverview.vue'
 import TracingHelp from '@/tracing/views/Help.vue'
 import ProjectSettings from '@/org/views/ProjectSettings.vue'
 import Tracing from '@/tracing/views/Tracing.vue'
-import GroupList from '@/tracing/views/GroupList.vue'
-import SpanList from '@/tracing/views/SpanList.vue'
+import TracingGroups from '@/tracing/views/TracingGroups.vue'
+import TracingSpans from '@/tracing/views/TracingSpans.vue'
 
 import TraceShow from '@/tracing/views/TraceShow.vue'
 import TraceFind from '@/tracing/views/TraceFind.vue'
@@ -137,12 +137,12 @@ const routes: RouteConfig[] = [
       {
         name: 'SpanGroupList',
         path: '',
-        component: GroupList,
+        component: TracingGroups,
       },
       {
         name: 'SpanList',
         path: 'spans',
-        component: SpanList,
+        component: TracingSpans,
       },
     ],
   },
@@ -164,12 +164,12 @@ const routes: RouteConfig[] = [
       {
         name: 'EventGroupList',
         path: '',
-        component: GroupList,
+        component: TracingGroups,
       },
       {
         name: 'EventList',
         path: 'spans',
-        component: SpanList,
+        component: TracingSpans,
       },
     ],
   },

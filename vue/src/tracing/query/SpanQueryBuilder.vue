@@ -17,6 +17,7 @@
     <GroupByMenu :uql="uql" :axios-params="axiosParams" :disabled="aggDisabled" />
 
     <v-divider vertical class="mx-2" />
+    <SpanQueryHelpDialog />
     <v-btn text class="v-btn--filter" @click="$emit('click:reset')">Reset</v-btn>
     <v-btn text class="v-btn--filter" @click="uql.rawMode = true">Edit</v-btn>
   </div>
@@ -31,18 +32,19 @@ import { UseSystems } from '@/tracing/use-systems'
 import { UseUql } from '@/use/uql'
 
 // Components
-import SearchFilterMenu from '@/tracing/uql/SearchFilterMenu.vue'
-import DurationFilterMenu from '@/tracing/uql/DurationFilterMenu.vue'
-import AttrFilterMenu from '@/tracing/uql/AttrFilterMenu.vue'
-import WhereFilterMenu from '@/tracing/uql/WhereFilterMenu.vue'
-import AggFilterMenu from '@/tracing/uql/AggFilterMenu.vue'
-import GroupByMenu from '@/tracing/uql/GroupByMenu.vue'
+import SearchFilterMenu from '@/tracing/query/SearchFilterMenu.vue'
+import DurationFilterMenu from '@/tracing/query/DurationFilterMenu.vue'
+import AttrFilterMenu from '@/tracing/query/AttrFilterMenu.vue'
+import WhereFilterMenu from '@/tracing/query/WhereFilterMenu.vue'
+import AggFilterMenu from '@/tracing/query/AggFilterMenu.vue'
+import GroupByMenu from '@/tracing/query/GroupByMenu.vue'
+import SpanQueryHelpDialog from '@/tracing/query/SpanQueryHelpDialog.vue'
 
 // Utilities
 import { xkey } from '@/models/otelattr'
 
 export default defineComponent({
-  name: 'SpanFilters',
+  name: 'SpanQueryBuilder',
   components: {
     SearchFilterMenu,
     DurationFilterMenu,
@@ -50,6 +52,7 @@ export default defineComponent({
     WhereFilterMenu,
     AggFilterMenu,
     GroupByMenu,
+    SpanQueryHelpDialog,
   },
 
   props: {
