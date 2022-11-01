@@ -5,10 +5,15 @@
     <AttrFilterMenu
       :uql="uql"
       :axios-params="axiosParams"
-      :attr-key="xkey.spanStatusCode"
+      :attr-key="AttrKey.spanStatusCode"
       label="Status"
     />
-    <AttrFilterMenu :uql="uql" :axios-params="axiosParams" :attr-key="xkey.spanKind" label="Kind" />
+    <AttrFilterMenu
+      :uql="uql"
+      :axios-params="axiosParams"
+      :attr-key="AttrKey.spanKind"
+      label="Kind"
+    />
 
     <v-divider vertical class="mx-2" />
 
@@ -41,7 +46,7 @@ import GroupByMenu from '@/tracing/query/GroupByMenu.vue'
 import SpanQueryHelpDialog from '@/tracing/query/SpanQueryHelpDialog.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'SpanQueryBuilder',
@@ -75,7 +80,7 @@ export default defineComponent({
   },
 
   setup() {
-    return { xkey }
+    return { AttrKey }
   },
 })
 </script>

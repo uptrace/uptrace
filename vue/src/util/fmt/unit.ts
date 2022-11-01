@@ -1,4 +1,4 @@
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 
 export enum Unit {
   None = '',
@@ -92,7 +92,7 @@ export function unitFromName(name: string, value?: unknown): Unit {
 }
 
 export function isDurationField(s: string): boolean {
-  return s === xkey.spanDuration || hasField(s, 'duration')
+  return s === AttrKey.spanDuration || hasField(s, 'duration')
 }
 
 export function isByteField(s: string): boolean {
@@ -100,7 +100,7 @@ export function isByteField(s: string): boolean {
 }
 
 export function isPercentField(s: string): boolean {
-  return s === xkey.spanErrorPct || hasField(s, 'pct')
+  return s === AttrKey.spanErrorPct || hasField(s, 'pct')
 }
 
 function hasField(s: string, field: string): boolean {

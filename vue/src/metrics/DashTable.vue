@@ -83,7 +83,7 @@
       <v-sheet v-if="itemViewer.dialog && itemViewer.active">
         <v-toolbar flat color="blue lighten-5">
           <v-toolbar-title
-            >{{ dashboard.data.name }} {{ itemViewer.active[xkey.itemName] }}</v-toolbar-title
+            >{{ dashboard.data.name }} {{ itemViewer.active[AttrKey.itemName] }}</v-toolbar-title
           >
 
           <v-spacer />
@@ -136,7 +136,7 @@ import DashGrid from '@/metrics/DashGrid.vue'
 import DashGauge from '@/metrics/DashGauge.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 
 interface Props {
   dashboard: UseDashboard
@@ -238,7 +238,7 @@ export default defineComponent({
     }
 
     return {
-      xkey,
+      AttrKey,
       dialog,
 
       uql,
@@ -269,7 +269,7 @@ function useItemViewer(props: Props) {
   })
 
   watch(activeItem, (item) => {
-    baseQuery.value = item ? item[xkey.itemQuery] : ''
+    baseQuery.value = item ? item[AttrKey.itemQuery] : ''
   })
 
   function show(item: TableItem) {

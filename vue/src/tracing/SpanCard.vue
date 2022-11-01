@@ -29,14 +29,14 @@
       </v-row>
 
       <v-row align="end" class="px-4 text-subtitle-2 text-center">
-        <v-col v-if="span.attrs[xkey.deploymentEnvironment]" cols="auto">
+        <v-col v-if="span.attrs[AttrKey.deploymentEnvironment]" cols="auto">
           <div class="grey--text font-weight-regular">Env</div>
-          <div>{{ span.attrs[xkey.deploymentEnvironment] }}</div>
+          <div>{{ span.attrs[AttrKey.deploymentEnvironment] }}</div>
         </v-col>
 
-        <v-col v-if="span.attrs[xkey.serviceName]" cols="auto">
+        <v-col v-if="span.attrs[AttrKey.serviceName]" cols="auto">
           <div class="grey--text font-weight-regular">Service</div>
-          <div>{{ span.attrs[xkey.serviceName] }}</div>
+          <div>{{ span.attrs[AttrKey.serviceName] }}</div>
         </v-col>
 
         <v-col v-if="span.kind" cols="auto">
@@ -134,7 +134,7 @@ import AttrsTable from '@/tracing/AttrsTable.vue'
 import EventPanels from '@/tracing/EventPanels.vue'
 
 // Utilities
-import { xkey, isEventSystem } from '@/models/otelattr'
+import { AttrKey, isEventSystem } from '@/models/otelattr'
 import { spanName, eventOrSpanName, Span } from '@/models/span'
 
 interface Props {
@@ -178,7 +178,7 @@ export default defineComponent({
     })
 
     const dbStatement = computed((): string => {
-      return props.span.attrs[xkey.dbStatement] ?? ''
+      return props.span.attrs[AttrKey.dbStatement] ?? ''
     })
 
     const dbStatementPretty = computed((): string => {
@@ -190,11 +190,11 @@ export default defineComponent({
     })
 
     const excStacktrace = computed((): string => {
-      return props.span.attrs[xkey.exceptionStacktrace] ?? ''
+      return props.span.attrs[AttrKey.exceptionStacktrace] ?? ''
     })
 
     return {
-      xkey,
+      AttrKey,
       meta: useMeta(props),
       activeTab,
 
@@ -243,8 +243,8 @@ function useMeta(props: Props) {
         ...props.dateRange.queryParams(),
         system: props.span.system,
         query: createUqlEditor()
-          .exploreAttr(xkey.spanGroupId, isEventSystem(props.span.system))
-          .where(xkey.spanGroupId, '=', props.span.groupId)
+          .exploreAttr(AttrKey.spanGroupId, isEventSystem(props.span.system))
+          .where(AttrKey.spanGroupId, '=', props.span.groupId)
           .toString(),
       },
     }
@@ -273,8 +273,8 @@ function useMeta(props: Props) {
           ...props.dateRange.queryParams(),
           system: props.span.system,
           query: createUqlEditor()
-            .exploreAttr(xkey.spanGroupId)
-            .where(xkey.spanGroupId, '=', props.span.groupId)
+            .exploreAttr(AttrKey.spanGroupId)
+            .where(AttrKey.spanGroupId, '=', props.span.groupId)
             .toString(),
         },
       },

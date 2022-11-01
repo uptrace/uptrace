@@ -67,7 +67,7 @@ import { SpanChip } from '@/tracing/SpanChips.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'TracingSpans',
@@ -121,7 +121,7 @@ export default defineComponent({
     watch(
       () => props.systems.isEvent,
       (isEvent) => {
-        spans.order.column = isEvent ? xkey.spanTime : xkey.spanDuration
+        spans.order.column = isEvent ? AttrKey.spanTime : AttrKey.spanDuration
         spans.order.desc = true
       },
       { immediate: true },

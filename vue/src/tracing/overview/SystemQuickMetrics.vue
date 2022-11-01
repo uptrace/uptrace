@@ -63,7 +63,7 @@ import { System } from '@/tracing/use-systems'
 import SystemQuickMetricCard from '@/tracing/overview/SystemQuickMetricCard.vue'
 
 // Utilities
-import { xkey, isEventSystem } from '@/models/otelattr'
+import { AttrKey, isEventSystem } from '@/models/otelattr'
 import { Unit } from '@/util/fmt'
 
 export default defineComponent({
@@ -117,7 +117,7 @@ export default defineComponent({
         },
         failures: {
           name: 'Failures',
-          tooltip: `Number of spans with ${xkey.spanStatusCode} = "error" divided by total number of spans`,
+          tooltip: `Number of spans with ${AttrKey.spanStatusCode} = "error" divided by total number of spans`,
           color: colors.red.base,
           count: 0,
           errorCount: 0,

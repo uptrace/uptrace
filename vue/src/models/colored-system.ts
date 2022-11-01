@@ -1,7 +1,7 @@
 import colors, { Color } from 'vuetify/lib/util/colors'
 
 // Utilities
-import { xkey, xsys } from '@/models/otelattr'
+import { AttrKey, SystemName } from '@/models/otelattr'
 import { walkTree, Tree } from '@/models/tree'
 
 interface SystemColor {
@@ -44,8 +44,8 @@ export function spanColoredSystems<T extends ColoredSpan<T>>(root: T): ColoredSy
 
   walkTree(root, (span, parent) => {
     span._system = span.system
-    if (span._system === xsys.funcs) {
-      const service = parent?._system ?? span.attrs[xkey.serviceName]
+    if (span._system === SystemName.funcs) {
+      const service = parent?._system ?? span.attrs[AttrKey.serviceName]
       if (service) {
         span._system = service
       }

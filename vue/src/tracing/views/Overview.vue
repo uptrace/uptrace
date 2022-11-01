@@ -9,14 +9,14 @@
         v-model="envs.active"
         :loading="envs.loading"
         :items="envs.items"
-        :attr="xkey.serviceName"
+        :attr="AttrKey.serviceName"
         param-name="env"
       />
       <QuickSpanFilter
         v-model="services.active"
         :loading="services.loading"
         :items="services.items"
-        :attr="xkey.deploymentEnvironment"
+        :attr="AttrKey.deploymentEnvironment"
         param-name="service"
       />
       <v-spacer />
@@ -83,7 +83,7 @@ import HelpCard from '@/tracing/HelpCard.vue'
 import SystemQuickMetrics from '@/tracing/overview/SystemQuickMetrics.vue'
 
 // Utilities
-import { xkey, xsys } from '@/models/otelattr'
+import { AttrKey, SystemName } from '@/models/otelattr'
 import { day } from '@/util/fmt/date'
 
 export default defineComponent({
@@ -119,7 +119,12 @@ export default defineComponent({
         return []
       }
 
-      const candidates = [xsys.logFatal, xsys.logPanic, xsys.logError, xsys.logWarn]
+      const candidates = [
+        SystemName.logFatal,
+        SystemName.logPanic,
+        SystemName.logError,
+        SystemName.logWarn,
+      ]
       const chosen = []
       for (let candidate of candidates) {
         const found = systems.items.find((v) => v.system === candidate)
@@ -131,7 +136,7 @@ export default defineComponent({
     })
 
     return {
-      xkey,
+      AttrKey,
       project,
       envs,
       services,

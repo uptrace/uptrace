@@ -8,8 +8,8 @@
           <ThOrder v-for="col in columns" :key="col" :value="col" :order="order">
             <span>{{ col }}</span>
           </ThOrder>
-          <ThOrder :value="xkey.spanTime" :order="order">Time</ThOrder>
-          <ThOrder v-if="!isEvent" :value="xkey.spanDuration" :order="order" align="end">
+          <ThOrder :value="AttrKey.spanTime" :order="order">Time</ThOrder>
+          <ThOrder v-if="!isEvent" :value="AttrKey.spanDuration" :order="order" align="end">
             <span>Dur.</span>
           </ThOrder>
         </tr>
@@ -80,7 +80,7 @@ import SpanCardDateRange from '@/tracing/SpanCardDateRange.vue'
 import SpanChips from '@/tracing/SpanChips.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 import { eventOrSpanName, Span } from '@/models/span'
 
 export default defineComponent({
@@ -136,7 +136,7 @@ export default defineComponent({
     }
 
     return {
-      xkey,
+      AttrKey,
       dialog,
 
       eventOrSpanName,

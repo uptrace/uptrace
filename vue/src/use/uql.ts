@@ -4,7 +4,7 @@ import { shallowRef, reactive, computed, proxyRefs } from 'vue'
 import { useRouteQuery } from '@/use/router'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 import { quote, escapeRe } from '@/util/string'
 
 const QUERY_PART_SEP = ' | '
@@ -252,12 +252,12 @@ export function buildWhere(column: string, op: string, value?: any) {
 
 export function exploreAttr(column: string, isEventSystem = false) {
   const ss = isEventSystem
-    ? [`group by ${column}`, xkey.spanCountPerMin]
+    ? [`group by ${column}`, AttrKey.spanCountPerMin]
     : [
         `group by ${column}`,
-        xkey.spanCountPerMin,
-        xkey.spanErrorPct,
-        `{p50,p90,p99}(${xkey.spanDuration})`,
+        AttrKey.spanCountPerMin,
+        AttrKey.spanErrorPct,
+        `{p50,p90,p99}(${AttrKey.spanDuration})`,
       ]
   return ss.join(QUERY_PART_SEP)
 }

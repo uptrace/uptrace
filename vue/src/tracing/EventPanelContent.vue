@@ -1,9 +1,9 @@
 <template>
   <div>
     <v-row align="end" class="text-subtitle-2 text-center">
-      <v-col v-if="event.attrs[xkey.serviceName]" cols="auto">
+      <v-col v-if="event.attrs[AttrKey.serviceName]" cols="auto">
         <div class="grey--text font-weight-regular">Service</div>
-        <div>{{ event.attrs[xkey.serviceName] }}</div>
+        <div>{{ event.attrs[AttrKey.serviceName] }}</div>
       </v-col>
 
       <v-col cols="auto">
@@ -45,7 +45,7 @@ import PctileChart from '@/components/PctileChart.vue'
 import AttrsTable from '@/tracing/AttrsTable.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 import { Span } from '@/models/span'
 
 export default defineComponent({
@@ -86,14 +86,14 @@ export default defineComponent({
           ...props.dateRange.queryParams(),
           system: props.event.system,
           query: createUqlEditor()
-            .exploreAttr(xkey.spanGroupId, true)
-            .where(xkey.spanGroupId, '=', props.event.groupId)
+            .exploreAttr(AttrKey.spanGroupId, true)
+            .where(AttrKey.spanGroupId, '=', props.event.groupId)
             .toString(),
         },
       }
     })
     return {
-      xkey,
+      AttrKey,
 
       percentiles,
       groupRoute,

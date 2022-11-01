@@ -6,7 +6,7 @@ import { useRouter } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
 
 // Utilities
-import { xsys, isEventSystem } from '@/models/otelattr'
+import { SystemName, isEventSystem } from '@/models/otelattr'
 
 export interface System {
   projectId: number
@@ -162,7 +162,7 @@ export function buildSystemsTree(rawSystems: System[]): SystemTreeNode[] {
 
     const children = []
 
-    const prefix = sys.system.slice(0, -xsys.all.length)
+    const prefix = sys.system.slice(0, -SystemName.all.length)
     for (let j = systems.length - 1; j >= 0; j--) {
       const child = systems[j]
       if (child.system == sys.system) {

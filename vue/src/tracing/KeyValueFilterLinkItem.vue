@@ -27,7 +27,7 @@ import { UseDateRange } from '@/use/date-range'
 import { buildWhere, exploreAttr } from '@/use/uql'
 
 // Utilities
-import { xkey, isEventSystem } from '@/models/otelattr'
+import { AttrKey, isEventSystem } from '@/models/otelattr'
 import { truncateMiddle } from '@/util/string'
 import { createFormatter, unitFromName } from '@/util/fmt'
 
@@ -82,9 +82,9 @@ export default defineComponent({
       if (route.value.query.query) {
         return route.value.query.query
       }
-      const query = exploreAttr(xkey.spanGroupId, isEvent.value)
+      const query = exploreAttr(AttrKey.spanGroupId, isEvent.value)
       if (props.groupId) {
-        return query + ` | where ${xkey.spanGroupId} = ${props.groupId}`
+        return query + ` | where ${AttrKey.spanGroupId} = ${props.groupId}`
       }
       return query
     })

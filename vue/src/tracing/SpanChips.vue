@@ -3,10 +3,10 @@
     <v-btn
       v-if="span.statusCode === 'error'"
       icon
-      :title="`${xkey.spanStatusCode} = 'error'`"
+      :title="`${AttrKey.spanStatusCode} = 'error'`"
       class="mr-1"
       :class="{ 'cursor-default': !clickable }"
-      @click.stop="$emit('click:chip', { key: xkey.spanStatusCode, value: 'error' })"
+      @click.stop="$emit('click:chip', { key: AttrKey.spanStatusCode, value: 'error' })"
     >
       <v-icon color="error"> mdi-alert-circle-outline </v-icon>
     </v-btn>
@@ -36,7 +36,7 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 import { AttrMap, Span } from '@/models/span'
 
 export interface SpanChip {
@@ -75,15 +75,15 @@ export default defineComponent({
     const chips = computed(() => {
       const chips: SpanChip[] = []
 
-      const service = props.span.attrs[xkey.serviceName]
+      const service = props.span.attrs[AttrKey.serviceName]
       if (service) {
-        chips.push({ key: xkey.serviceName, value: service, text: service })
+        chips.push({ key: AttrKey.serviceName, value: service, text: service })
       }
 
       if (props.traceMode) {
         const spanSystem = props.span.system
         if (!spanSystem.endsWith(`:${service}`)) {
-          chips.push({ key: xkey.spanSystem, value: spanSystem, text: spanSystem })
+          chips.push({ key: AttrKey.spanSystem, value: spanSystem, text: spanSystem })
         }
       }
 
@@ -92,14 +92,14 @@ export default defineComponent({
       return chips
     })
 
-    return { xkey, events, chips }
+    return { AttrKey, events, chips }
   },
 })
 
 function pushHttpStatusChip(chips: SpanChip[], attrs: AttrMap) {
-  const httpCode = attrs[xkey.httpStatusCode]
+  const httpCode = attrs[AttrKey.httpStatusCode]
   if (typeof httpCode === 'number' && httpCode != 0 && (httpCode < 200 || httpCode >= 300)) {
-    chips.push({ key: xkey.httpStatusCode, value: httpCode, text: String(httpCode) })
+    chips.push({ key: AttrKey.httpStatusCode, value: httpCode, text: String(httpCode) })
   }
 }
 </script>

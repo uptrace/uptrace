@@ -30,7 +30,7 @@
         v-for="(item, i) in items"
         :key="i"
         :axios-params="axiosParams"
-        :query="item[xkey.itemQuery]"
+        :query="item[AttrKey.itemQuery]"
         :column-map="columnMap"
         :class="{ 'cursor-pointer': 'click' in $listeners }"
         @click="$emit('click', item)"
@@ -69,7 +69,7 @@ import SparklineChart from '@/components/SparklineChart.vue'
 import MetricItemsTableRow from '@/metrics/MetricItemsTableRow.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'MetricItemsTable',
@@ -118,7 +118,7 @@ export default defineComponent({
       return props.columns.filter((col) => col.isGroup).map((col) => col.name)
     })
 
-    return { xkey, aggColumns, grouping }
+    return { AttrKey, aggColumns, grouping }
   },
 })
 </script>

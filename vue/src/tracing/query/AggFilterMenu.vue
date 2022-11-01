@@ -80,7 +80,7 @@ import SimpleSuggestions from '@/components/SimpleSuggestions.vue'
 import UqlChip from '@/components/UqlChip.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 import { requiredRule } from '@/util/validation'
 
 interface FuncItem {
@@ -104,13 +104,13 @@ const aggFuncs = [
   'sum',
 ]
 const aggColumns = [
-  { name: xkey.spanCount, tooltip: 'Number of spans in a group' },
-  { name: xkey.spanCountPerMin, tooltip: 'Number of spans per minute in a group' },
-  { name: xkey.spanErrorCount, tooltip: 'Number of spans with span.status_code = "error"' },
-  { name: xkey.spanErrorPct, tooltip: 'Percent of spans with span.status_code = "error"' },
-  { name: `p75(${xkey.spanDuration})`, tooltip: '75th percentile of span.duration' },
-  { name: `max(${xkey.spanDuration})`, tooltip: 'Max span.duration' },
-  { name: `uniq(${xkey.enduserId})`, tooltip: 'Number of distinct enduser.id' },
+  { name: AttrKey.spanCount, tooltip: 'Number of spans in a group' },
+  { name: AttrKey.spanCountPerMin, tooltip: 'Number of spans per minute in a group' },
+  { name: AttrKey.spanErrorCount, tooltip: 'Number of spans with span.status_code = "error"' },
+  { name: AttrKey.spanErrorPct, tooltip: 'Percent of spans with span.status_code = "error"' },
+  { name: `p75(${AttrKey.spanDuration})`, tooltip: '75th percentile of span.duration' },
+  { name: `max(${AttrKey.spanDuration})`, tooltip: 'Max span.duration' },
+  { name: `uniq(${AttrKey.enduserId})`, tooltip: 'Number of distinct enduser.id' },
 ]
 
 export default defineComponent({

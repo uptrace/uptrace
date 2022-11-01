@@ -66,7 +66,7 @@ import { useSystemStats } from '@/use/system-stats'
 import OverviewTable from '@/tracing/overview/OverviewTable.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'SystemOverview',
@@ -103,14 +103,14 @@ export default defineComponent({
         name: 'SpanGroupList',
         query: {
           ...route.value.query,
-          system: xkey.allSystem,
-          query: exploreAttr(xkey.spanSystem),
+          system: AttrKey.allSystem,
+          query: exploreAttr(AttrKey.spanSystem),
         },
       }
     })
 
     return {
-      xkey,
+      AttrKey,
 
       systems,
       exploreRoute,

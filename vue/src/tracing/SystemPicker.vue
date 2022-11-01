@@ -28,7 +28,7 @@ import { buildSystemsTree, UseSystems, System } from '@/tracing/use-systems'
 import SystemList from '@/tracing/SystemList.vue'
 
 // Utilities
-import { xsys } from '@/models/otelattr'
+import { SystemName } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'SystemPicker',
@@ -76,7 +76,7 @@ export default defineComponent({
       items.unshift({
         projectId: items[0].projectId,
         system: props.allSystem,
-        text: xsys.all,
+        text: SystemName.all,
         isEvent: true,
         count: 0,
         rate: 0,
