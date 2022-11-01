@@ -155,7 +155,7 @@ import AttrFilterMenu from '@/tracing/query/AttrFilterMenu.vue'
 // Utilities
 import { requiredRule } from '@/util/validation'
 import { quote } from '@/util/string'
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 
 const compOp = {
   contains: 'contains',
@@ -219,20 +219,20 @@ export default defineComponent({
 
     const lcAttrs = computed(() => {
       const candidates = [
-        xkey.serviceName,
-        xkey.hostName,
-        xkey.codeFilepath,
-        xkey.codeFunction,
-        xkey.rpcMethod,
-        xkey.httpMethod,
-        xkey.httpStatusCode,
-        xkey.dbOperation,
-        xkey.dbSqlTables,
-        xkey.logSeverity,
-        xkey.logSource,
-        xkey.logFilePath,
-        xkey.logFileName,
-        xkey.exceptionType,
+        AttrKey.serviceName,
+        AttrKey.hostName,
+        AttrKey.codeFilepath,
+        AttrKey.codeFunction,
+        AttrKey.rpcMethod,
+        AttrKey.httpMethod,
+        AttrKey.httpStatusCode,
+        AttrKey.dbOperation,
+        AttrKey.dbSqlTables,
+        AttrKey.logSeverity,
+        AttrKey.logSource,
+        AttrKey.logFilePath,
+        AttrKey.logFileName,
+        AttrKey.exceptionType,
       ] as string[]
 
       return columnSuggestions.items
@@ -347,7 +347,7 @@ export default defineComponent({
     })
 
     return {
-      xkey,
+      AttrKey,
       menu,
       lcAttrs,
 

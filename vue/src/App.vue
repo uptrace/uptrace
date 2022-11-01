@@ -128,7 +128,7 @@ import Search from '@/components/Search.vue'
 import XSnackbar from '@/components/XSnackbar.vue'
 
 // Utilities
-import { xsys } from '@/models/otelattr'
+import { SystemName } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'App',
@@ -155,7 +155,7 @@ export default defineComponent({
     })
 
     return {
-      xsys,
+      SystemName,
       dateRange,
       user,
       helpRoute,

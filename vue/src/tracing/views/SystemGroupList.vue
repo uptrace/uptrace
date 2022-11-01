@@ -37,7 +37,7 @@ import { useSpanExplore } from '@/tracing/use-span-explore'
 import GroupsTable from '@/tracing/GroupsTable.vue'
 
 // Utilities
-import { xkey, isEventSystem } from '@/models/otelattr'
+import { AttrKey, isEventSystem } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'SystemGroupList',
@@ -66,7 +66,7 @@ export default defineComponent({
     const { route } = useRouter()
 
     const plottableColumns = computed(() => {
-      return [xkey.spanCountPerMin]
+      return [AttrKey.spanCountPerMin]
     })
 
     const system = computed(() => {
@@ -79,7 +79,7 @@ export default defineComponent({
         ...props.envs.axiosParams(),
         ...props.services.axiosParams(),
         system: system.value,
-        query: exploreAttr(xkey.spanGroupId, isEventSystem(system.value)),
+        query: exploreAttr(AttrKey.spanGroupId, isEventSystem(system.value)),
       }
     })
 
@@ -98,7 +98,7 @@ export default defineComponent({
           ...route.value.query,
           ...explore.order.axiosParams,
           system: system.value,
-          query: exploreAttr(xkey.spanGroupId, isEventSystem(system.value)),
+          query: exploreAttr(AttrKey.spanGroupId, isEventSystem(system.value)),
         },
       }
     })

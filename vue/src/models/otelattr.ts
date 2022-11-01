@@ -1,4 +1,4 @@
-export enum xkey {
+export enum AttrKey {
   allSystem = 'all',
   internalSystem = 'internal',
 
@@ -59,7 +59,7 @@ export enum xkey {
   codeFilepath = 'code.filepath',
 }
 
-export enum xsys {
+export enum SystemName {
   all = 'all',
   allEvents = 'all:events',
   allSpans = 'all:spans',
@@ -78,7 +78,7 @@ export enum xsys {
 
 export function isDummySystem(system: string | undefined): boolean {
   const [type, sys] = splitTypeSystem(system)
-  return type === xkey.allSystem || sys === xkey.allSystem
+  return type === AttrKey.allSystem || sys === AttrKey.allSystem
 }
 
 export function isEventSystem(system: string | undefined): boolean {
@@ -86,11 +86,11 @@ export function isEventSystem(system: string | undefined): boolean {
     return false
   }
   return (
-    system === xsys.allEvents ||
+    system === SystemName.allEvents ||
     isErrorSystem(system) ||
-    system === xsys.otherEvents ||
-    system.startsWith(xsys.logPrefix) ||
-    system.startsWith(xsys.messagePrefix)
+    system === SystemName.otherEvents ||
+    system.startsWith(SystemName.logPrefix) ||
+    system.startsWith(SystemName.messagePrefix)
   )
 }
 
@@ -99,10 +99,10 @@ export function isErrorSystem(system: string | undefined): boolean {
     return false
   }
   switch (system) {
-    case xsys.exceptions:
-    case xsys.logError:
-    case xsys.logFatal:
-    case xsys.logPanic:
+    case SystemName.exceptions:
+    case SystemName.logError:
+    case SystemName.logFatal:
+    case SystemName.logPanic:
       return true
     default:
       return false
@@ -116,8 +116,8 @@ export function splitTypeSystem(s: string | undefined): [string, string] {
 
   const i = s.indexOf(':')
   if (i >= 0) {
-    if (s.slice(i + 1) === xkey.allSystem) {
-      return [s.slice(0, i), xkey.allSystem]
+    if (s.slice(i + 1) === AttrKey.allSystem) {
+      return [s.slice(0, i), AttrKey.allSystem]
     }
     return [s.slice(0, i), s]
   }

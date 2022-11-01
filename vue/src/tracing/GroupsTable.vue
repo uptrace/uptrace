@@ -13,7 +13,9 @@
           <th v-if="hasGroupName" class="target text-no-wrap">
             <span>Group Name</span>
           </th>
-          <ThOrder v-if="showSystemColumn" :value="xkey.spanSystem" :order="order">System</ThOrder>
+          <ThOrder v-if="showSystemColumn" :value="AttrKey.spanSystem" :order="order"
+            >System</ThOrder
+          >
           <ThOrder
             v-for="col in customColumns"
             :key="col.name"
@@ -23,7 +25,7 @@
           >
             <span>{{ columnHeader(col) }}</span>
           </ThOrder>
-          <ThOrder v-if="hasTimeColumn" :value="`max(${xkey.spanTime})`" :order="order">
+          <ThOrder v-if="hasTimeColumn" :value="`max(${AttrKey.spanTime})`" :order="order">
             Time
           </ThOrder>
           <th></th>
@@ -53,16 +55,16 @@
       <tbody>
         <template v-for="item in items">
           <tr
-            :key="item[xkey.itemId]"
+            :key="item[AttrKey.itemId]"
             class="cursor-pointer"
-            @click="groupViewer.toggle(item[xkey.itemId])"
+            @click="groupViewer.toggle(item[AttrKey.itemId])"
           >
             <td v-if="hasGroupName" class="target">
               <span>{{ itemName(item) }}</span>
             </td>
             <td v-if="showSystemColumn">
               <router-link :to="systemRoute(item)" @click.native.stop>{{
-                item[xkey.spanSystem]
+                item[AttrKey.spanSystem]
               }}</router-link>
             </td>
             <td v-for="col in customColumns" :key="col.name">
@@ -81,7 +83,7 @@
             </td>
             <td v-if="hasTimeColumn" class="text-no-wrap">
               <slot name="time" :item="item">
-                <XDate :date="item[`max(${xkey.spanTime})`]" format="relative" />
+                <XDate :date="item[`max(${AttrKey.spanTime})`]" format="relative" />
               </slot>
             </td>
             <td class="text-center text-no-wrap">
@@ -96,10 +98,10 @@
               </v-btn>
 
               <v-btn
-                v-if="groupViewer.visible(item[xkey.itemId])"
+                v-if="groupViewer.visible(item[AttrKey.itemId])"
                 icon
                 title="Hide spans"
-                @click.stop="groupViewer.hide(item[xkey.itemId])"
+                @click.stop="groupViewer.hide(item[AttrKey.itemId])"
               >
                 <v-icon size="30">mdi-chevron-up</v-icon>
               </v-btn>
@@ -107,15 +109,15 @@
                 v-else
                 icon
                 title="View spans"
-                @click.stop="groupViewer.show(item[xkey.itemId])"
+                @click.stop="groupViewer.show(item[AttrKey.itemId])"
               >
                 <v-icon size="30">mdi-chevron-down</v-icon>
               </v-btn>
             </td>
           </tr>
           <tr
-            v-if="groupViewer.visible(item[xkey.itemId])"
-            :key="`${item[xkey.itemId]}-spans`"
+            v-if="groupViewer.visible(item[AttrKey.itemId])"
+            :key="`${item[AttrKey.itemId]}-spans`"
             class="v-data-table__expanded v-data-table__expanded__content"
           >
             <td colspan="99" class="px-6 pt-3 pb-4">
@@ -123,7 +125,7 @@
                 :date-range="dateRange"
                 :systems="systems"
                 :uql="uql"
-                :is-event="isEventSystem(item[xkey.spanSystem])"
+                :is-event="isEventSystem(item[AttrKey.spanSystem])"
                 :axios-params="axiosParams"
                 :where="groupBasedWhere(item)"
               />
@@ -153,7 +155,7 @@ import LoadGroupSparkline from '@/tracing/LoadGroupSparkline.vue'
 import SpanListInline from '@/tracing/SpanListInline.vue'
 
 // Utilities
-import { xkey, isEventSystem, isDummySystem } from '@/models/otelattr'
+import { AttrKey, isEventSystem, isDummySystem } from '@/models/otelattr'
 import { quote } from '@/util/string'
 
 // Styles
@@ -219,21 +221,21 @@ export default defineComponent({
     const groupViewer = useGroupViewer()
 
     const hasGroupName = computed((): boolean => {
-      return hasColumn(xkey.spanName)
+      return hasColumn(AttrKey.spanName)
     })
 
     const showSystemColumn = computed((): boolean => {
-      return isDummySystem(props.systems.activeSystem) && hasColumn(xkey.spanSystem)
+      return isDummySystem(props.systems.activeSystem) && hasColumn(AttrKey.spanSystem)
     })
 
     const hasTimeColumn = computed(() => {
-      return hasColumn(`max(${xkey.spanTime})`)
+      return hasColumn(`max(${AttrKey.spanTime})`)
     })
 
     const customColumns = computed(() => {
-      const blacklist = [xkey.spanSystem, `max(${xkey.spanTime})`]
+      const blacklist = [AttrKey.spanSystem, `max(${AttrKey.spanTime})`]
       if (hasGroupName.value) {
-        blacklist.push(xkey.spanGroupId, xkey.spanName)
+        blacklist.push(AttrKey.spanGroupId, AttrKey.spanName)
       }
 
       const columns = props.columns.filter((col) => {
@@ -254,7 +256,7 @@ export default defineComponent({
     function exploreRoute(item: ExploreItem) {
       const editor = props.uql
         ? props.uql.createEditor()
-        : createUqlEditor().exploreAttr(xkey.spanGroupId, props.systems.isEvent)
+        : createUqlEditor().exploreAttr(AttrKey.spanGroupId, props.systems.isEvent)
 
       for (let col of props.groupColumns) {
         const value = item[col.name]
@@ -272,9 +274,9 @@ export default defineComponent({
 
     function columnHeader(col: ColumnInfo) {
       switch (col.name) {
-        case xkey.spanErrorCount:
+        case AttrKey.spanErrorCount:
           return 'errors'
-        case xkey.spanErrorPct:
+        case AttrKey.spanErrorPct:
           return 'err%'
       }
 
@@ -304,13 +306,13 @@ export default defineComponent({
       return {
         query: {
           ...route.value.query,
-          system: item[xkey.spanSystem],
+          system: item[AttrKey.spanSystem],
         },
       }
     }
 
     return {
-      xkey,
+      AttrKey,
       groupViewer,
 
       hasGroupName,
@@ -355,12 +357,12 @@ function useGroupViewer() {
 }
 
 function itemName(item: Record<string, any>, maxLength = 120): string {
-  const eventName = item[xkey.spanEventName]
+  const eventName = item[AttrKey.spanEventName]
   if (eventName) {
     return truncate(eventName, { length: maxLength })
   }
 
-  const name = item[xkey.spanName]
+  const name = item[AttrKey.spanName]
   return truncate(name, { length: maxLength })
 }
 </script>

@@ -24,7 +24,7 @@ import { UseDateRange } from '@/use/date-range'
 import EventPanelContent from '@/tracing/EventPanelContent.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 import { Span } from '@/models/span'
 
 export default defineComponent({
@@ -61,7 +61,7 @@ export default defineComponent({
       { immediate: true },
     )
 
-    return { xkey, panels }
+    return { AttrKey, panels }
   },
 })
 </script>

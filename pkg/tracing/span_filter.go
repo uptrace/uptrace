@@ -233,7 +233,7 @@ func appendUPQLColumn(b []byte, name upql.Name, minutes float64) []byte {
 			b, "sumIf(s.count, s.status_code = 'error') / sum(s.count)", minutes)
 	case attrkey.SpanIsEvent:
 		return chschema.AppendQuery(
-			b, "s.system IN ('other-events', 'log', 'exceptions', 'message')")
+			b, "s.system IN (?)", ch.In(eventSystems))
 	default:
 		if name.FuncName != "" {
 			b = append(b, name.FuncName...)

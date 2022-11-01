@@ -10,7 +10,7 @@ import { QueryPart } from '@/use/uql'
 
 // Utilities
 import { eChart as colorSet } from '@/util/colorscheme'
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 import { escapeRe } from '@/util/string'
 
 // Types
@@ -64,7 +64,7 @@ export function useTimeseries(axiosReq: AxiosRequestSource) {
 //------------------------------------------------------------------------------
 
 export interface TableItem extends Record<string, string | number> {
-  [xkey.itemQuery]: string
+  [AttrKey.itemQuery]: string
 }
 
 export type UseTableQuery = ReturnType<typeof useTableQuery>

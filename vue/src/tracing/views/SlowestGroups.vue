@@ -43,7 +43,7 @@ import { useUql } from '@/use/uql'
 import GroupsTable from '@/tracing/GroupsTable.vue'
 
 // Utilities
-import { xkey, xsys } from '@/models/otelattr'
+import { AttrKey, SystemName } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'SlowestGroups',
@@ -70,13 +70,13 @@ export default defineComponent({
 
   setup(props) {
     const { route } = useRouter()
-    const system = xsys.allSpans
-    const query = exploreAttr(xkey.spanGroupId)
+    const system = SystemName.allSpans
+    const query = exploreAttr(AttrKey.spanGroupId)
 
     const activeColumns = shallowRef<string[]>([])
 
     const uql = useUql({
-      query: exploreAttr(xkey.spanGroupId),
+      query: exploreAttr(AttrKey.spanGroupId),
       syncQuery: true,
     })
 
@@ -100,7 +100,7 @@ export default defineComponent({
       },
       {
         order: {
-          column: `p50(${xkey.spanDuration})`,
+          column: `p50(${AttrKey.spanDuration})`,
           desc: true,
         },
       },
@@ -128,7 +128,7 @@ export default defineComponent({
     )
 
     return {
-      xkey,
+      AttrKey,
       uql,
 
       axiosParams,

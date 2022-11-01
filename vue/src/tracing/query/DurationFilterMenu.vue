@@ -54,7 +54,7 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 import { UseUql } from '@/use/uql'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'DurationFilterMenu',
@@ -86,13 +86,13 @@ export default defineComponent({
       if (gte.value) {
         editor.replaceOrPush(
           /^where\s+span\.duration\s+>=\s.+$/i,
-          `where ${xkey.spanDuration} >= ${gte.value}ms`,
+          `where ${AttrKey.spanDuration} >= ${gte.value}ms`,
         )
       }
       if (lt.value) {
         editor.replaceOrPush(
           /^where\s+span\.duration\s+<\s.+$/i,
-          `where ${xkey.spanDuration} < ${lt.value}ms`,
+          `where ${AttrKey.spanDuration} < ${lt.value}ms`,
         )
       }
 

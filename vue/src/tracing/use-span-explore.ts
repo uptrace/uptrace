@@ -9,7 +9,7 @@ import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
 import { QueryPart } from '@/use/uql'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 
 export interface ColumnInfo {
   name: string
@@ -30,7 +30,7 @@ export function useSpanExplore(reqSource: AxiosRequestSource, cfg: SpanExploreCo
   const pager = usePager(cfg.pager ?? { perPage: 10 })
   const order = useOrder(
     cfg.order ?? {
-      column: xkey.spanCountPerMin,
+      column: AttrKey.spanCountPerMin,
       desc: true,
       syncQuery: true,
     },
@@ -127,7 +127,7 @@ export function useSpanExplore(reqSource: AxiosRequestSource, cfg: SpanExploreCo
 }
 
 function isDateField(s: string): boolean {
-  return s === xkey.spanTime || hasField(s, 'time') || hasField(s, 'date')
+  return s === AttrKey.spanTime || hasField(s, 'time') || hasField(s, 'date')
 }
 
 function hasField(s: string, field: string): boolean {

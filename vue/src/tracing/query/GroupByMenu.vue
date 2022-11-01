@@ -68,10 +68,15 @@ import SimpleSuggestions from '@/components/SimpleSuggestions.vue'
 import UqlChip from '@/components/UqlChip.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 import { requiredRule } from '@/util/validation'
 
-const groupColumns = [xkey.spanGroupId, xkey.serviceName, xkey.hostName, xkey.dbOperation]
+const groupColumns = [
+  AttrKey.spanGroupId,
+  AttrKey.serviceName,
+  AttrKey.hostName,
+  AttrKey.dbOperation,
+]
 
 export default defineComponent({
   name: 'GroupByMenu',

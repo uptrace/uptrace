@@ -64,7 +64,7 @@ import { useRouter } from '@/use/router'
 import { UseUql } from '@/use/uql'
 
 // Utilities
-import { xkey, xsys } from '@/models/otelattr'
+import { AttrKey, SystemName } from '@/models/otelattr'
 import { quote } from '@/util/string'
 
 export default defineComponent({
@@ -98,20 +98,20 @@ export default defineComponent({
     })
 
     const attrValue = shallowRef('')
-    const attrKeys = shallowRef<string[]>([xkey.spanName, xkey.spanEventName])
+    const attrKeys = shallowRef<string[]>([AttrKey.spanName, AttrKey.spanEventName])
 
     const attrKeyItems = [
-      xkey.spanName,
-      xkey.spanEventName,
-      xkey.exceptionType,
-      xkey.exceptionMessage,
-      xkey.logSeverity,
-      xkey.logMessage,
-      xkey.codeFunction,
-      xkey.codeFilepath,
-      xkey.dbOperation,
-      xkey.dbSqlTables,
-      xkey.dbStatement,
+      AttrKey.spanName,
+      AttrKey.spanEventName,
+      AttrKey.exceptionType,
+      AttrKey.exceptionMessage,
+      AttrKey.logSeverity,
+      AttrKey.logMessage,
+      AttrKey.codeFunction,
+      AttrKey.codeFilepath,
+      AttrKey.dbOperation,
+      AttrKey.dbSqlTables,
+      AttrKey.dbStatement,
     ]
 
     function addFilter() {
@@ -128,7 +128,7 @@ export default defineComponent({
       router.push({
         query: {
           ...route.value.query,
-          system: xsys.all, // TODO: pick a better system
+          system: SystemName.all, // TODO: pick a better system
           query: editor.toString(),
         },
       })
@@ -137,7 +137,7 @@ export default defineComponent({
     }
 
     return {
-      xkey,
+      AttrKey,
       menu,
 
       attrKeys,
@@ -157,23 +157,23 @@ function useAttrSet(attrKeys: Ref<string[]>) {
     return [
       {
         value: 'span',
-        attrKeys: [xkey.spanName, xkey.spanEventName],
+        attrKeys: [AttrKey.spanName, AttrKey.spanEventName],
       },
       {
         value: 'log',
-        attrKeys: [xkey.logSeverity, xkey.logMessage],
+        attrKeys: [AttrKey.logSeverity, AttrKey.logMessage],
       },
       {
         value: 'exception',
-        attrKeys: [xkey.exceptionType, xkey.exceptionMessage],
+        attrKeys: [AttrKey.exceptionType, AttrKey.exceptionMessage],
       },
       {
         value: 'code',
-        attrKeys: [xkey.codeFunction, xkey.codeFilepath],
+        attrKeys: [AttrKey.codeFunction, AttrKey.codeFilepath],
       },
       {
         value: 'db',
-        attrKeys: [xkey.dbOperation, xkey.dbSqlTables, xkey.dbStatement],
+        attrKeys: [AttrKey.dbOperation, AttrKey.dbSqlTables, AttrKey.dbStatement],
       },
     ]
   })

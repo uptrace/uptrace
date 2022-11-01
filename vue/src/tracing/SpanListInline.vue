@@ -29,7 +29,7 @@ import SpansTable from '@/tracing/SpansTable.vue'
 import { SpanChip } from '@/tracing/SpanChips.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'SpanListInline',
@@ -83,7 +83,7 @@ export default defineComponent({
     watch(
       () => props.isEvent,
       (isEvent) => {
-        spans.order.column = isEvent ? xkey.spanTime : xkey.spanDuration
+        spans.order.column = isEvent ? AttrKey.spanTime : AttrKey.spanDuration
       },
       { immediate: true },
     )

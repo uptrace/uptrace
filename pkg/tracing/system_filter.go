@@ -56,9 +56,9 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 	case f.System == SystemAll:
 		// nothing
 	case f.System == SystemAllEvents:
-		q = q.Where("s.system IN ('other-events', 'log', 'exceptions', 'message')")
+		q = q.Where("s.system IN (?)", ch.In(eventSystems))
 	case f.System == SystemAllSpans:
-		q = q.Where("s.system NOT IN ('other-events', 'log', 'exceptions', 'message')")
+		q = q.Where("s.system NOT IN (?)", ch.In(eventSystems))
 	case strings.HasSuffix(f.System, ":all"):
 		system := strings.TrimSuffix(f.System, ":all")
 		q = q.Where("startsWith(s.system, ?)", system)

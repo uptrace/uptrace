@@ -2,7 +2,7 @@ import Vue from 'vue'
 import VueRouter, { RouteConfig, NavigationGuard } from 'vue-router'
 
 // Utilities
-import { xkey, xsys, isEventSystem } from '@/models/otelattr'
+import { AttrKey, SystemName, isEventSystem } from '@/models/otelattr'
 
 // Composables
 import { useUser } from '@/use/org'
@@ -125,13 +125,13 @@ const routes: RouteConfig[] = [
     path: '/explore/:projectId(\\d+)',
     component: Tracing,
     props: {
-      query: exploreAttr(xkey.spanGroupId),
+      query: exploreAttr(AttrKey.spanGroupId),
       spanListRoute: 'SpanList',
       groupListRoute: 'SpanGroupList',
       systemsFilter: (items: System[]) => {
         return items.filter((item: System) => !isEventSystem(item.system))
       },
-      allSystem: xsys.allSpans,
+      allSystem: SystemName.allSpans,
     },
     children: [
       {
@@ -151,13 +151,13 @@ const routes: RouteConfig[] = [
     path: '/events/:projectId(\\d+)',
     component: Tracing,
     props: {
-      query: exploreAttr(xkey.spanGroupId, true),
+      query: exploreAttr(AttrKey.spanGroupId, true),
       spanListRoute: 'EventList',
       groupListRoute: 'EventGroupList',
       systemsFilter: (items: System[]) => {
         return items.filter((item: System) => isEventSystem(item.system))
       },
-      allSystem: xsys.allEvents,
+      allSystem: SystemName.allEvents,
       showLogql: true,
     },
     children: [

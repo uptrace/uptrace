@@ -10,7 +10,7 @@
               :date-range="dateRange"
               :systems="systems"
               :items="systems.items"
-              :all-system="xsys.all"
+              :all-system="SystemName.all"
               outlined
             />
           </v-col>
@@ -53,7 +53,7 @@ import SystemPicker from '@/tracing/SystemPicker.vue'
 import OverviewTable from '@/tracing/overview/OverviewTable.vue'
 
 // Utilities
-import { xsys } from '@/models/otelattr'
+import { SystemName } from '@/models/otelattr'
 
 export default defineComponent({
   name: 'AttrOverview',
@@ -122,7 +122,7 @@ export default defineComponent({
     })
 
     return {
-      xsys,
+      SystemName,
       attr,
       overview,
       groupListRoute,

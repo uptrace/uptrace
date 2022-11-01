@@ -109,7 +109,7 @@ import TraceTabs from '@/tracing/TraceTabs.vue'
 import TraceError from '@/tracing/TraceError.vue'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 import { eventOrSpanName } from '@/models/span'
 
 export default defineComponent({
@@ -149,8 +149,8 @@ export default defineComponent({
           ...dateRange.queryParams(),
           system: trace.root.system,
           query: createUqlEditor()
-            .exploreAttr(xkey.spanGroupId)
-            .where(xkey.spanGroupId, '=', trace.root.groupId)
+            .exploreAttr(AttrKey.spanGroupId)
+            .where(AttrKey.spanGroupId, '=', trace.root.groupId)
             .toString(),
         },
       }
@@ -165,13 +165,13 @@ export default defineComponent({
         name: 'SpanGroupList',
         query: {
           ...dateRange.queryParams(),
-          system: xkey.allSystem,
+          system: AttrKey.allSystem,
           query: [
-            `where ${xkey.spanTraceId} = ${trace.root.traceId}`,
-            `group by ${xkey.spanGroupId}`,
-            xkey.spanCount,
-            xkey.spanErrorCount,
-            `{p50,p90,p99,sum}(${xkey.spanDuration})`,
+            `where ${AttrKey.spanTraceId} = ${trace.root.traceId}`,
+            `group by ${AttrKey.spanGroupId}`,
+            AttrKey.spanCount,
+            AttrKey.spanErrorCount,
+            `{p50,p90,p99,sum}(${AttrKey.spanDuration})`,
           ].join(' | '),
           plot: null,
         },
@@ -232,8 +232,8 @@ function useMeta(dateRange: UseDateRange, trace: UseTrace) {
             ...dateRange.queryParams(),
             system: root.system,
             query: createUqlEditor()
-              .exploreAttr(xkey.spanGroupId)
-              .where(xkey.spanGroupId, '=', root.groupId)
+              .exploreAttr(AttrKey.spanGroupId)
+              .where(AttrKey.spanGroupId, '=', root.groupId)
               .toString(),
           },
         },

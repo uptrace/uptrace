@@ -20,7 +20,7 @@ import { useRouter } from '@/use/router'
 import { createUqlEditor } from '@/use/uql'
 
 // Utilities
-import { xkey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otelattr'
 
 const TRACE_ID_RE = /^[0-9A-Fa-f]{32}$/
 
@@ -40,8 +40,8 @@ export default defineComponent({
         })
       } else {
         const query = createUqlEditor()
-          .exploreAttr(xkey.spanGroupId)
-          .where(`{${xkey.spanName},${xkey.spanEventName}}`, 'contains', traceId.value)
+          .exploreAttr(AttrKey.spanGroupId)
+          .where(`{${AttrKey.spanName},${AttrKey.spanEventName}}`, 'contains', traceId.value)
           .toString()
         router.push({
           name: 'SpanGroupList',
