@@ -58,7 +58,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { UseDateRange } from '@/use/date-range'
 import { useRoute } from '@/use/router'
-import { UseEnvs, UseServices } from '@/tracing/use-sticky-filters'
+import { UseEnvs, UseServices } from '@/tracing/use-quick-span-filters'
 import { exploreAttr } from '@/use/uql'
 import { useSystemStats } from '@/use/system-stats'
 

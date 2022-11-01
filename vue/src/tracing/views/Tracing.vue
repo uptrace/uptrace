@@ -17,20 +17,6 @@
                 :all-system="allSystem"
               />
             </div>
-            <StickyFilter
-              v-if="envs.items.length > 1"
-              v-model="envs.active"
-              :loading="envs.loading"
-              :items="envs.items"
-              param-name="env"
-            />
-            <StickyFilter
-              v-if="services.items.length > 1"
-              v-model="services.active"
-              :loading="services.loading"
-              :items="services.items"
-              param-name="service"
-            />
           </v-col>
 
           <v-col cols="auto">
@@ -55,8 +41,6 @@
       <router-view
         :date-range="dateRange"
         :systems="systems"
-        :envs="envs"
-        :services="services"
         :query="query"
         :span-list-route="spanListRoute"
         :group-list-route="groupListRoute"
@@ -73,14 +57,12 @@ import { defineComponent, computed, proxyRefs, PropType } from 'vue'
 import { useRouter, useRoute } from '@/use/router'
 import { useTitle } from '@vueuse/core'
 import { UseDateRange } from '@/use/date-range'
-import { useEnvs, useServices } from '@/tracing/use-sticky-filters'
 import { useUser } from '@/use/org'
 import { useSystems, SystemsFilter } from '@/tracing/use-systems'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import SystemPicker from '@/tracing/SystemPicker.vue'
-import StickyFilter from '@/tracing/StickyFilter.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
 
 interface Props {
@@ -93,7 +75,6 @@ export default defineComponent({
   components: {
     DateRangePicker,
     SystemPicker,
-    StickyFilter,
     HelpCard,
   },
 
@@ -131,14 +112,10 @@ export default defineComponent({
 
     const route = useRoute()
     const user = useUser()
-    const envs = useEnvs(props.dateRange)
-    const services = useServices(props.dateRange)
 
     const systems = useSystems(() => {
       return {
         ...props.dateRange.axiosParams(),
-        ...envs.axiosParams(),
-        ...services.axiosParams(),
       }
     })
 
@@ -151,8 +128,6 @@ export default defineComponent({
 
     return {
       route,
-      envs,
-      services,
       user,
       systems,
       systemsItems,

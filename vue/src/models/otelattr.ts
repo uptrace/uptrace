@@ -29,7 +29,9 @@ export enum xkey {
   spanErrorCount = 'span.error_count',
   spanErrorPct = 'span.error_pct',
 
+  deploymentEnvironment = 'deployment.environment',
   serviceName = 'service.name',
+  serviceVersion = 'service.version',
   hostName = 'host.name',
   enduserId = 'enduser.id',
 

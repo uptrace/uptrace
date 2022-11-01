@@ -5,18 +5,18 @@
     </template>
 
     <PageToolbar :loading="systems.loading" :fluid="$vuetify.breakpoint.mdAndDown">
-      <StickyFilter
-        v-if="envs.items.length > 1"
+      <QuickSpanFilter
         v-model="envs.active"
         :loading="envs.loading"
         :items="envs.items"
+        :attr="xkey.serviceName"
         param-name="env"
       />
-      <StickyFilter
-        v-if="services.items.length > 1"
+      <QuickSpanFilter
         v-model="services.active"
         :loading="services.loading"
         :items="services.items"
+        :attr="xkey.deploymentEnvironment"
         param-name="service"
       />
       <v-spacer />
@@ -72,23 +72,23 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useTitle } from '@vueuse/core'
 import type { UseDateRange } from '@/use/date-range'
-import { useEnvs, useServices } from '@/tracing/use-sticky-filters'
+import { useEnvs, useServices } from '@/tracing/use-quick-span-filters'
 import { useProject } from '@/use/project'
 import { useSystems } from '@/tracing/use-systems'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
-import StickyFilter from '@/tracing/StickyFilter.vue'
+import QuickSpanFilter from '@/tracing/QuickSpanFilter.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
 import SystemQuickMetrics from '@/tracing/overview/SystemQuickMetrics.vue'
 
 // Utilities
-import { xsys } from '@/models/otelattr'
+import { xkey, xsys } from '@/models/otelattr'
 import { day } from '@/util/fmt/date'
 
 export default defineComponent({
   name: 'Overview',
-  components: { DateRangePicker, StickyFilter, HelpCard, SystemQuickMetrics },
+  components: { DateRangePicker, QuickSpanFilter, HelpCard, SystemQuickMetrics },
 
   props: {
     dateRange: {
@@ -131,6 +131,7 @@ export default defineComponent({
     })
 
     return {
+      xkey,
       project,
       envs,
       services,
