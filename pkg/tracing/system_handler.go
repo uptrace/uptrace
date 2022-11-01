@@ -456,6 +456,11 @@ func (h *SystemHandler) selectGroups(
 
 //------------------------------------------------------------------------------
 
+type Item struct {
+	Value string `json:"value"`
+	Count uint   `json:"count"`
+}
+
 func (h *SystemHandler) ListEnvs(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
@@ -474,18 +479,20 @@ func (h *SystemHandler) ListEnvs(w http.ResponseWriter, req bunrouter.Request) e
 	})
 }
 
-func (h *SystemHandler) selectEnvs(ctx context.Context, f *SystemFilter) ([]string, error) {
-	var envs []string
+func (h *SystemHandler) selectEnvs(ctx context.Context, f *SystemFilter) ([]Item, error) {
+	var envs []Item
 
 	tableName := spanSystemTableForWhere(h.App, &f.TimeFilter)
 	if err := h.CH.NewSelect().
-		ColumnExpr("DISTINCT deployment_environment").
+		ColumnExpr("deployment_environment AS value").
+		ColumnExpr("sum(count) AS count").
 		TableExpr("? AS s", tableName).
 		WithQuery(f.whereClause).
 		Where("notEmpty(deployment_environment)").
+		GroupExpr("deployment_environment").
 		OrderExpr("deployment_environment ASC").
 		Limit(100).
-		ScanColumns(ctx, &envs); err != nil {
+		Scan(ctx, &envs); err != nil {
 		return nil, err
 	}
 
@@ -512,18 +519,20 @@ func (h *SystemHandler) ListServices(w http.ResponseWriter, req bunrouter.Reques
 	})
 }
 
-func (h *SystemHandler) selectServices(ctx context.Context, f *SystemFilter) ([]string, error) {
-	var services []string
+func (h *SystemHandler) selectServices(ctx context.Context, f *SystemFilter) ([]Item, error) {
+	var services []Item
 
 	tableName := spanSystemTableForWhere(h.App, &f.TimeFilter)
 	if err := h.CH.NewSelect().
-		ColumnExpr("DISTINCT service").
+		ColumnExpr("service AS value").
+		ColumnExpr("sum(count) AS count").
 		TableExpr("? AS s", tableName).
 		WithQuery(f.whereClause).
 		Where("notEmpty(service)").
+		GroupExpr("service").
 		OrderExpr("service ASC").
 		Limit(100).
-		ScanColumns(ctx, &services); err != nil {
+		Scan(ctx, &services); err != nil {
 		return nil, err
 	}
 

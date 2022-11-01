@@ -5,10 +5,15 @@ import { useRoute, useRouteQuery } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { useWatchAxios } from '@/use/watch-axios'
 
+export interface Item {
+  value: string
+  count: number
+}
+
 export type UseEnvs = ReturnType<typeof useEnvs>
 
 export function useEnvs(dateRange: UseDateRange) {
-  const stickyFilter = useStickyFilter('envs', dateRange)
+  const stickyFilter = useQuickSpanFilter('envs', dateRange)
 
   return proxyRefs({
     ...stickyFilter,
@@ -18,14 +23,14 @@ export function useEnvs(dateRange: UseDateRange) {
 export type UseServices = ReturnType<typeof useServices>
 
 export function useServices(dateRange: UseDateRange) {
-  const stickyFilter = useStickyFilter('services', dateRange)
+  const stickyFilter = useQuickSpanFilter('services', dateRange)
 
   return proxyRefs({
     ...stickyFilter,
   })
 }
 
-function useStickyFilter(id: string, dateRange: UseDateRange) {
+function useQuickSpanFilter(id: string, dateRange: UseDateRange) {
   const route = useRoute()
   const lastActive = shallowRef<string[]>([])
 
@@ -40,13 +45,15 @@ function useStickyFilter(id: string, dateRange: UseDateRange) {
     }
   })
 
-  const items = computed(() => {
+  const items = computed((): Item[] => {
     return data.value?.items ?? []
   })
 
   const active = computed({
     get() {
-      return lastActive.value.filter((item) => items.value.indexOf(item) >= 0)
+      return lastActive.value.filter(
+        (value) => items.value.findIndex((item) => item.value === value) >= 0,
+      )
     },
     set(items) {
       lastActive.value = items

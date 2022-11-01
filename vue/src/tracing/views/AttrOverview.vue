@@ -43,7 +43,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { UseEnvs, UseServices } from '@/tracing/use-sticky-filters'
+import { UseEnvs, UseServices } from '@/tracing/use-quick-span-filters'
 import { UseSystems } from '@/tracing/use-systems'
 import { createUqlEditor } from '@/use/uql'
 import { useOverview } from '@/tracing/use-overview'
