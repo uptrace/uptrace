@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="text-truncate">
     <v-row no-gutters align="center" style="margin-bottom: 1px">
       <v-col>
         <div class="d-flex filters">

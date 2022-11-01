@@ -6,9 +6,9 @@
       :class="{ disabled: disabled }"
       @click="$emit('click:edit')"
     >
+      <v-icon left @click.stop="$emit('click:delete')">mdi-close</v-icon>
       <span v-if="info.keyword" class="mr-1 font-weight-medium">{{ info.keyword }}</span>
       <span>{{ info.expr }}</span>
-      <v-icon right @click.stop="$emit('click:delete')">mdi-close</v-icon>
     </v-chip>
     <div v-if="error" class="text-caption text-no-wrap red--text text--darken-2">
       {{ error }}
