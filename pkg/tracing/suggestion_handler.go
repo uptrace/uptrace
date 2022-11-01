@@ -21,8 +21,9 @@ func (ss *Suggestions) Add(sugg Suggestion) {
 }
 
 type Suggestion struct {
-	Text string `json:"text"`
-	Hint string `json:"hint,omitempty"`
+	Text  string `json:"text"`
+	Hint  string `json:"hint,omitempty"`
+	Count uint64 `json:"count"`
 }
 
 func sortSuggestions(suggestions []Suggestion) []Suggestion {
@@ -100,29 +101,36 @@ func (h *SuggestionHandler) Values(w http.ResponseWriter, req bunrouter.Request)
 	}
 	disableColumnsAndGroups(f.parts)
 
-	if f.Column == "" {
-		return fmt.Errorf(`"column" query param is required`)
+	if f.AttrKey == "" {
+		return fmt.Errorf(`"attr_key" query param is required`)
 	}
-	colName, err := upql.ParseName(f.Column)
+	colName, err := upql.ParseName(f.AttrKey)
 	if err != nil {
 		return err
 	}
 
 	q := buildSpanIndexQuery(h.App, f, 0)
-	q = upqlColumn(q, colName, 0).Group(f.Column)
-	if !strings.HasPrefix(f.Column, "span.") {
-		q = q.Where("has(s.all_keys, ?)", f.Column)
+	q = upqlColumn(q, colName, 0).Group(f.AttrKey).
+		ColumnExpr("count() AS count")
+	if !strings.HasPrefix(f.AttrKey, "span.") {
+		q = q.Where("has(s.all_keys, ?)", f.AttrKey)
+	}
+	if f.AttrValue != "" {
+		q = q.Where("? like ?", CHAttrExpr(f.AttrKey), "%"+f.AttrValue+"%")
 	}
 
 	var items []map[string]interface{}
+
 	if err := q.Scan(ctx, &items); err != nil {
 		return err
 	}
 
 	suggestions := make([]Suggestion, len(items))
+
 	for i, item := range items {
 		suggestions[i] = Suggestion{
-			Text: asString(item[f.Column]),
+			Text:  asString(item[f.AttrKey]),
+			Count: item["count"].(uint64),
 		}
 	}
 

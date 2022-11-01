@@ -23,8 +23,14 @@ type SpanFilter struct {
 	urlstruct.Pager
 	SystemFilter
 
-	Query  string
+	Query string
+
+	// For stats explorer.
 	Column string
+
+	// For attrs suggestions.
+	AttrKey   string
+	AttrValue string
 
 	parts     []*upql.QueryPart
 	columnMap map[string]bool

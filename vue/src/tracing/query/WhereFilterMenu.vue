@@ -115,23 +115,6 @@
             </v-row>
           </v-form>
         </v-col>
-        <template v-if="lcAttrs.length">
-          <v-col cols="auto">
-            <v-divider vertical />
-          </v-col>
-          <v-col cols="auto" class="pa-4">
-            <div v-for="attrKey in lcAttrs" :key="attrKey">
-              <AttrFilterMenu
-                :uql="uql"
-                :axios-params="axiosParams"
-                :attr-key="attrKey"
-                :label="attrKey"
-                show-icon
-                @change="menu = false"
-              />
-            </div>
-          </v-col>
-        </template>
       </v-row>
     </v-card>
   </v-menu>
@@ -150,7 +133,6 @@ import { UseUql } from '@/use/uql'
 // Components
 import SimpleSuggestions from '@/components/SimpleSuggestions.vue'
 import UqlChip from '@/components/UqlChip.vue'
-import AttrFilterMenu from '@/tracing/query/AttrFilterMenu.vue'
 
 // Utilities
 import { requiredRule } from '@/util/validation'
@@ -170,7 +152,7 @@ const compOp = {
 
 export default defineComponent({
   name: 'WhereFilterMenu',
-  components: { AttrFilterMenu, SimpleSuggestions, UqlChip },
+  components: { SimpleSuggestions, UqlChip },
 
   props: {
     systems: {
@@ -216,32 +198,6 @@ export default defineComponent({
       },
       { suggestSearchInput: true },
     )
-
-    const lcAttrs = computed(() => {
-      const candidates = [
-        AttrKey.serviceName,
-        AttrKey.hostName,
-        AttrKey.codeFilepath,
-        AttrKey.codeFunction,
-        AttrKey.rpcMethod,
-        AttrKey.httpMethod,
-        AttrKey.httpStatusCode,
-        AttrKey.dbOperation,
-        AttrKey.dbSqlTables,
-        AttrKey.logSeverity,
-        AttrKey.logSource,
-        AttrKey.logFilePath,
-        AttrKey.logFileName,
-        AttrKey.exceptionType,
-      ] as string[]
-
-      return columnSuggestions.items
-        .filter((v) => candidates.indexOf(v.text) >= 0)
-        .map((v) => v.text)
-        .sort((a, b) => {
-          return candidates.indexOf(a) - candidates.indexOf(b)
-        })
-    })
 
     const opItems = computed((): string[] => {
       return [
@@ -349,7 +305,6 @@ export default defineComponent({
     return {
       AttrKey,
       menu,
-      lcAttrs,
 
       form,
       isValid,

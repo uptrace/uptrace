@@ -29,7 +29,7 @@ import { defineComponent, computed, PropType } from 'vue'
 import { UseSystems } from '@/tracing/system/use-systems'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { UseEnvs, UseServices } from '@/tracing/use-quick-span-filters'
+import { UseEnvs, UseServices } from '@/tracing/query/use-quick-span-filters'
 import { exploreAttr } from '@/use/uql'
 import { useSpanExplore } from '@/tracing/use-span-explore'
 

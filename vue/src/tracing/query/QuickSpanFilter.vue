@@ -65,7 +65,7 @@ import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
 import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
-import { Item } from '@/tracing/use-quick-span-filters'
+import { Item } from '@/tracing/query/use-quick-span-filters'
 
 export default defineComponent({
   name: 'QuickSpanFilter',

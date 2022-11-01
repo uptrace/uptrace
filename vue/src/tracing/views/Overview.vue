@@ -72,15 +72,15 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useTitle } from '@vueuse/core'
 import type { UseDateRange } from '@/use/date-range'
-import { useEnvs, useServices } from '@/tracing/use-quick-span-filters'
+import { useEnvs, useServices } from '@/tracing/query/use-quick-span-filters'
 import { useProject } from '@/use/project'
 import { useSystems } from '@/tracing/system/use-systems'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
-import QuickSpanFilter from '@/tracing/QuickSpanFilter.vue'
-import HelpCard from '@/tracing/HelpCard.vue'
+import QuickSpanFilter from '@/tracing/query/QuickSpanFilter.vue'
 import SystemQuickMetrics from '@/tracing/system/SystemQuickMetrics.vue'
+import HelpCard from '@/tracing/HelpCard.vue'
 
 // Utilities
 import { AttrKey, SystemName } from '@/models/otel'
