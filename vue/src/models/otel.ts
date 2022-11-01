@@ -36,6 +36,8 @@ export enum AttrKey {
   enduserId = 'enduser.id',
 
   httpMethod = 'http.method',
+  httpRoute = 'http.route',
+  httpTarget = 'http.target',
   httpStatusCode = 'http.status_code',
 
   rpcMethod = 'rpc.method',
@@ -63,6 +65,10 @@ export enum SystemName {
   all = 'all',
   eventsAll = 'events:all',
   spansAll = 'spans:all',
+
+  httpAll = 'http:all',
+  dbAll = 'db:all',
+  logAll = 'log:all',
 
   funcs = 'funcs',
   exceptions = 'exceptions',
