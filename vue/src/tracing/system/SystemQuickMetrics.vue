@@ -1,53 +1,21 @@
 <template>
   <div>
-    <v-row justify="center" class="metrics">
-      <v-col v-if="showAll">
-        <SystemQuickMetricCard :metric="metrics.all">
-          <template #default="{ metric }">
-            <XNum :value="metric.rate" :unit="Unit.Rate" title="{0} request per minute" />
-          </template>
-        </SystemQuickMetricCard>
+    <v-row v-if="loading">
+      <v-col v-for="i in 8" :key="i">
+        <v-skeleton-loader type="card" height="100px"></v-skeleton-loader>
       </v-col>
+    </v-row>
 
-      <v-col v-if="metrics.http.rate">
-        <SystemQuickMetricCard :metric="metrics.http">
-          <template #default="{ metric }">
-            <XNum :value="metric.rate" :unit="Unit.Rate" title="{0} request per minute" />
-          </template>
-        </SystemQuickMetricCard>
-      </v-col>
-
-      <v-col v-if="metrics.rpc.rate">
-        <SystemQuickMetricCard :metric="metrics.rpc">
-          <template #default="{ metric }">
-            <XNum :value="metric.rate" :unit="Unit.Rate" title="{0} request per minute" />
-          </template>
-        </SystemQuickMetricCard>
-      </v-col>
-
-      <v-col v-if="metrics.db.rate">
-        <SystemQuickMetricCard :metric="metrics.db">
-          <template #default="{ metric }">
-            <XNum :value="metric.rate" :unit="Unit.Rate" title="{0} query per minute" />
-          </template>
-        </SystemQuickMetricCard>
-      </v-col>
-
-      <v-col v-if="metrics.inMemDb.rate">
-        <SystemQuickMetricCard :metric="metrics.inMemDb">
-          <template #default="{ metric }">
-            <XNum :value="metric.rate" :unit="Unit.Rate" title="{0} op per minute" />
-          </template>
-        </SystemQuickMetricCard>
-      </v-col>
-
-      <v-col v-if="metrics.failures.count">
-        <SystemQuickMetricCard :metric="metrics.failures">
-          <template #default="{ metric }">
-            {{ ((metric.errorCount / metric.count) * 100).toFixed(2) }}%
-          </template>
-        </SystemQuickMetricCard>
-      </v-col>
+    <v-row v-else justify="center" :dense="$vuetify.breakpoint.mdAndDown" class="metrics">
+      <template v-for="(metric, metricName) in metrics">
+        <v-col v-if="metric.count || metric.rate" :key="metricName" cols="auto">
+          <SystemQuickMetricCard :metric="metric">
+            <template v-if="metricName === 'failures'" #default="{ metric }">
+              <XPct :a="metric.errorCount" :b="metric.count" />
+            </template>
+          </SystemQuickMetricCard>
+        </v-col>
+      </template>
     </v-row>
   </div>
 </template>
@@ -71,6 +39,10 @@ export default defineComponent({
   components: { SystemQuickMetricCard },
 
   props: {
+    loading: {
+      type: Boolean,
+      required: true,
+    },
     systems: {
       type: Array as PropType<System[]>,
       required: true,
@@ -81,7 +53,7 @@ export default defineComponent({
     const metrics = computed(() => {
       const metrics = {
         all: {
-          name: 'All',
+          name: 'Spans',
           tooltip: 'Total number of spans per minute',
           color: colors.teal.base,
           rate: 0,
@@ -122,10 +94,16 @@ export default defineComponent({
           count: 0,
           errorCount: 0,
         },
+        logs: {
+          name: 'Logs',
+          tooltip: 'Number of logs per minute',
+          rate: 0,
+          suffix: 'log/min',
+        },
       }
 
       for (let system of props.systems) {
-        if (system.system.endsWith(':all')) {
+        if (system.dummy) {
           continue
         }
 
@@ -155,16 +133,17 @@ export default defineComponent({
           metrics.db.rate += system.rate
           continue
         }
+
+        if (system.system.startsWith('log:')) {
+          metrics.logs.rate += system.rate
+          continue
+        }
       }
 
       return metrics
     })
 
-    const showAll = computed(() => {
-      return metrics.value.http.rate === 0 && metrics.value.rpc.rate === 0
-    })
-
-    return { Unit, metrics, showAll }
+    return { Unit, metrics }
   },
 })
 
@@ -182,8 +161,4 @@ function isInMemDb(system: string): boolean {
 }
 </script>
 
-<style lang="scss" scoped>
-.metrics ::v-deep .col {
-  max-width: 250px;
-}
-</style>
+<style lang="scss" scoped></style>

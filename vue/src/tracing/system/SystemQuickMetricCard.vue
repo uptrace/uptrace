@@ -1,5 +1,5 @@
 <template>
-  <v-card outlined rounded="lg" class="border-bottom">
+  <v-card outlined rounded="lg" min-width="120" class="border-bottom">
     <v-row class="no-gutters">
       <v-col class="px-3 py-4">
         <v-tooltip top>
@@ -16,7 +16,9 @@
         </v-tooltip>
 
         <div class="pt-4 text-h5 text-truncate">
-          <slot :metric="metric"></slot>
+          <slot :metric="metric">
+            <XNum :value="metric.rate" :unit="Unit.Rate" :title="`{0} ${metric.suffix}`" />
+          </slot>
           <span v-if="metric.suffix" class="ml-2 text-subtitle-1 blue-grey--text text--lighten-3">{{
             metric.suffix
           }}</span>
@@ -27,21 +29,23 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue'
+import { defineComponent } from 'vue'
 
-interface Metric {
-  color: string
-  name: string
-}
+// Utilities
+import { Unit } from '@/util/fmt'
 
 export default defineComponent({
   name: 'SystemMetricCard',
 
   props: {
     metric: {
-      type: Object as PropType<Metric>,
+      type: Object,
       required: true,
     },
+  },
+
+  setup() {
+    return { Unit }
   },
 })
 </script>
