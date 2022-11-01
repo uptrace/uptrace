@@ -16,7 +16,7 @@ type SystemFilter struct {
 	org.TimeFilter
 
 	ProjectID uint32
-	System    string
+	System    []string
 	GroupID   uint64
 	Envs      []string
 	Services  []string
@@ -50,21 +50,26 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 		Where("s.time >= ?", f.TimeGTE).
 		Where("s.time < ?", f.TimeLT)
 
-	switch {
-	case f.System == "":
-		// nothing
-	case f.System == SystemAll:
-		// nothing
-	case f.System == SystemAllEvents:
-		q = q.Where("s.system IN (?)", ch.In(eventSystems))
-	case f.System == SystemAllSpans:
-		q = q.Where("s.system NOT IN (?)", ch.In(eventSystems))
-	case strings.HasSuffix(f.System, ":all"):
-		system := strings.TrimSuffix(f.System, ":all")
-		q = q.Where("startsWith(s.system, ?)", system)
-	default:
-		q = q.Where("s.system = ?", f.System)
-	}
+	return q.WhereGroup(" AND ", func(q *ch.SelectQuery) *ch.SelectQuery {
+		for _, system := range f.System {
+			switch {
+			case system == "":
+				// nothing
+			case system == SystemAll:
+				// nothing
+			case system == SystemEventsAll:
+				q = q.WhereOr("s.system IN (?)", ch.In(eventSystems))
+			case system == SystemSpansAll:
+				q = q.WhereOr("s.system NOT IN (?)", ch.In(eventSystems))
+			case strings.HasSuffix(system, ":all"):
+				system := strings.TrimSuffix(system, ":all")
+				q = q.WhereOr("startsWith(s.system, ?)", system)
+			default:
+				q = q.WhereOr("s.system = ?", system)
+			}
+		}
+		return q
+	})
 
 	if f.GroupID != 0 {
 		q = q.Where("s.group_id = ?", f.GroupID)
@@ -78,4 +83,13 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 	}
 
 	return q
+}
+
+func (f *SystemFilter) isEventSystem() bool {
+	for _, system := range f.System {
+		if !isEventSystem(system) {
+			return false
+		}
+	}
+	return true
 }

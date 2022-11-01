@@ -1,19 +1,15 @@
 <template>
   <div>
     <v-simple-table :dense="dense" class="v-data-table--narrow">
-      <colgroup>
-        <col v-if="hasGroupName" class="target" />
-        <col v-if="showSystemColumn" />
-        <col v-for="col in customColumns" :key="col.name" />
-        <col />
-      </colgroup>
-
       <thead v-if="items.length" class="v-data-table-header">
         <tr>
           <th v-if="hasGroupName" class="target text-no-wrap">
             <span>Group Name</span>
           </th>
-          <ThOrder v-if="showSystemColumn" :value="AttrKey.spanSystem" :order="order"
+          <ThOrder
+            v-if="showSystem && hasColumn(AttrKey.spanSystem)"
+            :value="AttrKey.spanSystem"
+            :order="order"
             >System</ThOrder
           >
           <ThOrder
@@ -62,7 +58,7 @@
             <td v-if="hasGroupName" class="target">
               <span>{{ itemName(item) }}</span>
             </td>
-            <td v-if="showSystemColumn">
+            <td v-if="showSystem && hasColumn(AttrKey.spanSystem)">
               <router-link :to="systemRoute(item)" @click.native.stop>{{
                 item[AttrKey.spanSystem]
               }}</router-link>
@@ -123,9 +119,8 @@
             <td colspan="99" class="px-6 pt-3 pb-4">
               <SpanListInline
                 :date-range="dateRange"
-                :systems="systems"
+                :events-mode="eventsMode"
                 :uql="uql"
-                :is-event="isEventSystem(item[AttrKey.spanSystem])"
                 :axios-params="axiosParams"
                 :where="groupBasedWhere(item)"
               />
@@ -145,7 +140,6 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseOrder } from '@/use/order'
-import { UseSystems } from '@/tracing/use-systems'
 import { ExploreItem, ColumnInfo } from '@/tracing/use-span-explore'
 import { createUqlEditor, UseUql } from '@/use/uql'
 
@@ -155,7 +149,7 @@ import LoadGroupSparkline from '@/tracing/LoadGroupSparkline.vue'
 import SpanListInline from '@/tracing/SpanListInline.vue'
 
 // Utilities
-import { AttrKey, isEventSystem, isDummySystem } from '@/models/otelattr'
+import { AttrKey, isEventSystem } from '@/models/otel'
 import { quote } from '@/util/string'
 
 // Styles
@@ -174,8 +168,8 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
-    systems: {
-      type: Object as PropType<UseSystems>,
+    eventsMode: {
+      type: Boolean,
       required: true,
     },
     uql: {
@@ -214,6 +208,10 @@ export default defineComponent({
       type: Object as PropType<Record<string, any>>,
       default: undefined,
     },
+    showSystem: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   setup(props) {
@@ -222,10 +220,6 @@ export default defineComponent({
 
     const hasGroupName = computed((): boolean => {
       return hasColumn(AttrKey.spanName)
-    })
-
-    const showSystemColumn = computed((): boolean => {
-      return isDummySystem(props.systems.activeSystem) && hasColumn(AttrKey.spanSystem)
     })
 
     const hasTimeColumn = computed(() => {
@@ -256,7 +250,7 @@ export default defineComponent({
     function exploreRoute(item: ExploreItem) {
       const editor = props.uql
         ? props.uql.createEditor()
-        : createUqlEditor().exploreAttr(AttrKey.spanGroupId, props.systems.isEvent)
+        : createUqlEditor().exploreAttr(AttrKey.spanGroupId, props.eventsMode)
 
       for (let col of props.groupColumns) {
         const value = item[col.name]
@@ -264,9 +258,9 @@ export default defineComponent({
       }
 
       return {
-        name: props.systems.isEvent ? 'EventList' : 'SpanList',
+        name: props.eventsMode ? 'EventList' : 'SpanList',
         query: {
-          ...props.systems.queryParams(),
+          ...route.value.query,
           query: editor.toString(),
         },
       }
@@ -316,7 +310,7 @@ export default defineComponent({
       groupViewer,
 
       hasGroupName,
-      showSystemColumn,
+      hasColumn,
       hasTimeColumn,
       customColumns,
 

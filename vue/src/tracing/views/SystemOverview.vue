@@ -66,7 +66,7 @@ import { useSystemStats } from '@/use/system-stats'
 import OverviewTable from '@/tracing/overview/OverviewTable.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'SystemOverview',

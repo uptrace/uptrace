@@ -45,7 +45,7 @@ import PctileChart from '@/components/PctileChart.vue'
 import AttrsTable from '@/tracing/AttrsTable.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 import { Span } from '@/models/span'
 
 export default defineComponent({

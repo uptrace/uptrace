@@ -2,12 +2,12 @@ import Vue from 'vue'
 import VueRouter, { RouteConfig, NavigationGuard } from 'vue-router'
 
 // Utilities
-import { AttrKey, SystemName, isEventSystem } from '@/models/otelattr'
+import { AttrKey, SystemName, isEventSystem } from '@/models/otel'
 
 // Composables
 import { useUser } from '@/use/org'
 import { exploreAttr } from '@/use/uql'
-import { System } from '@/tracing/use-systems'
+import { System } from '@/tracing/system/use-systems'
 
 import Overview from '@/tracing/views/Overview.vue'
 import SystemOverview from '@/tracing/views/SystemOverview.vue'
@@ -125,13 +125,14 @@ const routes: RouteConfig[] = [
     path: '/explore/:projectId(\\d+)',
     component: Tracing,
     props: {
-      query: exploreAttr(AttrKey.spanGroupId),
-      spanListRoute: 'SpanList',
-      groupListRoute: 'SpanGroupList',
       systemsFilter: (items: System[]) => {
         return items.filter((item: System) => !isEventSystem(item.system))
       },
-      allSystem: SystemName.allSpans,
+      allSystem: SystemName.spansAll,
+      eventsMode: false,
+      query: exploreAttr(AttrKey.spanGroupId),
+      spanListRoute: 'SpanList',
+      groupListRoute: 'SpanGroupList',
     },
     children: [
       {
@@ -151,14 +152,14 @@ const routes: RouteConfig[] = [
     path: '/events/:projectId(\\d+)',
     component: Tracing,
     props: {
-      query: exploreAttr(AttrKey.spanGroupId, true),
-      spanListRoute: 'EventList',
-      groupListRoute: 'EventGroupList',
       systemsFilter: (items: System[]) => {
         return items.filter((item: System) => isEventSystem(item.system))
       },
-      allSystem: SystemName.allEvents,
-      showLogql: true,
+      allSystem: SystemName.eventsAll,
+      eventsMode: false,
+      query: exploreAttr(AttrKey.spanGroupId, true),
+      spanListRoute: 'EventList',
+      groupListRoute: 'EventGroupList',
     },
     children: [
       {

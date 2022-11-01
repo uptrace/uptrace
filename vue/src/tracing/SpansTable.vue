@@ -9,7 +9,7 @@
             <span>{{ col }}</span>
           </ThOrder>
           <ThOrder :value="AttrKey.spanTime" :order="order">Time</ThOrder>
-          <ThOrder v-if="!isEvent" :value="AttrKey.spanDuration" :order="order" align="end">
+          <ThOrder v-if="!eventsMode" :value="AttrKey.spanDuration" :order="order" align="end">
             <span>Dur.</span>
           </ThOrder>
         </tr>
@@ -49,7 +49,7 @@
               />
             </td>
             <td class="text-no-wrap"><XDate :date="span.time" format="relative" /></td>
-            <td v-if="!isEvent" class="text-right">
+            <td v-if="!eventsMode" class="text-right">
               <XDuration :duration="span.duration" fixed />
             </td>
           </tr>
@@ -80,7 +80,7 @@ import SpanCardDateRange from '@/tracing/SpanCardDateRange.vue'
 import SpanChips from '@/tracing/SpanChips.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 import { eventOrSpanName, Span } from '@/models/span'
 
 export default defineComponent({
@@ -96,6 +96,10 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
+    eventsMode: {
+      type: Boolean,
+      required: true,
+    },
     loading: {
       type: Boolean,
       required: true,
@@ -103,10 +107,6 @@ export default defineComponent({
     spans: {
       type: Array as PropType<Span[]>,
       required: true,
-    },
-    isEvent: {
-      type: Boolean,
-      default: false,
     },
     pager: {
       type: Object as PropType<UsePager>,

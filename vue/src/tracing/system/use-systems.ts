@@ -2,25 +2,17 @@ import { cloneDeep, orderBy } from 'lodash-es'
 import { shallowRef, computed, proxyRefs } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
+import { useRoute, useRouteQuery } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
 
-// Utilities
-import { SystemName, isEventSystem } from '@/models/otelattr'
-
 export interface System {
-  projectId: number
+  projectId: number | string
   system: string
-  text: string
-  isEvent: boolean
 
   count: number
   rate: number
   errorCount: number
   errorPct: number
-
-  dummy?: boolean
-  numChildren?: number
 }
 
 export type SystemsFilter = (systems: System[]) => System[]
@@ -32,7 +24,7 @@ export interface SystemTreeNode extends System {
 export type UseSystems = ReturnType<typeof useSystems>
 
 export function useSystems(params: () => Record<string, any>) {
-  const { route } = useRouter()
+  const route = useRoute()
 
   const { loading, data } = useWatchAxios(() => {
     const { projectId } = route.value.params
@@ -44,8 +36,6 @@ export function useSystems(params: () => Record<string, any>) {
 
   const systems = computed((): System[] => {
     const systems = data.value?.systems ?? []
-    systems.forEach((item: System) => (item.text = item.system))
-
     return addDummySystems(systems ?? [])
   })
 
@@ -56,20 +46,41 @@ export function useSystems(params: () => Record<string, any>) {
     return false
   })
 
-  const internalValue = shallowRef<string>()
+  const internalValue = shallowRef<string[]>([])
 
   const activeSystem = computed({
-    get() {
+    get(): string[] {
       return internalValue.value
     },
-    set(system: string | undefined) {
-      internalValue.value = system ? system : undefined
+    set(system: string | string[]) {
+      if (Array.isArray(system)) {
+        internalValue.value = system
+      } else if (system) {
+        internalValue.value = [system]
+      } else {
+        internalValue.value = []
+      }
     },
   })
 
-  const isEvent = computed((): boolean => {
-    return isEventSystem(activeSystem.value)
-  })
+  function syncQuery() {
+    useRouteQuery().sync({
+      fromQuery(params) {
+        const system = params.system
+        if (system) {
+          activeSystem.value = system
+        } else {
+          // Reset so we can pick a new system from the list later.
+          activeSystem.value = []
+        }
+      },
+      toQuery() {
+        if (activeSystem.value.length) {
+          return { system: activeSystem.value }
+        }
+      },
+    })
+  }
 
   function axiosParams() {
     return {
@@ -83,26 +94,19 @@ export function useSystems(params: () => Record<string, any>) {
     }
   }
 
-  function change(system: string): void {
-    activeSystem.value = system
-  }
-
   function reset(): void {
-    activeSystem.value = undefined
+    activeSystem.value = []
   }
 
   return proxyRefs({
     loading,
-
     items: systems,
     hasNoData,
-
     activeSystem,
-    isEvent,
 
+    syncQuery,
     axiosParams,
     queryParams,
-    change,
     reset,
   })
 }
@@ -125,15 +129,12 @@ function addDummySystems(systems: System[]): System[] {
     const typeSys = typeMap[typ]
     if (typeSys) {
       typeSys.rate += sys.rate
-      typeSys.numChildren!++
       continue
     }
 
     typeMap[typ] = {
       ...sys,
       system: typ,
-      dummy: true,
-      numChildren: 1,
     }
   }
 
@@ -142,43 +143,10 @@ function addDummySystems(systems: System[]): System[] {
     systems.push({
       ...sys,
       system: sys.system + ':all',
-      text: sys.system + ':all',
     })
   }
 
   systems = orderBy(systems, 'system')
-
-  return systems
-}
-
-export function buildSystemsTree(rawSystems: System[]): SystemTreeNode[] {
-  let systems = cloneDeep(rawSystems) as SystemTreeNode[]
-  systems = systems.filter((sys) => sys.numChildren !== 1)
-
-  systems.slice(0).forEach((sys) => {
-    if (!sys.system.endsWith(':all')) {
-      return
-    }
-
-    const children = []
-
-    const prefix = sys.system.slice(0, -SystemName.all.length)
-    for (let j = systems.length - 1; j >= 0; j--) {
-      const child = systems[j]
-      if (child.system == sys.system) {
-        continue
-      }
-
-      if (child.system.startsWith(prefix)) {
-        systems.splice(j, 1)
-        children.push(child)
-      }
-    }
-
-    if (children.length) {
-      sys.children = children
-    }
-  })
 
   return systems
 }

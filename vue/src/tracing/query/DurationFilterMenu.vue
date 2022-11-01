@@ -54,7 +54,7 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 import { UseUql } from '@/use/uql'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'DurationFilterMenu',

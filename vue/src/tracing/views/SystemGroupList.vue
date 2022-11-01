@@ -26,7 +26,7 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
-import { UseSystems } from '@/tracing/use-systems'
+import { UseSystems } from '@/tracing/system/use-systems'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseEnvs, UseServices } from '@/tracing/use-quick-span-filters'
@@ -37,7 +37,7 @@ import { useSpanExplore } from '@/tracing/use-span-explore'
 import GroupsTable from '@/tracing/GroupsTable.vue'
 
 // Utilities
-import { AttrKey, isEventSystem } from '@/models/otelattr'
+import { AttrKey, isEventSystem } from '@/models/otel'
 
 export default defineComponent({
   name: 'SystemGroupList',

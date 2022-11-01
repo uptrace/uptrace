@@ -19,6 +19,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/sqlparser"
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
 	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
+	"github.com/uptrace/uptrace/pkg/utf8util"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"go.uber.org/zap"
@@ -67,12 +68,15 @@ func initSpanOrEvent(ctx *spanContext, span *Span) {
 	initSpanAttrs(ctx, span)
 	if span.EventName != "" {
 		assignEventSystemAndGroupID(ctx, project, span)
+		span.EventName = utf8util.TruncMedium(span.EventName)
 	} else {
 		assignSpanSystemAndGroupID(ctx, project, span)
+		span.Name = utf8util.TruncMedium(span.Name)
 		if span.Name == "" {
 			span.Name = "<empty>"
 		}
 	}
+	span.System = utf8util.TruncSmall(span.System)
 }
 
 func initSpanAttrs(ctx *spanContext, span *Span) {

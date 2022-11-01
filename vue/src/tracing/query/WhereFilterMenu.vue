@@ -143,7 +143,7 @@ import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { AxiosParams } from '@/use/axios'
-import { UseSystems } from '@/tracing/use-systems'
+import { UseSystems } from '@/tracing/system/use-systems'
 import { useSuggestions, Suggestion } from '@/use/suggestions'
 import { UseUql } from '@/use/uql'
 
@@ -155,7 +155,7 @@ import AttrFilterMenu from '@/tracing/query/AttrFilterMenu.vue'
 // Utilities
 import { requiredRule } from '@/util/validation'
 import { quote } from '@/util/string'
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 
 const compOp = {
   contains: 'contains',

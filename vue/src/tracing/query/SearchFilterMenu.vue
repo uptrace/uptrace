@@ -64,7 +64,7 @@ import { useRouter } from '@/use/router'
 import { UseUql } from '@/use/uql'
 
 // Utilities
-import { AttrKey, SystemName } from '@/models/otelattr'
+import { AttrKey, SystemName } from '@/models/otel'
 import { quote } from '@/util/string'
 
 export default defineComponent({

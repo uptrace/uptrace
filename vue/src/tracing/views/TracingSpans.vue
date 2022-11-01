@@ -31,12 +31,11 @@
 
               <SpansTable
                 :date-range="dateRange"
+                :events-mode="eventsMode"
                 :loading="spans.loading"
                 :spans="spans.items"
-                :is-event="systems.isEvent"
                 :order="spans.order"
                 :pager="spans.pager"
-                :system="systems.activeSystem"
                 @click:chip="onChipClick"
               />
             </v-col>
@@ -55,7 +54,7 @@ import { defineComponent, computed, watch, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { UseSystems } from '@/tracing/use-systems'
+import { UseSystems } from '@/tracing/system/use-systems'
 import { useUql } from '@/use/uql'
 import { useSpans } from '@/tracing/use-spans'
 
@@ -67,7 +66,7 @@ import { SpanChip } from '@/tracing/SpanChips.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'TracingSpans',
@@ -80,6 +79,10 @@ export default defineComponent({
     },
     systems: {
       type: Object as PropType<UseSystems>,
+      required: true,
+    },
+    eventsMode: {
+      type: Boolean,
       required: true,
     },
     query: {
@@ -119,7 +122,7 @@ export default defineComponent({
     )
 
     watch(
-      () => props.systems.isEvent,
+      () => props.eventsMode,
       (isEvent) => {
         spans.order.column = isEvent ? AttrKey.spanTime : AttrKey.spanDuration
         spans.order.desc = true

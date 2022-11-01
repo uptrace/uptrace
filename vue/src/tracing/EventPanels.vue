@@ -24,7 +24,7 @@ import { UseDateRange } from '@/use/date-range'
 import EventPanelContent from '@/tracing/EventPanelContent.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 import { Span } from '@/models/span'
 
 export default defineComponent({

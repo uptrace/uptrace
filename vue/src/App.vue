@@ -128,7 +128,7 @@ import Search from '@/components/Search.vue'
 import XSnackbar from '@/components/XSnackbar.vue'
 
 // Utilities
-import { SystemName } from '@/models/otelattr'
+import { SystemName } from '@/models/otel'
 
 export default defineComponent({
   name: 'App',

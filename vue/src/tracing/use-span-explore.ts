@@ -9,7 +9,7 @@ import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
 import { QueryPart } from '@/use/uql'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 
 export interface ColumnInfo {
   name: string

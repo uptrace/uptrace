@@ -36,7 +36,7 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 import { AttrMap, Span } from '@/models/span'
 
 export interface SpanChip {

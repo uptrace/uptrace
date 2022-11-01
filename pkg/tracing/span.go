@@ -240,7 +240,7 @@ func newFakeRoot(spans []*Span) *Span {
 //------------------------------------------------------------------------------
 
 func isEventSystem(s string) bool {
-	if s == SystemAllEvents {
+	if s == SystemEventsAll {
 		return true
 	}
 	if idx := strings.IndexByte(s, ':'); idx >= 0 {

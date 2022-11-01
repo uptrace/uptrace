@@ -197,7 +197,6 @@ func (h *SystemHandler) selectServicesGroups(
 	ctx context.Context, f *SystemFilter,
 ) ([]map[string]any, error) {
 	tableName, groupPeriod := spanServiceTableInterval(h.App, &f.TimeFilter, org.CompactGroupPeriod)
-	isEvent := isEventSystem(f.System)
 
 	subq := h.CH.NewSelect().
 		ColumnExpr("service AS attr").
@@ -211,7 +210,7 @@ func (h *SystemHandler) selectServicesGroups(
 		OrderExpr("attr, time_ ASC").
 		Limit(10000)
 
-	if !isEvent {
+	if !f.isEventSystem() {
 		subq = subq.WithAlias("dur_tdigest_state",
 			"quantilesTDigestWeightedMergeState(0.5, 0.9, 0.99, 1)(tdigest)").
 			WithAlias("qsNaN", "finalizeAggregation(dur_tdigest_state)").
@@ -237,7 +236,7 @@ func (h *SystemHandler) selectServicesGroups(
 		Order("attr").
 		Limit(1000)
 
-	if !isEvent {
+	if !f.isEventSystem() {
 		q = q.WithAlias("qsNaN", "quantilesTDigestWeightedMerge(0.5, 0.9, 0.99)(dur_tdigest_state)").
 			WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
 			ColumnExpr("sum(stats__errorCount) AS errorCount").
@@ -287,7 +286,6 @@ func (h *SystemHandler) selectHosts(
 	ctx context.Context, f *SystemFilter,
 ) ([]map[string]any, error) {
 	tableName, groupPeriod := spanHostTableInterval(h.App, &f.TimeFilter, org.CompactGroupPeriod)
-	isEvent := isEventSystem(f.System)
 
 	subq := h.CH.NewSelect().
 		ColumnExpr("host_name AS attr").
@@ -300,7 +298,7 @@ func (h *SystemHandler) selectHosts(
 		GroupExpr("attr, time_").
 		OrderExpr("attr, time_ ASC")
 
-	if !isEvent {
+	if !f.isEventSystem() {
 		subq = subq.WithAlias("dur_tdigest_state",
 			"quantilesTDigestWeightedMergeStateOrDefault(0.5, 0.9, 0.99, 1)(tdigest)").
 			WithAlias("qsNaN", "finalizeAggregation(dur_tdigest_state)").
@@ -326,7 +324,7 @@ func (h *SystemHandler) selectHosts(
 		Order("attr").
 		Limit(1000)
 
-	if !isEvent {
+	if !f.isEventSystem() {
 		q = q.WithAlias("qsNaN",
 			"quantilesTDigestWeightedMergeOrDefault(0.5, 0.9, 0.99)(dur_tdigest_state)").
 			WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
@@ -377,7 +375,6 @@ func (h *SystemHandler) selectGroups(
 	ctx context.Context, f *SystemFilter, attrKey string,
 ) ([]map[string]any, error) {
 	groupPeriod := org.GroupPeriod(f.TimeGTE, f.TimeLT)
-	isEvent := isEventSystem(f.System)
 
 	subq := NewSpanIndexQuery(h.App).
 		ColumnExpr("? AS attr", CHAttrExpr(attrKey)).
@@ -389,9 +386,8 @@ func (h *SystemHandler) selectGroups(
 		GroupExpr("attr, time_").
 		OrderExpr("attr, time_ ASC")
 
-	if !isEvent {
+	if !f.isEventSystem() {
 		subq = subq.
-			// no need to use sample factor here
 			WithAlias(
 				"dur_tdigest_state",
 				"quantilesTDigestWeightedStateIf(0.5, 0.9, 0.99)(toFloat32(duration), toUInt32(count), duration > 0)",
@@ -419,7 +415,7 @@ func (h *SystemHandler) selectGroups(
 		Order("attr").
 		Limit(1000)
 
-	if !isEvent {
+	if !f.isEventSystem() {
 		q = q.
 			WithAlias(
 				"qsNaN",

@@ -111,7 +111,7 @@ import ThOrder from '@/components/ThOrder.vue'
 import SparklineChart from '@/components/SparklineChart.vue'
 
 // Utilities
-import { isEventSystem } from '@/models/otelattr'
+import { isEventSystem } from '@/models/otel'
 import { Unit } from '@/util/fmt'
 import { quote } from '@/util/string'
 

@@ -61,8 +61,8 @@ export enum AttrKey {
 
 export enum SystemName {
   all = 'all',
-  allEvents = 'all:events',
-  allSpans = 'all:spans',
+  eventsAll = 'events:all',
+  spansAll = 'spans:all',
 
   funcs = 'funcs',
   exceptions = 'exceptions',
@@ -86,7 +86,7 @@ export function isEventSystem(system: string | undefined): boolean {
     return false
   }
   return (
-    system === SystemName.allEvents ||
+    system === SystemName.eventsAll ||
     isErrorSystem(system) ||
     system === SystemName.otherEvents ||
     system.startsWith(SystemName.logPrefix) ||
