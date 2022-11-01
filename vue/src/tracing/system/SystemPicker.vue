@@ -161,19 +161,6 @@ export default defineComponent({
       return item.system
     }
 
-    function updateSystems(systems: string[]) {
-      let changed: string[]
-      if (systems.length < props.value.length) {
-        changed = props.value.filter((system) => !systems.includes(system))
-      } else {
-        changed = systems.filter((system) => !props.value.includes(system))
-      }
-      console.log(changed)
-      changed.forEach((system) => {
-        toggleSystem(system)
-      })
-    }
-
     function toggleSystem(system: string) {
       let activeSystems = props.value.slice() as string[]
       const index = activeSystems.indexOf(system)
@@ -225,7 +212,6 @@ export default defineComponent({
       searchInput,
       filteredItems,
       comma,
-      updateSystems,
       toggleSystem,
     }
   },
