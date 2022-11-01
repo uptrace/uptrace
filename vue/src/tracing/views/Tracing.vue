@@ -5,7 +5,7 @@
     </template>
 
     <div class="border">
-      <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
+      <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pb-0">
         <v-row align="center" justify="space-between" class="mb-4">
           <v-col class="d-flex align-center">
             <div class="mr-4">
@@ -36,7 +36,7 @@
       </v-container>
     </div>
 
-    <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pt-2">
+    <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pt-2">
       <router-view
         :date-range="dateRange"
         :systems="systems"
