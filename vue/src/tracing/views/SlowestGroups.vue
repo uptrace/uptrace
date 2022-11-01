@@ -31,7 +31,7 @@
 import { defineComponent, shallowRef, watch, computed, PropType } from 'vue'
 
 // Composables
-import { UseSystems } from '@/tracing/use-systems'
+import { UseSystems } from '@/tracing/system/use-systems'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseEnvs, UseServices } from '@/tracing/use-quick-span-filters'
@@ -43,7 +43,7 @@ import { useUql } from '@/use/uql'
 import GroupsTable from '@/tracing/GroupsTable.vue'
 
 // Utilities
-import { AttrKey, SystemName } from '@/models/otelattr'
+import { AttrKey, SystemName } from '@/models/otel'
 
 export default defineComponent({
   name: 'SlowestGroups',
@@ -70,7 +70,7 @@ export default defineComponent({
 
   setup(props) {
     const { route } = useRouter()
-    const system = SystemName.allSpans
+    const system = SystemName.spansAll
     const query = exploreAttr(AttrKey.spanGroupId)
 
     const activeColumns = shallowRef<string[]>([])

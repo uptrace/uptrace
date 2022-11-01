@@ -20,7 +20,7 @@ import { useRouter } from '@/use/router'
 import { createUqlEditor } from '@/use/uql'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 
 const TRACE_ID_RE = /^[0-9A-Fa-f]{32}$/
 

@@ -10,9 +10,8 @@
           <v-col class="d-flex align-center">
             <div class="mr-4">
               <SystemPicker
-                v-if="systemsItems.length"
-                :date-range="dateRange"
-                :systems="systems"
+                v-model="systems.activeSystem"
+                :loading="systems.loading"
                 :items="systemsItems"
                 :all-system="allSystem"
               />
@@ -41,6 +40,7 @@
       <router-view
         :date-range="dateRange"
         :systems="systems"
+        :events-mode="eventsMode"
         :query="query"
         :span-list-route="spanListRoute"
         :group-list-route="groupListRoute"
@@ -58,11 +58,11 @@ import { useRouter, useRoute } from '@/use/router'
 import { useTitle } from '@vueuse/core'
 import { UseDateRange } from '@/use/date-range'
 import { useUser } from '@/use/org'
-import { useSystems, SystemsFilter } from '@/tracing/use-systems'
+import { useSystems, SystemsFilter } from '@/tracing/system/use-systems'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
-import SystemPicker from '@/tracing/SystemPicker.vue'
+import SystemPicker from '@/tracing/system/SystemPicker.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
 
 interface Props {
@@ -83,6 +83,18 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
+    systemsFilter: {
+      type: Function as PropType<SystemsFilter>,
+      default: undefined,
+    },
+    allSystem: {
+      type: String,
+      required: true,
+    },
+    eventsMode: {
+      type: Boolean,
+      required: true,
+    },
     query: {
       type: String,
       required: true,
@@ -92,14 +104,6 @@ export default defineComponent({
       required: true,
     },
     groupListRoute: {
-      type: String,
-      required: true,
-    },
-    systemsFilter: {
-      type: Function as PropType<SystemsFilter>,
-      default: undefined,
-    },
-    allSystem: {
       type: String,
       required: true,
     },
@@ -118,6 +122,7 @@ export default defineComponent({
         ...props.dateRange.axiosParams(),
       }
     })
+    systems.syncQuery()
 
     const systemsItems = computed(() => {
       if (props.systemsFilter) {

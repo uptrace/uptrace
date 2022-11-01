@@ -68,7 +68,7 @@ import SimpleSuggestions from '@/components/SimpleSuggestions.vue'
 import UqlChip from '@/components/UqlChip.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 import { requiredRule } from '@/util/validation'
 
 const groupColumns = [

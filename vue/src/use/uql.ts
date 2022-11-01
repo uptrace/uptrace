@@ -4,7 +4,7 @@ import { shallowRef, reactive, computed, proxyRefs } from 'vue'
 import { useRouteQuery } from '@/use/router'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 import { quote, escapeRe } from '@/util/string'
 
 const QUERY_PART_SEP = ' | '

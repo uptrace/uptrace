@@ -2,9 +2,9 @@
   <div>
     <SpansTable
       :date-range="dateRange"
+      :events-mode="eventsMode"
       :loading="spans.loading"
       :spans="spans.items"
-      :is-event="isEvent"
       :order="spans.order"
       :pager="spans.pager"
       class="mb-4"
@@ -29,7 +29,7 @@ import SpansTable from '@/tracing/SpansTable.vue'
 import { SpanChip } from '@/tracing/SpanChips.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'SpanListInline',
@@ -40,13 +40,13 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
+    eventsMode: {
+      type: Boolean,
+      required: true,
+    },
     uql: {
       type: Object as PropType<UseUql>,
       default: undefined,
-    },
-    isEvent: {
-      type: Boolean,
-      required: true,
     },
     axiosParams: {
       type: Object as PropType<Record<string, any>>,
@@ -81,9 +81,9 @@ export default defineComponent({
     })
 
     watch(
-      () => props.isEvent,
-      (isEvent) => {
-        spans.order.column = isEvent ? AttrKey.spanTime : AttrKey.spanDuration
+      () => props.eventsMode,
+      (eventsMode) => {
+        spans.order.column = eventsMode ? AttrKey.spanTime : AttrKey.spanDuration
       },
       { immediate: true },
     )

@@ -8,8 +8,8 @@ import (
 
 const (
 	SystemAll       = "all"
-	SystemAllEvents = "all:events"
-	SystemAllSpans  = "all:spans"
+	SystemEventsAll = "events:all"
+	SystemSpansAll  = "spans:all"
 
 	SystemSpanFuncs     = "funcs"
 	SystemSpanHTTP      = "http"

@@ -63,7 +63,7 @@
 
             <GroupsTable
               :date-range="dateRange"
-              :systems="systems"
+              :events-mode="eventsMode"
               :uql="uql"
               :loading="explore.loading"
               :items="explore.pageItems"
@@ -72,6 +72,7 @@
               :plot-columns="activeColumns"
               :order="explore.order"
               :axios-params="axiosParams"
+              :show-system="showSystem"
             />
           </v-card-text>
         </v-card>
@@ -88,7 +89,7 @@ import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { UseSystems } from '@/tracing/use-systems'
+import { UseSystems } from '@/tracing/system/use-systems'
 import { useUql } from '@/use/uql'
 import { useSpanExplore } from '@/tracing/use-span-explore'
 
@@ -108,6 +109,10 @@ export default defineComponent({
     },
     systems: {
       type: Object as PropType<UseSystems>,
+      required: true,
+    },
+    eventsMode: {
+      type: Boolean,
       required: true,
     },
     query: {
@@ -142,6 +147,21 @@ export default defineComponent({
         url: `/api/v1/tracing/${projectId}/groups`,
         params: axiosParams.value,
       }
+    })
+
+    const showSystem = computed(() => {
+      if (route.value.params.eventSystem) {
+        return false
+      }
+
+      const systems = props.systems.activeSystem
+      if (systems.length > 1) {
+        return true
+      }
+      if (systems.length === 1) {
+        return systems[0].endsWith(':all')
+      }
+      return false
     })
 
     watch(
@@ -182,6 +202,7 @@ export default defineComponent({
       uql,
       axiosParams,
       explore,
+      showSystem,
 
       resetQuery,
     }

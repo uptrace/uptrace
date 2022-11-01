@@ -109,7 +109,7 @@ import TraceTabs from '@/tracing/TraceTabs.vue'
 import TraceError from '@/tracing/TraceError.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 import { eventOrSpanName } from '@/models/span'
 
 export default defineComponent({

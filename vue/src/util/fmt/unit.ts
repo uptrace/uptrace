@@ -1,4 +1,4 @@
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 
 export enum Unit {
   None = '',

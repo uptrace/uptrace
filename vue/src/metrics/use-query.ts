@@ -10,7 +10,7 @@ import { QueryPart } from '@/use/uql'
 
 // Utilities
 import { eChart as colorSet } from '@/util/colorscheme'
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 import { escapeRe } from '@/util/string'
 
 // Types

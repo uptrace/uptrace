@@ -1,7 +1,7 @@
 import colors, { Color } from 'vuetify/lib/util/colors'
 
 // Utilities
-import { AttrKey, SystemName } from '@/models/otelattr'
+import { AttrKey, SystemName } from '@/models/otel'
 import { walkTree, Tree } from '@/models/tree'
 
 interface SystemColor {

@@ -33,7 +33,7 @@ import { defineComponent, PropType } from 'vue'
 
 // Composables
 import { AxiosParams } from '@/use/axios'
-import { UseSystems } from '@/tracing/use-systems'
+import { UseSystems } from '@/tracing/system/use-systems'
 import { UseUql } from '@/use/uql'
 
 // Components
@@ -46,7 +46,7 @@ import GroupByMenu from '@/tracing/query/GroupByMenu.vue'
 import SpanQueryHelpDialog from '@/tracing/query/SpanQueryHelpDialog.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'SpanQueryBuilder',

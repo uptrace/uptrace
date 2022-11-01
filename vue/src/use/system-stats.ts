@@ -8,7 +8,7 @@ import { useOrder } from '@/use/order'
 import { useWatchAxios } from '@/use/watch-axios'
 
 // Utilities
-import { splitTypeSystem } from '@/models/otelattr'
+import { splitTypeSystem } from '@/models/otel'
 
 export interface OverviewItem {
   system: string

@@ -134,7 +134,7 @@ import AttrsTable from '@/tracing/AttrsTable.vue'
 import EventPanels from '@/tracing/EventPanels.vue'
 
 // Utilities
-import { AttrKey, isEventSystem } from '@/models/otelattr'
+import { AttrKey, isEventSystem } from '@/models/otel'
 import { spanName, eventOrSpanName, Span } from '@/models/span'
 
 interface Props {

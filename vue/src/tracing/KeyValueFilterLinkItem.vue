@@ -27,7 +27,7 @@ import { UseDateRange } from '@/use/date-range'
 import { buildWhere, exploreAttr } from '@/use/uql'
 
 // Utilities
-import { AttrKey, isEventSystem } from '@/models/otelattr'
+import { AttrKey, isEventSystem } from '@/models/otel'
 import { truncateMiddle } from '@/util/string'
 import { createFormatter, unitFromName } from '@/util/fmt'
 

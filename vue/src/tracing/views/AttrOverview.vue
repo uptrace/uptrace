@@ -6,9 +6,8 @@
         <v-toolbar-items class="ml-5">
           <v-col align-self="center">
             <SystemPicker
-              v-if="systems.items.length"
-              :date-range="dateRange"
-              :systems="systems"
+              v-model="systems.activeSystem"
+              :loading="systems.loading"
               :items="systems.items"
               :all-system="SystemName.all"
               outlined
@@ -44,16 +43,16 @@ import { defineComponent, computed, PropType } from 'vue'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseEnvs, UseServices } from '@/tracing/use-quick-span-filters'
-import { UseSystems } from '@/tracing/use-systems'
+import { UseSystems } from '@/tracing/system/use-systems'
 import { createUqlEditor } from '@/use/uql'
 import { useOverview } from '@/tracing/use-overview'
 
 // Components
-import SystemPicker from '@/tracing/SystemPicker.vue'
+import SystemPicker from '@/tracing/system/SystemPicker.vue'
 import OverviewTable from '@/tracing/overview/OverviewTable.vue'
 
 // Utilities
-import { SystemName } from '@/models/otelattr'
+import { SystemName } from '@/models/otel'
 
 export default defineComponent({
   name: 'AttrOverview',
@@ -101,7 +100,7 @@ export default defineComponent({
 
     const groupListRoute = computed(() => {
       return {
-        name: props.systems.isEvent ? 'EventGroupList' : 'SpanGroupList',
+        name: 'SpanGroupList',
         query: {
           ...route.value.query,
           ...props.systems.queryParams(),

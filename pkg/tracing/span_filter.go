@@ -2,7 +2,6 @@ package tracing
 
 import (
 	"context"
-	"errors"
 	"net/url"
 	"strings"
 	"time"
@@ -52,9 +51,6 @@ func (f *SpanFilter) UnmarshalValues(ctx context.Context, values url.Values) err
 	}
 	if err := f.Pager.UnmarshalValues(ctx, values); err != nil {
 		return err
-	}
-	if f.System == "" {
-		return errors.New("'system' query param is required")
 	}
 	return nil
 }

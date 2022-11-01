@@ -136,7 +136,7 @@ import DashGrid from '@/metrics/DashGrid.vue'
 import DashGauge from '@/metrics/DashGauge.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 
 interface Props {
   dashboard: UseDashboard

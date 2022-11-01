@@ -57,13 +57,13 @@ import colors from 'vuetify/lib/util/colors'
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
-import { System } from '@/tracing/use-systems'
+import { System } from '@/tracing/system/use-systems'
 
 // Components
-import SystemQuickMetricCard from '@/tracing/overview/SystemQuickMetricCard.vue'
+import SystemQuickMetricCard from '@/tracing/system/SystemQuickMetricCard.vue'
 
 // Utilities
-import { AttrKey, isEventSystem } from '@/models/otelattr'
+import { AttrKey, isEventSystem } from '@/models/otel'
 import { Unit } from '@/util/fmt'
 
 export default defineComponent({
@@ -125,7 +125,7 @@ export default defineComponent({
       }
 
       for (let system of props.systems) {
-        if (system.dummy) {
+        if (system.system.endsWith(':all')) {
           continue
         }
 

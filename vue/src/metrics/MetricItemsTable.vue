@@ -69,7 +69,7 @@ import SparklineChart from '@/components/SparklineChart.vue'
 import MetricItemsTableRow from '@/metrics/MetricItemsTableRow.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otelattr'
+import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'MetricItemsTable',

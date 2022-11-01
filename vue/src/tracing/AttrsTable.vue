@@ -47,7 +47,7 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Utilities
-import { AttrKey, isEventSystem } from '@/models/otelattr'
+import { AttrKey, isEventSystem } from '@/models/otel'
 import { Span } from '@/models/span'
 
 // Composables
