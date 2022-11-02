@@ -4,6 +4,7 @@
       <thead v-if="spans.length" class="v-data-table-header">
         <tr>
           <th>Span Name</th>
+          <th v-if="showSystem">System</th>
           <th></th>
           <ThOrder v-for="col in columns" :key="col" :value="col" :order="order">
             <span>{{ col }}</span>
@@ -41,6 +42,11 @@
             <td>
               <span>{{ eventOrSpanName(span) }}</span>
             </td>
+            <td v-if="showSystem">
+              <router-link :to="systemRoute(span)" @click.native.stop>{{
+                span.system
+              }}</router-link>
+            </td>
             <td>
               <SpanChips
                 :span="span"
@@ -69,7 +75,7 @@
 import { defineComponent, shallowRef, nextTick, proxyRefs, PropType } from 'vue'
 
 // Composables
-import { useRouteQuery } from '@/use/router'
+import { useRoute, useRouteQuery } from '@/use/router'
 import { UsePager } from '@/use/pager'
 import { UseOrder } from '@/use/order'
 import { UseDateRange } from '@/use/date-range'
@@ -120,14 +126,28 @@ export default defineComponent({
       type: Array as PropType<string[]>,
       default: () => [],
     },
+    showSystem: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   setup(props) {
+    const route = useRoute()
     const dialog = useDialog()
 
     useRouteQuery().onRouteUpdated(() => {
       dialog.close()
     })
+
+    function systemRoute(span: Span) {
+      return {
+        query: {
+          ...route.value.query,
+          system: span.system,
+        },
+      }
+    }
 
     function onSortBy() {
       nextTick(() => {
@@ -140,6 +160,7 @@ export default defineComponent({
       dialog,
 
       eventOrSpanName,
+      systemRoute,
       onSortBy,
     }
   },

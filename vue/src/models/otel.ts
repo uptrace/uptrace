@@ -1,7 +1,4 @@
 export enum AttrKey {
-  allSystem = 'all',
-  internalSystem = 'internal',
-
   itemId = 'item.id',
   itemName = 'item.name',
   itemQuery = 'item.query',
@@ -84,8 +81,10 @@ export enum SystemName {
 }
 
 export function isDummySystem(system: string | undefined): boolean {
-  const [type, sys] = splitTypeSystem(system)
-  return type === AttrKey.allSystem || sys === AttrKey.allSystem
+  if (!system) {
+    return false
+  }
+  return system === SystemName.all || system.endsWith(':all')
 }
 
 export function isEventSystem(system: string | undefined): boolean {
@@ -123,8 +122,8 @@ export function splitTypeSystem(s: string | undefined): [string, string] {
 
   const i = s.indexOf(':')
   if (i >= 0) {
-    if (s.slice(i + 1) === AttrKey.allSystem) {
-      return [s.slice(0, i), AttrKey.allSystem]
+    if (s.slice(i + 1) === SystemName.all) {
+      return [s.slice(0, i), SystemName.all]
     }
     return [s.slice(0, i), s]
   }

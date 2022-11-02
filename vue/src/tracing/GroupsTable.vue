@@ -227,15 +227,14 @@ export default defineComponent({
     })
 
     const customColumns = computed(() => {
-      const blacklist = [AttrKey.spanSystem, `max(${AttrKey.spanTime})`]
-      if (hasGroupName.value) {
-        blacklist.push(AttrKey.spanGroupId, AttrKey.spanName)
+      if (!hasGroupName.value) {
+        return props.columns
       }
 
+      const blacklist = [AttrKey.spanSystem, AttrKey.spanGroupId, AttrKey.spanName]
       const columns = props.columns.filter((col) => {
-        return blacklist.indexOf(col.name) === -1
+        return blacklist.indexOf(col.name as AttrKey) === -1
       })
-
       return columns
     })
 

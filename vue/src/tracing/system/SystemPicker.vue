@@ -60,7 +60,7 @@ import { useRoute } from '@/use/router'
 import { System } from '@/tracing/system/use-systems'
 
 // Utilities
-import { splitTypeSystem } from '@/models/otel'
+import { splitTypeSystem, isDummySystem } from '@/models/otel'
 
 export default defineComponent({
   name: 'SystemPicker',
@@ -109,7 +109,7 @@ export default defineComponent({
         errorPct: 0,
       }
       for (let item of items) {
-        if (!item.system.endsWith(':all')) {
+        if (!isDummySystem(item.system)) {
           allSystem.count += item.count
           allSystem.rate += item.rate
           allSystem.errorCount += item.errorCount

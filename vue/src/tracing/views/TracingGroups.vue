@@ -98,6 +98,8 @@ import UptraceQuery from '@/components/UptraceQuery.vue'
 import SpanQueryBuilder from '@/tracing/query/SpanQueryBuilder.vue'
 import GroupsTable from '@/tracing/GroupsTable.vue'
 
+import { isDummySystem } from '@/models/otel'
+
 export default defineComponent({
   name: 'TracingGroups',
   components: { UptraceQuery, SpanQueryBuilder, GroupsTable },
@@ -159,7 +161,7 @@ export default defineComponent({
         return true
       }
       if (systems.length === 1) {
-        return systems[0].endsWith(':all')
+        return isDummySystem(systems[0])
       }
       return false
     })

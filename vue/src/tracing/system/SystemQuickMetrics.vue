@@ -31,7 +31,7 @@ import { System } from '@/tracing/system/use-systems'
 import SystemQuickMetricCard from '@/tracing/system/SystemQuickMetricCard.vue'
 
 // Utilities
-import { AttrKey, isEventSystem } from '@/models/otel'
+import { isEventSystem, isDummySystem, AttrKey } from '@/models/otel'
 import { Unit } from '@/util/fmt'
 
 export default defineComponent({
@@ -103,7 +103,7 @@ export default defineComponent({
       }
 
       for (let system of props.systems) {
-        if (system.system.endsWith(':all')) {
+        if (isDummySystem(system.system)) {
           continue
         }
 
