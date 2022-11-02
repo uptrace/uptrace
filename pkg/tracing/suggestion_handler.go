@@ -9,6 +9,7 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/tracing/upql"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -57,6 +58,15 @@ func NewSuggestionHandler(app *bunapp.App) *SuggestionHandler {
 	}
 }
 
+var spanKeys = []string{
+	attrkey.SpanSystem,
+	attrkey.SpanKind,
+	attrkey.SpanName,
+	attrkey.SpanEventName,
+	attrkey.SpanStatusCode,
+	attrkey.SpanStatusMessage,
+}
+
 func (h *SuggestionHandler) Attributes(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
@@ -66,10 +76,11 @@ func (h *SuggestionHandler) Attributes(w http.ResponseWriter, req bunrouter.Requ
 	}
 	disableColumnsAndGroups(f.parts)
 
-	attrKeys, err := selectAttrKeys(ctx, h.App, f)
+	attrKeys, err := h.selectAttrKeys(ctx, f)
 	if err != nil {
 		return err
 	}
+	attrKeys = append(attrKeys, spanKeys...)
 
 	suggestions := make([]Suggestion, len(attrKeys))
 	for i, key := range attrKeys {
@@ -82,9 +93,9 @@ func (h *SuggestionHandler) Attributes(w http.ResponseWriter, req bunrouter.Requ
 	})
 }
 
-func selectAttrKeys(ctx context.Context, app *bunapp.App, f *SpanFilter) ([]string, error) {
+func (h *SuggestionHandler) selectAttrKeys(ctx context.Context, f *SpanFilter) ([]string, error) {
 	keys := make([]string, 0)
-	if err := buildSpanIndexQuery(app, f, 0).
+	if err := buildSpanIndexQuery(h.App, f, 0).
 		ColumnExpr("groupUniqArrayArray(1000)(s.all_keys)").
 		Scan(ctx, &keys); err != nil {
 		return nil, err
@@ -104,9 +115,24 @@ func (h *SuggestionHandler) Values(w http.ResponseWriter, req bunrouter.Request)
 	if f.AttrKey == "" {
 		return fmt.Errorf(`"attr_key" query param is required`)
 	}
+
 	colName, err := upql.ParseName(f.AttrKey)
 	if err != nil {
 		return err
+	}
+
+	for _, part := range f.parts {
+		ast, ok := part.AST.(*upql.Where)
+		if !ok {
+			continue
+		}
+
+		for i := len(ast.Conds) - 1; i >= 0; i-- {
+			cond := &ast.Conds[i]
+			if cond.Left == colName {
+				ast.Conds = append(ast.Conds[:i], ast.Conds[i+1:]...)
+			}
+		}
 	}
 
 	q := buildSpanIndexQuery(h.App, f, 0)

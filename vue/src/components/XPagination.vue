@@ -1,10 +1,14 @@
 <template>
   <v-row v-if="pager.numPage > 1" align="center" justify="space-between" no-gutters>
-    <v-col cols="2"></v-col>
+    <v-col v-if="showPager" cols="3"></v-col>
     <v-col>
-      <v-pagination v-model="pager.page" :total-visible="7" :length="pager.numPage"></v-pagination>
+      <v-pagination
+        v-model="pager.page"
+        :total-visible="totalVisible"
+        :length="pager.numPage"
+      ></v-pagination>
     </v-col>
-    <v-col cols="2" class="text-right">
+    <v-col v-if="showPager" cols="3" class="text-right">
       <XPager v-if="pager.numItem" :pager="pager" without-prev-next />
     </v-col>
   </v-row>
@@ -27,6 +31,14 @@ export default defineComponent({
     pager: {
       type: Object as PropType<UsePager>,
       required: true,
+    },
+    totalVisible: {
+      type: [String, Number],
+      default: 7,
+    },
+    showPager: {
+      type: Boolean,
+      default: true,
     },
   },
 })

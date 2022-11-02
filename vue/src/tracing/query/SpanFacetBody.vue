@@ -23,7 +23,7 @@
       </v-list-item>
     </v-list>
 
-    <XPagination v-if="pager.numPage > 1" :pager="pager" total-visible="5" :show-pager="false" />
+    <XPagination v-if="pager.numPage > 1" :pager="pager" :show-pager="false" />
   </v-card>
 </template>
 

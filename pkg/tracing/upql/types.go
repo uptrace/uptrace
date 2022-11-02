@@ -58,8 +58,9 @@ type CondSep struct {
 }
 
 type Value struct {
-	Kind ValueKind
-	Text string
+	Kind   ValueKind
+	Text   string
+	Values []string
 }
 
 func (v *Value) IsNum() bool {
@@ -73,6 +74,16 @@ func (v *Value) IsNum() bool {
 
 func (v *Value) Append(b []byte) []byte {
 	switch v.Kind {
+	case ArrayValue:
+		b = append(b, '(')
+		for i, str := range v.Values {
+			if i > 0 {
+				b = append(b, ',')
+			}
+			b = chschema.AppendString(b, str)
+		}
+		b = append(b, ')')
+		return b
 	case StringValue:
 		return chschema.AppendString(b, v.Text)
 	case NumberValue:
@@ -95,6 +106,7 @@ const (
 	StringValue
 	NumberValue
 	DurationValue
+	ArrayValue
 )
 
 type ValueKind int
@@ -107,6 +119,8 @@ func (k ValueKind) String() string {
 		return "number"
 	case DurationValue:
 		return "duration"
+	case ArrayValue:
+		return "array"
 	default:
 		return "invalid"
 	}
@@ -131,6 +145,7 @@ const (
 const (
 	EqualOp    string = "="
 	NotEqualOp string = "!="
+	InOp       string = "in"
 
 	ContainsOp       string = "contains"
 	DoesNotContainOp string = "does not contain"
