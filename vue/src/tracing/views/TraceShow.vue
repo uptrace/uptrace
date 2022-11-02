@@ -109,7 +109,7 @@ import TraceTabs from '@/tracing/TraceTabs.vue'
 import TraceError from '@/tracing/TraceError.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otel'
+import { AttrKey, SystemName } from '@/models/otel'
 import { eventOrSpanName } from '@/models/span'
 
 export default defineComponent({
@@ -165,7 +165,7 @@ export default defineComponent({
         name: 'SpanGroupList',
         query: {
           ...dateRange.queryParams(),
-          system: AttrKey.allSystem,
+          system: SystemName.spansAll,
           query: [
             `where ${AttrKey.spanTraceId} = ${trace.root.traceId}`,
             `group by ${AttrKey.spanGroupId}`,

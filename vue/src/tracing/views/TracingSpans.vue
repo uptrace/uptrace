@@ -36,6 +36,7 @@
                 :spans="spans.items"
                 :order="spans.order"
                 :pager="spans.pager"
+                :show-system="showSystem"
                 @click:chip="onChipClick"
               />
             </v-col>
@@ -66,7 +67,7 @@ import { SpanChip } from '@/tracing/SpanChips.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otel'
+import { isDummySystem, AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'TracingSpans',
@@ -121,6 +122,21 @@ export default defineComponent({
       },
     )
 
+    const showSystem = computed(() => {
+      if (route.value.params.eventSystem) {
+        return false
+      }
+
+      const systems = props.systems.activeSystem
+      if (systems.length > 1) {
+        return true
+      }
+      if (systems.length === 1) {
+        return isDummySystem(systems[0])
+      }
+      return false
+    })
+
     watch(
       () => props.eventsMode,
       (isEvent) => {
@@ -164,6 +180,7 @@ export default defineComponent({
       uql,
       axiosParams,
       spans,
+      showSystem,
 
       resetQuery,
       onChipClick,
