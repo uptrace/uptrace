@@ -159,6 +159,8 @@ alerting:
       query:
         - $spans{type=dropped} > 0
       for: 1m
+      annotations:
+        summary: 'Uptrace has dropped {{ $values.spans }} spans'
 
     - name: Always firing (for fun and testing)
       metrics:
