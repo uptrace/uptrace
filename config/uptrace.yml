@@ -99,7 +99,7 @@ alerting:
       # for the last 5 minutes
       for: 5m
       annotations:
-        summary: 'Number of net errors is {{ $values.net_errors }} on host {{ $labels.host_name }}'
+        summary: '{{ $labels.host_name }} has high number of net errors: {{ $values.net_errors }}'
 
     - name: Filesystem usage >= 90%
       metrics:
@@ -111,8 +111,7 @@ alerting:
         - $fs_usage{state="used"} / $fs_usage >= 0.9
       for: 5m
       annotations:
-        summary:
-          'FS usage is {{ $values.fs_usage }} on {{ $labels.host_name }} and {{ $labels.device }}'
+        summary: '{{ $labels.host_name }} has high FS usage: {{ $values.fs_usage }}'
 
     - name: Uptrace is dropping spans
       metrics:
@@ -130,7 +129,7 @@ alerting:
         - $goroutines >= 0 group by host.name
       for: 1m
       annotations:
-        summary: 'Number of goroutines is {{ $values.goroutines }} on host {{ $labels.host_name }}'
+        summary: '{{ $labels.host_name }} has high number of goroutines: {{ $values.goroutines }}'
 
   # Create alerts from error logs and span events.
   create_alerts_from_spans:
