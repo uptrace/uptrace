@@ -12,7 +12,7 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
   example:
 
 ```yaml
-# Create a metric from incoming spans.
+# First, create a metric from incoming spans.
 metrics_from_spans:
   - name: uptrace.tracing.error_rate
     description: Spans error rate
@@ -21,7 +21,7 @@ metrics_from_spans:
     value: span.error_count / span.count
     attrs: [span.system, service.name, host.name]
 
-# Monitor that metric.
+# Then, monitor that metric.
 alerting:
   rules:
     - name: Service has a high error rate
@@ -31,14 +31,26 @@ alerting:
         - $error_rate > 0.1 group by service.name
       for: 5m
       projects: [1]
+```
 
-    - name: ClickHouse has a high error rate
+- Alerting rules annotations now support templating, for example:
+
+```yaml
+alerting:
+  rules:
+    - name: Filesystem usage >= 90%
       metrics:
-        - uptrace.tracing.error_rate as $error_rate
+        - system.filesystem.usage as $fs_usage
       query:
-        - $error_rate{span.system='db:clickhouse'} > 0.1
+        - group by host.name
+        - group by device
+        - where device !~ "loop"
+        - $fs_usage{state="used"} / $fs_usage >= 0.9
       for: 5m
       projects: [1]
+      annotations:
+        summary:
+          'FS usage is {{ $values.fs_usage }} on {{ $labels.host_name }} and {{ $labels.device }}'
 ```
 
 - Tweaked spans grouping and added 2 related options:
