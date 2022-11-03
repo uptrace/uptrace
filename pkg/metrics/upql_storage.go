@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -73,6 +74,7 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 	q := s.db.NewSelect().
 		TableExpr("(?)", subq).
 		ColumnExpr("project_id, metric").
+		ColumnExpr("max(annotations) AS annotations").
 		ColumnExpr("groupArray(value) AS value").
 		GroupExpr("project_id, metric").
 		Limit(10000)
@@ -106,6 +108,7 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 		} else {
 			metricName = f.Metric
 		}
+		annotations := m["annotations"].(string)
 
 		timeseries = append(timeseries, upql.Timeseries{
 			ProjectID: m["project_id"].(uint32),
@@ -116,6 +119,11 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 		})
 		ts := &timeseries[len(timeseries)-1]
 
+		if annotations != "" {
+			if err := json.Unmarshal([]byte(annotations), &ts.Annotations); err != nil {
+				return nil, err
+			}
+		}
 		if s.conf.GroupByTime {
 			ts.Time = m["time"].([]time.Time)
 		}
@@ -129,6 +137,7 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 		if len(f.Grouping) > 0 {
 			delete(m, "project_id")
 			delete(m, "metric")
+			delete(m, "annotations")
 			delete(m, "value")
 			delete(m, "time")
 			ts.Attrs = upql.AttrsFromMap(m)
@@ -149,6 +158,7 @@ func (s *CHStorage) subquery(
 ) (_ *ch.SelectQuery, err error) {
 	q = q.
 		ColumnExpr("project_id, metric").
+		ColumnExpr("max(annotations) AS annotations").
 		TableExpr("?", s.conf.TableName).
 		Where("metric = ?", metric.Name).
 		Where("time >= ?", s.conf.TimeGTE).
@@ -203,6 +213,7 @@ func (s *CHStorage) subquery(
 
 		q = s.db.NewSelect().
 			ColumnExpr("project_id, metric").
+			ColumnExpr("max(annotations) AS annotations").
 			TableExpr("(?) AS wrapper", q).
 			GroupExpr("project_id, metric")
 	}

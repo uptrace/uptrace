@@ -11,7 +11,8 @@ CREATE TABLE ?DB.measure_minutes ?ON_CLUSTER (
   histogram AggregateFunction(quantilesBFloat16(0.5), Float32) Codec(?CODEC),
 
   attr_keys Array(LowCardinality(String)) Codec(?CODEC),
-  attr_values Array(LowCardinality(String)) Codec(?CODEC)
+  attr_values Array(LowCardinality(String)) Codec(?CODEC),
+  annotations SimpleAggregateFunction(max, String) Codec(?CODEC)
 )
 ENGINE = ?(REPLICATED)AggregatingMergeTree
 PARTITION BY toDate(time)
@@ -40,7 +41,8 @@ CREATE TABLE ?DB.measure_hours ?ON_CLUSTER (
   histogram AggregateFunction(quantilesBFloat16(0.5), Float32) Codec(?CODEC),
 
   attr_keys Array(LowCardinality(String)) Codec(?CODEC),
-  attr_values Array(LowCardinality(String)) Codec(?CODEC)
+  attr_values Array(LowCardinality(String)) Codec(?CODEC),
+  annotations SimpleAggregateFunction(max, String) Codec(?CODEC)
 )
 ENGINE = ?(REPLICATED)AggregatingMergeTree
 PARTITION BY toDate(time)
@@ -66,7 +68,8 @@ AS SELECT
   quantilesBFloat16MergeState(0.5)(histogram) AS histogram,
 
   anyLast(attr_keys) AS attr_keys,
-  anyLast(attr_values) AS attr_values
+  anyLast(attr_values) AS attr_values,
+  max(annotations) AS annotations
 FROM ?DB.measure_minutes
 GROUP BY project_id, metric, toStartOfHour(time), attrs_hash
 SETTINGS prefer_column_name_to_alias = 1

@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -133,6 +132,9 @@ func (m *AlertManager) SendAlerts(
 		for _, attr := range alert.Attrs {
 			fields = append(fields, zap.String(attr.Key, attr.Value))
 		}
+		for key, value := range alert.Annotations {
+			fields = append(fields, zap.String(key, value))
+		}
 		for metric, ts := range alert.Metrics {
 			fields = append(fields, zap.Float64(metric, ts.Value[len(ts.Value)-1]))
 		}
@@ -149,13 +151,15 @@ func (m *AlertManager) SendAlerts(
 }
 
 type TemplateData struct {
-	Labels map[string]string
-	Values map[string]string
-	Query  string
+	Labels      map[string]string
+	Annotations map[string]string
+	Values      map[string]any
+	Query       string
 }
 
 var templateDefs = []string{
 	"{{$labels := $.Labels}}",
+	"{{$annotations := $.Annotations}}",
 	"{{$values := $.Values}}",
 }
 
@@ -170,21 +174,25 @@ func (m *AlertManager) convert(
 		labels[cleanLabelName(k)] = v
 	}
 
-	values := make(map[string]string)
+	values := make(map[string]any, len(alert.Metrics))
 	for metric, ts := range alert.Metrics {
 		lastValue := ts.Value[len(ts.Value)-1]
-		values[cleanLabelName(metric)] = strconv.FormatFloat(lastValue, 'f', -1, 64)
+		values[cleanLabelName(metric)] = lastValue
 	}
 
 	labels["alertname"] = rule.Name
 	labels["uptrace_project_id"] = fmt.Sprint(alert.ProjectID)
 
 	annotations := make(models.LabelSet)
+	for k, v := range alert.Annotations {
+		annotations[cleanLabelName(k)] = v
+	}
 
 	tplData := &TemplateData{
-		Labels: labels,
-		Values: values,
-		Query:  rule.Query,
+		Labels:      labels,
+		Annotations: annotations,
+		Values:      values,
+		Query:       rule.Query,
 	}
 	for k, v := range rule.Annotations {
 		tpl := append(templateDefs, v)

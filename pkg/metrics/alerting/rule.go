@@ -11,12 +11,12 @@ import (
 )
 
 type Alert struct {
-	ID         uint64                      `json:"id,string"`
-	State      AlertState                  `json:"state,omitzero"`
-	Attrs      upql.Attrs                  `json:"attrs,omitzero"`
-	ProjectID  uint32                      `json:"projectId"`
-	Timeseries *upql.Timeseries            `json:"-"`
-	Metrics    map[string]*upql.Timeseries `json:"-"`
+	ID          uint64                      `json:"id,string"`
+	ProjectID   uint32                      `json:"projectId"`
+	State       AlertState                  `json:"state,omitzero"`
+	Attrs       upql.Attrs                  `json:"attrs,omitzero"`
+	Annotations map[string]string           `json:"-"`
+	Metrics     map[string]*upql.Timeseries `json:"-"`
 
 	LastSeenAt time.Time `json:"lastSeenAt"`
 	FiredAt    time.Time `json:"firedAt"`
@@ -131,14 +131,14 @@ func (r *Rule) Eval(ctx context.Context, engine Engine, tm time.Time) ([]Alert, 
 		} else {
 			alert = &Alert{
 				ID:        hash,
+				ProjectID: ts.ProjectID,
 				State:     StateActive,
 				Attrs:     ts.Attrs,
-				ProjectID: ts.ProjectID,
 			}
 			r.alertMap[key] = alert
 		}
 
-		alert.Timeseries = ts
+		alert.Annotations = ts.Annotations
 		alert.Metrics = make(map[string]*upql.Timeseries)
 		alert.LastSeenAt = tm
 

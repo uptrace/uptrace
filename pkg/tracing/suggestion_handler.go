@@ -9,6 +9,7 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/tracing/upql"
 
@@ -115,6 +116,7 @@ func (h *SuggestionHandler) Values(w http.ResponseWriter, req bunrouter.Request)
 	if f.AttrKey == "" {
 		return fmt.Errorf(`"attr_key" query param is required`)
 	}
+	f.AttrKey = otlpconv.CleanAttrKey(f.AttrKey)
 
 	colName, err := upql.ParseName(f.AttrKey)
 	if err != nil {

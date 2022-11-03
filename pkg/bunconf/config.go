@@ -209,6 +209,7 @@ type SpanMetric struct {
 	Unit        string   `yaml:"unit"`
 	Value       string   `yaml:"value"`
 	Attrs       []string `yaml:"attrs"`
+	Annotations []string `yaml:"annotations"`
 	Where       string   `yaml:"where"`
 }
 

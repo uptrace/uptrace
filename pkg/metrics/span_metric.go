@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/go-clickhouse/ch/chschema"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
@@ -101,6 +102,11 @@ func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMet
 			GroupExpr(string(attrsExpr))
 	}
 
+	if len(metric.Annotations) > 0 {
+		expr := compileSpanMetricAnnotations(metric.Annotations)
+		q = q.ColumnExpr("toJSONString(map(?)) AS annotations", expr)
+	}
+
 	if metric.Where != "" {
 		whereExpr, err := compileSpanMetricWhere(metric.Where)
 		if err != nil {
@@ -157,7 +163,7 @@ func compileSpanMetricValue(value string) (ch.Safe, error) {
 func appendSpanMetricExpr(b []byte, expr ast.Expr) (_ []byte, err error) {
 	switch expr := expr.(type) {
 	case *ast.Name:
-		b = tracing.CompileCHColumn(b, tracingupql.Name{
+		b = tracing.AppendCHColumn(b, tracingupql.Name{
 			FuncName: expr.Func,
 			AttrKey:  expr.Name,
 		}, spanMetricMinutes)
@@ -201,6 +207,20 @@ func compileSpanMetricAttrs(attrs []string) ch.Safe {
 			b = append(b, ", "...)
 		}
 		b = tracing.AppendCHAttrExpr(b, attr)
+	}
+	return ch.Safe(b)
+}
+
+func compileSpanMetricAnnotations(attrs []string) ch.Safe {
+	var b []byte
+	for i, attr := range attrs {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = chschema.AppendString(b, attr)
+		b = append(b, ", toString(any("...)
+		b = tracing.AppendCHAttrExpr(b, attr)
+		b = append(b, "))"...)
 	}
 	return ch.Safe(b)
 }
