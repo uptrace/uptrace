@@ -326,12 +326,7 @@ func (e *Engine) evalBinaryExprNumLeft(
 	for i := range rhs {
 		ts2 := &rhs[i]
 
-		joined = append(joined, Timeseries{
-			Metric: "",
-			Attrs:  ts2.Attrs,
-			Value:  make([]float64, len(ts2.Value)),
-			Time:   ts2.Time,
-		})
+		joined = append(joined, newTimeseries(ts2))
 		ts := &joined[len(joined)-1]
 
 		for i, v2 := range ts2.Value {
@@ -385,12 +380,7 @@ func (e *Engine) evalBinaryExprNumRight(
 	for i := range lhs {
 		ts1 := &lhs[i]
 
-		joined = append(joined, Timeseries{
-			Metric: "",
-			Attrs:  ts1.Attrs,
-			Value:  make([]float64, len(ts1.Value)),
-			Time:   ts1.Time,
-		})
+		joined = append(joined, newTimeseries(ts1))
 		ts := &joined[len(joined)-1]
 
 		for i, v1 := range ts1.Value {

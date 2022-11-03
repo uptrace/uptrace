@@ -137,8 +137,6 @@ alerting:
         - $net_errors > 0 group by host.name
       # for the last 5 minutes
       for: 5m
-      # in the project id=1
-      projects: [1]
       annotations:
         summary: 'Number of net errors is {{ $values.net_errors }} on host {{ $labels.host_name }}'
 
@@ -151,7 +149,6 @@ alerting:
         - where device !~ "loop"
         - $fs_usage{state="used"} / $fs_usage >= 0.9
       for: 5m
-      projects: [1]
       annotations:
         summary:
           'FS usage is {{ $values.fs_usage }} on {{ $labels.host_name }} and {{ $labels.device }}'
@@ -162,7 +159,6 @@ alerting:
       query:
         - $spans{type=dropped} > 0
       for: 1m
-      projects: [1]
 
     - name: Always firing (for fun and testing)
       metrics:
@@ -170,7 +166,6 @@ alerting:
       query:
         - $goroutines >= 0 group by host.name
       for: 1m
-      projects: [1]
       annotations:
         summary: 'Number of goroutines is {{ $values.goroutines }} on host {{ $labels.host_name }}'
 
