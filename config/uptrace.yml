@@ -164,7 +164,7 @@ alerting:
       for: 1m
       projects: [1]
 
-    - name: Always firing (for fun and testingqq)
+    - name: Always firing (for fun and testing)
       metrics:
         - process.runtime.go.goroutines as $goroutines
       query:
