@@ -16,7 +16,7 @@ import (
 )
 
 type CHStorageConfig struct {
-	ProjectID uint32
+	Projects []uint32
 	org.TimeFilter
 	MetricMap map[string]*Metric
 
@@ -72,9 +72,9 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 
 	q := s.db.NewSelect().
 		TableExpr("(?)", subq).
-		ColumnExpr("metric").
+		ColumnExpr("project_id, metric").
 		ColumnExpr("groupArray(value) AS value").
-		GroupExpr("metric").
+		GroupExpr("project_id, metric").
 		Limit(10000)
 
 	if len(f.Grouping) > 0 {
@@ -108,10 +108,11 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 		}
 
 		timeseries = append(timeseries, upql.Timeseries{
-			Metric:  metricName,
-			Filters: f.Filters,
-			Value:   m["value"].([]float64),
-			Unit:    metricUnit(metric, f),
+			ProjectID: m["project_id"].(uint32),
+			Metric:    metricName,
+			Filters:   f.Filters,
+			Value:     m["value"].([]float64),
+			Unit:      metricUnit(metric, f),
 		})
 		ts := &timeseries[len(timeseries)-1]
 
@@ -126,6 +127,7 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 		}
 
 		if len(f.Grouping) > 0 {
+			delete(m, "project_id")
 			delete(m, "metric")
 			delete(m, "value")
 			delete(m, "time")
@@ -146,13 +148,16 @@ func (s *CHStorage) subquery(
 	f *upql.TimeseriesFilter,
 ) (_ *ch.SelectQuery, err error) {
 	q = q.
-		ColumnExpr("metric").
+		ColumnExpr("project_id, metric").
 		TableExpr("?", s.conf.TableName).
-		Where("project_id = ?", s.conf.ProjectID).
 		Where("metric = ?", metric.Name).
 		Where("time >= ?", s.conf.TimeGTE).
 		Where("time < ?", s.conf.TimeLT).
-		GroupExpr("metric")
+		GroupExpr("project_id, metric")
+
+	if len(s.conf.Projects) > 0 {
+		q = q.Where("project_id IN (?)", ch.In(s.conf.Projects))
+	}
 
 	if len(f.Filters) > 0 {
 		q, err = s.filters(q, metric, f.Filters)
@@ -197,9 +202,9 @@ func (s *CHStorage) subquery(
 			GroupExpr("attrs_hash")
 
 		q = s.db.NewSelect().
-			ColumnExpr("metric").
+			ColumnExpr("project_id, metric").
 			TableExpr("(?) AS wrapper", q).
-			GroupExpr("metric")
+			GroupExpr("project_id, metric")
 	}
 
 	q, err = s.agg(q, metric, f)

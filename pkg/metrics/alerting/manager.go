@@ -35,7 +35,11 @@ type AlertManager interface {
 
 type Engine interface {
 	Eval(
-		ctx context.Context, metrics []upql.Metric, expr string, gte, lt time.Time,
+		ctx context.Context,
+		projectIDs []uint32,
+		metrics []upql.Metric,
+		expr string,
+		gte, lt time.Time,
 	) ([]upql.Timeseries, map[string][]upql.Timeseries, error)
 }
 

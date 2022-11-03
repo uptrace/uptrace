@@ -79,8 +79,14 @@ func SelectMetricByName(
 	metric := new(Metric)
 	if err := app.DB.NewSelect().
 		Model(metric).
-		Where("project_id = ?", projectID).
 		Where("name = ?", name).
+		Apply(func(q *bun.SelectQuery) *bun.SelectQuery {
+			if projectID > 0 {
+				return q.Where("project_id = ?", projectID)
+			}
+			return q
+		}).
+		Limit(1).
 		Scan(ctx); err != nil {
 		return nil, err
 	}

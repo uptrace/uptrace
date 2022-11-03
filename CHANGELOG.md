@@ -30,10 +30,9 @@ alerting:
       query:
         - $error_rate > 0.1 group by service.name
       for: 5m
-      projects: [1]
 ```
 
-- Alerting rules annotations now support templating, for example:
+- Alerting rules annotations now support templating just like Prometheus, for example:
 
 ```yaml
 alerting:
@@ -47,7 +46,6 @@ alerting:
         - where device !~ "loop"
         - $fs_usage{state="used"} / $fs_usage >= 0.9
       for: 5m
-      projects: [1]
       annotations:
         summary:
           'FS usage is {{ $values.fs_usage }} on {{ $labels.host_name }} and {{ $labels.device }}'

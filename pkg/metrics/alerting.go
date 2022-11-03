@@ -24,26 +24,33 @@ import (
 )
 
 type AlertingEngine struct {
-	app       *bunapp.App
-	projectID uint32
+	app *bunapp.App
 }
 
 var _ alerting.Engine = (*AlertingEngine)(nil)
 
-func NewAlertingEngine(app *bunapp.App, projectID uint32) *AlertingEngine {
+func NewAlertingEngine(app *bunapp.App) *AlertingEngine {
 	return &AlertingEngine{
-		app:       app,
-		projectID: projectID,
+		app: app,
 	}
 }
 
 func (e *AlertingEngine) Eval(
-	ctx context.Context, metrics []upql.Metric, expr string, gte, lt time.Time,
+	ctx context.Context,
+	projects []uint32,
+	metrics []upql.Metric,
+	expr string,
+	gte, lt time.Time,
 ) ([]upql.Timeseries, map[string][]upql.Timeseries, error) {
 	metricMap := make(map[string]*Metric, len(metrics))
 
+	var projectID uint32
+	if len(projects) == 1 {
+		projectID = projects[0]
+	}
+
 	for _, m := range metrics {
-		metric, err := SelectMetricByName(ctx, e.app, e.projectID, m.Name)
+		metric, err := SelectMetricByName(ctx, e.app, projectID, m.Name)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				return nil, nil, fmt.Errorf("metric %q not found", m.Name)
@@ -54,7 +61,7 @@ func (e *AlertingEngine) Eval(
 	}
 
 	storage := NewCHStorage(ctx, e.app.CH, &CHStorageConfig{
-		ProjectID: e.projectID,
+		Projects: projects,
 		TimeFilter: org.TimeFilter{
 			TimeGTE: gte,
 			TimeLT:  lt,
@@ -84,10 +91,9 @@ func (e *AlertingEngine) Eval(
 //------------------------------------------------------------------------------
 
 type AlertManager struct {
-	db        *bun.DB
-	notifier  *bunapp.Notifier
-	projectID uint32
-	logger    *otelzap.Logger
+	db       *bun.DB
+	notifier *bunapp.Notifier
+	logger   *otelzap.Logger
 }
 
 var _ alerting.AlertManager = (*AlertManager)(nil)
@@ -95,14 +101,12 @@ var _ alerting.AlertManager = (*AlertManager)(nil)
 func NewAlertManager(
 	db *bun.DB,
 	notifier *bunapp.Notifier,
-	projectID uint32,
 	logger *otelzap.Logger,
 ) *AlertManager {
 	return &AlertManager{
-		db:        db,
-		notifier:  notifier,
-		projectID: projectID,
-		logger:    logger,
+		db:       db,
+		notifier: notifier,
+		logger:   logger,
 	}
 }
 
@@ -124,7 +128,7 @@ func (m *AlertManager) SendAlerts(
 
 		fields := []zap.Field{
 			zap.String("name", rule.Name),
-			zap.Uint32("project_id", m.projectID),
+			zap.Uint32("project_id", alert.ProjectID),
 		}
 		for _, attr := range alert.Attrs {
 			fields = append(fields, zap.String(attr.Key, attr.Value))
@@ -173,7 +177,7 @@ func (m *AlertManager) convert(
 	}
 
 	labels["alertname"] = rule.Name
-	labels["uptrace_project_id"] = fmt.Sprint(m.projectID)
+	labels["uptrace_project_id"] = fmt.Sprint(alert.ProjectID)
 
 	annotations := make(models.LabelSet)
 

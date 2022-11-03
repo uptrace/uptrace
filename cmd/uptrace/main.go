@@ -333,15 +333,9 @@ func handleStaticFiles(router *bunrouter.Router, fsys fs.FS) {
 }
 
 func startAlerting(group *run.Group, app *bunapp.App) {
-	type Project struct {
-		id    uint32
-		rules []alerting.RuleConfig
-	}
+	var rules []alerting.RuleConfig
 
 	conf := app.Config()
-	projectMap := make(map[uint32]*Project)
-	var numValidRule int
-
 	for i := range conf.Alerting.Rules {
 		rule := &conf.Alerting.Rules[i]
 
@@ -350,39 +344,26 @@ func startAlerting(group *run.Group, app *bunapp.App) {
 			continue
 		}
 
-		numValidRule++
+		rules = append(rules, rule.RuleConfig())
 
-		for _, projectID := range rule.Projects {
-			project, ok := projectMap[projectID]
-			if !ok {
-				project = &Project{
-					id: projectID,
-				}
-				projectMap[projectID] = project
-			}
-
-			project.rules = append(project.rules, rule.RuleConfig())
-		}
 	}
 
 	app.Logger.Info("starting monitoring metrics...",
-		zap.Int("rules", numValidRule))
+		zap.Int("rules", len(rules)))
 
-	for _, project := range projectMap {
-		man := alerting.NewManager(&alerting.ManagerConfig{
-			Engine:   metrics.NewAlertingEngine(app, project.id),
-			Rules:    project.rules,
-			AlertMan: metrics.NewAlertManager(app.DB, app.Notifier, project.id, app.Logger),
-			Logger:   app.Logger.Logger,
-		})
+	man := alerting.NewManager(&alerting.ManagerConfig{
+		Engine:   metrics.NewAlertingEngine(app),
+		Rules:    rules,
+		AlertMan: metrics.NewAlertManager(app.DB, app.Notifier, app.Logger),
+		Logger:   app.Logger.Logger,
+	})
 
-		group.Add(func() error {
-			man.Run()
-			return nil
-		}, func(err error) {
-			man.Stop()
-		})
-	}
+	group.Add(func() error {
+		man.Run()
+		return nil
+	}, func(err error) {
+		man.Stop()
+	})
 }
 
 func genSampleTrace() {

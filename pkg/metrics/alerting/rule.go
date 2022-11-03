@@ -14,13 +14,26 @@ type Alert struct {
 	ID         uint64                      `json:"id,string"`
 	State      AlertState                  `json:"state,omitzero"`
 	Attrs      upql.Attrs                  `json:"attrs,omitzero"`
-	Timeseries *upql.Timeseries            `json:"timeseries"`
-	Metrics    map[string]*upql.Timeseries `json:"timeseries"`
+	ProjectID  uint32                      `json:"projectId"`
+	Timeseries *upql.Timeseries            `json:"-"`
+	Metrics    map[string]*upql.Timeseries `json:"-"`
 
 	LastSeenAt time.Time `json:"lastSeenAt"`
 	FiredAt    time.Time `json:"firedAt"`
 	ResolvedAt time.Time `json:"resolvedAt"`
 	LastSentAt time.Time `json:"lastSentAt"`
+}
+
+type alertKey struct {
+	ID        uint64
+	ProjectID uint32
+}
+
+func (a *Alert) key() alertKey {
+	return alertKey{
+		ID:        a.ID,
+		ProjectID: a.ProjectID,
+	}
 }
 
 type AlertState int
@@ -43,11 +56,12 @@ func (s AlertState) String() string {
 type Rule struct {
 	conf *RuleConfig
 
-	alertMap map[uint64]*Alert
+	alertMap map[alertKey]*Alert
 }
 
 type RuleConfig struct {
 	Name        string
+	Projects    []uint32
 	Metrics     []upql.Metric
 	Query       string
 	For         time.Duration
@@ -62,11 +76,11 @@ func (r *RuleConfig) ID() int64 {
 func NewRule(conf *RuleConfig, alerts []Alert) *Rule {
 	r := &Rule{
 		conf:     conf,
-		alertMap: make(map[uint64]*Alert, len(alerts)),
+		alertMap: make(map[alertKey]*Alert, len(alerts)),
 	}
 	for i := range alerts {
 		alert := &alerts[i]
-		r.alertMap[alert.ID] = alert
+		r.alertMap[alert.key()] = alert
 	}
 	return r
 }
@@ -85,7 +99,14 @@ func (r *Rule) Alerts() []Alert {
 
 func (r *Rule) Eval(ctx context.Context, engine Engine, tm time.Time) ([]Alert, error) {
 	dur := r.conf.For + time.Minute // for delta func
-	timeseries, metrics, err := engine.Eval(ctx, r.conf.Metrics, r.conf.Query, tm.Add(-dur), tm)
+	timeseries, metrics, err := engine.Eval(
+		ctx,
+		r.conf.Projects,
+		r.conf.Metrics,
+		r.conf.Query,
+		tm.Add(-dur),
+		tm,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -99,17 +120,22 @@ func (r *Rule) Eval(ctx context.Context, engine Engine, tm time.Time) ([]Alert, 
 
 		buf = ts.Attrs.Bytes(buf[:0])
 		hash := xxhash.Sum64(buf)
+		key := alertKey{
+			ID:        hash,
+			ProjectID: ts.ProjectID,
+		}
 
-		alert, ok := r.alertMap[hash]
+		alert, ok := r.alertMap[key]
 		if ok {
-			delete(unused, alert.ID)
+			delete(unused, key)
 		} else {
 			alert = &Alert{
-				ID:    hash,
-				State: StateActive,
-				Attrs: ts.Attrs,
+				ID:        hash,
+				State:     StateActive,
+				Attrs:     ts.Attrs,
+				ProjectID: ts.ProjectID,
 			}
-			r.alertMap[hash] = alert
+			r.alertMap[key] = alert
 		}
 
 		alert.Timeseries = ts
@@ -137,9 +163,9 @@ func (r *Rule) Eval(ctx context.Context, engine Engine, tm time.Time) ([]Alert, 
 	}
 
 	empty := new(upql.Timeseries)
-	for id, alert := range unused {
+	for key, alert := range unused {
 		if time.Since(alert.LastSeenAt) > 24*time.Hour {
-			delete(r.alertMap, id)
+			delete(r.alertMap, key)
 			continue
 		}
 

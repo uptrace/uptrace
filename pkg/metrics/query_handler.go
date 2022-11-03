@@ -56,7 +56,7 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 	}
 
 	storage := NewCHStorage(ctx, h.App.CH, &CHStorageConfig{
-		ProjectID:  f.ProjectID,
+		Projects:   []uint32{f.ProjectID},
 		TimeFilter: f.TimeFilter,
 		MetricMap:  f.metricMap,
 
@@ -202,7 +202,7 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 	}
 
 	storage := NewCHStorage(ctx, h.App.CH, &CHStorageConfig{
-		ProjectID:  f.ProjectID,
+		Projects:   []uint32{f.ProjectID},
 		TimeFilter: f.TimeFilter,
 		MetricMap:  f.metricMap,
 
@@ -258,7 +258,7 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 
 	tableName, groupingPeriod := measureTableForGroup(h.App, &f.TimeFilter, org.GroupPeriod)
 	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
-		ProjectID:  f.ProjectID,
+		Projects:   []uint32{f.ProjectID},
 		TimeFilter: f.TimeFilter,
 		MetricMap:  f.metricMap,
 
