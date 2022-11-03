@@ -178,6 +178,8 @@ type Config struct {
 		BatchSize  int `yaml:"batch_size"`
 	} `yaml:"metrics"`
 
+	MetricsFromSpans []SpanMetric `yaml:"metrics_from_spans"`
+
 	Auth struct {
 		Users      []User                `yaml:"users" json:"users"`
 		Cloudflare []*CloudflareProvider `yaml:"cloudflare" json:"cloudflare"`
@@ -198,6 +200,16 @@ type Config struct {
 	AlertmanagerClient struct {
 		URLs []string `yaml:"urls"`
 	} `yaml:"alertmanager_client"`
+}
+
+type SpanMetric struct {
+	Name        string   `yaml:"name"`
+	Description string   `yaml:"description"`
+	Instrument  string   `yaml:"instrument"`
+	Unit        string   `yaml:"unit"`
+	Value       string   `yaml:"value"`
+	Attrs       []string `yaml:"attrs"`
+	Where       string   `yaml:"where"`
 }
 
 type Listen struct {

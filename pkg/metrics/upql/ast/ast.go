@@ -114,7 +114,6 @@ func (fn *FuncCall) String() string {
 type BinaryExpr struct {
 	Op       BinaryOp
 	LHS, RHS Expr
-	JoinOn   []string
 }
 
 func (e *BinaryExpr) String() string {

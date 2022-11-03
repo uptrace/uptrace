@@ -58,7 +58,7 @@
           <div v-if="i === partEditor.index" :key="i" class="mr-2 d-inline-block">
             <v-text-field
               v-model="partEditor.query"
-              v-autowidth="{ minWidth: '40px' }"
+              v-autowidth="{ minWidth: '200px' }"
               :error-messages="part.error"
               outlined
               dense
@@ -81,15 +81,10 @@
             @click:delete="uql.removePart(i)"
           />
         </template>
-        <v-btn
-          v-if="!partEditor.editing"
-          color="text--secondary"
-          fab
-          elevation="0"
-          class="btn--add"
-          @click="partEditor.add"
-          ><v-icon>mdi-plus</v-icon></v-btn
-        >
+        <v-btn v-if="!partEditor.editing" depressed small class="py-4" @click="partEditor.add">
+          <v-icon left>mdi-plus</v-icon>
+          <span>Add query</span>
+        </v-btn>
       </v-col>
     </v-row>
   </div>
@@ -199,11 +194,6 @@ function usePartEditor(uql: UseUql) {
   font-size: 20px;
   width: 20px;
   height: 20px;
-}
-
-.btn--add {
-  height: 32px !important;
-  width: 32px !important;
 }
 </style>
 

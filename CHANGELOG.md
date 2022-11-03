@@ -8,6 +8,38 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 - Added ability to select multiple systems.
 - Added 2 quick filters by `deployment.environment` and `service.name` attributes on the Overview
   page.
+- Added support for creating metrics from spans so they can be monitored like usual metrics, for
+  example:
+
+```yaml
+# Create a metric from incoming spans.
+metrics_from_spans:
+  - name: uptrace.tracing.error_rate
+    description: Spans error rate
+    instrument: gauge
+    unit: percents
+    value: span.error_count / span.count
+    attrs: [span.system, service.name, host.name]
+
+# Monitor that metric.
+alerting:
+  rules:
+    - name: Service has a high error rate
+      metrics:
+        - uptrace.tracing.error_rate as $error_rate
+      query:
+        - $error_rate > 0.1 group by service.name
+      for: 5m
+      projects: [1]
+
+    - name: ClickHouse has a high error rate
+      metrics:
+        - uptrace.tracing.error_rate as $error_rate
+      query:
+        - $error_rate{span.system='db:clickhouse'} > 0.1
+      for: 5m
+      projects: [1]
+```
 
 - Tweaked spans grouping and added 2 related options:
 

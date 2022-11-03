@@ -233,11 +233,6 @@ func initSqlite(ctx context.Context, app *bunapp.App) error {
 		return err
 	}
 
-	if err := createUptraceMetrics(ctx, app); err != nil {
-		app.Logger.Error("createUptraceMetrics failed",
-			zap.Error(err))
-	}
-
 	return nil
 }
 
@@ -267,23 +262,6 @@ func runBunMigrations(ctx context.Context, app *bunapp.App) error {
 	}
 
 	app.Logger.Info("migrated SQLite database", zap.String("migrations", group.String()))
-	return nil
-}
-
-func createUptraceMetrics(ctx context.Context, app *bunapp.App) error {
-	projects := app.Config().Projects
-	for i := range projects {
-		project := &projects[i]
-
-		if _, err := metrics.UpsertMetric(ctx, app, &metrics.Metric{
-			ProjectID:  project.ID,
-			Name:       "uptrace.spans.duration",
-			Unit:       "microseconds",
-			Instrument: metrics.HistogramInstrument,
-		}); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

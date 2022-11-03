@@ -45,8 +45,32 @@ projects:
     # Group funcs spans by service.name attribute.
     group_funcs_by_service: false
 
+# Create metrics from spans and events.
+metrics_from_spans:
+  - name: uptrace.tracing.spans
+    description: Total number of spans including logs and events
+    instrument: counter
+    unit: 1
+    value: span.count
+    attrs: [span.system, service.name, host.name, span.status_code]
+
+  - name: uptrace.tracing.spans_duration
+    description: Spans duration
+    instrument: histogram
+    unit: microseconds
+    value: span.duration / 1000
+    attrs: [span.system, service.name, host.name]
+    where: span.duration > 0
+
+  - name: uptrace.tracing.error_rate
+    description: Spans error rate
+    instrument: gauge
+    unit: percents
+    value: span.error_count / span.count
+    attrs: [span.system, service.name, host.name]
+
 ##
-## To require authentication, uncomment the following section.
+## To require authentication, uncomment one of the following sections.
 ##
 auth:
   # users:
@@ -55,8 +79,8 @@ auth:
   #   - username: admin
   #     password: admin
 
-  # # Cloudflare user provider: uses Cloudflare Zero Trust Access (Identity)
-  # # See https://developers.cloudflare.com/cloudflare-one/identity/ for more info.
+  # Cloudflare Zero Trust Access (Identity)
+  # See https://developers.cloudflare.com/cloudflare-one/identity/ for more info.
   # cloudflare:
   #   # The base URL of the Cloudflare Zero Trust team.
   #   - team_url: https://myteam.cloudflareaccess.com
@@ -64,7 +88,7 @@ auth:
   #     # You can retrieve this from the Cloudflare Zero Trust 'Access' Dashboard.
   #     audience: bea6df23b944e4a0cd178609ba1bb64dc98dfe1f66ae7b918e563f6cf28b37e0
 
-  # # OpenID Connect (Single Sign-On)
+  # OpenID Connect (Single Sign-On)
   # oidc:
   #   # The ID is used in API endpoints, for example, in redirect URL
   #   # `http://<uptrace-host>/api/v1/sso/<oidc-id>/callback`.
@@ -90,7 +114,7 @@ auth:
 ## ClickHouse database credentials.
 ##
 ch:
-  # Connection string for ClickHouse database. For example:
+  # Connection string for a ClickHouse database. For example:
   # clickhouse://<user>:<password>@<host>:<port>/<database>?sslmode=disable
   #
   # See https://clickhouse.uptrace.dev/guide/golang-clickhouse.html#options
