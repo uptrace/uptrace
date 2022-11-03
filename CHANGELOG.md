@@ -59,7 +59,7 @@ alerting:
 - Added project settings page where you can check available settings and project DSN.
 
 - Changed ClickHouse schema to not use column names with dots in them which causes various issues
-  with migrations, for example, such columns could not be renamed.
+  with migrations, for example, such columns can't be renamed.
 
   If you have an existing ClickHouse database, you will have to reset it with:
 

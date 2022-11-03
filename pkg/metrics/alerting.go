@@ -153,7 +153,7 @@ func (m *AlertManager) SendAlerts(
 type TemplateData struct {
 	Labels      map[string]string
 	Annotations map[string]string
-	Values      map[string]any
+	Values      map[string]float64
 	Query       string
 }
 
@@ -174,7 +174,7 @@ func (m *AlertManager) convert(
 		labels[cleanLabelName(k)] = v
 	}
 
-	values := make(map[string]any, len(alert.Metrics))
+	values := make(map[string]float64, len(alert.Metrics))
 	for metric, ts := range alert.Metrics {
 		lastValue := ts.Value[len(ts.Value)-1]
 		values[cleanLabelName(metric)] = lastValue
