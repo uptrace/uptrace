@@ -204,7 +204,7 @@ func isAggAttr(attrKey string) bool {
 
 func upqlColumn(q *ch.SelectQuery, name upql.Name, minutes float64) *ch.SelectQuery {
 	var b []byte
-	b = CompileCHColumn(b, name, minutes)
+	b = AppendCHColumn(b, name, minutes)
 	b = append(b, " AS "...)
 	b = append(b, '"')
 	b = name.Append(b)
@@ -212,7 +212,7 @@ func upqlColumn(q *ch.SelectQuery, name upql.Name, minutes float64) *ch.SelectQu
 	return q.ColumnExpr(string(b))
 }
 
-func CompileCHColumn(b []byte, name upql.Name, minutes float64) []byte {
+func AppendCHColumn(b []byte, name upql.Name, minutes float64) []byte {
 	switch name.FuncName {
 	case "p50", "p75", "p90", "p99":
 		return chschema.AppendQuery(b, "quantileTDigest(?)(toFloat64OrDefault(?))",
@@ -325,7 +325,7 @@ func CompileCond(cond upql.Cond, minutes float64) []byte {
 
 		values := strings.Split(cond.Right.Text, "|")
 		b = append(b, "multiSearchAnyCaseInsensitiveUTF8("...)
-		b = CompileCHColumn(b, cond.Left, minutes)
+		b = AppendCHColumn(b, cond.Left, minutes)
 		b = append(b, ", "...)
 		b = chschema.AppendQuery(b, "[?]", ch.In(values))
 		b = append(b, ")"...)
@@ -336,7 +336,7 @@ func CompileCond(cond upql.Cond, minutes float64) []byte {
 	if cond.Right.IsNum() {
 		b = append(b, "toFloat64OrDefault("...)
 	}
-	b = CompileCHColumn(b, cond.Left, minutes)
+	b = AppendCHColumn(b, cond.Left, minutes)
 	if cond.Right.IsNum() {
 		b = append(b, ")"...)
 	}

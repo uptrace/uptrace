@@ -20,9 +20,9 @@ import { useRouter } from '@/use/router'
 import { createUqlEditor } from '@/use/uql'
 
 // Utilities
-import { AttrKey } from '@/models/otel'
+import { SystemName, AttrKey } from '@/models/otel'
 
-const TRACE_ID_RE = /^[0-9A-Fa-f]{32}$/
+const TRACE_ID_RE = /^([0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
 
 export default defineComponent({
   name: 'Search',
@@ -47,6 +47,7 @@ export default defineComponent({
           name: 'SpanGroupList',
           params: { traceId: traceId.value },
           query: {
+            system: SystemName.all,
             query,
           },
         })

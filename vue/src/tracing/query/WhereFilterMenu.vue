@@ -227,7 +227,7 @@ export default defineComponent({
           url: `/api/v1/tracing/${projectId}/suggestions/values`,
           params: {
             ...props.axiosParams,
-            column: column.value.text,
+            attr_key: column.value.text,
           },
         }
       },

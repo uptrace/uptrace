@@ -48,7 +48,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 
 	user := findUserByPassword(h.App, in.Username, in.Password)
 	if user == nil {
-		return httperror.BadRequest("user with such credentials not found")
+		return httperror.BadRequest("credentials", "user with such credentials not found")
 	}
 
 	token, err := encodeUserToken(h.Config().SecretKey, user.Username, tokenTTL)

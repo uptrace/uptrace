@@ -60,8 +60,8 @@ func Forbidden(msg string, args ...any) Error {
 	return New(http.StatusForbidden, "forbidden", msg, args...)
 }
 
-func BadRequest(msg string, args ...any) Error {
-	return New(http.StatusBadRequest, "bad_request", msg, args...)
+func BadRequest(code, msg string, args ...any) Error {
+	return New(http.StatusBadRequest, code, msg, args...)
 }
 
 func InternalServerError(msg string, args ...any) Error {

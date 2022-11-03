@@ -16,12 +16,13 @@ import (
 const sep = '0'
 
 type Timeseries struct {
-	ProjectID uint32      `json:"projectId"`
-	Metric    string      `json:"metric"`
-	Unit      string      `json:"unit"`
-	Attrs     Attrs       `json:"attrs"`
-	Value     []float64   `json:"value"`
-	Time      []time.Time `json:"time"`
+	ProjectID   uint32            `json:"projectId"`
+	Metric      string            `json:"metric"`
+	Unit        string            `json:"unit"`
+	Attrs       Attrs             `json:"attrs"`
+	Annotations map[string]string `json:"annotations"`
+	Value       []float64         `json:"value"`
+	Time        []time.Time       `json:"time"`
 
 	Filters    []ast.Filter `json:"-"`
 	Grouping   []string     `json:"-"`
@@ -30,11 +31,12 @@ type Timeseries struct {
 
 func newTimeseries(ts *Timeseries) Timeseries {
 	return Timeseries{
-		ProjectID: ts.ProjectID,
-		Metric:    "",
-		Attrs:     ts.Attrs,
-		Value:     make([]float64, len(ts.Value)),
-		Time:      ts.Time,
+		ProjectID:   ts.ProjectID,
+		Metric:      "",
+		Attrs:       ts.Attrs,
+		Annotations: ts.Annotations,
+		Value:       make([]float64, len(ts.Value)),
+		Time:        ts.Time,
 	}
 }
 
