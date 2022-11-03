@@ -10,15 +10,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
-const (
-	InvalidInstrument   = ""
-	GaugeInstrument     = "gauge"
-	AdditiveInstrument  = "additive"
-	HistogramInstrument = "histogram"
-	CounterInstrument   = "counter"
-	SummaryInstrument   = "summary"
-)
-
 type Measure struct {
 	ch.CHModel `ch:"measure_minutes_stub,insert:measure_minutes_buffer,alias:m"`
 
@@ -34,7 +25,7 @@ type Measure struct {
 	Sum       float64
 	Count     uint64
 	Value     float64
-	Histogram bfloat16.Map `ch:"type:AggregateFunction(quantilesBFloat16(0.5, 0.9, 0.99), Float32)"`
+	Histogram bfloat16.Map `ch:"type:AggregateFunction(quantilesBFloat16(0.5), Float32)"`
 
 	Attrs      AttrMap  `ch:"-"`
 	AttrKeys   []string `ch:"type:Array(LowCardinality(String))"`

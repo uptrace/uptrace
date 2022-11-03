@@ -4,6 +4,8 @@ go 1.18
 
 replace github.com/segmentio/encoding => github.com/vmihailenco/encoding v0.3.4-0.20220121071420-f96fbbb25975
 
+replace github.com/uptrace/go-clickhouse => /home/vmihailenco/workspace/go-clickhouse
+
 require (
 	github.com/bradleyjkemp/cupaloy v2.3.0+incompatible
 	github.com/cespare/xxhash/v2 v2.1.2

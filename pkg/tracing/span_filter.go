@@ -156,7 +156,7 @@ func compileUQL(
 		switch ast := part.AST.(type) {
 		case *upql.Columns:
 			for _, name := range ast.Names {
-				if !groupSet[name.String()] && !isAggColumn(name) {
+				if !groupSet[name.String()] && !IsAggColumn(name) {
 					part.SetError("must be an agg or a group-by")
 					continue
 				}
@@ -186,7 +186,7 @@ func compileUQL(
 	return q, columnSet
 }
 
-func isAggColumn(col upql.Name) bool {
+func IsAggColumn(col upql.Name) bool {
 	if col.FuncName != "" {
 		return true
 	}
@@ -204,7 +204,7 @@ func isAggAttr(attrKey string) bool {
 
 func upqlColumn(q *ch.SelectQuery, name upql.Name, minutes float64) *ch.SelectQuery {
 	var b []byte
-	b = appendUPQLColumn(b, name, minutes)
+	b = CompileCHColumn(b, name, minutes)
 	b = append(b, " AS "...)
 	b = append(b, '"')
 	b = name.Append(b)
@@ -212,7 +212,7 @@ func upqlColumn(q *ch.SelectQuery, name upql.Name, minutes float64) *ch.SelectQu
 	return q.ColumnExpr(string(b))
 }
 
-func appendUPQLColumn(b []byte, name upql.Name, minutes float64) []byte {
+func CompileCHColumn(b []byte, name upql.Name, minutes float64) []byte {
 	switch name.FuncName {
 	case "p50", "p75", "p90", "p99":
 		return chschema.AppendQuery(b, "quantileTDigest(?)(toFloat64OrDefault(?))",
@@ -259,15 +259,17 @@ func CHAttrExpr(key string) ch.Safe {
 func AppendCHAttrExpr(b []byte, key string) []byte {
 	if strings.HasPrefix(key, "span.") {
 		key = strings.TrimPrefix(key, "span.")
+		b = append(b, "s."...)
 		return chschema.AppendIdent(b, key)
 	}
 
 	if _, ok := indexedAttrSet[key]; ok {
 		key = strings.ReplaceAll(key, ".", "_")
+		b = append(b, "s."...)
 		return chschema.AppendIdent(b, key)
 	}
 
-	return chschema.AppendQuery(b, "attr_values[indexOf(attr_keys, ?)]", key)
+	return chschema.AppendQuery(b, "s.attr_values[indexOf(s.attr_keys, ?)]", key)
 }
 
 func upqlWhere(q *ch.SelectQuery, ast *upql.Where, minutes float64) *ch.SelectQuery {
@@ -275,12 +277,12 @@ func upqlWhere(q *ch.SelectQuery, ast *upql.Where, minutes float64) *ch.SelectQu
 	var having []byte
 
 	for _, cond := range ast.Conds {
-		bb := upqlWhereCond(cond, minutes)
+		bb := CompileCond(cond, minutes)
 		if bb == nil {
 			continue
 		}
 
-		if isAggColumn(cond.Left) {
+		if IsAggColumn(cond.Left) {
 			having = appendCond(having, cond, bb)
 		} else {
 			where = appendCond(where, cond, bb)
@@ -297,7 +299,7 @@ func upqlWhere(q *ch.SelectQuery, ast *upql.Where, minutes float64) *ch.SelectQu
 	return q
 }
 
-func upqlWhereCond(cond upql.Cond, minutes float64) []byte {
+func CompileCond(cond upql.Cond, minutes float64) []byte {
 	var b []byte
 
 	switch cond.Op {
@@ -323,7 +325,7 @@ func upqlWhereCond(cond upql.Cond, minutes float64) []byte {
 
 		values := strings.Split(cond.Right.Text, "|")
 		b = append(b, "multiSearchAnyCaseInsensitiveUTF8("...)
-		b = appendUPQLColumn(b, cond.Left, minutes)
+		b = CompileCHColumn(b, cond.Left, minutes)
 		b = append(b, ", "...)
 		b = chschema.AppendQuery(b, "[?]", ch.In(values))
 		b = append(b, ")"...)
@@ -334,7 +336,7 @@ func upqlWhereCond(cond upql.Cond, minutes float64) []byte {
 	if cond.Right.IsNum() {
 		b = append(b, "toFloat64OrDefault("...)
 	}
-	b = appendUPQLColumn(b, cond.Left, minutes)
+	b = CompileCHColumn(b, cond.Left, minutes)
 	if cond.Right.IsNum() {
 		b = append(b, ")"...)
 	}
@@ -372,7 +374,7 @@ func disableColumnsAndGroups(parts []*upql.QueryPart) {
 			part.Disabled = true
 		case *upql.Where:
 			for _, cond := range ast.Conds {
-				if isAggColumn(cond.Left) {
+				if IsAggColumn(cond.Left) {
 					part.Disabled = true
 					break
 				}

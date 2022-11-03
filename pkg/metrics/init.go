@@ -11,6 +11,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/metric/instrument"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
+	"go.uber.org/zap"
 )
 
 const (
@@ -33,6 +34,9 @@ var measureCounter, _ = bunotel.Meter.SyncInt64().Counter(
 func Init(ctx context.Context, app *bunapp.App) {
 	initGRPC(ctx, app)
 	initRoutes(ctx, app)
+	if err := initSpanMetrics(ctx, app); err != nil {
+		app.Logger.Error("initSpanMetrics failed", zap.Error(err))
+	}
 }
 
 func initGRPC(ctx context.Context, app *bunapp.App) {
