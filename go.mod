@@ -4,8 +4,6 @@ go 1.18
 
 replace github.com/segmentio/encoding => github.com/vmihailenco/encoding v0.3.4-0.20220121071420-f96fbbb25975
 
-replace github.com/uptrace/go-clickhouse => /home/vmihailenco/workspace/go-clickhouse
-
 require (
 	github.com/bradleyjkemp/cupaloy v2.3.0+incompatible
 	github.com/cespare/xxhash/v2 v2.1.2
@@ -20,11 +18,11 @@ require (
 	github.com/uptrace/bunrouter v1.0.19-0.20220828135510-86ff9250b2fc
 	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.19-0.20220828135510-86ff9250b2fc
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.19-0.20220828135510-86ff9250b2fc
-	github.com/uptrace/go-clickhouse v0.2.10-0.20221101132210-55dc78bb9aa8
-	github.com/uptrace/go-clickhouse/chdebug v0.2.10-0.20221101132210-55dc78bb9aa8
-	github.com/uptrace/go-clickhouse/chotel v0.2.10-0.20221101132210-55dc78bb9aa8
+	github.com/uptrace/go-clickhouse v0.2.10-0.20221103095819-cbdda720552a
+	github.com/uptrace/go-clickhouse/chdebug v0.2.10-0.20221103095819-cbdda720552a
+	github.com/uptrace/go-clickhouse/chotel v0.2.10-0.20221103095819-cbdda720552a
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.15
-	github.com/uptrace/uptrace-go v1.11.3
+	github.com/uptrace/uptrace-go v1.11.4
 	github.com/urfave/cli/v2 v2.11.1
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/vmihailenco/tagparser v0.1.2
