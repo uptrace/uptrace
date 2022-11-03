@@ -1,10 +1,13 @@
 package metrics
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
 	"strconv"
+	"strings"
+	"text/template"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -38,6 +41,7 @@ func (e *AlertingEngine) Eval(
 	ctx context.Context, metrics []upql.Metric, expr string, gte, lt time.Time,
 ) ([]upql.Timeseries, map[string][]upql.Timeseries, error) {
 	metricMap := make(map[string]*Metric, len(metrics))
+
 	for _, m := range metrics {
 		metric, err := SelectMetricByName(ctx, e.app, e.projectID, m.Name)
 		if err != nil {
@@ -110,6 +114,14 @@ func (m *AlertManager) SendAlerts(
 	for i := range alerts {
 		alert := &alerts[i]
 
+		postableAlert, err := m.convert(rule, alert)
+		if err != nil {
+			m.logger.Error("can't create a postable alert", zap.Error(err))
+			continue
+		}
+
+		postableAlerts = append(postableAlerts, postableAlert)
+
 		fields := []zap.Field{
 			zap.String("name", rule.Name),
 			zap.Uint32("project_id", m.projectID),
@@ -127,16 +139,25 @@ func (m *AlertManager) SendAlerts(
 			m.logger.Info("alerting rule is resolved", fields...)
 		}
 
-		postableAlert := m.convert(rule, alert)
-		postableAlerts = append(postableAlerts, postableAlert)
 	}
 
 	return m.notifier.Send(ctx, postableAlerts)
 }
 
+type TemplateData struct {
+	Labels map[string]string
+	Values map[string]string
+	Query  string
+}
+
+var templateDefs = []string{
+	"{{$labels := $.Labels}}",
+	"{{$values := $.Values}}",
+}
+
 func (m *AlertManager) convert(
 	rule *alerting.RuleConfig, alert *alerting.Alert,
-) *models.PostableAlert {
+) (*models.PostableAlert, error) {
 	labels := make(models.LabelSet)
 	for _, kv := range alert.Attrs {
 		labels[cleanLabelName(kv.Key)] = kv.Value
@@ -145,19 +166,35 @@ func (m *AlertManager) convert(
 		labels[cleanLabelName(k)] = v
 	}
 
+	values := make(map[string]string)
+	for metric, ts := range alert.Metrics {
+		lastValue := ts.Value[len(ts.Value)-1]
+		values[cleanLabelName(metric)] = strconv.FormatFloat(lastValue, 'f', -1, 64)
+	}
+
 	labels["alertname"] = rule.Name
 	labels["uptrace_project_id"] = fmt.Sprint(m.projectID)
 
 	annotations := make(models.LabelSet)
-	annotations["uptrace_query"] = rule.Query
 
-	for k, v := range rule.Annotations {
-		annotations[cleanLabelName(k)] = v
+	tplData := &TemplateData{
+		Labels: labels,
+		Values: values,
+		Query:  rule.Query,
 	}
+	for k, v := range rule.Annotations {
+		tpl := append(templateDefs, v)
+		t, err := template.New("").Parse(strings.Join(tpl, ""))
+		if err != nil {
+			return nil, err
+		}
 
-	for metric, ts := range alert.Metrics {
-		lastValue := ts.Value[len(ts.Value)-1]
-		annotations[cleanLabelName(metric)] = strconv.FormatFloat(lastValue, 'f', -1, 64)
+		var buf bytes.Buffer
+		if err := t.Execute(&buf, tplData); err != nil {
+			return nil, err
+		}
+
+		annotations[cleanLabelName(k)] = buf.String()
 	}
 
 	return &models.PostableAlert{
@@ -167,7 +204,7 @@ func (m *AlertManager) convert(
 		Annotations: annotations,
 		StartsAt:    strfmt.DateTime(alert.FiredAt),
 		EndsAt:      strfmt.DateTime(alert.ResolvedAt),
-	}
+	}, nil
 }
 
 type RuleAlerts struct {
