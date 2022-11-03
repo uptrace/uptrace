@@ -23,7 +23,7 @@ func ForEachKeyValue(kvs []*commonpb.KeyValue, fn func(key string, value any)) {
 			continue
 		}
 		if value, ok := AnyValue(kv.Value); ok {
-			fn(kv.Key, value)
+			fn(CleanAttrKey(kv.Key), value)
 		}
 	}
 }
