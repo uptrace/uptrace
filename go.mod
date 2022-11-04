@@ -18,9 +18,9 @@ require (
 	github.com/uptrace/bunrouter v1.0.19-0.20220828135510-86ff9250b2fc
 	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.19-0.20220828135510-86ff9250b2fc
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.19-0.20220828135510-86ff9250b2fc
-	github.com/uptrace/go-clickhouse v0.2.10-0.20221103095819-cbdda720552a
-	github.com/uptrace/go-clickhouse/chdebug v0.2.10-0.20221103095819-cbdda720552a
-	github.com/uptrace/go-clickhouse/chotel v0.2.10-0.20221103095819-cbdda720552a
+	github.com/uptrace/go-clickhouse v0.2.10-0.20221104080824-01c7ba9accb1
+	github.com/uptrace/go-clickhouse/chdebug v0.2.10-0.20221104080824-01c7ba9accb1
+	github.com/uptrace/go-clickhouse/chotel v0.2.10-0.20221104080824-01c7ba9accb1
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.15
 	github.com/uptrace/uptrace-go v1.11.4
 	github.com/urfave/cli/v2 v2.11.1
