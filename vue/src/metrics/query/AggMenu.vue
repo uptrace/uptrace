@@ -116,7 +116,12 @@ function metricColumns(metric: Metric): ColumnItem[] {
     case Instrument.Gauge:
       return [{ value: alias }, { value: `min(${alias})` }, { value: `max(${alias})` }]
     case Instrument.Additive:
-      return [{ value: alias }]
+      return [
+        { value: alias },
+        { value: `avg(${alias})` },
+        { value: `min(${alias})` },
+        { value: `max(${alias})` },
+      ]
     case Instrument.Counter:
       return [
         { value: `per_min(${alias})`, hint: 'value per minute' },
