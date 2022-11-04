@@ -145,7 +145,7 @@ func (s *TraceServiceServer) httpTraces(w http.ResponseWriter, req bunrouter.Req
 		}
 
 		return nil
-	case protobufContentType:
+	case xprotobufContentType, protobufContentType:
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			return err

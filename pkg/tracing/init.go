@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	protobufContentType = "application/protobuf"
-	jsonContentType     = "application/json"
+	protobufContentType  = "application/protobuf"
+	xprotobufContentType = "application/x-protobuf"
+	jsonContentType      = "application/json"
 )
 
 var spanCounter, _ = bunotel.Meter.SyncInt64().Counter(
