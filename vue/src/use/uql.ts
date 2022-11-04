@@ -39,6 +39,13 @@ export function useUql(cfg: UqlConfig = {}) {
     },
   })
 
+  const whereQuery = computed((): string => {
+    return parts.value
+      .filter((part) => /where\s+/i.test(part.query))
+      .map((part) => part.query)
+      .join(QUERY_PART_SEP)
+  })
+
   query.value = cfg.query ?? ''
 
   if (cfg.syncQuery) {
@@ -101,6 +108,7 @@ export function useUql(cfg: UqlConfig = {}) {
   return proxyRefs({
     rawMode,
     query,
+    whereQuery,
     parts,
 
     addPart,

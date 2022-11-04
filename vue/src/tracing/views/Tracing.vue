@@ -40,10 +40,12 @@
       <router-view
         :date-range="dateRange"
         :systems="systems"
+        :uql="uql"
         :events-mode="eventsMode"
         :query="query"
         :span-list-route="spanListRoute"
         :group-list-route="groupListRoute"
+        :axios-params="axiosParams"
       />
     </v-container>
   </XPlaceholder>
@@ -59,6 +61,7 @@ import { useTitle } from '@vueuse/core'
 import { UseDateRange } from '@/use/date-range'
 import { useUser } from '@/use/org'
 import { useSystems, SystemsFilter } from '@/tracing/system/use-systems'
+import { useUql } from '@/use/uql'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
@@ -117,12 +120,25 @@ export default defineComponent({
     const route = useRoute()
     const user = useUser()
 
+    const uql = useUql({
+      syncQuery: true,
+    })
+
     const systems = useSystems(() => {
       return {
         ...props.dateRange.axiosParams(),
+        query: uql.whereQuery,
       }
     })
     systems.syncQuery()
+
+    const axiosParams = computed(() => {
+      return {
+        ...props.dateRange.axiosParams(),
+        ...uql.axiosParams(),
+        system: systems.activeSystem,
+      }
+    })
 
     const systemsItems = computed(() => {
       if (props.systemsFilter) {
@@ -136,6 +152,8 @@ export default defineComponent({
       user,
       systems,
       systemsItems,
+      uql,
+      axiosParams,
       routes: useRoutes(props),
     }
   },

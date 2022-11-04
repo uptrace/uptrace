@@ -25,36 +25,17 @@ func NewSystemHandler(app *bunapp.App) *SystemHandler {
 	}
 }
 
-func (h *SystemHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
+func (h *SystemHandler) ListSystems(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := DecodeSystemFilter(h.App, req)
+	f, err := DecodeSpanFilter(h.App, req)
 	if err != nil {
 		return err
 	}
 
-	tableName := spanSystemTableForWhere(h.App, &f.TimeFilter)
-	minutes := f.TimeFilter.Duration().Minutes()
-	systems := make([]map[string]any, 0)
-
-	if err := h.CH.NewSelect().
-		ColumnExpr("system").
-		ColumnExpr("sum(count) AS count").
-		ColumnExpr("sum(count) / ? AS rate", minutes).
-		ColumnExpr("sum(error_count) AS errorCount").
-		ColumnExpr("sum(error_count) / sum(count) AS errorPct").
-		TableExpr("? AS s", tableName).
-		WithQuery(f.whereClause).
-		GroupExpr("system").
-		OrderExpr("system ASC").
-		Limit(1000).
-		Scan(ctx, &systems); err != nil {
+	systems, err := h.selectSystems(ctx, f)
+	if err != nil {
 		return err
-	}
-
-	for _, sys := range systems {
-		sys["projectId"] = f.ProjectID
-		sys["isEvent"] = isEventSystem(sys["system"].(string))
 	}
 
 	return httputil.JSON(w, bunrouter.H{
@@ -62,7 +43,61 @@ func (h *SystemHandler) List(w http.ResponseWriter, req bunrouter.Request) error
 	})
 }
 
-func (h *SystemHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error {
+func (h *SystemHandler) selectSystems(
+	ctx context.Context, f *SpanFilter,
+) ([]map[string]any, error) {
+	q := h.selectSystemsFastQuery(f)
+	if q == nil {
+		q = h.selectSystemsSlowQuery(f)
+	}
+
+	systems := make([]map[string]any, 0)
+
+	if err := q.Scan(ctx, &systems); err != nil {
+		return nil, err
+	}
+
+	return systems, nil
+}
+
+func (h *SystemHandler) selectSystemsFastQuery(f *SpanFilter) *ch.SelectQuery {
+	if f.Query != "" {
+		return nil
+	}
+
+	tableName := spanSystemTableForWhere(h.App, &f.TimeFilter)
+	minutes := f.TimeFilter.Duration().Minutes()
+
+	return h.CH.NewSelect().
+		ColumnExpr("project_id AS projectId").
+		ColumnExpr("system").
+		ColumnExpr("sum(count) AS count").
+		ColumnExpr("sum(count) / ? AS rate", minutes).
+		ColumnExpr("sum(error_count) AS errorCount").
+		ColumnExpr("sum(error_count) / sum(count) AS errorPct").
+		TableExpr("? AS s", tableName).
+		WithQuery(f.whereClause).
+		GroupExpr("project_id, system").
+		OrderExpr("system ASC").
+		Limit(1000)
+}
+
+func (h *SystemHandler) selectSystemsSlowQuery(f *SpanFilter) *ch.SelectQuery {
+	return NewSpanIndexQuery(h.App).
+		ColumnExpr("s.project_id AS projectId").
+		ColumnExpr("s.system").
+		ColumnExpr("sum(s.count) AS count").
+		ColumnExpr("sumIf(s.count, s.status_code = 'error') AS errorCount").
+		ColumnExpr("sum(s.count) / ? AS rate", f.TimeFilter.Duration().Minutes()).
+		ColumnExpr("sumIf(s.count, s.status_code = 'error') / sum(s.count) AS errorPct").
+		WithQuery(f.whereClause).
+		WithQuery(f.spanqlWhere).
+		GroupExpr("project_id, system").
+		OrderExpr("system ASC").
+		Limit(1000)
+}
+
+func (h *SystemHandler) ListSystemStats(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
 	f, err := DecodeSystemFilter(h.App, req)

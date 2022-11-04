@@ -43,7 +43,7 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 		f.SortDesc = true
 	}
 
-	q := buildSpanIndexQuery(h.App, f, f.Duration().Minutes()).
+	q := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration()).
 		ColumnExpr("id, trace_id").
 		WithQuery(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if f.SortBy == "" {
@@ -105,7 +105,7 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	q := buildSpanIndexQuery(h.App, f, f.Duration().Minutes()).
+	q := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration()).
 		Limit(1000)
 	groups := make([]map[string]any, 0)
 
@@ -156,7 +156,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 
 	m := make(map[string]interface{})
 
-	subq := buildSpanIndexQuery(h.App, f, f.Duration().Minutes()).
+	subq := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration()).
 		WithAlias("qsNaN", "quantilesTDigest(0.5, 0.9, 0.99)(s.duration)").
 		WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
 		ColumnExpr("sum(s.count) AS count").
@@ -223,12 +223,11 @@ func (h *SpanHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error 
 	}
 
 	groupPeriod := org.CalcGroupPeriod(f.TimeGTE, f.TimeLT, 300)
-	minutes := groupPeriod.Minutes()
 	m := make(map[string]interface{})
 
-	subq := buildSpanIndexQuery(h.App, f, minutes)
-	subq = upqlColumn(subq, colName, minutes).
-		ColumnExpr("toStartOfInterval(time, toIntervalMinute(?)) AS time_", minutes).
+	subq := buildSpanIndexQuery(h.App, f, groupPeriod)
+	subq = upqlColumn(subq, colName, groupPeriod).
+		ColumnExpr("toStartOfInterval(time, toIntervalMinute(?)) AS time_", groupPeriod.Minutes()).
 		GroupExpr("time_").
 		OrderExpr("time_ ASC")
 

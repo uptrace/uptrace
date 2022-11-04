@@ -15,7 +15,7 @@ import (
 	tracingupql "github.com/uptrace/uptrace/pkg/tracing/upql"
 )
 
-const spanMetricMinutes = 1
+const spanMetricDur = 1
 
 func initSpanMetrics(ctx context.Context, app *bunapp.App) error {
 	conf := app.Config()
@@ -166,7 +166,7 @@ func appendSpanMetricExpr(b []byte, expr ast.Expr) (_ []byte, err error) {
 		b = tracing.AppendCHColumn(b, tracingupql.Name{
 			FuncName: expr.Func,
 			AttrKey:  expr.Name,
-		}, spanMetricMinutes)
+		}, spanMetricDur)
 		return b, nil
 	case *ast.Number:
 		b = append(b, expr.Text...)
@@ -225,43 +225,25 @@ func compileSpanMetricAnnotations(attrs []string) ch.Safe {
 	return ch.Safe(b)
 }
 
-func compileSpanMetricWhere(where string) (ch.Ident, error) {
-	if !strings.HasPrefix(where, "where ") {
-		where = "where " + where
+func compileSpanMetricWhere(query string) (ch.Safe, error) {
+	if !strings.HasPrefix(query, "where ") {
+		query = "where " + query
 	}
 
-	parts := tracingupql.Parse(where)
+	parts := tracingupql.Parse(query)
 	if len(parts) != 1 {
-		return "", fmt.Errorf("can't parse metric where: %q", where)
+		return "", fmt.Errorf("can't parse metric where: %q", query)
 	}
 
 	part := parts[0]
 	ast, ok := part.AST.(*tracingupql.Where)
 	if !ok {
-		return "", fmt.Errorf("can't parse metric where: %q", where)
+		return "", fmt.Errorf("can't parse metric where: %q", query)
 	}
 
-	var b []byte
-
-	for _, cond := range ast.Conds {
-		bb := tracing.CompileCond(cond, spanMetricMinutes)
-		if bb == nil {
-			continue
-		}
-
-		if tracing.IsAggColumn(cond.Left) {
-			return "", fmt.Errorf("can't filter by agg columns: %q", where)
-		}
-
-		if len(b) > 0 {
-			b = append(b, cond.Sep.Op...)
-			b = append(b, ' ')
-		}
-		if cond.Sep.Negate {
-			b = append(b, "NOT "...)
-		}
-		b = append(b, bb...)
+	where, having := tracing.AppendWhereHaving(ast, spanMetricDur)
+	if len(having) > 0 {
+		return "", fmt.Errorf("can't filter by agg columns: %q", having)
 	}
-
-	return ch.Ident(b), nil
+	return ch.Safe(where), nil
 }

@@ -90,7 +90,7 @@ import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/tracing/system/use-systems'
-import { useUql } from '@/use/uql'
+import { UseUql } from '@/use/uql'
 import { useSpanExplore } from '@/tracing/use-span-explore'
 
 // Components
@@ -113,6 +113,10 @@ export default defineComponent({
       type: Object as PropType<UseSystems>,
       required: true,
     },
+    uql: {
+      type: Object as PropType<UseUql>,
+      required: true,
+    },
     eventsMode: {
       type: Boolean,
       required: true,
@@ -125,29 +129,21 @@ export default defineComponent({
       type: String,
       required: true,
     },
+    axiosParams: {
+      type: Object as PropType<Record<string, any>>,
+      required: true,
+    },
   },
 
   setup(props) {
     const { route } = useRouter()
     const activeColumns = shallowRef<string[]>([])
 
-    const uql = useUql({
-      syncQuery: true,
-    })
-
-    const axiosParams = computed(() => {
-      return {
-        ...props.dateRange.axiosParams(),
-        ...uql.axiosParams(),
-        system: props.systems.activeSystem,
-      }
-    })
-
     const explore = useSpanExplore(() => {
       const { projectId } = route.value.params
       return {
         url: `/api/v1/tracing/${projectId}/groups`,
-        params: axiosParams.value,
+        params: props.axiosParams,
       }
     })
 
@@ -179,7 +175,7 @@ export default defineComponent({
       () => explore.queryParts,
       (queryParts) => {
         if (queryParts) {
-          uql.syncParts(queryParts)
+          props.uql.syncParts(queryParts)
         }
       },
     )
@@ -195,14 +191,12 @@ export default defineComponent({
     )
 
     function resetQuery() {
-      uql.query = props.query
+      props.uql.query = props.query
     }
 
     return {
       route,
       activeColumns,
-      uql,
-      axiosParams,
       explore,
       showSystem,
 
