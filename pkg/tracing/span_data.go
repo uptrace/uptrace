@@ -12,17 +12,19 @@ import (
 type SpanData struct {
 	ch.CHModel `ch:"table:spans_data_buffer,alias:s"`
 
-	TraceID  uuid.UUID
-	ID       uint64
-	ParentID uint64
-	Time     time.Time
-	Data     []byte
+	TraceID   uuid.UUID
+	ID        uint64
+	ParentID  uint64
+	ProjectID uint32
+	Time      time.Time
+	Data      []byte
 }
 
 func initSpanData(data *SpanData, span *Span) {
 	data.TraceID = span.TraceID
 	data.ID = span.ID
 	data.ParentID = span.ParentID
+	data.ProjectID = span.ProjectID
 	data.Time = span.Time
 	data.Data = marshalSpan(span)
 }
