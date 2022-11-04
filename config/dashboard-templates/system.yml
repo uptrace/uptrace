@@ -2,6 +2,37 @@ id: uptrace.system.overview_by_host
 name: 'System: CPU/RAM/Swap'
 
 table:
+  gauges:
+    - name: Total RAM
+      description: Total RAM across all nodes
+      metrics:
+        - system.memory.usage as $mem_usage
+      query:
+        - $mem_usage
+
+    - name: Free RAM
+      description: Free RAM across all nodes
+      metrics:
+        - system.memory.usage as $mem_usage
+      query:
+        - $mem_usage{state=free} as free
+
+    - name: Mem. util
+      description: Memory utilization across all nodes
+      metrics:
+        - system.memory.usage as $mem_usage
+      query:
+        - $mem_usage{state!=free} / $mem_usage as mem_util
+      columns:
+        mem_util: { unit: percents }
+
+    - name: Avg free RAM
+      description: Avg free RAM across all nodes
+      metrics:
+        - system.memory.usage as $mem_usage
+      query:
+        - avg($mem_usage{state=free}) as free
+
   metrics:
     - system.cpu.load_average.15m as $load_avg_15m
     - system.cpu.time as $cpu_time
