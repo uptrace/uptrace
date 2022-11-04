@@ -77,8 +77,8 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			g.GET("/envs", sysHandler.ListEnvs)
 			g.GET("/services", sysHandler.ListServices)
 
-			g.GET("/systems", sysHandler.List)
-			g.GET("/systems-stats", sysHandler.Stats)
+			g.GET("/systems", sysHandler.ListSystems)
+			g.GET("/systems-stats", sysHandler.ListSystemStats)
 			g.GET("/overview", sysHandler.Overview)
 		})
 

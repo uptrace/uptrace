@@ -98,7 +98,10 @@ export default defineComponent({
 
     const spanFacetsParams = computed(() => {
       if (drawer.value) {
-        return props.axiosParams
+        return {
+          ...props.axiosParams,
+          query: props.uql.whereQuery,
+        }
       }
       return null
     })

@@ -56,7 +56,7 @@ import { defineComponent, computed, watch, PropType } from 'vue'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/tracing/system/use-systems'
-import { useUql } from '@/use/uql'
+import { UseUql } from '@/use/uql'
 import { useSpans } from '@/tracing/use-spans'
 
 // Components
@@ -82,6 +82,10 @@ export default defineComponent({
       type: Object as PropType<UseSystems>,
       required: true,
     },
+    uql: {
+      type: Object as PropType<UseUql>,
+      required: true,
+    },
     eventsMode: {
       type: Boolean,
       required: true,
@@ -90,29 +94,21 @@ export default defineComponent({
       type: String,
       required: true,
     },
+    axiosParams: {
+      type: Object as PropType<Record<string, any>>,
+      required: true,
+    },
   },
 
   setup(props) {
     const { route } = useRouter()
-
-    const uql = useUql({
-      syncQuery: true,
-    })
-
-    const axiosParams = computed(() => {
-      return {
-        ...props.dateRange.axiosParams(),
-        ...uql.axiosParams(),
-        system: props.systems.activeSystem,
-      }
-    })
 
     const spans = useSpans(
       () => {
         const { projectId } = route.value.params
         return {
           url: `/api/v1/tracing/${projectId}/spans`,
-          params: axiosParams.value,
+          params: props.axiosParams,
         }
       },
       {
@@ -150,7 +146,7 @@ export default defineComponent({
       () => spans.queryParts,
       (queryParts) => {
         if (queryParts) {
-          uql.syncParts(queryParts)
+          props.uql.syncParts(queryParts)
         }
       },
     )
@@ -166,19 +162,17 @@ export default defineComponent({
     )
 
     function resetQuery() {
-      uql.query = props.query
+      props.uql.query = props.query
     }
 
     function onChipClick(chip: SpanChip) {
-      const editor = uql.createEditor()
+      const editor = props.uql.createEditor()
       editor.where(chip.key, '=', chip.value)
-      uql.commitEdits(editor)
+      props.uql.commitEdits(editor)
     }
 
     return {
       route,
-      uql,
-      axiosParams,
       spans,
       showSystem,
 

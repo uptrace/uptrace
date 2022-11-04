@@ -43,7 +43,8 @@ func DecodeSpanFilter(app *bunapp.App, req bunrouter.Request) (*SpanFilter, erro
 		return nil, err
 	}
 
-	f.ProjectID = org.ProjectFromContext(req.Context()).ID
+	project := org.ProjectFromContext(req.Context())
+	f.ProjectID = project.ID
 	f.parts = upql.Parse(f.Query)
 
 	return f, nil
@@ -112,6 +113,23 @@ func isNumColumn(v any) bool {
 	}
 }
 
+func (f *SpanFilter) spanqlWhere(q *ch.SelectQuery) *ch.SelectQuery {
+	for _, part := range f.parts {
+		if part.Disabled || part.Error != "" {
+			continue
+		}
+
+		switch ast := part.AST.(type) {
+		case *upql.Where:
+			where, _ := AppendWhereHaving(ast, f.TimeFilter.Duration())
+			if len(where) > 0 {
+				q = q.Where(string(where))
+			}
+		}
+	}
+	return q
+}
+
 //------------------------------------------------------------------------------
 
 func NewSpanIndexQuery(app *bunapp.App) *ch.SelectQuery {
@@ -119,14 +137,14 @@ func NewSpanIndexQuery(app *bunapp.App) *ch.SelectQuery {
 		TableExpr("? AS s", app.DistTable("spans_index_buffer"))
 }
 
-func buildSpanIndexQuery(app *bunapp.App, f *SpanFilter, minutes float64) *ch.SelectQuery {
+func buildSpanIndexQuery(app *bunapp.App, f *SpanFilter, dur time.Duration) *ch.SelectQuery {
 	q := NewSpanIndexQuery(app).WithQuery(f.whereClause)
-	q, f.columnMap = compileUQL(q, f.parts, minutes)
+	q, f.columnMap = compileUQL(q, f.parts, dur)
 	return q
 }
 
 func compileUQL(
-	q *ch.SelectQuery, parts []*upql.QueryPart, minutes float64,
+	q *ch.SelectQuery, parts []*upql.QueryPart, dur time.Duration,
 ) (*ch.SelectQuery, map[string]bool) {
 	groupSet := make(map[string]bool)
 	columnSet := make(map[string]bool)
@@ -139,7 +157,7 @@ func compileUQL(
 		switch ast := part.AST.(type) {
 		case *upql.Group:
 			for _, name := range ast.Names {
-				q = upqlColumn(q, name, minutes)
+				q = upqlColumn(q, name, dur)
 				columnSet[name.String()] = true
 
 				q = q.Group(name.String())
@@ -165,11 +183,17 @@ func compileUQL(
 					continue
 				}
 
-				q = upqlColumn(q, name, minutes)
+				q = upqlColumn(q, name, dur)
 				columnSet[name.String()] = true
 			}
 		case *upql.Where:
-			q = upqlWhere(q, ast, minutes)
+			where, having := AppendWhereHaving(ast, dur)
+			if len(where) > 0 {
+				q = q.Where(string(where))
+			}
+			if len(having) > 0 {
+				q = q.Having(string(having))
+			}
 		}
 	}
 
@@ -177,7 +201,7 @@ func compileUQL(
 		for _, key := range []string{attrkey.SpanSystem, attrkey.SpanName, attrkey.SpanEventName} {
 			name := upql.Name{FuncName: "any", AttrKey: key}
 			if !columnSet[name.String()] {
-				q = upqlColumn(q, name, minutes)
+				q = upqlColumn(q, name, dur)
 				columnSet[name.String()] = true
 			}
 		}
@@ -202,9 +226,9 @@ func isAggAttr(attrKey string) bool {
 	}
 }
 
-func upqlColumn(q *ch.SelectQuery, name upql.Name, minutes float64) *ch.SelectQuery {
+func upqlColumn(q *ch.SelectQuery, name upql.Name, dur time.Duration) *ch.SelectQuery {
 	var b []byte
-	b = AppendCHColumn(b, name, minutes)
+	b = AppendCHColumn(b, name, dur)
 	b = append(b, " AS "...)
 	b = append(b, '"')
 	b = name.Append(b)
@@ -212,7 +236,7 @@ func upqlColumn(q *ch.SelectQuery, name upql.Name, minutes float64) *ch.SelectQu
 	return q.ColumnExpr(string(b))
 }
 
-func AppendCHColumn(b []byte, name upql.Name, minutes float64) []byte {
+func AppendCHColumn(b []byte, name upql.Name, dur time.Duration) []byte {
 	switch name.FuncName {
 	case "p50", "p75", "p90", "p99":
 		return chschema.AppendQuery(b, "quantileTDigest(?)(toFloat64OrDefault(?))",
@@ -227,12 +251,12 @@ func AppendCHColumn(b []byte, name upql.Name, minutes float64) []byte {
 	case attrkey.SpanCount:
 		return chschema.AppendQuery(b, "sum(s.count)")
 	case attrkey.SpanCountPerMin:
-		return chschema.AppendQuery(b, "sum(s.count) / ?", minutes)
+		return chschema.AppendQuery(b, "sum(s.count) / ?", dur.Minutes())
 	case attrkey.SpanErrorCount:
-		return chschema.AppendQuery(b, "sumIf(s.count, s.status_code = 'error')", minutes)
+		return chschema.AppendQuery(b, "sumIf(s.count, s.status_code = 'error')", dur.Minutes())
 	case attrkey.SpanErrorPct:
 		return chschema.AppendQuery(
-			b, "sumIf(s.count, s.status_code = 'error') / sum(s.count)", minutes)
+			b, "sumIf(s.count, s.status_code = 'error') / sum(s.count)", dur.Minutes())
 	case attrkey.SpanIsEvent:
 		return chschema.AppendQuery(
 			b, "s.system IN (?)", ch.In(eventSystems))
@@ -272,12 +296,12 @@ func AppendCHAttrExpr(b []byte, key string) []byte {
 	return chschema.AppendQuery(b, "s.attr_values[indexOf(s.attr_keys, ?)]", key)
 }
 
-func upqlWhere(q *ch.SelectQuery, ast *upql.Where, minutes float64) *ch.SelectQuery {
+func AppendWhereHaving(ast *upql.Where, dur time.Duration) ([]byte, []byte) {
 	var where []byte
 	var having []byte
 
 	for _, cond := range ast.Conds {
-		bb := CompileCond(cond, minutes)
+		bb := AppendCond(cond, dur)
 		if bb == nil {
 			continue
 		}
@@ -289,17 +313,10 @@ func upqlWhere(q *ch.SelectQuery, ast *upql.Where, minutes float64) *ch.SelectQu
 		}
 	}
 
-	if len(where) > 0 {
-		q = q.Where(string(where))
-	}
-	if len(having) > 0 {
-		q = q.Having(string(having))
-	}
-
-	return q
+	return where, having
 }
 
-func CompileCond(cond upql.Cond, minutes float64) []byte {
+func AppendCond(cond upql.Cond, dur time.Duration) []byte {
 	var b []byte
 
 	switch cond.Op {
@@ -325,7 +342,7 @@ func CompileCond(cond upql.Cond, minutes float64) []byte {
 
 		values := strings.Split(cond.Right.Text, "|")
 		b = append(b, "multiSearchAnyCaseInsensitiveUTF8("...)
-		b = AppendCHColumn(b, cond.Left, minutes)
+		b = AppendCHColumn(b, cond.Left, dur)
 		b = append(b, ", "...)
 		b = chschema.AppendQuery(b, "[?]", ch.In(values))
 		b = append(b, ")"...)
@@ -336,7 +353,7 @@ func CompileCond(cond upql.Cond, minutes float64) []byte {
 	if cond.Right.IsNum() {
 		b = append(b, "toFloat64OrDefault("...)
 	}
-	b = AppendCHColumn(b, cond.Left, minutes)
+	b = AppendCHColumn(b, cond.Left, dur)
 	if cond.Right.IsNum() {
 		b = append(b, ")"...)
 	}
