@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/bunrouter"
@@ -64,9 +65,9 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 		GroupingPeriod: f.TimeFilter.Duration(),
 	})
 	engine := upql.NewEngine(storage)
-	timeseries, _ := engine.Run(f.allParts)
+	result := engine.Run(f.allParts)
 
-	columns, table := convertToTable(timeseries)
+	columns, table := convertToTable(result.Timeseries, result.Columns)
 	sortTable(columns, table, f)
 
 	var hasMore bool
@@ -91,22 +92,38 @@ type ColumnInfo struct {
 	IsGroup bool   `json:"isGroup"`
 }
 
-func convertToTable(timeseries []upql.Timeseries) ([]*ColumnInfo, []map[string]any) {
-	columnMap := make(map[string]struct{})
+func convertToTable(
+	timeseries []upql.Timeseries, columnNames []string,
+) ([]*ColumnInfo, []map[string]any) {
+	columnMap := make(map[string]*ColumnInfo)
 	var columns []*ColumnInfo
 	rowMap := make(map[uint64]map[string]any)
+
+	for _, columnName := range columnNames {
+		if strings.HasPrefix(columnName, "_") {
+			continue
+		}
+		col := &ColumnInfo{
+			Name: columnName,
+		}
+		columnMap[columnName] = col
+		columns = append(columns, col)
+	}
 
 	var buf []byte
 	for i := range timeseries {
 		ts := &timeseries[i]
 		metricName := ts.MetricName()
 
-		if _, ok := columnMap[metricName]; !ok {
-			columnMap[metricName] = struct{}{}
-			columns = append(columns, &ColumnInfo{
+		if col, ok := columnMap[metricName]; ok {
+			col.Unit = ts.Unit
+		} else {
+			col := &ColumnInfo{
 				Name: metricName,
 				Unit: ts.Unit,
-			})
+			}
+			columnMap[metricName] = col
+			columns = append(columns, col)
 		}
 
 		buf = ts.Attrs.Bytes(buf[:0])
@@ -121,11 +138,12 @@ func convertToTable(timeseries []upql.Timeseries) ([]*ColumnInfo, []map[string]a
 
 			for _, kv := range ts.Attrs {
 				if _, ok := columnMap[kv.Key]; !ok {
-					columnMap[kv.Key] = struct{}{}
-					columns = append(columns, &ColumnInfo{
+					col := &ColumnInfo{
 						Name:    kv.Key,
 						IsGroup: true,
-					})
+					}
+					columnMap[kv.Key] = col
+					columns = append(columns, col)
 				}
 
 				row[kv.Key] = kv.Value
@@ -136,7 +154,13 @@ func convertToTable(timeseries []upql.Timeseries) ([]*ColumnInfo, []map[string]a
 	}
 
 	table := make([]map[string]any, 0, len(rowMap))
+
 	for _, row := range rowMap {
+		for _, column := range columns {
+			if _, ok := row[column.Name]; !ok {
+				row[column.Name] = 0
+			}
+		}
 		table = append(table, row)
 	}
 
@@ -210,9 +234,9 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 		GroupingPeriod: f.TimeFilter.Duration(),
 	})
 	engine := upql.NewEngine(storage)
-	timeseries, _ := engine.Run(f.allParts)
+	result := engine.Run(f.allParts)
 
-	columns, table := convertToTable(timeseries)
+	columns, table := convertToTable(result.Timeseries, result.Columns)
 
 	var values map[string]any
 	if len(table) > 0 {
@@ -233,11 +257,12 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 //------------------------------------------------------------------------------
 
 type Timeseries struct {
-	*upql.Timeseries
-
-	Name   string  `json:"name"`
-	Metric string  `json:"metric"`
-	Median float64 `json:"median"`
+	Name   string      `json:"name"`
+	Metric string      `json:"metric"`
+	Unit   string      `json:"unit"`
+	Attrs  upql.Attrs  `json:"attrs"`
+	Value  []float64   `json:"value"`
+	Time   []time.Time `json:"time"`
 }
 
 func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) error {
@@ -269,22 +294,25 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 		FillHoles:   true,
 	})
 	engine := upql.NewEngine(storage)
-	timeseries, _ := engine.Run(f.allParts)
+	result := engine.Run(f.allParts)
 
-	timeseries2 := make([]Timeseries, len(timeseries))
+	jsonTimeseries := make([]Timeseries, len(result.Timeseries))
 
-	for i := range timeseries {
-		timeseries2[i] = Timeseries{
-			Timeseries: &timeseries[i],
-		}
-		ts := &timeseries2[i]
-		ts.Name = ts.Timeseries.Name()
-		ts.Metric = ts.Timeseries.MetricName()
+	for i := range result.Timeseries {
+		src := &result.Timeseries[i]
+		dest := &jsonTimeseries[i]
+
+		dest.Name = src.Name()
+		dest.Metric = src.MetricName()
+		dest.Unit = src.Unit
+		dest.Attrs = src.Attrs
+		dest.Value = src.Value
+		dest.Time = src.Time
 	}
 
 	return httputil.JSON(w, bunrouter.H{
 		"baseQueryParts": f.baseQueryParts,
 		"queryParts":     f.queryParts,
-		"timeseries":     timeseries2,
+		"timeseries":     jsonTimeseries,
 	})
 }

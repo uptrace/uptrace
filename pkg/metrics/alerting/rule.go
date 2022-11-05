@@ -3,6 +3,7 @@ package alerting
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cespare/xxhash/v2"
@@ -99,7 +100,7 @@ func (r *Rule) Alerts() []Alert {
 
 func (r *Rule) Eval(ctx context.Context, engine Engine, tm time.Time) ([]Alert, error) {
 	dur := r.conf.For + time.Minute // for delta func
-	timeseries, metrics, err := engine.Eval(
+	timeseries, vars, err := engine.Eval(
 		ctx,
 		r.conf.Projects,
 		r.conf.Metrics,
@@ -143,7 +144,9 @@ func (r *Rule) Eval(ctx context.Context, engine Engine, tm time.Time) ([]Alert, 
 		alert.LastSeenAt = tm
 
 		if r.checkTimeseries(ts, alert, tm) {
-			for metricName, timeseries := range metrics {
+			for metricName, timeseries := range vars {
+				metricName := strings.TrimPrefix(metricName, "_")
+
 				for i := range timeseries {
 					ts2 := &timeseries[i]
 

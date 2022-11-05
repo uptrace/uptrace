@@ -1,26 +1,28 @@
 package upql
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"sync"
 
-	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
 )
 
 //------------------------------------------------------------------------------
 
-type Expr interface{}
+type Expr interface {
+	String() string
+}
 
 type NamedExpr struct {
 	Part  *QueryPart
-	Expr  Expr // *TimeseriesExpr | *ExprChain
+	Expr  Expr
 	Alias string
 }
 
 type TimeseriesExpr struct {
+	AST *ast.Name
+
 	Metric     string
 	Func       string
 	Filters    []ast.Filter
@@ -32,8 +34,16 @@ type TimeseriesExpr struct {
 	Timeseries []Timeseries
 }
 
+func (e *TimeseriesExpr) String() string {
+	return e.AST.String()
+}
+
 type RefExpr struct {
 	Metric string
+}
+
+func (e *RefExpr) String() string {
+	return e.Metric
 }
 
 type BinaryExpr struct {
@@ -44,8 +54,12 @@ type BinaryExpr struct {
 	RHS Expr
 }
 
+func (e *BinaryExpr) String() string {
+	return e.AST.String()
+}
+
 type ParenExpr struct {
-	Expr Expr
+	Expr
 }
 
 type FuncCall struct {
@@ -53,6 +67,10 @@ type FuncCall struct {
 
 	Func string
 	Args []Expr
+}
+
+func (fn *FuncCall) String() string {
+	return fn.AST.String()
 }
 
 type compiler struct {
@@ -133,20 +151,12 @@ func compile(storage Storage, parts []*QueryPart) ([]NamedExpr, map[string][]Tim
 			}
 			timeseries, err := storage.SelectTimeseries(f)
 			if err != nil {
-				if _, ok := err.(*ch.Error); ok {
-					expr.Part.Error.Wrapped = errors.New("internal error")
-				} else {
-					expr.Part.Error.Wrapped = err
-				}
+				expr.Part.Error.Wrapped = err
 				return
 			}
 
-			if len(timeseries) > 0 {
-				expr.Timeseries = timeseries
-				return
-			}
-
-			expr.Timeseries = storage.MakeTimeseries(f)
+			expr.Timeseries = timeseries
+			return
 		}()
 	}
 
@@ -166,6 +176,7 @@ func (c *compiler) selector(expr ast.Expr) Expr {
 	case *ast.Name:
 		if strings.HasPrefix(expr.Name, "$") {
 			ts := &TimeseriesExpr{
+				AST:     expr,
 				Metric:  strings.TrimPrefix(expr.Name, "$"),
 				Func:    expr.Func,
 				Filters: expr.Filters,

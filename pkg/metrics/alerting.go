@@ -76,7 +76,7 @@ func (e *AlertingEngine) Eval(
 	engine := upql.NewEngine(storage)
 
 	parts := upql.Parse(expr)
-	timeseries, data := engine.Run(parts)
+	result := engine.Run(parts)
 
 	for _, part := range parts {
 		if part.Error.Wrapped != nil {
@@ -84,7 +84,7 @@ func (e *AlertingEngine) Eval(
 		}
 	}
 
-	return timeseries, data, nil
+	return result.Timeseries, result.Vars, nil
 }
 
 //------------------------------------------------------------------------------
