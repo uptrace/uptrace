@@ -11,8 +11,9 @@ import (
 
 type Engine struct {
 	storage Storage
-	vars    map[string][]Timeseries
-	buf     []byte
+
+	vars map[string][]Timeseries
+	buf  []byte
 }
 
 type Storage interface {
@@ -27,13 +28,16 @@ func NewEngine(storage Storage) *Engine {
 	}
 }
 
-func (e *Engine) Run(query []*QueryPart) ([]Timeseries, map[string][]Timeseries) {
-	for k := range e.vars {
-		delete(e.vars, k)
-	}
+type Result struct {
+	Columns    []string
+	Timeseries []Timeseries
+	Vars       map[string][]Timeseries
+}
 
+func (e *Engine) Run(query []*QueryPart) *Result {
+	e.vars = make(map[string][]Timeseries)
 	exprs, metrics := compile(e.storage, query)
-	var result []Timeseries
+	result := new(Result)
 
 	for _, expr := range exprs {
 		if expr.Part.Error.Wrapped != nil {
@@ -46,32 +50,33 @@ func (e *Engine) Run(query []*QueryPart) ([]Timeseries, map[string][]Timeseries)
 			continue
 		}
 
-		if expr.Alias == "" {
-			switch expr := expr.Expr.(type) {
-			case *BinaryExpr:
-				setTimeseriesMetric(tmp, expr.AST.String())
-			case *FuncCall:
-				setTimeseriesMetric(tmp, expr.AST.String())
-			}
+		column := expr.Alias
+		if column == "" {
+			column = expr.Expr.String()
+		}
+		setTimeseriesMetric(tmp, column)
 
-			result = append(result, tmp...)
+		if _, ok := e.vars[column]; ok {
+			expr.Part.Error.Wrapped = fmt.Errorf("column %q already exists", column)
 			continue
 		}
+		e.vars[column] = tmp
 
-		setTimeseriesMetric(tmp, expr.Alias)
-
-		if _, ok := e.vars[expr.Alias]; ok {
-			expr.Part.Error.Wrapped = fmt.Errorf("alias %q already exists", expr.Alias)
-			continue
-		}
-		e.vars[expr.Alias] = tmp
-
-		if !strings.HasPrefix(expr.Alias, "_") {
-			result = append(result, tmp...)
+		if !strings.HasPrefix(column, "_") {
+			result.Columns = append(result.Columns, column)
+			result.Timeseries = append(result.Timeseries, tmp...)
 		}
 	}
 
-	return result, metrics
+	result.Vars = e.vars
+	for metricName, timeseries := range metrics {
+		if _, ok := result.Vars[metricName]; !ok {
+			result.Vars[metricName] = timeseries
+		}
+	}
+	e.vars = nil
+
+	return result
 }
 
 func setTimeseriesMetric(timeseries []Timeseries, metric string) {
@@ -182,13 +187,16 @@ func (e *Engine) binaryExpr(expr *BinaryExpr) ([]Timeseries, error) {
 }
 
 func (e *Engine) join(
-	lhs, rhs []Timeseries, fn binaryOpFunc,
+	lhs, rhs []Timeseries, op binaryOpFunc,
 ) ([]Timeseries, error) {
+	if len(lhs) == 0 && len(rhs) == 0 {
+		return nil, nil
+	}
 	if len(lhs) == 0 {
-		return rhs, nil
+		return e.evalBinaryExprNumLeft(0, rhs, op)
 	}
 	if len(rhs) == 0 {
-		return lhs, nil
+		return e.evalBinaryExprNumRight(lhs, 0, op)
 	}
 
 	if !slices.Equal(lhs[0].Grouping, rhs[0].Grouping) {
@@ -224,7 +232,7 @@ func (e *Engine) join(
 		value := make([]float64, len(ts1.Value))
 		for i, v1 := range ts1.Value {
 			v2 := ts2.Value[i]
-			value[i] = fn(v1, v2)
+			value[i] = op(v1, v2)
 		}
 		ts1.Value = value
 	}

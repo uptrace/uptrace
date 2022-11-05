@@ -16,20 +16,20 @@ import (
 const sep = '0'
 
 type Timeseries struct {
-	ProjectID uint32       `json:"projectId"`
-	Metric    string       `json:"-"`
-	Func      string       `json:"-"`
-	Filters   []ast.Filter `json:"-"`
-	Unit      string       `json:"unit"`
+	ProjectID uint32
+	Metric    string
+	Func      string
+	Filters   []ast.Filter
+	Unit      string
 
-	Attrs       Attrs             `json:"attrs"`
-	Annotations map[string]string `json:"annotations"`
+	Attrs       Attrs
+	Annotations map[string]string
 
-	Value []float64   `json:"value"`
-	Time  []time.Time `json:"time"`
+	Value []float64
+	Time  []time.Time
 
-	Grouping   []string `json:"-"`
-	GroupByAll bool     `json:"-"`
+	Grouping   []string
+	GroupByAll bool
 }
 
 func newTimeseries(ts *Timeseries) Timeseries {

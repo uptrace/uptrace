@@ -47,35 +47,32 @@ func NewCHStorage(ctx context.Context, db *ch.DB, conf *CHStorageConfig) *CHStor
 var _ upql.Storage = (*CHStorage)(nil)
 
 func (s *CHStorage) MakeTimeseries(f *upql.TimeseriesFilter) []upql.Timeseries {
-	metric, ok := s.conf.MetricMap[f.Metric]
-	if !ok {
-		metric = new(Metric)
+	var ts upql.Timeseries
+
+	if f != nil {
+		ts.Metric = f.Metric
+		ts.Func = f.Func
+		ts.Filters = f.Filters
+		ts.Grouping = f.Grouping
+		ts.GroupByAll = f.GroupByAll
+	}
+	if metric, ok := s.conf.MetricMap[f.Metric]; ok {
+		ts.Unit = metric.Unit
 	}
 
 	if !s.conf.GroupByTime {
-		return []upql.Timeseries{{
-			Metric:  f.Metric,
-			Func:    f.Func,
-			Filters: f.Filters,
-			Unit:    metric.Unit,
-			Value:   []float64{0},
-		}}
+		ts.Value = []float64{0}
+		return []upql.Timeseries{ts}
 	}
 
 	size := int(s.conf.TimeFilter.Duration() / s.conf.GroupingPeriod)
-	times := make([]time.Time, size)
-	for i := range times {
-		times[i] = s.conf.TimeGTE.Add(time.Duration(i) * s.conf.GroupingPeriod)
+	ts.Value = make([]float64, size)
+	ts.Time = make([]time.Time, size)
+	for i := range ts.Time {
+		ts.Time[i] = s.conf.TimeGTE.Add(time.Duration(i) * s.conf.GroupingPeriod)
 	}
 
-	return []upql.Timeseries{{
-		Metric:  f.Metric,
-		Func:    f.Func,
-		Filters: f.Filters,
-		Unit:    metric.Unit,
-		Value:   make([]float64, size),
-		Time:    times,
-	}}
+	return []upql.Timeseries{ts}
 }
 
 func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeseries, error) {
