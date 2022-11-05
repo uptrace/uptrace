@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-row v-if="dashboard.tableGauges.length" dense>
+    <v-row v-if="dashboard.tableGauges.length" :dense="$vuetify.breakpoint.mdAndDown">
       <v-col v-for="gauge in dashboard.tableGauges" :key="gauge.id" cols="auto">
         <DashGauge :date-range="dateRange" :gauge="gauge" />
       </v-col>

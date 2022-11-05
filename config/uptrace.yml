@@ -62,27 +62,40 @@ projects:
 ## Create metrics from spans and events.
 ##
 metrics_from_spans:
-  - name: uptrace.tracing.spans
-    description: Total number of spans including logs and events
-    instrument: counter
-    unit: 1
-    value: span.count
-    attrs: [span.system, service.name, host.name, span.status_code]
-
   - name: uptrace.tracing.spans_duration
-    description: Spans duration
+    description: Spans duration (excluding events)
     instrument: histogram
     unit: microseconds
     value: span.duration / 1000
-    attrs: [span.system, service.name, host.name]
-    where: span.duration > 0
+    attrs:
+      - span.system as system
+      - service.name as service
+      - host.name as host
+      - span.status_code as status
+    where: not span.is_event
 
-  - name: uptrace.tracing.error_rate
-    description: Spans error rate
-    instrument: gauge
-    unit: percents
-    value: span.error_count / span.count
-    attrs: [span.system, service.name, host.name]
+  - name: uptrace.tracing.spans
+    description: Spans count (excluding events)
+    instrument: counter
+    unit: 1
+    value: span.count
+    attrs:
+      - span.system as system
+      - service.name as service
+      - host.name as host
+      - span.status_code as status
+    where: not span.is_event
+
+  - name: uptrace.tracing.events
+    description: Events count (excluding spans
+    instrument: counter
+    unit: 1
+    value: span.count
+    attrs:
+      - span.system as system
+      - service.name as service
+      - host.name as host
+    where: span.is_event
 
 ##
 ## Alerting rules for monitoring metrics.

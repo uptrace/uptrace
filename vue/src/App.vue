@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-app-bar app elevation="1" color="white">
+    <v-app-bar app absolute flat color="white" class="v-bar--underline">
       <v-container fluid class="pa-0 fill-height">
         <v-row align="center" class="flex-nowrap">
           <v-col cols="auto">
@@ -163,6 +163,24 @@ export default defineComponent({
   },
 })
 </script>
+
+<style lang="scss">
+.theme--light,
+.theme--dark {
+  .v-bar--underline {
+    border-width: 0 0 thin 0;
+    border-style: solid;
+
+    &.theme--light {
+      border-bottom-color: #0000001f !important;
+    }
+
+    &.theme--dark {
+      border-bottom-color: #ffffff1f !important;
+    }
+  }
+}
+</style>
 
 <style lang="scss" scoped>
 .v-footer strong {

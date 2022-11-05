@@ -162,15 +162,11 @@ func (r *Rule) Eval(ctx context.Context, engine Engine, tm time.Time) ([]Alert, 
 		return alerts, nil
 	}
 
-	empty := new(upql.Timeseries)
+	// TODO: fix checking disappeared timeseries
 	for key, alert := range unused {
 		if time.Since(alert.LastSeenAt) > 24*time.Hour {
 			delete(r.alertMap, key)
 			continue
-		}
-
-		if r.checkTimeseries(empty, alert, tm) {
-			alerts = append(alerts, *alert)
 		}
 	}
 
@@ -189,7 +185,7 @@ func (r *Rule) checkTimeseries(ts *upql.Timeseries, alert *Alert, tm time.Time) 
 
 	switch {
 	case dur == 0:
-		// TODO: should we keep sending the alert for some time?
+		// TODO: should we keep sending this alert for some time?
 		if alert.State != StateActive {
 			alert.State = StateActive
 			alert.ResolvedAt = tm

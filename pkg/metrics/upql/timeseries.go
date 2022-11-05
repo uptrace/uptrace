@@ -16,76 +16,81 @@ import (
 const sep = '0'
 
 type Timeseries struct {
-	ProjectID   uint32            `json:"projectId"`
-	Metric      string            `json:"metric"`
-	Unit        string            `json:"unit"`
+	ProjectID uint32       `json:"projectId"`
+	Metric    string       `json:"-"`
+	Func      string       `json:"-"`
+	Filters   []ast.Filter `json:"-"`
+	Unit      string       `json:"unit"`
+
 	Attrs       Attrs             `json:"attrs"`
 	Annotations map[string]string `json:"annotations"`
-	Value       []float64         `json:"value"`
-	Time        []time.Time       `json:"time"`
 
-	Filters    []ast.Filter `json:"-"`
-	Grouping   []string     `json:"-"`
-	GroupByAll bool         `json:"-"`
+	Value []float64   `json:"value"`
+	Time  []time.Time `json:"time"`
+
+	Grouping   []string `json:"-"`
+	GroupByAll bool     `json:"-"`
 }
 
 func newTimeseries(ts *Timeseries) Timeseries {
 	return Timeseries{
-		ProjectID:   ts.ProjectID,
-		Metric:      "",
+		ProjectID: ts.ProjectID,
+		Metric:    ts.Metric,
+		Func:      ts.Func,
+		Filters:   ts.Filters,
+		Unit:      ts.Unit,
+
 		Attrs:       ts.Attrs,
 		Annotations: ts.Annotations,
-		Value:       make([]float64, len(ts.Value)),
-		Time:        ts.Time,
+
+		Value: make([]float64, len(ts.Value)),
+		Time:  ts.Time,
 	}
 }
 
 func (ts *Timeseries) Name() string {
-	if ts.Metric == "" {
-		return ""
-	}
-	if len(ts.Attrs) == 0 && len(ts.Filters) == 0 {
-		return ts.Metric
-	}
-
-	b := make([]byte, 0, 30*len(ts.Attrs)+30*len(ts.Filters))
-	for i := range ts.Filters {
-		if i > 0 {
-			b = append(b, ',')
-		}
-		b = ts.Filters[i].AppendString(b)
-	}
-	if len(b) > 0 {
-		b = append(b, ',')
-	}
-	b = ts.Attrs.AppendString(b)
-
-	if strings.HasSuffix(ts.Metric, ")") {
-		return ts.Metric[:len(ts.Metric)-1] + "{" + string(b) + "})"
-	}
-	return ts.Metric + "{" + string(b) + "}"
+	b := ts.appendString(nil, true)
+	return unsafeconv.String(b)
 }
 
 func (ts *Timeseries) MetricName() string {
-	if ts.Metric == "" {
-		return ""
-	}
-	if len(ts.Filters) == 0 {
-		return ts.Metric
+	b := ts.appendString(nil, false)
+	return unsafeconv.String(b)
+}
+
+func (ts *Timeseries) appendString(b []byte, includeAttrs bool) []byte {
+	if ts.Func != "" {
+		b = append(b, ts.Func...)
+		b = append(b, '(')
 	}
 
-	b := make([]byte, 0, 30*len(ts.Attrs)+30*len(ts.Filters))
-	for i := range ts.Filters {
-		if i > 0 {
-			b = append(b, ',')
+	b = append(b, ts.Metric...)
+
+	if len(ts.Filters) > 0 || includeAttrs && len(ts.Attrs) > 0 {
+		b = append(b, '{')
+
+		for i := range ts.Filters {
+			if i > 0 {
+				b = append(b, ',')
+			}
+			b = ts.Filters[i].AppendString(b)
 		}
-		b = ts.Filters[i].AppendString(b)
+
+		if includeAttrs {
+			if len(ts.Filters) > 0 {
+				b = append(b, ',')
+			}
+			b = ts.Attrs.AppendString(b)
+		}
+
+		b = append(b, '}')
 	}
 
-	if strings.HasSuffix(ts.Metric, ")") {
-		return ts.Metric[:len(ts.Metric)-1] + "{" + string(b) + "})"
+	if ts.Func != "" {
+		b = append(b, ')')
 	}
-	return ts.Metric + "{" + string(b) + "}"
+
+	return b
 }
 
 func (ts *Timeseries) WhereQuery() string {
@@ -317,6 +322,16 @@ type TimeseriesFilter struct {
 	Where      [][]ast.Filter
 	Grouping   []string
 	GroupByAll bool
+}
+
+func (f *TimeseriesFilter) MetricName() string {
+	var metricName string
+	if f.Func != "" {
+		metricName = f.Func + "(" + f.Metric + ")"
+	} else {
+		metricName = f.Metric
+	}
+	return metricName
 }
 
 func min[T constraints.Ordered](a, b T) T {

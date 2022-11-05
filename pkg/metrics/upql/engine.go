@@ -16,7 +16,7 @@ type Engine struct {
 }
 
 type Storage interface {
-	MakeTimeseries() []Timeseries
+	MakeTimeseries(f *TimeseriesFilter) []Timeseries
 	SelectTimeseries(f *TimeseriesFilter) ([]Timeseries, error)
 }
 
@@ -58,11 +58,7 @@ func (e *Engine) Run(query []*QueryPart) ([]Timeseries, map[string][]Timeseries)
 			continue
 		}
 
-		for i := range tmp {
-			ts := &tmp[i]
-			ts.Metric = expr.Alias
-			ts.Filters = nil
-		}
+		setTimeseriesMetric(tmp, expr.Alias)
 
 		if _, ok := e.vars[expr.Alias]; ok {
 			expr.Part.Error.Wrapped = fmt.Errorf("alias %q already exists", expr.Alias)
@@ -76,6 +72,15 @@ func (e *Engine) Run(query []*QueryPart) ([]Timeseries, map[string][]Timeseries)
 	}
 
 	return result, metrics
+}
+
+func setTimeseriesMetric(timeseries []Timeseries, metric string) {
+	for i := range timeseries {
+		ts := &timeseries[i]
+		ts.Metric = metric
+		ts.Func = ""
+		ts.Filters = nil
+	}
 }
 
 func (e *Engine) eval(expr Expr) ([]Timeseries, error) {
@@ -94,7 +99,7 @@ func (e *Engine) eval(expr Expr) ([]Timeseries, error) {
 	case ParenExpr:
 		return e.eval(expr.Expr)
 	case *ast.Number:
-		timeseries := e.storage.MakeTimeseries()
+		timeseries := e.storage.MakeTimeseries(new(TimeseriesFilter))
 
 		ts := &timeseries[0]
 		num := expr.Float64()
@@ -272,7 +277,7 @@ func (e *Engine) binaryExprNum(lhs, rhs float64, op ast.BinaryOp) ([]Timeseries,
 }
 
 func (e *Engine) evalBinaryExprNum(lhs, rhs float64, fn binaryOpFunc) ([]Timeseries, error) {
-	timeseries := e.storage.MakeTimeseries()
+	timeseries := e.storage.MakeTimeseries(new(TimeseriesFilter))
 
 	ts := &timeseries[0]
 	result := fn(lhs, rhs)

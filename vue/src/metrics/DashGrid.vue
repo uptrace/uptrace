@@ -22,7 +22,7 @@
       </v-col>
     </v-row>
 
-    <v-row v-if="dashboard.gridGauges.length" dense class="mt-4">
+    <v-row v-if="dashboard.gridGauges.length" :dense="$vuetify.breakpoint.mdAndDown" class="mt-4">
       <v-col v-for="gauge in dashboard.gridGauges" :key="gauge.id" cols="auto">
         <DashGauge :date-range="dateRange" :gauge="gauge" :base-query="baseQuery" />
       </v-col>

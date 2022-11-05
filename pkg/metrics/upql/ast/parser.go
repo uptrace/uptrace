@@ -954,7 +954,7 @@ func (p *queryParser) namedExpr() (NamedExpr, error) {
 
 	{
 		var alias string
-		var filteredName *FilteredName
+		var filteredName *Name
 		_pos1 := p.Pos()
 		{
 			var _err error
@@ -1067,7 +1067,7 @@ func (p *queryParser) namedExpr() (NamedExpr, error) {
 	}
 
 	{
-		var filteredName *FilteredName
+		var filteredName *Name
 		_pos1 := p.Pos()
 		{
 			var _err error
@@ -1169,7 +1169,7 @@ func (p *queryParser) name() (Name, error) {
 	}, nil
 }
 
-func (p *queryParser) filteredName() (*FilteredName, error) {
+func (p *queryParser) filteredName() (*Name, error) {
 	var filters []Filter
 	var name *Token
 
@@ -1215,10 +1215,8 @@ func (p *queryParser) filteredName() (*FilteredName, error) {
 			return nil, errBacktrack
 		}
 	}
-	return &FilteredName{
-		Name: Name{
-			Name: name.Text,
-		},
+	return &Name{
+		Name:    name.Text,
 		Filters: filters,
 	}, nil
 }
@@ -1348,7 +1346,7 @@ func (p *queryParser) term() (Expr, error) {
 	}
 
 	{
-		var filteredName *FilteredName
+		var filteredName *Name
 		_pos1 := p.Pos()
 		{
 			var _err error
