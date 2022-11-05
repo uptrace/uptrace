@@ -8,9 +8,3 @@ func max[T constraints.Ordered](a, b T) T {
 	}
 	return b
 }
-
-func setTimeseriesMetric(timeseries []Timeseries, metric string) {
-	for i := range timeseries {
-		timeseries[i].Metric = metric
-	}
-}

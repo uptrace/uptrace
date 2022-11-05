@@ -94,10 +94,10 @@ func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMet
 		GroupExpr("s.project_id, toStartOfMinute(s.time)")
 
 	if len(metric.Attrs) > 0 {
-		attrsExpr := compileSpanMetricAttrs(metric.Attrs)
+		attrsExpr, aliases := compileSpanMetricAttrs(metric.Attrs)
 		q = q.
 			ColumnExpr("xxHash64(arrayStringConcat([?], '-')) AS attrs_hash", attrsExpr).
-			ColumnExpr("[?] AS attr_keys", ch.In(metric.Attrs)).
+			ColumnExpr("[?] AS attr_keys", ch.In(aliases)).
 			ColumnExpr("[?] AS attr_values", attrsExpr).
 			GroupExpr(string(attrsExpr))
 	}
@@ -200,24 +200,32 @@ func appendSpanMetricExpr(b []byte, expr ast.Expr) (_ []byte, err error) {
 	}
 }
 
-func compileSpanMetricAttrs(attrs []string) ch.Safe {
+func compileSpanMetricAttrs(attrs []string) (ch.Safe, []string) {
 	var b []byte
+	aliases := make([]string, len(attrs))
 	for i, attr := range attrs {
+		attr, alias := splitNameAlias(attr)
+		aliases[i] = alias
+
 		if i > 0 {
 			b = append(b, ", "...)
 		}
+
 		b = tracing.AppendCHAttrExpr(b, attr)
 	}
-	return ch.Safe(b)
+	return ch.Safe(b), aliases
 }
 
 func compileSpanMetricAnnotations(attrs []string) ch.Safe {
 	var b []byte
 	for i, attr := range attrs {
+		attr, alias := splitNameAlias(attr)
+
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		b = chschema.AppendString(b, attr)
+
+		b = chschema.AppendString(b, alias)
 		b = append(b, ", toString(any("...)
 		b = tracing.AppendCHAttrExpr(b, attr)
 		b = append(b, "))"...)
@@ -246,4 +254,13 @@ func compileSpanMetricWhere(query string) (ch.Safe, error) {
 		return "", fmt.Errorf("can't filter by agg columns: %q", having)
 	}
 	return ch.Safe(where), nil
+}
+
+func splitNameAlias(s string) (string, string) {
+	for _, sep := range []string{" as ", " AS "} {
+		if ss := strings.Split(s, sep); len(ss) == 2 {
+			return ss[0], ss[1]
+		}
+	}
+	return s, s
 }

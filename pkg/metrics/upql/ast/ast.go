@@ -17,7 +17,7 @@ type Selector struct {
 }
 
 type NamedExpr struct {
-	Expr  Expr // *Name | *FilteredName | *BinaryExpr | *FuncCall
+	Expr  Expr // *Name | *BinaryExpr | *FuncCall
 	Alias string
 }
 
@@ -34,15 +34,28 @@ type Expr interface {
 }
 
 type Name struct {
-	Func string
-	Name string
+	Func    string
+	Name    string
+	Filters []Filter
 }
 
-func (n Name) String() string {
-	if n.Func != "" {
-		return n.Func + "(" + n.Name + ")"
+func (n *Name) String() string {
+	var b []byte
+
+	b = append(b, n.Name...)
+
+	if len(n.Filters) > 0 {
+		b = append(b, '{')
+		for i := range n.Filters {
+			if i > 0 {
+				b = append(b, ',')
+			}
+			b = n.Filters[i].AppendString(b)
+		}
+		b = append(b, '}')
 	}
-	return n.Name
+
+	return unsafeconv.String(b)
 }
 
 type Number struct {
@@ -79,23 +92,6 @@ func (n *Number) Float64() float64 {
 		}
 		return f
 	}
-}
-
-type FilteredName struct {
-	Name    Name
-	Filters []Filter
-}
-
-func (n *FilteredName) String() string {
-	var b []byte
-	for i := range n.Filters {
-		if i > 0 {
-			b = append(b, ',')
-		}
-		b = n.Filters[i].AppendString(b)
-	}
-
-	return n.Name.String() + "{" + string(b) + "}"
 }
 
 type FuncCall struct {

@@ -46,17 +46,35 @@ func NewCHStorage(ctx context.Context, db *ch.DB, conf *CHStorageConfig) *CHStor
 
 var _ upql.Storage = (*CHStorage)(nil)
 
-func (s *CHStorage) MakeTimeseries() []upql.Timeseries {
+func (s *CHStorage) MakeTimeseries(f *upql.TimeseriesFilter) []upql.Timeseries {
+	metric, ok := s.conf.MetricMap[f.Metric]
+	if !ok {
+		metric = new(Metric)
+	}
+
 	if !s.conf.GroupByTime {
 		return []upql.Timeseries{{
-			Value: []float64{0},
+			Metric:  f.Metric,
+			Func:    f.Func,
+			Filters: f.Filters,
+			Unit:    metric.Unit,
+			Value:   []float64{0},
 		}}
 	}
 
 	size := int(s.conf.TimeFilter.Duration() / s.conf.GroupingPeriod)
+	times := make([]time.Time, size)
+	for i := range times {
+		times[i] = s.conf.TimeGTE.Add(time.Duration(i) * s.conf.GroupingPeriod)
+	}
+
 	return []upql.Timeseries{{
-		Value: make([]float64, size),
-		Time:  make([]time.Time, size),
+		Metric:  f.Metric,
+		Func:    f.Func,
+		Filters: f.Filters,
+		Unit:    metric.Unit,
+		Value:   make([]float64, size),
+		Time:    times,
 	}}
 }
 
@@ -102,17 +120,12 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 	timeseries := make([]upql.Timeseries, 0, len(ms))
 
 	for _, m := range ms {
-		var metricName string
-		if f.Func != "" {
-			metricName = f.Func + "(" + f.Metric + ")"
-		} else {
-			metricName = f.Metric
-		}
 		annotations := m["annotations"].(string)
 
 		timeseries = append(timeseries, upql.Timeseries{
 			ProjectID: m["project_id"].(uint32),
-			Metric:    metricName,
+			Metric:    f.Metric,
+			Func:      f.Func,
 			Filters:   f.Filters,
 			Value:     m["value"].([]float64),
 			Unit:      metricUnit(metric, f),

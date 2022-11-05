@@ -123,23 +123,30 @@ func compile(storage Storage, parts []*QueryPart) ([]NamedExpr, map[string][]Tim
 		go func() {
 			defer wg.Done()
 
-			timeseries, err := storage.SelectTimeseries(&TimeseriesFilter{
+			f := &TimeseriesFilter{
 				Metric:     expr.Metric,
 				Func:       expr.Func,
 				Filters:    expr.Filters,
 				Where:      expr.Where,
 				Grouping:   expr.Grouping,
 				GroupByAll: expr.GroupByAll,
-			})
+			}
+			timeseries, err := storage.SelectTimeseries(f)
 			if err != nil {
 				if _, ok := err.(*ch.Error); ok {
 					expr.Part.Error.Wrapped = errors.New("internal error")
 				} else {
 					expr.Part.Error.Wrapped = err
 				}
-			} else {
-				expr.Timeseries = timeseries
+				return
 			}
+
+			if len(timeseries) > 0 {
+				expr.Timeseries = timeseries
+				return
+			}
+
+			expr.Timeseries = storage.MakeTimeseries(f)
 		}()
 	}
 
@@ -159,8 +166,9 @@ func (c *compiler) selector(expr ast.Expr) Expr {
 	case *ast.Name:
 		if strings.HasPrefix(expr.Name, "$") {
 			ts := &TimeseriesExpr{
-				Metric: strings.TrimPrefix(expr.Name, "$"),
-				Func:   expr.Func,
+				Metric:  strings.TrimPrefix(expr.Name, "$"),
+				Func:    expr.Func,
+				Filters: expr.Filters,
 			}
 			c.timeseries = append(c.timeseries, ts)
 			return ts
@@ -168,14 +176,6 @@ func (c *compiler) selector(expr ast.Expr) Expr {
 		return &RefExpr{
 			Metric: expr.Name,
 		}
-	case *ast.FilteredName:
-		ts := &TimeseriesExpr{
-			Metric:  strings.TrimPrefix(expr.Name.Name, "$"),
-			Func:    expr.Name.Func,
-			Filters: expr.Filters,
-		}
-		c.timeseries = append(c.timeseries, ts)
-		return ts
 	case *ast.BinaryExpr:
 		return &BinaryExpr{
 			AST: expr,
@@ -206,11 +206,6 @@ func (c *compiler) funcCall(fn *ast.FuncCall) Expr {
 			case *ast.Name:
 				if arg.Func == "" {
 					arg.Func = fn.Func
-					return c.selector(arg)
-				}
-			case *ast.FilteredName:
-				if arg.Name.Func == "" {
-					arg.Name.Func = fn.Func
 					return c.selector(arg)
 				}
 			}

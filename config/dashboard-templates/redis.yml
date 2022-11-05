@@ -2,6 +2,49 @@ id: uptrace.db.redis_by_host_redis_version
 name: 'DB: Redis'
 
 table:
+  gauges:
+    - name: Keys
+      description: Number of keys in all Redis databases
+      metrics:
+        - redis.db.keys as $keys
+      query:
+        - $keys
+
+    - name: Commands
+      description: Number of processed commands
+      metrics:
+        - redis.commands as $cmds
+      query:
+        - $cmds
+      template: $cmds/sec
+
+    - name: RAM fragm.
+      description: RAM fragmentation ratio (RSS / allocated RAM)
+      metrics:
+        - redis.memory.fragmentation_ratio as $mem_frag
+      query:
+        - $mem_frag
+      columns:
+        mem_frag: { unit: percents }
+
+    - name: Ingress
+      description: Incoming network traffic
+      metrics:
+        - redis.net.input as $input
+      query:
+        - $input
+      columns:
+        input: { unit: bytes }
+
+    - name: Egress
+      description: Outgoing network traffic
+      metrics:
+        - redis.net.output as $output
+      query:
+        - $output
+      columns:
+        output: { unit: bytes }
+
   metrics:
     - redis.memory.fragmentation_ratio as $fragmentation
     - redis.connections.rejected as $conns_rejected
