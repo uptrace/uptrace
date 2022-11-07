@@ -141,7 +141,7 @@ func NewAttrs(ss ...string) Attrs {
 	return attrs
 }
 
-func AttrsFromMap(m map[string]any) Attrs {
+func AttrsFromMap(m map[string]string) Attrs {
 	if len(m) == 0 {
 		return nil
 	}
@@ -149,12 +149,10 @@ func AttrsFromMap(m map[string]any) Attrs {
 	attrs := make([]KeyValue, 0, len(m))
 
 	for k, v := range m {
-		if v, _ := v.(string); v != "" {
-			attrs = append(attrs, KeyValue{
-				Key:   k,
-				Value: v,
-			})
-		}
+		attrs = append(attrs, KeyValue{
+			Key:   k,
+			Value: v,
+		})
 	}
 
 	SortAttrs(attrs)

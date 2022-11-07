@@ -158,7 +158,8 @@ include = ["/var/log/syslog"]
 [sinks.out]
 type = "http"
 inputs = ["in"]
-encoding.codec = "ndjson"
+encoding.codec = "json"
+framing.method = "newline_delimited"
 compression = "gzip"
 uri = "${project.http.endpoint}/api/v1/vector/logs"
 headers.uptrace-dsn = "${project.http.dsn}"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/uptrace/go-clickhouse/ch"
@@ -15,6 +16,8 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
+
+const attrPrefix = "attr_"
 
 type CHStorageConfig struct {
 	Projects []uint32
@@ -96,6 +99,7 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 
 	if len(f.Grouping) > 0 {
 		for _, attrKey := range f.Grouping {
+			attrKey = attrPrefix + attrKey
 			q = q.Column(attrKey).Group(attrKey)
 		}
 	} else if f.GroupByAll {
@@ -120,12 +124,14 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 		annotations := m["annotations"].(string)
 
 		timeseries = append(timeseries, upql.Timeseries{
-			ProjectID: m["project_id"].(uint32),
-			Metric:    f.Metric,
-			Func:      f.Func,
-			Filters:   f.Filters,
-			Value:     m["value"].([]float64),
-			Unit:      metricUnit(metric, f),
+			ProjectID:  m["project_id"].(uint32),
+			Metric:     f.Metric,
+			Func:       f.Func,
+			Filters:    f.Filters,
+			Unit:       metricUnit(metric, f),
+			Value:      m["value"].([]float64),
+			Grouping:   f.Grouping,
+			GroupByAll: f.GroupByAll,
 		})
 		ts := &timeseries[len(timeseries)-1]
 
@@ -145,12 +151,17 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 		}
 
 		if len(f.Grouping) > 0 {
-			delete(m, "project_id")
-			delete(m, "metric")
-			delete(m, "annotations")
-			delete(m, "value")
-			delete(m, "time")
-			ts.Attrs = upql.AttrsFromMap(m)
+			attrs := make(map[string]string, len(m))
+			for k, v := range m {
+				if !strings.HasPrefix(k, attrPrefix) {
+					continue
+				}
+				k = strings.TrimPrefix(k, attrPrefix)
+				if s, ok := v.(string); ok && s != "" {
+					attrs[k] = s
+				}
+			}
+			ts.Attrs = upql.AttrsFromMap(attrs)
 		} else if f.GroupByAll {
 			keys := m["attr_keys"].([]string)
 			values := m["attr_values"].([]string)
@@ -167,13 +178,13 @@ func (s *CHStorage) subquery(
 	f *upql.TimeseriesFilter,
 ) (_ *ch.SelectQuery, err error) {
 	q = q.
-		ColumnExpr("project_id, metric").
-		ColumnExpr("max(annotations) AS annotations").
-		TableExpr("?", s.conf.TableName).
-		Where("metric = ?", metric.Name).
-		Where("time >= ?", s.conf.TimeGTE).
-		Where("time < ?", s.conf.TimeLT).
-		GroupExpr("project_id, metric")
+		ColumnExpr("m.project_id, m.metric").
+		ColumnExpr("max(m.annotations) AS annotations").
+		TableExpr("? AS m", s.conf.TableName).
+		Where("m.metric = ?", metric.Name).
+		Where("m.time >= ?", s.conf.TimeGTE).
+		Where("m.time < ?", s.conf.TimeLT).
+		GroupExpr("m.project_id, m.metric")
 
 	if len(s.conf.Projects) > 0 {
 		q = q.Where("project_id IN (?)", ch.In(s.conf.Projects))
@@ -196,7 +207,7 @@ func (s *CHStorage) subquery(
 		for _, attrKey := range f.Grouping {
 			col := CHColumn(attrKey)
 			q = q.
-				ColumnExpr("? AS ?", col, ch.Ident(attrKey)).
+				ColumnExpr("? AS ?", col, ch.Ident(attrPrefix+attrKey)).
 				GroupExpr("?", col)
 		}
 	} else if f.GroupByAll {
@@ -236,6 +247,7 @@ func (s *CHStorage) subquery(
 	if isValueInstrument {
 		if len(f.Grouping) > 0 {
 			for _, attrKey := range f.Grouping {
+				attrKey = attrPrefix + attrKey
 				q = q.Column(attrKey).Group(attrKey)
 			}
 		} else if f.GroupByAll {
