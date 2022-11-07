@@ -1,5 +1,6 @@
 <template>
   <v-autocomplete
+    ref="autocomplete"
     v-autowidth="{ minWidth: '40px' }"
     :value="value"
     :items="filteredItems"
@@ -19,21 +20,33 @@
     class="mr-2 v-select--fit"
     @change="$emit('input', $event)"
   >
-    <template #item="{ item }">
-      <v-list-item-action class="my-0 mr-4">
-        <v-checkbox :input-value="value.indexOf(item.value) >= 0" dense></v-checkbox>
-      </v-list-item-action>
-      <v-list-item-content>
-        <v-list-item-title>{{ item.value }}</v-list-item-title>
-      </v-list-item-content>
-      <v-list-item-action class="my-0">
-        <v-list-item-action-text><XNum :value="item.count" /></v-list-item-action-text>
-      </v-list-item-action>
+    <template #item="{ item, attrs }">
+      <v-list-item
+        v-bind="attrs"
+        @click="
+          $emit('input', [item.value])
+          autocomplete.blur()
+        "
+      >
+        <v-list-item-action class="my-0 mr-4">
+          <v-checkbox
+            :input-value="value.indexOf(item.value) >= 0"
+            dense
+            @click.stop="toggleValue(item.value)"
+          ></v-checkbox>
+        </v-list-item-action>
+        <v-list-item-content>
+          <v-list-item-title>{{ item.value }}</v-list-item-title>
+        </v-list-item-content>
+        <v-list-item-action class="my-0">
+          <v-list-item-action-text><XNum :value="item.count" /></v-list-item-action-text>
+        </v-list-item-action>
+      </v-list-item>
     </template>
     <template #selection="{ index, item }">
       <div v-if="index === 2" class="v-select__selection">, {{ value.length - 2 }} more</div>
-      <div v-else-if="index < 2" class="v-select__selection text-truncate">
-        {{ comma(item, index) }}
+      <div v-else-if="index < 2" class="v-select__selection">
+        {{ withComma(item, index) }}
       </div>
     </template>
     <template #no-data>
@@ -67,6 +80,9 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 // Composables
 import { Item } from '@/tracing/query/use-quick-span-filters'
 
+// Utilities
+import { truncateMiddle } from '@/util/string'
+
 export default defineComponent({
   name: 'QuickSpanFilter',
 
@@ -93,8 +109,8 @@ export default defineComponent({
     },
   },
 
-  setup(props) {
-    const menu = shallowRef(false)
+  setup(props, ctx) {
+    const autocomplete = shallowRef()
     const searchInput = shallowRef('')
 
     const filteredItems = computed(() => {
@@ -104,25 +120,34 @@ export default defineComponent({
       return fuzzyFilter(props.items, searchInput.value, { key: 'value' })
     })
 
-    function comma(item: Item, index: number): string {
+    function withComma(item: Item, index: number): string {
+      const value = truncateMiddle(item.value, 20)
       if (index > 0) {
-        return ', ' + item.value
+        return ', ' + value
       }
-      return item.value
+      return value
+    }
+
+    function toggleValue(value: string) {
+      const values = props.value.slice()
+      const index = values.indexOf(value)
+      if (index >= 0) {
+        values.splice(index, 1)
+      } else {
+        values.push(value)
+      }
+      ctx.emit('input', values)
     }
 
     return {
-      menu,
+      autocomplete,
       searchInput,
       filteredItems,
-      comma,
+      withComma,
+      toggleValue,
     }
   },
 })
 </script>
 
-<style lang="scss" scoped>
-.v-select__selection {
-  max-width: 100px;
-}
-</style>
+<style lang="scss" scoped></style>

@@ -35,7 +35,12 @@ type TimeseriesExpr struct {
 }
 
 func (e *TimeseriesExpr) String() string {
-	return e.AST.String()
+	ts := Timeseries{
+		Metric:  e.Metric,
+		Func:    e.Func,
+		Filters: e.Filters,
+	}
+	return ts.Name()
 }
 
 type RefExpr struct {

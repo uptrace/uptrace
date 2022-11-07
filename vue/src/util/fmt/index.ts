@@ -97,7 +97,7 @@ function noneShort(v: unknown): string {
 
 function adjustNumber(v: any, mod: number): any {
   if (typeof v === 'number') {
-    return v / mod
+    return v * mod
   }
   return v
 }

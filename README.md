@@ -38,11 +38,12 @@ only dependency.
 ## Quickstart
 
 First spend few minutes to decide if you need Uptrace by running a
-[docker-compose example](example/docker). You can also play with public
-[Uptrace demo](https://app.uptrace.dev/play).
+[docker-compose example](example/docker). You can also play with the
+[Uptrace demo](https://app.uptrace.dev/play) (no login required).
 
 Then follow the [getting started guide](https://uptrace.dev/get/get-started.html) to properly setup
-Uptrace by downloading a Go binary or installing a DEB/RPM package.
+Uptrace by downloading a Go binary or installing a DEB/RPM package. You only need a ClickHouse
+database to start using Uptrace.
 
 ## Help
 
