@@ -68,6 +68,10 @@ export default defineComponent({
       if (text) {
         for (let col of gaugeQuery.columns) {
           const val = gaugeQuery.values[col.name]
+          if (val === undefined) {
+            text = text.replaceAll('$' + col.name, '-')
+            continue
+          }
           const unit = props.gauge.columnMap[col.name]?.unit ?? col.unit
           text = text.replaceAll('$' + col.name, fmt(val, unit))
         }
