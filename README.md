@@ -29,7 +29,11 @@ only dependency.
 - S3 storage support with ability to automatically upload cold data to S3-like storage or HDD.
 - Automatic alerts with notifications via email, Slack, Telegram, and more.
 
-![Uptrace Home](https://uptrace.dev/get/uptrace/home.png)
+![Uptrace Home](./example/docker/images/home.png)
+
+![Facetted filters](./example/docker/images/facets.png)
+
+![Prometheus-like metrics](./example/docker/images/metrics.png)
 
 ## Quickstart
 

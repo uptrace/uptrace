@@ -158,7 +158,7 @@ func convertToTable(
 	for _, row := range rowMap {
 		for _, column := range columns {
 			if _, ok := row[column.Name]; !ok {
-				row[column.Name] = 0
+				row[column.Name] = float64(0)
 			}
 		}
 		table = append(table, row)
