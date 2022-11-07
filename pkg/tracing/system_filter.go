@@ -14,12 +14,13 @@ import (
 
 type SystemFilter struct {
 	org.TimeFilter
-
 	ProjectID uint32
-	System    []string
-	GroupID   uint64
-	Envs      []string
-	Services  []string
+
+	Envs     []string
+	Services []string
+
+	System  []string
+	GroupID uint64
 }
 
 func DecodeSystemFilter(app *bunapp.App, req bunrouter.Request) (*SystemFilter, error) {
