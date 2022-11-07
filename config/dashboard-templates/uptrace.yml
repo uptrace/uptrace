@@ -1,5 +1,5 @@
 id: uptrace.collector.projects
-name: 'Uptrace: Projects'
+name: 'Uptrace: collector stats by project'
 
 table:
   metrics:
@@ -37,7 +37,7 @@ entries:
 
 ---
 id: uptrace.collector.hosts
-name: 'Uptrace: Hosts'
+name: 'Uptrace: collector stats by host'
 
 metrics:
   - uptrace.projects.spans as $spans
@@ -77,7 +77,7 @@ entries:
 
 ---
 id: uptrace.collector.spans_by_host
-name: 'Uptrace: By host.name'
+name: 'Uptrace: spans by host'
 
 table:
   metrics:
@@ -127,14 +127,14 @@ entries:
 
 ---
 id: uptrace.spans_by_service
-name: 'Uptrace: By service.name'
+name: 'Uptrace: spans by service'
 
 table:
   metrics:
     - uptrace.tracing.spans as $spans
     - uptrace.tracing.spans_duration as $dur
   query:
-    - group by service.name
+    - group by service
     - per_min($spans) as spans_per_min
     - $spans{status='error'} / $spans as error_rate
     - p50($dur) as p50
@@ -177,14 +177,14 @@ entries:
 
 ---
 id: uptrace.collector.spans_by_system
-name: 'Uptrace: By span.system'
+name: 'Uptrace: spans by system'
 
 table:
   metrics:
     - uptrace.tracing.spans as $spans
     - uptrace.tracing.spans_duration as $dur
   query:
-    - group by span.system
+    - group by system
     - per_min($spans) as spans_per_min
     - $spans{status='error'} / $spans as error_rate
     - p50($dur) as p50

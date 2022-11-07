@@ -203,6 +203,10 @@ func (b *DashBuilder) entry(tpl *DashEntryTpl) error {
 }
 
 func (b *DashBuilder) Save(ctx context.Context, app *bunapp.App) error {
+	if !b.dash.IsTable && len(b.entries) == 0 {
+		return nil
+	}
+
 	if err := b.dash.Validate(); err != nil {
 		return err
 	}

@@ -87,7 +87,7 @@ metrics_from_spans:
     where: not span.is_event
 
   - name: uptrace.tracing.events
-    description: Events count (excluding spans
+    description: Events count (excluding spans)
     instrument: counter
     unit: 1
     value: span.count
@@ -151,6 +151,18 @@ alerting:
       alert_kind: error
 
 ##
+## AlertManager client configuration.
+## See https://uptrace.dev/get/alerting.html for details.
+##
+## Note that this is NOT an AlertManager config and you need to configure AlertManager separately.
+## See https://prometheus.io/docs/alerting/latest/configuration/ for details.
+##
+alertmanager_client:
+  # AlertManager API endpoints that Uptrace uses to manage alerts.
+  urls:
+    - 'http://localhost:9093/api/v2/alerts'
+
+##
 ## To require authentication, uncomment one of the following sections.
 ##
 auth:
@@ -190,18 +202,6 @@ auth:
   #     # The OIDC UserInfo claim to use as the user's username.
   #     # Defaults to 'preferred_username'.
   #     claim: preferred_username
-
-##
-## AlertManager client configuration.
-## See https://uptrace.dev/get/alerting.html for details.
-##
-## Note that this is NOT an AlertManager config and you need to configure AlertManager separately.
-## See https://prometheus.io/docs/alerting/latest/configuration/ for details.
-##
-alertmanager_client:
-  # AlertManager API endpoints that Uptrace uses to manage alerts.
-  urls:
-    - 'http://localhost:9093/api/v2/alerts'
 
 ##
 ## Various options to tweak ClickHouse schema.
