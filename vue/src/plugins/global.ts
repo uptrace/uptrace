@@ -19,3 +19,9 @@ Vue.component('AnyValue', AnyValue)
 Vue.component('XDate', XDate)
 Vue.component('XDuration', XDuration)
 Vue.component('PrismCode', PrismCode)
+
+Vue.mixin({
+  computed: {
+    console: () => console,
+  },
+})

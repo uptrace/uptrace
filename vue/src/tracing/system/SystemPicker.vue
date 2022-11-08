@@ -86,10 +86,6 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
-    maxHeight: {
-      type: Number,
-      default: 420,
-    },
   },
 
   setup(props, ctx) {

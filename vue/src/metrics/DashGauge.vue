@@ -80,6 +80,9 @@ export default defineComponent({
 
       const col = gaugeQuery.columns[0]
       const val = gaugeQuery.values[col.name]
+      if (val === undefined) {
+        return '-'
+      }
       const unit = props.gauge.columnMap[col.name]?.unit ?? col.unit
       return fmt(val, unit)
     })

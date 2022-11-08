@@ -50,11 +50,13 @@ func (e *Engine) Run(query []*QueryPart) *Result {
 			continue
 		}
 
-		column := expr.Alias
-		if column == "" {
+		var column string
+		if expr.Alias != "" {
+			column = expr.Alias
+			setTimeseriesMetric(tmp, column)
+		} else {
 			column = expr.Expr.String()
 		}
-		setTimeseriesMetric(tmp, column)
 
 		if _, ok := e.vars[column]; ok {
 			expr.Part.Error.Wrapped = fmt.Errorf("column %q already exists", column)
