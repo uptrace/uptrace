@@ -46,7 +46,7 @@ type MeasureKey struct {
 
 type MeasureValue struct {
 	Key   MeasureKey
-	Point any // *NumberPoint or *HistogramPoint of *ExpHistogramPoint
+	Point any
 	Time  time.Time
 }
 

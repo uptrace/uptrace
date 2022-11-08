@@ -38,8 +38,14 @@ func (h *SystemHandler) ListSystems(w http.ResponseWriter, req bunrouter.Request
 		return err
 	}
 
+	var hasNoData bool
+	if len(systems) == 0 && f.Query == "" && len(f.Services) == 0 && len(f.Envs) == 0 {
+		hasNoData = true
+	}
+
 	return httputil.JSON(w, bunrouter.H{
-		"systems": systems,
+		"systems":   systems,
+		"hasNoData": hasNoData,
 	})
 }
 

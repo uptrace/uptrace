@@ -40,10 +40,7 @@ export function useSystems(params: () => Record<string, any>) {
   })
 
   const hasNoData = computed(() => {
-    if (Array.isArray(data.value?.systems)) {
-      return data.value.systems.length === 0
-    }
-    return false
+    return data.value?.hasNoData ?? false
   })
 
   const internalValue = shallowRef<string[]>([])

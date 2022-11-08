@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="dialog" max-width="1200" :persistent="!dashboard.isTemplate">
+  <v-dialog :value="value" max-width="1200" @input="$emit('input', $event)">
     <DashGridEntryForm
       :date-range="dateRange"
       :metrics="metrics"
@@ -13,7 +13,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, watch, PropType } from 'vue'
+import { defineComponent, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
@@ -35,6 +35,7 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
+
     value: {
       type: Boolean,
       required: true,
@@ -58,29 +59,17 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
-    const dialog = shallowRef(false)
-
-    watch(
-      () => props.value,
-      (value) => {
-        if (value) {
-          dialog.value = true
-        }
-      },
-      { immediate: true },
-    )
-
     function onSave() {
       ctx.emit('change')
-      dialog.value = false
+      ctx.emit('input', false)
     }
 
     function onCancel() {
       ctx.emit('change')
-      dialog.value = false
+      ctx.emit('input', false)
     }
 
-    return { dialog, onSave, onCancel }
+    return { onSave, onCancel }
   },
 })
 </script>

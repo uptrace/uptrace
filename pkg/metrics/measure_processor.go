@@ -223,6 +223,10 @@ func (s *MeasureProcessor) convertHistogramPoint(
 		return false
 	}
 
+	measure.Count = point.Count - prevPoint.Count
+	if measure.Count <= 0 {
+		return false
+	}
 	measure.Sum = max(0, point.Sum-prevPoint.Sum)
 
 	for i, num := range point.BucketCounts {
@@ -269,6 +273,10 @@ func (s *MeasureProcessor) convertExpHistogramPoint(
 		return false
 	}
 
+	measure.Count = point.Count - prevPoint.Count
+	if measure.Count <= 0 {
+		return false
+	}
 	measure.Sum = max(0, point.Sum-prevPoint.Sum)
 
 	point.ZeroCount -= prevPoint.ZeroCount

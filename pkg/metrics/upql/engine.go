@@ -56,6 +56,9 @@ func (e *Engine) Run(query []*QueryPart) *Result {
 			setTimeseriesMetric(tmp, column)
 		} else {
 			column = expr.Expr.String()
+			if _, ok := expr.Expr.(*TimeseriesExpr); !ok {
+				setTimeseriesMetric(tmp, column)
+			}
 		}
 
 		if _, ok := e.vars[column]; ok {
@@ -341,7 +344,7 @@ func (e *Engine) evalBinaryExprNumLeft(
 	for i := range rhs {
 		ts2 := &rhs[i]
 
-		joined = append(joined, newTimeseries(ts2))
+		joined = append(joined, newTimeseriesFrom(ts2))
 		ts := &joined[len(joined)-1]
 
 		for i, v2 := range ts2.Value {
@@ -395,7 +398,7 @@ func (e *Engine) evalBinaryExprNumRight(
 	for i := range lhs {
 		ts1 := &lhs[i]
 
-		joined = append(joined, newTimeseries(ts1))
+		joined = append(joined, newTimeseriesFrom(ts1))
 		ts := &joined[len(joined)-1]
 
 		for i, v1 := range ts1.Value {
