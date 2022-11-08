@@ -72,8 +72,8 @@
     </v-card>
 
     <DashGridEntryFormDialog
+      v-model="dialog"
       :date-range="dateRange"
-      :value="dialog"
       :metrics="metrics"
       :dashboard="dashboard"
       :dash-entry="dashEntry"

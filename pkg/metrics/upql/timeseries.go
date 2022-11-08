@@ -32,7 +32,7 @@ type Timeseries struct {
 	GroupByAll bool
 }
 
-func newTimeseries(ts *Timeseries) Timeseries {
+func newTimeseriesFrom(ts *Timeseries) Timeseries {
 	return Timeseries{
 		ProjectID: ts.ProjectID,
 		Metric:    ts.Metric,
@@ -45,6 +45,9 @@ func newTimeseries(ts *Timeseries) Timeseries {
 
 		Value: make([]float64, len(ts.Value)),
 		Time:  ts.Time,
+
+		Grouping:   ts.Grouping,
+		GroupByAll: ts.GroupByAll,
 	}
 }
 

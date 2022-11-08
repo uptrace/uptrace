@@ -389,7 +389,7 @@ func (s *CHStorage) agg(
 
 		switch f.Func {
 		case "count":
-			q = q.ColumnExpr("sum(count) AS value")
+			q = q.ColumnExpr("toFloat64(sum(count)) AS value")
 			return q, nil
 		case "per_min", "per_minute":
 			q = q.ColumnExpr("sum(count) / ? AS value",
