@@ -2,7 +2,7 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
-## v1.2.0 - Unreleased
+## v1.2.0 - Nov 8 2022
 
 - Added ability to filter spans using facets.
 - Added ability to select multiple systems.
