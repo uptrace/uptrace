@@ -3,7 +3,7 @@ lockfileVersion: 5.4
 specifiers:
   '@mdi/font': ^7.0.96
   '@types/chai': 4.3.3
-  '@types/fuzzaldrin-plus': ^0.6.2
+  '@types/fuzzaldrin-plus': 0.6.2
   '@types/lodash': 4.14.186
   '@types/lodash-es': ^4.17.6
   '@types/mocha': 10.0.0
