@@ -294,6 +294,7 @@ func (app *App) initGRPC() error {
 		grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
 		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
 		grpc.ReadBufferSize(512<<10),
+		grpc.MaxRecvMsgSize(32<<20),
 	)
 
 	if app.conf.Listen.GRPC.TLS != nil {
