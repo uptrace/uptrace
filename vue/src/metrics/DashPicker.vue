@@ -1,80 +1,120 @@
 <template>
-  <v-menu v-model="menu" offset-y>
-    <template #activator="{ attrs, on }">
-      <v-btn
-        dark
-        class="blue darken-1 elevation-5"
-        style="text-transform: none"
-        v-bind="attrs"
-        v-on="on"
-      >
-        <span class="px-4">{{
-          dashboards.active ? dashboards.active.name : 'Choose dashboard'
-        }}</span>
-        <v-icon right size="24">mdi-menu-down</v-icon>
-      </v-btn>
-    </template>
-
-    <DashTree :tree="dashboards.tree" @change="menu = false" />
-  </v-menu>
+  <v-autocomplete
+    :value="value"
+    :items="filteredItems"
+    item-value="id"
+    item-text="name"
+    :search-input.sync="searchInput"
+    no-filter
+    placeholder="dashboard"
+    hide-details
+    dense
+    outlined
+    auto-select-first
+    background-color="light-blue lighten-5"
+    @change="onChange"
+  >
+  </v-autocomplete>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, watchEffect, PropType } from 'vue'
+import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
+import { defineComponent, shallowRef, computed, watch, watchEffect, PropType } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
-import { UseDashboards, Dashboard } from '@/metrics/use-dashboards'
-
-// Components
-import DashTree from '@/metrics/DashTree.vue'
+import { useRouter, useRoute } from '@/use/router'
+import { useStorage } from '@/use/local-storage'
+import { Dashboard } from '@/metrics/use-dashboards'
 
 export default defineComponent({
   name: 'DashPicker',
-  components: { DashTree },
 
   props: {
-    dashboards: {
-      type: Object as PropType<UseDashboards>,
-      required: true,
+    value: {
+      type: [String, Number],
+      default: undefined,
     },
-    maxHeight: {
-      type: Number,
-      default: 420,
+    items: {
+      type: Array as PropType<Dashboard[]>,
+      required: true,
     },
   },
 
   setup(props) {
-    const menu = shallowRef(false)
-    const { router, route } = useRouter()
+    const { router } = useRouter()
+    const route = useRoute()
+    const searchInput = shallowRef('')
+
+    const { item: lastDashId } = useStorage<string | number>(
+      computed(() => {
+        const projectId = route.value.params.projectId ?? 0
+        return `last-dashboard:${projectId}`
+      }),
+    )
+
+    const filteredItems = computed(() => {
+      if (!searchInput.value) {
+        return props.items
+      }
+
+      const index = props.items.findIndex((item) => item.name === searchInput.value)
+      if (index >= 0) {
+        return props.items
+      }
+
+      return fuzzyFilter(props.items, searchInput.value, { key: 'name' })
+    })
 
     watchEffect(
       () => {
-        const dashboards = props.dashboards.items
-        if (!dashboards.length) {
+        if (!props.items.length) {
           return
         }
 
-        const dashId = route.value.params.dashId
-        if (!dashId) {
-          redirectTo(dashboards[0])
+        if (!props.value) {
+          redirectToLast()
           return
         }
 
-        const index = dashboards.findIndex((d) => d.id === dashId)
+        const index = props.items.findIndex((d) => d.id === props.value)
         if (index === -1) {
-          redirectTo(dashboards[0])
+          redirectToLast()
           return
         }
       },
       { flush: 'post' },
     )
 
-    function redirectTo(dash: Dashboard) {
-      router.replace({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+    watch(
+      () => props.value,
+      (dashId) => {
+        if (dashId) {
+          lastDashId.value = dashId
+        }
+      },
+      { immediate: true },
+    )
+
+    function onChange(dashId: string) {
+      const found = props.items.find((d) => d.id === dashId)
+      if (found) {
+        redirectTo(found)
+      }
     }
 
-    return { menu }
+    function redirectToLast() {
+      let found = props.items.find((d) => d.id === lastDashId.value)
+      if (!found) {
+        found = props.items[0]
+      }
+      redirectTo(found)
+    }
+
+    function redirectTo(dash: Dashboard) {
+      router.push({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+    }
+
+    return { searchInput, filteredItems, onChange }
   },
 })
 </script>

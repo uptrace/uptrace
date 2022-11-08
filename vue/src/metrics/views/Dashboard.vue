@@ -15,7 +15,11 @@
 
       <v-row align="center">
         <v-col cols="auto">
-          <DashPicker :dashboards="dashboards" />
+          <DashPicker
+            :loading="dashboards.loading"
+            :value="dashboards.active?.id"
+            :items="dashboards.items"
+          />
         </v-col>
         <v-col v-if="dashboard.data" cols="auto">
           <DashMenu :dashboards="dashboards" :dashboard="dashboard" />
