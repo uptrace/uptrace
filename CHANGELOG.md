@@ -14,21 +14,26 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 ```yaml
 # First, create a metric from incoming spans.
 metrics_from_spans:
-  - name: uptrace.tracing.error_rate
-    description: Spans error rate
-    instrument: gauge
-    unit: percents
-    value: span.error_count / span.count
-    attrs: [span.system, service.name, host.name]
+  - name: uptrace.tracing.spans
+    description: Spans count (excluding events)
+    instrument: counter
+    unit: 1
+    value: span.count
+    attrs:
+      - span.system as system
+      - service.name as service
+      - host.name as host
+      - span.status_code as status
+    where: not span.is_event
 
 # Then, monitor that metric.
 alerting:
   rules:
-    - name: Service has a high error rate
+    - name: Service has high error rate
       metrics:
-        - uptrace.tracing.error_rate as $error_rate
+        - uptrace.tracing.spans as $spans
       query:
-        - $error_rate > 0.1 group by service.name
+        - $spans{status="error"} / $spans > 0.1 group by service.name
       for: 5m
 ```
 
@@ -54,7 +59,7 @@ alerting:
 - Tweaked spans grouping and added 2 related options:
 
   - `project.group_by_env` - group spans by `deployment.environment` attribute.
-  - `project.group_funcs_by_service` - group funcs spans by `service.name` attribute.
+  - `project.group_funcs_by_service` - group `funcs` spans by `service.name` attribute.
 
 - Added project settings page where you can check available settings and project DSN.
 
