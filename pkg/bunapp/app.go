@@ -351,9 +351,11 @@ func (app *App) newBunDB() *bun.DB {
 func (app *App) newCH() *ch.DB {
 	conf := app.conf.CH
 
-	settings := map[string]any{
-		"prefer_column_name_to_alias": 1,
+	settings := conf.QuerySettings
+	if settings == nil {
+		settings = make(map[string]any)
 	}
+	settings["prefer_column_name_to_alias"] = 1
 	if seconds := int(conf.MaxExecutionTime.Seconds()); seconds > 0 {
 		settings["max_execution_time"] = seconds
 	}
@@ -378,6 +380,14 @@ func (app *App) newCH() *ch.DB {
 	if conf.Database != "" {
 		opts = append(opts, ch.WithDatabase(conf.Database))
 	}
+	if conf.TLS != nil {
+		tlsConf, err := conf.TLS.TLSConfig()
+		if err != nil {
+			panic(fmt.Errorf("ch.tls option failed: %w", err))
+		}
+		opts = append(opts, ch.WithTLSConfig(tlsConf))
+	}
+
 	if conf.MaxExecutionTime != 0 {
 		opts = append(opts, ch.WithReadTimeout(conf.MaxExecutionTime+5*time.Second))
 	}

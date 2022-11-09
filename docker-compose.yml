@@ -14,6 +14,7 @@ services:
       interval: 1s
       timeout: 1s
       retries: 30
+    user: clickhouse
     volumes:
       - ch1_data:/var/lib/clickhouse
       - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/config.xml
@@ -23,6 +24,7 @@ services:
     ports:
       - '8123:8123'
       - '9000:9000'
+      - '9440:9440'
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
