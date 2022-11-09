@@ -17,11 +17,14 @@
 ## ClickHouse database credentials.
 ##
 ch:
-  # Connection string for a ClickHouse database. For example:
-  # clickhouse://<user>:<password>@<host>:<port>/<database>?sslmode=disable
-  #
-  # See https://clickhouse.uptrace.dev/guide/golang-clickhouse.html#options
-  dsn: 'clickhouse://default:@localhost:9000/uptrace?sslmode=disable'
+  addr: localhost:9000
+  user: default
+  password:
+  database: uptrace
+
+  # TLS configuration. Uncomment to enable.
+  # tls:
+  #   insecure_skip_verify: true
 
   # Maximum query execution time.
   max_execution_time: 30s

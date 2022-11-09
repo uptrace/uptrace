@@ -3,13 +3,13 @@
   <listen_host>0.0.0.0</listen_host>
   <timezone>UTC</timezone>
 
-  <!-- https://github.com/ClickHouse/ClickHouse/issues/35552 -->
-  <openSSL>
-    <server>
-      <certificateFile remove="1" />
-      <privateKeyFile remove="1" />
-    </server>
-  </openSSL>
+  <!-- <tcp_port_secure>9440</tcp_port_secure> -->
+  <!-- <openSSL> -->
+  <!--   <server> -->
+  <!--     <certificateFile>/etc/clickhouse-server/server.crt</certificateFile> -->
+  <!--     <privateKeyFile>/etc/clickhouse-server/server.key</privateKeyFile> -->
+  <!--   </server> -->
+  <!-- </openSSL> -->
 
   <storage_configuration>
     <disks>

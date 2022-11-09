@@ -317,10 +317,14 @@ type BunConfig struct {
 type CHConfig struct {
 	DSN string `yaml:"dsn"`
 
-	Addr             string        `yaml:"addr"`
-	User             string        `yaml:"user"`
-	Password         string        `yaml:"password"`
-	Database         string        `yaml:"database"`
+	Addr          string         `yaml:"addr"`
+	User          string         `yaml:"user"`
+	Password      string         `yaml:"password"`
+	Database      string         `yaml:"database"`
+	QuerySettings map[string]any `yaml:"query_settings"`
+
+	TLS *TLSClient `yaml:"tls"`
+
 	MaxExecutionTime time.Duration `yaml:"max_execution_time"`
 }
 
