@@ -8,8 +8,8 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 - Added ability to select multiple systems.
 - Added 2 quick filters by `deployment.environment` and `service.name` attributes on the Overview
   page.
-- Added support for creating metrics from spans so they can be monitored like usual metrics, for
-  example:
+- Added support for [creating metrics from spans](https://uptrace.dev/get/span-metrics.html) so they
+  can be monitored like usual metrics, for example:
 
 ```yaml
 # First, create a metric from incoming spans.
