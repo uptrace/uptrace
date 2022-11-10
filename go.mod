@@ -22,7 +22,7 @@ require (
 	github.com/uptrace/go-clickhouse/chdebug v0.2.10-0.20221109081114-323f51e465fd
 	github.com/uptrace/go-clickhouse/chotel v0.2.10-0.20221109081114-323f51e465fd
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.15
-	github.com/uptrace/uptrace-go v1.11.4
+	github.com/uptrace/uptrace-go v1.11.5
 	github.com/urfave/cli/v2 v2.11.1
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/vmihailenco/tagparser v0.1.2
@@ -48,8 +48,8 @@ require (
 	github.com/prometheus/alertmanager v0.24.0
 	github.com/uptrace/bun/dialect/pgdialect v1.1.8
 	github.com/uptrace/bun/driver/pgdriver v1.1.8
-	golang.org/x/net v0.1.0
-	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
+	golang.org/x/net v0.2.0
+	golang.org/x/oauth2 v0.1.0
 	gopkg.in/yaml.v2 v2.4.0
 	modernc.org/sqlite v1.18.1
 )
@@ -109,7 +109,7 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20220826181053-bd7e27e6170d // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -127,12 +127,12 @@ require (
 )
 
 require (
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.12.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.13.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/uptrace/bun v1.1.8
 	github.com/uptrace/bun/dialect/sqlitedialect v1.1.8
 	github.com/uptrace/bun/extra/bundebug v1.1.8
 	github.com/uptrace/bun/extra/bunotel v1.1.8
-	google.golang.org/genproto v0.0.0-20221027153422-115e99e71e1c // indirect
+	google.golang.org/genproto v0.0.0-20221109142239-94d6d90a7d66 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
