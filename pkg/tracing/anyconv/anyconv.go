@@ -66,7 +66,7 @@ func Uint64(v any) uint64 {
 	case string:
 		if len(v) == 16 {
 			if b, err := hex.DecodeString(v); err == nil {
-				return binary.LittleEndian.Uint64(b)
+				return binary.BigEndian.Uint64(b)
 			}
 		}
 		if n, err := strconv.ParseUint(v, 10, 64); err == nil {

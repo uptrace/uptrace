@@ -65,7 +65,7 @@ func otlpSpanID(b []byte) uint64 {
 	case 0:
 		return 0
 	case 8:
-		return binary.LittleEndian.Uint64(b)
+		return binary.BigEndian.Uint64(b)
 	case 12:
 		// continue below
 	default:
@@ -81,7 +81,7 @@ func otlpSpanID(b []byte) uint64 {
 	}
 
 	if len(b) == 8 {
-		return binary.LittleEndian.Uint64(b)
+		return binary.BigEndian.Uint64(b)
 	}
 
 	otelzap.L().Error("otlpSpanID failed", zap.Int("length", len(b)))
