@@ -294,7 +294,7 @@ db:
   #
   # Uptrace automatically creates SQLite database file in the current working directory.
   # Make sure the directory is writable by Uptrace process.
-  dsn: 'file:uptrace.sqlite3?_pragma=foreign_keys(1)&_pragma=busy_timeout(1000)'
+  dsn: 'file:${UPTRACE_DIR:}uptrace.sqlite3?_pragma=foreign_keys(1)&_pragma=busy_timeout(1000)'
 
 # Secret key that is used to sign JWT tokens etc.
 secret_key: 102c1a557c314fc28198acd017960843

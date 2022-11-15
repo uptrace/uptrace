@@ -44,7 +44,7 @@ func ReadConfig(confPath, service string) (*Config, error) {
 
 var (
 	envVarRe        = regexp.MustCompile(`^[A-Z][A-Z0-9_]+$`)
-	envVarDefaultRe = regexp.MustCompile(`^([A-Z][A-Z0-9_]+):(.+)$`)
+	envVarDefaultRe = regexp.MustCompile(`^([A-Z][A-Z0-9_]+):(.*)$`)
 )
 
 func expandEnv(conf string) string {
