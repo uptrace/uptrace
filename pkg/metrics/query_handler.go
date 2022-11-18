@@ -156,9 +156,13 @@ func convertToTable(
 	table := make([]map[string]any, 0, len(rowMap))
 
 	for _, row := range rowMap {
-		for _, column := range columns {
-			if _, ok := row[column.Name]; !ok {
-				row[column.Name] = float64(0)
+		for _, col := range columns {
+			if _, ok := row[col.Name]; !ok {
+				if col.IsGroup {
+					row[col.Name] = ""
+				} else {
+					row[col.Name] = float64(0)
+				}
 			}
 		}
 		table = append(table, row)

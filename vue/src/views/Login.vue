@@ -84,6 +84,7 @@ export default defineComponent({
 
   setup() {
     useTitle('Log in')
+
     const { router } = useRouter()
     const user = useUser()
     const sso = useSso()
