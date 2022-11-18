@@ -1,0 +1,61 @@
+id: uptrace.db.clients_by_db_system_pool_name
+name: 'DB: clients by pool name'
+
+table:
+  metrics:
+    - db.client.connections.usage as $usage
+    - db.client.connections.timeouts as $timeouts
+    - db.client.connections.use_time as $use_time
+  query:
+    - group by db.system
+    - group by pool.name
+    - $usage as conns
+    - $usage{state='idle'} as idle
+    - $timeouts
+    - per_min($use_time) as queries
+    - avg($use_time) as avg_timing
+  columns:
+    avg_timing: { unit: milliseconds }
+
+entries:
+  - name: Number of queries
+    metrics:
+      - db.client.connections.use_time as $use_time
+    query:
+      - per_min($use_time) as queries group by status
+
+  - name: Query percentiles
+    chart_type: area
+    metrics:
+      - db.client.connections.use_time as $use_time
+    query:
+      - p50($use_time) as p50
+      - p90($use_time) as p90
+      - p99($use_time) as p99
+    columns:
+      p50: { unit: milliseconds }
+      p90: { unit: milliseconds }
+      p99: { unit: milliseconds }
+
+  - name: Number of established connections
+    metrics:
+      - db.client.connections.usage as $usage
+      - db.client.connections.max as $max
+    query:
+      - $usage
+      - $max
+
+  - name: Number of idle and used connections
+    chart_type: area
+    metrics:
+      - db.client.connections.usage as $usage
+    query:
+      - $usage group by state
+
+  - name: Max and min number of idle open connections allowed
+    metrics:
+      - db.client.connections.idle.max as $idle_max
+      - db.client.connections.idle.min as $idle_min
+    query:
+      - $idle_max
+      - $idle_min
