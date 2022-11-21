@@ -1,4 +1,8 @@
-# # Kvrocks example for OpenTelemetry and Uptrace
+# Kvrocks example for OpenTelemetry and Uptrace
+
+See
+[Getting started with Kvrocks and go-redis](https://kvrocks.apache.org/blog/go-redis-kvrocks-opentelemetry)
+for details.
 
 **Step 1**. Download the example using Git:
 
