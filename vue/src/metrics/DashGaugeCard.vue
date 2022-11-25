@@ -27,7 +27,7 @@ import { useGaugeQuery } from '@/metrics/use-query'
 import { fmt } from '@/util/fmt'
 
 export default defineComponent({
-  name: 'DashGauge',
+  name: 'DashGaugeCard',
 
   props: {
     dateRange: {

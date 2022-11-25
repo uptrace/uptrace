@@ -94,19 +94,19 @@ func (d *DashboardTpl) validate() error {
 	if d.Name == "" {
 		return fmt.Errorf("dashboard name is required")
 	}
+
 	if len(d.Table.Query) == 0 && len(d.Entries) == 0 {
 		return fmt.Errorf("either dashboard query or an entry is required")
 	}
-
 	if _, err := upql.ParseMetrics(d.Table.Metrics); err != nil {
 		return err
 	}
-
 	for _, gauge := range d.Table.Gauges {
 		if err := gauge.Validate(); err != nil {
 			return err
 		}
 	}
+
 	for _, gauge := range d.Gauges {
 		if err := gauge.Validate(); err != nil {
 			return err
