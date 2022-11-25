@@ -22,8 +22,6 @@ export interface Dashboard {
   metrics: MetricAlias[] | null
   query: string
   columnMap: Record<string, MetricColumn>
-
-  gauges: DashGauge[]
 }
 
 export interface DashGauge {

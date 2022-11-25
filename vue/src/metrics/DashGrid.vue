@@ -24,7 +24,7 @@
 
     <v-row v-if="dashboard.gridGauges.length" :dense="$vuetify.breakpoint.mdAndDown" class="mt-4">
       <v-col v-for="gauge in dashboard.gridGauges" :key="gauge.id" cols="auto">
-        <DashGauge :date-range="dateRange" :gauge="gauge" :base-query="baseQuery" />
+        <DashGaugeCard :date-range="dateRange" :gauge="gauge" :base-query="baseQuery" />
       </v-col>
     </v-row>
 
@@ -85,7 +85,7 @@ import { useDashQueryManager, useDashEntryManager, UseDashboard } from '@/metric
 // Components
 import draggable from 'vuedraggable'
 import DashQueryBuilder from '@/metrics/query/DashQueryBuilder.vue'
-import DashGauge from '@/metrics/DashGauge.vue'
+import DashGaugeCard from '@/metrics/DashGaugeCard.vue'
 import DashGridEntry from '@/metrics/DashGridEntry.vue'
 
 export default defineComponent({
@@ -93,7 +93,7 @@ export default defineComponent({
   components: {
     draggable,
     DashQueryBuilder,
-    DashGauge,
+    DashGaugeCard,
     DashGridEntry,
   },
 

@@ -5,7 +5,7 @@ import { reactive, computed, watch, proxyRefs, ComputedRef } from 'vue'
 import { useRouter } from '@/use/router'
 import { usePager } from '@/use/pager'
 import { useOrder, Order, OrderConfig } from '@/use/order'
-import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
+import { useWatchAxios, AxiosRequestSource, AxiosParamsSource } from '@/use/watch-axios'
 import { QueryPart } from '@/use/uql'
 
 // Utilities
@@ -169,7 +169,7 @@ export function hasMetricAlias(query: string, alias: string): boolean {
 
 export type UseGaugeQuery = ReturnType<typeof useTableQuery>
 
-export function useGaugeQuery(axiosParamsSource: () => Record<string, any>) {
+export function useGaugeQuery(axiosParamsSource: AxiosParamsSource) {
   const { route } = useRouter()
 
   const { status, loading, data, reload } = useWatchAxios(() => {

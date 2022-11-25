@@ -323,12 +323,8 @@ func (s *CHStorage) agg(
 		return nil, fmt.Errorf("metric %q not found", metric.Name)
 
 	case CounterInstrument:
-		if f.Func == "" {
-			f.Func = "per_min"
-		}
-
 		switch f.Func {
-		case "per_min", "per_minute":
+		case "", "per_min", "per_minute":
 			q = q.ColumnExpr("sum(sum) / ? AS value",
 				s.conf.GroupingPeriod.Minutes())
 			return q, nil
@@ -383,10 +379,6 @@ func (s *CHStorage) agg(
 		}
 
 	case HistogramInstrument:
-		if f.Func == "" {
-			f.Func = "p50"
-		}
-
 		switch f.Func {
 		case "count":
 			q = q.ColumnExpr("toFloat64(sum(count)) AS value")
@@ -461,8 +453,11 @@ func isValueInstrument(instrument string) bool {
 	}
 }
 
-func unsupportedInstrumentFunc(instrument, fn string) error {
-	return fmt.Errorf("%s instrument does not support %s", instrument, fn)
+func unsupportedInstrumentFunc(instrument, funcName string) error {
+	if funcName == "" {
+		return fmt.Errorf("%s instrument requires a func", instrument)
+	}
+	return fmt.Errorf("%s instrument does not support %s", instrument, funcName)
 }
 
 func CHColumn(key string) ch.Safe {

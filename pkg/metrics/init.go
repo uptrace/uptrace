@@ -75,8 +75,8 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 		WithGroup("", func(g *bunrouter.Group) {
 			queryHandler := NewQueryHandler(app)
 
-			g.GET("/timeseries", queryHandler.Timeseries)
 			g.GET("/table", queryHandler.Table)
+			g.GET("/timeseries", queryHandler.Timeseries)
 			g.GET("/gauge", queryHandler.Gauge)
 		})
 

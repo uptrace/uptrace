@@ -210,56 +210,6 @@ func sortTable(columns []*ColumnInfo, table []map[string]any, f *QueryFilter) {
 
 //------------------------------------------------------------------------------
 
-func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error {
-	ctx := req.Context()
-
-	f, err := decodeQueryFilter(h.App, req)
-	if err != nil {
-		return err
-	}
-
-	for _, part := range f.allParts {
-		if part.Error.Wrapped != nil {
-			continue
-		}
-
-		switch part.AST.(type) {
-		case *ast.Grouping:
-			part.Error.Wrapped = errors.New("grouping is forbidden")
-		}
-	}
-
-	storage := NewCHStorage(ctx, h.App.CH, &CHStorageConfig{
-		Projects:   []uint32{f.ProjectID},
-		TimeFilter: f.TimeFilter,
-		MetricMap:  f.metricMap,
-
-		TableName:      measureTableForWhere(h.App, &f.TimeFilter),
-		GroupingPeriod: f.TimeFilter.Duration(),
-	})
-	engine := upql.NewEngine(storage)
-	result := engine.Run(f.allParts)
-
-	columns, table := convertToTable(result.Timeseries, result.Columns)
-
-	var values map[string]any
-	if len(table) > 0 {
-		values = table[0]
-		delete(values, attrkey.ItemQuery)
-	} else {
-		values = make(map[string]any)
-	}
-
-	return httputil.JSON(w, bunrouter.H{
-		"baseQueryParts": f.baseQueryParts,
-		"queryParts":     f.queryParts,
-		"columns":        columns,
-		"values":         values,
-	})
-}
-
-//------------------------------------------------------------------------------
-
 type Timeseries struct {
 	Name   string      `json:"name"`
 	Metric string      `json:"metric"`
@@ -318,5 +268,55 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 		"baseQueryParts": f.baseQueryParts,
 		"queryParts":     f.queryParts,
 		"timeseries":     jsonTimeseries,
+	})
+}
+
+//------------------------------------------------------------------------------
+
+func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	f, err := decodeQueryFilter(h.App, req)
+	if err != nil {
+		return err
+	}
+
+	for _, part := range f.allParts {
+		if part.Error.Wrapped != nil {
+			continue
+		}
+
+		switch part.AST.(type) {
+		case *ast.Grouping:
+			part.Error.Wrapped = errors.New("grouping is forbidden")
+		}
+	}
+
+	storage := NewCHStorage(ctx, h.App.CH, &CHStorageConfig{
+		Projects:   []uint32{f.ProjectID},
+		TimeFilter: f.TimeFilter,
+		MetricMap:  f.metricMap,
+
+		TableName:      measureTableForWhere(h.App, &f.TimeFilter),
+		GroupingPeriod: f.TimeFilter.Duration(),
+	})
+	engine := upql.NewEngine(storage)
+	result := engine.Run(f.allParts)
+
+	columns, table := convertToTable(result.Timeseries, result.Columns)
+
+	var values map[string]any
+	if len(table) > 0 {
+		values = table[0]
+		delete(values, attrkey.ItemQuery)
+	} else {
+		values = make(map[string]any)
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"baseQueryParts": f.baseQueryParts,
+		"queryParts":     f.queryParts,
+		"columns":        columns,
+		"values":         values,
 	})
 }

@@ -2,7 +2,7 @@
   <div>
     <v-row v-if="dashboard.tableGauges.length" :dense="$vuetify.breakpoint.mdAndDown">
       <v-col v-for="gauge in dashboard.tableGauges" :key="gauge.id" cols="auto">
-        <DashGauge :date-range="dateRange" :gauge="gauge" />
+        <DashGaugeCard :date-range="dateRange" :gauge="gauge" />
       </v-col>
     </v-row>
 
@@ -133,7 +133,7 @@ import MetricItemsTable from '@/metrics/MetricItemsTable.vue'
 import MetricQueryBuilder from '@/metrics/query/MetricQueryBuilder.vue'
 import DashTableForm from '@/metrics/DashTableForm.vue'
 import DashGrid from '@/metrics/DashGrid.vue'
-import DashGauge from '@/metrics/DashGauge.vue'
+import DashGaugeCard from '@/metrics/DashGaugeCard.vue'
 
 // Utilities
 import { AttrKey } from '@/models/otel'
@@ -149,7 +149,7 @@ export default defineComponent({
     MetricQueryBuilder,
     DashTableForm,
     DashGrid,
-    DashGauge,
+    DashGaugeCard,
   },
 
   props: {
