@@ -81,7 +81,7 @@ func ConvertValue(n float64, from, to string) (float64, error) {
 		case None:
 			return n, nil
 		default:
-			return 0, convertValueError(n, from, to)
+			return float64(n), nil
 		}
 	case Percents:
 		switch from {

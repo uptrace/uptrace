@@ -30,6 +30,29 @@ func (d *Dashboard) Validate() error {
 	if d.Name == "" {
 		return fmt.Errorf("dashboard name is required")
 	}
+	if err := d.validate(); err != nil {
+		return fmt.Errorf("dashboard %q is invalid: %w", d.Name, err)
+	}
+	return nil
+}
+
+func (d *Dashboard) validate() error {
+	if d.ProjectID == 0 {
+		return fmt.Errorf("project id can't be zero")
+	}
+
+	if d.IsTable {
+		if len(d.Metrics) == 0 {
+			return fmt.Errorf("at least one metric is required")
+		}
+
+		if d.Query == "" {
+			return fmt.Errorf("query can't be empty")
+		}
+		if err := upql.Validate(d.Query); err != nil {
+			return fmt.Errorf("can't parse query: %w", err)
+		}
+	}
 	return nil
 }
 

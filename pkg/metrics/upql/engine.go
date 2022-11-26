@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/cespare/xxhash/v2"
+	"github.com/uptrace/uptrace/pkg/bununit"
 	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
 	"golang.org/x/exp/slices"
 )
@@ -109,10 +110,14 @@ func (e *Engine) eval(expr Expr) ([]Timeseries, error) {
 	case ParenExpr:
 		return e.eval(expr.Expr)
 	case *ast.Number:
-		timeseries := e.storage.MakeTimeseries(new(TimeseriesFilter))
-
+		timeseries := e.storage.MakeTimeseries(nil)
 		ts := &timeseries[0]
-		num := expr.Float64()
+
+		num, err := expr.ConvertValue(ts.Unit)
+		if err != nil {
+			return nil, err
+		}
+
 		for i := range ts.Value {
 			ts.Value[i] = num
 		}
@@ -138,14 +143,32 @@ func (e *Engine) binaryExpr(expr *BinaryExpr) ([]Timeseries, error) {
 			if err != nil {
 				return nil, err
 			}
-			return e.binaryExprNumLeft(lhsNum.Float64(), rhs, expr.Op)
+			if len(rhs) == 0 {
+				return nil, nil
+			}
+
+			lhs, err := lhsNum.ConvertValue(rhs[0].Unit)
+			if err != nil {
+				return nil, err
+			}
+
+			return e.binaryExprNumLeft(lhs, rhs, expr.Op)
 		}
 		if rhsOK {
 			lhs, err := e.eval(expr.LHS)
 			if err != nil {
 				return nil, err
 			}
-			return e.binaryExprNumRight(lhs, rhsNum.Float64(), expr.Op)
+			if len(lhs) == 0 {
+				return nil, nil
+			}
+
+			rhs, err := rhsNum.ConvertValue(lhs[0].Unit)
+			if err != nil {
+				return nil, err
+			}
+
+			return e.binaryExprNumRight(lhs, rhs, expr.Op)
 		}
 	}
 
@@ -237,6 +260,15 @@ func (e *Engine) join(
 		value := make([]float64, len(ts1.Value))
 		for i, v1 := range ts1.Value {
 			v2 := ts2.Value[i]
+
+			if ts2.Unit != ts1.Unit {
+				num, err := bununit.ConvertValue(v2, ts2.Unit, ts1.Unit)
+				if err != nil {
+					return nil, err
+				}
+				v2 = num
+			}
+
 			value[i] = op(v1, v2)
 		}
 		ts1.Value = value

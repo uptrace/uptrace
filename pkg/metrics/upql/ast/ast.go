@@ -8,6 +8,7 @@ import (
 
 	"github.com/uptrace/uptrace/pkg/bununit"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
+	"go.uber.org/zap"
 )
 
 type Selector struct {
@@ -58,28 +59,59 @@ func (n *Name) String() string {
 	return unsafeconv.String(b)
 }
 
+type NumberKind int
+
+const (
+	NumberUnitless NumberKind = iota
+	NumberDuration
+	NumberBytes
+)
+
 type Number struct {
 	Text string
-	Kind ValueKind
+	Kind NumberKind
 }
 
 func (n *Number) String() string {
 	return n.Text
 }
 
-func (n *Number) Float32() float32 {
-	return float32(n.Float64())
+func (n *Number) AppendString(b []byte) []byte {
+	return append(b, n.Text...)
+}
+
+func (n *Number) ConvertValue(unit string) (float64, error) {
+	switch n.Kind {
+	case NumberDuration:
+		dur, err := time.ParseDuration(n.Text)
+		if err != nil {
+			return 0, err
+		}
+		return bununit.ConvertValue(float64(dur), bununit.Nanoseconds, unit)
+	case NumberBytes:
+		bytes, err := bununit.ParseBytes(n.Text)
+		if err != nil {
+			return 0, err
+		}
+		return bununit.ConvertValue(float64(bytes), bununit.Bytes, unit)
+	default:
+		f, err := strconv.ParseFloat(n.Text, 64)
+		if err != nil {
+			zap.L().Error("strconv.ParseFloat failed", zap.Error(err))
+		}
+		return f, nil
+	}
 }
 
 func (n *Number) Float64() float64 {
 	switch n.Kind {
-	case ValueDuration:
+	case NumberDuration:
 		dur, err := time.ParseDuration(n.Text)
 		if err != nil {
 			panic(err)
 		}
 		return float64(dur)
-	case ValueBytes:
+	case NumberBytes:
 		bytes, err := bununit.ParseBytes(n.Text)
 		if err != nil {
 			panic(err)
@@ -156,8 +188,12 @@ type Filter struct {
 	RHS Value
 }
 
+type Value interface {
+	AppendString(b []byte) []byte
+}
+
 func (f *Filter) String() string {
-	b := make([]byte, len(f.LHS)+len(f.Op)+len(f.RHS.Text))
+	b := make([]byte, 0, 100)
 	b = f.AppendString(b)
 	return unsafeconv.String(b)
 }
@@ -174,45 +210,20 @@ func (f *Filter) AppendString(b []byte) []byte {
 		b = append(b, f.Op...)
 	}
 
-	if isIdent(f.RHS.Text) {
-		b = append(b, f.RHS.Text...)
-	} else {
-		b = strconv.AppendQuote(b, f.RHS.Text)
-	}
+	b = f.RHS.AppendString(b)
 
 	return b
 }
 
-type Value struct {
+type StringValue struct {
 	Text string
-	Kind ValueKind
 }
 
-type ValueKind int
-
-const (
-	ValueText ValueKind = iota
-	ValueDuration
-	ValueBytes
-)
-
-func (v *Value) Value(unit string) (any, error) {
-	switch v.Kind {
-	case ValueDuration:
-		dur, err := time.ParseDuration(v.Text)
-		if err != nil {
-			return nil, err
-		}
-		return bununit.ConvertValue(float64(dur), bununit.Nanoseconds, unit)
-	case ValueBytes:
-		bytes, err := bununit.ParseBytes(v.Text)
-		if err != nil {
-			return nil, err
-		}
-		return bununit.ConvertValue(float64(bytes), bununit.Bytes, unit)
-	default:
-		return v.Text, nil
+func (v StringValue) AppendString(b []byte) []byte {
+	if isIdent(v.Text) {
+		return append(b, v.Text...)
 	}
+	return strconv.AppendQuote(b, v.Text)
 }
 
 //------------------------------------------------------------------------------
@@ -256,6 +267,13 @@ var opPrecedence = []BinaryOp{
 	"and",
 	"unless",
 	"or",
+}
+
+func binaryExprPrecedence(expr Expr) Expr {
+	if expr, ok := expr.(*BinaryExpr); ok {
+		return binaryOpPrecedence(expr)
+	}
+	return expr
 }
 
 func binaryOpPrecedence(expr *BinaryExpr) *BinaryExpr {

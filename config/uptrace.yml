@@ -72,9 +72,12 @@ metrics_from_spans:
     value: span.duration / 1000
     attrs:
       - span.system as system
+      - span.group_id as group_id
       - service.name as service
       - host.name as host
       - span.status_code as status
+    annotations:
+      - span.name
     where: not span.is_event
 
   - name: uptrace.tracing.spans
@@ -84,9 +87,12 @@ metrics_from_spans:
     value: span.count
     attrs:
       - span.system as system
+      - span.group_id as group_id
       - service.name as service
       - host.name as host
       - span.status_code as status
+    annotations:
+      - span.name
     where: not span.is_event
 
   - name: uptrace.tracing.events
@@ -96,8 +102,11 @@ metrics_from_spans:
     value: span.count
     attrs:
       - span.system as system
+      - span.group_id as group_id
       - service.name as service
       - host.name as host
+    annotations:
+      - span.event_name
     where: span.is_event
 
 ##

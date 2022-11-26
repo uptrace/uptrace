@@ -154,6 +154,7 @@ func compile(storage Storage, parts []*QueryPart) ([]NamedExpr, map[string][]Tim
 				Grouping:   expr.Grouping,
 				GroupByAll: expr.GroupByAll,
 			}
+
 			timeseries, err := storage.SelectTimeseries(f)
 			if err != nil {
 				expr.Part.Error.Wrapped = err

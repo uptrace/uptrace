@@ -30,14 +30,26 @@ type DashEntry struct {
 
 func (e *DashEntry) Validate() error {
 	if e.Name == "" {
-		return fmt.Errorf("entry name is required")
+		return fmt.Errorf("entry name can't be empty")
 	}
+	if err := e.validate(); err != nil {
+		return fmt.Errorf("dash entry %q is invalid: %w", e.Name, err)
+	}
+	return nil
+}
+
+func (e *DashEntry) validate() error {
 	if len(e.Metrics) == 0 {
-		return fmt.Errorf("entry requires at least one metric")
+		return fmt.Errorf("at least one metric is required")
 	}
+
 	if e.Query == "" {
-		return fmt.Errorf("entry query is required")
+		return fmt.Errorf("query can't be empty")
 	}
+	if err := upql.Validate(e.Query); err != nil {
+		return fmt.Errorf("can't parse query: %w", err)
+	}
+
 	return nil
 }
 

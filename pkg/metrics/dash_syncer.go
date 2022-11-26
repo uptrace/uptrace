@@ -59,9 +59,13 @@ func (s *DashSyncer) Sync(ctx context.Context, projectID uint32) {
 	}
 
 	debouncer.Run(10*time.Second, func() {
-		_ = bunotel.RunWithNewRoot(ctx, "sync-dashboards", func(ctx context.Context) error {
+		if err := bunotel.RunWithNewRoot(ctx, "sync-dashboards", func(ctx context.Context) error {
 			return s.syncDashboards(ctx, projectID)
-		})
+		}); err != nil {
+			s.logger.Error("syncDashboards failed",
+				zap.Uint32("project_id", projectID),
+				zap.Error(err))
+		}
 	})
 }
 

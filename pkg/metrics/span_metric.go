@@ -211,7 +211,9 @@ func compileSpanMetricAttrs(attrs []string) (ch.Safe, []string) {
 			b = append(b, ", "...)
 		}
 
+		b = append(b, "toString("...)
 		b = tracing.AppendCHAttrExpr(b, attr)
+		b = append(b, ")"...)
 	}
 	return ch.Safe(b), aliases
 }
