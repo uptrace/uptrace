@@ -2,14 +2,12 @@ package bunotel
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 )
 
 var (
@@ -28,7 +26,8 @@ func RunWithNewRoot(ctx context.Context, name string, fn func(context.Context) e
 	defer span.End()
 
 	if err := fn(ctx); err != nil {
-		otelzap.Ctx(ctx).Error(fmt.Sprintf("%s failed", name), zap.Error(err))
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 	return nil

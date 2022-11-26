@@ -96,18 +96,24 @@ func (m *Manager) Run() {
 }
 
 func (m *Manager) tick(tm time.Time) {
+	ctx := context.Background()
 	for _, rule := range m.rules {
-		_ = bunotel.RunWithNewRoot(context.Background(), "eval-rule", func(ctx context.Context) error {
+		ruleConf := rule.Config()
+		if err := bunotel.RunWithNewRoot(ctx, "eval-rule", func(ctx context.Context) error {
 			span := trace.SpanFromContext(ctx)
 
-			ruleConf := rule.Config()
 			span.SetAttributes(
 				attribute.String("rule.name", ruleConf.Name),
 				attribute.String("rule.query", ruleConf.Query),
 			)
 
 			return m.evalRule(ctx, rule, tm)
-		})
+		}); err != nil {
+			m.conf.Logger.Error("eval-rule failed",
+				zap.Error(err),
+				zap.String("rule.name", ruleConf.Name),
+				zap.String("rule.query", ruleConf.Query))
+		}
 	}
 }
 

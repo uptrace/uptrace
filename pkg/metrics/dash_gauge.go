@@ -35,27 +35,39 @@ type DashGauge struct {
 }
 
 func (g *DashGauge) Validate() error {
+	if g.Name == "" {
+		return fmt.Errorf("gauge name can't be empty")
+	}
+	if err := g.validate(); err != nil {
+		return fmt.Errorf("gauge %q is invalid: %w", g.Name, err)
+	}
+	return nil
+}
+
+func (g *DashGauge) validate() error {
 	if g.ProjectID == 0 {
-		return fmt.Errorf("gauge project id is required")
+		return fmt.Errorf("project id can't be zero")
 	}
 	if g.DashID == 0 {
-		return fmt.Errorf("gauge dashboard id is required")
+		return fmt.Errorf("dash id can't be zero")
 	}
 	if g.DashKind == "" {
-		return fmt.Errorf("gauge dashboard kind is required")
-	}
-	if g.Name == "" {
-		return fmt.Errorf("gauge name is required")
+		return fmt.Errorf("dashb kind can't be empty")
 	}
 	if g.Description == "" {
-		return fmt.Errorf("gauge description is required")
+		return fmt.Errorf("description can't be empty")
 	}
 	if len(g.Metrics) == 0 {
-		return fmt.Errorf("gauge requires at least one metric")
+		return fmt.Errorf("at least one metric is required")
 	}
+
 	if g.Query == "" {
-		return fmt.Errorf("gauge query is required")
+		return fmt.Errorf("query can't be empty")
 	}
+	if err := upql.Validate(g.Query); err != nil {
+		return fmt.Errorf("can't parse query: %w", err)
+	}
+
 	return nil
 }
 

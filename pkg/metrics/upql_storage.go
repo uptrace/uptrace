@@ -157,7 +157,7 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 					continue
 				}
 				k = strings.TrimPrefix(k, attrPrefix)
-				if s, ok := v.(string); ok && s != "" {
+				if s, ok := v.(string); ok {
 					attrs[k] = s
 				}
 			}
@@ -274,9 +274,19 @@ func (s *CHStorage) filters(
 		filter := &filters[i]
 
 		col := CHColumn(filter.LHS)
-		val, err := filter.RHS.Value(metric.Unit)
-		if err != nil {
-			return nil, err
+		var val any
+
+		switch rhs := filter.RHS.(type) {
+		case *ast.Number:
+			var err error
+			val, err = rhs.ConvertValue(metric.Unit)
+			if err != nil {
+				return nil, err
+			}
+		case ast.StringValue:
+			val = rhs.Text
+		default:
+			return nil, fmt.Errorf("unknown RHS: %T", rhs)
 		}
 
 		if i > 0 {

@@ -28,6 +28,16 @@ func (e JSONError) MarshalJSON() ([]byte, error) {
 	return json.Marshal(e.Wrapped.Error())
 }
 
+func Validate(query string) error {
+	parts := Parse(query)
+	for _, part := range parts {
+		if part.Error.Wrapped != nil {
+			return part.Error.Wrapped
+		}
+	}
+	return nil
+}
+
 func Parse(query string) []*QueryPart {
 	parts := make([]*QueryPart, 0)
 

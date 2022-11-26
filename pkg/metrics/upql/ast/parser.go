@@ -289,10 +289,18 @@ func (p *queryParser) parseQuery() (any, error) {
 				goto r4_i0_group_end
 			}
 		}
-		return &Selector{
-			Expr:     namedExpr,
-			Grouping: grouping,
-		}, nil
+		{
+			for _, grouping := range grouping {
+				metric, _ := SplitAliasName(grouping)
+				if metric != "" {
+					return nil, fmt.Errorf("inline grouping can't contain a metric: $%s", metric)
+				}
+			}
+			return &Selector{
+				Expr:     namedExpr,
+				Grouping: grouping,
+			}, nil
+		}
 	r4_i0_group_end:
 	}
 
@@ -683,41 +691,22 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 
 func (p *queryParser) value() (Value, error) {
 	{
-		var t *Token
+		var number *Number
 		_pos1 := p.Pos()
 		{
-			_tok, _err := p.NextToken()
-			if _err != nil {
-				return Value{}, _err
+			var _err error
+			number, _err = p.number()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
 			}
-			_match := _tok.ID == DURATION_TOKEN
+			_match := _err == nil
 			if !_match {
 				p.ResetPos(_pos1)
 				goto i0_group_end
 			}
-			t = _tok
 		}
-		return Value{Text: t.Text, Kind: ValueDuration}, nil
+		return number, nil
 	i0_group_end:
-	}
-
-	{
-		var t *Token
-		_pos1 := p.Pos()
-		{
-			_tok, _err := p.NextToken()
-			if _err != nil {
-				return Value{}, _err
-			}
-			_match := _tok.ID == BYTES_TOKEN
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r1_i0_group_end
-			}
-			t = _tok
-		}
-		return Value{Text: t.Text, Kind: ValueBytes}, nil
-	r1_i0_group_end:
 	}
 
 	var t *Token
@@ -728,55 +717,36 @@ func (p *queryParser) value() (Value, error) {
 		{
 			_tok, _err := p.NextToken()
 			if _err != nil {
-				return Value{}, _err
+				return nil, _err
 			}
 			_match := _tok.ID == IDENT_TOKEN
 			if !_match {
 				p.ResetPos(_pos1)
-				goto r2_i0_alt1
+				goto r1_i0_alt1
 			}
 			t = _tok
 		}
-		goto r2_i0_has_match
+		goto r1_i0_has_match
 	}
 
-r2_i0_alt1:
+r1_i0_alt1:
 	// t=VALUE
 	{
-		_pos3 := p.Pos()
 		{
 			_tok, _err := p.NextToken()
 			if _err != nil {
-				return Value{}, _err
+				return nil, _err
 			}
 			_match := _tok.ID == VALUE_TOKEN
 			if !_match {
-				p.ResetPos(_pos3)
-				goto r2_i0_alt2
-			}
-			t = _tok
-		}
-		goto r2_i0_has_match
-	}
-
-r2_i0_alt2:
-	// t=NUMBER
-	{
-		{
-			_tok, _err := p.NextToken()
-			if _err != nil {
-				return Value{}, _err
-			}
-			_match := _tok.ID == NUMBER_TOKEN
-			if !_match {
-				return Value{}, errBacktrack
+				return nil, errBacktrack
 			}
 			t = _tok
 		}
 	}
 
-r2_i0_has_match:
-	return Value{Text: t.Text}, nil
+r1_i0_has_match:
+	return StringValue{Text: t.Text}, nil
 }
 
 func (p *queryParser) boolOp() (BoolOp, error) {
@@ -882,11 +852,11 @@ func (p *queryParser) namedExprs() ([]NamedExpr, error) {
 func (p *queryParser) namedExpr() (NamedExpr, error) {
 	{
 		var alias string
-		var funcCall *FuncCall
+		var expr Expr
 		_pos1 := p.Pos()
 		{
 			var _err error
-			funcCall, _err = p.funcCall()
+			expr, _err = p.expr()
 			if _err != nil && _err != errBacktrack {
 				return NamedExpr{}, _err
 			}
@@ -905,193 +875,22 @@ func (p *queryParser) namedExpr() (NamedExpr, error) {
 			_match := _err == nil
 			if !_match {
 				p.ResetPos(_pos1)
-				funcCall = nil
+				expr = nil
 				goto i0_group_end
 			}
 		}
 		return NamedExpr{
-			Expr:  funcCall,
+			Expr:  binaryExprPrecedence(expr),
 			Alias: alias,
 		}, nil
 	i0_group_end:
 	}
 
-	{
-		var alias string
-		var name Name
-		_pos1 := p.Pos()
-		{
-			var _err error
-			name, _err = p.name()
-			if _err != nil && _err != errBacktrack {
-				return NamedExpr{}, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r1_i0_group_end
-			}
-		}
-		{
-			var _err error
-			alias, _err = p.alias()
-			if _err != nil && _err != errBacktrack {
-				return NamedExpr{}, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				name = Name{}
-				goto r1_i0_group_end
-			}
-		}
-		return NamedExpr{
-			Expr:  &name,
-			Alias: alias,
-		}, nil
-	r1_i0_group_end:
-	}
-
-	{
-		var alias string
-		var filteredName *Name
-		_pos1 := p.Pos()
-		{
-			var _err error
-			filteredName, _err = p.filteredName()
-			if _err != nil && _err != errBacktrack {
-				return NamedExpr{}, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r2_i0_group_end
-			}
-		}
-		{
-			var _err error
-			alias, _err = p.alias()
-			if _err != nil && _err != errBacktrack {
-				return NamedExpr{}, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				filteredName = nil
-				goto r2_i0_group_end
-			}
-		}
-		return NamedExpr{
-			Expr:  filteredName,
-			Alias: alias,
-		}, nil
-	r2_i0_group_end:
-	}
-
-	{
-		var alias string
-		var binaryExpr *BinaryExpr
-		_pos1 := p.Pos()
-		{
-			var _err error
-			binaryExpr, _err = p.binaryExpr()
-			if _err != nil && _err != errBacktrack {
-				return NamedExpr{}, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r3_i0_group_end
-			}
-		}
-		{
-			var _err error
-			alias, _err = p.alias()
-			if _err != nil && _err != errBacktrack {
-				return NamedExpr{}, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				binaryExpr = nil
-				goto r3_i0_group_end
-			}
-		}
-		return NamedExpr{
-			Expr:  binaryOpPrecedence(binaryExpr),
-			Alias: alias,
-		}, nil
-	r3_i0_group_end:
-	}
-
-	{
-		var binaryExpr *BinaryExpr
-		_pos1 := p.Pos()
-		{
-			var _err error
-			binaryExpr, _err = p.binaryExpr()
-			if _err != nil && _err != errBacktrack {
-				return NamedExpr{}, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r4_i0_group_end
-			}
-		}
-		return NamedExpr{
-			Expr: binaryOpPrecedence(binaryExpr),
-		}, nil
-	r4_i0_group_end:
-	}
-
-	{
-		var funcCall *FuncCall
-		_pos1 := p.Pos()
-		{
-			var _err error
-			funcCall, _err = p.funcCall()
-			if _err != nil && _err != errBacktrack {
-				return NamedExpr{}, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r5_i0_group_end
-			}
-		}
-		return NamedExpr{
-			Expr: funcCall,
-		}, nil
-	r5_i0_group_end:
-	}
-
-	{
-		var filteredName *Name
-		_pos1 := p.Pos()
-		{
-			var _err error
-			filteredName, _err = p.filteredName()
-			if _err != nil && _err != errBacktrack {
-				return NamedExpr{}, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r6_i0_group_end
-			}
-		}
-		return NamedExpr{
-			Expr: filteredName,
-		}, nil
-	r6_i0_group_end:
-	}
-
-	var name Name
+	var expr Expr
 
 	{
 		var _err error
-		name, _err = p.name()
+		expr, _err = p.expr()
 		if _err != nil && _err != errBacktrack {
 			return NamedExpr{}, _err
 		}
@@ -1101,124 +900,31 @@ func (p *queryParser) namedExpr() (NamedExpr, error) {
 		}
 	}
 	return NamedExpr{
-		Expr: &name,
+		Expr: binaryExprPrecedence(expr),
 	}, nil
 }
 
-func (p *queryParser) name() (Name, error) {
+func (p *queryParser) expr() (Expr, error) {
 	{
-		var name *Token
+		var binaryExpr *BinaryExpr
 		_pos1 := p.Pos()
 		{
-			_tok, _err := p.NextToken()
-			if _err != nil {
-				return Name{}, _err
+			var _err error
+			binaryExpr, _err = p.binaryExpr()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
 			}
-			_match := _tok.ID == IDENT_TOKEN
+			_match := _err == nil
 			if !_match {
 				p.ResetPos(_pos1)
 				goto i0_group_end
 			}
-			name = _tok
 		}
-		{
-			_tok, _err := p.NextToken()
-			if _err != nil {
-				return Name{}, _err
-			}
-			_match := _tok.Text == "{"
-			if !_match {
-				p.ResetPos(_pos1)
-				name = nil
-				goto i0_group_end
-			}
-		}
-		{
-			_tok, _err := p.NextToken()
-			if _err != nil {
-				return Name{}, _err
-			}
-			_match := _tok.Text == "}"
-			if !_match {
-				p.ResetPos(_pos1)
-				name = nil
-				goto i0_group_end
-			}
-		}
-		return Name{
-			Name: name.Text,
-		}, nil
+		return binaryExpr, nil
 	i0_group_end:
 	}
 
-	var name *Token
-
-	{
-		_tok, _err := p.NextToken()
-		if _err != nil {
-			return Name{}, _err
-		}
-		_match := _tok.ID == IDENT_TOKEN
-		if !_match {
-			return Name{}, errBacktrack
-		}
-		name = _tok
-	}
-	return Name{
-		Name: name.Text,
-	}, nil
-}
-
-func (p *queryParser) filteredName() (*Name, error) {
-	var filters []Filter
-	var name *Token
-
-	{
-		_tok, _err := p.NextToken()
-		if _err != nil {
-			return nil, _err
-		}
-		_match := _tok.ID == IDENT_TOKEN
-		if !_match {
-			return nil, errBacktrack
-		}
-		name = _tok
-	}
-	{
-		_tok, _err := p.NextToken()
-		if _err != nil {
-			return nil, _err
-		}
-		_match := _tok.Text == "{"
-		if !_match {
-			return nil, errBacktrack
-		}
-	}
-	{
-		var _err error
-		filters, _err = p.filters()
-		if _err != nil && _err != errBacktrack {
-			return nil, _err
-		}
-		_match := _err == nil
-		if !_match {
-			return nil, errBacktrack
-		}
-	}
-	{
-		_tok, _err := p.NextToken()
-		if _err != nil {
-			return nil, _err
-		}
-		_match := _tok.Text == "}"
-		if !_match {
-			return nil, errBacktrack
-		}
-	}
-	return &Name{
-		Name:    name.Text,
-		Filters: filters,
-	}, nil
+	return p.term()
 }
 
 func (p *queryParser) binaryExpr() (*BinaryExpr, error) {
@@ -1264,11 +970,229 @@ func (p *queryParser) binaryExpr() (*BinaryExpr, error) {
 		LHS: lhs,
 		RHS: rhs,
 	}
-
 	return expr, nil
 }
 
 func (p *queryParser) term() (Expr, error) {
+	{
+		var number *Number
+		_pos1 := p.Pos()
+		{
+			var _err error
+			number, _err = p.number()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+		}
+		return number, nil
+	i0_group_end:
+	}
+
+	{
+		var funcCall *FuncCall
+		_pos1 := p.Pos()
+		{
+			var _err error
+			funcCall, _err = p.funcCall()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r1_i0_group_end
+			}
+		}
+		return funcCall, nil
+	r1_i0_group_end:
+	}
+
+	{
+		var name *Name
+		_pos1 := p.Pos()
+		{
+			var _err error
+			name, _err = p.name()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r2_i0_group_end
+			}
+		}
+		return name, nil
+	r2_i0_group_end:
+	}
+
+	var expr Expr
+
+	{
+		_tok, _err := p.NextToken()
+		if _err != nil {
+			return nil, _err
+		}
+		_match := _tok.Text == "("
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	{
+		var _err error
+		expr, _err = p.expr()
+		if _err != nil && _err != errBacktrack {
+			return nil, _err
+		}
+		_match := _err == nil
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	{
+		_tok, _err := p.NextToken()
+		if _err != nil {
+			return nil, _err
+		}
+		_match := _tok.Text == ")"
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	return ParenExpr{Expr: expr}, nil
+}
+
+func (p *queryParser) name() (*Name, error) {
+	{
+		var filters []Filter
+		var name *Token
+		_pos1 := p.Pos()
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return nil, _err
+			}
+			_match := _tok.ID == IDENT_TOKEN
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+			name = _tok
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return nil, _err
+			}
+			_match := _tok.Text == "{"
+			if !_match {
+				p.ResetPos(_pos1)
+				name = nil
+				goto i0_group_end
+			}
+		}
+		{
+			var _err error
+			filters, _err = p.filters()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				name = nil
+				goto i0_group_end
+			}
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return nil, _err
+			}
+			_match := _tok.Text == "}"
+			if !_match {
+				p.ResetPos(_pos1)
+				name = nil
+				filters = nil
+				goto i0_group_end
+			}
+		}
+		return &Name{
+			Name:    name.Text,
+			Filters: filters,
+		}, nil
+	i0_group_end:
+	}
+
+	{
+		var name *Token
+		_pos1 := p.Pos()
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return nil, _err
+			}
+			_match := _tok.ID == IDENT_TOKEN
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r1_i0_group_end
+			}
+			name = _tok
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return nil, _err
+			}
+			_match := _tok.Text == "{"
+			if !_match {
+				p.ResetPos(_pos1)
+				name = nil
+				goto r1_i0_group_end
+			}
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return nil, _err
+			}
+			_match := _tok.Text == "}"
+			if !_match {
+				p.ResetPos(_pos1)
+				name = nil
+				goto r1_i0_group_end
+			}
+		}
+		return &Name{
+			Name: name.Text,
+		}, nil
+	r1_i0_group_end:
+	}
+
+	var name *Token
+
+	{
+		_tok, _err := p.NextToken()
+		if _err != nil {
+			return nil, _err
+		}
+		_match := _tok.ID == IDENT_TOKEN
+		if !_match {
+			return nil, errBacktrack
+		}
+		name = _tok
+	}
+	return &Name{
+		Name: name.Text,
+	}, nil
+}
+
+func (p *queryParser) number() (*Number, error) {
 	{
 		var t *Token
 		_pos1 := p.Pos()
@@ -1284,7 +1208,7 @@ func (p *queryParser) term() (Expr, error) {
 			}
 			t = _tok
 		}
-		return &Number{Text: t.Text, Kind: ValueDuration}, nil
+		return &Number{Text: t.Text, Kind: NumberDuration}, nil
 	i0_group_end:
 	}
 
@@ -1303,146 +1227,24 @@ func (p *queryParser) term() (Expr, error) {
 			}
 			t = _tok
 		}
-		return &Number{Text: t.Text, Kind: ValueBytes}, nil
+		return &Number{Text: t.Text, Kind: NumberBytes}, nil
 	r1_i0_group_end:
 	}
 
-	{
-		var t *Token
-		_pos1 := p.Pos()
-		{
-			_tok, _err := p.NextToken()
-			if _err != nil {
-				return nil, _err
-			}
-			_match := _tok.ID == NUMBER_TOKEN
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r2_i0_group_end
-			}
-			t = _tok
-		}
-		return &Number{Text: t.Text}, nil
-	r2_i0_group_end:
-	}
+	var t *Token
 
 	{
-		var funcCall *FuncCall
-		_pos1 := p.Pos()
-		{
-			var _err error
-			funcCall, _err = p.funcCall()
-			if _err != nil && _err != errBacktrack {
-				return nil, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r3_i0_group_end
-			}
-		}
-		return funcCall, nil
-	r3_i0_group_end:
-	}
-
-	{
-		var filteredName *Name
-		_pos1 := p.Pos()
-		{
-			var _err error
-			filteredName, _err = p.filteredName()
-			if _err != nil && _err != errBacktrack {
-				return nil, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r4_i0_group_end
-			}
-		}
-		return filteredName, nil
-	r4_i0_group_end:
-	}
-
-	{
-		var binaryExpr *BinaryExpr
-		_pos1 := p.Pos()
-		{
-			_tok, _err := p.NextToken()
-			if _err != nil {
-				return nil, _err
-			}
-			_match := _tok.Text == "("
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r5_i0_group_end
-			}
-		}
-		{
-			var _err error
-			binaryExpr, _err = p.binaryExpr()
-			if _err != nil && _err != errBacktrack {
-				return nil, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r5_i0_group_end
-			}
-		}
-		{
-			_tok, _err := p.NextToken()
-			if _err != nil {
-				return nil, _err
-			}
-			_match := _tok.Text == ")"
-			if !_match {
-				p.ResetPos(_pos1)
-				binaryExpr = nil
-				goto r5_i0_group_end
-			}
-		}
-		return ParenExpr{Expr: binaryExpr}, nil
-	r5_i0_group_end:
-	}
-
-	var name Name
-
-	{
-		var _err error
-		name, _err = p.name()
-		if _err != nil && _err != errBacktrack {
+		_tok, _err := p.NextToken()
+		if _err != nil {
 			return nil, _err
 		}
-		_match := _err == nil
+		_match := _tok.ID == NUMBER_TOKEN
 		if !_match {
 			return nil, errBacktrack
 		}
+		t = _tok
 	}
-	return &name, nil
-}
-
-func (p *queryParser) expr() (Expr, error) {
-	{
-		var binaryExpr *BinaryExpr
-		_pos1 := p.Pos()
-		{
-			var _err error
-			binaryExpr, _err = p.binaryExpr()
-			if _err != nil && _err != errBacktrack {
-				return nil, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				goto i0_group_end
-			}
-		}
-		return binaryExpr, nil
-	i0_group_end:
-	}
-
-	return p.term()
+	return &Number{Text: t.Text}, nil
 }
 
 func (p *queryParser) binaryOp() (BinaryOp, error) {
