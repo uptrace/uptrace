@@ -167,7 +167,7 @@ export function hasMetricAlias(query: string, alias: string): boolean {
 
 //------------------------------------------------------------------------------
 
-export type UseGaugeQuery = ReturnType<typeof useTableQuery>
+export type UseGaugeQuery = ReturnType<typeof useGaugeQuery>
 
 export function useGaugeQuery(axiosParamsSource: AxiosParamsSource) {
   const { route } = useRouter()

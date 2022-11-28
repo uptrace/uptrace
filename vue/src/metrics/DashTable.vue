@@ -216,6 +216,16 @@ export default defineComponent({
     )
 
     watch(
+      () => tableQuery.queryParts,
+      (queryParts) => {
+        if (queryParts) {
+          uql.syncParts(queryParts)
+        }
+      },
+      { immediate: true },
+    )
+
+    watch(
       () => props.editing,
       (editing) => {
         if (editing) {
