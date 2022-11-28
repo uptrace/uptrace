@@ -29,9 +29,6 @@ import { Metric, MetricAlias } from '@/metrics/types'
 // Components
 import MetricPicker from '@/metrics/MetricPicker.vue'
 
-// Utilities
-import { escapeRe } from '@/util/string'
-
 export default defineComponent({
   name: 'MetricsPicker',
   components: { MetricPicker },
@@ -81,7 +78,8 @@ export default defineComponent({
 
     function applyMetric(metric: MetricAlias, newMetric: MetricAlias) {
       if (hasMetricAlias(props.uql.query, metric.alias)) {
-        updateMetricAlias(metric.alias, newMetric.alias)
+        removeMetricAlias(metric.alias)
+        addMetric(newMetric.name, newMetric.alias)
       } else {
         addMetric(newMetric.name, newMetric.alias)
       }
@@ -90,12 +88,8 @@ export default defineComponent({
       metric.alias = newMetric.alias
     }
 
-    function updateMetricAlias(oldAlias: string, newAlias: string) {
-      const aliasRe = escapeRe('$' + oldAlias)
-      props.uql.query = props.uql.query.replaceAll(
-        new RegExp(`${aliasRe}(?=[^a-z0-9]|$)`, 'g'),
-        '$' + newAlias,
-      )
+    function removeMetricAlias(alias: string) {
+      props.uql.parts = props.uql.parts.filter((part) => part.query.indexOf('$' + alias) === -1)
     }
 
     function addMetric(name: string, alias: string) {
