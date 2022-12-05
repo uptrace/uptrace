@@ -62,5 +62,6 @@ func (r *AlertRule) RuleConfig() alerting.RuleConfig {
 		For:         r.For,
 		Labels:      r.Labels,
 		Annotations: r.Annotations,
+		Projects:    r.Projects,
 	}
 }
