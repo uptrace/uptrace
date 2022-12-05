@@ -2,6 +2,15 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
+## v1.3.0 - Unreleased
+
+- Allow to configure logging level via `logs.level` configuration option, for example:
+
+```yaml
+logs:
+  level: ERROR
+```
+
 ## v1.2.0 - Nov 8 2022
 
 - Added ability to filter spans using facets.

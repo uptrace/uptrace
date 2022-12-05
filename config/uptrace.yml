@@ -305,6 +305,14 @@ db:
   # Make sure the directory is writable by Uptrace process.
   dsn: 'file:uptrace.sqlite3?_pragma=foreign_keys(1)&_pragma=busy_timeout(1000)'
 
+##
+## Logging configuration.
+##
+logs:
+  # Zap minimal logging level.
+  # Valid values: DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL.
+  level: INFO
+
 # Secret key that is used to sign JWT tokens etc.
 secret_key: 102c1a557c314fc28198acd017960843
 

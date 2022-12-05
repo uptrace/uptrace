@@ -197,7 +197,15 @@ func (app *App) initZap() {
 		panic(err)
 	}
 
-	app.Logger = otelzap.New(logger, otelzap.WithMinLevel(zap.InfoLevel))
+	level := zap.InfoLevel
+	if app.conf.Logs.Level != "" {
+		level, err = zapcore.ParseLevel(app.conf.Logs.Level)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	app.Logger = otelzap.New(logger, otelzap.WithMinLevel(level))
 	zap.ReplaceGlobals(logger)
 	otelzap.ReplaceGlobals(app.Logger)
 
