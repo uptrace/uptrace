@@ -133,6 +133,10 @@ type Config struct {
 	Debug     bool   `yaml:"debug"`
 	SecretKey string `yaml:"secret_key"`
 
+	Logs struct {
+		Level string `yaml:"level"`
+	} `yaml:"logs"`
+
 	Site struct {
 		Addr string `yaml:"addr"`
 	} `yaml:"site"`
