@@ -11,10 +11,23 @@ func configureOpentelemetry(app *App) error {
 	project := &conf.Projects[0]
 
 	var options []uptrace.Option
-	options = append(options,
-		uptrace.WithDSN(app.conf.GRPCDsn(project)),
-		uptrace.WithServiceName(app.conf.Service),
-	)
+
+	options = append(options, uptrace.WithServiceName(app.conf.Service))
+
+	if conf.UptraceGo.DSN == "" {
+		options = append(options, uptrace.WithDSN(app.conf.GRPCDsn(project)))
+	} else {
+		options = append(options, uptrace.WithDSN(conf.UptraceGo.DSN))
+	}
+
+	if conf.UptraceGo.TLS != nil {
+		tlsConf, err := conf.UptraceGo.TLS.TLSConfig()
+		if err != nil {
+			return err
+		}
+		options = append(options, uptrace.WithTLSConfig(tlsConf))
+	}
+
 	uptrace.ConfigureOpentelemetry(options...)
 
 	app.OnStopped("uptrace.Shutdown", func(ctx context.Context, _ *App) error {
