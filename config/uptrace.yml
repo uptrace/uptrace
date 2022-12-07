@@ -175,6 +175,17 @@ alertmanager_client:
     - 'http://localhost:9093/api/v2/alerts'
 
 ##
+## Internal Uptrace client configuration.
+## Uptrace sends internal telemetry here. Defaults to listen.grpc.addr
+##
+uptrace_go:
+  # dsn:
+  # tls:
+  #   cert_file: config/tls/uptrace.crt
+  #   key_file: config/tls/uptrace.key
+  #   insecure_skip_verify: true
+
+##
 ## To require authentication, uncomment one of the following sections.
 ##
 auth:
