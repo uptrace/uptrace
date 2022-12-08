@@ -175,17 +175,6 @@ alertmanager_client:
     - 'http://localhost:9093/api/v2/alerts'
 
 ##
-## Internal Uptrace client configuration.
-## Uptrace sends internal telemetry here. Defaults to listen.grpc.addr
-##
-uptrace_go:
-  # dsn:
-  # tls:
-  #   cert_file: config/tls/uptrace.crt
-  #   key_file: config/tls/uptrace.key
-  #   insecure_skip_verify: true
-
-##
 ## To require authentication, uncomment one of the following sections.
 ##
 auth:
@@ -315,6 +304,17 @@ db:
   # Uptrace automatically creates SQLite database file in the current working directory.
   # Make sure the directory is writable by Uptrace process.
   dsn: 'file:uptrace.sqlite3?_pragma=foreign_keys(1)&_pragma=busy_timeout(1000)'
+
+##
+## uptrace-go client configuration.
+## Uptrace sends internal telemetry here. Defaults to listen.grpc.addr.
+##
+uptrace_go:
+  # dsn: http://project1_secret_token@localhost:14317/1
+  # tls:
+  #   cert_file: config/tls/uptrace.crt
+  #   key_file: config/tls/uptrace.key
+  #   insecure_skip_verify: true
 
 ##
 ## Logging configuration.
