@@ -11,6 +11,22 @@ logs:
   level: ERROR
 ```
 
+- Allow to configure [uptrace-go](https://uptrace.dev/get/uptrace-go.html) to collect Uptrace
+  telemetry data:
+
+```yaml
+##
+## uptrace-go client configuration.
+## Uptrace sends internal telemetry here. Defaults to listen.grpc.addr.
+##
+uptrace_go:
+  # dsn: http://project1_secret_token@localhost:14317/1
+  # tls:
+  #   cert_file: config/tls/uptrace.crt
+  #   key_file: config/tls/uptrace.key
+  #   insecure_skip_verify: true
+```
+
 ## v1.2.0 - Nov 8 2022
 
 - Added ability to filter spans using facets.
