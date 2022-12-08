@@ -204,6 +204,11 @@ type Config struct {
 	AlertmanagerClient struct {
 		URLs []string `yaml:"urls"`
 	} `yaml:"alertmanager_client"`
+
+	UptraceGo struct {
+		DSN string     `yaml:"dsn"`
+		TLS *TLSClient `yaml:"tls"`
+	} `yaml:"uptrace_go"`
 }
 
 type SpanMetric struct {
