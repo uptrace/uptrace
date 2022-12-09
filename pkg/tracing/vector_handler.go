@@ -37,11 +37,9 @@ func NewVectorHandler(app *bunapp.App, sp *SpanProcessor) *VectorHandler {
 }
 
 func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) error {
-	const contentType = "application/x-ndjson"
-
 	ctx := req.Context()
 
-	dsn := req.Header.Get("uptrace-dsn")
+	dsn := dsnFromRequest(req)
 	if dsn == "" {
 		return errors.New("uptrace-dsn header is empty or missing")
 	}
@@ -55,9 +53,14 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 		span.SetAttributes(attribute.Int64("project", int64(project.ID)))
 	}
 
-	if ct := req.Header.Get("Content-Type"); ct != contentType {
-		return fmt.Errorf(`got %q, wanted %q (use encoding.codec = "ndjson")`,
-			ct, contentType)
+	switch ct := req.Header.Get("Content-Type"); ct {
+	case "application/x-ndjson", "application/json":
+		// ok
+	default:
+		// TODO: update error and improve check
+		return fmt.Errorf(
+			`got %q, wanted %q (use encoding.codec = "json" and framing.method = "newline_delimited")`,
+			ct, "application/json")
 	}
 
 	dec := json.NewDecoder(http.MaxBytesReader(w, req.Body, 10<<20))
