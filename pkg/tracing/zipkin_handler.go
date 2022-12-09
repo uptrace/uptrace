@@ -10,9 +10,12 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/uuid"
 )
@@ -58,10 +61,24 @@ type ZipkinAnnotation struct {
 
 func (h *ZipkinHandler) PostSpans(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
-	dec := json.NewDecoder(req.Body)
+
+	dsn := dsnFromRequest(req)
+	if dsn == "" {
+		return errors.New("uptrace-dsn header is empty or missing")
+	}
+
+	project, err := org.SelectProjectByDSN(ctx, h.App, dsn)
+	if err != nil {
+		return err
+	}
+
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		span.SetAttributes(attribute.Int64("project", int64(project.ID)))
+	}
 
 	var zipkinSpans []ZipkinSpan
 
+	dec := json.NewDecoder(req.Body)
 	if err := dec.Decode(&zipkinSpans); err != nil {
 		return err
 	}
@@ -69,8 +86,7 @@ func (h *ZipkinHandler) PostSpans(w http.ResponseWriter, req bunrouter.Request) 
 	spans := make([]Span, len(zipkinSpans))
 	for i := range zipkinSpans {
 		span := &spans[i]
-		// TODO: accept project id
-		span.ProjectID = 2
+		span.ProjectID = project.ID
 
 		zipkinSpan := &zipkinSpans[i]
 		if err := initSpanFromZipkin(span, zipkinSpan); err != nil {

@@ -4,12 +4,11 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 ## v1.3.0 - Unreleased
 
-- Allow to configure logging level via `logs.level` configuration option, for example:
+- Zipkin ingestion API now requires an Uptrace DSN in one of the following locations:
 
-```yaml
-logs:
-  level: ERROR
-```
+  - `uptrace-dsn` HTTP header.
+  - `Authorization` HTTP header.
+  - `dsn` URL query.
 
 - Allow to configure [uptrace-go](https://uptrace.dev/get/uptrace-go.html) to collect Uptrace
   telemetry data:
@@ -25,6 +24,13 @@ uptrace_go:
   #   cert_file: config/tls/uptrace.crt
   #   key_file: config/tls/uptrace.key
   #   insecure_skip_verify: true
+```
+
+- Allow to configure logging level via `logs.level` configuration option, for example:
+
+```yaml
+logs:
+  level: ERROR
 ```
 
 ## v1.2.0 - Nov 8 2022
