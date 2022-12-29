@@ -8,7 +8,7 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
   - `uptrace-dsn` HTTP header.
   - `Authorization` HTTP header.
-  - `dsn` URL query.
+  - `dsn` URL query, for example, `/api/v2/spans?dsn=[dsn]`.
 
 - Allow to configure [uptrace-go](https://uptrace.dev/get/uptrace-go.html) to collect Uptrace
   telemetry data:

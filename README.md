@@ -37,8 +37,8 @@ only dependency.
 
 ## Quickstart
 
-First spend few minutes to decide if you need Uptrace by running a
-[docker-compose example](example/docker). You can also play with the
+With just few minutes of your time, you can decide if you need Uptrace by running a
+[docker-compose example](example/docker). You can also play with the public
 [Uptrace demo](https://app.uptrace.dev/play) (no login required).
 
 Then follow the [getting started guide](https://uptrace.dev/get/get-started.html) to properly setup
