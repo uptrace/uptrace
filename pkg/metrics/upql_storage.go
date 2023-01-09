@@ -227,10 +227,18 @@ func (s *CHStorage) subquery(
 	}
 
 	isValueInstrument := isValueInstrument(metric.Instrument)
+
 	if isValueInstrument {
-		q = q.
-			ColumnExpr("argMax(value, time) AS value").
-			GroupExpr("attrs_hash")
+		switch f.Func {
+		case "min":
+			q = q.ColumnExpr("min(value) AS value")
+		case "max":
+			q = q.ColumnExpr("max(value) AS value")
+		default:
+			q = q.ColumnExpr("argMax(value, time) AS value")
+		}
+
+		q = q.GroupExpr("attrs_hash")
 
 		q = s.db.NewSelect().
 			ColumnExpr("project_id, metric").
