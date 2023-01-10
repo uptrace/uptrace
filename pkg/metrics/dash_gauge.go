@@ -71,16 +71,11 @@ func (g *DashGauge) validate() error {
 	return nil
 }
 
-func SelectDashGauges(
+func SelectTableGridGauges(
 	ctx context.Context, app *bunapp.App, dashID uint64,
 ) (table, grid []*DashGauge, _ error) {
-	var gauges []*DashGauge
-
-	if err := app.DB.NewSelect().
-		Model(&gauges).
-		Where("dash_id = ?", dashID).
-		OrderExpr("weight DESC, id ASC").
-		Scan(ctx); err != nil {
+	gauges, err := SelectDashGauges(ctx, app, dashID)
+	if err != nil {
 		return nil, nil, err
 	}
 
@@ -99,6 +94,20 @@ func SelectDashGauges(
 	}
 
 	return table, grid, nil
+}
+
+func SelectDashGauges(
+	ctx context.Context, app *bunapp.App, dashID uint64,
+) ([]*DashGauge, error) {
+	var gauges []*DashGauge
+	if err := app.DB.NewSelect().
+		Model(&gauges).
+		Where("dash_id = ?", dashID).
+		OrderExpr("weight DESC, id ASC").
+		Scan(ctx); err != nil {
+		return nil, err
+	}
+	return gauges, nil
 }
 
 func InsertDashGauges(ctx context.Context, app *bunapp.App, gauges []*DashGauge) error {
