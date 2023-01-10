@@ -20,8 +20,8 @@ type DashSyncer struct {
 
 	templates []*DashboardTpl
 
-	debouncerMapMu sync.Mutex
-	debouncerMap   map[uint32]*bunutil.Debouncer
+	debouncerMu  sync.Mutex
+	debouncerMap map[uint32]*bunutil.Debouncer
 
 	logger *otelzap.Logger
 }
@@ -49,8 +49,8 @@ func NewDashSyncer(app *bunapp.App) *DashSyncer {
 }
 
 func (s *DashSyncer) Sync(ctx context.Context, projectID uint32) {
-	s.debouncerMapMu.Lock()
-	defer s.debouncerMapMu.Unlock()
+	s.debouncerMu.Lock()
+	defer s.debouncerMu.Unlock()
 
 	debouncer, ok := s.debouncerMap[projectID]
 	if !ok {
@@ -58,7 +58,7 @@ func (s *DashSyncer) Sync(ctx context.Context, projectID uint32) {
 		s.debouncerMap[projectID] = debouncer
 	}
 
-	debouncer.Run(10*time.Second, func() {
+	debouncer.Run(15*time.Second, func() {
 		if err := bunotel.RunWithNewRoot(ctx, "sync-dashboards", func(ctx context.Context) error {
 			return s.syncDashboards(ctx, projectID)
 		}); err != nil {
