@@ -119,6 +119,11 @@ func (h *DashHandler) Clone(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
+	gauges, err := SelectDashGauges(ctx, h.App, dash.ID)
+	if err != nil {
+		return err
+	}
+
 	entries, err := SelectDashEntries(ctx, h.App, dash)
 	if err != nil {
 		return err
@@ -129,6 +134,15 @@ func (h *DashHandler) Clone(w http.ResponseWriter, req bunrouter.Request) error 
 	dash.TemplateID = ""
 
 	if err := InsertDashboard(ctx, h.App, dash); err != nil {
+		return err
+	}
+
+	for _, gauge := range gauges {
+		gauge.ID = 0
+		gauge.DashID = dash.ID
+	}
+
+	if err := InsertDashGauges(ctx, h.App, gauges); err != nil {
 		return err
 	}
 
@@ -182,7 +196,7 @@ func (h *DashHandler) Show(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 	dashboard := dashFromContext(ctx)
 
-	tableGauges, gridGauges, err := SelectDashGauges(ctx, h.App, dashboard.ID)
+	tableGauges, gridGauges, err := SelectTableGridGauges(ctx, h.App, dashboard.ID)
 	if err != nil {
 		return err
 	}
