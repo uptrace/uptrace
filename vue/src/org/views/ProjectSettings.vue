@@ -8,20 +8,21 @@
       <v-card v-if="project" flat>
         <v-card-text class="text-subtitle-1">
           <p>
-            You can change your project settings below in the <code>uptrace.yml</code> config file.
-            See <a href="https://uptrace.dev/get/config.html" target="_blank">documentation</a> for
+            You can change project settings in <code>uptrace.yml</code> config file. See
+            <a href="https://uptrace.dev/get/config.html" target="_blank">documentation</a> for
             details.
           </p>
 
           <v-form>
-            <v-text-field v-model="project.name" :disabled="disabled" label="Name" />
+            <v-text-field v-model="project.data.name" :disabled="disabled" label="Name" filled />
 
             <v-select
               v-model="project.pinnedAttrs"
+              label="Pinned attributes"
               :items="project.pinnedAttrs"
               multiple
               :disabled="disabled"
-              label="Pinned attributes"
+              filled
             />
 
             <v-checkbox
