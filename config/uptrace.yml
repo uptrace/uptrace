@@ -65,32 +65,17 @@ projects:
 ## Create metrics from spans and events.
 ##
 metrics_from_spans:
-  - name: uptrace.tracing.spans_duration
+  - name: uptrace.tracing.spans
     description: Spans duration (excluding events)
     instrument: histogram
     unit: microseconds
     value: span.duration / 1000
     attrs:
-      - span.system as system
-      - span.group_id as group_id
-      - service.name as service
-      - host.name as host
-      - span.status_code as status
-    annotations:
-      - span.name
-    where: not span.is_event
-
-  - name: uptrace.tracing.spans
-    description: Spans count (excluding events)
-    instrument: counter
-    unit: 1
-    value: span.count
-    attrs:
-      - span.system as system
-      - span.group_id as group_id
-      - service.name as service
-      - host.name as host
-      - span.status_code as status
+      - span.system
+      - span.group_id
+      - service.name
+      - host.name
+      - span.status_code
     annotations:
       - span.name
     where: not span.is_event
@@ -101,10 +86,10 @@ metrics_from_spans:
     unit: 1
     value: span.count
     attrs:
-      - span.system as system
-      - span.group_id as group_id
-      - service.name as service
-      - host.name as host
+      - span.system
+      - span.group_id
+      - service.name
+      - host.name
     annotations:
       - span.event_name
     where: span.is_event

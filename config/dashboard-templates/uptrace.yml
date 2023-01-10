@@ -76,21 +76,20 @@ entries:
       - $measures_buffer
 
 ---
-id: uptrace.collector.spans_by_host
-name: 'Uptrace: spans by host'
+id: uptrace.collector.spans_by_system
+name: 'Uptrace: spans by system'
 
 table:
   metrics:
     - uptrace.tracing.spans as $spans
-    - uptrace.tracing.spans_duration as $dur
   query:
-    - group by host
+    - group by span.system
     - per_min($spans) as spans_per_min
-    - $spans{status='error'} / $spans as error_rate
-    - p50($dur) as p50
-    - p90($dur) as p90
-    - p99($dur) as p99
-    - max($dur) as max
+    - count($spans{span.status_code='error'}) / count($spans) as error_rate
+    - p50($spans) as p50
+    - p90($spans) as p90
+    - p99($spans) as p99
+    - max($spans) as max
   columns:
     error_rate: { unit: percents }
 
@@ -99,31 +98,39 @@ entries:
     metrics:
       - uptrace.tracing.spans as $spans
     query:
-      - per_min($spans) as spans group by status
+      - per_min($spans) as spans group by span.status_code
+
+  - name: Error rate
+    metrics:
+      - uptrace.tracing.spans as $spans
+    query:
+      - count($spans{span.status_code='error'}) / count($spans) as error_rate
+    columns:
+      error_rate: { unit: percents }
 
   - name: P50 span duration
     metrics:
-      - uptrace.tracing.spans_duration as $dur
+      - uptrace.tracing.spans as $spans
     query:
-      - p50($dur)
+      - p50($spans)
 
-  - name: P50 span duration
+  - name: P75 span duration
     metrics:
-      - uptrace.tracing.spans_duration as $dur
+      - uptrace.tracing.spans as $spans
     query:
-      - p50($dur)
+      - p75($spans)
 
   - name: P90 span duration
     metrics:
-      - uptrace.tracing.spans_duration as $dur
+      - uptrace.tracing.spans as $spans
     query:
-      - p90($dur)
+      - p90($spans)
 
   - name: Max span duration
     metrics:
-      - uptrace.tracing.spans_duration as $dur
+      - uptrace.tracing.spans as $spans
     query:
-      - max($dur)
+      - max($spans)
 
 ---
 id: uptrace.spans_by_service
@@ -132,15 +139,14 @@ name: 'Uptrace: spans by service'
 table:
   metrics:
     - uptrace.tracing.spans as $spans
-    - uptrace.tracing.spans_duration as $dur
   query:
-    - group by service
+    - group by service.name
     - per_min($spans) as spans_per_min
-    - $spans{status='error'} / $spans as error_rate
-    - p50($dur) as p50
-    - p90($dur) as p90
-    - p99($dur) as p99
-    - max($dur) as max
+    - count($spans{span.status_code='error'}) / count($spans) as error_rate
+    - p50($spans) as p50
+    - p90($spans) as p90
+    - p99($spans) as p99
+    - max($spans) as max
   columns:
     error_rate: { unit: percents }
 
@@ -151,76 +157,91 @@ entries:
     query:
       - per_min($spans) as spans group by span.status_code
 
-  - name: P50 span duration
+  - name: Error rate
     metrics:
-      - uptrace.tracing.spans_duration as $dur
+      - uptrace.tracing.spans as $spans
     query:
-      - p50($dur)
+      - count($spans{span.status_code='error'}) / count($spans) as error_rate
+    columns:
+      error_rate: { unit: percents }
 
   - name: P50 span duration
     metrics:
-      - uptrace.tracing.spans_duration as $dur
+      - uptrace.tracing.spans as $spans
     query:
-      - p50($dur)
+      - p50($spans)
+
+  - name: P75 span duration
+    metrics:
+      - uptrace.tracing.spans as $spans
+    query:
+      - p75($spans)
 
   - name: P90 span duration
     metrics:
-      - uptrace.tracing.spans_duration as $dur
+      - uptrace.tracing.spans as $spans
     query:
-      - p90($dur)
+      - p90($spans)
 
   - name: Max span duration
     metrics:
-      - uptrace.tracing.spans_duration as $dur
+      - uptrace.tracing.spans as $spans
     query:
-      - max($dur)
+      - max($spans)
 
 ---
-id: uptrace.collector.spans_by_system
-name: 'Uptrace: spans by system'
+id: uptrace.spans_by_host
+name: 'Uptrace: spans by host'
 
 table:
   metrics:
     - uptrace.tracing.spans as $spans
-    - uptrace.tracing.spans_duration as $dur
   query:
-    - group by system
+    - group by host.name
     - per_min($spans) as spans_per_min
-    - $spans{status='error'} / $spans as error_rate
-    - p50($dur) as p50
-    - p90($dur) as p90
-    - p99($dur) as p99
-    - max($dur) as max
+    - count($spans{span.status_code='error'}) / count($spans) as error_rate
+    - p50($spans) as p50
+    - p90($spans) as p90
+    - p99($spans) as p99
+    - max($spans) as max
   columns:
     error_rate: { unit: percents }
 
 entries:
-  - name: Number of spans
+  - name: Number of hosts
     metrics:
       - uptrace.tracing.spans as $spans
     query:
       - per_min($spans) as spans group by span.status_code
 
-  - name: P50 span duration
+  - name: Error rate
     metrics:
-      - uptrace.tracing.spans_duration as $dur
+      - uptrace.tracing.spans as $spans
     query:
-      - p50($dur)
+      - count($spans{span.status_code='error'}) / count($spans) as error_rate
+    columns:
+      error_rate: { unit: percents }
 
   - name: P50 span duration
     metrics:
-      - uptrace.tracing.spans_duration as $dur
+      - uptrace.tracing.spans as $spans
     query:
-      - p50($dur)
+      - p50($spans)
+
+  - name: P75 span duration
+    metrics:
+      - uptrace.tracing.spans as $spans
+    query:
+      - p75($spans)
 
   - name: P90 span duration
     metrics:
-      - uptrace.tracing.spans_duration as $dur
+      - uptrace.tracing.spans as $spans
     query:
-      - p90($dur)
+      - p90($spans)
 
   - name: Max span duration
     metrics:
-      - uptrace.tracing.spans_duration as $dur
+      - uptrace.tracing.spans as $spans
     query:
-      - max($dur)
+      - max($spans)
