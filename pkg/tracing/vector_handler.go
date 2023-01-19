@@ -14,11 +14,10 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/otlpconv"
+	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
 	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 )
 
 const vectorSDK = "vector"
@@ -86,54 +85,39 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 	return nil
 }
 
-func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, vector AttrMap) {
+func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, params AttrMap) {
 	// Can be overridden later with the information parsed from the log message.
 	span.ID = rand.Uint64()
 
 	span.Kind = InternalSpanKind
-	span.EventName = SystemEventLog
+	span.EventName = eventLog
 	span.StatusCode = OKStatusCode
 
-	attrs := make(AttrMap, len(vector)+2)
-	span.Attrs = attrs
-	attrs[attrkey.TelemetrySDKName] = vectorSDK
+	span.Attrs = make(AttrMap, len(params)+2)
+	span.Attrs[attrkey.TelemetrySDKName] = vectorSDK
 
-	for key, value := range vector {
-		switch key {
-		case "level", "severity":
-			found, _ := value.(string)
-			if found == "" {
-				break
-			}
-
-			if normalized := normalizeLogSeverity(found); normalized != "" {
-				attrs.SetDefault(attrkey.LogSeverity, normalized)
-			}
-		case "message":
-			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(attrkey.LogMessage, s)
-			}
-		case "timestamp":
-			if s, _ := value.(string); s != "" {
-				tm, err := time.Parse(time.RFC3339Nano, s)
-				if err != nil {
-					h.Zap(ctx).Error("time.Parse failed", zap.Error(err))
-					span.Time = time.Now()
-				} else {
-					span.Time = tm
-				}
-			}
-		case "file":
-			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(attrkey.LogFilepath, s)
-			}
-		case "host", "hostname":
-			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(attrkey.HostName, s)
-			}
-		default:
-			// Plain keys have a priority over discovered keys.
-			attrs[otlpconv.CleanAttrKey(key)] = value
-		}
+	if msg, _ := params[attrkey.LogMessage].(string); msg != "" {
+		span.Attrs[attrkey.LogMessage] = msg
+	} else if msg := popLogMessageParam(params); msg != "" {
+		span.Attrs[attrkey.LogMessage] = msg
 	}
+
+	span.Time = time.Now()
+	for _, key := range []string{"timestamp", "datetime", "time", "date"} {
+		value, _ := params[key].(string)
+		if value == "" {
+			continue
+		}
+
+		tm := anyconv.Time(value)
+		if tm.IsZero() {
+			continue
+		}
+
+		span.Time = tm
+		delete(params, key)
+		break
+	}
+
+	populateSpanFromParams(span, params)
 }

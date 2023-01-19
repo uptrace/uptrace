@@ -122,7 +122,7 @@ const routes: RouteConfig[] = [
   },
 
   {
-    path: '/explore/:projectId(\\d+)',
+    path: '/spans/:projectId(\\d+)',
     component: Tracing,
     props: {
       systemsFilter: (items: System[]) => {

@@ -2,11 +2,14 @@ package tracing
 
 import (
 	"context"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cespare/xxhash/v2"
 	ua "github.com/mileusna/useragent"
@@ -17,8 +20,8 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"github.com/uptrace/uptrace/pkg/sqlparser"
-	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
 	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
+	"github.com/uptrace/uptrace/pkg/tracing/norm"
 	"github.com/uptrace/uptrace/pkg/utf8util"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
@@ -66,6 +69,7 @@ func initSpanOrEvent(ctx *spanContext, span *Span) {
 	}
 
 	initSpanAttrs(ctx, span)
+
 	if span.EventName != "" {
 		assignEventSystemAndGroupID(ctx, project, span)
 		span.EventName = utf8util.TruncMedium(span.EventName)
@@ -80,16 +84,26 @@ func initSpanOrEvent(ctx *spanContext, span *Span) {
 }
 
 func initSpanAttrs(ctx *spanContext, span *Span) {
+	if msg, _ := span.Attrs[attrkey.LogMessage].(string); msg != "" {
+		parseLogMessage(ctx, span, msg)
+	}
+
 	if service := serviceNameAndVersion(span.Attrs); service != "" {
 		span.Attrs[attrkey.Service] = service
 	}
 	if s, _ := span.Attrs[attrkey.HTTPUserAgent].(string); s != "" {
 		initHTTPUserAgent(span.Attrs, s)
 	}
-	if msg, ok := span.Attrs[attrkey.LogMessage].(string); ok {
-		initLogMessage(ctx, span, msg)
+
+	if span.TraceID.IsZero() {
+		assignTraceID(span)
 	}
-	initLogSeverity(span.Attrs)
+	if span.EventName == eventLog {
+		if !span.Standalone && span.ParentID == 0 {
+			span.ParentID = rand.Uint64()
+		}
+		ensureLogSeverity(span.Attrs)
+	}
 }
 
 func initHTTPUserAgent(attrs AttrMap, str string) {
@@ -131,159 +145,235 @@ func serviceNameAndVersion(attrs AttrMap) string {
 
 //------------------------------------------------------------------------------
 
-func initLogMessage(ctx *spanContext, span *Span, msg string) {
-	if msg == "" {
-		delete(span.Attrs, attrkey.LogMessage)
-		return
+func parseLogMessage(ctx *spanContext, span *Span, msg string) {
+	if params, ok := logparser.IsJSON(msg); ok {
+		parseJSONLogMessage(ctx, span, params)
+	} else {
+		parseTextLogMessage(ctx, span, msg)
 	}
+}
 
-	if m, ok := logparser.IsJSON(msg); ok {
-		// Delete the attribute so we can override the message.
-		delete(span.Attrs, attrkey.LogMessage)
+func parseJSONLogMessage(ctx *spanContext, span *Span, params AttrMap) {
+	msg := popLogMessageParam(params)
+	populateSpanFromParams(span, params)
 
-		spanFromJSONLog(span, m)
-
-		if s, ok := span.Attrs[attrkey.LogMessage].(string); ok {
-			msg = s
-		} else {
-			// Restore the attribute.
-			span.Attrs[attrkey.LogMessage] = msg
-		}
+	if msg != "" {
+		span.Attrs[attrkey.LogMessage] = msg
+		parseTextLogMessage(ctx, span, msg)
 	}
+}
 
+func parseTextLogMessage(ctx *spanContext, span *Span, msg string) {
 	hash, params := messageHashAndParams(ctx, msg)
-	span.logMessageHash = hash
-
-	for k, v := range params {
-		span.Attrs.SetDefault(k, v)
+	if span.EventName == eventLog {
+		span.logMessageHash = hash
 	}
-
-	promoteLogParamsToSpan(span, params)
+	populateSpanFromParams(span, params)
 }
 
-func spanFromJSONLog(span *Span, src AttrMap) {
+func popLogMessageParam(params AttrMap) string {
+	for _, key := range []string{"message", "msg"} {
+		if value, _ := params[key].(string); value != "" {
+			delete(params, key)
+			return value
+		}
+	}
+	return ""
+}
+
+func populateSpanFromParams(span *Span, params AttrMap) {
 	attrs := span.Attrs
-	for key, value := range src {
-		switch key {
-		case "level", "severity":
-			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(attrkey.LogSeverity, s)
-			}
-		case "message", "msg":
-			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(attrkey.LogMessage, s)
-			}
-		case "time":
-			if tm := anyconv.Time(value); !tm.IsZero() {
-				span.Time = tm
-			}
-		case "trace_id", "traceid":
-			span.TraceID = anyconv.UUID(value)
-		case "span_id", "spanid":
-			span.ParentID = anyconv.Uint64(value)
-		case "service":
-			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(attrkey.ServiceName, s)
-			}
-		case "host", "hostname":
-			if s, _ := value.(string); s != "" {
-				attrs.SetDefault(attrkey.HostName, s)
-			}
-		default:
-			attrs.SetDefault(key, value)
+
+	if eventName := params["span_event_name"].(string); eventName == "span" {
+		span.EventName = ""
+		delete(params, "span_event_name")
+
+		if name, ok := params["span_name"].(string); ok {
+			span.Name = name
+			delete(params, "span_name")
+		}
+		if name, ok := params["span_kind"].(string); ok {
+			span.Kind = name
+			delete(params, "span_kind")
+		}
+		if dur, ok := params["span_duration"].(float64); ok {
+			span.Duration = time.Duration(dur)
+			delete(params, "span_duration")
+		}
+		if status, ok := params["span_status_code"].(string); ok {
+			span.StatusCode = status
+			delete(params, "span_status_code")
+		}
+		if msg, ok := params["span_status_message"].(string); ok {
+			span.StatusMessage = msg
+			delete(params, "span_status_message")
 		}
 	}
-}
 
-func promoteLogParamsToSpan(span *Span, params map[string]any) {
-	if span.TraceID.IsZero() {
-		traceID := anyconv.UUID(params["trace_id"])
-		if traceID.IsZero() {
-			// Standalone span.
-			span.TraceID = uuid.Rand()
-			span.ParentID = 0
-			span.Standalone = true
-			return
+	if _, ok := attrs[attrkey.ServiceName]; !ok {
+		for _, key := range []string{
+			attrkey.ServiceName,
+			"service_name",
+			"service",
+		} {
+			value, _ := params[key].(string)
+			if value == "" {
+				continue
+			}
+			attrs[attrkey.ServiceName] = value
+			delete(params, key)
+			break
 		}
-		span.TraceID = traceID
+	}
+
+	if _, ok := attrs[attrkey.HTTPRoute]; !ok {
+		for _, key := range []string{
+			attrkey.HTTPRoute,
+			"http_route",
+		} {
+			value, _ := params[key].(string)
+			if value == "" {
+				continue
+			}
+			attrs[attrkey.HTTPRoute] = value
+			delete(params, key)
+			break
+		}
+	}
+
+	if _, ok := attrs[attrkey.DBSystem]; !ok {
+		for _, key := range []string{
+			attrkey.DBSystem,
+			"db_system",
+		} {
+			value, _ := params[key].(string)
+			if value == "" {
+				continue
+			}
+			attrs[attrkey.DBSystem] = value
+			delete(params, key)
+			break
+		}
+	}
+
+	if _, ok := attrs[attrkey.DBName]; !ok {
+		for _, key := range []string{
+			attrkey.DBName,
+			"db_name",
+			"dbname",
+		} {
+			value, _ := params[key].(string)
+			if value == "" {
+				continue
+			}
+			attrs[attrkey.DBSystem] = value
+			delete(params, key)
+			break
+		}
+	}
+
+	if _, ok := attrs[attrkey.DBStatement]; !ok {
+		for _, key := range []string{
+			attrkey.DBStatement,
+			"db_statement",
+			"statement",
+		} {
+			value, _ := params[key].(string)
+			if value == "" {
+				continue
+			}
+			attrs[attrkey.DBStatement] = value
+			delete(params, key)
+			break
+		}
+	}
+
+	if _, ok := attrs[attrkey.LogSeverity]; !ok {
+		for _, key := range []string{
+			attrkey.LogSeverity,
+			"log_severity",
+			"severity",
+			"error_severity",
+			"log.level",
+			"level",
+		} {
+			severity, _ := params[key].(string)
+			if severity == "" {
+				continue
+			}
+
+			if severity := norm.LogSeverity(severity); severity != "" {
+				attrs[attrkey.LogSeverity] = severity
+				delete(params, key)
+				break
+			}
+		}
+	}
+
+	if span.TraceID.IsZero() {
+		for _, key := range []string{"trace_id", "traceid"} {
+			value, _ := params[key].(string)
+			if value == "" {
+				continue
+			}
+
+			traceID, err := uuid.Parse(value)
+			if err != nil {
+				continue
+			}
+
+			if !traceID.IsZero() {
+				span.TraceID = traceID
+				delete(params, key)
+				break
+			}
+		}
 	}
 
 	if span.ParentID == 0 {
-		if id := span.Attrs.Uint64("span_id"); id != 0 {
-			span.ParentID = id
-		} else {
-			// Assign random ID and handle it when assembling the trace tree.
-			// Otherwise, the span will be treated as a root.
-			span.ParentID = rand.Uint64()
+		for _, key := range []string{"span_id", "spanid"} {
+			value, _ := params[key].(string)
+			if value == "" {
+				continue
+			}
+
+			spanID, err := parseSpanID(value)
+			if err != nil {
+				continue
+			}
+
+			if spanID != 0 {
+				span.ParentID = spanID
+				delete(params, key)
+				break
+			}
 		}
+	}
+
+	for key, value := range params {
+		attrs.SetClashingKeys(key, value)
 	}
 }
 
-func initLogSeverity(attrs AttrMap) {
+func assignTraceID(span *Span) {
+	// Standalone span.
+	span.TraceID = uuid.Rand()
+	span.ID = 0
+	span.ParentID = 0
+	span.Standalone = true
+}
+
+func ensureLogSeverity(attrs AttrMap) {
 	if found, ok := attrs[attrkey.LogSeverity].(string); ok {
-		if normalized := normalizeLogSeverity(found); normalized != "" {
+		if normalized := norm.LogSeverity(found); normalized != "" {
 			if normalized != found {
 				attrs[attrkey.LogSeverity] = normalized
 			}
 			return
 		}
-		// We can't normalize the severity. Set the default.
-		attrs[attrkey.LogSeverity] = bunotel.InfoSeverity
 	}
 
-	if attrs.Has(attrkey.LogSeverityNumber) {
-		num := attrs.Uint64(attrkey.LogSeverityNumber)
-		if sev := logSeverityFromNumber(num); sev != "" {
-			attrs[attrkey.LogSeverity] = sev
-			return
-		}
-	}
-}
-
-func normalizeLogSeverity(s string) string {
-	if s := _normalizeLogSeverity(s); s != "" {
-		return s
-	}
-	return _normalizeLogSeverity(strings.ToLower(s))
-}
-
-func _normalizeLogSeverity(s string) string {
-	switch s {
-	case "trace":
-		return bunotel.TraceSeverity
-	case "debug":
-		return bunotel.DebugSeverity
-	case "info", "information":
-		return bunotel.InfoSeverity
-	case "warn", "warning":
-		return bunotel.WarnSeverity
-	case "error", "err", "alert":
-		return bunotel.ErrorSeverity
-	case "fatal", "crit", "critical", "emerg", "emergency", "panic":
-		return bunotel.FatalSeverity
-	default:
-		return ""
-	}
-}
-
-func logSeverityFromNumber(n uint64) string {
-	switch {
-	case n == 0:
-		return ""
-	case n <= 4:
-		return bunotel.TraceSeverity
-	case n <= 8:
-		return bunotel.DebugSeverity
-	case n <= 12:
-		return bunotel.InfoSeverity
-	case n <= 16:
-		return bunotel.WarnSeverity
-	case n <= 20:
-		return bunotel.ErrorSeverity
-	case n <= 24:
-		return bunotel.FatalSeverity
-	}
-	return ""
+	attrs[attrkey.LogSeverity] = bunotel.InfoSeverity
 }
 
 func messageHashAndParams(
@@ -376,12 +466,17 @@ func assignSpanSystemAndGroupID(ctx *spanContext, project *bunconf.Project, span
 		return
 	}
 
-	if s := span.Attrs.Text(attrkey.DBSystem); s != "" {
-		span.System = SystemSpanDB + ":" + s
+	if dbSystem := span.Attrs.Text(attrkey.DBSystem); dbSystem != "" ||
+		span.Attrs.Has(attrkey.DBStatement) {
+		if dbSystem == "" {
+			dbSystem = "unknown_db"
+		}
+
+		span.System = SystemSpanDB + ":" + dbSystem
 		stmt, _ := span.Attrs[attrkey.DBStatement].(string)
 
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
-			hashSpan(project, digest, span, attrkey.DBOperation, attrkey.DBSqlTable)
+			hashSpan(project, digest, span, attrkey.DBName, attrkey.DBOperation, attrkey.DBSqlTable)
 			if stmt != "" {
 				hashDBStmt(digest, stmt)
 			}
@@ -474,7 +569,7 @@ func initEvent(ctx *spanContext, span *Span) {
 
 func assignEventSystemAndGroupID(ctx *spanContext, project *bunconf.Project, span *Span) {
 	switch span.EventName {
-	case SystemEventLog:
+	case eventLog:
 		sev, _ := span.Attrs[attrkey.LogSeverity].(string)
 		if sev == "" {
 			sev = bunotel.InfoSeverity
@@ -491,7 +586,7 @@ func assignEventSystemAndGroupID(ctx *spanContext, project *bunconf.Project, spa
 		})
 		span.EventName = logEventName(span)
 		return
-	case "exception", "error":
+	case eventException:
 		span.System = SystemEventExceptions
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(project, digest, span, attrkey.ExceptionType)
@@ -504,7 +599,7 @@ func assignEventSystemAndGroupID(ctx *spanContext, project *bunconf.Project, spa
 			span.Attrs.Text(attrkey.ExceptionMessage),
 		)
 		return
-	case SystemEventMessage:
+	case eventMessage:
 		span.System = spanSystemEventMessage(span)
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 			hashSpan(project, digest, span,
@@ -604,4 +699,13 @@ func join(s1, s2 string) string {
 		return s1 + " " + s2
 	}
 	return s2
+}
+
+func parseSpanID(s string) (uint64, error) {
+	if len(s) == 16 {
+		if b, err := hex.DecodeString(s); err == nil {
+			return binary.BigEndian.Uint64(b), nil
+		}
+	}
+	return strconv.ParseUint(s, 10, 64)
 }
