@@ -184,7 +184,7 @@ func popLogMessageParam(params AttrMap) string {
 func populateSpanFromParams(span *Span, params AttrMap) {
 	attrs := span.Attrs
 
-	if eventName := params["span_event_name"].(string); eventName == "span" {
+	if eventName, _ := params["span_event_name"].(string); eventName == "span" {
 		span.EventName = ""
 		delete(params, "span_event_name")
 
