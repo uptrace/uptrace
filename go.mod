@@ -42,6 +42,7 @@ require (
 )
 
 require (
+	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/coreos/go-oidc/v3 v3.4.0
 	github.com/go-openapi/strfmt v0.21.3
 	github.com/golang-jwt/jwt/v4 v4.4.2
@@ -55,6 +56,8 @@ require (
 )
 
 require (
+	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver/v3 v3.2.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
@@ -74,18 +77,24 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/huandu/xstrings v1.3.3 // indirect
+	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/mitchellh/reflectwalk v1.0.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.17 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20220927061507-ef77025ab5aa // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/shopspring/decimal v1.2.0 // indirect
+	github.com/spf13/cast v1.3.1 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelsql v0.1.17 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.17 // indirect

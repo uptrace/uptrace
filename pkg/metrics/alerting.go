@@ -9,6 +9,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/go-openapi/strfmt"
 	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/uptrace/bun"
@@ -196,7 +197,7 @@ func (m *AlertManager) convert(
 	}
 	for k, v := range rule.Annotations {
 		tpl := append(templateDefs, v)
-		t, err := template.New("").Parse(strings.Join(tpl, ""))
+		t, err := template.New("").Funcs(sprig.FuncMap()).Parse(strings.Join(tpl, ""))
 		if err != nil {
 			return nil, err
 		}
