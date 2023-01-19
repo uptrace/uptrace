@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	SystemUnknown   = "unknown"
 	SystemAll       = "all"
 	SystemEventsAll = "events:all"
 	SystemSpansAll  = "spans:all"
@@ -34,3 +35,9 @@ var eventSystems = []string{
 	SystemEventExceptions,
 	SystemEventOther,
 }
+
+const (
+	eventLog       = "log"
+	eventException = "exception"
+	eventMessage   = "message"
+)

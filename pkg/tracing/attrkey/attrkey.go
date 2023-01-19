@@ -50,6 +50,7 @@ const (
 	MessagingDestinationKind = "messaging.destination_kind"
 
 	DBSystem    = "db.system"
+	DBName      = "db.name"
 	DBStatement = "db.statement"
 	DBOperation = "db.operation"
 	DBSqlTable  = "db.sql.table"

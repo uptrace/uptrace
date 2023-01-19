@@ -37,8 +37,8 @@
       </tbody>
 
       <tbody>
-        <template v-for="span in spans">
-          <tr :key="`a-${span.id}`" class="cursor-pointer" @click="dialog.showSpan(span)">
+        <template v-for="(span, index) in spans">
+          <tr :key="`a-${index}`" class="cursor-pointer" @click="dialog.showSpan(span)">
             <td>
               <span>{{ eventOrSpanName(span) }}</span>
             </td>

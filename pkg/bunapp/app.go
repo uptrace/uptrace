@@ -230,7 +230,7 @@ func (app *App) newRouter(opts ...bunrouter.Option) *bunrouter.Router {
 	opts = append(opts,
 		bunrouter.WithMiddleware(reqlog.NewMiddleware(
 			reqlog.WithVerbose(app.Debugging()),
-			reqlog.FromEnv("BRDEBUG", "DEBUG"),
+			reqlog.FromEnv("BUNROUTERDEBUG", "DEBUG"),
 		)),
 	)
 

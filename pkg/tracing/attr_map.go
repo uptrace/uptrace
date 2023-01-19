@@ -36,6 +36,21 @@ func (m AttrMap) SetDefault(key string, value any) {
 	}
 }
 
+func (m AttrMap) SetClashingKeys(key string, value any) {
+	if !m.Has(key) {
+		m[key] = value
+		return
+	}
+
+	for _, suffix := range []string{"1", "2", "3"} {
+		key := key + suffix
+		if !m.Has(key) {
+			m[key] = value
+			return
+		}
+	}
+}
+
 func (m AttrMap) Text(key string) string {
 	s, _ := m[key].(string)
 	return s

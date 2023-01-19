@@ -215,14 +215,14 @@ ch_schema:
   #cluster: uptrace1
 
   spans:
-    storage_policy: 'default'
     # Delete spans data after 30 days.
     ttl_delete: 30 DAY
+    storage_policy: 'default'
 
   metrics:
-    storage_policy: 'default'
     # Delete metrics data after 90 days.
     ttl_delete: 90 DAY
+    storage_policy: 'default'
 
 ##
 ## Addresses on which Uptrace receives gRPC and HTTP requests.
