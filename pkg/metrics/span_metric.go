@@ -85,12 +85,12 @@ func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMet
 		Materialized().
 		View(viewName).
 		OnCluster(conf.CHSchema.Cluster).
-		ToExpr("measure_minutes").
+		ToExpr("?DB.measure_minutes").
 		ColumnExpr("s.project_id").
 		ColumnExpr("? AS metric", metric.Name).
 		ColumnExpr("toStartOfMinute(s.time) AS time").
 		ColumnExpr("? AS instrument", metric.Instrument).
-		TableExpr("spans_index AS s").
+		TableExpr("?DB.spans_index AS s").
 		GroupExpr("s.project_id, toStartOfMinute(s.time)")
 
 	if len(metric.Attrs) > 0 {
