@@ -26,6 +26,9 @@ uptrace_go:
   #   insecure_skip_verify: true
 ```
 
+- Added [sprig](http://masterminds.github.io/sprig/) functions to alerting
+  [templates](https://uptrace.dev/get/alerting.html#templating).
+
 - Allow to configure logging level via `logs.level` configuration option, for example:
 
 ```yaml
