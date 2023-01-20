@@ -6,7 +6,8 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 - Added ability to parse logs as spans using Vector remap language. See
   [documentation](https://uptrace.dev/get/ingest/vector.html#converting-logs-to-spans) and
-  [PostgreSQL]() example for details.
+  [PostgreSQL](https://dev.to/uptrace/monitoring-postgresql-15-logs-with-vector-and-uptrace-4165)
+  example for details.
 
 - Added support for Summary metrics type.
 
