@@ -9,6 +9,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bununit"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"go.uber.org/zap"
+	"golang.org/x/exp/slices"
 )
 
 type Selector struct {
@@ -251,22 +252,14 @@ func Alias(s string) string {
 
 //------------------------------------------------------------------------------
 
-var opPrecedence = []BinaryOp{
-	"^",
-	"*",
-	"/",
-	"%",
-	"+",
-	"-",
-	"==",
-	"!=",
-	"<=",
-	"<",
-	">=",
-	">",
-	"and",
-	"unless",
-	"or",
+var opPrecedence = [][]BinaryOp{
+	[]BinaryOp{"^"},
+	[]BinaryOp{"*", "/", "%"},
+	[]BinaryOp{"+", "-"},
+	[]BinaryOp{"+", "-"},
+	[]BinaryOp{"==", "!=", "<=", "<", ">=", ">"},
+	[]BinaryOp{"and", "unless"},
+	[]BinaryOp{"or"},
 }
 
 func binaryExprPrecedence(expr Expr) Expr {
@@ -277,20 +270,20 @@ func binaryExprPrecedence(expr Expr) Expr {
 }
 
 func binaryOpPrecedence(expr *BinaryExpr) *BinaryExpr {
-	for _, op := range opPrecedence {
-		expr = unwrapBinaryExpr(exprPrecedence(expr, op))
+	for _, ops := range opPrecedence {
+		expr = unwrapBinaryExpr(exprPrecedence(expr, ops))
 	}
 	return expr
 }
 
-func exprPrecedence(anyexpr Expr, op BinaryOp) Expr {
+func exprPrecedence(anyexpr Expr, ops []BinaryOp) Expr {
 	expr, ok := anyexpr.(*BinaryExpr)
 	if !ok {
 		return anyexpr
 	}
 
-	if expr.Op != op {
-		expr.RHS = exprPrecedence(expr.RHS, op)
+	if slices.Index(ops, expr.Op) == -1 {
+		expr.RHS = exprPrecedence(expr.RHS, ops)
 		return expr
 	}
 
@@ -307,8 +300,8 @@ func exprPrecedence(anyexpr Expr, op BinaryOp) Expr {
 			},
 			RHS: rhs.RHS,
 		}
-		expr = unwrapBinaryExpr(exprPrecedence(expr, op))
-		expr.RHS = exprPrecedence(expr.RHS, op)
+		expr = unwrapBinaryExpr(exprPrecedence(expr, ops))
+		expr.RHS = exprPrecedence(expr.RHS, ops)
 		return expr
 	case ParenExpr:
 		return expr
