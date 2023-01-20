@@ -8,6 +8,8 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
   [documentation](https://uptrace.dev/get/ingest/vector.html#converting-logs-to-spans) and
   [PostgreSQL]() example for details.
 
+- Added support for Summary metrics type.
+
 - Zipkin ingestion API now requires an Uptrace DSN in one of the following locations:
 
   - `uptrace-dsn` HTTP header.
