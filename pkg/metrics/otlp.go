@@ -176,6 +176,8 @@ func (s *MetricsServiceServer) export(
 					p.otlpHistogram(sm.Scope, metric, data)
 				case *metricspb.Metric_ExponentialHistogram:
 					p.otlpExpHistogram(sm.Scope, metric, data)
+				case *metricspb.Metric_Summary:
+					p.otlpSummary(sm.Scope, metric, data)
 				default:
 					p.Zap(p.ctx).Error("unknown metric",
 						zap.String("type", fmt.Sprintf("%T", data)))
@@ -344,6 +346,38 @@ func (p *otlpProcessor) otlpExpHistogram(
 				},
 			}
 		}
+		p.enqueue(dest)
+	}
+}
+
+func (p *otlpProcessor) otlpSummary(
+	scope *commonpb.InstrumentationScope,
+	metric *metricspb.Metric,
+	data *metricspb.Metric_Summary,
+) {
+	for _, dp := range data.Summary.DataPoints {
+		if dp.Flags&uint32(metricspb.DataPointFlags_FLAG_NO_RECORDED_VALUE) != 0 {
+			continue
+		}
+
+		if dp.Count == 0 {
+			continue
+		}
+
+		dest := p.nextMeasure(scope, metric, HistogramInstrument, dp.Attributes, dp.TimeUnixNano)
+
+		dest.Sum = dp.Sum
+		dest.Count = dp.Count
+
+		if len(dp.QuantileValues) > 0 {
+			hist := make(bfloat16.Map, len(dp.QuantileValues))
+			dest.Histogram = hist
+
+			for _, qv := range dp.QuantileValues {
+				hist[bfloat16.From(qv.Value)] += uint64(qv.Quantile * float64(dp.Count))
+			}
+		}
+
 		p.enqueue(dest)
 	}
 }
