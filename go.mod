@@ -18,9 +18,9 @@ require (
 	github.com/uptrace/bunrouter v1.0.19
 	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.19
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.19
-	github.com/uptrace/go-clickhouse v0.2.10-0.20221109081114-323f51e465fd
-	github.com/uptrace/go-clickhouse/chdebug v0.2.10-0.20221109081114-323f51e465fd
-	github.com/uptrace/go-clickhouse/chotel v0.2.10-0.20221109081114-323f51e465fd
+	github.com/uptrace/go-clickhouse v0.3.0
+	github.com/uptrace/go-clickhouse/chdebug v0.3.0
+	github.com/uptrace/go-clickhouse/chotel v0.3.0
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.17
 	github.com/uptrace/uptrace-go v1.11.7
 	github.com/urfave/cli/v2 v2.23.5
@@ -35,7 +35,7 @@ require (
 	go.opentelemetry.io/proto/otlp v0.19.0
 	go.uber.org/zap v1.23.0
 	go4.org v0.0.0-20201209231011-d4a079459e60
-	golang.org/x/exp v0.0.0-20221114191408-850992195362
+	golang.org/x/exp v0.0.0-20230118134722-a68e582fa157
 	google.golang.org/grpc v1.51.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -84,7 +84,7 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.16 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.0 // indirect
@@ -114,7 +114,7 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.3.0 // indirect
 	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/sys v0.3.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/tools v0.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
