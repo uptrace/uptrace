@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
+	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
 	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 )
@@ -33,6 +34,30 @@ func (m AttrMap) Has(key string) bool {
 func (m AttrMap) SetDefault(key string, value any) {
 	if _, ok := m[key]; !ok {
 		m[key] = value
+	}
+}
+
+func (m AttrMap) Flatten(params map[string]any, prefix string) {
+	for key, value := range params {
+		key := attrkey.Clean(key)
+		if key == "" {
+			continue
+		}
+
+		switch value := value.(type) {
+		case nil:
+			// discard
+		case map[string]any:
+			m.Flatten(value, prefix+key+".")
+		case string:
+			if params, ok := bunutil.IsJSON(value); ok {
+				m.Flatten(params, prefix+key+".")
+			} else {
+				m.SetClashingKeys(prefix+key, value)
+			}
+		default:
+			m.SetClashingKeys(prefix+key, value)
+		}
 	}
 }
 

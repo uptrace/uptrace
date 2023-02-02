@@ -9,14 +9,14 @@ func IsWhitespace(c byte) bool {
 	}
 }
 
-func IsDigit(c byte) bool {
-	return c >= '0' && c <= '9'
+func IsAlnum(c byte) bool {
+	return IsAlpha(c) || IsDigit(c)
 }
 
 func IsAlpha(c byte) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
 
-func IsAlnum(c byte) bool {
-	return IsAlpha(c) || IsDigit(c)
+func IsDigit(c byte) bool {
+	return c >= '0' && c <= '9'
 }
