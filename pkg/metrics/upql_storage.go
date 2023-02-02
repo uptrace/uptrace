@@ -342,7 +342,7 @@ func (s *CHStorage) agg(
 
 	case CounterInstrument:
 		switch f.Func {
-		case "", "per_min", "per_minute":
+		case "per_min", "per_minute":
 			q = q.ColumnExpr("sum(sum) / ? AS value",
 				s.conf.GroupingPeriod.Minutes())
 			return q, nil
@@ -350,7 +350,7 @@ func (s *CHStorage) agg(
 			q = q.ColumnExpr("sum(sum) / ? AS value",
 				s.conf.GroupingPeriod.Seconds())
 			return q, nil
-		case "sum":
+		case "", "sum":
 			q = q.ColumnExpr("sum(sum) AS value")
 			return q, nil
 		default:
