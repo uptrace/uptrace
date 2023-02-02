@@ -42,7 +42,7 @@ export default defineComponent({
     const otlpGrpc = computed(() => {
       return `
 exporters:
-  otlp:
+  otlp/uptrace:
     endpoint: ${props.grpc.endpoint}
     tls:
       insecure: true
@@ -69,7 +69,7 @@ service:
     const otlpHttp = computed(() => {
       return `
 exporters:
-  otlphttp:
+  otlphttp/uptrace:
     endpoint: ${props.http.endpoint}
     tls:
       insecure: true
