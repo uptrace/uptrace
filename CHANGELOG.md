@@ -2,7 +2,7 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
-## v1.3.0 - Unreleased
+## v1.3.0 - Jan 20 2023
 
 - Added ability to parse logs as spans using Vector remap language. See
   [documentation](https://uptrace.dev/get/ingest/vector.html#converting-logs-to-spans) and
