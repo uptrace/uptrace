@@ -16,6 +16,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bunotel"
+	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/logparser"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
@@ -183,6 +184,7 @@ func popLogMessageParam(params AttrMap) string {
 
 func populateSpanFromParams(span *Span, params AttrMap) {
 	attrs := span.Attrs
+	flattenAttrValues(params)
 
 	if eventName, _ := params["span_event_name"].(string); eventName == "span" {
 		span.EventName = ""
@@ -352,6 +354,33 @@ func populateSpanFromParams(span *Span, params AttrMap) {
 
 	for key, value := range params {
 		attrs.SetClashingKeys(key, value)
+	}
+}
+
+func flattenAttrValues(attrs AttrMap) {
+loop:
+	for key, value := range attrs {
+		switch key {
+		case attrkey.LogMessage, attrkey.ExceptionMessage:
+			// Keep log and exception messages as is.
+			continue loop
+		}
+
+		switch value := value.(type) {
+		case nil:
+			delete(attrs, key)
+			continue loop
+		case map[string]any:
+			delete(attrs, key)
+			attrs.Flatten(value, key+".")
+			continue loop
+		case string:
+			if value, ok := bunutil.IsJSON(value); ok {
+				delete(attrs, key)
+				attrs.Flatten(value, key+".")
+				continue loop
+			}
+		}
 	}
 }
 

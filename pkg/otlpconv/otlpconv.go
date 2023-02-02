@@ -4,8 +4,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/uptrace/uptrace/pkg/bunlex"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
+	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 )
 
@@ -22,8 +21,14 @@ func ForEachKeyValue(kvs []*commonpb.KeyValue, fn func(key string, value any)) {
 		if kv == nil || kv.Value == nil {
 			continue
 		}
+
+		key := attrkey.Clean(kv.Key)
+		if key == "" {
+			continue
+		}
+
 		if value, ok := AnyValue(kv.Value); ok {
-			fn(CleanAttrKey(kv.Key), value)
+			fn(kv.Key, value)
 		}
 	}
 }
@@ -102,33 +107,4 @@ func Array(vs []*commonpb.AnyValue) ([]string, bool) {
 		log.Printf("unsupported attribute value %T", value)
 		return nil, false
 	}
-}
-
-func CleanAttrKey(s string) string {
-	if isValidAttrKey(s) {
-		return s
-	}
-
-	r := make([]byte, 0, len(s))
-	for _, c := range []byte(s) {
-		if isAllowedAttrKeyChar(c) {
-			r = append(r, c)
-		} else {
-			r = append(r, '_')
-		}
-	}
-	return unsafeconv.String(r)
-}
-
-func isValidAttrKey(s string) bool {
-	for _, c := range []byte(s) {
-		if !isAllowedAttrKeyChar(c) {
-			return false
-		}
-	}
-	return true
-}
-
-func isAllowedAttrKeyChar(c byte) bool {
-	return bunlex.IsAlnum(c) || c == '_' || c == '.'
 }

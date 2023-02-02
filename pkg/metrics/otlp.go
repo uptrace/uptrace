@@ -17,6 +17,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bununit"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
+	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
@@ -399,7 +400,7 @@ func (p *otlpProcessor) nextMeasure(
 
 	out.ProjectID = p.project.ID
 	// enqueue will check whether metric name is empty.
-	out.Metric = otlpconv.CleanAttrKey(metric.Name)
+	out.Metric = attrkey.Clean(metric.Name)
 	out.Description = metric.Description
 	out.Unit = bununit.FromString(metric.Unit)
 	out.Instrument = instrument
