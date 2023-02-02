@@ -34,7 +34,7 @@ processors:
 exporters:
   logging:
     logLevel: debug
-  otlp:
+  otlp/uptrace:
     endpoint: host.docker.internal:14317
     tls:
       insecure: true
@@ -48,18 +48,18 @@ service:
     traces:
       receivers: [otlp, jaeger]
       processors: [batch]
-      exporters: [otlp, logging]
+      exporters: [otlp/uptrace, logging]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp]
+      exporters: [otlp/uptrace]
     metrics/hostmetrics:
       receivers: [hostmetrics]
       processors: [batch, resourcedetection]
-      exporters: [otlp]
+      exporters: [otlp/uptrace]
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp]
+      exporters: [otlp/uptrace]
 
   extensions: [health_check, pprof, zpages]

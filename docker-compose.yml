@@ -86,7 +86,7 @@ services:
       - 'host.docker.internal:host-gateway'
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.59.0
+    image: otel/opentelemetry-collector-contrib:0.70.0
     restart: on-failure
     volumes:
       - ./config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml

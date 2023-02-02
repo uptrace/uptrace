@@ -32,16 +32,19 @@ var measureCounter, _ = bunotel.Meter.SyncInt64().Counter(
 )
 
 func Init(ctx context.Context, app *bunapp.App) {
-	initGRPC(ctx, app)
+	initOTLP(ctx, app)
 	initRoutes(ctx, app)
 	if err := initSpanMetrics(ctx, app); err != nil {
 		app.Logger.Error("initSpanMetrics failed", zap.Error(err))
 	}
 }
 
-func initGRPC(ctx context.Context, app *bunapp.App) {
+func initOTLP(ctx context.Context, app *bunapp.App) {
 	metricsService := NewMetricsServiceServer(app)
 	collectormetricspb.RegisterMetricsServiceServer(app.GRPCServer(), metricsService)
+
+	router := app.Router()
+	router.POST("/v1/metrics", metricsService.ExportHTTP)
 }
 
 func initRoutes(ctx context.Context, app *bunapp.App) {
