@@ -26,11 +26,11 @@ var spanCounter, _ = bunotel.Meter.SyncInt64().Counter(
 func Init(ctx context.Context, app *bunapp.App) {
 	sp := NewSpanProcessor(app)
 
-	initGRPC(ctx, app, sp)
+	initOTLP(ctx, app, sp)
 	initRoutes(ctx, app, sp)
 }
 
-func initGRPC(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
+func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	traceService := NewTraceServiceServer(app, sp)
 	collectortracepb.RegisterTraceServiceServer(app.GRPCServer(), traceService)
 
@@ -38,7 +38,8 @@ func initGRPC(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	collectorlogspb.RegisterLogsServiceServer(app.GRPCServer(), logsService)
 
 	router := app.Router()
-	router.POST("/v1/traces", traceService.httpTraces)
+	router.POST("/v1/traces", traceService.ExportHTTP)
+	router.POST("/v1/logs", logsService.ExportHTTP)
 }
 
 func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {

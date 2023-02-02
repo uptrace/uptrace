@@ -42,67 +42,7 @@ func NewTraceServiceServer(app *bunapp.App, sp *SpanProcessor) *TraceServiceServ
 	return s
 }
 
-func (s *TraceServiceServer) Export(
-	ctx context.Context, req *collectortrace.ExportTraceServiceRequest,
-) (*collectortrace.ExportTraceServiceResponse, error) {
-	if ctx.Err() == context.Canceled {
-		return nil, status.Error(codes.Canceled, "Client cancelled, abandoning.")
-	}
-
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, errors.New("metadata is empty")
-	}
-
-	dsn := md.Get("uptrace-dsn")
-	if len(dsn) == 0 {
-		return nil, errors.New("uptrace-dsn header is required")
-	}
-
-	span := trace.SpanFromContext(ctx)
-	if span.IsRecording() {
-		span.SetAttributes(attribute.String("dsn", dsn[0]))
-	}
-
-	project, err := org.SelectProjectByDSN(ctx, s.App, dsn[0])
-	if err != nil {
-		return nil, err
-	}
-
-	s.process(ctx, project, req.ResourceSpans)
-
-	return &collectortrace.ExportTraceServiceResponse{}, nil
-}
-
-func (s *TraceServiceServer) process(
-	ctx context.Context, project *bunconf.Project, resourceSpans []*tracepb.ResourceSpans,
-) {
-	for _, rss := range resourceSpans {
-		resource := AttrMap(otlpconv.Map(rss.Resource.Attributes))
-
-		for _, ss := range rss.ScopeSpans {
-			lib := ss.Scope
-			if lib != nil {
-				if lib.Name != "" {
-					resource[attrkey.OtelLibraryName] = lib.Name
-				}
-				if lib.Version != "" {
-					resource[attrkey.OtelLibraryVersion] = lib.Version
-				}
-			}
-
-			mem := make([]Span, len(ss.Spans))
-			for i, otlpSpan := range ss.Spans {
-				span := &mem[i]
-				initSpanFromOTLP(span, resource, otlpSpan)
-				span.ProjectID = project.ID
-				s.sp.AddSpan(ctx, span)
-			}
-		}
-	}
-}
-
-func (s *TraceServiceServer) httpTraces(w http.ResponseWriter, req bunrouter.Request) error {
+func (s *TraceServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
 	dsn := req.Header.Get("uptrace-dsn")
@@ -132,9 +72,11 @@ func (s *TraceServiceServer) httpTraces(w http.ResponseWriter, req bunrouter.Req
 			return err
 		}
 
-		s.process(ctx, project, td.ResourceSpans)
+		resp, err := s.process(ctx, project, td.ResourceSpans)
+		if err != nil {
+			return err
+		}
 
-		resp := new(collectortrace.ExportTraceServiceResponse)
 		b, err := protojson.Marshal(resp)
 		if err != nil {
 			return err
@@ -156,9 +98,11 @@ func (s *TraceServiceServer) httpTraces(w http.ResponseWriter, req bunrouter.Req
 			return err
 		}
 
-		s.process(ctx, project, td.ResourceSpans)
+		resp, err := s.process(ctx, project, td.ResourceSpans)
+		if err != nil {
+			return err
+		}
 
-		resp := new(collectortrace.ExportTraceServiceResponse)
 		b, err := proto.Marshal(resp)
 		if err != nil {
 			return err
@@ -172,4 +116,63 @@ func (s *TraceServiceServer) httpTraces(w http.ResponseWriter, req bunrouter.Req
 	default:
 		return fmt.Errorf("unsupported content type: %q", contentType)
 	}
+}
+
+func (s *TraceServiceServer) Export(
+	ctx context.Context, req *collectortrace.ExportTraceServiceRequest,
+) (*collectortrace.ExportTraceServiceResponse, error) {
+	if ctx.Err() == context.Canceled {
+		return nil, status.Error(codes.Canceled, "Client cancelled, abandoning.")
+	}
+
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errors.New("metadata is empty")
+	}
+
+	dsn := md.Get("uptrace-dsn")
+	if len(dsn) == 0 {
+		return nil, errors.New("uptrace-dsn header is required")
+	}
+
+	span := trace.SpanFromContext(ctx)
+	if span.IsRecording() {
+		span.SetAttributes(attribute.String("dsn", dsn[0]))
+	}
+
+	project, err := org.SelectProjectByDSN(ctx, s.App, dsn[0])
+	if err != nil {
+		return nil, err
+	}
+
+	return s.process(ctx, project, req.ResourceSpans)
+}
+
+func (s *TraceServiceServer) process(
+	ctx context.Context, project *bunconf.Project, resourceSpans []*tracepb.ResourceSpans,
+) (*collectortrace.ExportTraceServiceResponse, error) {
+	for _, rss := range resourceSpans {
+		resource := AttrMap(otlpconv.Map(rss.Resource.Attributes))
+
+		for _, ss := range rss.ScopeSpans {
+			if ss.Scope != nil {
+				if ss.Scope.Name != "" {
+					resource[attrkey.OtelLibraryName] = ss.Scope.Name
+				}
+				if ss.Scope.Version != "" {
+					resource[attrkey.OtelLibraryVersion] = ss.Scope.Version
+				}
+			}
+
+			mem := make([]Span, len(ss.Spans))
+			for i, otlpSpan := range ss.Spans {
+				span := &mem[i]
+				initSpanFromOTLP(span, resource, otlpSpan)
+				span.ProjectID = project.ID
+				s.sp.AddSpan(ctx, span)
+			}
+		}
+	}
+
+	return &collectortrace.ExportTraceServiceResponse{}, nil
 }

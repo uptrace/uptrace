@@ -2,7 +2,7 @@
 
 This example demonstrates how to send logs to Uptrace using [Vector](https://vector.dev).
 
-To run this example:
+To run this example, you need Vector **0.23.0+**:
 
 ```shell
 vector --config vector.toml

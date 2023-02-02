@@ -61,6 +61,15 @@
           <CollectorTabs :http="project.http" :grpc="project.grpc" />
         </v-col>
       </v-row>
+
+      <v-row>
+        <v-col>
+          <v-alert type="info" prominent border="left" outlined>
+            Don't forget to add Uptrace exporter to <code>service.pipelines</code> section. Such
+            unused exporters are silently ignored.
+          </v-alert>
+        </v-col>
+      </v-row>
     </v-container>
 
     <PageToolbar :loading="loading">
@@ -70,9 +79,9 @@
     <v-container class="mb-6 px-4 py-6">
       <v-row>
         <v-col class="text-subtitle-1">
-          To configure Vector to send logs to Uptrace, use the HTTP sink and pass your project DSN
-          via HTTP headers. For example, to collect syslog messages you can create the following
-          Vector config:
+          To configure Vector <strong>0.23.0+</strong> to send logs to Uptrace, use the HTTP sink
+          and pass your project DSN via HTTP headers. For example, to collect syslog messages you
+          can create the following Vector config:
         </v-col>
       </v-row>
 

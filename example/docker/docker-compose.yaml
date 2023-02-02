@@ -34,7 +34,7 @@ services:
         condition: service_healthy
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.58.0
+    image: otel/opentelemetry-collector-contrib:0.70.0
     restart: on-failure
     user: '0:0' # required for logs
     volumes:

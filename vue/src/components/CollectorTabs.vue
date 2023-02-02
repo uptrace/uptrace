@@ -48,6 +48,21 @@ exporters:
       insecure: true
     headers:
       uptrace-dsn: '${props.grpc.dsn}'
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/uptrace]
+    metrics:
+      receivers: [otlp]
+      processors: [batch, resourcedetection]
+      exporters: [otlp/uptrace]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/uptrace]
       `.trim()
     })
 
@@ -60,6 +75,21 @@ exporters:
       insecure: true
     headers:
       uptrace-dsn: '${props.http.dsn}'
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/uptrace]
+    metrics:
+      receivers: [otlp]
+      processors: [batch, resourcedetection]
+      exporters: [otlphttp/uptrace]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/uptrace]
       `.trim()
     })
 
