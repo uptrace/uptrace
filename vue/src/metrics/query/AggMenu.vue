@@ -124,8 +124,9 @@ function metricColumns(metric: Metric): ColumnItem[] {
       ]
     case Instrument.Counter:
       return [
-        { value: `per_min(${alias})`, hint: 'value per minute' },
-        { value: `per_sec(${alias})`, hint: 'value per second' },
+        { value: `${alias}`, hint: 'sum of values' },
+        { value: `per_min(${alias})`, hint: 'sum(value) / number_of_minutes' },
+        { value: `per_sec(${alias})`, hint: 'sum(value) / number_of_seconds' },
       ]
     case Instrument.Histogram:
       return [
@@ -134,12 +135,12 @@ function metricColumns(metric: Metric): ColumnItem[] {
         { value: `p90(${alias})` },
         { value: `p95(${alias})` },
         { value: `p99(${alias})` },
-        { value: `count(${alias})` },
-        { value: `per_min(${alias})`, hint: 'count per minute' },
-        { value: `per_sec(${alias})`, hint: 'count per second' },
         { value: `avg(${alias})` },
         { value: `min(${alias})` },
         { value: `max(${alias})` },
+        { value: `count(${alias})`, hint: 'number of occurrences' },
+        { value: `per_min(${alias})`, hint: 'count() / number_of_minutes' },
+        { value: `per_sec(${alias})`, hint: 'count() / number_of_seconds' },
       ]
     default:
       throw new Error(`unknown instrument: ${metric.instrument}`)
