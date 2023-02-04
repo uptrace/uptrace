@@ -46,7 +46,6 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	router := app.Router()
 	spanHandler := NewSpanHandler(app)
 	traceHandler := NewTraceHandler(app)
-	suggestionHandler := NewSuggestionHandler(app)
 	middleware := org.NewMiddleware(app)
 
 	api := app.APIGroup()
@@ -93,6 +92,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	g.GET("/traces/:trace_id/:span_id", traceHandler.ShowSpan)
 
 	g.WithGroup("/suggestions", func(g *bunrouter.Group) {
+		suggestionHandler := NewSuggestionHandler(app)
 		g.GET("/attributes", suggestionHandler.Attributes)
 		g.GET("/values", suggestionHandler.Values)
 	})
