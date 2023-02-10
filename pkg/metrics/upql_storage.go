@@ -190,12 +190,6 @@ func (s *CHStorage) subquery(
 		q = q.Where("project_id IN (?)", ch.In(s.conf.Projects))
 	}
 
-	if len(f.Filters) > 0 {
-		q, err = s.filters(q, metric, f.Filters)
-		if err != nil {
-			return nil, err
-		}
-	}
 	for _, filters := range f.Where {
 		q, err = s.filters(q, metric, filters)
 		if err != nil {
@@ -277,6 +271,14 @@ func (s *CHStorage) subquery(
 func (s *CHStorage) filters(
 	q *ch.SelectQuery, metric *Metric, filters []ast.Filter,
 ) (*ch.SelectQuery, error) {
+	b, query, err := s.filter0(filters, metric)
+	if err != nil {
+		return query, err
+	}
+	return q.Where(unsafeconv.String(b)), nil
+}
+
+func (s *CHStorage) filter0(filters []ast.Filter, metric *Metric) ([]byte, *ch.SelectQuery, error) {
 	var b []byte
 	for i := range filters {
 		filter := &filters[i]
@@ -289,12 +291,12 @@ func (s *CHStorage) filters(
 			var err error
 			val, err = rhs.ConvertValue(metric.Unit)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		case ast.StringValue:
 			val = rhs.Text
 		default:
-			return nil, fmt.Errorf("unknown RHS: %T", rhs)
+			return nil, nil, fmt.Errorf("unknown RHS: %T", rhs)
 		}
 
 		if i > 0 {
@@ -321,10 +323,10 @@ func (s *CHStorage) filters(
 		case ast.FilterNotLike:
 			b = chschema.AppendQuery(b, "? NOT LIKE ?", col, val)
 		default:
-			return nil, fmt.Errorf("unsupported op: %s", filter.Op)
+			return nil, nil, fmt.Errorf("unsupported op: %s", filter.Op)
 		}
 	}
-	return q.Where(unsafeconv.String(b)), nil
+	return b, nil, nil
 }
 
 func (s *CHStorage) agg(
@@ -334,6 +336,16 @@ func (s *CHStorage) agg(
 ) (*ch.SelectQuery, error) {
 	if f.Func == "rate" {
 		f.Func = "per_min"
+	}
+
+	var funcCond string
+	if len(f.Filters) > 0 {
+		bytes, query, err := s.filter0(f.Filters, metric)
+		if err != nil {
+			return query, err
+		} else {
+			funcCond = unsafeconv.String(bytes)
+		}
 	}
 
 	switch metric.Instrument {
@@ -399,7 +411,11 @@ func (s *CHStorage) agg(
 	case HistogramInstrument:
 		switch f.Func {
 		case "count":
-			q = q.ColumnExpr("toFloat64(sum(count)) AS value")
+			if funcCond != "" {
+				q = q.ColumnExpr(fmt.Sprintf("toFloat64(sumIf(count, %s)) AS value", funcCond))
+			} else {
+				q = q.ColumnExpr("toFloat64(sum(count)) AS value")
+			}
 			return q, nil
 		case "per_min", "per_minute":
 			q = q.ColumnExpr("sum(count) / ? AS value",
