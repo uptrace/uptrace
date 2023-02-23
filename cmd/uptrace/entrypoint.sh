@@ -4,7 +4,7 @@ set -euxo pipefail
 
 if [ $# -eq 0 ]; then
     /uptrace --config=/etc/uptrace/uptrace.yml ch wait
-    /uptrace --config=/etc/uptrace/uptrace.yml serve
+    exec /uptrace --config=/etc/uptrace/uptrace.yml serve
 else
-    /uptrace --config=/etc/uptrace/uptrace.yml $@
+    exec /uptrace --config=/etc/uptrace/uptrace.yml $@
 fi
