@@ -30,6 +30,19 @@ ch:
   max_execution_time: 30s
 
 ##
+## SQLite/PostgreSQL db that is used to store metadata such us metric names, dashboards, alerts,
+## and so on.
+##
+db:
+  # TODO: remove driver
+  driver: postgres
+  # Connection string for PostgreSQL database. For example:
+  # postgres://<user>:<password>@<host>:<port>/<database>?sslmode=disable
+  #
+  # See https://bun.uptrace.dev/postgres/
+  dsn: postgres://uptrace:uptrace@postgres:5432/uptrace?sslmode=disable
+
+##
 ## A list of pre-configured projects. Each project is fully isolated.
 ##
 projects:
@@ -276,19 +289,6 @@ metrics:
 
   # The number of measures to insert in a single query.
   #batch_size: 10000
-
-##
-## SQLite/PostgreSQL db that is used to store metadata such us metric names, dashboards, alerts,
-## and so on.
-##
-db:
-  # Either sqlite or postgres.
-  driver: sqlite
-  # Database connection string.
-  #
-  # Uptrace automatically creates SQLite database file in the current working directory.
-  # Make sure the directory is writable by Uptrace process.
-  dsn: 'file:uptrace.sqlite3?_pragma=foreign_keys(1)&_pragma=busy_timeout(1000)'
 
 ##
 ## uptrace-go client configuration.
