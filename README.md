@@ -1,4 +1,4 @@
-English | [**简体中文**](README.zh.md)
+Languages: **English** | [简体中文](README.zh.md)
 
 # Open source APM: OpenTelemetry traces, metrics, and logs
 
