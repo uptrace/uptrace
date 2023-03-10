@@ -85,6 +85,18 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
+  postgres:
+    image: postgres:15-alpine
+    restart: on-failure
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: uptrace
+      POSTGRES_PASSWORD: uptrace
+    volumes:
+      - 'pg_data:/var/lib/postgresql/data/pgdata'
+    ports:
+      - '5432:5432'
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.70.0
     restart: on-failure
@@ -142,5 +154,5 @@ volumes:
   ch2_data:
   ch3_data:
   ch4_data:
-  alertmanager_data:
   pg_data:
+  alertmanager_data:

@@ -40,7 +40,7 @@ db:
   # postgres://<user>:<password>@<host>:<port>/<database>?sslmode=disable
   #
   # See https://bun.uptrace.dev/postgres/
-  dsn: postgres://uptrace:uptrace@postgres:5432/uptrace?sslmode=disable
+  dsn: postgres://uptrace:uptrace@localhost:5432/uptrace?sslmode=disable
 
 ##
 ## A list of pre-configured projects. Each project is fully isolated.
