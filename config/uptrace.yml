@@ -24,7 +24,7 @@ ch:
 
   # TLS configuration. Uncomment to enable.
   # tls:
-  #   insecure_skip_verify: true
+  #   insecure_skip_verify: true # only for self-signed certificates
 
   # Maximum query execution time.
   max_execution_time: 30s
@@ -248,7 +248,7 @@ listen:
     #   cert_file: config/tls/uptrace.crt
     #   key_file: config/tls/uptrace.key
 
-  # OTLP/HTTP API and Uptrace API with UI.
+  # OTLP/HTTP API and Uptrace API with Vue UI.
   http:
     addr: ':14318'
     # tls:
@@ -259,7 +259,7 @@ listen:
 ## Various options for Uptrace UI.
 ##
 site:
-  # Overrides public URL for Vue-powered UI in case you put Uptrace behind a proxy.
+  # Overrides public URL for Vue-powered UI.
   #addr: 'https://uptrace.mydomain.com'
 
 ##

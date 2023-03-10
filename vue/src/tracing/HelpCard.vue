@@ -164,8 +164,9 @@ export default defineComponent({
 type = "file"
 include = ["/var/log/syslog"]
 
-[sinks.out]
+[sinks.uptrace]
 type = "http"
+method = "post"
 inputs = ["in"]
 encoding.codec = "json"
 framing.method = "newline_delimited"
