@@ -14,7 +14,6 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
-	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bundebug"
 	"github.com/uptrace/bun/extra/bunotel"
@@ -325,33 +324,16 @@ func (app *App) GRPCServer() *grpc.Server {
 //------------------------------------------------------------------------------
 
 func (app *App) newDB() *bun.DB {
-	db := app.newBunDB()
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(app.conf.DB.DSN)))
+	db := bun.NewDB(sqldb, pgdialect.New())
+
 	db.AddQueryHook(bundebug.NewQueryHook(
 		bundebug.WithEnabled(app.Debugging()),
 		bundebug.FromEnv("BUNDEBUG", "DEBUG"),
 	))
 	db.AddQueryHook(bunotel.NewQueryHook())
+
 	return db
-}
-
-func (app *App) newBunDB() *bun.DB {
-	switch driverName := app.conf.DB.Driver; driverName {
-	case "", "sqlite":
-		sqldb, err := sql.Open("sqlite", app.conf.DB.DSN)
-		if err != nil {
-			panic(err)
-		}
-
-		db := bun.NewDB(sqldb, sqlitedialect.New())
-		db.SetMaxOpenConns(1)
-		db.SetMaxIdleConns(1)
-		return db
-	case "postgres":
-		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(app.conf.DB.DSN)))
-		return bun.NewDB(sqldb, pgdialect.New())
-	default:
-		panic(fmt.Errorf("unsupported database/sql driver: %q", driverName))
-	}
 }
 
 //------------------------------------------------------------------------------
