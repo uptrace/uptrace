@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/cespare/xxhash/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -71,6 +72,9 @@ func expandEnv(conf string) string {
 }
 
 func validateConfig(conf *Config) error {
+	if err := validateUsers(conf.Auth.Users); err != nil {
+		return err
+	}
 	if err := validateProjects(conf.Projects); err != nil {
 		return err
 	}
@@ -105,6 +109,26 @@ func validateConfig(conf *Config) error {
 
 	if conf.DB.DSN == "" {
 		return fmt.Errorf(`db.dsn option can not be empty`)
+	}
+
+	return nil
+}
+
+func validateUsers(users []User) error {
+	if len(users) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]bool, len(users))
+	for i := range users {
+		user := &users[i]
+		if seen[user.Username] {
+			return fmt.Errorf("user with username=%q already exists", user.Username)
+		}
+
+		if user.ID == 0 {
+			user.ID = xxhash.Sum64String(user.Username)
+		}
 	}
 
 	return nil
@@ -262,6 +286,7 @@ type CHTableOverride struct {
 }
 
 type User struct {
+	ID       uint64 `yaml:"id" json:"id"`
 	Username string `yaml:"username" json:"username"`
 	Password string `yaml:"password" json:"-"`
 }
