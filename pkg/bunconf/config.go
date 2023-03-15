@@ -11,7 +11,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/cespare/xxhash/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -126,12 +125,7 @@ func validateUsers(users []User) error {
 			return fmt.Errorf("user with username=%q already exists", user.Username)
 		}
 
-		if user.ID == 0 {
-			user.ID = xxhash.Sum64String(user.Username)
-		}
-		if user.Avatar == "" {
-			user.Avatar = user.Gravatar()
-		}
+		user.Init()
 	}
 
 	return nil
