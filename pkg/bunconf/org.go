@@ -4,6 +4,8 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+
+	"github.com/cespare/xxhash/v2"
 )
 
 type User struct {
@@ -13,6 +15,18 @@ type User struct {
 
 	Email  string `yaml:"email" json:"email"`
 	Avatar string `yaml"avatar" json:"avatar"`
+}
+
+func (u *User) Init() {
+	if u.Username == "" {
+		u.Username = u.Email
+	}
+	if u.ID == 0 {
+		u.ID = xxhash.Sum64String(u.Username)
+	}
+	if u.Avatar == "" {
+		u.Avatar = u.Gravatar()
+	}
 }
 
 func (u *User) Gravatar() string {

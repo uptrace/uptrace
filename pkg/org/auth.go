@@ -36,6 +36,10 @@ type (
 	projectCtxKey struct{}
 )
 
+func init() {
+	AnonymousUser.Init()
+}
+
 func UserFromContext(ctx context.Context) (*bunconf.User, error) {
 	user, ok := ctx.Value(userCtxKey{}).(*bunconf.User)
 	if !ok {
