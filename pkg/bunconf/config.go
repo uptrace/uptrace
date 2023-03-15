@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/cespare/xxhash/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -264,6 +265,10 @@ type CHTableOverride struct {
 type User struct {
 	Username string `yaml:"username" json:"username"`
 	Password string `yaml:"password" json:"-"`
+}
+
+func (u *User) Hash() uint64 {
+	return xxhash.Sum64(append([]byte(u.Username), []byte(u.Password)...))
 }
 
 type CloudflareProvider struct {

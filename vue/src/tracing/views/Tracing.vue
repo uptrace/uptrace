@@ -24,13 +24,16 @@
         </v-row>
 
         <v-row align="end" no-gutters>
-          <v-col>
+          <v-col cols="auto">
             <v-tabs :key="$route.fullPath" background-color="transparent">
               <v-tab :to="routes.groupList" exact-path>Groups</v-tab>
               <v-tab :to="routes.spanList" exact-path>{{
                 $route.name.startsWith('Span') ? 'Spans' : 'Events'
               }}</v-tab>
             </v-tabs>
+          </v-col>
+          <v-col cols="auto" class="ml-16 align-self-center">
+            <SavedViews />
           </v-col>
         </v-row>
       </v-container>

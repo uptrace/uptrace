@@ -84,6 +84,19 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			g.GET("/overview", sysHandler.Overview)
 		})
 
+	api.Use(middleware.UserAndProject).
+		WithGroup("/tracing/:project_id/saved-views", func(g *bunrouter.Group) {
+			viewHandler := NewSavedViewHandler(app)
+
+			g.GET("", viewHandler.List)
+
+			g.POST("", viewHandler.Create)
+			g.DELETE("/:view_id", viewHandler.Delete)
+
+			g.PUT("/:view_id/pinned", viewHandler.Pin)
+			g.PUT("/:view_id/unpinned", viewHandler.Unpin)
+		})
+
 	g.GET("/groups", spanHandler.ListGroups)
 	g.GET("/spans", spanHandler.ListSpans)
 	g.GET("/percentiles", spanHandler.Percentiles)

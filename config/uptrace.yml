@@ -176,9 +176,9 @@ alertmanager_client:
 ## To require authentication, uncomment one of the following sections.
 ##
 auth:
-  # users:
-  #   - username: uptrace
-  #     password: uptrace
+  users:
+    - username: uptrace
+      password: uptrace
   #   - username: admin
   #     password: admin
 

@@ -124,18 +124,18 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
     command: start-dev
 
-  # postgres:
-  #   image: postgres:14.2-alpine
-  #   restart: on-failure
-  #   environment:
-  #     PGDATA: /var/lib/postgresql/data/pgdata
-  #     POSTGRES_USER: uptrace
-  #     POSTGRES_PASSWORD: uptrace
-  #     POSTGRES_DB: uptrace
-  #   volumes:
-  #     - 'pg_data:/var/lib/postgresql/data/pgdata'
-  #   ports:
-  #     - '5432:5432'
+  postgres:
+    image: postgres:14.2-alpine
+    restart: on-failure
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: uptrace
+      POSTGRES_PASSWORD: uptrace
+      POSTGRES_DB: uptrace
+    volumes:
+      - 'pg_data:/var/lib/postgresql/data/pgdata'
+    ports:
+      - '5432:5432'
 
 volumes:
   ch1_data:
