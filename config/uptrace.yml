@@ -52,7 +52,7 @@ projects:
     # Token grants write access to the project. Keep a secret.
     token: project1_secret_token
     pinned_attrs:
-      - service
+      - service.name
       - host.name
       - deployment.environment
     # Group spans by deployment.environment attribute.
@@ -66,7 +66,7 @@ projects:
     name: My project
     token: project2_secret_token
     pinned_attrs:
-      - service
+      - service.name
       - host.name
       - deployment.environment
     # Group spans by deployment.environment attribute.

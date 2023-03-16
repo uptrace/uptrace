@@ -28,7 +28,6 @@ CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
 
   deployment_environment LowCardinality(String) Codec(?CODEC),
 
-  service LowCardinality(String) Codec(?CODEC),
   service_name LowCardinality(String) Codec(?CODEC),
   host_name LowCardinality(String) Codec(?CODEC),
 
@@ -87,7 +86,7 @@ ENGINE = Buffer(currentDatabase(), spans_data, 5, 10, 30, 10000, 1000000, 100000
 CREATE TABLE ?DB.span_system_minutes ?ON_CLUSTER (
   project_id UInt32 Codec(?CODEC),
   deployment_environment LowCardinality(String) Codec(?CODEC),
-  service LowCardinality(String) Codec(?CODEC),
+  service_name LowCardinality(String) Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
 
   time DateTime Codec(Delta, ?CODEC),
@@ -98,7 +97,7 @@ CREATE TABLE ?DB.span_system_minutes ?ON_CLUSTER (
 )
 ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
-ORDER BY (project_id, time, deployment_environment, service, system)
+ORDER BY (project_id, time, deployment_environment, service_name, system)
 TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 256
@@ -110,7 +109,7 @@ TO ?DB.span_system_minutes AS
 SELECT
   project_id,
   deployment_environment,
-  service,
+  service_name,
   system,
 
   toStartOfMinute(time) AS time,
@@ -119,7 +118,7 @@ SELECT
   toUInt64(sum(count)) AS count,
   toUInt64(sumIf(count, status_code = 'error')) AS error_count
 FROM ?DB.spans_index
-GROUP BY project_id, toStartOfMinute(time), deployment_environment, service, system
+GROUP BY project_id, toStartOfMinute(time), deployment_environment, service_name, system
 SETTINGS prefer_column_name_to_alias = 1
 
 --migration:split
@@ -127,7 +126,7 @@ SETTINGS prefer_column_name_to_alias = 1
 CREATE TABLE ?DB.span_system_hours ?ON_CLUSTER (
   project_id UInt32 Codec(?CODEC),
   deployment_environment LowCardinality(String) Codec(?CODEC),
-  service LowCardinality(String) Codec(?CODEC),
+  service_name LowCardinality(String) Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
 
   time DateTime Codec(Delta, ?CODEC),
@@ -138,7 +137,7 @@ CREATE TABLE ?DB.span_system_hours ?ON_CLUSTER (
 )
 ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
-ORDER BY (project_id, time, deployment_environment, service, system)
+ORDER BY (project_id, time, deployment_environment, service_name, system)
 TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 256
@@ -150,7 +149,7 @@ TO ?DB.span_system_hours AS
 SELECT
   project_id,
   deployment_environment,
-  service,
+  service_name,
   system,
 
   toStartOfHour(time) AS time,
@@ -159,7 +158,7 @@ SELECT
   sum(count) AS count,
   sum(error_count) AS error_count
 FROM ?DB.span_system_minutes
-GROUP BY project_id, toStartOfHour(time), deployment_environment, service, system
+GROUP BY project_id, toStartOfHour(time), deployment_environment, service_name, system
 SETTINGS prefer_column_name_to_alias = 1
 
 --------------------------------------------------------------------------------
@@ -169,7 +168,7 @@ CREATE TABLE ?DB.span_service_minutes ?ON_CLUSTER (
   project_id UInt32 Codec(?CODEC),
   deployment_environment LowCardinality(String) Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
-  service LowCardinality(String) Codec(?CODEC),
+  service_name LowCardinality(String) Codec(?CODEC),
 
   time DateTime Codec(Delta, ?CODEC),
   tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32) Codec(?CODEC),
@@ -179,7 +178,7 @@ CREATE TABLE ?DB.span_service_minutes ?ON_CLUSTER (
 )
 ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
-ORDER BY (project_id, time, deployment_environment, system, service)
+ORDER BY (project_id, time, deployment_environment, system, service_name)
 TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 256
@@ -192,7 +191,7 @@ SELECT
   project_id,
   deployment_environment,
   system,
-  service,
+  service_name,
 
   toStartOfMinute(time) AS time,
   quantilesTDigestWeightedState(0.5, 0.9, 0.99)(toFloat32(duration), toUInt32(count)) AS tdigest,
@@ -200,7 +199,7 @@ SELECT
   toUInt64(sum(count)) AS count,
   toUInt64(sumIf(count, status_code = 'error')) AS error_count
 FROM ?DB.spans_index
-GROUP BY project_id, toStartOfMinute(time), deployment_environment, system, service
+GROUP BY project_id, toStartOfMinute(time), deployment_environment, system, service_name
 SETTINGS prefer_column_name_to_alias = 1
 
 --migration:split
@@ -209,7 +208,7 @@ CREATE TABLE ?DB.span_service_hours ?ON_CLUSTER (
   project_id UInt32 Codec(?CODEC),
   deployment_environment LowCardinality(String) Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
-  service LowCardinality(String) Codec(?CODEC),
+  service_name LowCardinality(String) Codec(?CODEC),
 
   time DateTime Codec(Delta, ?CODEC),
   tdigest AggregateFunction(quantilesTDigestWeighted(0.5, 0.9, 0.99), Float32, UInt32) Codec(?CODEC),
@@ -219,7 +218,7 @@ CREATE TABLE ?DB.span_service_hours ?ON_CLUSTER (
 )
 ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
-ORDER BY (project_id, time, deployment_environment, system, service)
+ORDER BY (project_id, time, deployment_environment, system, service_name)
 TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 256
@@ -232,7 +231,7 @@ SELECT
   project_id,
   deployment_environment,
   system,
-  service,
+  service_name,
 
   toStartOfHour(time) AS time,
   quantilesTDigestWeightedMergeState(0.5, 0.9, 0.99)(tdigest) AS tdigest,
@@ -240,7 +239,7 @@ SELECT
   sum(count) AS count,
   sum(error_count) AS error_count
 FROM ?DB.span_service_minutes
-GROUP BY project_id, toStartOfHour(time), deployment_environment, system, service
+GROUP BY project_id, toStartOfHour(time), deployment_environment, system, service_name
 SETTINGS prefer_column_name_to_alias = 1
 
 --------------------------------------------------------------------------------
@@ -249,7 +248,7 @@ SETTINGS prefer_column_name_to_alias = 1
 CREATE TABLE ?DB.span_host_minutes ?ON_CLUSTER (
   project_id UInt32 Codec(?CODEC),
   deployment_environment LowCardinality(String) Codec(?CODEC),
-  service LowCardinality(String) Codec(?CODEC),
+  service_name LowCardinality(String) Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
   host_name LowCardinality(String) Codec(?CODEC),
 
@@ -261,7 +260,7 @@ CREATE TABLE ?DB.span_host_minutes ?ON_CLUSTER (
 )
 ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
-ORDER BY (project_id, time, deployment_environment, service, system, host_name)
+ORDER BY (project_id, time, deployment_environment, service_name, system, host_name)
 TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 256
@@ -273,7 +272,7 @@ TO ?DB.span_host_minutes AS
 SELECT
   project_id,
   deployment_environment,
-  service,
+  service_name,
   system,
   host_name,
 
@@ -283,7 +282,7 @@ SELECT
   toUInt64(sum(count)) AS count,
   toUInt64(sumIf(count, status_code = 'error')) AS error_count
 FROM ?DB.spans_index
-GROUP BY project_id, toStartOfMinute(time), deployment_environment, service, system, host_name
+GROUP BY project_id, toStartOfMinute(time), deployment_environment, service_name, system, host_name
 SETTINGS prefer_column_name_to_alias = 1
 
 --migration:split
@@ -291,7 +290,7 @@ SETTINGS prefer_column_name_to_alias = 1
 CREATE TABLE ?DB.span_host_hours ?ON_CLUSTER (
   project_id UInt32 Codec(?CODEC),
   deployment_environment LowCardinality(String) Codec(?CODEC),
-  service LowCardinality(String) Codec(?CODEC),
+  service_name LowCardinality(String) Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
   host_name LowCardinality(String) Codec(?CODEC),
 
@@ -303,7 +302,7 @@ CREATE TABLE ?DB.span_host_hours ?ON_CLUSTER (
 )
 ENGINE = ?(REPLICATED)SummingMergeTree()
 PARTITION BY toDate(time)
-ORDER BY (project_id, time, deployment_environment, service, system, host_name)
+ORDER BY (project_id, time, deployment_environment, service_name, system, host_name)
 TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 256
@@ -315,7 +314,7 @@ TO ?DB.span_host_hours AS
 SELECT
   project_id,
   deployment_environment,
-  service,
+  service_name,
   system,
   host_name,
 
@@ -325,5 +324,5 @@ SELECT
   sum(count) AS count,
   sum(error_count) AS error_count
 FROM ?DB.span_host_minutes
-GROUP BY project_id, deployment_environment, service, toStartOfHour(time), system, host_name
+GROUP BY project_id, deployment_environment, service_name, toStartOfHour(time), system, host_name
 SETTINGS prefer_column_name_to_alias = 1

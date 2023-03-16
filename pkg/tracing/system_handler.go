@@ -210,7 +210,7 @@ func (h *SystemHandler) Overview(w http.ResponseWriter, req bunrouter.Request) e
 	var groups []map[string]any
 
 	switch attrKey {
-	case attrkey.Service:
+	case attrkey.ServiceName:
 		groups, err = h.selectServicesGroups(ctx, f)
 		if err != nil {
 			return err
@@ -240,7 +240,7 @@ func (h *SystemHandler) selectServicesGroups(
 	tableName, groupPeriod := spanServiceTableInterval(h.App, &f.TimeFilter, org.CompactGroupPeriod)
 
 	subq := h.CH.NewSelect().
-		ColumnExpr("service AS attr").
+		ColumnExpr("service_name AS attr").
 		ColumnExpr("sum(count) AS stats__count").
 		ColumnExpr("sum(count) / ? AS stats__rate", groupPeriod.Minutes()).
 		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_",
@@ -561,13 +561,13 @@ func (h *SystemHandler) selectServices(ctx context.Context, f *SystemFilter) ([]
 
 	tableName := spanSystemTableForWhere(h.App, &f.TimeFilter)
 	if err := h.CH.NewSelect().
-		ColumnExpr("service AS value").
+		ColumnExpr("service_name AS value").
 		ColumnExpr("sum(count) AS count").
 		TableExpr("? AS s", tableName).
 		WithQuery(f.whereClause).
-		Where("notEmpty(service)").
-		GroupExpr("service").
-		OrderExpr("service ASC").
+		Where("notEmpty(service_name)").
+		GroupExpr("service_name").
+		OrderExpr("service_name ASC").
 		Limit(100).
 		Scan(ctx, &services); err != nil {
 		return nil, err
