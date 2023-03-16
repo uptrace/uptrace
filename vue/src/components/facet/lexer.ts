@@ -112,6 +112,9 @@ export class Lexer {
     if (isAlpha(ch)) {
       return this.ident(this.i - 1)
     }
+    if (isDigit(ch)) {
+      return this.value(this.i - 1)
+    }
     return { id: TokenID.Char, text: ch }
   }
 
@@ -131,6 +134,19 @@ export class Lexer {
 
     const text = this.s.slice(start, this.i)
     return { id: TokenID.Ident, text }
+  }
+
+  private value(start: number): Token {
+    while (this.isValid()) {
+      const ch = this.peekChar()
+      if (isWhitespace(ch)) {
+        break
+      }
+      this.advance()
+    }
+
+    const text = this.s.slice(start, this.i)
+    return { id: TokenID.Value, text }
   }
 
   private readUnquoted(quote: string) {
@@ -210,4 +226,8 @@ function isIdent(ch: string): boolean {
 
 function isWhitespace(ch: string): boolean {
   return /\s/.test(ch)
+}
+
+function isDigit(ch: string): boolean {
+  return /\d/.test(ch)
 }

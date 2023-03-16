@@ -248,8 +248,8 @@ func runBunMigrations(ctx context.Context, app *bunapp.App) error {
 		return err
 	}
 	if len(missing) > 0 {
-		panic("migrations have been changed\n" +
-			"run `sudo -u uptrace uptrace db reset` to reset the database before continuing")
+		panic("migrations were changed\n" +
+			"run `uptrace db reset` to reset the database before continuing")
 	}
 
 	group, err := migrator.Migrate(ctx)
@@ -294,7 +294,7 @@ func runCHMigrations(ctx context.Context, app *bunapp.App) error {
 		return err
 	}
 	if len(missing) > 0 {
-		panic("migrations have been changed\n" +
+		panic("migrations have were changed\n" +
 			"run `uptrace ch reset` to reset the database before continuing")
 	}
 

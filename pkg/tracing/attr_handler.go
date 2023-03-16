@@ -4,56 +4,24 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sort"
 	"strings"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/tracing/upql"
+	"golang.org/x/exp/slices"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
 )
 
-type Suggestions []Suggestion
-
-func (ss *Suggestions) Add(sugg Suggestion) {
-	*ss = append(*ss, sugg)
-}
-
-type Suggestion struct {
-	Text  string `json:"text"`
-	Hint  string `json:"hint,omitempty"`
-	Count uint64 `json:"count"`
-}
-
-func sortSuggestions(suggestions []Suggestion) []Suggestion {
-	seen := make(map[string]struct{}, len(suggestions))
-
-	for i := len(suggestions) - 1; i >= 0; i-- {
-		key := suggestions[i].Text
-		if _, ok := seen[key]; ok {
-			suggestions = append(suggestions[:i], suggestions[i+1:]...)
-		} else {
-			seen[key] = struct{}{}
-		}
-	}
-
-	sort.Slice(suggestions, func(i, j int) bool {
-		return suggestions[i].Text < suggestions[j].Text
-	})
-
-	return suggestions
-}
-
-//------------------------------------------------------------------------------
-
-type SuggestionHandler struct {
+type AttrHandler struct {
 	*bunapp.App
 }
 
-func NewSuggestionHandler(app *bunapp.App) *SuggestionHandler {
-	return &SuggestionHandler{
+func NewAttrHandler(app *bunapp.App) *AttrHandler {
+	return &AttrHandler{
 		App: app,
 	}
 }
@@ -67,8 +35,14 @@ var spanKeys = []string{
 	attrkey.SpanStatusMessage,
 }
 
-func (h *SuggestionHandler) Attributes(w http.ResponseWriter, req bunrouter.Request) error {
+type AttrKeyItem struct {
+	Value  string `json:"value"`
+	Pinned bool   `json:"pinned"`
+}
+
+func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
+	user := org.UserFromContext(ctx)
 
 	f, err := DecodeSpanFilter(h.App, req)
 	if err != nil {
@@ -82,18 +56,29 @@ func (h *SuggestionHandler) Attributes(w http.ResponseWriter, req bunrouter.Requ
 	}
 	attrKeys = append(attrKeys, spanKeys...)
 
-	suggestions := make([]Suggestion, len(attrKeys))
-	for i, key := range attrKeys {
-		suggestions[i] = Suggestion{Text: key}
+	pinnedAttrMap, err := org.SelectPinnedFacetMap(ctx, h.App, user.ID)
+	if err != nil {
+		return err
 	}
-	suggestions = sortSuggestions(suggestions)
+
+	items := make([]*AttrKeyItem, len(attrKeys))
+	for i, attrKey := range attrKeys {
+		items[i] = &AttrKeyItem{
+			Value:  attrKey,
+			Pinned: pinnedAttrMap[attrKey],
+		}
+	}
+
+	slices.SortFunc(items, func(a, b *AttrKeyItem) bool {
+		return org.CoreAttrLess(a.Value, b.Value)
+	})
 
 	return httputil.JSON(w, bunrouter.H{
-		"suggestions": suggestions,
+		"items": items,
 	})
 }
 
-func (h *SuggestionHandler) selectAttrKeys(ctx context.Context, f *SpanFilter) ([]string, error) {
+func (h *AttrHandler) selectAttrKeys(ctx context.Context, f *SpanFilter) ([]string, error) {
 	keys := make([]string, 0)
 	if err := buildSpanIndexQuery(h.App, f, 0).
 		ColumnExpr("groupUniqArrayArray(1000)(s.all_keys)").
@@ -103,7 +88,13 @@ func (h *SuggestionHandler) selectAttrKeys(ctx context.Context, f *SpanFilter) (
 	return keys, nil
 }
 
-func (h *SuggestionHandler) Values(w http.ResponseWriter, req bunrouter.Request) error {
+type AttrValueItem struct {
+	Value string `json:"value"`
+	Count uint64 `json:"count"`
+	Hint  string `json:"hint"`
+}
+
+func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
 	f, err := DecodeSpanFilter(h.App, req)
@@ -142,26 +133,26 @@ func (h *SuggestionHandler) Values(w http.ResponseWriter, req bunrouter.Request)
 	if !strings.HasPrefix(f.AttrKey, "span.") {
 		q = q.Where("has(s.all_keys, ?)", f.AttrKey)
 	}
-	if f.AttrValue != "" {
-		q = q.Where("? like ?", CHAttrExpr(f.AttrKey), "%"+f.AttrValue+"%")
+	if f.SearchInput != "" {
+		q = q.Where("? like ?", CHAttrExpr(f.AttrKey), "%"+f.SearchInput+"%")
 	}
 
-	var items []map[string]interface{}
+	var rows []map[string]interface{}
 
-	if err := q.Scan(ctx, &items); err != nil {
+	if err := q.Scan(ctx, &rows); err != nil {
 		return err
 	}
 
-	suggestions := make([]Suggestion, len(items))
+	items := make([]*AttrValueItem, len(rows))
 
-	for i, item := range items {
-		suggestions[i] = Suggestion{
-			Text:  asString(item[f.AttrKey]),
+	for i, item := range rows {
+		items[i] = &AttrValueItem{
+			Value: asString(item[f.AttrKey]),
 			Count: item["count"].(uint64),
 		}
 	}
 
 	return httputil.JSON(w, bunrouter.H{
-		"suggestions": suggestions,
+		"items": items,
 	})
 }

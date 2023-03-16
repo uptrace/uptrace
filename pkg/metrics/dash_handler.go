@@ -115,10 +115,6 @@ func (h *DashHandler) Clone(w http.ResponseWriter, req bunrouter.Request) error 
 	ctx := req.Context()
 	dash := dashFromContext(ctx)
 
-	if _, err := org.UserFromContext(ctx); err != nil {
-		return err
-	}
-
 	gauges, err := SelectDashGauges(ctx, h.App, dash.ID)
 	if err != nil {
 		return err

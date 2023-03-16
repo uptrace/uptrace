@@ -250,8 +250,12 @@ export class UqlEditor {
     return this.add(`group by ${column}`)
   }
 
-  replaceGroupBy(column: string) {
-    return this.replaceOrUnshift(/^group\s+by\s+/i, `group by ${column}`)
+  resetGroupBy(column = '') {
+    this.remove(/^group by /i)
+    if (column) {
+      this.add(`group by ${column}`)
+    }
+    return this
   }
 }
 
