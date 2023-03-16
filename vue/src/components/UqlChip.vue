@@ -80,7 +80,7 @@ export default defineComponent({
 
       if (props.group) {
         const editor = props.uql.createEditor()
-        editor.replaceGroupBy(props.group)
+        editor.resetGroupBy(props.group)
         props.uql.commitEdits(editor)
         return
       }

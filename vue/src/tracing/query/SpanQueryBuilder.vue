@@ -16,7 +16,7 @@
     <v-divider vertical class="mx-2" />
 
     <WhereFilterMenu :systems="systems" :uql="uql" :axios-params="axiosParams" />
-    <AggFilterMenu :uql="uql" :axios-params="axiosParams" :disabled="aggDisabled" />
+    <AggByMenu :uql="uql" :axios-params="axiosParams" :disabled="aggDisabled" />
     <GroupByMenu :uql="uql" :axios-params="axiosParams" :disabled="aggDisabled" />
 
     <v-divider vertical class="mx-2" />
@@ -35,7 +35,12 @@
       stateless
       width="500"
     >
-      <SpanFacets :uql="uql" :axios-params="spanFacetsParams" @input="drawer = $event" />
+      <FacetList
+        component="tracing"
+        :uql="uql"
+        :axios-params="facetParams"
+        @input="drawer = $event"
+      />
     </v-navigation-drawer>
   </div>
 </template>
@@ -53,10 +58,10 @@ import SearchFilterMenu from '@/tracing/query/SearchFilterMenu.vue'
 import DurationFilterMenu from '@/tracing/query/DurationFilterMenu.vue'
 import AttrFilterMenu from '@/tracing/query/AttrFilterMenu.vue'
 import WhereFilterMenu from '@/tracing/query/WhereFilterMenu.vue'
-import AggFilterMenu from '@/tracing/query/AggFilterMenu.vue'
+import AggByMenu from '@/tracing/query/AggByMenu.vue'
 import GroupByMenu from '@/tracing/query/GroupByMenu.vue'
 import SpanQueryHelpDialog from '@/tracing/query/SpanQueryHelpDialog.vue'
-import SpanFacets from '@/tracing/query/SpanFacets.vue'
+import FacetList from '@/components/facet/FacetList.vue'
 
 // Utilities
 import { AttrKey } from '@/models/otel'
@@ -68,10 +73,10 @@ export default defineComponent({
     DurationFilterMenu,
     AttrFilterMenu,
     WhereFilterMenu,
-    AggFilterMenu,
+    AggByMenu,
     GroupByMenu,
     SpanQueryHelpDialog,
-    SpanFacets,
+    FacetList,
   },
 
   props: {
@@ -96,14 +101,14 @@ export default defineComponent({
   setup(props) {
     const drawer = shallowRef(false)
 
-    const spanFacetsParams = computed(() => {
-      if (drawer.value) {
-        return {
-          ...props.axiosParams,
-          query: props.uql.whereQuery,
-        }
+    const facetParams = computed(() => {
+      if (!drawer.value) {
+        return null
       }
-      return null
+      return {
+        ...props.axiosParams,
+        query: props.uql.whereQuery,
+      }
     })
 
     function onClickOutside() {
@@ -114,7 +119,7 @@ export default defineComponent({
       return drawer.value
     }
 
-    return { AttrKey, drawer, spanFacetsParams, onClickOutside, closeConditional }
+    return { AttrKey, drawer, facetParams, onClickOutside, closeConditional }
   },
 })
 </script>

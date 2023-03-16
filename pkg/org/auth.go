@@ -40,12 +40,9 @@ func init() {
 	AnonymousUser.Init()
 }
 
-func UserFromContext(ctx context.Context) (*bunconf.User, error) {
-	user, ok := ctx.Value(userCtxKey{}).(*bunconf.User)
-	if !ok {
-		return nil, ErrUnauthorized
-	}
-	return user, nil
+func UserFromContext(ctx context.Context) *bunconf.User {
+	user := ctx.Value(userCtxKey{}).(*bunconf.User)
+	return user
 }
 
 func ContextWithUser(ctx context.Context, user *bunconf.User) context.Context {
@@ -53,7 +50,7 @@ func ContextWithUser(ctx context.Context, user *bunconf.User) context.Context {
 }
 
 func ProjectFromContext(ctx context.Context) *bunconf.Project {
-	project, _ := ctx.Value(projectCtxKey{}).(*bunconf.Project)
+	project := ctx.Value(projectCtxKey{}).(*bunconf.Project)
 	return project
 }
 
