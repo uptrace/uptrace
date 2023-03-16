@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -407,7 +408,9 @@ type vueFS struct {
 var _ fs.FS = (*vueFS)(nil)
 
 func (v *vueFS) Open(name string) (fs.File, error) {
-	if !strings.HasSuffix(name, ".html") {
+	switch filepath.Ext(name) {
+	case "", ".html", ".js", ".css":
+	default:
 		return v.fs.Open(name)
 	}
 
@@ -423,16 +426,40 @@ func (v *vueFS) Open(name string) (fs.File, error) {
 	data = bytes.ReplaceAll(data, []byte("/UPTRACE_PLACEHOLDER/"), []byte(v.publicPath))
 
 	return &vueFile{
-		File: f,
-		rd:   bytes.NewReader(data),
+		f:  f,
+		rd: bytes.NewReader(data),
 	}, nil
 }
 
 type vueFile struct {
-	fs.File
-	rd io.Reader
+	f  fs.File
+	rd *bytes.Reader
 }
 
 func (f *vueFile) Read(b []byte) (int, error) {
 	return f.rd.Read(b)
+}
+
+func (f *vueFile) Stat() (fs.FileInfo, error) {
+	info, err := f.f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	return &vueFileInfo{
+		FileInfo: info,
+		size:     f.rd.Size(),
+	}, nil
+}
+
+func (f *vueFile) Close() error {
+	return f.f.Close()
+}
+
+type vueFileInfo struct {
+	fs.FileInfo
+	size int64
+}
+
+func (f *vueFileInfo) Size() int64 {
+	return f.size
 }
