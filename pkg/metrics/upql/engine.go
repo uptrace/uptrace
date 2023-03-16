@@ -253,8 +253,8 @@ func (e *Engine) join(
 
 		ts1, ok := m[hash]
 		if !ok {
-			joined = append(joined, *ts2)
-			continue
+			joined = append(joined, newTimeseriesFrom(ts2))
+			ts1 = &joined[len(joined)-1]
 		}
 
 		value := make([]float64, len(ts1.Value))

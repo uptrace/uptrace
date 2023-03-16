@@ -25,7 +25,6 @@ type SpanIndex struct {
 
 	DeploymentEnvironment string `ch:"deployment_environment,lc"`
 
-	Service     string `ch:"service,lc"`
 	ServiceName string `ch:"service_name,lc"`
 	HostName    string `ch:"host_name,lc"`
 
@@ -47,7 +46,6 @@ func initSpanIndex(index *SpanIndex, span *Span) {
 
 	index.DeploymentEnvironment, _ = span.Attrs[attrkey.DeploymentEnvironment].(string)
 
-	index.Service, _ = span.Attrs[attrkey.Service].(string)
 	index.ServiceName = span.Attrs.ServiceName()
 	index.HostName = span.Attrs.HostName()
 
@@ -78,7 +76,6 @@ var (
 	indexedAttrs = []string{
 		attrkey.DeploymentEnvironment,
 		attrkey.ServiceName,
-		attrkey.Service,
 		attrkey.HostName,
 
 		attrkey.DBSystem,

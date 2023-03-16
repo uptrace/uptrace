@@ -30,6 +30,7 @@ source = '''
 # Export data to Uptrace.
 [sinks.uptrace]
 type = "http"
+method = "post"
 inputs = ["parse_logs", "apache_common_logs", "apache_error_logs", "json_logs"]
 encoding.codec = "json"
 framing.method = "newline_delimited"

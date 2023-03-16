@@ -123,7 +123,7 @@ export default defineComponent({
 
     const editing = shallowRef(false)
 
-    useRouteQuery().onRouteUpdated(() => {
+    useRouteQuery().onRouteChanged(() => {
       editing.value = false
     })
 

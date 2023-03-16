@@ -42,9 +42,12 @@ func (p *JWTProvider) Auth(req bunrouter.Request) (*bunconf.User, error) {
 		return nil, err
 	}
 
-	return &bunconf.User{
+	user := &bunconf.User{
 		Username: username,
-	}, nil
+	}
+	user.Init()
+
+	return user, nil
 }
 
 var jwtSigningMethod = jwt.SigningMethodHS256
@@ -118,10 +121,13 @@ func (p *CloudflareProvider) Auth(req bunrouter.Request) (*bunconf.User, error) 
 		return nil, fmt.Errorf("parseCloudflareToken failed: %w", err)
 	}
 
-	return &bunconf.User{
+	user := &bunconf.User{
 		// TODO: is there a username?
-		Username: claims.Email,
-	}, nil
+		Email: claims.Email,
+	}
+	user.Init()
+
+	return user, nil
 }
 
 func (p *CloudflareProvider) getVerifier(ctx context.Context) *oidc.IDTokenVerifier {

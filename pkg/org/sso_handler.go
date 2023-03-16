@@ -215,9 +215,12 @@ func (h *SSOMethodHandler) exchange(
 		return nil, fmt.Errorf("oidc: claim is empty: %s", claim)
 	}
 
-	return &bunconf.User{
+	user := &bunconf.User{
 		Username: username,
-	}, nil
+	}
+	user.Init()
+
+	return user, nil
 }
 
 func randState(nByte int) (string, error) {

@@ -66,7 +66,14 @@
             <v-btn v-if="meta.traceRoute" depressed small :to="meta.traceRoute" exact>
               View trace
             </v-btn>
-            <v-btn v-if="meta.groupRoute" depressed small :to="meta.groupRoute" exact class="ml-2">
+            <v-btn
+              v-if="meta.spanGroupRoute"
+              depressed
+              small
+              :to="meta.spanGroupRoute"
+              exact
+              class="ml-2"
+            >
               View group
             </v-btn>
           </div>
@@ -228,7 +235,7 @@ function useMeta(props: Props) {
     }
   })
 
-  const groupRoute = computed(() => {
+  const spanGroupRoute = computed(() => {
     switch (route.value.name) {
       case 'SpanList':
       case 'EventList':
@@ -238,7 +245,7 @@ function useMeta(props: Props) {
     }
 
     return {
-      name: isEventSystem(props.span.system) ? 'EventGroupList' : 'SpanGroupList',
+      name: isEventSystem(props.span.system) ? 'EventList' : 'SpanList',
       query: {
         ...props.dateRange.queryParams(),
         system: props.span.system,
@@ -321,7 +328,7 @@ function useMeta(props: Props) {
     return bs
   })
 
-  return proxyRefs({ groupRoute, traceRoute, breadcrumbs })
+  return proxyRefs({ spanGroupRoute, traceRoute, breadcrumbs })
 }
 </script>
 

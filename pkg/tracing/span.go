@@ -10,7 +10,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/uuid"
-	"github.com/vmihailenco/msgpack/v5"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 )
@@ -268,16 +267,4 @@ func isErrorSystem(s string) bool {
 	default:
 		return false
 	}
-}
-
-func marshalSpan(span *Span) []byte {
-	b, err := msgpack.Marshal(span)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func unmarshalSpan(b []byte, span *Span) error {
-	return msgpack.Unmarshal(b, span)
 }
