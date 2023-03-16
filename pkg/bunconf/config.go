@@ -91,6 +91,9 @@ func validateConfig(conf *Config) error {
 	if _, err := url.Parse(conf.Site.Addr); err != nil {
 		return fmt.Errorf("invalid site.addr option: %w", err)
 	}
+	if conf.Site.Path == "" {
+		conf.Site.Path = "/"
+	}
 
 	if conf.Spans.BatchSize == 0 {
 		conf.Spans.BatchSize = ScaleWithCPU(1000, 32000)
@@ -160,6 +163,7 @@ type Config struct {
 
 	Site struct {
 		Addr string `yaml:"addr"`
+		Path string `yaml:"path"`
 	} `yaml:"site"`
 
 	Listen struct {
