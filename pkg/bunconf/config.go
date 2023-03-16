@@ -71,6 +71,9 @@ func expandEnv(conf string) string {
 }
 
 func validateConfig(conf *Config) error {
+	if err := validateUsers(conf.Auth.Users); err != nil {
+		return err
+	}
 	if err := validateProjects(conf.Projects); err != nil {
 		return err
 	}
@@ -108,6 +111,24 @@ func validateConfig(conf *Config) error {
 
 	if conf.DB.DSN == "" {
 		return fmt.Errorf(`db.dsn option can not be empty`)
+	}
+
+	return nil
+}
+
+func validateUsers(users []User) error {
+	if len(users) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]bool, len(users))
+	for i := range users {
+		user := &users[i]
+		if seen[user.Username] {
+			return fmt.Errorf("user with username=%q already exists", user.Username)
+		}
+
+		user.Init()
 	}
 
 	return nil
@@ -263,36 +284,6 @@ func (l *Listen) init() error {
 
 type CHTableOverride struct {
 	TTL string `yaml:"ttl"`
-}
-
-type User struct {
-	Username string `yaml:"username" json:"username"`
-	Password string `yaml:"password" json:"-"`
-}
-
-type CloudflareProvider struct {
-	TeamURL  string `yaml:"team_url" json:"team_url"`
-	Audience string `yaml:"audience" json:"audience"`
-}
-
-type OIDCProvider struct {
-	ID           string   `yaml:"id" json:"id"`
-	DisplayName  string   `yaml:"display_name" json:"display_name"`
-	IssuerURL    string   `yaml:"issuer_url" json:"issuer_url"`
-	ClientID     string   `yaml:"client_id" json:"client_id"`
-	ClientSecret string   `yaml:"client_secret" json:"client_secret"`
-	RedirectURL  string   `yaml:"redirect_url" json:"redirect_url"`
-	Scopes       []string `yaml:"scopes" json:"scopes"`
-	Claim        string   `yaml:"claim" json:"claim"`
-}
-
-type Project struct {
-	ID                  uint32   `yaml:"id" json:"id"`
-	Name                string   `yaml:"name" json:"name"`
-	Token               string   `yaml:"token" json:"token"`
-	PinnedAttrs         []string `yaml:"pinned_attrs" json:"pinnedAttrs"`
-	GroupByEnv          bool     `yaml:"group_by_env" json:"groupByEnv"`
-	GroupFuncsByService bool     `yaml:"group_funcs_by_service" json:"groupFuncsByService"`
 }
 
 func (c *Config) GRPCEndpoint() string {

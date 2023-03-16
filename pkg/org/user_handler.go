@@ -22,11 +22,8 @@ func NewUserHandler(app *bunapp.App) *UserHandler {
 }
 
 func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) error {
-	user, err := UserFromContext(req.Context())
-	if err != nil {
-		return err
-	}
-
+	ctx := req.Context()
+	user := UserFromContext(ctx)
 	return httputil.JSON(w, bunrouter.H{
 		"user":     user,
 		"projects": h.Config().Projects,

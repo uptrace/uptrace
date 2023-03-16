@@ -24,10 +24,23 @@ ch:
 
   # TLS configuration. Uncomment to enable.
   # tls:
-  #   insecure_skip_verify: true
+  #   insecure_skip_verify: true # only for self-signed certificates
 
   # Maximum query execution time.
   max_execution_time: 30s
+
+##
+## SQLite/PostgreSQL db that is used to store metadata such us metric names, dashboards, alerts,
+## and so on.
+##
+db:
+  # TODO: remove driver
+  driver: postgres
+  # Connection string for PostgreSQL database. For example:
+  # postgres://<user>:<password>@<host>:<port>/<database>?sslmode=disable
+  #
+  # See https://bun.uptrace.dev/postgres/
+  dsn: postgres://uptrace:uptrace@localhost:5432/uptrace?sslmode=disable
 
 ##
 ## A list of pre-configured projects. Each project is fully isolated.
@@ -39,7 +52,7 @@ projects:
     # Token grants write access to the project. Keep a secret.
     token: project1_secret_token
     pinned_attrs:
-      - service
+      - service.name
       - host.name
       - deployment.environment
     # Group spans by deployment.environment attribute.
@@ -53,7 +66,7 @@ projects:
     name: My project
     token: project2_secret_token
     pinned_attrs:
-      - service
+      - service.name
       - host.name
       - deployment.environment
     # Group spans by deployment.environment attribute.
@@ -159,15 +172,12 @@ alertmanager_client:
   urls:
     - 'http://localhost:9093/api/v2/alerts'
 
-##
-## To require authentication, uncomment one of the following sections.
-##
 auth:
-  # users:
-  #   - username: uptrace
-  #     password: uptrace
-  #   - username: admin
-  #     password: admin
+  users:
+    - username: uptrace
+      password: uptrace
+    - username: admin
+      password: admin
 
   # Cloudflare Zero Trust Access (Identity)
   # See https://developers.cloudflare.com/cloudflare-one/identity/ for more info.
@@ -235,7 +245,7 @@ listen:
     #   cert_file: config/tls/uptrace.crt
     #   key_file: config/tls/uptrace.key
 
-  # OTLP/HTTP API and Uptrace API with UI.
+  # OTLP/HTTP API and Uptrace API with Vue UI.
   http:
     addr: ':14318'
     # tls:
@@ -246,10 +256,9 @@ listen:
 ## Various options for Uptrace UI.
 ##
 site:
-  # Overrides public URL for Vue-powered UI in case you put Uptrace behind a proxy.
-  # By default, uses host and port from `listen.http` option.
+  # Overrides public URL for Vue-powered UI.
   #addr: 'https://uptrace.mydomain.com'
-  # The base path for Vue-powered UI in case you serve Uptrace UI behind a sub path.
+  # The base path for the Vue-powered UI in case you serve Uptrace UI behind a sub path.
   path: '/'
 
 ##
@@ -279,19 +288,6 @@ metrics:
 
   # The number of measures to insert in a single query.
   #batch_size: 10000
-
-##
-## SQLite/PostgreSQL db that is used to store metadata such us metric names, dashboards, alerts,
-## and so on.
-##
-db:
-  # Either sqlite or postgres.
-  driver: sqlite
-  # Database connection string.
-  #
-  # Uptrace automatically creates SQLite database file in the current working directory.
-  # Make sure the directory is writable by Uptrace process.
-  dsn: 'file:uptrace.sqlite3?_pragma=foreign_keys(1)&_pragma=busy_timeout(1000)'
 
 ##
 ## uptrace-go client configuration.

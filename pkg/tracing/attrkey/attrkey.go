@@ -38,7 +38,6 @@ const (
 	SpanEventErrorCount = "span.event_error_count"
 	SpanEventLogCount   = "span.event_log_count"
 
-	Service        = "service"
 	ServiceName    = "service.name"
 	ServiceVersion = "service.version"
 	PeerService    = "peer.service"
@@ -59,9 +58,11 @@ const (
 	DBOperation = "db.operation"
 	DBSqlTable  = "db.sql.table"
 
-	HTTPMethod = "http.method" // GET
-	HTTPRoute  = "http.route"
-	HTTPTarget = "http.target"
+	HTTPMethod      = "http.method" // GET
+	HTTPRoute       = "http.route"
+	HTTPTarget      = "http.target"
+	HTTPStatusCode  = "http.status_code"  // 200
+	HTTPStatusClass = "http.status_class" // 2xx
 
 	HTTPUserAgent          = "http.user_agent"
 	HTTPUserAgentName      = "http.user_agent.name"
@@ -88,7 +89,9 @@ const (
 	LogMessage        = "log.message"
 	LogSeverity       = "log.severity"
 	LogSeverityNumber = "log.severity_number"
-	LogFilepath       = "log.filepath"
+	LogSource         = "log.source"
+	LogFilePath       = "log.file.path"
+	LogFileName       = "log.file.name"
 
 	ExceptionType       = "exception.type"
 	ExceptionMessage    = "exception.message"
@@ -102,6 +105,7 @@ const (
 	TelemetrySDKLanguage = "telemetry.sdk.language"
 
 	CodeFunction          = "code.function"
+	CodeFilepath          = "code.filepath"
 	DeploymentEnvironment = "deployment.environment"
 )
 

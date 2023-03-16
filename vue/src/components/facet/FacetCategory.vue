@@ -1,5 +1,5 @@
 <template>
-  <div class="mb-2">
+  <div>
     <v-row>
       <v-col
         class="py-2 grey lighten-3 cursor-pointer"
@@ -14,16 +14,21 @@
     <v-row v-if="expandedInternal">
       <v-col class="pa-0 pb-4">
         <template v-for="(item, i) in items">
-          <v-divider v-if="i > 0" :key="`${item.text}-divider`" />
-          <SpanFacet
-            :key="item.text"
+          <v-divider v-if="i > 0" :key="`${item.value}-divider`" />
+          <FacetItem
+            :key="item.value"
+            :component="component"
             :axios-params="axiosParams"
-            :value="filtersState[item.text]"
-            :attr="item.text"
+            :value="filtersState[item.value]"
+            :attr="item.value"
+            :pending="pinnedFacetMan.pending"
             :expanded="itemExpanded(item, i)"
-            @input="$emit('update:filter', { attr: item.text, value: $event })"
-            @click:add-query="$emit('click:add-query', $event)"
+            :pinned="item.pinned"
+            @input="$emit('update:filter', { attr: item.value, op: '=', value: $event })"
+            @update:filter="$emit('update:filter', $event)"
             @click:close="$emit('click:close')"
+            @click:pin="pinFacet(item.value)"
+            @click:unpin="unpinFacet(item.value)"
           />
         </template>
       </v-col>
@@ -35,16 +40,21 @@
 import { defineComponent, shallowRef, PropType } from 'vue'
 
 // Composables
-import { Item, CATEGORY_CORE } from '@/tracing/query/use-span-facets'
+import { Item, Category } from '@/components/facet/types'
+import { usePinnedFacetManager } from '@/components/facet/use-pinned-facets'
 
 // Components
-import SpanFacet from '@/tracing/query/SpanFacet.vue'
+import FacetItem from '@/components/facet/FacetItem.vue'
 
 export default defineComponent({
-  name: 'SpanFacetsCategory',
-  components: { SpanFacet },
+  name: 'FacetItemsCategory',
+  components: { FacetItem },
 
   props: {
+    component: {
+      type: String,
+      required: true,
+    },
     axiosParams: {
       type: undefined as unknown as PropType<Record<string, any> | null>,
       required: true,
@@ -68,17 +78,40 @@ export default defineComponent({
     },
   },
 
-  setup(props) {
+  setup(props, ctx) {
+    const pinnedFacetMan = usePinnedFacetManager()
     const expandedInternal = shallowRef(props.expanded)
 
-    function itemExpanded(item: Item, index: number): boolean {
-      if (props.category === CATEGORY_CORE && index < 3) {
-        return true
-      }
-      return item.text in props.filtersState
+    function pinFacet(attr: string) {
+      pinnedFacetMan.add(attr).then(() => {
+        ctx.emit('update:pinned')
+      })
     }
 
-    return { expandedInternal, itemExpanded }
+    function unpinFacet(attr: string) {
+      pinnedFacetMan.remove(attr).then(() => {
+        ctx.emit('update:pinned')
+      })
+    }
+
+    function itemExpanded(item: Item, index: number): boolean {
+      switch (props.category) {
+        case Category.All:
+        case Category.Pinned:
+          return index < 3
+        default:
+          return item.value in props.filtersState
+      }
+    }
+
+    return {
+      expandedInternal,
+      itemExpanded,
+
+      pinnedFacetMan,
+      pinFacet,
+      unpinFacet,
+    }
   },
 })
 </script>

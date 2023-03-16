@@ -14,12 +14,36 @@
               expandedInternal ? 'mdi-chevron-down' : 'mdi-chevron-up'
             }}</v-icon>
             <span class="text-subtitle-2">{{ attr }}</span>
+            <span>
+              <v-btn
+                v-if="pinned"
+                :loading="pending"
+                icon
+                small
+                title="Unpin attribute"
+                class="ml-1"
+                @click.stop.prevent="$emit('click:unpin')"
+              >
+                <v-icon size="20" color="green darken-2">mdi-pin</v-icon>
+              </v-btn>
+              <v-btn
+                v-else
+                :loading="pending"
+                icon
+                small
+                title="Pin attribute to the top"
+                class="ml-1"
+                @click.stop.prevent="$emit('click:pin')"
+              >
+                <v-icon size="20">mdi-pin-outline</v-icon>
+              </v-btn>
+            </span>
           </div>
         </v-col>
         <v-col class="pl-4">
           <v-text-field
             v-if="hasSearch"
-            v-model="values.searchQuery"
+            v-model="values.searchInput"
             :loading="values.loading"
             prepend-inner-icon="mdi-magnify"
             outlined
@@ -30,23 +54,23 @@
         </v-col>
       </v-row>
 
-      <v-row v-if="values.searchQuery" no-gutters class="mt-1">
+      <v-row v-if="values.searchInput" no-gutters class="mt-1">
         <v-col>
           <v-list dense>
-            <v-list-item @click="$emit('click:add-query', likeQuery)">
+            <v-list-item @click="$emit('update:filter', likeFilter)">
               <v-list-item-icon class="mr-4">
                 <v-icon>mdi-magnify</v-icon>
               </v-list-item-icon>
               <v-list-item-content>
-                <v-list-item-title>{{ likeQuery }}</v-list-item-title>
+                <v-list-item-title>{{ filterString(likeFilter) }}</v-list-item-title>
               </v-list-item-content>
             </v-list-item>
-            <v-list-item @click="$emit('click:add-query', notLikeQuery)">
+            <v-list-item @click="$emit('update:filter', notLikeFilter)">
               <v-list-item-icon class="mr-4">
                 <v-icon>mdi-magnify</v-icon>
               </v-list-item-icon>
               <v-list-item-content>
-                <v-list-item-title>{{ notLikeQuery }}</v-list-item-title>
+                <v-list-item-title>{{ filterString(notLikeFilter) }}</v-list-item-title>
               </v-list-item-content>
             </v-list-item>
           </v-list>
@@ -55,15 +79,15 @@
 
       <v-row v-if="expandedInternal" no-gutters class="mt-1">
         <v-col>
-          <SpanFacetBody
+          <FacetItemBody
             :value="value"
             :items="values.items"
-            :search-query.sync="values.searchQuery"
+            :search-query.sync="values.searchInput"
             show-search
             @input="$emit('input', $event)"
             @click:close="$emit('click:close')"
           >
-          </SpanFacetBody>
+          </FacetItemBody>
         </v-col>
       </v-row>
     </div>
@@ -74,19 +98,22 @@
 import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
-import { useSpanAttrValues } from '@/tracing/query/use-span-facets'
+import { useRoute } from '@/use/router'
+import { useDataSource } from '@/use/datasource'
+import { Filter } from '@/components/facet/types'
 
 // Components
-import SpanFacetBody from '@/tracing/query/SpanFacetBody.vue'
-
-// Utilities
-import { quote } from '@/util/string'
+import FacetItemBody from '@/components/facet/FacetItemBody.vue'
 
 export default defineComponent({
   name: 'SpanFacet',
-  components: { SpanFacetBody },
+  components: { FacetItemBody },
 
   props: {
+    component: {
+      type: String,
+      required: true,
+    },
     axiosParams: {
       type: undefined as unknown as PropType<Record<string, any> | null>,
       required: true,
@@ -103,39 +130,71 @@ export default defineComponent({
       type: Boolean,
       required: true,
     },
+    pinned: {
+      type: Boolean,
+      required: true,
+    },
+    pending: {
+      type: Boolean,
+      required: true,
+    },
   },
 
   setup(props) {
+    const route = useRoute()
     const expandedInternal = shallowRef(props.expanded)
 
-    const values = useSpanAttrValues(() => {
+    const values = useDataSource(() => {
       if (!props.axiosParams) {
         return props.axiosParams
       }
       if (!expandedInternal.value) {
-        return { _: undefined }
+        return undefined
       }
+      const { projectId } = route.value.params
       return {
-        ...props.axiosParams,
-        attr_key: props.attr,
+        url: `/api/v1/${props.component}/${projectId}/attr-values`,
+        params: {
+          ...props.axiosParams,
+          attr_key: props.attr,
+        },
+        debounce: 500,
       }
     })
 
     const hasSearch = computed(() => {
-      return expandedInternal.value && (values.items.length > 10 || values.searchQuery)
+      return expandedInternal.value && (values.items.length > 10 || values.searchInput)
     })
 
-    const likeQuery = computed(() => {
-      const value = `%${values.searchQuery}%`
-      return `${props.attr} like ${quote(value)}`
+    const likeFilter = computed(() => {
+      return {
+        attr: props.attr,
+        op: 'like',
+        value: [`%${values.searchInput}%`],
+      }
     })
 
-    const notLikeQuery = computed(() => {
-      const value = `%${values.searchQuery}%`
-      return `${props.attr} not like ${quote(value)}`
+    const notLikeFilter = computed(() => {
+      return {
+        attr: props.attr,
+        op: 'not like',
+        value: [`%${values.searchInput}%`],
+      }
     })
 
-    return { expandedInternal, values, hasSearch, likeQuery, notLikeQuery }
+    function filterString(f: Filter) {
+      return `${f.attr} ${f.op} ${f.value}`
+    }
+
+    return {
+      expandedInternal,
+      values,
+      hasSearch,
+
+      likeFilter,
+      notLikeFilter,
+      filterString,
+    }
   },
 })
 </script>

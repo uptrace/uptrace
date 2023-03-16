@@ -15,11 +15,11 @@ func Init(ctx context.Context, app *bunapp.App) {
 
 func registerRoutes(ctx context.Context, app *bunapp.App) {
 	middleware := NewMiddleware(app)
-	userHandler := NewUserHandler(app)
+	api := app.APIGroup()
 
-	g := app.APIGroup()
+	api.WithGroup("/users", func(g *bunrouter.Group) {
+		userHandler := NewUserHandler(app)
 
-	g.WithGroup("/users", func(g *bunrouter.Group) {
 		g.POST("/login", userHandler.Login)
 		g.POST("/logout", userHandler.Logout)
 
@@ -28,33 +28,45 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 		g.GET("/current", userHandler.Current)
 	})
 
-	g.WithGroup("/sso", func(g *bunrouter.Group) {
+	api.WithGroup("/sso", func(g *bunrouter.Group) {
 		ssoHandler := NewSSOHandler(app, g)
 
 		g.GET("/methods", ssoHandler.ListMethods)
 	})
 
-	g.GET("/projects/:project_id", func(w http.ResponseWriter, req bunrouter.Request) error {
-		projectID, err := req.Params().Uint32("project_id")
-		if err != nil {
-			return err
-		}
+	api.
+		Use(middleware.User).
+		GET("/projects/:project_id", func(w http.ResponseWriter, req bunrouter.Request) error {
+			projectID, err := req.Params().Uint32("project_id")
+			if err != nil {
+				return err
+			}
 
-		project, err := SelectProject(ctx, app, projectID)
-		if err != nil {
-			return err
-		}
+			project, err := SelectProject(ctx, app, projectID)
+			if err != nil {
+				return err
+			}
 
-		return httputil.JSON(w, bunrouter.H{
-			"project": project,
-			"grpc": bunrouter.H{
-				"endpoint": app.Config().GRPCEndpoint(),
-				"dsn":      app.Config().GRPCDsn(project),
-			},
-			"http": bunrouter.H{
-				"endpoint": app.Config().HTTPEndpoint(),
-				"dsn":      app.Config().HTTPDsn(project),
-			},
+			return httputil.JSON(w, bunrouter.H{
+				"project": project,
+				"grpc": bunrouter.H{
+					"endpoint": app.Config().GRPCEndpoint(),
+					"dsn":      app.Config().GRPCDsn(project),
+				},
+				"http": bunrouter.H{
+					"endpoint": app.Config().HTTPEndpoint(),
+					"dsn":      app.Config().HTTPDsn(project),
+				},
+			})
 		})
-	})
+
+	api.
+		Use(middleware.User).
+		WithGroup("/pinned-facets", func(g *bunrouter.Group) {
+			handler := NewPinnedFacetHandler(app)
+
+			g.GET("", handler.List)
+			g.POST("", handler.Add)
+			g.DELETE("", handler.Remove)
+		})
 }
