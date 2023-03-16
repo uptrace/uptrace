@@ -38,7 +38,6 @@ const (
 	SpanEventErrorCount = "span.event_error_count"
 	SpanEventLogCount   = "span.event_log_count"
 
-	Service        = "service"
 	ServiceName    = "service.name"
 	ServiceVersion = "service.version"
 	PeerService    = "peer.service"
