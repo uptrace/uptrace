@@ -258,6 +258,8 @@ listen:
 site:
   # Overrides public URL for Vue-powered UI.
   #addr: 'https://uptrace.mydomain.com'
+  # The base path for the Vue-powered UI in case you serve Uptrace UI behind a sub path.
+  path: '/'
 
 ##
 ## Spans processing options.

@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
@@ -141,7 +143,7 @@ var serveCommand = &cli.Command{
 		var group run.Group
 
 		{
-			handleStaticFiles(app.Router(), uptrace.DistFS())
+			handleStaticFiles(app, uptrace.DistFS())
 			handler := app.HTTPHandler()
 			handler = gzhttp.GzipHandler(handler)
 			handler = httputil.DecompressHandler{Next: handler}
@@ -311,7 +313,11 @@ func runCHMigrations(ctx context.Context, app *bunapp.App) error {
 	return nil
 }
 
-func handleStaticFiles(router *bunrouter.Router, fsys fs.FS) {
+func handleStaticFiles(app *bunapp.App, fsys fs.FS) {
+	conf := app.Config()
+	router := app.Router()
+
+	fsys = newVueFS(fsys, conf.Site.Path)
 	httpFS := http.FS(fsys)
 	fileServer := http.FileServer(httpFS)
 
@@ -382,4 +388,51 @@ func genSampleTrace() {
 	_, child2 := tracer.Start(ctx, "child2-of-main")
 	child2.SetAttributes(attribute.Int("key2", 42), attribute.Float64("key3", 123.456))
 	child2.End()
+}
+
+//------------------------------------------------------------------------------
+
+func newVueFS(fsys fs.FS, publicPath string) *vueFS {
+	return &vueFS{
+		fs:         fsys,
+		publicPath: publicPath,
+	}
+}
+
+type vueFS struct {
+	fs         fs.FS
+	publicPath string
+}
+
+var _ fs.FS = (*vueFS)(nil)
+
+func (v *vueFS) Open(name string) (fs.File, error) {
+	if !strings.HasSuffix(name, ".html") {
+		return v.fs.Open(name)
+	}
+
+	f, err := v.fs.Open(name)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	data = bytes.ReplaceAll(data, []byte("/UPTRACE_PLACEHOLDER/"), []byte(v.publicPath))
+
+	return &vueFile{
+		File: f,
+		rd:   bytes.NewReader(data),
+	}, nil
+}
+
+type vueFile struct {
+	fs.File
+	rd io.Reader
+}
+
+func (f *vueFile) Read(b []byte) (int, error) {
+	return f.rd.Read(b)
 }
