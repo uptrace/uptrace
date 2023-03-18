@@ -109,10 +109,6 @@ func validateConfig(conf *Config) error {
 		conf.Metrics.BufferSize = 2 * runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
 	}
 
-	if conf.DB.DSN == "" {
-		return fmt.Errorf(`db.dsn option can not be empty`)
-	}
-
 	return nil
 }
 
@@ -171,7 +167,7 @@ type Config struct {
 		GRPC Listen `yaml:"grpc"`
 	} `yaml:"listen"`
 
-	DB BunConfig `yaml:"db"`
+	PG BunConfig `yaml:"pg"`
 	CH CHConfig  `yaml:"ch"`
 
 	CHSchema struct {
@@ -314,8 +310,16 @@ func (c *Config) SitePath(sitePath string) string {
 }
 
 type BunConfig struct {
-	Driver string `yaml:"driver"`
-	DSN    string `yaml:"dsn"`
+	DSN string `yaml:"dsn"`
+
+	Addr     string `yaml:"addr"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	Database string `yaml:"database"`
+
+	TLS *TLSClient `yaml:"tls"`
+
+	ConnParams map[string]any `yaml:"conn_params"`
 }
 
 type CHConfig struct {
