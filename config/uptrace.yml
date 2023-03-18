@@ -33,14 +33,15 @@ ch:
 ## SQLite/PostgreSQL db that is used to store metadata such us metric names, dashboards, alerts,
 ## and so on.
 ##
-db:
-  # TODO: remove driver
-  driver: postgres
-  # Connection string for PostgreSQL database. For example:
-  # postgres://<user>:<password>@<host>:<port>/<database>?sslmode=disable
-  #
-  # See https://bun.uptrace.dev/postgres/
-  dsn: postgres://uptrace:uptrace@localhost:5432/uptrace?sslmode=disable
+pg:
+  addr: localhost:5432
+  user: uptrace
+  password: uptrace
+  database: uptrace
+
+  # TLS configuration. Uncomment to enable.
+  # tls:
+  #   insecure_skip_verify: true # only for self-signed certificates
 
 ##
 ## A list of pre-configured projects. Each project is fully isolated.

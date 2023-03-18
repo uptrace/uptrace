@@ -130,7 +130,7 @@ var serveCommand = &cli.Command{
 			return err
 		}
 
-		if err := initSqlite(ctx, app); err != nil {
+		if err := initPostgres(ctx, app); err != nil {
 			return err
 		}
 		if err := initClickhouse(ctx, app); err != nil {
@@ -215,18 +215,10 @@ var serveCommand = &cli.Command{
 	},
 }
 
-func initSqlite(ctx context.Context, app *bunapp.App) error {
+func initPostgres(ctx context.Context, app *bunapp.App) error {
 	if err := app.DB.Ping(); err != nil {
-		conf := app.Config()
-		if conf.DB.Driver == "sqlite" {
-			app.Logger.Error("SQLite Ping failed; make sure dir is writable (edit db.dsn YAML option)",
-				zap.String("dsn", app.Config().DB.DSN),
-				zap.Error(err))
-		} else {
-			app.Logger.Error("PostgreSQL Ping failed (edit db.dsn YAML option)",
-				zap.String("dsn", app.Config().DB.DSN),
-				zap.Error(err))
-		}
+		app.Logger.Error("PostgreSQL Ping failed (edit `pg` YAML option)",
+			zap.Error(err))
 		return err
 	}
 
@@ -270,8 +262,7 @@ func runBunMigrations(ctx context.Context, app *bunapp.App) error {
 
 func initClickhouse(ctx context.Context, app *bunapp.App) error {
 	if err := app.CH.Ping(ctx); err != nil {
-		app.Logger.Error("ClickHouse Ping failed (edit ch.dsn YAML option)",
-			zap.String("dsn", app.Config().CH.DSN),
+		app.Logger.Error("ClickHouse Ping failed (edit `ch` YAML option)",
 			zap.Error(err))
 		return err
 	}
