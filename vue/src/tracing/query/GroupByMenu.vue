@@ -31,10 +31,9 @@
           </v-row>
           <v-row dense>
             <v-col>
-              <SimpleSuggestions
+              <Combobox
                 v-model="column"
-                :loading="suggestions.loading"
-                :suggestions="suggestions"
+                :data-source="suggestions"
                 :rules="rules.column"
                 label="Column"
                 dense
@@ -61,11 +60,11 @@ import { defineComponent, shallowRef, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { AxiosParams } from '@/use/axios'
-import { useSuggestions, Suggestion } from '@/use/suggestions'
+import { useDataSource, Item } from '@/use/datasource'
 import { UseUql } from '@/use/uql'
 
 // Components
-import SimpleSuggestions from '@/components/SimpleSuggestions.vue'
+import Combobox from '@/components/Combobox.vue'
 import UqlChip from '@/components/UqlChip.vue'
 
 // Utilities
@@ -73,15 +72,15 @@ import { AttrKey } from '@/models/otel'
 import { requiredRule } from '@/util/validation'
 
 const groupColumns = [
+  AttrKey.spanSystem,
   AttrKey.spanGroupId,
   AttrKey.serviceName,
   AttrKey.hostName,
-  AttrKey.dbOperation,
 ]
 
 export default defineComponent({
   name: 'GroupByMenu',
-  components: { SimpleSuggestions, UqlChip },
+  components: { Combobox, UqlChip },
 
   props: {
     uql: {
@@ -102,7 +101,7 @@ export default defineComponent({
     const { route } = useRouter()
 
     const menu = shallowRef(false)
-    const column = shallowRef<Suggestion>()
+    const column = shallowRef<Item>()
 
     const form = shallowRef()
     const isValid = shallowRef(false)
@@ -110,7 +109,7 @@ export default defineComponent({
       column: [requiredRule],
     }
 
-    const suggestions = useSuggestions(
+    const suggestions = useDataSource(
       () => {
         if (!menu.value) {
           return null
@@ -118,7 +117,7 @@ export default defineComponent({
 
         const { projectId } = route.value.params
         return {
-          url: `/api/v1/tracing/${projectId}/suggestions/attributes`,
+          url: `/api/v1/tracing/${projectId}/attr-keys`,
           params: {
             ...props.axiosParams,
           },
@@ -142,9 +141,9 @@ export default defineComponent({
 
       const editor = props.uql.createEditor()
       if (replace) {
-        editor.replaceGroupBy(column.value.text)
+        editor.resetGroupBy(column.value.value)
       } else {
-        editor.addGroupBy(column.value.text)
+        editor.addGroupBy(column.value.value)
       }
       props.uql.commitEdits(editor)
 

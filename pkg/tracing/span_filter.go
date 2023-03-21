@@ -29,8 +29,8 @@ type SpanFilter struct {
 	Column string
 
 	// For attrs suggestions.
-	AttrKey   string
-	AttrValue string
+	AttrKey     string
+	SearchInput string
 
 	parts     []*upql.QueryPart
 	columnMap map[string]bool

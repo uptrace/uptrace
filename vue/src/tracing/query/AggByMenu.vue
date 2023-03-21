@@ -1,7 +1,7 @@
 <template>
   <v-menu v-model="menu" offset-y :close-on-content-click="false">
     <template #activator="{ on, attrs }">
-      <v-btn :disabled="disabled" text class="v-btn--filter" v-bind="attrs" v-on="on"> Agg </v-btn>
+      <v-btn text class="v-btn--filter" :disabled="disabled" v-bind="attrs" v-on="on"> Agg </v-btn>
     </template>
     <v-form ref="form" v-model="isValid" @submit.prevent="addFilter">
       <v-card width="400px">
@@ -26,7 +26,7 @@
           </div>
 
           <v-row class="mb-n1">
-            <v-col> Select a function and then a column: <strong>func(column)</strong>. </v-col>
+            <v-col>Select a function and then a column: <strong>func(column)</strong>.</v-col>
           </v-row>
           <v-row dense class="mb-n6">
             <v-col :cols="5">
@@ -42,13 +42,12 @@
               ></v-autocomplete>
             </v-col>
             <v-col :cols="7">
-              <SimpleSuggestions
+              <Combobox
                 v-model="column"
-                :loading="suggestions.loading"
-                :suggestions="suggestions"
+                :data-source="suggestions"
                 label="Column"
                 :rules="rules.column"
-                :disabled="!func || func.isColumn"
+                :disabled="!func"
                 dense
                 class="fit"
               />
@@ -72,37 +71,40 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { AxiosParams } from '@/use/axios'
-import { useSuggestions, Suggestion } from '@/use/suggestions'
+import { useDataSource, Item } from '@/use/datasource'
 import { UseUql } from '@/use/uql'
 
 // Components
-import SimpleSuggestions from '@/components/SimpleSuggestions.vue'
+import Combobox from '@/components/Combobox.vue'
 import UqlChip from '@/components/UqlChip.vue'
 
 // Utilities
 import { AttrKey } from '@/models/otel'
 import { requiredRule } from '@/util/validation'
 
+const AGG_FUNCS = [
+  { name: 'sum' },
+  { name: 'avg' },
+  { name: 'min' },
+  { name: 'max' },
+  { name: 'uniq' },
+
+  { name: 'any' },
+  { name: 'anyLast' },
+  { name: 'top3' },
+  { name: 'top10' },
+
+  { name: 'p50' },
+  { name: 'p75' },
+  { name: 'p90' },
+  { name: 'p95' },
+  { name: 'p99' },
+]
 interface FuncItem {
   text: string
   value: string
 }
 
-const aggFuncs = [
-  'any',
-  'top3',
-  'top10',
-  'avg',
-  'uniq',
-  'p50',
-  'p75',
-  'p90',
-  'p95',
-  'p99',
-  'min',
-  'max',
-  'sum',
-]
 const aggColumns = [
   { name: AttrKey.spanCount, tooltip: 'Number of spans in a group' },
   { name: AttrKey.spanCountPerMin, tooltip: 'Number of spans per minute in a group' },
@@ -115,7 +117,7 @@ const aggColumns = [
 
 export default defineComponent({
   name: 'AggFilterMenu',
-  components: { SimpleSuggestions, UqlChip },
+  components: { Combobox, UqlChip },
 
   props: {
     uql: {
@@ -134,9 +136,10 @@ export default defineComponent({
 
   setup(props) {
     const { route } = useRouter()
+
     const menu = shallowRef(false)
     const func = shallowRef<FuncItem>()
-    const column = shallowRef<Suggestion>()
+    const column = shallowRef<Item>()
 
     const form = shallowRef()
     const isValid = shallowRef(false)
@@ -145,7 +148,7 @@ export default defineComponent({
       column: [isColumnValid],
     }
 
-    const suggestions = useSuggestions(
+    const suggestions = useDataSource(
       () => {
         if (!menu.value) {
           return null
@@ -153,7 +156,7 @@ export default defineComponent({
 
         const { projectId } = route.value.params
         return {
-          url: `/api/v1/tracing/${projectId}/suggestions/attributes`,
+          url: `/api/v1/tracing/${projectId}/attr-keys`,
           params: {
             ...props.axiosParams,
             func: func.value?.value,
@@ -165,11 +168,9 @@ export default defineComponent({
 
     const funcItems = computed((): FuncItem[] => {
       const items: FuncItem[] = []
-
-      for (let func of aggFuncs) {
-        items.push({ value: func, text: func + '(...)' })
+      for (let func of AGG_FUNCS) {
+        items.push({ value: func.name, text: func.name + '(...)' })
       }
-
       return items
     })
 
@@ -178,7 +179,7 @@ export default defineComponent({
         return
       }
 
-      const query = `${func.value.value}(${column.value.text})`
+      const query = `${func.value.value}(${column.value.value})`
       aggBy(query)
 
       func.value = undefined

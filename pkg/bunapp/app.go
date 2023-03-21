@@ -14,7 +14,6 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
-	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bundebug"
 	"github.com/uptrace/bun/extra/bunotel"
@@ -134,7 +133,7 @@ func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
 	if err := app.initGRPC(); err != nil {
 		return nil, err
 	}
-	app.DB = app.newDB()
+	app.DB = app.newPG()
 	app.CH = app.newCH()
 	app.Notifier = NewNotifier(conf.AlertmanagerClient.URLs)
 
@@ -324,34 +323,49 @@ func (app *App) GRPCServer() *grpc.Server {
 
 //------------------------------------------------------------------------------
 
-func (app *App) newDB() *bun.DB {
-	db := app.newBunDB()
+func (app *App) newPG() *bun.DB {
+	conf := app.conf.PG
+
+	var options []pgdriver.Option
+
+	if conf.DSN != "" {
+		options = append(options, pgdriver.WithDSN(conf.DSN))
+	}
+	if conf.Addr != "" {
+		options = append(options, pgdriver.WithAddr(conf.Addr))
+	}
+	if conf.User != "" {
+		options = append(options, pgdriver.WithUser(conf.User))
+	}
+	if conf.Password != "" {
+		options = append(options, pgdriver.WithPassword(conf.Password))
+	}
+	if conf.Database != "" {
+		options = append(options, pgdriver.WithDatabase(conf.Database))
+	}
+	if conf.TLS != nil {
+		tlsConf, err := conf.TLS.TLSConfig()
+		if err != nil {
+			panic(fmt.Errorf("pgdriver.tls option failed: %w", err))
+		}
+		options = append(options, pgdriver.WithTLSConfig(tlsConf))
+	} else {
+		options = append(options, pgdriver.WithInsecure(true))
+	}
+	if len(conf.ConnParams) > 0 {
+		options = append(options, pgdriver.WithConnParams(conf.ConnParams))
+	}
+
+	pgdb := sql.OpenDB(pgdriver.NewConnector(options...))
+	db := bun.NewDB(pgdb, pgdialect.New())
+
 	db.AddQueryHook(bundebug.NewQueryHook(
 		bundebug.WithEnabled(app.Debugging()),
 		bundebug.FromEnv("BUNDEBUG", "DEBUG"),
 	))
 	db.AddQueryHook(bunotel.NewQueryHook())
+
 	return db
-}
-
-func (app *App) newBunDB() *bun.DB {
-	switch driverName := app.conf.DB.Driver; driverName {
-	case "", "sqlite":
-		sqldb, err := sql.Open("sqlite", app.conf.DB.DSN)
-		if err != nil {
-			panic(err)
-		}
-
-		db := bun.NewDB(sqldb, sqlitedialect.New())
-		db.SetMaxOpenConns(1)
-		db.SetMaxIdleConns(1)
-		return db
-	case "postgres":
-		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(app.conf.DB.DSN)))
-		return bun.NewDB(sqldb, pgdialect.New())
-	default:
-		panic(fmt.Errorf("unsupported database/sql driver: %q", driverName))
-	}
 }
 
 //------------------------------------------------------------------------------

@@ -11,7 +11,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/cespare/xxhash/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -72,6 +71,9 @@ func expandEnv(conf string) string {
 }
 
 func validateConfig(conf *Config) error {
+	if err := validateUsers(conf.Auth.Users); err != nil {
+		return err
+	}
 	if err := validateProjects(conf.Projects); err != nil {
 		return err
 	}
@@ -89,6 +91,9 @@ func validateConfig(conf *Config) error {
 	if _, err := url.Parse(conf.Site.Addr); err != nil {
 		return fmt.Errorf("invalid site.addr option: %w", err)
 	}
+	if conf.Site.Path == "" {
+		conf.Site.Path = "/"
+	}
 
 	if conf.Spans.BatchSize == 0 {
 		conf.Spans.BatchSize = ScaleWithCPU(1000, 32000)
@@ -104,8 +109,22 @@ func validateConfig(conf *Config) error {
 		conf.Metrics.BufferSize = 2 * runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
 	}
 
-	if conf.DB.DSN == "" {
-		return fmt.Errorf(`db.dsn option can not be empty`)
+	return nil
+}
+
+func validateUsers(users []User) error {
+	if len(users) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]bool, len(users))
+	for i := range users {
+		user := &users[i]
+		if seen[user.Username] {
+			return fmt.Errorf("user with username=%q already exists", user.Username)
+		}
+
+		user.Init()
 	}
 
 	return nil
@@ -140,6 +159,7 @@ type Config struct {
 
 	Site struct {
 		Addr string `yaml:"addr"`
+		Path string `yaml:"path"`
 	} `yaml:"site"`
 
 	Listen struct {
@@ -147,7 +167,7 @@ type Config struct {
 		GRPC Listen `yaml:"grpc"`
 	} `yaml:"listen"`
 
-	DB BunConfig `yaml:"db"`
+	PG BunConfig `yaml:"pg"`
 	CH CHConfig  `yaml:"ch"`
 
 	CHSchema struct {
@@ -262,40 +282,6 @@ type CHTableOverride struct {
 	TTL string `yaml:"ttl"`
 }
 
-type User struct {
-	Username string `yaml:"username" json:"username"`
-	Password string `yaml:"password" json:"-"`
-}
-
-func (u *User) Hash() uint64 {
-	return xxhash.Sum64(append([]byte(u.Username), []byte(u.Password)...))
-}
-
-type CloudflareProvider struct {
-	TeamURL  string `yaml:"team_url" json:"team_url"`
-	Audience string `yaml:"audience" json:"audience"`
-}
-
-type OIDCProvider struct {
-	ID           string   `yaml:"id" json:"id"`
-	DisplayName  string   `yaml:"display_name" json:"display_name"`
-	IssuerURL    string   `yaml:"issuer_url" json:"issuer_url"`
-	ClientID     string   `yaml:"client_id" json:"client_id"`
-	ClientSecret string   `yaml:"client_secret" json:"client_secret"`
-	RedirectURL  string   `yaml:"redirect_url" json:"redirect_url"`
-	Scopes       []string `yaml:"scopes" json:"scopes"`
-	Claim        string   `yaml:"claim" json:"claim"`
-}
-
-type Project struct {
-	ID                  uint32   `yaml:"id" json:"id"`
-	Name                string   `yaml:"name" json:"name"`
-	Token               string   `yaml:"token" json:"token"`
-	PinnedAttrs         []string `yaml:"pinned_attrs" json:"pinnedAttrs"`
-	GroupByEnv          bool     `yaml:"group_by_env" json:"groupByEnv"`
-	GroupFuncsByService bool     `yaml:"group_funcs_by_service" json:"groupFuncsByService"`
-}
-
 func (c *Config) GRPCEndpoint() string {
 	return fmt.Sprintf("%s://%s:%s", c.Listen.GRPC.Scheme, c.Listen.GRPC.Host, c.Listen.GRPC.Port)
 }
@@ -324,8 +310,16 @@ func (c *Config) SitePath(sitePath string) string {
 }
 
 type BunConfig struct {
-	Driver string `yaml:"driver"`
-	DSN    string `yaml:"dsn"`
+	DSN string `yaml:"dsn"`
+
+	Addr     string `yaml:"addr"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	Database string `yaml:"database"`
+
+	TLS *TLSClient `yaml:"tls"`
+
+	ConnParams map[string]any `yaml:"conn_params"`
 }
 
 type CHConfig struct {

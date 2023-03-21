@@ -33,14 +33,15 @@ ch:
 ## SQLite/PostgreSQL db that is used to store metadata such us metric names, dashboards, alerts,
 ## and so on.
 ##
-db:
-  # TODO: remove driver
-  driver: postgres
-  # Connection string for PostgreSQL database. For example:
-  # postgres://<user>:<password>@<host>:<port>/<database>?sslmode=disable
-  #
-  # See https://bun.uptrace.dev/postgres/
-  dsn: postgres://uptrace:uptrace@postgres:5432/uptrace?sslmode=disable
+pg:
+  addr: localhost:5432
+  user: uptrace
+  password: uptrace
+  database: uptrace
+
+  # TLS configuration. Uncomment to enable.
+  # tls:
+  #   insecure_skip_verify: true # only for self-signed certificates
 
 ##
 ## A list of pre-configured projects. Each project is fully isolated.
@@ -52,7 +53,7 @@ projects:
     # Token grants write access to the project. Keep a secret.
     token: project1_secret_token
     pinned_attrs:
-      - service
+      - service.name
       - host.name
       - deployment.environment
     # Group spans by deployment.environment attribute.
@@ -66,7 +67,7 @@ projects:
     name: My project
     token: project2_secret_token
     pinned_attrs:
-      - service
+      - service.name
       - host.name
       - deployment.environment
     # Group spans by deployment.environment attribute.
@@ -172,15 +173,12 @@ alertmanager_client:
   urls:
     - 'http://localhost:9093/api/v2/alerts'
 
-##
-## To require authentication, uncomment one of the following sections.
-##
 auth:
   users:
     - username: uptrace
       password: uptrace
-  #   - username: admin
-  #     password: admin
+    - username: admin
+      password: admin
 
   # Cloudflare Zero Trust Access (Identity)
   # See https://developers.cloudflare.com/cloudflare-one/identity/ for more info.
@@ -261,6 +259,8 @@ listen:
 site:
   # Overrides public URL for Vue-powered UI.
   #addr: 'https://uptrace.mydomain.com'
+  # The base path for the Vue-powered UI in case you serve Uptrace UI behind a sub path.
+  path: '/'
 
 ##
 ## Spans processing options.

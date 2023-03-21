@@ -142,7 +142,7 @@ const routes: RouteConfig[] = [
       },
       {
         name: 'SpanList',
-        path: 'spans',
+        path: 'items',
         component: TracingSpans,
       },
     ],

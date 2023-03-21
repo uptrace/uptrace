@@ -6,8 +6,8 @@
 
     <div class="border">
       <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pb-0">
-        <v-row align="center" justify="space-between" class="mb-4">
-          <v-col class="d-flex align-center">
+        <v-row align="center" class="mb-4">
+          <v-col cols="auto">
             <div class="mr-4">
               <SystemPicker
                 v-model="systems.activeSystem"
@@ -17,6 +17,14 @@
               />
             </div>
           </v-col>
+          <v-col cols="auto">
+            <v-btn-toggle mandatory group color="blue accent-3">
+              <v-btn :to="{ name: 'SpanGroupList' }">Spans</v-btn>
+              <v-btn :to="{ name: 'EventGroupList' }">Events</v-btn>
+            </v-btn-toggle>
+          </v-col>
+
+          <v-spacer />
 
           <v-col cols="auto">
             <DateRangePicker :date-range="dateRange" />

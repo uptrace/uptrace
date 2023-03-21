@@ -136,7 +136,7 @@ export default defineComponent({
     const route = useRoute()
     const dialog = useDialog()
 
-    useRouteQuery().onRouteUpdated(() => {
+    useRouteQuery().onRouteChanged(() => {
       dialog.close()
     })
 

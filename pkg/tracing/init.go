@@ -46,7 +46,6 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	router := app.Router()
 	spanHandler := NewSpanHandler(app)
 	traceHandler := NewTraceHandler(app)
-	suggestionHandler := NewSuggestionHandler(app)
 	middleware := org.NewMiddleware(app)
 
 	api := app.APIGroup()
@@ -84,17 +83,13 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			g.GET("/overview", sysHandler.Overview)
 		})
 
-	api.Use(middleware.UserAndProject).
-		WithGroup("/tracing/:project_id/saved-views", func(g *bunrouter.Group) {
-			viewHandler := NewSavedViewHandler(app)
+	api.
+		Use(middleware.UserAndProject).
+		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
+			attrHandler := NewAttrHandler(app)
 
-			g.GET("", viewHandler.List)
-
-			g.POST("", viewHandler.Create)
-			g.DELETE("/:view_id", viewHandler.Delete)
-
-			g.PUT("/:view_id/pinned", viewHandler.Pin)
-			g.PUT("/:view_id/unpinned", viewHandler.Unpin)
+			g.GET("/attr-keys", attrHandler.AttrKeys)
+			g.GET("/attr-values", attrHandler.AttrValues)
 		})
 
 	g.GET("/groups", spanHandler.ListGroups)
@@ -104,9 +99,4 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 
 	g.GET("/traces/:trace_id", traceHandler.ShowTrace)
 	g.GET("/traces/:trace_id/:span_id", traceHandler.ShowSpan)
-
-	g.WithGroup("/suggestions", func(g *bunrouter.Group) {
-		g.GET("/attributes", suggestionHandler.Attributes)
-		g.GET("/values", suggestionHandler.Values)
-	})
 }
