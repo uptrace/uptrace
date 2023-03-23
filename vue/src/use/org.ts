@@ -11,6 +11,8 @@ import { Project } from '@/use/project'
 
 export interface User {
   username: string
+  email: string
+  avatar: string
 }
 
 export type { Project }

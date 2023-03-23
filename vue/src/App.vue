@@ -41,18 +41,24 @@
             </v-btn>
 
             <v-menu v-if="user.isAuth" bottom offset-y>
-              <template #activator="{ on }">
-                <v-btn icon v-on="on">
-                  <v-icon>mdi-dots-vertical</v-icon>
+              <template #activator="{ attrs, on }">
+                <v-btn elevation="0" color="transparent" class="pl-1 pr-0" v-bind="attrs" v-on="on">
+                  <v-avatar size="26px">
+                    <img alt="Avatar" :src="user.current.avatar" />
+                  </v-avatar>
+                  <v-icon>mdi-menu-down</v-icon>
                 </v-btn>
               </template>
 
               <v-list>
                 <v-list-item>
                   <v-list-item-content>
-                    <v-list-item-title class="font-weight-bold">{{
-                      user.current.username || 'Anonymous'
-                    }}</v-list-item-title>
+                    <v-list-item-title class="font-weight-bold">
+                      {{ user.current.username || 'Anonymous' }}
+                    </v-list-item-title>
+                    <v-list-item-subtitle v-if="user.current.email">
+                      {{ user.current.email }}
+                    </v-list-item-subtitle>
                   </v-list-item-content>
                 </v-list-item>
 
