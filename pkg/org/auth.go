@@ -70,7 +70,7 @@ func NewMiddleware(app *bunapp.App) *Middleware {
 	conf := app.Config()
 
 	if len(conf.Auth.Users) > 0 || len(conf.Auth.OIDC) > 0 {
-		userProviders = append(userProviders, NewJWTProvider(conf.SecretKey))
+		userProviders = append(userProviders, NewJWTProvider(conf.Auth.Users, conf.SecretKey))
 	}
 	for _, cloudflare := range conf.Auth.Cloudflare {
 		userProviders = append(userProviders, NewCloudflareProvider(cloudflare))

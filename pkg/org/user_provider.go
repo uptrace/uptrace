@@ -20,11 +20,13 @@ type UserProvider interface {
 }
 
 type JWTProvider struct {
+	users     []bunconf.User
 	secretKey string
 }
 
-func NewJWTProvider(secretKey string) *JWTProvider {
+func NewJWTProvider(users []bunconf.User, secretKey string) *JWTProvider {
 	return &JWTProvider{
+		users:     users,
 		secretKey: secretKey,
 	}
 }
@@ -40,6 +42,13 @@ func (p *JWTProvider) Auth(req bunrouter.Request) (*bunconf.User, error) {
 	username, err := decodeUserToken(p.secretKey, cookie.Value)
 	if err != nil {
 		return nil, err
+	}
+
+	for i := range p.users {
+		user := &p.users[i]
+		if user.Username == username {
+			return user, nil
+		}
 	}
 
 	user := &bunconf.User{

@@ -60,7 +60,7 @@
         </v-list-item>
         <div class="my-4 d-flex justify-center">
           <v-btn
-            href="https://uptrace.dev/opentelemetry/span-naming.html#resource-attributes"
+            href="https://uptrace.dev/get/get-started.html#resource-attributes"
             target="_blank"
             color="primary"
           >
