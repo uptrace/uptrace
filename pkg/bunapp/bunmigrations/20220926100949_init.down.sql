@@ -18,4 +18,4 @@ DROP TABLE IF EXISTS rule_alerts;
 
 --bun:split
 
-DROP TABLE IF EXISTS dashboards;
+DROP TABLE IF EXISTS dashboards CASCADE;

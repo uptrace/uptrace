@@ -45,6 +45,7 @@ func (p *JWTProvider) Auth(req bunrouter.Request) (*bunconf.User, error) {
 	user := &bunconf.User{
 		Username: username,
 	}
+	user.Init()
 
 	return user, nil
 }
@@ -124,6 +125,7 @@ func (p *CloudflareProvider) Auth(req bunrouter.Request) (*bunconf.User, error) 
 		// TODO: is there a username?
 		Email: claims.Email,
 	}
+	user.Init()
 
 	return user, nil
 }

@@ -125,14 +125,6 @@ func (m *Middleware) userFromRequest(req bunrouter.Request) *bunconf.User {
 
 	for _, provider := range m.userProviders {
 		user, err := provider.Auth(req)
-
-		foundUser := findUserByUsername(m.app, user.Username)
-		if foundUser != nil {
-			user = foundUser
-		}
-
-		user.Init()
-
 		if err != nil {
 			if err != errNoUser {
 				m.app.Zap(ctx).Error("Auth failed", zap.Error(err))
@@ -179,17 +171,6 @@ func findUserByPassword(app *bunapp.App, username string, password string) *bunc
 		user := &users[i]
 		if subtle.ConstantTimeCompare([]byte(user.Username), []byte(username)) == 1 &&
 			subtle.ConstantTimeCompare([]byte(user.Password), []byte(password)) == 1 {
-			return user
-		}
-	}
-	return nil
-}
-
-func findUserByUsername(app *bunapp.App, username string) *bunconf.User {
-	users := app.Config().Auth.Users
-	for i := range users {
-		user := &users[i]
-		if subtle.ConstantTimeCompare([]byte(user.Username), []byte(username)) == 1 {
 			return user
 		}
 	}
