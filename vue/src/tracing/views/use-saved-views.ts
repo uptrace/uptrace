@@ -15,8 +15,6 @@ export interface SavedView {
   params: Record<string, any>
   query: Record<string, any>
   pinned: boolean
-
-  canDelete?: boolean
 }
 
 export type UseSavedViews = ReturnType<typeof useSavedViews>

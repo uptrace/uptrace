@@ -78,6 +78,7 @@ import { useUql } from '@/use/uql'
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import SystemPicker from '@/tracing/system/SystemPicker.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
+import SavedViews from '@/tracing/views/SavedViews.vue'
 
 interface Props {
   spanListRoute: string
@@ -90,6 +91,7 @@ export default defineComponent({
     DateRangePicker,
     SystemPicker,
     HelpCard,
+    SavedViews,
   },
 
   props: {

@@ -8,7 +8,6 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
-	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 )
@@ -17,7 +16,6 @@ type SavedViewDetails struct {
 	SavedView `bun:",inherit"`
 
 	User      *bunconf.User `json:"user" bun:"-"`
-	CanDelete bool          `json:"canDelete" bun:"-"`
 }
 
 type SavedViewHandler struct {
@@ -30,11 +28,6 @@ func NewSavedViewHandler(app *bunapp.App) *SavedViewHandler {
 
 func (h *SavedViewHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
-	user, err := org.UserFromContext(ctx)
-	if err != nil {
-		return err
-	}
-
 	project := org.ProjectFromContext(ctx)
 
 	views := make([]*SavedViewDetails, 0)
@@ -47,10 +40,6 @@ func (h *SavedViewHandler) List(w http.ResponseWriter, req bunrouter.Request) er
 		return err
 	}
 
-	for _, view := range views {
-		view.CanDelete = view.UserHash == user.Hash()
-	}
-
 	return httputil.JSON(w, bunrouter.H{
 		"views": views,
 	})
@@ -58,11 +47,6 @@ func (h *SavedViewHandler) List(w http.ResponseWriter, req bunrouter.Request) er
 
 func (h *SavedViewHandler) Create(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
-
-	user, err := org.UserFromContext(ctx)
-	if err != nil {
-		return err
-	}
 	project := org.ProjectFromContext(ctx)
 
 	var in struct {
@@ -83,7 +67,6 @@ func (h *SavedViewHandler) Create(w http.ResponseWriter, req bunrouter.Request) 
 	}
 
 	view := &SavedView{
-		UserHash:  user.Hash(),
 		ProjectID: project.ID,
 
 		Name:   in.Name,
@@ -105,23 +88,9 @@ func (h *SavedViewHandler) Create(w http.ResponseWriter, req bunrouter.Request) 
 func (h *SavedViewHandler) Delete(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	user, err := org.UserFromContext(ctx)
-	if err != nil {
-		return err
-	}
-
 	viewID, err := req.Params().Uint64("view_id")
 	if err != nil {
 		return err
-	}
-
-	view, err := h.selectView(ctx, viewID)
-	if err != nil {
-		return err
-	}
-
-	if view.UserHash != user.Hash() {
-		return httperror.Forbidden("You don't have permissions to delete this view")
 	}
 
 	if _, err := h.DB.NewDelete().
