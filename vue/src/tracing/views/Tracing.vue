@@ -32,13 +32,16 @@
         </v-row>
 
         <v-row align="end" no-gutters>
-          <v-col>
+          <v-col cols="auto">
             <v-tabs :key="$route.fullPath" background-color="transparent">
               <v-tab :to="routes.groupList" exact-path>Groups</v-tab>
               <v-tab :to="routes.spanList" exact-path>{{
                 $route.name.startsWith('Span') ? 'Spans' : 'Events'
               }}</v-tab>
             </v-tabs>
+          </v-col>
+          <v-col cols="auto" class="ml-16 align-self-center">
+            <SavedViews />
           </v-col>
         </v-row>
       </v-container>
@@ -75,6 +78,7 @@ import { useUql } from '@/use/uql'
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import SystemPicker from '@/tracing/system/SystemPicker.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
+import SavedViews from '@/tracing/views/SavedViews.vue'
 
 interface Props {
   spanListRoute: string
@@ -87,6 +91,7 @@ export default defineComponent({
     DateRangePicker,
     SystemPicker,
     HelpCard,
+    SavedViews,
   },
 
   props: {
