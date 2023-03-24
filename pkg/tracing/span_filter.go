@@ -259,7 +259,7 @@ func AppendCHColumn(b []byte, name upql.Name, dur time.Duration) []byte {
 			b, "sumIf(s.count, s.status_code = 'error') / sum(s.count)", dur.Minutes())
 	case attrkey.SpanIsEvent:
 		return chschema.AppendQuery(
-			b, "s.system IN (?)", ch.In(eventSystems))
+			b, "s.type IN (?)", ch.In(EventTypes))
 	default:
 		if name.FuncName != "" {
 			b = append(b, name.FuncName...)

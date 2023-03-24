@@ -1,5 +1,6 @@
 CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
   project_id UInt32 Codec(DoubleDelta, ?CODEC),
+  type LowCardinality(String) Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
   group_id UInt64 Codec(Delta, ?CODEC),
 
@@ -40,10 +41,7 @@ CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
   log_message String Codec(?CODEC),
 
   exception_type LowCardinality(String) Codec(?CODEC),
-  exception_message String Codec(?CODEC),
-
-  INDEX idx_attr_keys attr_keys TYPE bloom_filter(0.01) GRANULARITY 64,
-  INDEX idx_duration duration TYPE minmax GRANULARITY 1
+  exception_message String Codec(?CODEC)
 )
 ENGINE = ?(REPLICATED)MergeTree()
 ORDER BY (project_id, system, group_id, time)
@@ -55,10 +53,11 @@ SETTINGS ttl_only_drop_parts = 1,
 --migration:split
 
 CREATE TABLE ?DB.spans_data ?ON_CLUSTER (
+  project_id UInt32 Codec(Delta, ?CODEC),
+  type LowCardinality(String) Codec(?CODEC),
   trace_id UUID Codec(?CODEC),
   id UInt64 Codec(T64, ?CODEC),
   parent_id UInt64 Codec(?CODEC),
-  project_id UInt32 Codec(Delta, ?CODEC),
   time DateTime Codec(Delta, ?CODEC),
   data String Codec(?CODEC)
 )
@@ -67,7 +66,7 @@ ORDER BY (trace_id, id)
 PARTITION BY toDate(time)
 TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
-         index_granularity = 1024,
+         index_granularity = 2048,
          storage_policy = ?SPANS_STORAGE
 
 --migration:split

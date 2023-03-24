@@ -178,7 +178,7 @@ func (s *LogsServiceServer) convLog(resource AttrMap, lr *logspb.LogRecord) *Spa
 		span.TraceID = otlpTraceID(lr.TraceId)
 	}
 
-	span.EventName = SystemEventLog
+	span.EventName = otelEventLog
 	span.Kind = InternalSpanKind
 	span.Time = time.Unix(0, int64(lr.TimeUnixNano))
 
