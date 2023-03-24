@@ -9,6 +9,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/uuid"
+	"golang.org/x/exp/slices"
 )
 
 type TraceHandler struct {
@@ -61,11 +62,15 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 		return httperror.NotFound("Trace %q not found. Try again later.", traceID)
 	}
 
-	root := buildSpanTree(ctx, h.App, &spans)
+	root, numSpan := buildSpanTree(spans)
 	traceDur := root.TreeEndTime().Sub(root.Time)
 
-	_ = root.Walk(func(s, parent *Span) error {
-		s.StartPct = spanStartPct(s, root.Time, traceDur)
+	_ = root.Walk(func(span, parent *Span) error {
+		span.StartPct = spanStartPct(span, root.Time, traceDur)
+
+		slices.SortFunc(span.Children, func(a, b *Span) bool { return a.Time.Before(b.Time) })
+		slices.SortFunc(span.Events, func(a, b *Span) bool { return a.Time.Before(b.Time) })
+
 		return nil
 	})
 
@@ -75,7 +80,8 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 			"time":     root.Time,
 			"duration": traceDur,
 		},
-		"root": root,
+		"root":    root,
+		"numSpan": numSpan,
 	})
 }
 

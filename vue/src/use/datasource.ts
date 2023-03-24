@@ -49,13 +49,18 @@ export function useDataSourceRefs<T extends Item>(
 
   const items = computed((): T[] => {
     const items: T[] = data.value?.[dataKey] ?? []
-    return items.map((item) => {
-      if (!item.text) {
-        item.text = item.value
-      }
-      return item
-    })
+    return items.map((item) => normItem(item))
   })
+
+  function normItem(item: T) {
+    if (item.text) {
+      return item
+    }
+    return {
+      ...item,
+      text: item.value,
+    }
+  }
 
   const filteredItems = computed((): T[] => {
     let filtered = items.value.slice()
@@ -70,11 +75,11 @@ export function useDataSourceRefs<T extends Item>(
     }
 
     if (suggestSearchInput) {
-      const item = { value: searchInput.value }
+      const item = normItem({ value: searchInput.value } as T)
       if (filtered.length <= 5) {
-        filtered.push(item as T)
+        filtered.push(item)
       } else {
-        filtered.unshift(item as T)
+        filtered.unshift(item)
       }
     }
 

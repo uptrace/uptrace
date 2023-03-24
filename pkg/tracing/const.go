@@ -1,43 +1,53 @@
 package tracing
 
-import (
-	"strings"
+const (
+	SpanTypeFuncs     = "funcs"
+	SpanTypeHTTP      = "http"
+	SpanTypeDB        = "db"
+	SpanTypeRPC       = "rpc"
+	SpanTypeMessaging = "messaging"
+	SpanTypeFAAS      = "faas"
 
-	"github.com/uptrace/uptrace/pkg/bunotel"
+	EventTypeLog        = "log"
+	EventTypeExceptions = "exceptions"
+	EventTypeMessage    = "message"
+	EventTypeOther      = "other-events"
 )
 
 const (
-	SystemUnknown   = "unknown"
+	SystemUnknown = "unknown"
+
 	SystemAll       = "all"
 	SystemEventsAll = "events:all"
 	SystemSpansAll  = "spans:all"
 
-	SystemSpanFuncs     = "funcs"
-	SystemSpanHTTP      = "http"
-	SystemSpanDB        = "db"
-	SystemSpanRPC       = "rpc"
-	SystemSpanMessaging = "messaging"
-
-	SystemEventLog        = "log"
-	SystemEventExceptions = "exceptions"
-	SystemEventMessage    = "message"
-	SystemEventOther      = "other-events"
+	SystemLogError = "log:error"
+	SystemLogFatal = "log:fatal"
+	SystemLogPanic = "log:panic"
 )
 
-var eventSystems = []string{
-	SystemEventLog + ":" + strings.ToLower(bunotel.TraceSeverity),
-	SystemEventLog + ":" + strings.ToLower(bunotel.DebugSeverity),
-	SystemEventLog + ":" + strings.ToLower(bunotel.InfoSeverity),
-	SystemEventLog + ":" + strings.ToLower(bunotel.WarnSeverity),
-	SystemEventLog + ":" + strings.ToLower(bunotel.ErrorSeverity),
-	SystemEventLog + ":" + strings.ToLower(bunotel.FatalSeverity),
-	SystemEventLog + ":" + strings.ToLower(bunotel.PanicSeverity),
-	SystemEventExceptions,
-	SystemEventOther,
-}
+const (
+	otelEventLog       = "log"
+	otelEventException = "exception"
+	otelEventMessage   = "message"
+)
+
+var (
+	EventTypes   = []string{EventTypeLog, EventTypeExceptions, EventTypeMessage, EventTypeOther}
+	ErrorTypes   = []string{EventTypeLog, EventTypeExceptions}
+	ErrorSystems = []string{EventTypeExceptions, SystemLogError, SystemLogFatal, SystemLogPanic}
+)
 
 const (
-	eventLog       = "log"
-	eventException = "exception"
-	eventMessage   = "message"
+	StatusCodeUnset = "unset"
+	StatusCodeError = "error"
+	StatusCodeOK    = "ok"
+)
+
+const (
+	SpanKindInternal = "internal"
+	SpanKindServer   = "server"
+	SpanKindClient   = "client"
+	SpanKindProducer = "producer"
+	SpanKindConsumer = "consumer"
 )
