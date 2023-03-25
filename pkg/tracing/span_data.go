@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/uptrace/go-clickhouse/ch"
@@ -30,6 +31,11 @@ func (sd *SpanData) Decode(span *Span) error {
 
 	if err := msgpack.Unmarshal(sd.Data, span); err != nil {
 		return err
+	}
+
+	span.Type = span.System
+	if i := strings.IndexByte(span.Type, ':'); i >= 0 {
+		span.Type = span.Type[:i]
 	}
 
 	return nil
@@ -94,17 +100,8 @@ func SelectTraceSpans(ctx context.Context, app *bunapp.App, traceID uuid.UUID) (
 	return spans, nil
 }
 
-type SpanDataMsgpack struct {
-	*Span
-
-	TraceID   struct{} `msgpack:"-"`
-	ID        struct{} `msgpack:"-"`
-	ParentID  struct{} `msgpack:"-"`
-	ProjectID struct{} `msgpack:"-"`
-}
-
 func marshalSpanData(span *Span) []byte {
-	b, err := msgpack.Marshal(SpanDataMsgpack{Span: span})
+	b, err := msgpack.Marshal(span)
 	if err != nil {
 		panic(err)
 	}
