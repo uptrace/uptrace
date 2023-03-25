@@ -23,14 +23,14 @@ const (
 )
 
 type Span struct {
-	ProjectID uint32 `json:"projectId"`
-	Type      string `json:"-" ch:",lc"`
+	ProjectID uint32 `json:"projectId" msgpack:"-"`
+	Type      string `json:"-" msgpack:"-" ch:",lc"`
 	System    string `json:"system" ch:",lc"`
 	GroupID   uint64 `json:"groupId,string"`
 
-	TraceID  uuid.UUID `json:"traceId" ch:"type:UUID"`
-	ID       uint64    `json:"id,string" ch:"id"`
-	ParentID uint64    `json:"parentId,string,omitempty"`
+	TraceID  uuid.UUID `json:"traceId" msgpack:"-" ch:"type:UUID"`
+	ID       uint64    `json:"id,string" msgpack:"-" ch:"id"`
+	ParentID uint64    `json:"parentId,string,omitempty" msgpack:"-"`
 
 	Name       string `json:"name" ch:",lc"`
 	EventName  string `json:"eventName,omitempty" ch:",lc"`
