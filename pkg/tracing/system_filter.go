@@ -16,9 +16,6 @@ type SystemFilter struct {
 	org.TimeFilter
 	ProjectID uint32
 
-	Envs     []string
-	Services []string
-
 	System  []string
 	GroupID uint64
 }
@@ -74,13 +71,6 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 
 	if f.GroupID != 0 {
 		q = q.Where("s.group_id = ?", f.GroupID)
-	}
-
-	if len(f.Envs) > 0 {
-		q = q.Where("s.deployment_environment IN (?)", ch.In(f.Envs))
-	}
-	if len(f.Services) > 0 {
-		q = q.Where("s.service IN (?)", ch.In(f.Services))
 	}
 
 	return q

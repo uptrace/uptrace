@@ -1,4 +1,4 @@
-import { createFormatter, createShortFormatter, Formatter, Unit } from '@/util/fmt'
+import { createFormatter, createShortFormatter, Formatter } from '@/util/fmt'
 import {
   EChartsOption as BaseEChartsOption,
   LegendComponentOption,
@@ -65,7 +65,7 @@ interface TooltipFormatterConfig {
 }
 
 export function createTooltipFormatter(
-  formatter: string | Formatter | Record<string, string | Formatter> = Unit.None,
+  formatter: string | Formatter | Record<string, string | Formatter> = '',
   conf: TooltipFormatterConfig = {},
 ) {
   const cache: Record<string, Formatter> = {}
@@ -124,14 +124,14 @@ export function createTooltipFormatter(
   }
 }
 
-export function axisPointerFormatter(unit = Unit.None) {
+export function axisPointerFormatter(unit = '') {
   const fmt = createFormatter(unit)
   return (params: any): string => {
     return fmt(toNumber(params.value))
   }
 }
 
-export function axisLabelFormatter(unit = Unit.None) {
+export function axisLabelFormatter(unit = '') {
   const fmt = createShortFormatter(unit)
   return (value: any): string => {
     return fmt(toNumber(value))
@@ -146,4 +146,28 @@ function toNumber(v: any): any {
     }
   }
   return v
+}
+
+export type HistogramBin = [number, number] // gte, lt
+
+export type HeatmapPoint = [number, number, number] // [xIdx, yIdx, count]
+
+export interface HistogramData {
+  count: number[]
+  bins: HistogramBin[]
+  p50: number
+  p90: number
+  p99: number
+}
+
+export function findBinIndex(bins: HistogramBin[], x: number): number {
+  return bins.findIndex((bin) => {
+    return x >= bin[0] && (bin[1] === 0 || x <= bin[1])
+  })
+}
+
+export function findBin(bins: HistogramBin[], x: number): HistogramBin | undefined {
+  return bins.find((bin) => {
+    return x >= bin[0] && (bin[1] === 0 || x <= bin[1])
+  })
 }

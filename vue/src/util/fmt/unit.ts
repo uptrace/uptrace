@@ -18,6 +18,16 @@ export enum Unit {
   Date = '{date}',
 }
 
+export const UNITS = [
+  Unit.None,
+  Unit.Bytes,
+  Unit.Nanoseconds,
+  Unit.Microseconds,
+  Unit.Milliseconds,
+  Unit.Seconds,
+  Unit.Percents,
+]
+
 export function unitShortName(unit: Unit): string {
   switch (unit) {
     case Unit.None:

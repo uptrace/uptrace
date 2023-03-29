@@ -14,9 +14,9 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/uuid"
 )
 

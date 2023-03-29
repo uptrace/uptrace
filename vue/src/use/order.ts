@@ -1,4 +1,4 @@
-import { shallowRef, computed, proxyRefs, watch } from 'vue'
+import { shallowRef, computed, watch, proxyRefs } from 'vue'
 
 import { useRouteQuery } from '@/use/router'
 
@@ -7,22 +7,18 @@ export interface Order {
   desc: boolean
 }
 
-export interface OrderConfig extends Partial<Order> {
-  syncQuery?: boolean
-}
-
 export type UseOrder = ReturnType<typeof useOrder>
 
-export function useOrder(cfg: OrderConfig = {}) {
-  cfg.column = cfg.column ?? ''
-  cfg.desc = cfg.desc ?? true
-  cfg.syncQuery = cfg.syncQuery ?? false
+export function useOrder(conf: Partial<Order> = {}) {
+  conf.column = conf.column ?? ''
+  conf.desc = conf.desc ?? true
 
-  const column = shallowRef<string | undefined>(cfg.column)
-  const desc = shallowRef(cfg.desc)
+  const column = shallowRef<string | undefined>(conf.column)
+  const desc = shallowRef(conf.desc)
 
+  const axiosParams = shallowRef({})
   const axiosParamsLocked = shallowRef(false)
-  const axiosParams = shallowRef<Record<string, any>>({})
+  const ignoreAxiosParamsEnabled = shallowRef(false)
 
   const icon = computed(() => {
     return desc.value ? 'mdi-arrow-down' : 'mdi-arrow-up'
@@ -30,10 +26,16 @@ export function useOrder(cfg: OrderConfig = {}) {
 
   watch(
     () => {
-      return {
-        sort_by: column.value,
-        sort_desc: desc.value,
+      const params: Record<string, any> = {}
+      if (column.value) {
+        params.sort_by = column.value
+        params.sort_desc = desc.value
       }
+      if (ignoreAxiosParamsEnabled.value) {
+        params.$ignore_sort_by = true
+        params.$ignore_sort_desc = true
+      }
+      return params
     },
     (params) => {
       if (!axiosParamsLocked.value) {
@@ -43,7 +45,7 @@ export function useOrder(cfg: OrderConfig = {}) {
     { immediate: true, flush: 'sync' },
   )
 
-  if (cfg.syncQuery) {
+  function syncQueryParams() {
     useRouteQuery().sync({
       fromQuery(params) {
         if (params.sort_by) {
@@ -52,20 +54,28 @@ export function useOrder(cfg: OrderConfig = {}) {
         }
       },
       toQuery() {
-        if (column.value) {
-          return {
-            sort_by: column.value,
-            sort_desc: desc.value ? '1' : '0',
-          }
-        }
-        return {}
+        return queryParams()
       },
     })
   }
 
-  function change(order: Order): void {
-    column.value = order.column
-    desc.value = order.desc
+  function queryParams() {
+    if (column.value) {
+      return {
+        sort_by: column.value,
+        sort_desc: desc.value ? '1' : '0',
+      }
+    }
+    return {}
+  }
+
+  function change(order: Order): boolean {
+    if (column.value !== order.column || desc.value !== order.desc) {
+      column.value = order.column
+      desc.value = order.desc
+      return true
+    }
+    return false
   }
 
   function toggle(columnValue: string): void {
@@ -90,14 +100,6 @@ export function useOrder(cfg: OrderConfig = {}) {
     return cls
   }
 
-  function lockAxiosParams() {
-    axiosParamsLocked.value = true
-  }
-
-  function unlockAxiosParams() {
-    axiosParamsLocked.value = false
-  }
-
   function withLockedAxiosParams(cb: () => void) {
     const oldValue = axiosParamsLocked.value
     axiosParamsLocked.value = true
@@ -118,10 +120,11 @@ export function useOrder(cfg: OrderConfig = {}) {
     icon,
 
     axiosParams,
-    lockAxiosParams,
-    unlockAxiosParams,
+    ignoreAxiosParamsEnabled,
     withLockedAxiosParams,
 
+    syncQueryParams,
+    queryParams,
     change,
     reset,
     toggle,

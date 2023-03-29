@@ -1,3 +1,4 @@
+schema: v1
 id: uptrace.http.server_by_service_host
 name: 'HTTP: Server'
 
@@ -20,7 +21,7 @@ table:
     req_len: { unit: bytes }
     resp_len: { unit: bytes }
 
-entries:
+grid:
   - name: HTTP requests
     metrics:
       - http.server.duration as $srv_dur

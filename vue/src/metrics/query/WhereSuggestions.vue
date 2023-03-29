@@ -29,7 +29,7 @@ import { defineComponent, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { AxiosParams } from '@/use/axios'
-import { useSuggestions } from '@/use/suggestions'
+import { useDataSource } from '@/use/datasource'
 import { Metric } from '@/metrics/types'
 
 // Components
@@ -60,7 +60,7 @@ export default defineComponent({
   setup(props) {
     const { route } = useRouter()
 
-    const suggestions = useSuggestions(() => {
+    const suggestions = useDataSource(() => {
       const { projectId } = route.value.params
       const metricId = props.metric.id
       return {

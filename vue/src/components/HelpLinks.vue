@@ -9,12 +9,13 @@
         <v-card-text class="text-subtitle-1 text--primary">
           <ul>
             <li>
-              <a href="https://uptrace.dev/get/" target="_blank">Documentation</a> - getting started
-              with OpenTelemetry distro for Uptrace, for example, uptrace-go or uptrace-python.
+              <a href="https://uptrace.dev/get/" target="_blank">Documentation</a> to get you
+              started with OpenTelemetry distros for Uptrace.
             </li>
             <li>
-              <a href="https://uptrace.dev/opentelemetry/" target="_blank">OpenTelemetry</a> -
-              OpenTelemetry knowledge base, for example,
+              <a href="https://uptrace.dev/opentelemetry/" target="_blank"
+                >OpenTelemetry knowledge base</a
+              >, for example,
               <a href="https://uptrace.dev/opentelemetry/distributed-tracing.html" target="_blank"
                 >tracing</a
               >
@@ -24,20 +25,17 @@
             <li>
               <a href="https://uptrace.dev/opentelemetry/instrumentations/" target="_blank"
                 >Instrumentations</a
-              >
-              - a list of OpenTelemetry instrumentations.
+              >. A list of OpenTelemetry instrumentations.
             </li>
             <li>
               <a href="https://uptrace.dev/opentelemetry/collector-config.html" target="_blank"
                 >Collector Configurator</a
-              >
-              - a single page application to help you configure OpenTelemetry Collector.
+              >. A single page application to help you configure OpenTelemetry Collector.
             </li>
             <li>
               <a href="https://uptrace.dev/opentelemetry/attributes.html" target="_blank"
                 >Semantic Attributes</a
-              >
-              - a conventional list of semantic attributes recommended by OpenTelemetry.
+              >. A conventional list of semantic attributes recommended by OpenTelemetry.
             </li>
             <li>
               <a href="https://github.com/uptrace" target="_blank">Uptrace on GitHub</a>

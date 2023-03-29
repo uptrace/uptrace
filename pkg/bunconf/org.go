@@ -1,45 +1,13 @@
 package bunconf
 
-import (
-	"crypto/md5"
-	"encoding/hex"
-	"fmt"
-
-	"github.com/cespare/xxhash/v2"
-)
-
 type User struct {
-	ID       uint64 `yaml:"id" json:"id"`
-	Username string `yaml:"username" json:"username"`
-	Password string `yaml:"password" json:"-"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 
-	Email  string `yaml:"email" json:"email"`
-	Avatar string `yaml:"avatar" json:"avatar"`
-}
+	Email  string `yaml:"email"`
+	Avatar string `yaml:"avatar"`
 
-func (u *User) Init() {
-	if u.Username == "" {
-		u.Username = u.Email
-	}
-	if u.ID == 0 {
-		u.ID = xxhash.Sum64String(u.Username)
-	}
-	if u.Avatar == "" {
-		u.Avatar = u.Gravatar()
-	}
-}
-
-func (u *User) Gravatar() string {
-	email := u.Email
-	if email == "" {
-		email = u.Username
-	}
-	return fmt.Sprintf("https://gravatar.com/avatar/%s?d=identicon", md5s(email))
-}
-
-func md5s(s string) string {
-	hash := md5.Sum([]byte(s))
-	return hex.EncodeToString(hash[:])
+	NotifyByEmail bool `yaml:"notify_by_email"`
 }
 
 type CloudflareProvider struct {
@@ -59,10 +27,10 @@ type OIDCProvider struct {
 }
 
 type Project struct {
-	ID                  uint32   `yaml:"id" json:"id"`
-	Name                string   `yaml:"name" json:"name"`
-	Token               string   `yaml:"token" json:"token"`
-	PinnedAttrs         []string `yaml:"pinned_attrs" json:"pinnedAttrs"`
-	GroupByEnv          bool     `yaml:"group_by_env" json:"groupByEnv"`
-	GroupFuncsByService bool     `yaml:"group_funcs_by_service" json:"groupFuncsByService"`
+	ID                  uint32   `yaml:"id"`
+	Name                string   `yaml:"name"`
+	Token               string   `yaml:"token"`
+	PinnedAttrs         []string `yaml:"pinned_attrs"`
+	GroupByEnv          bool     `yaml:"group_by_env"`
+	GroupFuncsByService bool     `yaml:"group_funcs_by_service"`
 }

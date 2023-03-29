@@ -13,6 +13,10 @@ export function useRouter() {
   return { router, route }
 }
 
+export function useRouterOnly() {
+  return router
+}
+
 export function useRoute() {
   const route = computed((): Route => {
     return router.app.$root.$route

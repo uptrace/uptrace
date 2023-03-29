@@ -1,69 +1,75 @@
 <template>
-  <XPlaceholder>
-    <template v-if="systems.hasNoData" #placeholder>
+  <div>
+    <template v-if="systems.hasNoData">
       <HelpCard :date-range="dateRange" :loading="systems.loading" />
     </template>
 
-    <PageToolbar :loading="systems.loading" :fluid="$vuetify.breakpoint.mdAndDown">
-      <QuickSpanFilter
-        v-model="envs.active"
-        :loading="envs.loading"
-        :items="envs.items"
-        :attr="AttrKey.serviceName"
-        param-name="env"
-      />
-      <QuickSpanFilter
-        v-model="services.active"
-        :loading="services.loading"
-        :items="services.items"
-        :attr="AttrKey.deploymentEnvironment"
-        param-name="service"
-      />
-      <v-spacer />
-      <DateRangePicker :date-range="dateRange" />
-    </PageToolbar>
+    <template v-else>
+      <PageToolbar :loading="systems.loading" :fluid="$vuetify.breakpoint.lgAndDown">
+        <SystemPicker
+          v-if="systems.items.length"
+          v-model="systems.activeSystem"
+          :items="systems.items"
+          all-system="all"
+          outlined
+        />
+        <QuickSpanFilter
+          :date-range="dateRange"
+          :uql="uql"
+          name="env"
+          :attr-key="AttrKey.deploymentEnvironment"
+          class="ml-2"
+        />
+        <QuickSpanFilter
+          :date-range="dateRange"
+          :uql="uql"
+          name="service"
+          :attr-key="AttrKey.serviceName"
+          class="ml-2"
+        />
 
-    <div class="border">
-      <div class="grey lighten-5">
-        <v-container fluid class="mb-2">
-          <SystemQuickMetrics :loading="systems.loading" :systems="systems.items" />
-        </v-container>
+        <v-spacer />
 
-        <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
-          <v-tabs background-color="transparent">
-            <v-tab :to="{ name: 'Overview' }">Systems</v-tab>
-            <v-tab
-              v-for="system in chosenSystems"
-              :key="system"
-              :to="{ name: 'SystemGroupList', params: { system: system } }"
-            >
-              {{ system }}
-            </v-tab>
-            <v-tab :to="{ name: 'SlowestGroups' }">Slowest groups</v-tab>
-            <v-tab
-              v-for="attr in project.pinnedAttrs"
-              :key="attr"
-              :to="{ name: 'AttrOverview', params: { attr } }"
-              >{{ attr }}</v-tab
-            >
-          </v-tabs>
-        </v-container>
+        <DateRangePicker :date-range="dateRange" />
+      </PageToolbar>
+
+      <div class="border-bottom">
+        <div class="grey lighten-5">
+          <v-container fluid class="mb-2">
+            <SystemQuickMetrics :loading="systems.loading" :systems="systems.items" />
+          </v-container>
+
+          <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pb-0">
+            <v-tabs background-color="transparent">
+              <v-tab :to="{ name: 'SystemOverview' }">Systems</v-tab>
+              <v-tab
+                v-for="system in chosenSystems"
+                :key="system"
+                :to="{ name: 'SystemGroupList', params: { system: system } }"
+              >
+                {{ system }}
+              </v-tab>
+              <v-tab :to="{ name: 'SlowestGroups' }">Slowest groups</v-tab>
+              <v-tab
+                v-for="attr in project.pinnedAttrs"
+                :key="attr"
+                :to="{ name: 'AttrOverview', params: { attr } }"
+                >{{ attr }}</v-tab
+              >
+            </v-tabs>
+          </v-container>
+        </div>
       </div>
-    </div>
 
-    <v-container :fluid="$vuetify.breakpoint.mdAndDown">
-      <v-row>
-        <v-col>
-          <router-view
-            :date-range="dateRange"
-            :envs="envs"
-            :services="services"
-            :systems="systems"
-          />
-        </v-col>
-      </v-row>
-    </v-container>
-  </XPlaceholder>
+      <v-container :fluid="$vuetify.breakpoint.lgAndDown">
+        <v-row>
+          <v-col>
+            <router-view :date-range="dateRange" :axios-params="axiosParams" />
+          </v-col>
+        </v-row>
+      </v-container>
+    </template>
+  </div>
 </template>
 
 <script lang="ts">
@@ -71,24 +77,25 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { useTitle } from '@vueuse/core'
-import type { UseDateRange } from '@/use/date-range'
-import { useEnvs, useServices } from '@/tracing/query/use-quick-span-filters'
-import { useProject } from '@/use/project'
+import { UseDateRange } from '@/use/date-range'
+import { useUql } from '@/use/uql'
+import { useProject } from '@/org/use-projects'
 import { useSystems } from '@/tracing/system/use-systems'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
+import SystemPicker from '@/tracing/system/SystemPicker.vue'
 import QuickSpanFilter from '@/tracing/query/QuickSpanFilter.vue'
 import SystemQuickMetrics from '@/tracing/system/SystemQuickMetrics.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
 
 // Utilities
 import { AttrKey, SystemName } from '@/models/otel'
-import { day } from '@/util/fmt/date'
+import { DAY } from '@/util/fmt/date'
 
 export default defineComponent({
   name: 'Overview',
-  components: { DateRangePicker, QuickSpanFilter, HelpCard, SystemQuickMetrics },
+  components: { DateRangePicker, SystemPicker, QuickSpanFilter, HelpCard, SystemQuickMetrics },
 
   props: {
     dateRange: {
@@ -100,22 +107,30 @@ export default defineComponent({
   setup(props) {
     useTitle('Overview')
 
-    props.dateRange.syncQuery()
-
-    const envs = useEnvs(props.dateRange)
-    const services = useServices(props.dateRange)
+    props.dateRange.syncQueryParams()
 
     const project = useProject()
+    const uql = useUql()
+    uql.syncQueryParams()
+
     const systems = useSystems(() => {
       return {
         ...props.dateRange.axiosParams(),
-        ...envs.axiosParams(),
-        ...services.axiosParams(),
+        ...uql.axiosParams(),
+      }
+    })
+    systems.syncQueryParams()
+
+    const axiosParams = computed(() => {
+      return {
+        ...props.dateRange.axiosParams(),
+        ...uql.axiosParams(),
+        ...systems.axiosParams(),
       }
     })
 
     const chosenSystems = computed((): string[] => {
-      if (props.dateRange.duration > 3 * day) {
+      if (props.dateRange.duration > 3 * DAY) {
         return []
       }
 
@@ -137,10 +152,12 @@ export default defineComponent({
 
     return {
       AttrKey,
+
+      uql,
       project,
-      envs,
-      services,
       systems,
+      axiosParams,
+
       chosenSystems,
     }
   },
@@ -148,8 +165,7 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.border {
-  overflow: auto;
+.border-bottom {
   border-bottom: thin rgba(0, 0, 0, 0.12) solid;
 }
 </style>

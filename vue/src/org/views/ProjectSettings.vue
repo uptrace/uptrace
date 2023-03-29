@@ -5,7 +5,7 @@
     </PageToolbar>
 
     <v-container fluid class="mb-6">
-      <v-card v-if="project" flat>
+      <v-card v-if="project.data" flat>
         <v-card-text class="text-subtitle-1">
           <p>
             You can change project settings in <code>uptrace.yml</code> config file. See
@@ -17,23 +17,23 @@
             <v-text-field v-model="project.data.name" :disabled="disabled" label="Name" filled />
 
             <v-select
-              v-model="project.pinnedAttrs"
+              v-model="project.data.pinnedAttrs"
               label="Pinned attributes"
-              :items="project.pinnedAttrs"
+              :items="project.data.pinnedAttrs"
               multiple
               :disabled="disabled"
               filled
             />
 
             <v-checkbox
-              v-model="project.groupByEnv"
+              v-model="project.data.groupByEnv"
               label="Group spans by deployment.environment attribute"
               :disabled="disabled"
               hide-details="auto"
             >
             </v-checkbox>
             <v-checkbox
-              v-model="project.groupFuncsByService"
+              v-model="project.data.groupFuncsByService"
               label="Group funcs spans by service.name attribute"
               :disabled="disabled"
               hide-details="auto"
@@ -67,7 +67,7 @@ import { defineComponent, computed } from 'vue'
 
 // Composables
 import { useTitle } from '@vueuse/core'
-import { useProject } from '@/use/project'
+import { useProject } from '@/org/use-projects'
 
 export default defineComponent({
   name: 'ProjectSettings',

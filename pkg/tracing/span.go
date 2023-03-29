@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/uuid"
 )
 

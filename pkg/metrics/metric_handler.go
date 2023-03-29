@@ -4,17 +4,52 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"sort"
+	"net/url"
 	"time"
 
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bunrouter"
-
-	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/go-clickhouse/ch/chschema"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/metrics/upql"
+	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
+
+type MetricFilter struct {
+	org.TimeFilter
+
+	ProjectID uint32
+
+	Instrument Instrument
+	AttrKey    []string
+
+	Query string
+}
+
+func DecodeMetricFilter(req bunrouter.Request, f *MetricFilter) error {
+	ctx := req.Context()
+	project := org.ProjectFromContext(ctx)
+	f.ProjectID = project.ID
+
+	if err := bunapp.UnmarshalValues(req, f); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var _ urlstruct.ValuesUnmarshaler = (*MetricFilter)(nil)
+
+func (f *MetricFilter) UnmarshalValues(ctx context.Context, values url.Values) error {
+	return nil
+}
+
+//-----------------------------------------------------------------------------------------
 
 type MetricHandler struct {
 	*bunapp.App
@@ -28,9 +63,17 @@ func NewMetricHandler(app *bunapp.App) *MetricHandler {
 
 func (h *MetricHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
-	project := org.ProjectFromContext(ctx)
 
-	metrics, err := SelectMetrics(ctx, h.App, project.ID)
+	f := new(MetricFilter)
+	now := time.Now()
+	f.TimeGTE = now.Add(-24 * time.Hour)
+	f.TimeLT = now
+
+	if err := DecodeMetricFilter(req, f); err != nil {
+		return err
+	}
+
+	metrics, err := selectMetrics(ctx, h.App, f)
 	if err != nil {
 		return err
 	}
@@ -40,170 +83,149 @@ func (h *MetricHandler) List(w http.ResponseWriter, req bunrouter.Request) error
 	})
 }
 
-func (h *MetricHandler) Show(w http.ResponseWriter, req bunrouter.Request) error {
-	ctx := req.Context()
-	return httputil.JSON(w, bunrouter.H{
-		"metric": metricFromContext(ctx),
-	})
-}
-
-type Suggestions []Suggestion
-
-func (ss *Suggestions) Add(sugg Suggestion) {
-	*ss = append(*ss, sugg)
-}
-
-type Suggestion struct {
-	Text string `json:"text"`
-	Hint string `json:"hint,omitempty"`
-	Kind string `json:"kind,omitempty"`
-}
-
-func sortSuggestions(suggestions []Suggestion) []Suggestion {
-	seen := make(map[string]struct{}, len(suggestions))
-
-	for i := len(suggestions) - 1; i >= 0; i-- {
-		key := suggestions[i].Text
-		if _, ok := seen[key]; ok {
-			suggestions = append(suggestions[:i], suggestions[i+1:]...)
-		} else {
-			seen[key] = struct{}{}
-		}
+func selectMetrics(ctx context.Context, app *bunapp.App, f *MetricFilter) ([]*Metric, error) {
+	if f.Query != "" {
+		metrics, _, err := selectMetricsFromCH(ctx, app, f)
+		return metrics, err
 	}
 
-	sort.Slice(suggestions, func(i, j int) bool {
-		return suggestions[i].Text < suggestions[j].Text
-	})
+	var metrics []*Metric
 
-	return suggestions
-}
+	q := app.PG.NewSelect().
+		Model(&metrics).
+		Where("project_id = ?", f.ProjectID).
+		Where("updated_at >= ?", time.Now().Add(-24*time.Hour)).
+		OrderExpr("name ASC").
+		Limit(10000)
 
-//------------------------------------------------------------------------------
-
-type MetricKeys struct {
-	Alias    string   `json:"alias"`
-	Metric   *Metric  `json:"metric"`
-	AttrKeys []string `json:"attrKeys"`
-}
-
-func (h *MetricHandler) Attributes(w http.ResponseWriter, req bunrouter.Request) error {
-	ctx := req.Context()
-
-	f, err := DecodeMetricFilter(h.App, req)
-	if err != nil {
-		return err
+	if f.Instrument != "" {
+		q = q.Where("instrument = ?", f.Instrument)
+	}
+	if len(f.AttrKey) > 0 {
+		q = q.Where("attr_keys @> ?", pgdialect.Array(f.AttrKey))
 	}
 
-	keys, err := selectAttrKeys(ctx, h.App, metricFromContext(ctx))
-	if err != nil {
-		return err
-	}
-
-	suggestions := make([]Suggestion, len(keys))
-
-	for i, key := range keys {
-		suggestions[i] = Suggestion{
-			Text: fmt.Sprintf("$%s.%s", f.Alias, key),
-		}
-	}
-
-	suggestions = sortSuggestions(suggestions)
-
-	return httputil.JSON(w, bunrouter.H{
-		"suggestions": suggestions,
-	})
-}
-
-//------------------------------------------------------------------------------
-
-func (h *MetricHandler) Where(w http.ResponseWriter, req bunrouter.Request) error {
-	ctx := req.Context()
-
-	f, err := DecodeMetricFilter(h.App, req)
-	if err != nil {
-		return err
-	}
-
-	suggestions, err := h.selectWhereSuggestions(ctx, f)
-	if err != nil {
-		return err
-	}
-
-	return httputil.JSON(w, bunrouter.H{
-		"suggestions": suggestions,
-	})
-}
-
-type WhereSuggestion struct {
-	Text  string `json:"text"`
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
-func (h *MetricHandler) selectWhereSuggestions(
-	ctx context.Context, f *MetricFilter,
-) ([]*WhereSuggestion, error) {
-	metric := metricFromContext(ctx)
-
-	attrKeys, err := selectAttrKeys(ctx, h.App, metric)
-	if err != nil {
+	if err := q.Scan(ctx); err != nil {
 		return nil, err
 	}
+	return metrics, nil
+}
 
-	suggestions := make([]*WhereSuggestion, 0)
+func selectMetricsFromCH(
+	ctx context.Context, app *bunapp.App, f *MetricFilter,
+) ([]*Metric, bool, error) {
+	const limit = 1000
 
-	if len(attrKeys) == 0 {
-		return suggestions, nil
-	}
-
-	keys := make([]string, 0, len(attrKeys))
-	vals := make([]ch.Safe, 0, len(attrKeys))
-
-	for _, key := range attrKeys {
-		keys = append(keys, key)
-		vals = append(vals, CHColumn(key))
-	}
-
-	tableName := measureTableForWhere(h.App, &f.TimeFilter)
-	if err := f.App.CH.NewSelect().
-		TableExpr("? AS ?", tableName, ch.Ident(f.Alias)).
-		ColumnExpr("DISTINCT key, value").
-		Join("ARRAY JOIN [?] AS key, [?] AS value", ch.In(keys), ch.In(vals)).
+	tableName := measureTableForWhere(app, &f.TimeFilter)
+	q := app.CH.NewSelect().
+		ColumnExpr("metric AS name").
+		ColumnExpr("any(instrument) AS instrument").
+		ColumnExpr("any(string_keys) AS attr_keys").
+		ColumnExpr("uniqCombined64(attrs_hash) AS num_timeseries").
+		TableExpr("?", tableName).
 		Where("project_id = ?", f.ProjectID).
-		Where("metric = ?", metric.Name).
 		Where("time >= ?", f.TimeGTE).
 		Where("time < ?", f.TimeLT).
-		Where("has(attr_keys, key)").
-		OrderExpr("key ASC, value ASC").
-		Scan(ctx, &suggestions); err != nil {
-		return nil, err
+		GroupExpr("metric").
+		OrderExpr("metric ASC").
+		Limit(limit)
+
+	if f.Instrument != "" {
+		q = q.Where("instrument = ?", f.Instrument)
+	}
+	if len(f.AttrKey) > 0 {
+		q = q.Where("hasAll(string_keys, ?)", chschema.Array(f.AttrKey))
 	}
 
-	for _, sugg := range suggestions {
-		sugg.Key = fmt.Sprintf("$%s.%s", f.Alias, sugg.Key)
-		sugg.Text = fmt.Sprintf("%s = %q", sugg.Key, sugg.Value)
+	if f.Query != "" {
+		query := upql.Parse(f.Query)
+		for _, part := range query.Parts {
+			switch v := part.AST.(type) {
+			case *ast.Where:
+				where, err := compileFilters(v.Filters)
+				if err != nil {
+					return nil, false, err
+				}
+				if len(where) > 0 {
+					q = q.Where(where)
+				}
+			default:
+				return nil, false, fmt.Errorf("unsupported AST type: %T", v)
+			}
+		}
 	}
 
-	return suggestions, nil
+	metrics := make([]*Metric, 0)
+	if err := q.Scan(ctx, &metrics); err != nil {
+		return nil, false, err
+	}
+
+	if len(metrics) == 0 {
+		return metrics, false, nil
+	}
+
+	names := make([]string, len(metrics))
+	for i, metric := range metrics {
+		names[i] = metric.Name
+	}
+
+	if err := app.PG.NewSelect().
+		With("data", app.PG.NewValues(&metrics).WithOrder()).
+		ColumnExpr("m.id, m.unit, m.description").
+		Model(&metrics).
+		TableExpr("data").
+		Where("m.project_id = ?", f.ProjectID).
+		Where("m.name = data.name").
+		OrderExpr("data._order").
+		Scan(ctx); err != nil {
+		return nil, false, err
+	}
+
+	return metrics, len(metrics) == limit, nil
 }
 
-//------------------------------------------------------------------------------
+func (h *MetricHandler) Describe(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+	project := org.ProjectFromContext(ctx)
 
-const numKeyLimit = 1000
+	metricNames := req.URL.Query()["metric[]"]
+	metrics := make([]*Metric, 0, len(metricNames))
 
-func selectAttrKeys(ctx context.Context, app *bunapp.App, metric *Metric) ([]string, error) {
-	keys := make([]string, 0)
-	if err := app.CH.NewSelect().
-		ColumnExpr("arrayJoin(attr_keys) AS key").
-		TableExpr("?", app.DistTable("measure_minutes_buffer")).
-		Where("project_id = ?", metric.ProjectID).
-		Where("metric = ?", metric.Name).
-		Where("time >= ?", time.Now().Add(-time.Hour)).
-		GroupExpr("key").
-		OrderExpr("key ASC").
-		Limit(numKeyLimit).
-		ScanColumns(ctx, &keys); err != nil {
-		return nil, err
+	if len(metricNames) == 0 {
+		return httputil.JSON(w, bunrouter.H{
+			"metrics": metrics,
+		})
 	}
-	return keys, nil
+
+	if err := h.PG.NewSelect().
+		Model(&metrics).
+		Where("project_id = ?", project.ID).
+		Where("name IN (?)", bun.In(metricNames)).
+		Limit(1000).
+		Scan(ctx); err != nil {
+		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"metrics": metrics,
+	})
+}
+
+func (h *MetricHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	f := new(MetricFilter)
+	if err := DecodeMetricFilter(req, f); err != nil {
+		return err
+	}
+
+	metrics, hasMore, err := selectMetricsFromCH(ctx, h.App, f)
+	if err != nil {
+		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"metrics": metrics,
+		"hasMore": hasMore,
+	})
 }

@@ -129,7 +129,7 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
-import { useProject } from '@/use/project'
+import { useProject } from '@/org/use-projects'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'

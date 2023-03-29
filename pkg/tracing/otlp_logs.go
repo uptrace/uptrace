@@ -12,11 +12,10 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
@@ -144,7 +143,7 @@ func (s *LogsServiceServer) Export(
 }
 
 func (s *LogsServiceServer) export(
-	ctx context.Context, resourceLogs []*logspb.ResourceLogs, project *bunconf.Project,
+	ctx context.Context, resourceLogs []*logspb.ResourceLogs, project *org.Project,
 ) (*collectorlogspb.ExportLogsServiceResponse, error) {
 	for _, rl := range resourceLogs {
 		resource := AttrMap(otlpconv.Map(rl.Resource.Attributes))

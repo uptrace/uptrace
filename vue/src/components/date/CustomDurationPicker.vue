@@ -37,7 +37,7 @@
 import { defineComponent, shallowRef, computed, watch } from 'vue'
 
 // Utilities
-import { minute, hour, day } from '@/util/fmt/date'
+import { MINUTE, HOUR, DAY } from '@/util/fmt/date'
 
 interface Unit {
   name: string
@@ -58,20 +58,20 @@ export default defineComponent({
     const units: Unit[] = [
       {
         name: 'minutes',
-        ms: minute,
+        ms: MINUTE,
       },
       {
         name: 'hours',
-        ms: hour,
+        ms: HOUR,
       },
       {
         name: 'days',
-        ms: day,
+        ms: DAY,
       },
     ]
 
     const amount = shallowRef(1)
-    const unit = shallowRef(hour)
+    const unit = shallowRef(HOUR)
 
     const isValid = computed(() => {
       if (amount.value * unit.value > 0) {

@@ -28,7 +28,7 @@
 
       <v-dialog v-if="dashboard.data" v-model="editDialog" max-width="500px">
         <template #activator="{ on }">
-          <v-list-item v-if="!dashboard.isTemplate" ripple v-on="on">
+          <v-list-item ripple v-on="on">
             <v-list-item-action>
               <v-icon>mdi-playlist-edit</v-icon>
             </v-list-item-action>
@@ -71,11 +71,14 @@ import { defineComponent, shallowRef, PropType } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'
-import { useDashManager, UseDashboards, UseDashboard, Dashboard } from '@/metrics/use-dashboards'
+import { useDashManager, UseDashboards, UseDashboard } from '@/metrics/use-dashboards'
 
 // Components
 import DashNewForm from '@/metrics/DashNewForm.vue'
 import DashEditForm from '@/metrics/DashEditForm.vue'
+
+// Types
+import { Dashboard } from '@/metrics/types'
 
 export default defineComponent({
   name: 'DashMenu',
@@ -113,7 +116,7 @@ export default defineComponent({
       newDialog.value = false
       menu.value = false
       props.dashboards.reload().then(() => {
-        router.push({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+        router.push({ name: 'MetricsDashShow', params: { dashId: String(dash.id) } })
       })
     }
 
@@ -130,7 +133,7 @@ export default defineComponent({
 
       dashMan.clone(props.dashboard.data).then((dash) => {
         props.dashboards.reload().then(() => {
-          router.push({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+          router.push({ name: 'MetricsDashShow', params: { dashId: String(dash.id) } })
         })
       })
     }
@@ -140,7 +143,7 @@ export default defineComponent({
         return
       }
 
-      dashMan.del(props.dashboard.data).then(() => {
+      dashMan.delete(props.dashboard.data).then(() => {
         props.dashboards.reload()
       })
     }

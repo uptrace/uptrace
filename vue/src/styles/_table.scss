@@ -8,3 +8,37 @@
     padding: 0 8px;
   }
 }
+
+$min-width: 180px;
+
+.table-truncate-target > .v-data-table__wrapper > table {
+  & > colgroup {
+    & > col {
+      width: 0%;
+    }
+
+    & > col.target {
+      width: 100%;
+    }
+  }
+
+  & > thead > tr,
+  & > tbody > tr {
+    & > th,
+    & > td {
+      &.target {
+        min-width: $min-width;
+        max-width: 1px;
+      }
+
+      &.target:not([colspan]) {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      &:not([colspan]) {
+        white-space: nowrap;
+      }
+    }
+  }
+}

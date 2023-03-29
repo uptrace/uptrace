@@ -1,40 +1,44 @@
 <template>
-  <v-form v-model="isValid">
-    <v-row dense align="start">
-      <v-col cols="auto">
-        <v-btn icon @click="$emit('click:remove', value)"
-          ><v-icon>mdi-minus-circle-outline</v-icon></v-btn
-        >
-      </v-col>
-      <v-col cols="6" md="5">
+  <v-form ref="form" v-model="isValid" lazy-validation @submit.prevent="submit">
+    <v-row align="start" class="mb-n5">
+      <v-col cols="5">
         <v-autocomplete
           v-model="metricName"
+          :loading="loading"
           :items="filteredMetrics"
           item-text="name"
           item-value="name"
           auto-select-first
-          label="Select a metric"
+          label="Select a metric..."
           :rules="rules.name"
+          hide-details="auto"
           :disabled="disabled"
-          dense
           solo
           flat
+          dense
           background-color="grey lighten-4"
-          hide-details="auto"
           :search-input.sync="searchInput"
           no-filter
+          clearable
+          @click:clear="reset"
           @change="onMetricNameChange"
         >
           <template #item="{ item }">
             <v-list-item-content>
               <v-list-item-title>
                 <span>{{ item.name }}</span>
-                <v-chip label small color="grey lighten-4" class="ml-2">{{
+                <v-chip label small color="grey lighten-4" title="Instrument" class="ml-2">{{
                   item.instrument
                 }}</v-chip>
-                <v-chip v-if="item.unit" label small color="grey lighten-4" class="ml-2">{{
-                  item.unit
-                }}</v-chip>
+                <v-chip
+                  v-if="item.unit"
+                  label
+                  small
+                  color="grey lighten-4"
+                  title="Unit"
+                  class="ml-2"
+                  >{{ item.unit }}</v-chip
+                >
               </v-list-item-title>
               <v-list-item-subtitle>
                 {{ item.description }}
@@ -43,25 +47,25 @@
           </template>
         </v-autocomplete>
       </v-col>
-      <v-col cols="auto">
-        <div class="mt-2 mx-2 text--disabled">AS</div>
-      </v-col>
-      <v-col cols="4" md="3">
+      <v-col cols="auto" class="mt-2 text--secondary">AS</v-col>
+      <v-col cols="5" md="4">
         <v-text-field
           ref="metricAliasRef"
           v-model="metricAlias"
           label="Short alias"
           :rules="rules.alias"
+          hide-details="auto"
           prefix="$"
           solo
           flat
           dense
           background-color="grey lighten-4"
-          hide-details="auto"
         />
       </v-col>
-      <v-col cols="auto">
-        <v-btn dense solo :disabled="applyDisabled" class="ml-2" @click="apply">Apply</v-btn>
+    </v-row>
+    <v-row>
+      <v-col>
+        <v-btn type="submit" color="primary" :disabled="!isValid">Add metric</v-btn>
       </v-col>
     </v-row>
   </v-form>
@@ -69,30 +73,26 @@
 
 <script lang="ts">
 import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
-import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
 import { UseUql } from '@/use/uql'
-import { hasMetricAlias } from '@/metrics/use-query'
+import { defaultMetricAlias } from '@/metrics/use-metrics'
 
 // Utilities
 import { unitShortName } from '@/util/fmt'
-import { requiredRule } from '@/util/validation'
+import { requiredRule, optionalRule } from '@/util/validation'
 
 // Types
-import { Metric, MetricAlias, Instrument } from '@/metrics/types'
+import { Metric, MetricAlias } from '@/metrics/types'
 
 export default defineComponent({
   name: 'MetricPicker',
 
   props: {
-    value: {
-      type: Object as PropType<MetricAlias>,
-      required: true,
-    },
-    index: {
-      type: Number,
-      required: true,
+    loading: {
+      type: Boolean,
+      default: false,
     },
     metrics: {
       type: Array as PropType<Metric[]>,
@@ -106,11 +106,11 @@ export default defineComponent({
       type: Object as PropType<UseUql>,
       required: true,
     },
-    disabled: {
-      type: Boolean,
-      default: false,
-    },
     required: {
+      type: Boolean,
+      required: true,
+    },
+    disabled: {
       type: Boolean,
       default: false,
     },
@@ -122,13 +122,14 @@ export default defineComponent({
     const metricAlias = shallowRef('')
     const searchInput = shallowRef('')
 
+    const form = shallowRef()
     const isValid = shallowRef(false)
     const rules = computed(() => {
       return {
-        name: props.required ? [requiredRule] : [],
+        name: [props.required ? requiredRule : optionalRule],
         alias: [
           (v: string) => {
-            if (!props.required && !metricName.value) {
+            if (!metricName.value) {
               return true
             }
             if (!v) {
@@ -141,8 +142,8 @@ export default defineComponent({
               return 'Only letters and numbers are allowed'
             }
 
-            const activeIndex = props.activeMetrics.findIndex((m) => m.alias === v)
-            if (activeIndex >= 0 && activeIndex !== props.index) {
+            const found = props.activeMetrics.find((m) => m.alias === v)
+            if (found) {
               return 'Alias is duplicated'
             }
 
@@ -157,48 +158,17 @@ export default defineComponent({
       if (searchInput.value) {
         metrics = fuzzyFilter(metrics, searchInput.value, { key: 'name' })
       }
-
-      if (props.value.name) {
-        const i = metrics.findIndex((m) => m.name === props.value.name)
-        if (i >= 0) {
-          return metrics
-        }
-
-        let found = props.metrics.find((m) => m.name === props.value.name)
-        if (!found) {
-          found = { name: props.value.name, instrument: Instrument.Invalid } as Metric
-        }
-        metrics.push(found)
-      }
-
       return metrics
     })
 
-    const applyDisabled = computed((): boolean => {
-      if (!metricName.value || !metricAlias.value) {
-        return true
+    function submit() {
+      if (!validate()) {
+        return
       }
-      if (metricName.value !== props.value.name || metricAlias.value !== props.value.alias) {
-        return false
-      }
-      if (!hasMetricAlias(props.uql.query, metricAlias.value)) {
-        return false
-      }
-      return true
-    })
 
-    watch(
-      () => props.value,
-      (metric: MetricAlias) => {
-        metricName.value = metric.name
-        metricAlias.value = metric.alias
-      },
-      { immediate: true },
-    )
-
-    function apply() {
       metricAlias.value = metricAlias.value.toLowerCase()
-      ctx.emit('click:apply', { name: metricName.value, alias: metricAlias.value })
+      ctx.emit('click:add', { name: metricName.value, alias: metricAlias.value })
+      reset()
     }
 
     function onMetricNameChange(metricName: string | null) {
@@ -206,15 +176,18 @@ export default defineComponent({
         return
       }
 
-      let alias = metricName
-
-      const i = alias.lastIndexOf('.')
-      if (i >= 0) {
-        alias = alias.slice(i + 1)
-      }
-
-      metricAlias.value = alias
+      metricAlias.value = defaultMetricAlias(metricName)
       metricAliasRef.value.focus()
+    }
+
+    function validate() {
+      return form.value.validate()
+    }
+
+    function reset() {
+      metricName.value = ''
+      metricAlias.value = ''
+      form.value.reset()
     }
 
     return {
@@ -223,13 +196,16 @@ export default defineComponent({
       metricName,
       metricAlias,
 
+      form,
       isValid,
       rules,
       filteredMetrics,
-      applyDisabled,
+
+      submit,
+      validate,
+      reset,
 
       unitShortName,
-      apply,
       onMetricNameChange,
     }
   },

@@ -26,10 +26,10 @@ import (
 	"github.com/uptrace/uptrace"
 	"github.com/uptrace/uptrace/cmd/uptrace/command"
 	"github.com/uptrace/uptrace/pkg"
+	"github.com/uptrace/uptrace/pkg/alerting"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunapp/chmigrations"
 	"github.com/uptrace/uptrace/pkg/bunapp/pgmigrations"
-	"github.com/uptrace/uptrace/pkg/metrics/alerting"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/run"
 	"golang.org/x/net/http2"
@@ -104,11 +104,11 @@ var serveCommand = &cli.Command{
 		fmt.Printf("Telegram chat               https://t.me/uptrace\n")
 		fmt.Println()
 
-		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", conf.GRPCDsn(project))
-		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", conf.HTTPDsn(project))
+		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", conf.GRPCDsn(project.ID, project.Token))
+		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", conf.HTTPDsn(project.ID, project.Token))
 		fmt.Println()
 
-		fmt.Printf("Open UI (site.addr)         %s\n", conf.SitePath("/"))
+		fmt.Printf("Open UI (site.addr)         %s\n", conf.SiteURL("/"))
 		fmt.Println()
 
 		app.Logger.Info("starting Uptrace...",
@@ -131,15 +131,19 @@ var serveCommand = &cli.Command{
 		}
 
 		if err := initPostgres(ctx, app); err != nil {
-			return err
+			return fmt.Errorf("initPostgres failed: %w", err)
 		}
 		if err := initClickhouse(ctx, app); err != nil {
-			return err
+			return fmt.Errorf("initClickhouse failed: %w", err)
+		}
+		if err := loadInitialData(ctx, app); err != nil {
+			return fmt.Errorf("loadInitialData failed: %w", err)
 		}
 
 		org.Init(ctx, app)
 		tracing.Init(ctx, app)
 		metrics.Init(ctx, app)
+		alerting.Init(ctx, app)
 
 		var group run.Group
 
@@ -188,7 +192,31 @@ var serveCommand = &cli.Command{
 			})
 		}
 
-		startAlerting(&group, app)
+		{
+			man := alerting.NewManager(app, &alerting.ManagerConfig{
+				Logger: app.Logger.Logger,
+			})
+
+			group.Add(func() error {
+				man.Run()
+				return nil
+			}, func(err error) {
+				man.Stop()
+			})
+		}
+
+		{
+			group.Add(func() error {
+				if err := app.MainQueue.Consumer().Start(ctx); err != nil {
+					return err
+				}
+
+				<-app.Done()
+				return nil
+			}, func(err error) {
+				app.MainQueue.Close()
+			})
+		}
 
 		{
 			term := make(chan os.Signal, 1)
@@ -208,10 +236,10 @@ var serveCommand = &cli.Command{
 
 		go genSampleTrace()
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		runCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		return group.Run(ctx)
+		return group.Run(runCtx)
 	},
 }
 
@@ -305,6 +333,64 @@ func runCHMigrations(ctx context.Context, app *bunapp.App) error {
 	return nil
 }
 
+func loadInitialData(ctx context.Context, app *bunapp.App) error {
+	conf := app.Config()
+
+	for i := range conf.Auth.Users {
+		src := &conf.Auth.Users[i]
+		dest := &org.User{
+			Username:      src.Username,
+			Email:         src.Email,
+			Avatar:        src.Avatar,
+			NotifyByEmail: src.NotifyByEmail,
+		}
+		if err := dest.SetPassword(src.Password); err != nil {
+			return err
+		}
+		if err := dest.Init(); err != nil {
+			return err
+		}
+
+		if _, err := app.PG.NewInsert().
+			Model(dest).
+			On("CONFLICT (username) DO UPDATE").
+			Set("password = EXCLUDED.password").
+			Set("avatar = EXCLUDED.avatar").
+			Exec(ctx); err != nil {
+			return err
+		}
+	}
+
+	for i := range conf.Projects {
+		src := &conf.Projects[i]
+
+		dest := &org.Project{
+			ID:                  src.ID,
+			Name:                src.Name,
+			Token:               src.Token,
+			PinnedAttrs:         src.PinnedAttrs,
+			GroupByEnv:          src.GroupByEnv,
+			GroupFuncsByService: src.GroupFuncsByService,
+		}
+		if err := dest.Init(); err != nil {
+			return err
+		}
+
+		if _, err := app.PG.NewInsert().
+			Model(dest).
+			On("CONFLICT (id) DO UPDATE").
+			Set("name = EXCLUDED.name").
+			Set("pinned_attrs = EXCLUDED.pinned_attrs").
+			Set("group_by_env = EXCLUDED.group_by_env").
+			Set("group_funcs_by_service = EXCLUDED.group_funcs_by_service").
+			Exec(ctx); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func handleStaticFiles(app *bunapp.App, fsys fs.FS) {
 	conf := app.Config()
 	router := app.Router()
@@ -331,37 +417,6 @@ func handleStaticFiles(app *bunapp.App, fsys fs.FS) {
 }
 
 func startAlerting(group *run.Group, app *bunapp.App) {
-	var rules []alerting.RuleConfig
-
-	conf := app.Config()
-	for i := range conf.Alerting.Rules {
-		rule := &conf.Alerting.Rules[i]
-
-		if err := rule.Validate(); err != nil {
-			app.Logger.Error("rule.Validate failed", zap.Error(err))
-			continue
-		}
-
-		rules = append(rules, rule.RuleConfig())
-
-	}
-
-	app.Logger.Info("starting monitoring metrics...",
-		zap.Int("rules", len(rules)))
-
-	man := alerting.NewManager(&alerting.ManagerConfig{
-		Engine:   metrics.NewAlertingEngine(app),
-		Rules:    rules,
-		AlertMan: metrics.NewAlertManager(app.PG, app.Notifier, app.Logger),
-		Logger:   app.Logger.Logger,
-	})
-
-	group.Add(func() error {
-		man.Run()
-		return nil
-	}, func(err error) {
-		man.Stop()
-	})
 }
 
 func genSampleTrace() {

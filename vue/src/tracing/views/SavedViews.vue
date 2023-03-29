@@ -9,7 +9,7 @@
 import { defineComponent } from 'vue'
 
 // Composables
-import { useUser } from '@/use/org'
+import { useUser } from '@/org/use-users'
 import { useSavedViews } from '@/tracing/views/use-saved-views'
 
 // Components

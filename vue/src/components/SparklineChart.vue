@@ -1,5 +1,11 @@
 <template>
-  <EChart :width="chart.width" :height="chart.height" :option="chart.option" />
+  <EChart
+    :width="chart.width"
+    :height="chart.height"
+    :option="chart.option"
+    :group="group"
+    no-resize
+  />
 </template>
 
 <script lang="ts">
@@ -10,8 +16,12 @@ import { defineComponent, computed, PropType } from 'vue'
 import EChart, { EChartProps } from '@/components/EChart.vue'
 
 // Utilities
-import { unitFromName, Unit } from '@/util/fmt'
-import { baseChartConfig, addChartTooltip, createTooltipFormatter } from '@/util/chart'
+import {
+  baseChartConfig,
+  addChartTooltip,
+  createTooltipFormatter,
+  EChartsOption,
+} from '@/util/chart'
 
 export default defineComponent({
   name: 'SparklineChart',
@@ -22,10 +32,6 @@ export default defineComponent({
       type: String,
       required: true,
     },
-    unit: {
-      type: String as PropType<Unit>,
-      default: undefined,
-    },
     line: {
       type: Array as PropType<number[]>,
       required: true,
@@ -34,16 +40,21 @@ export default defineComponent({
       type: Array as PropType<string[]>,
       required: true,
     },
+    unit: {
+      type: String,
+      default: undefined,
+    },
+    color: {
+      type: String,
+      default: colors.blue.lighten1,
+    },
+    group: {
+      type: [String, Symbol],
+      default: undefined,
+    },
   },
 
   setup(props) {
-    const unit = computed((): Unit => {
-      if (props.unit !== undefined) {
-        return props.unit
-      }
-      return unitFromName(props.name)
-    })
-
     const chart = computed(() => {
       const chart: Partial<EChartProps> = {
         width: 100,
@@ -53,7 +64,7 @@ export default defineComponent({
       const conf = baseChartConfig()
       addChartTooltip(conf, {
         axisPointer: undefined,
-        formatter: createTooltipFormatter(unit.value),
+        formatter: createTooltipFormatter(props.unit),
       })
 
       conf.grid.push({
@@ -85,29 +96,28 @@ export default defineComponent({
       return chart
     })
 
+    function plotLine(conf: EChartsOption, name: string, line: number[], time: string[]) {
+      conf.dataset.push({
+        source: {
+          time,
+          [name]: line,
+        },
+      })
+
+      conf.series.push({
+        type: 'line',
+        name: name,
+        encode: { x: 'time', y: name },
+        showSymbol: false,
+        lineStyle: { width: 1 },
+        itemStyle: { color: props.color },
+        areaStyle: { opacity: 0.15 },
+      })
+    }
+
     return { chart }
   },
 })
-
-function plotLine(conf: any, name: string, line: number[], time: string[]) {
-  conf.dataset.push({
-    source: {
-      time,
-      [name]: line,
-    },
-  })
-
-  const color = colors.blue.base
-  conf.series.push({
-    type: 'line',
-    name: name,
-    encode: { x: 'time', y: name },
-    showSymbol: false,
-    lineStyle: { width: 1 },
-    itemStyle: { color },
-    areaStyle: { opacity: 0.15 },
-  })
-}
 </script>
 
 <style lang="scss" scoped></style>

@@ -25,8 +25,13 @@ const (
 )
 
 func FromString(s string) string {
-	switch strings.ToLower(s) {
-	case "", "1":
+	s = strings.ToLower(s)
+	return fromString(s)
+}
+
+func fromString(s string) string {
+	switch s {
+	case "", "1", "0":
 		return None
 	case Percents, "%":
 		return Percents
@@ -52,44 +57,16 @@ func FromString(s string) string {
 		return Terabytes
 
 	default:
-		return string(s)
+		return s
 	}
 }
 
+// ConvertValue converts the value between units.
 func ConvertValue(n float64, from, to string) (float64, error) {
-	if n == 0 {
-		return 0, nil
-	}
-
-	switch from {
-	case Nanoseconds, Bytes:
-		if n < 1 {
-			return 0, fmt.Errorf("got value %G, but %s must be >= 1", to, n)
-		}
-	case Percents:
-		switch {
-		case n < 1:
-			return 0, fmt.Errorf("got value %G, but percents must be >= 1", n)
-		case n > 100:
-			return 0, fmt.Errorf("got value %G, but percents must be <= 100", n)
-		}
-	}
+	from = FromString(from)
+	to = FromString(to)
 
 	switch to {
-	case None:
-		switch from {
-		case None:
-			return n, nil
-		default:
-			return float64(n), nil
-		}
-	case Percents:
-		switch from {
-		case Percents:
-			return n / 100, nil
-		default:
-			return 0, convertValueError(n, from, to)
-		}
 	case Bytes:
 		switch from {
 		case Bytes:
@@ -168,5 +145,5 @@ func ConvertValue(n float64, from, to string) (float64, error) {
 }
 
 func convertValueError(n float64, from, to string) error {
-	return fmt.Errorf("can't convert %G from %q to %q", n, from, to)
+	return fmt.Errorf("can't convert %g from %q to %q", n, from, to)
 }

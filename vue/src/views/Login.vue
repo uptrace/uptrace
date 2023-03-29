@@ -75,7 +75,7 @@ import { defineComponent, shallowRef, watch } from 'vue'
 import { useTitle } from '@vueuse/core'
 import { useAxios } from '@/use/axios'
 import { useRouter } from '@/use/router'
-import { useUser, useSso } from '@/use/org'
+import { useUser, useSso } from '@/org/use-users'
 
 const requiredRule = (v: string) => (v && v.length != 0) || 'Field is required'
 

@@ -39,9 +39,10 @@
 import { defineComponent, shallowRef, watch, PropType } from 'vue'
 
 // Composables
-import { useDashManager, Dashboard } from '@/metrics/use-dashboards'
+import { useDashManager } from '@/metrics/use-dashboards'
 
 // Utilities
+import { Dashboard } from '@/metrics/types'
 import { requiredRule } from '@/util/validation'
 
 export default defineComponent({

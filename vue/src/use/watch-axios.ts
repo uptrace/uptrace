@@ -3,9 +3,11 @@ import { watch, proxyRefs, onBeforeUnmount } from 'vue'
 
 import { useAxios, AxiosRequestConfig, AxiosConfig } from '@/use/axios'
 
-export type AxiosRequestSource = () => AxiosRequestConfig | null | undefined
+export type AxiosRequest = AxiosRequestConfig | null | undefined
+export type AxiosRequestSource = () => AxiosRequest
 
-export type AxiosParamsSource = () => Record<string, any> | null | undefined
+export type AxiosParams = Record<string, any> | null | undefined
+export type AxiosParamsSource = () => AxiosParams
 
 export interface AxiosWatchOptions extends AxiosConfig {
   immediate?: boolean
@@ -149,10 +151,10 @@ function hashAxiosRequest(req: AxiosRequestConfig | undefined, ignoredKeys: stri
   }
 
   return JSON.stringify(req, (key: string, value: unknown): unknown => {
-    if (ignoredKeys.indexOf(key) >= 0) {
+    if (key.startsWith(IGNORE_KEY_PREFIX)) {
       return undefined
     }
-    if (key.startsWith(IGNORE_KEY_PREFIX)) {
+    if (ignoredKeys.indexOf(key) >= 0) {
       return undefined
     }
     if (value === undefined) {

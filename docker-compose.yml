@@ -85,7 +85,7 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
-  otel-collector:
+  otelcol:
     image: otel/opentelemetry-collector-contrib:0.70.0
     restart: on-failure
     volumes:

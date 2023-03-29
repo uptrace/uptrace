@@ -8,7 +8,6 @@ import (
 
 	"github.com/uptrace/uptrace/pkg/bununit"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
-	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 )
 
@@ -36,6 +35,7 @@ type Expr interface {
 }
 
 type Name struct {
+	// Used to convert simple FuncCall to Name
 	Func    string
 	Name    string
 	Filters []Filter
@@ -98,7 +98,7 @@ func (n *Number) ConvertValue(unit string) (float64, error) {
 	default:
 		f, err := strconv.ParseFloat(n.Text, 64)
 		if err != nil {
-			zap.L().Error("strconv.ParseFloat failed", zap.Error(err))
+			return 0, err
 		}
 		return f, nil
 	}
@@ -143,6 +143,7 @@ func (fn *FuncCall) String() string {
 type BinaryExpr struct {
 	Op       BinaryOp
 	LHS, RHS Expr
+	JoinOn   []string
 }
 
 func (e *BinaryExpr) String() string {
@@ -173,6 +174,8 @@ const (
 	FilterNotRegexp FilterOp = "!~"
 	FilterLike      FilterOp = "like"
 	FilterNotLike   FilterOp = "not like"
+	FilterExists    FilterOp = "exists"
+	FilterNotExists FilterOp = "not exists"
 )
 
 type BoolOp string
@@ -183,10 +186,10 @@ const (
 )
 
 type Filter struct {
-	Sep BoolOp
-	LHS string
-	Op  FilterOp
-	RHS Value
+	BoolOp BoolOp
+	LHS    string
+	Op     FilterOp
+	RHS    Value // *Number | StringValue
 }
 
 type Value interface {
@@ -203,7 +206,7 @@ func (f *Filter) AppendString(b []byte) []byte {
 	b = append(b, f.LHS...)
 
 	switch f.Op {
-	case FilterLike, FilterNotLike:
+	case FilterLike, FilterNotLike, FilterExists:
 		b = append(b, ' ')
 		b = append(b, f.Op...)
 		b = append(b, ' ')
@@ -211,7 +214,9 @@ func (f *Filter) AppendString(b []byte) []byte {
 		b = append(b, f.Op...)
 	}
 
-	b = f.RHS.AppendString(b)
+	if f.RHS != nil {
+		b = f.RHS.AppendString(b)
+	}
 
 	return b
 }
@@ -221,7 +226,7 @@ type StringValue struct {
 }
 
 func (v StringValue) AppendString(b []byte) []byte {
-	if isIdent(v.Text) {
+	if IsIdent(v.Text) {
 		return append(b, v.Text...)
 	}
 	return strconv.AppendQuote(b, v.Text)

@@ -1,9 +1,10 @@
+schema: v1
 id: uptrace.db.redis_by_host_redis_version
 name: 'DB: Redis'
 
 table:
   gauges:
-    - name: Keys
+    - name: Number of keys
       description: Number of keys in all Redis databases
       metrics:
         - redis.db.keys as $keys
@@ -16,7 +17,7 @@ table:
         - redis.commands as $cmds
       query:
         - $cmds
-      template: $cmds/sec
+      template: ${cmds}/sec
 
     - name: RAM fragm.
       description: RAM fragmentation ratio (RSS / allocated RAM)
@@ -56,7 +57,7 @@ table:
     - per_min($conns_rejected) as conns_rejected
     - per_min($keys_evicted) as keys_evicted
 
-entries:
+grid:
   - name: Fragmentation ratio
     metrics:
       - redis.memory.fragmentation_ratio as $fragmentation
@@ -82,6 +83,7 @@ entries:
     query:
       - $db_keys
       - $db_expires
+    chart: bar
 
   - name: Keyspace hit rate
     metrics:
@@ -118,6 +120,7 @@ entries:
     columns:
       input_per_min: { unit: bytes }
       output_per_min: { unit: bytes }
+    chart: stacked-bar
 
   - name: RSS memory
     metrics:

@@ -99,14 +99,17 @@ func validateConfig(conf *Config) error {
 		conf.Spans.BatchSize = ScaleWithCPU(1000, 32000)
 	}
 	if conf.Spans.BufferSize == 0 {
-		conf.Spans.BufferSize = 2 * runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
+		conf.Spans.BufferSize = runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
 	}
 
 	if conf.Metrics.BatchSize == 0 {
 		conf.Metrics.BatchSize = ScaleWithCPU(1000, 32000)
 	}
 	if conf.Metrics.BufferSize == 0 {
-		conf.Metrics.BufferSize = 2 * runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
+		conf.Metrics.BufferSize = runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
+	}
+	if conf.Metrics.CumToDeltaSize == 0 {
+		conf.Metrics.CumToDeltaSize = ScaleWithCPU(10000, 500000)
 	}
 
 	return nil
@@ -123,8 +126,6 @@ func validateUsers(users []User) error {
 		if seen[user.Username] {
 			return fmt.Errorf("user with username=%q already exists", user.Username)
 		}
-
-		user.Init()
 	}
 
 	return nil
@@ -199,8 +200,9 @@ type Config struct {
 	Metrics struct {
 		DropAttrs []string `yaml:"drop_attrs"`
 
-		BufferSize int `yaml:"buffer_size"`
-		BatchSize  int `yaml:"batch_size"`
+		BufferSize     int `yaml:"buffer_size"`
+		BatchSize      int `yaml:"batch_size"`
+		CumToDeltaSize int `yaml:"cum_to_delta_size"`
 	} `yaml:"metrics"`
 
 	MetricsFromSpans []SpanMetric `yaml:"metrics_from_spans"`
@@ -212,19 +214,6 @@ type Config struct {
 	} `yaml:"auth" json:"auth"`
 
 	Projects []Project `yaml:"projects"`
-
-	Alerting struct {
-		Rules []AlertRule `yaml:"rules"`
-
-		CreateAlertsFromSpans struct {
-			Enabled bool              `yaml:"enabled"`
-			Labels  map[string]string `yaml:"labels"`
-		} `yaml:"create_alerts_from_spans"`
-	} `yaml:"alerting"`
-
-	AlertmanagerClient struct {
-		URLs []string `yaml:"urls"`
-	} `yaml:"alertmanager_client"`
 
 	UptraceGo struct {
 		DSN string     `yaml:"dsn"`
@@ -290,22 +279,22 @@ func (c *Config) HTTPEndpoint() string {
 	return fmt.Sprintf("%s://%s:%s", c.Listen.HTTP.Scheme, c.Listen.HTTP.Host, c.Listen.HTTP.Port)
 }
 
-func (c *Config) GRPCDsn(project *Project) string {
+func (c *Config) GRPCDsn(projectID uint32, projectToken string) string {
 	return fmt.Sprintf("%s://%s@%s:%s/%d",
-		c.Listen.GRPC.Scheme, project.Token, c.Listen.GRPC.Host, c.Listen.GRPC.Port, project.ID)
+		c.Listen.GRPC.Scheme, projectToken, c.Listen.GRPC.Host, c.Listen.GRPC.Port, projectID)
 }
 
-func (c *Config) HTTPDsn(project *Project) string {
+func (c *Config) HTTPDsn(projectID uint32, projectToken string) string {
 	return fmt.Sprintf("%s://%s@%s:%s/%d",
-		c.Listen.HTTP.Scheme, project.Token, c.Listen.HTTP.Host, c.Listen.HTTP.Port, project.ID)
+		c.Listen.HTTP.Scheme, projectToken, c.Listen.HTTP.Host, c.Listen.HTTP.Port, projectID)
 }
 
-func (c *Config) SitePath(sitePath string) string {
+func (c *Config) SiteURL(sitePath string, args ...any) string {
 	u, err := url.Parse(c.Site.Addr)
 	if err != nil {
 		panic(err)
 	}
-	u.Path = path.Join(u.Path, sitePath)
+	u.Path = path.Join(u.Path, fmt.Sprintf(sitePath, args...))
 	return u.String()
 }
 

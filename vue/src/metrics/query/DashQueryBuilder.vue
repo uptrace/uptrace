@@ -1,15 +1,6 @@
 <template>
   <UptraceQuery :uql="uql">
-    <template v-if="metrics && dashAttrs.keys.length">
-      <DashWhereMenu
-        v-for="key in dashAttrs.keys.slice(0, 10)"
-        :key="key"
-        :uql="uql"
-        :attr-key="key"
-        :axios-params="axiosParams"
-      />
-    </template>
-    <v-btn v-else text disabled class="v-btn--filter">Where</v-btn>
+    <DashWhereBtn :uql="uql" :axios-params="axiosParams" />
 
     <v-divider vertical class="mx-2" />
     <v-btn text class="v-btn--filter" @click="uql.rawMode = !uql.rawMode">{{
@@ -26,18 +17,16 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
-import { useRoute } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseUql } from '@/use/uql'
-import { useDashAttrs } from '@/metrics/use-dashboards'
 
 // Components
 import UptraceQuery from '@/components/UptraceQuery.vue'
-import DashWhereMenu from '@/metrics/query/DashWhereMenu.vue'
+import DashWhereBtn from '@/metrics/query/DashWhereBtn.vue'
 
 export default defineComponent({
   name: 'DashQueryBuilder',
-  components: { UptraceQuery, DashWhereMenu },
+  components: { UptraceQuery, DashWhereBtn },
 
   props: {
     dateRange: {
@@ -59,8 +48,6 @@ export default defineComponent({
   },
 
   setup(props) {
-    const route = useRoute()
-
     const axiosParams = computed(() => {
       if (!props.metrics.length) {
         return { _: undefined }
@@ -68,21 +55,12 @@ export default defineComponent({
 
       return {
         ...props.dateRange.axiosParams(),
-        metrics: props.metrics,
-      }
-    })
-
-    const dashAttrs = useDashAttrs(() => {
-      const { projectId } = route.value.params
-      return {
-        url: `/api/v1/metrics/${projectId}/attributes`,
-        params: axiosParams.value,
+        metric: props.metrics,
       }
     })
 
     return {
       axiosParams,
-      dashAttrs,
     }
   },
 })

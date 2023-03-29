@@ -39,16 +39,6 @@ interface ChartData extends Record<string, unknown> {
   time: string[]
 }
 
-const colorSet = {
-  count: colors.blue.base,
-  rate: colors.blue.base,
-  errorCount: colors.red.darken1,
-  errorPct: colors.red.darken3,
-  p50: colors.green.lighten2,
-  p90: colors.amber.darken1,
-  p99: colors.deepOrange.darken3,
-}
-
 export default defineComponent({
   name: 'PctileChart',
   components: { EChart },
@@ -69,10 +59,10 @@ export default defineComponent({
       const charts: EChartProps[] = []
 
       if (props.data && props.data.p50) {
-        charts.push(pctilesChart(props.data))
+        charts.push(percentilesChart(props.data))
         charts.push(countAndErrorRateChart(props.data))
       } else {
-        charts.push(rateOnlyChart(props.data))
+        charts.push(eventRateChart(props.data))
       }
 
       return charts
@@ -85,13 +75,13 @@ export default defineComponent({
   },
 })
 
-function pctilesChart(data: ChartData) {
-  const cfg = baseChartConfig()
-  addChartTooltip(cfg, {
+function percentilesChart(data: ChartData) {
+  const conf = baseChartConfig()
+  addChartTooltip(conf, {
     formatter: createTooltipFormatter(durationShort),
   })
 
-  cfg.xAxis.push({
+  conf.xAxis.push({
     type: 'time',
     axisTick: { show: false },
     splitLine: { show: false },
@@ -99,7 +89,7 @@ function pctilesChart(data: ChartData) {
     axisPointer: { label: { show: false } },
   })
 
-  cfg.yAxis.push({
+  conf.yAxis.push({
     type: 'value',
     axisLabel: {
       formatter: durationShort,
@@ -112,21 +102,22 @@ function pctilesChart(data: ChartData) {
     splitLine: { show: false },
   })
 
-  cfg.dataset.push({
+  conf.dataset.push({
     source: data as any,
   })
 
   const items = [
-    { name: 'p50', color: colorSet.p50 },
-    { name: 'p90', color: colorSet.p90 },
-    { name: 'p99', color: colorSet.p99 },
+    { name: 'p50', color: colors.green.lighten2 },
+    { name: 'p90', color: colors.orange.base },
+    { name: 'p99', color: colors.pink.lighten2 },
+    { name: 'max', color: colors.red.darken2 },
   ]
   for (let item of items) {
     if (!data[item.name]) {
       continue
     }
 
-    cfg.series.push({
+    conf.series.push({
       name: item.name,
       type: 'line',
       symbol: 'none',
@@ -143,38 +134,39 @@ function pctilesChart(data: ChartData) {
     })
   }
 
-  cfg.legend.push({
+  conf.legend.push({
     type: 'scroll',
     width: '90%',
-    data: ['p50', 'p90', 'p99'],
+    data: ['p50', 'p90', 'p99', 'max'],
     selected: {
       p50: true,
       p90: true,
       p99: false,
+      max: false,
     },
   })
 
-  cfg.grid.push({
+  conf.grid.push({
     top: 30,
     left: 45,
     right: 30,
-    height: 65,
+    height: 75,
   })
 
   return {
     name: 'pctile',
-    height: 100,
-    option: cfg,
+    height: 110,
+    option: conf,
   }
 }
 
 function countAndErrorRateChart(data: ChartData | undefined) {
-  const cfg = baseChartConfig()
-  addChartTooltip(cfg, {
+  const conf = baseChartConfig()
+  addChartTooltip(conf, {
     formatter: createTooltipFormatter((v: any) => String(v)),
   })
 
-  cfg.xAxis.push({
+  conf.xAxis.push({
     type: 'time',
     axisPointer: {
       label: {
@@ -183,7 +175,7 @@ function countAndErrorRateChart(data: ChartData | undefined) {
     },
   })
 
-  cfg.yAxis.push({
+  conf.yAxis.push({
     type: 'value',
     axisLabel: {
       formatter: num,
@@ -197,41 +189,41 @@ function countAndErrorRateChart(data: ChartData | undefined) {
   })
 
   if (data) {
-    cfg.dataset.push({
+    conf.dataset.push({
       source: {
         time: data.time,
         rate: data.rate,
       },
     })
 
-    cfg.series.push({
-      datasetIndex: cfg.dataset.length - 1,
+    conf.series.push({
+      datasetIndex: conf.dataset.length - 1,
       name: 'count per min',
       type: 'line',
       symbol: 'none',
-      itemStyle: { color: colorSet.count },
+      itemStyle: { color: colors.blue.lighten1 },
       areaStyle: { opacity: 0.15 },
       encode: { x: 'time', y: 'rate' },
     })
 
-    cfg.dataset.push({
+    conf.dataset.push({
       source: {
         time: data.time,
         errorRate: data.errorRate,
       },
     })
 
-    cfg.series.push({
-      datasetIndex: cfg.dataset.length - 1,
+    conf.series.push({
+      datasetIndex: conf.dataset.length - 1,
       name: 'errors per min',
       type: 'line',
       symbol: 'none',
-      itemStyle: { color: colorSet.errorCount },
+      itemStyle: { color: colors.red.base },
       encode: { x: 'time', y: 'errorRate' },
     })
   }
 
-  cfg.grid.push({
+  conf.grid.push({
     top: 15,
     left: 45,
     right: 30,
@@ -241,17 +233,17 @@ function countAndErrorRateChart(data: ChartData | undefined) {
   return {
     name: 'rate',
     height: 110,
-    option: cfg,
+    option: conf,
   }
 }
 
 //------------------------------------------------------------------------------
 
-function rateOnlyChart(data: ChartData | undefined) {
-  const cfg = baseChartConfig()
-  addChartTooltip(cfg)
+function eventRateChart(data: ChartData | undefined) {
+  const conf = baseChartConfig()
+  addChartTooltip(conf)
 
-  cfg.xAxis.push({
+  conf.xAxis.push({
     type: 'time',
     axisPointer: {
       label: {
@@ -260,7 +252,7 @@ function rateOnlyChart(data: ChartData | undefined) {
     },
   })
 
-  cfg.yAxis.push({
+  conf.yAxis.push({
     type: 'value',
     axisLabel: {
       formatter: num,
@@ -274,22 +266,22 @@ function rateOnlyChart(data: ChartData | undefined) {
   })
 
   if (data) {
-    cfg.dataset.push({
+    conf.dataset.push({
       source: {
         time: data.time,
         rate: data.rate,
       },
     })
 
-    cfg.series.push({
+    conf.series.push({
       name: 'events per min',
       type: 'bar',
-      itemStyle: { color: colorSet.count },
+      itemStyle: { color: colors.blue.darken1 },
       encode: { x: 'time', y: 'rate' },
     })
   }
 
-  cfg.grid.push({
+  conf.grid.push({
     top: 15,
     left: 45,
     right: 30,
@@ -299,7 +291,7 @@ function rateOnlyChart(data: ChartData | undefined) {
   return {
     name: 'rate',
     height: 160,
-    option: cfg,
+    option: conf,
   }
 }
 </script>

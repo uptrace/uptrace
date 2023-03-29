@@ -16,37 +16,29 @@ import (
 )
 
 type QueryFilter struct {
-	App *bunapp.App
-
-	ProjectID uint32
 	org.TimeFilter
 	org.OrderByMixin
 	urlstruct.Pager
 
-	Metrics   []string
-	Aliases   []string
-	Query     string
-	BaseQuery string
+	Project *org.Project `urlstruct:"-"`
 
-	metricMap map[string]*Metric
+	Metric []string
+	Alias  []string
+	Query  string
 
-	baseQueryParts []*upql.QueryPart
-	queryParts     []*upql.QueryPart
-	allParts       []*upql.QueryPart
+	parsedQuery *upql.ParsedQuery
+	allParts    []*upql.QueryPart
 }
 
-func decodeQueryFilter(app *bunapp.App, req bunrouter.Request) (*QueryFilter, error) {
+func DecodeQueryFilter(req bunrouter.Request, f *QueryFilter) error {
 	ctx := req.Context()
-
-	f := new(QueryFilter)
-	f.App = app
-	f.ProjectID = org.ProjectFromContext(ctx).ID
+	f.Project = org.ProjectFromContext(ctx)
 
 	if err := bunapp.UnmarshalValues(req, f); err != nil {
-		return nil, err
+		return err
 	}
 
-	return f, nil
+	return nil
 }
 
 var _ urlstruct.ValuesUnmarshaler = (*QueryFilter)(nil)
@@ -64,43 +56,18 @@ func (f *QueryFilter) UnmarshalValues(ctx context.Context, values url.Values) (e
 		}
 	}
 
-	if len(f.Metrics) == 0 {
-		return errors.New("at least one metric id is required")
+	if len(f.Metric) == 0 {
+		return errors.New("at least one metric is required")
 	}
-	if len(f.Metrics) > numMetricLimit {
+	if len(f.Metric) > 6 {
 		return errors.New("at most 6 metrics are allowed")
 	}
-	if len(f.Metrics) != len(f.Aliases) {
-		return fmt.Errorf("got %d metrics and %d aliases", len(f.Metrics), len(f.Aliases))
+	if len(f.Metric) != len(f.Alias) {
+		return fmt.Errorf("got %d metrics and %d aliases", len(f.Metric), len(f.Alias))
 	}
 
-	f.metricMap = make(map[string]*Metric, len(f.Metrics))
-
-	for i, metricName := range f.Metrics {
-		if metricName == "" {
-			return fmt.Errorf("metric name can't be empty")
-		}
-
-		metricAlias := f.Aliases[i]
-		if metricAlias == "" {
-			return fmt.Errorf("metric alias can't be empty")
-		}
-
-		metric, err := SelectMetricByName(ctx, f.App, f.ProjectID, metricName)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				f.metricMap[metricAlias] = newInvalidMetric(f.ProjectID, metricName)
-				continue
-			}
-			return err
-		}
-
-		f.metricMap[metricAlias] = metric
-	}
-
-	f.baseQueryParts = upql.Parse(f.BaseQuery)
-	f.queryParts = upql.Parse(f.Query)
-	f.allParts = append(f.queryParts, f.baseQueryParts...)
+	f.parsedQuery = upql.Parse(f.Query)
+	f.allParts = f.parsedQuery.Parts
 
 	return nil
 }
@@ -108,4 +75,32 @@ func (f *QueryFilter) UnmarshalValues(ctx context.Context, values url.Values) (e
 func (f *QueryFilter) Clone() *QueryFilter {
 	clone := *f
 	return &clone
+}
+
+func (f *QueryFilter) MetricMap(ctx context.Context, app *bunapp.App) (map[string]*Metric, error) {
+	metricMap := make(map[string]*Metric, len(f.Metric))
+
+	for i, metricName := range f.Metric {
+		if metricName == "" {
+			return nil, fmt.Errorf("metric name can't be empty")
+		}
+
+		metricAlias := f.Alias[i]
+		if metricAlias == "" {
+			return nil, fmt.Errorf("metric alias can't be empty")
+		}
+
+		metric, err := SelectMetricByName(ctx, app, f.Project.ID, metricName)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				metricMap[metricAlias] = newDeletedMetric(f.Project.ID, metricName)
+				continue
+			}
+			return nil, err
+		}
+
+		metricMap[metricAlias] = metric
+	}
+
+	return metricMap, nil
 }

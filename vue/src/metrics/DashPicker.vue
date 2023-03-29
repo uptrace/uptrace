@@ -14,6 +14,16 @@
     background-color="light-blue lighten-5"
     @change="onChange"
   >
+    <template #item="{ item }">
+      <v-list-item-content>
+        <v-list-item-title>
+          {{ item.name }}
+        </v-list-item-title>
+      </v-list-item-content>
+      <v-list-item-action v-if="item.pinned">
+        <v-icon size="20" title="Pinned">mdi-pin</v-icon>
+      </v-list-item-action>
+    </template>
   </v-autocomplete>
 </template>
 
@@ -24,14 +34,14 @@ import { defineComponent, shallowRef, computed, watch, watchEffect, PropType } f
 // Composables
 import { useRouter, useRoute } from '@/use/router'
 import { useStorage } from '@/use/local-storage'
-import { Dashboard } from '@/metrics/use-dashboards'
+import { Dashboard } from '@/metrics/types'
 
 export default defineComponent({
   name: 'DashPicker',
 
   props: {
     value: {
-      type: [String, Number],
+      type: Number,
       default: undefined,
     },
     items: {
@@ -45,7 +55,7 @@ export default defineComponent({
     const route = useRoute()
     const searchInput = shallowRef('')
 
-    const { item: lastDashId } = useStorage<string | number>(
+    const { item: lastDashId } = useStorage<number>(
       computed(() => {
         const projectId = route.value.params.projectId ?? 0
         return `last-dashboard:${projectId}`
@@ -95,7 +105,7 @@ export default defineComponent({
       { immediate: true },
     )
 
-    function onChange(dashId: string) {
+    function onChange(dashId: number) {
       const found = props.items.find((d) => d.id === dashId)
       if (found) {
         redirectTo(found)
@@ -111,7 +121,10 @@ export default defineComponent({
     }
 
     function redirectTo(dash: Dashboard) {
-      router.push({ name: 'MetricsDashShow', params: { dashId: dash.id } })
+      router.push({
+        name: 'MetricsDashShow',
+        params: { dashId: String(dash.id) },
+      })
     }
 
     return { searchInput, filteredItems, onChange }

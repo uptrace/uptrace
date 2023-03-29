@@ -2,6 +2,7 @@ package org
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"sync"
@@ -10,30 +11,33 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 )
 
 var errNoUser = errors.New("org: no user")
 
 type UserProvider interface {
-	Auth(req bunrouter.Request) (*bunconf.User, error)
+	Auth(req bunrouter.Request) (*User, error)
 }
 
 type JWTProvider struct {
-	users     []bunconf.User
+	app       *bunapp.App
 	secretKey string
 }
 
-func NewJWTProvider(users []bunconf.User, secretKey string) *JWTProvider {
+func NewJWTProvider(app *bunapp.App, secretKey string) *JWTProvider {
 	return &JWTProvider{
-		users:     users,
+		app:       app,
 		secretKey: secretKey,
 	}
 }
 
 var _ UserProvider = (*JWTProvider)(nil)
 
-func (p *JWTProvider) Auth(req bunrouter.Request) (*bunconf.User, error) {
+func (p *JWTProvider) Auth(req bunrouter.Request) (*User, error) {
+	ctx := req.Context()
+
 	cookie, err := req.Cookie(tokenCookieName)
 	if err != nil || cookie.Value == "" {
 		return nil, errNoUser
@@ -44,18 +48,16 @@ func (p *JWTProvider) Auth(req bunrouter.Request) (*bunconf.User, error) {
 		return nil, err
 	}
 
-	for i := range p.users {
-		user := &p.users[i]
-		if user.Username == username {
-			return user, nil
+	user, err := SelectUserByUsername(ctx, p.app, username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			user := &User{
+				Username: username,
+			}
+			user.Init()
 		}
+		return nil, err
 	}
-
-	user := &bunconf.User{
-		Username: username,
-	}
-	user.Init()
-
 	return user, nil
 }
 
@@ -108,7 +110,7 @@ func NewCloudflareProvider(conf *bunconf.CloudflareProvider) *CloudflareProvider
 	}
 }
 
-func (p *CloudflareProvider) Auth(req bunrouter.Request) (*bunconf.User, error) {
+func (p *CloudflareProvider) Auth(req bunrouter.Request) (*User, error) {
 	ctx := req.Context()
 	headers := req.Header
 
@@ -130,7 +132,7 @@ func (p *CloudflareProvider) Auth(req bunrouter.Request) (*bunconf.User, error) 
 		return nil, fmt.Errorf("parseCloudflareToken failed: %w", err)
 	}
 
-	user := &bunconf.User{
+	user := &User{
 		// TODO: is there a username?
 		Email: claims.Email,
 	}

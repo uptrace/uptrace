@@ -25,6 +25,7 @@
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
                 <v-tab :to="{ name: 'SpanGroupList' }">Tracing</v-tab>
                 <v-tab :to="{ name: 'MetricsDashList' }">Metrics</v-tab>
+                <v-tab :to="{ name: 'Alerting' }">Alerts</v-tab>
               </template>
               <v-tab v-if="!user.isAuth" :to="{ name: 'Login' }">Login</v-tab>
             </v-tabs>
@@ -75,7 +76,8 @@
     </v-app-bar>
 
     <v-main>
-      <XSnackbar />
+      <GlobalSnackbar />
+      <GlobalConfirm />
       <router-view :date-range="dateRange" />
     </v-main>
 
@@ -123,21 +125,29 @@ import { defineComponent, computed } from 'vue'
 import { useRoute, useRouteQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 import { useDateRange } from '@/use/date-range'
-import { useUser } from '@/use/org'
+import { useUser } from '@/org/use-users'
 
 // Components
 import UptraceLogoLarge from '@/components/UptraceLogoLarge.vue'
 import UptraceLogoSmall from '@/components/UptraceLogoSmall.vue'
 import ProjectPicker from '@/components/ProjectPicker.vue'
 import Search from '@/components/Search.vue'
-import XSnackbar from '@/components/XSnackbar.vue'
+import GlobalSnackbar from '@/components/GlobalSnackbar.vue'
+import GlobalConfirm from '@/components/GlobalConfirm.vue'
 
 // Utilities
 import { SystemName } from '@/models/otel'
 
 export default defineComponent({
   name: 'App',
-  components: { UptraceLogoLarge, UptraceLogoSmall, ProjectPicker, Search, XSnackbar },
+  components: {
+    UptraceLogoLarge,
+    UptraceLogoSmall,
+    ProjectPicker,
+    Search,
+    GlobalSnackbar,
+    GlobalConfirm,
+  },
 
   setup() {
     useRouteQuery()

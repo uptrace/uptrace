@@ -2,19 +2,15 @@ package tracing
 
 import (
 	"context"
-	"fmt"
 	"runtime"
-	"strconv"
 	"time"
 
-	"github.com/go-openapi/strfmt"
-	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
+	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric/instrument"
+	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
 )
@@ -25,8 +21,6 @@ type SpanProcessor struct {
 	batchSize int
 	ch        chan *Span
 	gate      *syncutil.Gate
-
-	notifier *bunapp.Notifier
 
 	logger *otelzap.Logger
 }
@@ -56,15 +50,14 @@ func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
 		p.processLoop(app.Context())
 	}()
 
-	bufferSize, _ := bunotel.Meter.AsyncInt64().Gauge("uptrace.spans.buffer_size")
+	bufferSize, _ := bunotel.Meter.Int64ObservableGauge("uptrace.spans.buffer_size")
 
-	if err := bunotel.Meter.RegisterCallback(
-		[]instrument.Asynchronous{
-			bufferSize,
+	if _, err := bunotel.Meter.RegisterCallback(
+		func(ctx context.Context, o metric.Observer) error {
+			o.ObserveInt64(bufferSize, int64(len(p.ch)))
+			return nil
 		},
-		func(ctx context.Context) {
-			bufferSize.Observe(ctx, int64(len(p.ch)))
-		},
+		bufferSize,
 	); err != nil {
 		panic(err)
 	}
@@ -145,7 +138,6 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 	dataSpans := make([]SpanData, 0, len(spans))
 
 	seenErrors := make(map[uint64]bool) // basic deduplication
-	var errors []*Span
 
 	spanCtx := newSpanContext(ctx, s.App)
 	for _, span := range spans {
@@ -188,7 +180,7 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 				errorCount++
 				if !seenErrors[eventSpan.GroupID] {
 					seenErrors[eventSpan.GroupID] = true
-					errors = append(errors, eventSpan)
+					scheduleCreateErrorAlert(ctx, s.App, eventSpan)
 				}
 			}
 			if isLogSystem(eventSpan.System) {
@@ -217,52 +209,19 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 		s.Zap(ctx).Error("ch.Insert failed",
 			zap.Error(err), zap.String("table", "spans_index"))
 	}
-
-	if len(errors) > 0 {
-		s.notifyOnErrors(ctx, errors)
-	}
 }
 
-func (s *SpanProcessor) notifyOnErrors(ctx context.Context, errors []*Span) {
-	conf := s.Config()
-	if !conf.Alerting.CreateAlertsFromSpans.Enabled {
-		return
+func scheduleCreateErrorAlert(ctx context.Context, app *bunapp.App, span *Span) {
+	job := org.CreateErrorAlertTask.NewJob(
+		span.ProjectID,
+		span.GroupID,
+		span.TraceID,
+		span.ID,
+	)
+	job.OnceInPeriod(15*time.Minute, span.GroupID)
+	job.SetDelay(time.Minute)
+
+	if err := app.MainQueue.AddJob(ctx, job); err != nil {
+		app.Zap(ctx).Error("MainQueue.Add failed", zap.Error(err))
 	}
-
-	alerts := make(models.PostableAlerts, len(errors))
-
-	for i, error := range errors {
-		labels := models.LabelSet{
-			"alertname":  "New error has occurred",
-			"project_id": strconv.FormatUint(uint64(error.ProjectID), 10),
-			"system":     error.System,
-			"group_id":   strconv.FormatUint(error.GroupID, 10),
-		}
-		if service := error.Attrs.ServiceName(); service != "" {
-			labels["service"] = service
-		}
-		if sev, _ := error.Attrs[attrkey.LogSeverity].(string); sev != "" {
-			labels["severity"] = sev
-		}
-		for k, v := range conf.Alerting.CreateAlertsFromSpans.Labels {
-			labels[k] = v
-		}
-		traceURL := s.Config().SitePath(fmt.Sprintf("/traces/%s", error.TraceID.String()))
-
-		alerts[i] = &models.PostableAlert{
-			Alert: models.Alert{
-				Labels:       labels,
-				GeneratorURL: strfmt.URI(traceURL),
-			},
-			Annotations: models.LabelSet{
-				"span_name":  error.Name,
-				"event_name": error.EventName,
-				"trace_id":   error.TraceID.String(),
-			},
-			StartsAt: strfmt.DateTime(error.Time),
-			// EndsAt:   strfmt.DateTime(time.Now().Add(time.Minute)),
-		}
-	}
-
-	s.Notifier.Send(ctx, alerts)
 }
