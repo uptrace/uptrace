@@ -13,13 +13,13 @@ import {
   toLocal,
   ceilDate,
   truncDate,
-  second,
-  minute,
-  hour,
-  day,
+  SECOND,
+  MINUTE,
+  HOUR,
+  DAY,
 } from '@/util/fmt/date'
 
-const UPDATE_NOW_TIMER_DELAY = 5 * minute
+const UPDATE_NOW_TIMER_DELAY = 5 * MINUTE
 
 export type UseDateRange = ReturnType<typeof useDateRange>
 
@@ -76,9 +76,9 @@ export function useDateRange(conf: Config = {}) {
     },
     set(s: string) {
       const dt = new Date(gte.value!.getTime())
-      const [hours, minutes] = s.split(':')
-      dt.setHours(parseInt(hours, 10))
-      dt.setMinutes(parseInt(minutes, 10))
+      const [HOURs, MINUTEs] = s.split(':')
+      dt.setHours(parseInt(HOURs, 10))
+      dt.setMinutes(parseInt(MINUTEs, 10))
       changeGTE(dt)
     },
   })
@@ -107,7 +107,7 @@ export function useDateRange(conf: Config = {}) {
       return false
     }
 
-    const now = _roundUp ? ceilDate(new Date(), minute) : truncDate(new Date(), minute)
+    const now = _roundUp ? ceilDate(new Date(), MINUTE) : truncDate(new Date(), MINUTE)
     lt.value = now
 
     if (updateNowTimer) {
@@ -183,7 +183,7 @@ export function useDateRange(conf: Config = {}) {
     }
 
     dt = addMilliseconds(dt, duration.value / 2)
-    const now = ceilDate(new Date(), minute)
+    const now = ceilDate(new Date(), MINUTE)
     dt = min([dt, now])
     changeLT(dt)
   }
@@ -206,7 +206,7 @@ export function useDateRange(conf: Config = {}) {
       return false
     }
     const ms = differenceInMilliseconds(new Date(), gte.value!)
-    return ms < 30 * day
+    return ms < 30 * DAY
   })
 
   function prevPeriod() {
@@ -219,7 +219,7 @@ export function useDateRange(conf: Config = {}) {
       return false
     }
     const ms = differenceInMilliseconds(new Date(), lt.value!)
-    return ms > 15 * minute
+    return ms > 15 * MINUTE
   })
 
   function nextPeriod() {
@@ -230,7 +230,7 @@ export function useDateRange(conf: Config = {}) {
 
   //------------------------------------------------------------------------------
 
-  function syncQuery(conf: ParamsConfig = {}) {
+  function syncQueryParams(conf: ParamsConfig = {}) {
     useRouteQuery().sync({
       fromQuery(params) {
         parseQueryParams(params, conf)
@@ -250,7 +250,7 @@ export function useDateRange(conf: Config = {}) {
 
     return {
       [prefix + 'gte']: formatUTC(gte.value!),
-      [prefix + 'dur']: duration.value / second,
+      [prefix + 'dur']: duration.value / SECOND,
     }
   }
 
@@ -264,7 +264,7 @@ export function useDateRange(conf: Config = {}) {
     const within = params[prefix + 'within']
     if (typeof within === 'string') {
       const dt = parseUTC(within)
-      changeAround(dt, hour)
+      changeAround(dt, HOUR)
       return
     }
 
@@ -274,7 +274,7 @@ export function useDateRange(conf: Config = {}) {
       return
     }
 
-    duration.value = parseInt(dur, 10) * second
+    duration.value = parseInt(dur, 10) * SECOND
 
     if (typeof gteParam === 'string') {
       const gte = parseUTC(gteParam)
@@ -366,7 +366,7 @@ export function useDateRange(conf: Config = {}) {
 
     queryParams,
     parseQueryParams,
-    syncQuery,
+    syncQueryParams,
     roundUp,
 
     axiosParams,

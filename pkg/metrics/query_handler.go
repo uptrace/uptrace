@@ -1,22 +1,28 @@
 package metrics
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch/bfloat16"
+	"github.com/zeebo/xxh3"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunutil"
+	"github.com/uptrace/uptrace/pkg/histutil"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
 	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 )
 
 type QueryHandler struct {
@@ -32,8 +38,8 @@ func NewQueryHandler(app *bunapp.App) *QueryHandler {
 func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := decodeQueryFilter(h.App, req)
-	if err != nil {
+	f := new(QueryFilter)
+	if err := DecodeQueryFilter(req, f); err != nil {
 		return err
 	}
 
@@ -56,19 +62,32 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 		}
 	}
 
-	storage := NewCHStorage(ctx, h.App.CH, &CHStorageConfig{
-		Projects:   []uint32{f.ProjectID},
-		TimeFilter: f.TimeFilter,
-		MetricMap:  f.metricMap,
+	metricMap, err := f.MetricMap(ctx, h.App)
+	if err != nil {
+		return err
+	}
 
-		TableName:      measureTableForWhere(h.App, &f.TimeFilter),
-		GroupingPeriod: f.TimeFilter.Duration(),
-	})
-	engine := upql.NewEngine(storage)
+	tableName, groupingPeriod := measureTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
+	engine := upql.NewEngine(NewCHStorage(ctx, h.CH, &CHStorageConfig{
+		ProjectID:  f.Project.ID,
+		TimeFilter: f.TimeFilter,
+		MetricMap:  metricMap,
+
+		TableName:      tableName,
+		GroupingPeriod: groupingPeriod,
+		TableMode:      true,
+	}))
 	result := engine.Run(f.allParts)
 
 	columns, table := convertToTable(result.Timeseries, result.Columns)
-	sortTable(columns, table, f)
+	sortTable(ctx, h.App, columns, table, f)
+
+	if span := trace.SpanFromContext(ctx); span.IsRecording() {
+		span.SetAttributes(
+			attribute.Int64("num_timeseries", int64(len(result.Timeseries))),
+			attribute.Int64("table_size", int64(len(table))),
+		)
+	}
 
 	var hasMore bool
 	if len(table) > 1000 {
@@ -77,12 +96,11 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 	}
 
 	return httputil.JSON(w, bunrouter.H{
-		"baseQueryParts": f.baseQueryParts,
-		"queryParts":     f.queryParts,
-		"columns":        columns,
-		"items":          table,
-		"hasMore":        hasMore,
-		"order":          f.OrderByMixin,
+		"query":   f.parsedQuery,
+		"columns": columns,
+		"items":   table,
+		"hasMore": hasMore,
+		"order":   f.OrderByMixin,
 	})
 }
 
@@ -97,7 +115,6 @@ func convertToTable(
 ) ([]*ColumnInfo, []map[string]any) {
 	columnMap := make(map[string]*ColumnInfo)
 	var columns []*ColumnInfo
-	rowMap := make(map[uint64]map[string]any)
 
 	for _, columnName := range columnNames {
 		if strings.HasPrefix(columnName, "_") {
@@ -109,6 +126,8 @@ func convertToTable(
 		columnMap[columnName] = col
 		columns = append(columns, col)
 	}
+
+	rowMap := make(map[uint64]map[string]any)
 
 	var buf []byte
 	for i := range timeseries {
@@ -126,15 +145,27 @@ func convertToTable(
 			columns = append(columns, col)
 		}
 
+		// Add grouping in order.
+		for _, name := range ts.Grouping {
+			if _, ok := columnMap[name]; !ok {
+				col := &ColumnInfo{
+					Name:    name,
+					IsGroup: true,
+				}
+				columnMap[name] = col
+				columns = append(columns, col)
+			}
+		}
+
 		buf = ts.Attrs.Bytes(buf[:0])
-		hash := xxhash.Sum64(buf)
+		hash := xxh3.Hash(buf)
 
 		row, ok := rowMap[hash]
 		if !ok {
 			row = make(map[string]any)
 			rowMap[hash] = row
 
-			row[attrkey.ItemQuery] = ts.WhereQuery()
+			row["_query"] = ts.WhereQuery()
 
 			for _, kv := range ts.Attrs {
 				if _, ok := columnMap[kv.Key]; !ok {
@@ -148,17 +179,21 @@ func convertToTable(
 
 				row[kv.Key] = kv.Value
 			}
+
+			for k, v := range ts.Annotations {
+				row[k] = v
+			}
 		}
 
 		row[metricName] = ts.Value[0]
 	}
 
 	table := make([]map[string]any, 0, len(rowMap))
-
 	for _, row := range rowMap {
 		for _, col := range columns {
 			if _, ok := row[col.Name]; !ok {
 				if col.IsGroup {
+					// TODO: consider using nil and fixing sorting
 					row[col.Name] = ""
 				} else {
 					row[col.Name] = float64(0)
@@ -171,7 +206,13 @@ func convertToTable(
 	return columns, table
 }
 
-func sortTable(columns []*ColumnInfo, table []map[string]any, f *QueryFilter) {
+func sortTable(
+	ctx context.Context,
+	app *bunapp.App,
+	columns []*ColumnInfo,
+	table []map[string]any,
+	f *QueryFilter,
+) {
 	if len(table) == 0 {
 		return
 	}
@@ -204,71 +245,97 @@ func sortTable(columns []*ColumnInfo, table []map[string]any, f *QueryFilter) {
 			return strings.Compare(v1, v2) == -1
 		})
 	default:
-		panic(fmt.Errorf("unsupported value type: %T", v))
+		app.Zap(ctx).Error("unsupported table value type",
+			zap.String("column", f.SortBy),
+			zap.String("type", fmt.Sprintf("%T", v)))
 	}
 }
 
 //------------------------------------------------------------------------------
 
 type Timeseries struct {
-	Name   string      `json:"name"`
-	Metric string      `json:"metric"`
-	Unit   string      `json:"unit"`
-	Attrs  upql.Attrs  `json:"attrs"`
-	Value  []float64   `json:"value"`
-	Time   []time.Time `json:"time"`
+	ID     uint64     `json:"id"`
+	Name   string     `json:"name"`
+	Metric string     `json:"metric"`
+	Unit   string     `json:"unit"`
+	Attrs  upql.Attrs `json:"attrs"`
+	Value  []float64  `json:"value"`
 }
 
 func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := decodeQueryFilter(h.App, req)
+	f := new(QueryFilter)
+	if err := DecodeQueryFilter(req, f); err != nil {
+		return err
+	}
+
+	if len(f.parsedQuery.Parts) == 0 {
+		return httputil.JSON(w, bunrouter.H{
+			"query":      f.parsedQuery,
+			"timeseries": []any{},
+			"time":       []any{},
+			"columns":    []any{},
+		})
+	}
+
+	metricMap, err := f.MetricMap(ctx, h.App)
 	if err != nil {
 		return err
 	}
 
-	if len(f.queryParts) == 0 {
-		return httputil.JSON(w, bunrouter.H{
-			"baseQueryParts": f.baseQueryParts,
-			"queryParts":     f.queryParts,
-			"timeseries":     []struct{}{},
-		})
-	}
+	timeseries, timeCol := h.selectTimeseries(ctx, f, metricMap)
+	jsonTimeseries := make([]Timeseries, len(timeseries))
 
-	tableName, groupingPeriod := measureTableForGroup(h.App, &f.TimeFilter, org.GroupPeriod)
-	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
-		Projects:   []uint32{f.ProjectID},
-		TimeFilter: f.TimeFilter,
-		MetricMap:  f.metricMap,
+	columnMap := make(map[string]*ColumnInfo)
+	var columns []*ColumnInfo
 
-		TableName:      tableName,
-		GroupingPeriod: groupingPeriod,
-
-		GroupByTime: true,
-		FillHoles:   true,
-	})
-	engine := upql.NewEngine(storage)
-	result := engine.Run(f.allParts)
-
-	jsonTimeseries := make([]Timeseries, len(result.Timeseries))
-
-	for i := range result.Timeseries {
-		src := &result.Timeseries[i]
+	for i := range timeseries {
+		src := &timeseries[i]
 		dest := &jsonTimeseries[i]
 
-		dest.Name = src.Name()
+		name := src.Name()
+		dest.ID = xxh3.HashString(name)
+		dest.Name = name
 		dest.Metric = src.MetricName()
 		dest.Unit = src.Unit
 		dest.Attrs = src.Attrs
 		dest.Value = src.Value
-		dest.Time = src.Time
+
+		if _, ok := columnMap[dest.Metric]; !ok {
+			col := &ColumnInfo{
+				Name: dest.Metric,
+				Unit: dest.Unit,
+			}
+			columnMap[dest.Metric] = col
+			columns = append(columns, col)
+		}
 	}
 
 	return httputil.JSON(w, bunrouter.H{
-		"baseQueryParts": f.baseQueryParts,
-		"queryParts":     f.queryParts,
-		"timeseries":     jsonTimeseries,
+		"query":      f.parsedQuery,
+		"timeseries": jsonTimeseries,
+		"time":       timeCol,
+		"columns":    columns,
 	})
+}
+
+func (h *QueryHandler) selectTimeseries(
+	ctx context.Context, f *QueryFilter, metricMap map[string]*Metric,
+) ([]upql.Timeseries, []time.Time) {
+	tableName, groupingPeriod := measureTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
+	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
+		ProjectID:  f.Project.ID,
+		TimeFilter: f.TimeFilter,
+		MetricMap:  metricMap,
+
+		TableName:      tableName,
+		GroupingPeriod: groupingPeriod,
+	})
+	engine := upql.NewEngine(storage)
+	result := engine.Run(f.allParts)
+	timeCol := bunutil.FillTime(nil, f.TimeGTE, f.TimeLT, groupingPeriod)
+	return result.Timeseries, timeCol
 }
 
 //------------------------------------------------------------------------------
@@ -276,8 +343,8 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := decodeQueryFilter(h.App, req)
-	if err != nil {
+	f := new(QueryFilter)
+	if err := DecodeQueryFilter(req, f); err != nil {
 		return err
 	}
 
@@ -292,13 +359,20 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 		}
 	}
 
-	storage := NewCHStorage(ctx, h.App.CH, &CHStorageConfig{
-		Projects:   []uint32{f.ProjectID},
-		TimeFilter: f.TimeFilter,
-		MetricMap:  f.metricMap,
+	metricMap, err := f.MetricMap(ctx, h.App)
+	if err != nil {
+		return err
+	}
 
-		TableName:      measureTableForWhere(h.App, &f.TimeFilter),
-		GroupingPeriod: f.TimeFilter.Duration(),
+	tableName, groupingPeriod := measureTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
+	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
+		ProjectID:  f.Project.ID,
+		TimeFilter: f.TimeFilter,
+		MetricMap:  metricMap,
+
+		TableName:      tableName,
+		GroupingPeriod: groupingPeriod,
+		TableMode:      true,
 	})
 	engine := upql.NewEngine(storage)
 	result := engine.Run(f.allParts)
@@ -308,15 +382,95 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 	var values map[string]any
 	if len(table) > 0 {
 		values = table[0]
-		delete(values, attrkey.ItemQuery)
+		delete(values, "_query")
 	} else {
 		values = make(map[string]any)
 	}
 
 	return httputil.JSON(w, bunrouter.H{
-		"baseQueryParts": f.baseQueryParts,
-		"queryParts":     f.queryParts,
-		"columns":        columns,
-		"values":         values,
+		"query":   f.parsedQuery,
+		"columns": columns,
+		"values":  values,
 	})
+}
+
+func (h *QueryHandler) Heatmap(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	f := new(QueryFilter)
+	if err := DecodeQueryFilter(req, f); err != nil {
+		return err
+	}
+
+	heatmap, err := h.selectMetricHeatmap(ctx, f)
+	if err != nil {
+		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"query":   f.parsedQuery,
+		"heatmap": heatmap,
+	})
+}
+
+func (h *QueryHandler) selectMetricHeatmap(
+	ctx context.Context, f *QueryFilter,
+) (*histutil.Heatmap, error) {
+	tableName, groupingPeriod := measureTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
+
+	q := h.CH.NewSelect().
+		ColumnExpr("quantilesBFloat16MergeState(0.5, 0.9, 0.99)(histogram) AS value").
+		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_",
+			groupingPeriod.Minutes()).
+		TableExpr("?", tableName).
+		Where("project_id = ?", f.Project.ID).
+		Where("metric = ?", f.Metric[0]).
+		Where("time >= ?", f.TimeGTE).
+		Where("time < ?", f.TimeLT).
+		GroupExpr("time_").
+		OrderExpr("time_").
+		Limit(10000)
+
+	for _, part := range f.allParts {
+		if part.Error.Wrapped != nil {
+			continue
+		}
+		switch ast := part.AST.(type) {
+		case *ast.Selector:
+			part.Error.Wrapped = errors.New("not supported by heatmap")
+		case *ast.Grouping:
+			part.Error.Wrapped = errors.New("not supported by heatmap")
+		case *ast.Where:
+			where, err := compileFilters(ast.Filters)
+			if err != nil {
+				part.Error.Wrapped = err
+				break
+			}
+			q = q.Where(where)
+		default:
+			return nil, fmt.Errorf("unexpected ast: %T", ast)
+		}
+	}
+
+	var bfloat16Col []map[bfloat16.T]uint64
+	var timeCol []time.Time
+
+	if err := q.ScanColumns(ctx, &bfloat16Col, &timeCol); err != nil {
+		return nil, err
+	}
+
+	tdigestCol := make([][]float32, len(bfloat16Col))
+	for i, m := range bfloat16Col {
+		tdigest := make([]float32, 0, 2*len(m))
+		for value, count := range m {
+			tdigest = append(tdigest, value.Float32(), float32(count))
+		}
+		tdigestCol[i] = tdigest
+	}
+
+	tdigestCol = bunutil.Fill(tdigestCol, timeCol, nil, f.TimeGTE, f.TimeLT, groupingPeriod)
+	timeCol = bunutil.FillTime(timeCol, f.TimeGTE, f.TimeLT, groupingPeriod)
+	heatmap := histutil.BuildHeatmap(tdigestCol, timeCol)
+
+	return heatmap, nil
 }

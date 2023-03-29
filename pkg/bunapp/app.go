@@ -27,13 +27,15 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/urfave/cli/v2"
+	"github.com/vmihailenco/taskq/v4"
+	"github.com/vmihailenco/taskq/v4/pgq"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	_ "modernc.org/sqlite"
+	"github.com/zyedidia/generic/cache"
 )
 
 type appCtxKey struct{}
@@ -116,13 +118,20 @@ type App struct {
 	PG *bun.DB
 	CH *ch.DB
 
-	Notifier *Notifier
+	QueueFactory taskq.Factory
+	MainQueue    taskq.Queue
+
+	HTTPClient *http.Client
 }
 
 func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
 	app := &App{
 		startTime: time.Now(),
 		conf:      conf,
+
+		HTTPClient: &http.Client{
+			Timeout: 5 * time.Second,
+		},
 	}
 
 	app.undoneCtx = ContextWithApp(ctx, app)
@@ -135,7 +144,7 @@ func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
 	}
 	app.PG = app.newPG()
 	app.CH = app.newCH()
-	app.Notifier = NewNotifier(conf.AlertmanagerClient.URLs)
+	app.initTaskq()
 
 	switch conf.Service {
 	case "serve":
@@ -300,8 +309,8 @@ func (app *App) initGRPC() error {
 	opts = append(opts,
 		grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
 		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
-		grpc.ReadBufferSize(512<<10),
 		grpc.MaxRecvMsgSize(32<<20),
+		grpc.ReadBufferSize(512<<10),
 	)
 
 	if app.conf.Listen.GRPC.TLS != nil {
@@ -427,9 +436,45 @@ func (app *App) newCH() *ch.DB {
 	return db
 }
 
+func (app *App) initTaskq() {
+	app.QueueFactory = pgq.NewFactory(app.PG)
+	app.MainQueue = app.QueueFactory.RegisterQueue(&taskq.QueueConfig{
+		Name: "main",
+		Storage: newLocalStorage(),
+	})
+}
+
+func (app *App) RegisterTask(name string, conf *taskq.TaskConfig) *taskq.Task {
+	return taskq.RegisterTask(name, conf)
+}
+
 func (app *App) DistTable(tableName string) ch.Ident {
 	if app.conf.CHSchema.Cluster != "" {
 		return ch.Ident(tableName + "_dist")
 	}
 	return ch.Ident(tableName)
+}
+
+func (app *App) SiteURL(path string, args ...any) string {
+	return app.conf.SiteURL(path, args...)
+}
+
+//------------------------------------------------------------------------------
+
+type localStorage struct {
+	cache *cache.Cache[string, struct{}]
+}
+
+func newLocalStorage() *localStorage {
+	return &localStorage{
+		cache: cache.New[string, struct{}](10000),
+	}
+}
+
+func (s *localStorage) Exists(ctx context.Context, key string) bool {
+	if _, ok := s.cache.Get(key); ok {
+		return true
+	}
+	s.cache.Put(key, struct{}{})
+	return false
 }

@@ -2,7 +2,7 @@ import axios from 'axios'
 import axiosRetry from 'axios-retry'
 
 // Utilities
-import { redirectToLogin } from '@/use/org'
+import { redirectToLogin } from '@/org/use-users'
 
 axiosRetry(axios, { retries: 2, retryDelay: axiosRetry.exponentialDelay })
 

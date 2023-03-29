@@ -36,7 +36,7 @@ interface Group {
 export function useOverview(params: () => Record<string, any>) {
   const { route } = useRouter()
   const pager = usePager({ perPage: 15 })
-  const order = useOrder({ column: 'attr', desc: false, syncQuery: true })
+  const order = useOrder({ column: 'attr', desc: false })
 
   const { loading, data } = useWatchAxios(() => {
     const { projectId } = route.value.params

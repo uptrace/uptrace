@@ -46,7 +46,7 @@ import PeriodPickerMenu from '@/components/date/PeriodPickerMenu.vue'
 import DateRangePickerMenu from '@/components/date/DateRangePickerMenu.vue'
 
 // Utilities
-import { hour } from '@/util/fmt/date'
+import { HOUR } from '@/util/fmt/date'
 import { periodsForDays } from '@/models/period'
 
 export default defineComponent({
@@ -60,7 +60,7 @@ export default defineComponent({
     },
     defaultPeriod: {
       type: Number,
-      default: hour,
+      default: HOUR,
     },
   },
 

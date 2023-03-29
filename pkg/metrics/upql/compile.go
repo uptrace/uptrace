@@ -25,6 +25,7 @@ type TimeseriesExpr struct {
 
 	Metric     string
 	Func       string
+	Attr       string
 	Filters    []ast.Filter
 	Where      [][]ast.Filter
 	Grouping   []string
@@ -84,7 +85,7 @@ type compiler struct {
 	timeseries []*TimeseriesExpr
 }
 
-func compile(storage Storage, parts []*QueryPart) ([]NamedExpr, map[string][]Timeseries) {
+func compile(storage Storage, parts []*QueryPart) []NamedExpr {
 	c := &compiler{
 		storage: storage,
 	}
@@ -127,6 +128,10 @@ func compile(storage Storage, parts []*QueryPart) ([]NamedExpr, map[string][]Tim
 
 		switch expr := part.AST.(type) {
 		case *ast.Where:
+			if !hasWherePrefix(part.Query) {
+				part.Query = "where " + part.Query
+			}
+
 			if err := c.where(expr); err != nil {
 				part.Error.Wrapped = err
 			}
@@ -149,6 +154,7 @@ func compile(storage Storage, parts []*QueryPart) ([]NamedExpr, map[string][]Tim
 			f := &TimeseriesFilter{
 				Metric:     expr.Metric,
 				Func:       expr.Func,
+				Attr:       expr.Attr,
 				Filters:    expr.Filters,
 				Where:      expr.Where,
 				Grouping:   expr.Grouping,
@@ -168,31 +174,35 @@ func compile(storage Storage, parts []*QueryPart) ([]NamedExpr, map[string][]Tim
 
 	wg.Wait()
 
-	metrics := make(map[string][]Timeseries)
-
-	for _, expr := range c.timeseries {
-		metrics[expr.Metric] = expr.Timeseries
-	}
-
-	return c.exprs, metrics
+	return c.exprs
 }
 
 func (c *compiler) selector(expr ast.Expr) Expr {
 	switch expr := expr.(type) {
 	case *ast.Name:
-		if strings.HasPrefix(expr.Name, "$") {
-			ts := &TimeseriesExpr{
-				AST:     expr,
-				Metric:  strings.TrimPrefix(expr.Name, "$"),
-				Func:    expr.Func,
-				Filters: expr.Filters,
+		if !strings.HasPrefix(expr.Name, "$") {
+			return &RefExpr{
+				Metric: expr.Name,
 			}
-			c.timeseries = append(c.timeseries, ts)
-			return ts
 		}
-		return &RefExpr{
-			Metric: expr.Name,
+
+		metric := strings.TrimPrefix(expr.Name, "$")
+		var attr string
+		if i := strings.IndexByte(metric, '.'); i >= 0 {
+			attr = metric[i+1:]
+			metric = metric[:i]
 		}
+
+		ts := &TimeseriesExpr{
+			AST:     expr,
+			Metric:  metric,
+			Func:    expr.Func,
+			Attr:    attr,
+			Filters: expr.Filters,
+		}
+		c.timeseries = append(c.timeseries, ts)
+		return ts
+
 	case *ast.BinaryExpr:
 		return &BinaryExpr{
 			AST: expr,
@@ -200,14 +210,18 @@ func (c *compiler) selector(expr ast.Expr) Expr {
 			LHS: c.selector(expr.LHS),
 			RHS: c.selector(expr.RHS),
 		}
+
 	case ast.ParenExpr:
 		return ParenExpr{
 			Expr: c.selector(expr.Expr),
 		}
+
 	case *ast.Number:
 		return expr
+
 	case *ast.FuncCall:
 		return c.funcCall(expr)
+
 	default:
 		panic(fmt.Errorf("unknown selector expr: %T", expr))
 	}
@@ -313,4 +327,13 @@ func (c *compiler) groupingName(name string) error {
 		return fmt.Errorf("can't find metric with alias %q", alias)
 	}
 	return nil
+}
+
+func hasWherePrefix(s string) bool {
+	l := len("where ")
+
+	if len(s) < l {
+		return false
+	}
+	return strings.EqualFold(s[:l], "where ")
 }

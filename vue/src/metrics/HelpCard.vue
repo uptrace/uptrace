@@ -32,7 +32,9 @@
 
           <p>
             Check our
-            <a href="https://app.uptrace.dev/metrics/1">playground</a>
+            <router-link :to="{ name: 'MetricsDashList', params: { projectId: 1 } }"
+              >playground</router-link
+            >
             to play with various types of metrics and
             <a href="https://uptrace.dev/opentelemetry/metrics.html" target="_blank">learn</a>
             how to create your own metrics.
@@ -80,7 +82,7 @@
 
           <p>Use the following Uptrace project DSN to configure OpenTelemetry Collector:</p>
 
-          <PrismCode :code="project.grpc.dsn" />
+          <PrismCode :code="`UPTRACE_DSN=${project.http.dsn}`" />
         </v-col>
       </v-row>
 
@@ -116,7 +118,7 @@
 import { defineComponent } from 'vue'
 
 // Composables
-import { useProject } from '@/use/project'
+import { useProject } from '@/org/use-projects'
 
 // Components
 import ForceReloadBtn from '@/components/date/ForceReloadBtn.vue'
@@ -137,7 +139,6 @@ export default defineComponent({
 
   setup() {
     const project = useProject()
-
     return { project }
   },
 })

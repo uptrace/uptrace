@@ -9,6 +9,7 @@ import AnyValue from '@/components/AnyValue.vue'
 import XDate from '@/components/XDate.vue'
 import XDuration from '@/components/XDuration.vue'
 import PrismCode from '@/components/PrismCode.vue'
+import DashGaugeCard from '@/metrics/gauge/DashGaugeCard.vue'
 
 Vue.component('PageToolbar', PageToolbar)
 Vue.component('XPlaceholder', XPlaceholder)
@@ -19,6 +20,7 @@ Vue.component('AnyValue', AnyValue)
 Vue.component('XDate', XDate)
 Vue.component('XDuration', XDuration)
 Vue.component('PrismCode', PrismCode)
+Vue.component('DashGaugeCard', DashGaugeCard)
 
 Vue.mixin({
   computed: {

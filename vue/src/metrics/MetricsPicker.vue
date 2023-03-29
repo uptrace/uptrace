@@ -1,30 +1,99 @@
 <template>
   <div>
-    <MetricPicker
-      v-for="(metric, index) in activeMetrics"
-      :key="index"
-      :value="metric"
-      :index="index"
-      :metrics="metrics"
-      :active-metrics="value"
-      :uql="uql"
-      :disabled="disabled"
-      :required="index === 0"
-      :class="{ 'mt-1': index > 0 }"
-      @click:apply="applyMetric(metric, $event)"
-      @click:remove="removeMetric"
-    />
+    <v-row v-for="(metric, index) in activeMetrics" :key="metric.alias" dense align="center">
+      <v-col v-if="editable" cols="auto">
+        <v-btn icon title="Remove metric" @click="removeMetric(index, metric)">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+      </v-col>
+      <v-col cols="auto">
+        <span :title="metric.description" class="font-weight-bold">${{ metric.alias }}</span>
+        <span class="mx-2">({{ metric.name }})</span>
+        <v-chip
+          v-if="metric.instrument"
+          label
+          color="grey lighten-4"
+          title="Instrument"
+          class="ml-2"
+          >{{ metric.instrument }}</v-chip
+        >
+        <v-chip v-if="metric.unit" label color="grey lighten-4" title="Unit" class="ml-2">{{
+          metric.unit
+        }}</v-chip>
+      </v-col>
+    </v-row>
+
+    <v-row v-if="editable">
+      <v-col>
+        <v-card outlined rounded="lg" class="pa-4">
+          <v-row align="center">
+            <v-col cols="auto" class="text-body-2 text--secondary"
+              >Only show metrics with attributes</v-col
+            >
+            <v-col cols="auto">
+              <v-autocomplete
+                v-model="activeAttrKeys"
+                multiple
+                :loading="attrKeysDs.loading"
+                :items="attrKeysDs.filteredItems"
+                :error-messages="attrKeysDs.errorMessages"
+                :search-input.sync="attrKeysDs.searchInput"
+                placeholder="Show all metrics"
+                solo
+                flat
+                dense
+                background-color="grey lighten-4"
+                no-filter
+                auto-select-first
+                clearable
+                hide-details="auto"
+              >
+                <template #item="{ item }">
+                  <v-list-item-content>
+                    <v-list-item-title>
+                      {{ item.text }}
+                    </v-list-item-title>
+                  </v-list-item-content>
+                  <v-list-item-action>
+                    <v-chip small>{{ item.count }}</v-chip>
+                  </v-list-item-action>
+                </template>
+              </v-autocomplete>
+            </v-col>
+          </v-row>
+
+          <v-row>
+            <v-col>
+              <MetricPicker
+                v-if="value.length < 6"
+                ref="metricPicker"
+                :loading="metrics.loading"
+                :table-grouping="tableGrouping"
+                :metrics="metrics.items"
+                :active-metrics="value"
+                :uql="uql"
+                :required="value.length === 0"
+                @click:add="addMetric($event)"
+              />
+            </v-col>
+          </v-row>
+        </v-card>
+      </v-col>
+    </v-row>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, reactive, watch, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 
 // Composables
+import { useRoute } from '@/use/router'
+import { useDataSource } from '@/use/datasource'
+import { useForceReload } from '@/use/force-reload'
 import { UseUql } from '@/use/uql'
-import { defaultMetricColumn } from '@/metrics/use-metrics'
+import { useMetrics, useActiveMetrics, defaultMetricQuery } from '@/metrics/use-metrics'
 import { hasMetricAlias } from '@/metrics/use-query'
-import { Metric, MetricAlias } from '@/metrics/types'
+import { MetricAlias } from '@/metrics/types'
 
 // Components
 import MetricPicker from '@/metrics/MetricPicker.vue'
@@ -38,82 +107,92 @@ export default defineComponent({
       type: Array as PropType<MetricAlias[]>,
       required: true,
     },
-    metrics: {
-      type: Array as PropType<Metric[]>,
-      required: true,
+    tableGrouping: {
+      type: Array as PropType<string[]>,
+      default: () => [],
     },
     uql: {
       type: Object as PropType<UseUql>,
       required: true,
     },
-    disabled: {
+    editable: {
       type: Boolean,
       default: false,
     },
   },
 
   setup(props, ctx) {
-    const activeMetrics = computed(() => {
-      const metrics = props.value.slice()
-      if (metrics.length < 6) {
-        metrics.push({ name: '', alias: '' })
+    const route = useRoute()
+    const { forceReloadParams } = useForceReload()
+
+    const metricPicker = shallowRef()
+    function validate(): boolean {
+      if (!metricPicker.value) {
+        return true
       }
-      return metrics
-    })
+      return metricPicker.value.validate()
+    }
 
-    const reactiveMetrics = computed(() => {
-      return activeMetrics.value.map((metric) => reactive(metric))
-    })
-
-    const filledMetrics = computed(() => {
-      return reactiveMetrics.value.filter((v) => v.name && v.alias)
-    })
-
+    const activeAttrKeys = shallowRef<string[]>([])
     watch(
-      () => filledMetrics.value.length,
-      () => {
-        ctx.emit('input', filledMetrics.value)
+      () => props.tableGrouping,
+      (grouping) => {
+        activeAttrKeys.value = grouping
       },
+      { immediate: true },
     )
 
-    function applyMetric(metric: MetricAlias, newMetric: MetricAlias) {
-      if (hasMetricAlias(props.uql.query, metric.alias)) {
-        removeMetricAlias(metric.alias)
-        addMetric(newMetric.name, newMetric.alias)
-      } else {
-        addMetric(newMetric.name, newMetric.alias)
+    const attrKeysDs = useDataSource(() => {
+      const { projectId } = route.value.params
+      return {
+        url: `/api/v1/metrics/${projectId}/attr-keys`,
+        params: {
+          ...forceReloadParams.value,
+        },
+      }
+    })
+    const metrics = useMetrics(() => {
+      return {
+        attr_key: activeAttrKeys.value,
+      }
+    })
+    const activeMetrics = useActiveMetrics(computed(() => props.value))
+
+    function addMetric(metricAlias: MetricAlias) {
+      const metric = metrics.items.find((m) => m.name === metricAlias.name)
+      if (!metric) {
+        return
       }
 
-      metric.name = newMetric.name
-      metric.alias = newMetric.alias
+      const activeMetrics = props.value.slice()
+      activeMetrics.push(metricAlias)
+      ctx.emit('input', activeMetrics)
+
+      const column = defaultMetricQuery(metric.instrument, metricAlias.alias)
+      props.uql.query = props.uql.query + ' | ' + column
     }
 
-    function removeMetricAlias(alias: string) {
-      props.uql.parts = props.uql.parts.filter((part) => part.query.indexOf('$' + alias) === -1)
-    }
+    function removeMetric(index: number, metric: MetricAlias) {
+      const activeMetrics = props.value.slice()
+      activeMetrics.splice(index, 1)
+      ctx.emit('input', activeMetrics)
 
-    function addMetric(name: string, alias: string) {
-      const metric = props.metrics.find((m) => m.name === name)
-      if (metric) {
-        const column = defaultMetricColumn(metric.instrument, alias)
-        props.uql.query = props.uql.query + ' | ' + column
-      }
-    }
-
-    function removeMetric(metric: MetricAlias) {
       props.uql.parts = props.uql.parts.filter((part) => {
         return !hasMetricAlias(part.query, metric.alias)
       })
-
-      metric.name = ''
-      metric.alias = ''
     }
 
     return {
-      activeMetrics,
+      activeAttrKeys,
+      attrKeysDs,
+      metrics,
 
-      applyMetric,
+      activeMetrics,
+      addMetric,
       removeMetric,
+
+      metricPicker,
+      validate,
     }
   },
 })

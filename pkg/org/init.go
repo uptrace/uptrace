@@ -2,11 +2,28 @@ package org
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/httperror"
+	"github.com/vmihailenco/taskq/v4"
+)
+
+var (
+	ErrUnauthorized    = httperror.Unauthorized("please log in")
+	ErrAccessDenied    = httperror.Forbidden("access denied")
+	ErrProjectNotFound = httperror.NotFound("project not found")
+)
+
+var CreateErrorAlertTask = taskq.NewTask("create-error-alert")
+
+type TrackableModel string
+
+const (
+	ModelUser      TrackableModel = "User"
+	ModelProject   TrackableModel = "Project"
+	ModelSpan      TrackableModel = "Span"
+	ModelSpanGroup TrackableModel = "SpanGroup"
 )
 
 func Init(ctx context.Context, app *bunapp.App) {
@@ -36,28 +53,10 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 
 	api.
 		Use(middleware.User).
-		GET("/projects/:project_id", func(w http.ResponseWriter, req bunrouter.Request) error {
-			projectID, err := req.Params().Uint32("project_id")
-			if err != nil {
-				return err
-			}
+		WithGroup("/projects/:project_id", func(g *bunrouter.Group) {
+			projectHandler := NewProjectHandler(app)
 
-			project, err := SelectProject(ctx, app, projectID)
-			if err != nil {
-				return err
-			}
-
-			return httputil.JSON(w, bunrouter.H{
-				"project": project,
-				"grpc": bunrouter.H{
-					"endpoint": app.Config().GRPCEndpoint(),
-					"dsn":      app.Config().GRPCDsn(project),
-				},
-				"http": bunrouter.H{
-					"endpoint": app.Config().HTTPEndpoint(),
-					"dsn":      app.Config().HTTPDsn(project),
-				},
-			})
+			g.GET("", projectHandler.Show)
 		})
 
 	api.

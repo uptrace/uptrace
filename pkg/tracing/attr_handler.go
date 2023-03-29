@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/tracing/upql"
 	"golang.org/x/exp/slices"
 

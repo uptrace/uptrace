@@ -1,24 +1,24 @@
 <template>
-  <XPlaceholder>
-    <template v-if="metrics.noData" #placeholder>
-      <HelpCard :loading="metrics.loading" />
+  <div>
+    <HelpCard v-if="metrics.noData" :loading="metrics.loading" />
+
+    <template v-else>
+      <div class="border">
+        <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pb-0">
+          <v-row align="end" no-gutters>
+            <v-col>
+              <v-tabs :key="$route.fullPath" background-color="transparent">
+                <v-tab :to="{ name: 'MetricsDashList' }" exact-path>Dashboards</v-tab>
+                <v-tab :to="{ name: 'MetricsExplore' }" exact-path>Explore</v-tab>
+              </v-tabs>
+            </v-col>
+          </v-row>
+        </v-container>
+      </div>
+
+      <router-view name="metrics" :date-range="dateRange" />
     </template>
-
-    <div class="border">
-      <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="pb-0">
-        <v-row align="end" no-gutters class="mt-4">
-          <v-col>
-            <v-tabs :key="$route.fullPath" background-color="transparent">
-              <v-tab :to="{ name: 'MetricsDashList' }" exact-path>Dashboards</v-tab>
-              <v-tab :to="{ name: 'MetricsExplore' }" exact-path>Explore</v-tab>
-            </v-tabs>
-          </v-col>
-        </v-row>
-      </v-container>
-    </div>
-
-    <router-view :date-range="dateRange" :metrics="metrics" />
-  </XPlaceholder>
+  </div>
 </template>
 
 <script lang="ts">
@@ -43,8 +43,6 @@ export default defineComponent({
   },
 
   setup(props) {
-    props.dateRange.syncQuery()
-
     const metrics = useMetrics()
 
     return { metrics }

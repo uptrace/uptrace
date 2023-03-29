@@ -414,7 +414,7 @@ func (p *queryParser) filters() ([]Filter, error) {
 			}
 			_matchCount = _matchCount + 1
 			{
-				filter.Sep = BoolAnd
+				filter.BoolOp = BoolAnd
 				filters = append(filters, filter)
 				p.cut()
 			}
@@ -495,7 +495,7 @@ func (p *queryParser) where() ([]Filter, error) {
 			}
 			_matchCount = _matchCount + 1
 			{
-				filter.Sep = boolOp
+				filter.BoolOp = boolOp
 				filters = append(filters, filter)
 				p.cut()
 			}
@@ -513,9 +513,197 @@ func (p *queryParser) where() ([]Filter, error) {
 }
 
 func (p *queryParser) filter() (Filter, error) {
-	var filterOp FilterOp
+	{
+		var lhs *Token
+		_pos1 := p.Pos()
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return Filter{}, _err
+			}
+			_match := _tok.ID == IDENT_TOKEN
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+			lhs = _tok
+		}
+		{
+			_pos3 := p.Pos()
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return Filter{}, _err
+			}
+			_match := len(_tok.Text) == 4 && (_tok.Text[0] == 'd' || _tok.Text[0] == 'D') && (_tok.Text[1] == 'o' || _tok.Text[1] == 'O') && (_tok.Text[2] == 'e' || _tok.Text[2] == 'E') && (_tok.Text[3] == 's' || _tok.Text[3] == 'S')
+			if _match {
+			} else {
+				p.ResetPos(_pos3)
+			}
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return Filter{}, _err
+			}
+			_match := len(_tok.Text) == 3 && (_tok.Text[0] == 'n' || _tok.Text[0] == 'N') && (_tok.Text[1] == 'o' || _tok.Text[1] == 'O') && (_tok.Text[2] == 't' || _tok.Text[2] == 'T')
+			if !_match {
+				p.ResetPos(_pos1)
+				lhs = nil
+				goto i0_group_end
+			}
+		}
+		// "exist"
+		{
+			_pos5 := p.Pos()
+			{
+				_tok, _err := p.NextToken()
+				if _err != nil {
+					return Filter{}, _err
+				}
+				_match := len(_tok.Text) == 5 && (_tok.Text[0] == 'e' || _tok.Text[0] == 'E') && (_tok.Text[1] == 'x' || _tok.Text[1] == 'X') && (_tok.Text[2] == 'i' || _tok.Text[2] == 'I') && (_tok.Text[3] == 's' || _tok.Text[3] == 'S') && (_tok.Text[4] == 't' || _tok.Text[4] == 'T')
+				if !_match {
+					p.ResetPos(_pos5)
+					goto i0_i3_alt1
+				}
+			}
+			goto i0_i3_has_match
+		}
+
+	i0_i3_alt1:
+		// "exists"
+		{
+			{
+				_tok, _err := p.NextToken()
+				if _err != nil {
+					return Filter{}, _err
+				}
+				_match := len(_tok.Text) == 6 && (_tok.Text[0] == 'e' || _tok.Text[0] == 'E') && (_tok.Text[1] == 'x' || _tok.Text[1] == 'X') && (_tok.Text[2] == 'i' || _tok.Text[2] == 'I') && (_tok.Text[3] == 's' || _tok.Text[3] == 'S') && (_tok.Text[4] == 't' || _tok.Text[4] == 'T') && (_tok.Text[5] == 's' || _tok.Text[5] == 'S')
+				if !_match {
+					p.ResetPos(_pos1)
+					lhs = nil
+					goto i0_group_end
+				}
+			}
+		}
+
+	i0_i3_has_match:
+		return Filter{
+			LHS: lhs.Text,
+			Op:  FilterNotExists,
+		}, nil
+	i0_group_end:
+	}
+
+	{
+		var lhs *Token
+		_pos1 := p.Pos()
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return Filter{}, _err
+			}
+			_match := _tok.ID == IDENT_TOKEN
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r1_i0_group_end
+			}
+			lhs = _tok
+		}
+		// "exists"
+		{
+			_pos3 := p.Pos()
+			{
+				_tok, _err := p.NextToken()
+				if _err != nil {
+					return Filter{}, _err
+				}
+				_match := len(_tok.Text) == 6 && (_tok.Text[0] == 'e' || _tok.Text[0] == 'E') && (_tok.Text[1] == 'x' || _tok.Text[1] == 'X') && (_tok.Text[2] == 'i' || _tok.Text[2] == 'I') && (_tok.Text[3] == 's' || _tok.Text[3] == 'S') && (_tok.Text[4] == 't' || _tok.Text[4] == 'T') && (_tok.Text[5] == 's' || _tok.Text[5] == 'S')
+				if !_match {
+					p.ResetPos(_pos3)
+					goto r1_i0_i1_alt1
+				}
+			}
+			goto r1_i0_i1_has_match
+		}
+
+	r1_i0_i1_alt1:
+		// "exist"
+		{
+			{
+				_tok, _err := p.NextToken()
+				if _err != nil {
+					return Filter{}, _err
+				}
+				_match := len(_tok.Text) == 5 && (_tok.Text[0] == 'e' || _tok.Text[0] == 'E') && (_tok.Text[1] == 'x' || _tok.Text[1] == 'X') && (_tok.Text[2] == 'i' || _tok.Text[2] == 'I') && (_tok.Text[3] == 's' || _tok.Text[3] == 'S') && (_tok.Text[4] == 't' || _tok.Text[4] == 'T')
+				if !_match {
+					p.ResetPos(_pos1)
+					lhs = nil
+					goto r1_i0_group_end
+				}
+			}
+		}
+
+	r1_i0_i1_has_match:
+		return Filter{
+			LHS: lhs.Text,
+			Op:  FilterExists,
+		}, nil
+	r1_i0_group_end:
+	}
+
+	{
+		var filterOp FilterOp
+		var lhs *Token
+		var value Value
+		_pos1 := p.Pos()
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return Filter{}, _err
+			}
+			_match := _tok.ID == IDENT_TOKEN
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r2_i0_group_end
+			}
+			lhs = _tok
+		}
+		{
+			var _err error
+			filterOp, _err = p.filterOp()
+			if _err != nil && _err != errBacktrack {
+				return Filter{}, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				lhs = nil
+				goto r2_i0_group_end
+			}
+		}
+		{
+			var _err error
+			value, _err = p.value()
+			if _err != nil && _err != errBacktrack {
+				return Filter{}, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				lhs = nil
+				filterOp = ""
+				goto r2_i0_group_end
+			}
+		}
+		return Filter{
+			LHS: lhs.Text,
+			Op:  filterOp,
+			RHS: value,
+		}, nil
+	r2_i0_group_end:
+	}
+
 	var lhs *Token
-	var value Value
 
 	{
 		_tok, _err := p.NextToken()
@@ -528,32 +716,10 @@ func (p *queryParser) filter() (Filter, error) {
 		}
 		lhs = _tok
 	}
-	{
-		var _err error
-		filterOp, _err = p.filterOp()
-		if _err != nil && _err != errBacktrack {
-			return Filter{}, _err
-		}
-		_match := _err == nil
-		if !_match {
-			return Filter{}, errBacktrack
-		}
-	}
-	{
-		var _err error
-		value, _err = p.value()
-		if _err != nil && _err != errBacktrack {
-			return Filter{}, _err
-		}
-		_match := _err == nil
-		if !_match {
-			return Filter{}, errBacktrack
-		}
-	}
 	return Filter{
 		LHS: lhs.Text,
-		Op:  filterOp,
-		RHS: value,
+		Op:  FilterEqual,
+		RHS: &Number{Text: "1"},
 	}, nil
 }
 
@@ -565,13 +731,24 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 			if _err != nil {
 				return "", _err
 			}
+			_match := len(_tok.Text) == 3 && (_tok.Text[0] == 'n' || _tok.Text[0] == 'N') && (_tok.Text[1] == 'o' || _tok.Text[1] == 'O') && (_tok.Text[2] == 't' || _tok.Text[2] == 'T')
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+		}
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return "", _err
+			}
 			_match := len(_tok.Text) == 4 && (_tok.Text[0] == 'l' || _tok.Text[0] == 'L') && (_tok.Text[1] == 'i' || _tok.Text[1] == 'I') && (_tok.Text[2] == 'k' || _tok.Text[2] == 'K') && (_tok.Text[3] == 'e' || _tok.Text[3] == 'E')
 			if !_match {
 				p.ResetPos(_pos1)
 				goto i0_group_end
 			}
 		}
-		return FilterLike, nil
+		return FilterNotLike, nil
 	i0_group_end:
 	}
 
@@ -582,51 +759,73 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 			if _err != nil {
 				return "", _err
 			}
-			_match := len(_tok.Text) == 3 && (_tok.Text[0] == 'n' || _tok.Text[0] == 'N') && (_tok.Text[1] == 'o' || _tok.Text[1] == 'O') && (_tok.Text[2] == 't' || _tok.Text[2] == 'T')
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r1_i0_group_end
-			}
-		}
-		{
-			_tok, _err := p.NextToken()
-			if _err != nil {
-				return "", _err
-			}
 			_match := len(_tok.Text) == 4 && (_tok.Text[0] == 'l' || _tok.Text[0] == 'L') && (_tok.Text[1] == 'i' || _tok.Text[1] == 'I') && (_tok.Text[2] == 'k' || _tok.Text[2] == 'K') && (_tok.Text[3] == 'e' || _tok.Text[3] == 'E')
 			if !_match {
 				p.ResetPos(_pos1)
 				goto r1_i0_group_end
 			}
 		}
-		return FilterNotLike, nil
+		return FilterLike, nil
 	r1_i0_group_end:
 	}
 
 	{
 		_pos1 := p.Pos()
+		// '!' '='
 		{
-			_tok, _err := p.NextToken()
-			if _err != nil {
-				return "", _err
+			{
+				_tok, _err := p.NextToken()
+				if _err != nil {
+					return "", _err
+				}
+				_match := _tok.Text == "!"
+				if !_match {
+					p.ResetPos(_pos1)
+					goto r2_i0_alt1
+				}
 			}
-			_match := _tok.Text == "!"
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r2_i0_group_end
+			{
+				_tok, _err := p.NextToken()
+				if _err != nil {
+					return "", _err
+				}
+				_match := _tok.Text == "="
+				if !_match {
+					p.ResetPos(_pos1)
+					goto r2_i0_alt1
+				}
+			}
+			goto r2_i0_has_match
+		}
+
+	r2_i0_alt1:
+		// '<' '>'
+		{
+			{
+				_tok, _err := p.NextToken()
+				if _err != nil {
+					return "", _err
+				}
+				_match := _tok.Text == "<"
+				if !_match {
+					p.ResetPos(_pos1)
+					goto r2_i0_group_end
+				}
+			}
+			{
+				_tok, _err := p.NextToken()
+				if _err != nil {
+					return "", _err
+				}
+				_match := _tok.Text == ">"
+				if !_match {
+					p.ResetPos(_pos1)
+					goto r2_i0_group_end
+				}
 			}
 		}
-		{
-			_tok, _err := p.NextToken()
-			if _err != nil {
-				return "", _err
-			}
-			_match := _tok.Text == "="
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r2_i0_group_end
-			}
-		}
+
+	r2_i0_has_match:
 		return FilterNotEqual, nil
 	r2_i0_group_end:
 	}
@@ -638,24 +837,13 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 			if _err != nil {
 				return "", _err
 			}
-			_match := _tok.Text == "!"
+			_match := _tok.Text == "="
 			if !_match {
 				p.ResetPos(_pos1)
 				goto r3_i0_group_end
 			}
 		}
-		{
-			_tok, _err := p.NextToken()
-			if _err != nil {
-				return "", _err
-			}
-			_match := _tok.Text == "~"
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r3_i0_group_end
-			}
-		}
-		return FilterNotRegexp, nil
+		return FilterEqual, nil
 	r3_i0_group_end:
 	}
 
@@ -666,13 +854,24 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 			if _err != nil {
 				return "", _err
 			}
-			_match := _tok.Text == "="
+			_match := _tok.Text == "!"
 			if !_match {
 				p.ResetPos(_pos1)
 				goto r4_i0_group_end
 			}
 		}
-		return FilterEqual, nil
+		{
+			_tok, _err := p.NextToken()
+			if _err != nil {
+				return "", _err
+			}
+			_match := _tok.Text == "~"
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r4_i0_group_end
+			}
+		}
+		return FilterNotRegexp, nil
 	r4_i0_group_end:
 	}
 

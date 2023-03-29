@@ -1,180 +1,166 @@
 <template>
-  <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="py-4">
-    <v-card outlined>
-      <v-toolbar color="light-blue lighten-5" flat>
-        <v-toolbar-title>Quickly Test Metrics</v-toolbar-title>
-
-        <v-spacer />
-
+  <v-container :fluid="$vuetify.breakpoint.lgAndDown">
+    <v-row>
+      <v-spacer />
+      <v-col cols="auto">
         <DateRangePicker :date-range="dateRange" :range-days="90" />
-      </v-toolbar>
+      </v-col>
+    </v-row>
+    <v-row align="center">
+      <v-col>
+        <v-card outlined rounded="lg">
+          <v-toolbar flat color="blue lighten-5">
+            <v-toolbar-title>Metrics</v-toolbar-title>
 
-      <v-container class="py-6 indent-rows">
-        <v-row align="center" dense>
-          <v-col cols="auto" class="pr-4">
-            <v-avatar color="blue darken-1" size="40">
-              <span class="white--text text-h5">1</span>
-            </v-avatar>
-          </v-col>
-          <v-col>
-            <v-sheet max-width="800" class="text-subtitle-1 text--primary">
-              Select up to 6 metrics you want to display for each row in the table. The selected
-              metrics should have some common attributes that will be used to join metrics together.
-            </v-sheet>
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col>
-            <MetricsPicker v-model="metricAliases" :metrics="metrics.items" :uql="uql" />
-          </v-col>
-        </v-row>
-
-        <v-divider class="my-8" />
-
-        <v-row align="center" dense>
-          <v-col cols="auto" class="pr-4">
-            <v-avatar color="blue darken-1" size="40">
-              <span class="white--text text-h5">2</span>
-            </v-avatar>
-          </v-col>
-          <v-col>
-            <v-sheet max-width="800" class="text-subtitle-1 text--primary">
-              Select some aggregations and group-by attributes to display as columns in the table.
-            </v-sheet>
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col>
-            <MetricQueryBuilder
-              :date-range="dateRange"
-              :metrics="activeMetrics"
-              :uql="uql"
-              show-dash-group-by
-              :disabled="!activeMetrics.length"
+            <v-text-field
+              v-model="metricStats.searchInput"
+              label="Quick search over metric names"
+              clearable
+              outlined
+              dense
+              hide-details="auto"
+              class="ml-8"
+              style="max-width: 300px"
             />
-          </v-col>
-        </v-row>
 
-        <v-divider class="my-8" />
+            <v-spacer />
 
-        <v-row dense>
-          <v-col cols="auto">
-            <v-chip v-for="(col, colName) in columnMap" :key="colName" outlined label class="ma-1">
-              <span>{{ colName }}</span>
-              <UnitPicker v-model="col.unit" target-class="mr-n4" />
-            </v-chip>
-          </v-col>
-        </v-row>
-        <v-row dense>
-          <v-col>
-            <MetricItemsTable
-              :loading="tableQuery.loading"
-              :items="tableQuery.items"
-              :columns="tableQuery.columns"
-              :order="tableQuery.order"
-              :axios-params="axiosParams"
-              :column-map="columnMap"
+            <div class="text-body-2 blue-grey--text text--darken-3">
+              <span v-if="metricStats.hasMore">more than </span>
+              <span class="font-weight-bold">{{ metricStats.items.length }}</span>
+              <span> metrics</span>
+            </div>
+          </v-toolbar>
+
+          <div class="pa-4">
+            <v-row align="center">
+              <v-col cols="auto" class="text-body-2 text--secondary"
+                >Only show metrics with attributes</v-col
+              >
+              <v-col cols="auto">
+                <v-autocomplete
+                  v-model="activeAttrKeys"
+                  multiple
+                  :loading="attrKeysDs.loading"
+                  :items="attrKeysDs.filteredItems"
+                  :error-messages="attrKeysDs.errorMessages"
+                  :search-input.sync="attrKeysDs.searchInput"
+                  placeholder="Show all metrics"
+                  solo
+                  flat
+                  dense
+                  background-color="grey lighten-4"
+                  no-filter
+                  auto-select-first
+                  clearable
+                  hide-details="auto"
+                >
+                  <template #item="{ item }">
+                    <v-list-item-content>
+                      <v-list-item-title>
+                        {{ item.text }}
+                      </v-list-item-title>
+                    </v-list-item-content>
+                    <v-list-item-action>
+                      <v-chip small>{{ item.count }}</v-chip>
+                    </v-list-item-action>
+                  </template>
+                </v-autocomplete>
+              </v-col>
+            </v-row>
+
+            <MetricsTable
+              :loading="metricStats.loading"
+              :metrics="metricStats.items"
+              @click:item="
+                activeMetric = $event
+                dialog = true
+              "
             />
-          </v-col>
-        </v-row>
-      </v-container>
-    </v-card>
+          </div>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <v-dialog v-model="dialog" max-width="1200">
+      <ExploreMetric
+        v-if="activeMetric"
+        :date-range="dateRange"
+        :metric="activeMetric"
+        @click:close="dialog = false"
+      />
+    </v-dialog>
   </v-container>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, reactive, computed, watch, PropType } from 'vue'
+import { defineComponent, shallowRef, PropType } from 'vue'
 
 // Composables
+import { useTitle } from '@vueuse/core'
+import { useRoute } from '@/use/router'
+import { useDataSource } from '@/use/datasource'
+import { useForceReload } from '@/use/force-reload'
 import { UseDateRange } from '@/use/date-range'
-import { useUql } from '@/use/uql'
-import { useActiveMetrics, UseMetrics } from '@/metrics/use-metrics'
-import { useTableQuery } from '@/metrics/use-query'
-import { MetricAlias } from '@/metrics/types'
+import { useMetricStats, MetricStats } from '@/metrics/use-metrics'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
-import MetricsPicker from '@/metrics/MetricsPicker.vue'
-import MetricQueryBuilder from '@/metrics/query/MetricQueryBuilder.vue'
-import MetricItemsTable from '@/metrics/MetricItemsTable.vue'
-import UnitPicker from '@/components/UnitPicker.vue'
-
-// Types
-import { MetricColumn } from '@/metrics/types'
+import MetricsTable from '@/metrics/MetricsTable.vue'
+import ExploreMetric from '@/metrics/ExploreMetric.vue'
 
 export default defineComponent({
-  name: 'MetricsExplore',
-  components: { DateRangePicker, MetricsPicker, MetricQueryBuilder, MetricItemsTable, UnitPicker },
+  name: 'Explore',
+  components: { DateRangePicker, MetricsTable, ExploreMetric },
 
   props: {
     dateRange: {
       type: Object as PropType<UseDateRange>,
       required: true,
     },
-    metrics: {
-      type: Object as PropType<UseMetrics>,
-      required: true,
-    },
   },
 
   setup(props) {
-    props.dateRange.syncQuery()
+    useTitle('Explore Metrics')
 
-    const uql = useUql({ query: 'group by all' })
-    const metricAliases = shallowRef<MetricAlias[]>([])
+    const route = useRoute()
+    const { forceReloadParams } = useForceReload()
 
-    const activeMetrics = useActiveMetrics(
-      computed(() => props.metrics.items),
-      metricAliases,
-    )
-
-    const axiosParams = computed(() => {
-      if (!metricAliases.value.length || !uql.query) {
-        return { _: undefined }
+    const activeAttrKeys = shallowRef<string[]>([])
+    const attrKeysDs = useDataSource(() => {
+      const { projectId } = route.value.params
+      return {
+        url: `/api/v1/metrics/${projectId}/attr-keys`,
+        params: {
+          ...forceReloadParams.value,
+        },
       }
+    })
 
+    const metricStats = useMetricStats(() => {
       return {
         ...props.dateRange.axiosParams(),
-        metrics: metricAliases.value.map((m) => m.name),
-        aliases: metricAliases.value.map((m) => m.alias),
-        query: uql.query,
+        attr_key: activeAttrKeys.value,
       }
     })
 
-    const tableQuery = useTableQuery(axiosParams)
+    const dialog = shallowRef(false)
+    const activeMetric = shallowRef<MetricStats>()
 
-    const columnMap = computed((): Record<string, MetricColumn> => {
-      const columnMap: Record<string, MetricColumn> = {}
+    return {
+      activeAttrKeys,
+      attrKeysDs,
+      metricStats,
 
-      for (let col of tableQuery.columns) {
-        if (!col.isGroup) {
-          columnMap[col.name] = {
-            unit: col.unit,
-          }
-        }
-      }
-
-      return reactive(columnMap)
-    })
-
-    watch(
-      () => tableQuery.queryParts,
-      (queryParts) => {
-        if (queryParts) {
-          uql.syncParts(queryParts)
-        }
-      },
-      { immediate: true },
-    )
-
-    return { uql, metricAliases, activeMetrics, axiosParams, tableQuery, columnMap }
+      dialog,
+      activeMetric,
+    }
   },
 })
 </script>
 
 <style lang="scss" scoped>
-.indent-rows ::v-deep .row {
-  padding-left: 12px !important;
-  padding-right: 12px !important;
+.border {
+  border-bottom: thin rgba(0, 0, 0, 0.12) solid;
 }
 </style>

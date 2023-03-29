@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/uptrace/bun"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"golang.org/x/exp/slices"
 )
 

@@ -19,6 +19,7 @@
 
     <EChart
       v-else
+      v-model="echart"
       :loading="loading"
       :height="chart.height"
       :option="chart.option"
@@ -28,16 +29,15 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, PropType } from 'vue'
-
-// Composables
-import { ChartType } from '@/metrics/use-dashboards'
-import { MetricColumn, Timeseries } from '@/metrics/types'
+import { ECharts } from 'echarts'
+import { defineComponent, shallowRef, computed, onMounted, PropType } from 'vue'
 
 // Components
 import EChart, { EChartProps } from '@/components/EChart.vue'
 
 // Utilities
+import { ChartKind, StyledTimeseries } from '@/metrics/types'
+import { EventBus } from '@/models/eventbus'
 import { createFormatter, Unit, Formatter } from '@/util/fmt'
 import {
   baseChartConfig,
@@ -61,40 +61,53 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
-    chartType: {
-      type: String as PropType<ChartType>,
-      default: ChartType.Line,
-    },
-    columnMap: {
-      type: Object as PropType<Record<string, MetricColumn>>,
-      required: true,
-    },
     timeseries: {
-      type: Array as PropType<Timeseries[]>,
+      type: Array as PropType<StyledTimeseries[]>,
       required: true,
+    },
+    time: {
+      type: Array as PropType<string[]>,
+      required: true,
+    },
+    height: {
+      type: Number,
+      default: 200,
+    },
+    chartKind: {
+      type: String as PropType<ChartKind>,
+      default: ChartKind.Line,
     },
     group: {
       type: [String, Symbol],
       default: () => Symbol(),
     },
-    showLegend: {
-      type: Boolean,
-      default: false,
+    minAllowedValue: {
+      type: [Number, String],
+      default: '',
+    },
+    maxAllowedValue: {
+      type: [Number, String],
+      default: '',
+    },
+    eventBus: {
+      type: Object as PropType<EventBus>,
+      default: undefined,
     },
   },
 
   setup(props) {
+    const echart = shallowRef<ECharts>()
+
     const columnFormatter = computed(() => {
       const formatter: Record<string, Formatter> = {}
       for (let ts of props.timeseries) {
-        const col = props.columnMap[ts.metric]
-        formatter[ts.name] = createFormatter(col?.unit ?? ts.unit)
+        formatter[ts.name] = createFormatter(ts.unit)
       }
       return formatter
     })
 
     const chart = computed(() => {
-      const chart: Partial<EChartProps> = { height: 200 }
+      const chart: Partial<EChartProps> = { height: props.height }
 
       if (!props.timeseries.length) {
         return chart
@@ -108,6 +121,9 @@ export default defineComponent({
 
       conf.xAxis.push({
         type: 'time',
+        axisLabel: {
+          hideOverlap: true,
+        },
         axisPointer: {
           label: {
             show: false,
@@ -117,115 +133,176 @@ export default defineComponent({
       })
 
       props.timeseries.forEach((ts, index) => {
-        const col = props.columnMap[ts.metric]
-        plotTimeseries(
-          conf,
-          props.chartType,
-          ts,
-          col?.unit ?? ts.unit,
-          props.timeseries.length - index,
-        )
+        plotTimeseries(conf, props.chartKind, ts, props.timeseries.length - index)
       })
 
-      if (props.chartType === ChartType.Line && conf.series.length === 1) {
+      if (typeof props.minAllowedValue === 'number' || typeof props.maxAllowedValue === 'number') {
         const series = conf.series[0]
-        if (series.type === 'line') {
-          series.areaStyle = { opacity: 0.15 }
+        series.markArea = {
+          itemStyle: {
+            color: 'green',
+            opacity: 0.2,
+            borderWidth: 1,
+            borderType: 'dashed',
+          },
+          data: [
+            [
+              {
+                name: 'Allowed values range',
+                xAxis: 'min',
+                yAxis: props.minAllowedValue !== '' ? props.minAllowedValue : 0,
+              },
+              {
+                xAxis: 'max',
+                yAxis: props.maxAllowedValue !== '' ? props.maxAllowedValue : 'max',
+              },
+            ],
+          ],
         }
       }
 
-      if (props.showLegend && conf.series.length) {
-        const names = conf.series.map((series) => series.name as string)
-        conf.legend.push({
-          type: 'scroll',
-          padding: [5, 10],
-          data: names,
-        })
-      }
-
       conf.grid.push({
-        top: conf.legend.length ? '50px' : '20px',
+        top: '20px',
         left: '50px',
         right: conf.yAxis.length === 2 ? '50px' : '20px',
-        height: conf.legend.length ? '120px' : '150px',
+        height: String(props.height - 50) + 'px',
       })
 
       chart.option = conf
       return chart
     })
 
-    return { chart }
+    onMounted(() => {
+      if (!props.eventBus) {
+        return
+      }
+
+      interface HoverEvent {
+        item: StyledTimeseries
+        hover: boolean
+      }
+
+      props.eventBus.on('hover', (event: HoverEvent) => {
+        if (!echart.value || !props.timeseries.length) {
+          return
+        }
+
+        if (!event.hover) {
+          echart.value.dispatchAction({ type: 'highlight', seriesIndex: 0 })
+          echart.value.dispatchAction({ type: 'downplay' })
+          return
+        }
+
+        const ts = event.item
+        const index = props.timeseries.findIndex((el) => el.id === ts.id)
+        if (index === -1) {
+          echart.value.dispatchAction({ type: 'highlight', seriesIndex: 0 })
+          echart.value.dispatchAction({ type: 'downplay' })
+        } else {
+          echart.value.dispatchAction({ type: 'highlight', seriesIndex: index })
+        }
+      })
+    })
+
+    function plotTimeseries(
+      conf: EChartsOption,
+      chartKind: ChartKind,
+      ts: StyledTimeseries,
+      zIndex: number,
+    ) {
+      conf.dataset.push({
+        source: {
+          time: props.time,
+          data: ts.value,
+        },
+      })
+
+      const series: Record<string, any> = {
+        yAxisIndex: yAxisIndex(conf, ts.unit),
+        datasetIndex: conf.dataset.length - 1,
+        name: ts.name,
+        type: 'line',
+        encode: { x: 'time', y: 'data' },
+        symbol: ts.symbol,
+        symbolSize: ts.symbolSize,
+        color: ts.color,
+        emphasis: { focus: 'series' },
+      }
+
+      switch (chartKind) {
+        case ChartKind.Line:
+          series.lineStyle = { width: ts.lineWidth }
+          break
+        case ChartKind.Area:
+          series.z = zIndex
+          series.lineStyle = { width: ts.lineWidth }
+          series.areaStyle = { opacity: ts.opacity / 100 }
+          break
+        case ChartKind.Bar:
+          series.type = 'bar'
+          series.areaStyle = { opacity: ts.opacity / 100 }
+          break
+        case ChartKind.StackedArea:
+          series.stack = 'all'
+          series.lineStyle = { width: ts.lineWidth }
+          series.areaStyle = { opacity: ts.opacity / 100 }
+          break
+        case ChartKind.StackedBar:
+          series.type = 'bar'
+          series.stack = 'all'
+          series.areaStyle = { opacity: ts.opacity / 100 }
+          break
+      }
+
+      conf.series.push(series)
+    }
+
+    function yAxisIndex(conf: EChartsOption, unit: string): number {
+      const index = conf.yAxis.findIndex((yAxis) => yAxis.id === unit)
+      if (index >= 0) {
+        return index
+      }
+
+      conf.yAxis.push({
+        id: unit,
+        type: 'value',
+        axisLabel: {
+          formatter: axisLabelFormatter(unit),
+        },
+        axisPointer: {
+          label: {
+            formatter: axisPointerFormatter(unit),
+          },
+        },
+        splitLine: { show: false },
+        min: (value) => {
+          const values = [0, value.min]
+          if (typeof props.minAllowedValue === 'number') {
+            values.push(props.minAllowedValue)
+          }
+          if (typeof props.maxAllowedValue === 'number') {
+            values.push(props.maxAllowedValue)
+          }
+          return Math.min(...values)
+        },
+        max: (value) => {
+          const values = [value.max]
+          if (typeof props.minAllowedValue === 'number') {
+            values.push(props.minAllowedValue)
+          }
+          if (typeof props.maxAllowedValue === 'number') {
+            values.push(props.maxAllowedValue)
+          }
+          return Math.max(...values)
+        },
+      })
+
+      return conf.yAxis.length - 1
+    }
+
+    return { echart, chart }
   },
 })
-
-function plotTimeseries(
-  conf: EChartsOption,
-  chartType: ChartType,
-  ts: Timeseries,
-  unit: Unit,
-  zIndex: number,
-) {
-  conf.dataset.push({
-    source: {
-      time: ts.time,
-      data: ts.value,
-    },
-  })
-
-  const series: Record<string, any> = {
-    yAxisIndex: yAxisIndex(conf, unit),
-    datasetIndex: conf.dataset.length - 1,
-    name: ts.name,
-    type: 'line',
-    encode: { x: 'time', y: 'data' },
-    symbol: 'none',
-    color: ts.color,
-  }
-
-  switch (chartType) {
-    case ChartType.Area:
-      series.z = zIndex
-      series.areaStyle = {}
-      break
-    case ChartType.Bar:
-      series.type = 'bar'
-      break
-    case ChartType.StackedArea:
-      series.areaStyle = {}
-      series.stack = 'all'
-      series.emphasis = { focus: 'series' }
-      break
-    case ChartType.StackedBar:
-      series.type = 'bar'
-      series.stack = 'all'
-      break
-  }
-
-  conf.series.push(series)
-}
-
-function yAxisIndex(conf: EChartsOption, unit: Unit): number {
-  const index = conf.yAxis.findIndex((yAxis) => yAxis.id === unit)
-  if (index >= 0) {
-    return index
-  }
-
-  conf.yAxis.push({
-    id: unit,
-    type: 'value',
-    axisLabel: {
-      formatter: axisLabelFormatter(unit),
-    },
-    axisPointer: {
-      label: {
-        formatter: axisPointerFormatter(unit),
-      },
-    },
-    splitLine: { show: false },
-  })
-
-  return conf.yAxis.length - 1
-}
 </script>
 
 <style lang="scss" scoped></style>

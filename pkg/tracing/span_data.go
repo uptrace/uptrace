@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -30,7 +31,7 @@ func (sd *SpanData) Decode(span *Span) error {
 	span.ParentID = sd.ParentID
 
 	if err := msgpack.Unmarshal(sd.Data, span); err != nil {
-		return err
+		return fmt.Errorf("msgpack.Unmarshal failed: %w", err)
 	}
 
 	span.Type = span.System
@@ -55,12 +56,15 @@ func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 	var data SpanData
 
 	q := app.CH.NewSelect().
-		ColumnExpr("project_id, trace_id, id, parent_id").
+		ColumnExpr("project_id, trace_id, id, parent_id, data").
 		Model(&data).
 		ModelTableExpr("?", app.DistTable("spans_data_buffer")).
 		Where("trace_id = ?", span.TraceID).
 		Limit(1)
 
+	if span.ProjectID != 0 {
+		q = q.Where("project_id = ?", span.ProjectID)
+	}
 	if span.ID != 0 {
 		q = q.Where("id = ?", span.ID)
 	}

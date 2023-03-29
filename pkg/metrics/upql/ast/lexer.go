@@ -10,7 +10,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bununit"
 )
 
-//go:generate stringer -type=TokenID
 type TokenID int8
 
 const (
@@ -197,7 +196,10 @@ func (l *lexer) token(id TokenID, s string, start int) *Token {
 	return &l.tokens[len(l.tokens)-1]
 }
 
-func isIdent(s string) bool {
+func IsIdent(s string) bool {
+	if s == "" {
+		return false
+	}
 	for _, c := range []byte(s) {
 		if !isIdentChar(c) {
 			return false

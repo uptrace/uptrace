@@ -2,16 +2,16 @@ import { computed, watch, proxyRefs } from 'vue'
 
 // Composables
 import { usePager, PagerConfig } from '@/use/pager'
-import { useOrder, OrderConfig } from '@/use/order'
+import { useOrder, Order } from '@/use/order'
 import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
-import { QueryPart } from '@/use/uql'
+import { BackendQueryInfo } from '@/use/uql'
 
 // Utilities
 import { Span } from '@/models/span'
 
 interface SpansConfig {
   pager?: PagerConfig
-  order?: OrderConfig
+  order?: Order
 }
 
 export type UseSpans = ReturnType<typeof useSpans>
@@ -38,8 +38,8 @@ export function useSpans(reqSource: AxiosRequestSource, cfg: SpansConfig = {}) {
     return spans
   })
 
-  const queryParts = computed((): QueryPart[] => {
-    return data.value?.queryParts
+  const queryInfo = computed((): BackendQueryInfo | undefined => {
+    return data.value?.query
   })
 
   watch(
@@ -56,6 +56,16 @@ export function useSpans(reqSource: AxiosRequestSource, cfg: SpansConfig = {}) {
 
     loading,
     items: spans,
-    queryParts,
+    queryInfo,
   })
+}
+
+export function useSpan(axiosReqSource: AxiosRequestSource) {
+  const { loading, data } = useWatchAxios(axiosReqSource)
+
+  const span = computed((): Span | undefined => {
+    return data.value?.span
+  })
+
+  return proxyRefs({ loading, data: span })
 }

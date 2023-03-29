@@ -8,11 +8,10 @@ import (
 	"net/http"
 
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	collectortrace "go.opentelemetry.io/proto/otlp/collector/trace/v1"
@@ -149,7 +148,7 @@ func (s *TraceServiceServer) Export(
 }
 
 func (s *TraceServiceServer) process(
-	ctx context.Context, project *bunconf.Project, resourceSpans []*tracepb.ResourceSpans,
+	ctx context.Context, project *org.Project, resourceSpans []*tracepb.ResourceSpans,
 ) (*collectortrace.ExportTraceServiceResponse, error) {
 	for _, rss := range resourceSpans {
 		resource := AttrMap(otlpconv.Map(rss.Resource.Attributes))

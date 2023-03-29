@@ -5,18 +5,32 @@ import VueRouter, { RouteConfig, NavigationGuard } from 'vue-router'
 import { AttrKey, SystemName, isEventSystem } from '@/models/otel'
 
 // Composables
-import { useUser } from '@/use/org'
+import { useUser } from '@/org/use-users'
 import { exploreAttr } from '@/use/uql'
 import { System } from '@/tracing/system/use-systems'
 
+import NotFoundPage from '@/org/views/NotFoundPage.vue'
+import ProjectSettings from '@/org/views/ProjectSettings.vue'
+
+import Alerting from '@/alerting/views/Alerting.vue'
+import AlertList from '@/alerting/views/AlertList.vue'
+import AlertShow from '@/alerting/views/AlertShow.vue'
+import MonitorList from '@/alerting/views/MonitorList.vue'
+import MonitorMetricShow from '@/alerting/views/MonitorMetricShow.vue'
+import MonitorMetricNew from '@/alerting/views/MonitorMetricNew.vue'
+import MonitorErrorShow from '@/alerting/views/MonitorErrorShow.vue'
+import MonitorErrorNew from '@/alerting/views/MonitorErrorNew.vue'
+import ChannelList from '@/alerting/views/ChannelList.vue'
+import ChannelShowSlack from '@/alerting/views/ChannelShowSlack.vue'
+import ChannelShowWebhook from '@/alerting/views/ChannelShowWebhook.vue'
+import ChannelShowAlertmanager from '@/alerting/views/ChannelShowAlertmanager.vue'
+
 import Overview from '@/tracing/views/Overview.vue'
-import SystemOverview from '@/tracing/views/SystemOverview.vue'
-import SlowestGroups from '@/tracing/views/SlowestGroups.vue'
-import SystemGroupList from '@/tracing/views/SystemGroupList.vue'
-import AttrOverview from '@/tracing/views/AttrOverview.vue'
+import OverviewAttr from '@/tracing/views/OverviewAttr.vue'
+import OverviewSlowestGroups from '@/tracing/views/OverviewSlowestGroups.vue'
+import OverviewGroups from '@/tracing/views/OverviewGroups.vue'
 
 import TracingHelp from '@/tracing/views/Help.vue'
-import ProjectSettings from '@/org/views/ProjectSettings.vue'
 import Tracing from '@/tracing/views/Tracing.vue'
 import TracingGroups from '@/tracing/views/TracingGroups.vue'
 import TracingSpans from '@/tracing/views/TracingSpans.vue'
@@ -71,52 +85,118 @@ const routes: RouteConfig[] = [
     component: TracingHelp,
   },
   {
-    name: 'ProjectSettings',
+    name: 'ProjectShow',
     path: '/projects/:projectId(\\d+)',
     component: ProjectSettings,
   },
 
   {
+    path: '/alerting/:projectId(\\d+)',
+    name: 'Alerting',
+    component: Alerting,
+    redirect: { name: 'AlertList' },
+    children: [
+      {
+        name: 'AlertList',
+        path: 'alerts',
+        components: { alerting: AlertList },
+      },
+      {
+        name: 'AlertShow',
+        path: 'alerts/:alertId(\\d+)',
+        components: { alerting: AlertShow },
+      },
+
+      {
+        name: 'NotifChannelList',
+        path: 'channels',
+        components: { alerting: ChannelList },
+      },
+
+      {
+        name: 'MonitorList',
+        path: 'monitors',
+        components: { alerting: MonitorList },
+      },
+    ],
+  },
+
+  {
+    name: 'MonitorMetricNew',
+    path: '/alerting/:projectId(\\d+)/monitors/new-metric',
+    component: MonitorMetricNew,
+  },
+  {
+    name: 'MonitorMetricShow',
+    path: '/alerting/:projectId(\\d+)/monitors/:monitorId(\\d+)/metric',
+    component: MonitorMetricShow,
+  },
+  {
+    name: 'MonitorErrorNew',
+    path: '/alerting/:projectId(\\d+)/monitors/new-error',
+    component: MonitorErrorNew,
+  },
+  {
+    name: 'MonitorErrorShow',
+    path: '/alerting/:projectId(\\d+)/monitors/:monitorId(\\d+)/error',
+    component: MonitorErrorShow,
+  },
+
+  {
+    name: 'NotifChannelShowSlack',
+    path: '/alerting/:projectId(\\d+)/channels/slack/:channelId(\\d+)',
+    component: ChannelShowSlack,
+  },
+  {
+    name: 'NotifChannelShowWebhook',
+    path: '/alerting/:projectId(\\d+)/channels/webhook/:channelId(\\d+)',
+    component: ChannelShowWebhook,
+  },
+  {
+    name: 'NotifChannelShowAlertmanager',
+    path: '/alerting/:projectId(\\d+)/channels/alertmanager/:channelId(\\d+)',
+    component: ChannelShowAlertmanager,
+  },
+
+  {
+    path: '/alerts',
+    beforeEnter: redirectToProject('AlertList'),
+  },
+  {
+    path: '/alerts/:projectId(\\d+)/:alertId(\\d+)',
+    redirect: { name: 'AlertList' },
+  },
+
+  {
+    path: '/:projectId(\\d+)',
+    redirect: { name: 'Overview' },
+  },
+  {
+    name: 'Overview',
     path: '/overview/:projectId(\\d+)',
     component: Overview,
+    redirect: { name: 'SystemOverview' },
+
     children: [
       {
-        name: 'Overview',
-        path: '',
-        component: SystemOverview,
+        name: 'SystemOverview',
+        path: 'systems',
+        component: OverviewAttr,
       },
-    ],
-  },
-  {
-    path: '/slowest-groups/:projectId(\\d+)',
-    component: Overview,
-    children: [
-      {
-        name: 'SlowestGroups',
-        path: '',
-        component: SlowestGroups,
-      },
-    ],
-  },
-  {
-    path: '/systems/:projectId(\\d+)/:system',
-    component: Overview,
-    children: [
       {
         name: 'SystemGroupList',
-        path: '',
-        component: SystemGroupList,
+        path: 'groups/:system',
+        component: OverviewGroups,
       },
-    ],
-  },
-  {
-    path: '/attributes/:projectId(\\d+)/:attr',
-    component: Overview,
-    children: [
       {
         name: 'AttrOverview',
-        path: '',
-        component: AttrOverview,
+        path: 'attributes/:attr',
+        component: OverviewAttr,
+      },
+      {
+        name: 'SlowestGroups',
+        path: 'slowest-groups',
+        component: OverviewSlowestGroups,
       },
     ],
   },
@@ -130,20 +210,20 @@ const routes: RouteConfig[] = [
       },
       allSystem: SystemName.spansAll,
       eventsMode: false,
-      query: exploreAttr(AttrKey.spanGroupId),
-      spanListRoute: 'SpanList',
-      groupListRoute: 'SpanGroupList',
+      defaultQuery: exploreAttr(AttrKey.spanGroupId),
+      itemListRouteName: 'SpanList',
+      groupListRouteName: 'SpanGroupList',
     },
     children: [
       {
         name: 'SpanGroupList',
         path: '',
-        component: TracingGroups,
+        components: { tracing: TracingGroups },
       },
       {
         name: 'SpanList',
         path: 'items',
-        component: TracingSpans,
+        components: { tracing: TracingSpans },
       },
     ],
   },
@@ -157,20 +237,20 @@ const routes: RouteConfig[] = [
       },
       allSystem: SystemName.eventsAll,
       eventsMode: false,
-      query: exploreAttr(AttrKey.spanGroupId, true),
-      spanListRoute: 'EventList',
-      groupListRoute: 'EventGroupList',
+      defaultQuery: exploreAttr(AttrKey.spanGroupId, true),
+      itenListRouteName: 'EventList',
+      groupListRouteName: 'EventGroupList',
     },
     children: [
       {
         name: 'EventGroupList',
         path: '',
-        component: TracingGroups,
+        components: { tracing: TracingGroups },
       },
       {
         name: 'EventList',
         path: 'spans',
-        component: TracingSpans,
+        components: { tracing: TracingSpans },
       },
     ],
   },
@@ -198,17 +278,17 @@ const routes: RouteConfig[] = [
       {
         path: '',
         name: 'MetricsDashList',
-        component: MetricsDash,
+        components: { metrics: MetricsDash },
       },
       {
         path: ':dashId(\\d+)',
         name: 'MetricsDashShow',
-        component: MetricsDash,
+        components: { metrics: MetricsDash },
       },
       {
         path: 'explore',
         name: 'MetricsExplore',
-        component: MetricsExplore,
+        components: { metrics: MetricsExplore },
       },
     ],
   },
@@ -221,6 +301,8 @@ const routes: RouteConfig[] = [
     path: '/metrics',
     beforeEnter: redirectToProject('MetricsDashList'),
   },
+
+  { path: '*', component: NotFoundPage },
 ]
 
 const router = new VueRouter({

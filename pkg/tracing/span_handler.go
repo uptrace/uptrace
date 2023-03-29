@@ -6,15 +6,16 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/tracing/upql"
 	"go4.org/syncutil"
 )
@@ -45,7 +46,7 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 
 	q := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration()).
 		ColumnExpr("id, trace_id").
-		WithQuery(func(q *ch.SelectQuery) *ch.SelectQuery {
+		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if f.SortBy == "" {
 				return q
 			}
@@ -94,6 +95,9 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 		"spans": spans,
 		"count": count,
 		"order": f.OrderByMixin,
+		"query": map[string]any{
+			"parts": f.parts,
+		},
 	})
 }
 
@@ -127,19 +131,45 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 
 	digest := xxhash.New()
 	for _, group := range groups {
+		digest.Reset()
+		var names []string
+		var filters []string
+
 		for _, col := range columns {
-			if col.IsGroup {
-				digest.WriteString(fmt.Sprint(group[col.Name]))
+			if !col.IsGroup {
+				continue
+			}
+
+			value := group[col.Name]
+			digest.WriteString(fmt.Sprint(group[col.Name]))
+
+			filters = append(filters, fmt.Sprintf("%s = %s", col.Name, quote(value)))
+
+			if col.Name == attrkey.SpanGroupID {
+				if s, ok := group[attrkey.SpanName].(string); ok && s != "" {
+					names = append(names, s)
+				}
+				if s, ok := group[attrkey.SpanEventName].(string); ok && s != "" {
+					names = append(names, s)
+				}
+			} else {
+				names = append(names, fmt.Sprintf("%s=%s", col.Name, quote(value)))
 			}
 		}
 
-		group[attrkey.ItemID] = strconv.FormatUint(digest.Sum64(), 10)
+		group["_id"] = strconv.FormatUint(digest.Sum64(), 10)
+		group["_name"] = strings.Join(names, " ")
+		if len(filters) > 0 {
+			group["_query"] = "where " + strings.Join(filters, " and ")
+		}
 	}
 
 	return httputil.JSON(w, bunrouter.H{
-		"groups":     groups,
-		"queryParts": f.parts,
-		"columns":    columns,
+		"groups": groups,
+		"query": map[string]any{
+			"parts": f.parts,
+		},
+		"columns": columns,
 	})
 }
 
@@ -151,29 +181,31 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	groupPeriod := org.CalcGroupPeriod(f.TimeGTE, f.TimeLT, 300)
-	minutes := groupPeriod.Minutes()
+	groupingPeriod := org.CalcGroupingPeriod(f.TimeGTE, f.TimeLT, 300)
+	minutes := groupingPeriod.Minutes()
 
 	m := make(map[string]interface{})
 
 	subq := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration()).
-		WithAlias("qsNaN", "quantilesTDigest(0.5, 0.9, 0.99)(s.duration)").
-		WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
 		ColumnExpr("sum(s.count) AS count").
 		ColumnExpr("sum(s.count) / ? AS rate", minutes).
 		ColumnExpr("toStartOfInterval(s.time, INTERVAL ? minute) AS time_", minutes).
-		WithQuery(func(q *ch.SelectQuery) *ch.SelectQuery {
+		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if f.isEventSystem() {
 				return q
 			}
-			return q.ColumnExpr("sumIf(s.count, s.status_code = 'error') AS errorCount").
+			return q.
+				WithAlias("qsNaN", "quantilesTDigest(0.5, 0.9, 0.99)(s.duration)").
+				WithAlias("qs", "if(isNaN(qsNaN[1]), [0, 0, 0], qsNaN)").
+				ColumnExpr("sumIf(s.count, s.status_code = 'error') AS errorCount").
 				ColumnExpr("sumIf(s.count, s.status_code = 'error') / ? AS errorRate",
 					minutes).
 				ColumnExpr("round(qs[1]) AS p50").
 				ColumnExpr("round(qs[2]) AS p90").
-				ColumnExpr("round(qs[3]) AS p99")
+				ColumnExpr("round(qs[3]) AS p99").
+				ColumnExpr("max(duration) AS max")
 		}).
-		WithQuery(f.whereClause).
+		Apply(f.whereClause).
 		GroupExpr("time_").
 		OrderExpr("time_ ASC").
 		Limit(10000)
@@ -182,7 +214,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		ColumnExpr("groupArray(count) AS count").
 		ColumnExpr("groupArray(rate) AS rate").
 		ColumnExpr("groupArray(time_) AS time").
-		WithQuery(func(q *ch.SelectQuery) *ch.SelectQuery {
+		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if f.isEventSystem() {
 				return q
 			}
@@ -190,7 +222,8 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 				ColumnExpr("groupArray(errorRate) AS errorRate").
 				ColumnExpr("groupArray(p50) AS p50").
 				ColumnExpr("groupArray(p90) AS p90").
-				ColumnExpr("groupArray(p99) AS p99")
+				ColumnExpr("groupArray(p99) AS p99").
+				ColumnExpr("groupArray(max) AS max")
 		}).
 		TableExpr("(?)", subq).
 		GroupExpr("tuple()").
@@ -199,12 +232,12 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	bunutil.FillHoles(m, f.TimeGTE, f.TimeLT, groupPeriod)
+	bunutil.FillHoles(m, f.TimeGTE, f.TimeLT, groupingPeriod)
 
 	return httputil.JSON(w, m)
 }
 
-func (h *SpanHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error {
+func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
 	f, err := DecodeSpanFilter(h.App, req)
@@ -213,35 +246,51 @@ func (h *SpanHandler) Stats(w http.ResponseWriter, req bunrouter.Request) error 
 	}
 	disableColumnsAndGroups(f.parts)
 
-	if f.Column == "" {
-		return errors.New("'column' query param is required")
+	if len(f.Column) == 0 {
+		return errors.New(`"column" query param is required`)
 	}
+	f.Pager.Limit = 1000
 
-	colName, err := upql.ParseName(f.Column)
-	if err != nil {
-		return err
-	}
+	groupingPeriod := org.CalcGroupingPeriod(f.TimeGTE, f.TimeLT, 300)
 
-	groupPeriod := org.CalcGroupPeriod(f.TimeGTE, f.TimeLT, 300)
-	m := make(map[string]interface{})
-
-	subq := buildSpanIndexQuery(h.App, f, groupPeriod)
-	subq = upqlColumn(subq, colName, groupPeriod).
-		ColumnExpr("toStartOfInterval(time, toIntervalMinute(?)) AS time_", groupPeriod.Minutes()).
+	subq := buildSpanIndexQuery(h.App, f, groupingPeriod).
+		ColumnExpr("toStartOfInterval(time, toIntervalMinute(?)) AS time_", groupingPeriod.Minutes()).
 		GroupExpr("time_").
 		OrderExpr("time_ ASC")
 
+	for _, colName := range f.Column {
+		col, err := upql.ParseName(colName)
+		if err != nil {
+			return err
+		}
+		subq = upqlColumn(subq, col, groupingPeriod)
+	}
+
+	item := make(map[string]interface{})
+
 	if err := h.CH.NewSelect().
-		ColumnExpr("groupArray(?) AS ?", ch.Ident(f.Column), ch.Ident(f.Column)).
-		ColumnExpr("groupArray(time_) AS time").
+		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
+			for _, colName := range f.Column {
+				q = q.ColumnExpr("groupArray(?) AS ?", ch.Ident(colName), ch.Ident(colName))
+			}
+			return q
+		}).
+		ColumnExpr("groupArray(time_) AS _time").
 		TableExpr("(?)", subq).
 		GroupExpr("tuple()").
 		Limit(1000).
-		Scan(ctx, &m); err != nil {
+		Scan(ctx, &item); err != nil {
 		return err
 	}
 
-	bunutil.FillHoles(m, f.TimeGTE, f.TimeLT, groupPeriod)
+	bunutil.FillHoles(item, f.TimeGTE, f.TimeLT, groupingPeriod)
 
-	return httputil.JSON(w, m)
+	return httputil.JSON(w, item)
+}
+
+func quote(v any) string {
+	if s, ok := v.(string); ok {
+		return strconv.Quote(s)
+	}
+	return fmt.Sprint(v)
 }

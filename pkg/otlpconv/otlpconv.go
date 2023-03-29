@@ -4,7 +4,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 )
 

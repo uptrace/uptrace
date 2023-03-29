@@ -13,6 +13,7 @@ import (
 	"github.com/uptrace/uptrace-go/uptrace"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/metric/instrument"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
@@ -105,7 +106,7 @@ func monitorKvrocks(ctx context.Context, rdb *redis.Client) error {
 	mp := global.MeterProvider()
 	meter := mp.Meter("github.com/uptrace/uptrace/example/kvrocks")
 
-	usedDiskPct, err := meter.AsyncFloat64().Gauge(
+	usedDiskPct, err := meter.Float64ObservableGauge(
 		"kvrocks.used_disk_percent",
 		instrument.WithUnit("%"),
 	)
@@ -113,18 +114,21 @@ func monitorKvrocks(ctx context.Context, rdb *redis.Client) error {
 		return err
 	}
 
-	return meter.RegisterCallback(
-		[]instrument.Asynchronous{
-			usedDiskPct,
-		},
-		func(ctx context.Context) {
+	if _, err := meter.RegisterCallback(
+		func(ctx context.Context, o metric.Observer) error {
 			pct, err := getUsedDiskPercent(ctx, rdb)
 			if err != nil {
-				otel.Handle(err)
+				return err
 			}
-			usedDiskPct.Observe(ctx, pct, semconv.DBSystemKey.String("kvrocks"))
+			o.ObserveFloat64(usedDiskPct, pct, semconv.DBSystemKey.String("kvrocks"))
+			return nil
 		},
-	)
+		usedDiskPct,
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getUsedDiskPercent(ctx context.Context, rdb *redis.Client) (float64, error) {

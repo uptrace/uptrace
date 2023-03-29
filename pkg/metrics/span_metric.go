@@ -56,7 +56,7 @@ func createSpanMetricMeta(ctx context.Context, app *bunapp.App, metric *bunconf.
 			Name:        metric.Name,
 			Description: metric.Description,
 			Unit:        metric.Unit,
-			Instrument:  metric.Instrument,
+			Instrument:  Instrument(metric.Instrument),
 		}); err != nil {
 			return err
 		}
@@ -97,8 +97,8 @@ func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMet
 		attrsExpr, aliases := compileSpanMetricAttrs(metric.Attrs)
 		q = q.
 			ColumnExpr("xxHash64(arrayStringConcat([?], '-')) AS attrs_hash", attrsExpr).
-			ColumnExpr("[?] AS attr_keys", ch.In(aliases)).
-			ColumnExpr("[?] AS attr_values", attrsExpr).
+			ColumnExpr("[?] AS string_keys", ch.In(aliases)).
+			ColumnExpr("[?] AS string_values", attrsExpr).
 			GroupExpr(string(attrsExpr))
 	}
 
@@ -117,14 +117,14 @@ func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMet
 		}
 	}
 
-	switch metric.Instrument {
-	case GaugeInstrument:
+	switch Instrument(metric.Instrument) {
+	case InstrumentGauge:
 		q = q.ColumnExpr("? AS value", valueExpr)
-	case AdditiveInstrument:
+	case InstrumentAdditive:
 		q = q.ColumnExpr("? AS value", valueExpr)
-	case CounterInstrument:
+	case InstrumentCounter:
 		q = q.ColumnExpr("? AS sum", valueExpr)
-	case HistogramInstrument:
+	case InstrumentHistogram:
 		q = q.ColumnExpr("count() AS count").
 			ColumnExpr("sum(?) AS sum", valueExpr).
 			ColumnExpr("quantilesBFloat16State(0.5)(toFloat32(?)) AS histogram", valueExpr)
@@ -140,12 +140,12 @@ func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMet
 }
 
 func compileSpanMetricValue(value string) (ch.Safe, error) {
-	parts := upql.Parse(value)
-	if len(parts) != 1 {
+	query := upql.Parse(value)
+	if len(query.Parts) != 1 {
 		return "", fmt.Errorf("can't parse metric value: %q", value)
 	}
 
-	part := parts[0]
+	part := query.Parts[0]
 	sel, ok := part.AST.(*ast.Selector)
 	if !ok {
 		return "", fmt.Errorf("unsupported metric value AST: %T", part.AST)

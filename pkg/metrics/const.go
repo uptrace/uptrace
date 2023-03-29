@@ -1,10 +1,11 @@
 package metrics
 
+type Instrument string
+
 const (
-	InvalidInstrument   = ""
-	GaugeInstrument     = "gauge"
-	AdditiveInstrument  = "additive"
-	HistogramInstrument = "histogram"
-	CounterInstrument   = "counter"
-	SummaryInstrument   = "summary"
+	InstrumentDeleted   Instrument = "deleted"
+	InstrumentGauge     Instrument = "gauge"
+	InstrumentAdditive  Instrument = "additive"
+	InstrumentHistogram Instrument = "histogram"
+	InstrumentCounter   Instrument = "counter"
 )

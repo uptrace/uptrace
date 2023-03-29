@@ -2,36 +2,58 @@ package metrics
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
 )
 
-const (
-	DashGrid  = "grid"
-	DashTable = "table"
-)
-
 type DashGauge struct {
 	bun.BaseModel `bun:"dash_gauges,alias:g"`
 
-	ID uint64 `json:"id,string" bun:",pk,autoincrement"`
+	ID uint64 `json:"id" bun:",pk,autoincrement"`
 
 	ProjectID uint32     `json:"projectId"`
-	DashID    uint64     `json:"dashId,string"`
+	DashID    uint64     `json:"dashId"`
 	Dash      *Dashboard `json:"-" bun:"rel:belongs-to,on_delete:CASCADE"`
-	DashKind  string     `json:"-"`
+
+	DashKind DashKind      `json:"dashKind"`
+	Index    sql.NullInt64 `json:"-"`
 
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	Weight      int    `json:"weight"`
-	Template    string `json:"template"`
+	Template    string `json:"template" bun:",nullzero"`
 
-	Metrics []upql.Metric            `json:"metrics"`
-	Query   string                   `json:"query"`
-	Columns map[string]*MetricColumn `json:"columnMap" bun:",nullzero"`
+	Metrics   []upql.MetricAlias       `json:"metrics"`
+	Query     string                   `json:"query"`
+	ColumnMap map[string]*MetricColumn `json:"columnMap" bun:",nullzero"`
+
+	GridQueryTemplate string `json:"gridQueryTemplate" bun:",nullzero"`
+
+	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
+	UpdatedAt time.Time `json:"updatedAt" bun:",nullzero"`
+}
+
+func (g *DashGauge) FromTemplate(tpl *DashGaugeTpl) error {
+	metrics, err := parseMetrics(tpl.Metrics)
+	if err != nil {
+		return err
+	}
+
+	g.Name = tpl.Name
+	g.Description = tpl.Description
+	g.Template = tpl.Template
+
+	g.Metrics = metrics
+	g.Query = strings.Join(tpl.Query, " | ")
+	g.ColumnMap = tpl.Columns
+
+	return nil
 }
 
 func (g *DashGauge) Validate() error {
@@ -48,79 +70,86 @@ func (g *DashGauge) validate() error {
 	if g.ProjectID == 0 {
 		return fmt.Errorf("project id can't be zero")
 	}
-	if g.DashID == 0 {
-		return fmt.Errorf("dash id can't be zero")
-	}
 	if g.DashKind == "" {
 		return fmt.Errorf("dashb kind can't be empty")
 	}
 	if g.Description == "" {
 		return fmt.Errorf("description can't be empty")
 	}
+
 	if len(g.Metrics) == 0 {
 		return fmt.Errorf("at least one metric is required")
+	}
+	if len(g.Metrics) > 5 {
+		return errors.New("you can't use more than 5 metrics in a single gauge")
+	}
+	for _, metric := range g.Metrics {
+		if err := metric.Validate(); err != nil {
+			return err
+		}
 	}
 
 	if g.Query == "" {
 		return fmt.Errorf("query can't be empty")
 	}
-	if err := upql.Validate(g.Query); err != nil {
+	if _, err := upql.ParseError(g.Query); err != nil {
 		return fmt.Errorf("can't parse query: %w", err)
+	}
+
+	if g.ColumnMap == nil {
+		g.ColumnMap = make(map[string]*MetricColumn)
+	}
+
+	if false {
+		if _, err := upql.ParseError(g.GridQueryTemplate); err != nil {
+			return fmt.Errorf("can't parse grid query template: %w", err)
+		}
+	}
+
+	if g.CreatedAt.IsZero() {
+		now := time.Now()
+		g.CreatedAt = now
+		g.UpdatedAt = now
 	}
 
 	return nil
 }
 
-func SelectTableGridGauges(
-	ctx context.Context, app *bunapp.App, dashID uint64,
-) (table, grid []*DashGauge, _ error) {
-	gauges, err := SelectDashGauges(ctx, app, dashID)
-	if err != nil {
-		return nil, nil, err
+func SelectDashGauge(
+	ctx context.Context, app *bunapp.App, dashID, gaugeID uint64,
+) (*DashGauge, error) {
+	gauge := new(DashGauge)
+	if err := app.PG.NewSelect().
+		Model(gauge).
+		Where("dash_id = ?", dashID).
+		Where("id = ?", gaugeID).
+		Scan(ctx); err != nil {
+		return nil, err
 	}
-
-	table = make([]*DashGauge, 0)
-	grid = make([]*DashGauge, 0)
-
-	for _, gauge := range gauges {
-		switch gauge.DashKind {
-		case DashTable:
-			table = append(table, gauge)
-		case DashGrid:
-			grid = append(grid, gauge)
-		default:
-			return nil, nil, fmt.Errorf("unknown dashboard kind: %q", gauge.DashKind)
-		}
-	}
-
-	return table, grid, nil
+	return gauge, nil
 }
 
 func SelectDashGauges(
-	ctx context.Context, app *bunapp.App, dashID uint64,
+	ctx context.Context, app *bunapp.App, dashID uint64, dashKind DashKind,
 ) ([]*DashGauge, error) {
-	var gauges []*DashGauge
-	if err := app.PG.NewSelect().
+	gauges := make([]*DashGauge, 0)
+
+	q := app.PG.NewSelect().
 		Model(&gauges).
 		Where("dash_id = ?", dashID).
-		OrderExpr("weight DESC, id ASC").
-		Scan(ctx); err != nil {
+		OrderExpr("index ASC NULLS LAST, id ASC")
+
+	if dashKind != "" {
+		q = q.Where("dash_kind = ?", dashKind)
+	}
+
+	if err := q.Scan(ctx); err != nil {
 		return nil, err
 	}
 	return gauges, nil
 }
 
 func InsertDashGauges(ctx context.Context, app *bunapp.App, gauges []*DashGauge) error {
-	if len(gauges) == 0 {
-		return nil
-	}
-
-	for _, entry := range gauges {
-		if entry.Columns == nil {
-			entry.Columns = make(map[string]*MetricColumn)
-		}
-	}
-
 	if _, err := app.PG.NewInsert().
 		Model(&gauges).
 		Exec(ctx); err != nil {

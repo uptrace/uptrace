@@ -1,24 +1,36 @@
-import { computed, proxyRefs, ShallowRef, ComputedRef } from 'vue'
+import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
+import { shallowRef, computed, watch, proxyRefs, ShallowRef } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
-import { useWatchAxios } from '@/use/watch-axios'
+import { useRoute } from '@/use/router'
+import { useWatchAxios, AxiosParamsSource } from '@/use/watch-axios'
 import { useForceReload } from '@/use/force-reload'
 
 // Types
-import { Metric, ActiveMetric, MetricAlias, Instrument } from '@/metrics/types'
+import { emptyMetric, Metric, ActiveMetric, MetricAlias, Instrument } from '@/metrics/types'
 
 export type UseMetrics = ReturnType<typeof useMetrics>
 
-export function useMetrics() {
-  const { route } = useRouter()
+export function useMetrics(
+  axiosParamsSource: AxiosParamsSource | undefined = undefined,
+  debounce = 0,
+) {
+  const route = useRoute()
   const { forceReloadParams } = useForceReload()
 
   const { status, loading, data, reload } = useWatchAxios(() => {
+    const params = axiosParamsSource ? axiosParamsSource() : {}
+    if (!params) {
+      return params
+    }
+
     const { projectId } = route.value.params
     return {
       url: `/api/v1/metrics/${projectId}`,
-      params: forceReloadParams.value,
+      params: {
+        ...forceReloadParams.value,
+        ...params,
+      },
     }
   })
 
@@ -33,10 +45,10 @@ export function useMetrics() {
   return proxyRefs({
     status,
     loading,
+    reload,
+
     noData,
     items: metrics,
-
-    reload,
   })
 }
 
@@ -58,40 +70,136 @@ export function metricShortName(name: string): string {
 
 //------------------------------------------------------------------------------
 
-export function useActiveMetrics(
-  metrics: ComputedRef<Metric[]>,
-  metricAliases: ShallowRef<MetricAlias[]>,
-) {
-  return computed((): ActiveMetric[] => {
-    const active: ActiveMetric[] = []
+export interface MetricStats {
+  name: string
+  attrKeys: string[]
+  instrument: Instrument
+  numTimeseries: number
+}
 
-    for (let v of metricAliases.value) {
-      const found = metrics.value.find((m) => m.name === v.name)
-      if (found) {
-        active.push({
-          ...found,
-          alias: v.alias,
-        })
+export function useMetricStats(axiosParamsSource: AxiosParamsSource) {
+  const route = useRoute()
+
+  const searchInput = shallowRef('')
+  const hasMore = shallowRef(false)
+
+  const { status, loading, data, reload } = useWatchAxios(() => {
+    const params = axiosParamsSource()
+    if (params) {
+      params.search_input = searchInput.value
+      if (!hasMore.value) {
+        params.$ignore_search_input = true
       }
     }
 
-    return active
+    const { projectId } = route.value.params
+    return {
+      url: `/api/v1/metrics/${projectId}/stats`,
+      params,
+    }
+  })
+
+  const metrics = computed((): MetricStats[] => {
+    return data.value?.metrics ?? []
+  })
+
+  const filteredMetrics = computed((): MetricStats[] => {
+    let filtered = metrics.value.slice()
+
+    if (!searchInput.value) {
+      return filtered
+    }
+
+    if (!hasMore.value) {
+      // @ts-ignore
+      filtered = fuzzyFilter(filtered, searchInput.value, { key: 'name' })
+    }
+
+    return filtered
+  })
+
+  watch(
+    () => data.value?.hasMore ?? false,
+    (hasMoreValue) => {
+      hasMore.value = hasMoreValue
+    },
+  )
+
+  return proxyRefs({
+    status,
+    loading,
+    reload,
+
+    searchInput,
+    items: filteredMetrics,
+    hasMore,
   })
 }
 
-export function defaultMetricColumn(instrument: Instrument, alias: string) {
+//------------------------------------------------------------------------------
+
+export function useActiveMetrics(activeMetrics: ShallowRef<MetricAlias[]>) {
+  const route = useRoute()
+
+  const { data } = useWatchAxios(() => {
+    const { projectId } = route.value.params
+    return {
+      url: `/api/v1/metrics/${projectId}/describe`,
+      params: {
+        metric: activeMetrics.value.map((m) => m.name),
+      },
+    }
+  })
+
+  const metrics = computed((): ActiveMetric[] => {
+    const metrics: ActiveMetric[] = data.value?.metrics ?? []
+    return activeMetrics.value.map((metric) => {
+      const found = metrics.find((m) => m.name === metric.name)
+      if (!found) {
+        return {
+          ...emptyMetric(),
+          ...metric,
+        }
+      }
+      return {
+        ...found,
+        ...metric,
+      }
+    })
+  })
+
+  return metrics
+}
+
+export function defaultMetricQuery(instrument: Instrument, alias: string) {
   alias = '$' + alias
   switch (instrument) {
+    case Instrument.Deleted:
+      return ''
     case Instrument.Gauge:
     case Instrument.Additive:
       return alias
     case Instrument.Counter:
       return `per_min(${alias})`
     case Instrument.Histogram:
-      return `p50(${alias})`
+      return `p50(${alias}) | p90(${alias}) | per_min(${alias})`
     default:
       // eslint-disable-next-line no-console
       console.error('unknown metric instrument', instrument)
       return alias
   }
+}
+
+export function defaultMetricAlias(metricName: string): string {
+  let i = metricName.lastIndexOf('.')
+  if (i >= 0) {
+    return metricName.slice(i + 1)
+  }
+
+  i = metricName.lastIndexOf('_')
+  if (i >= 0) {
+    return metricName.slice(i + 1)
+  }
+
+  return metricName
 }

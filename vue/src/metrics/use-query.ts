@@ -1,36 +1,57 @@
-import { orderBy } from 'lodash-es'
-import { reactive, computed, watch, proxyRefs, ComputedRef } from 'vue'
+import { pick, orderBy } from 'lodash-es'
+import { reactive, computed, watch, proxyRefs, Ref } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
-import { usePager } from '@/use/pager'
-import { useOrder, Order, OrderConfig } from '@/use/order'
+import { useRoute } from '@/use/router'
+import { useOrder, Order } from '@/use/order'
 import { useWatchAxios, AxiosRequestSource, AxiosParamsSource } from '@/use/watch-axios'
-import { QueryPart } from '@/use/uql'
+import { BackendQueryInfo } from '@/use/uql'
 
 // Utilities
-import { eChart as colorSet } from '@/util/colorscheme'
-import { AttrKey } from '@/models/otel'
 import { escapeRe } from '@/util/string'
+import { eChart as colorScheme } from '@/util/colorscheme'
 
 // Types
-import { Timeseries, ColumnInfo } from '@/metrics/types'
+import {
+  defaultTimeseriesStyle,
+  Timeseries,
+  StyledTimeseries,
+  TimeseriesStyle,
+  MetricColumn,
+  ColumnInfo,
+  StyledColumnInfo,
+} from '@/metrics/types'
 
 export type UseTimeseries = ReturnType<typeof useTimeseries>
 
-export function useTimeseries(axiosReq: AxiosRequestSource) {
-  const { status, loading, data, reload } = useWatchAxios(axiosReq)
+interface TimeseriesConfig {
+  cache?: boolean
+}
 
-  const baseQueryParts = computed((): QueryPart[] => {
-    return data.value?.baseQuery ?? []
+export function useTimeseries(axiosParamsSource: AxiosParamsSource, conf: TimeseriesConfig = {}) {
+  const route = useRoute()
+
+  const { status, loading, data, reload } = useWatchAxios(() => {
+    const { projectId } = route.value.params
+    return {
+      url: `/api/v1/metrics/${projectId}/timeseries`,
+      params: axiosParamsSource(),
+      cache: conf.cache ?? false,
+    }
   })
 
-  const queryParts = computed((): QueryPart[] => {
-    return data.value?.queryParts ?? []
+  const query = computed((): BackendQueryInfo | undefined => {
+    return data.value?.query
   })
 
-  const hasError = computed((): boolean => {
-    return queryParts.value.some((part) => Boolean(part.error))
+  const error = computed(() => {
+    const parts = query.value?.parts ?? []
+    for (let part of parts) {
+      if (part.error) {
+        return part.error
+      }
+    }
+    return undefined
   })
 
   const timeseries = computed((): Timeseries[] => {
@@ -39,7 +60,6 @@ export function useTimeseries(axiosReq: AxiosRequestSource) {
       return reactive({
         ...ts,
 
-        color: colorSet[i % 9],
         last: ts.value[ts.value.length - 1],
         avg: ts.value.reduce((p, c) => p + c, 0) / ts.value.length,
         min: Math.min(...ts.value),
@@ -48,14 +68,97 @@ export function useTimeseries(axiosReq: AxiosRequestSource) {
     })
   })
 
+  const time = computed((): string[] => {
+    return data.value?.time ?? []
+  })
+
+  const columns = computed((): ColumnInfo[] => {
+    return data.value?.columns ?? []
+  })
+
+  return proxyRefs({
+    status,
+    loading,
+    reload,
+
+    query,
+    error,
+    items: timeseries,
+    time,
+    columns,
+  })
+}
+
+export function useStyledTimeseries(
+  items: Ref<Timeseries[]>,
+  columnMap: Ref<Record<string, MetricColumn>>,
+  timeseriesMap: Ref<Record<string, TimeseriesStyle>>,
+) {
+  return computed(() => {
+    const timeseries = items.value.map((ts): StyledTimeseries => {
+      return {
+        ...ts,
+        ...defaultTimeseriesStyle(),
+        ...pick(columnMap.value[ts.metric], 'unit'),
+        ...timeseriesMap.value[ts.name],
+      }
+    })
+
+    const colorSet = new Set(colorScheme)
+    const seen = new Set()
+
+    for (let ts of timeseries) {
+      if (!ts.color) {
+        continue
+      }
+
+      if (seen.has(ts.color)) {
+        ts.color = ''
+        continue
+      }
+
+      colorSet.delete(ts.color)
+      seen.add(ts.color)
+    }
+
+    const colors = Array.from(colorSet)
+    let index = 0
+    for (let ts of timeseries) {
+      if (!ts.color) {
+        ts.color = colors[index % colors.length]
+        index++
+      }
+    }
+
+    return timeseries
+  })
+}
+
+export interface AnalyzedTimeseries {
+  name: string
+  metric: string
+  median: number
+  minAllowedValue: number | null
+  maxAllowedValue: number | null
+}
+
+export function useAnalyzedTimeseries(axiosReq: AxiosRequestSource) {
+  const { status, loading, data, reload } = useWatchAxios(axiosReq)
+
+  const timeseries = computed((): AnalyzedTimeseries[] => {
+    return data.value?.timeseries ?? []
+  })
+
+  const time = computed((): string[] => {
+    return data.value?.time ?? []
+  })
+
   return proxyRefs({
     status,
     loading,
 
-    baseQueryParts,
-    queryParts,
-    hasError,
     items: timeseries,
+    time,
 
     reload,
   })
@@ -64,20 +167,29 @@ export function useTimeseries(axiosReq: AxiosRequestSource) {
 //------------------------------------------------------------------------------
 
 export interface TableItem extends Record<string, string | number> {
-  [AttrKey.itemQuery]: string
+  _id: string
+  _name: string
+  _query: string
 }
 
 export type UseTableQuery = ReturnType<typeof useTableQuery>
 
 export function useTableQuery(
-  axiosParams: ComputedRef<Record<string, any>>,
-  orderConf: OrderConfig = {},
+  axiosParamsSource: AxiosParamsSource,
+  columnMap: Ref<Record<string, MetricColumn>>,
 ) {
-  const { route } = useRouter()
-  const pager = usePager()
-  const order = useOrder(orderConf)
+  const route = useRoute()
+  const order = useOrder()
+
+  const axiosParams = computed(() => {
+    return axiosParamsSource()
+  })
 
   const { status, loading, data, reload } = useWatchAxios(() => {
+    if (!axiosParams.value) {
+      return axiosParams.value
+    }
+
     const { projectId } = route.value.params
     return {
       url: `/api/v1/metrics/${projectId}/table`,
@@ -101,36 +213,62 @@ export function useTableQuery(
     if (!col) {
       return items.value
     }
-    return orderBy(items.value, (item) => item[col] ?? 0, order.desc ? 'desc' : 'asc')
-  })
-
-  const pagedItems = computed((): TableItem[] => {
-    const items = sortedItems.value.slice(pager.pos.start, pager.pos.end)
-    return items
+    return orderBy(items.value, (item) => item[col] ?? '', order.desc ? 'desc' : 'asc')
   })
 
   const columns = computed((): ColumnInfo[] => {
     return data.value?.columns ?? []
   })
 
-  const queryParts = computed((): QueryPart[] => {
-    return data.value?.queryParts ?? []
+  const styledColumns = computed((): StyledColumnInfo[] => {
+    const items = columns.value.map((col) => {
+      return {
+        ...col,
+        ...columnMap.value[col.name],
+      }
+    })
+
+    const colorSet = new Set(colorScheme)
+
+    for (let col of items) {
+      if (!col.color) {
+        continue
+      }
+      colorSet.delete(col.color)
+    }
+
+    const colors = Array.from(colorSet)
+    let index = 0
+    for (let col of items) {
+      if (!col.color) {
+        col.color = colors[index % colors.length]
+        index++
+      }
+    }
+
+    return items
   })
 
-  const hasError = computed((): boolean => {
-    return queryParts.value.some((part) => Boolean(part.error))
+  const groupingColumns = computed((): string[] => {
+    return columns.value.filter((col) => col.isGroup).map((col) => col.name)
   })
 
-  watch(items, (items) => {
-    pager.numItem = items.length
+  const query = computed((): BackendQueryInfo | undefined => {
+    return data.value?.query
+  })
+
+  const error = computed(() => {
+    const parts = query.value?.parts ?? []
+    for (let part of parts) {
+      if (part.error) {
+        return part.error
+      }
+    }
+    return undefined
   })
 
   watch(hasMore, (hasMore) => {
-    if (hasMore) {
-      order.unlockAxiosParams()
-    } else {
-      order.lockAxiosParams()
-    }
+    order.ignoreAxiosParamsEnabled = !hasMore
   })
 
   watch(
@@ -145,66 +283,90 @@ export function useTableQuery(
   )
 
   return proxyRefs({
-    pager,
     order,
 
     status,
     loading,
-    items: pagedItems,
-
-    queryParts,
-    hasError,
-    columns,
-
     reload,
-  })
-}
 
-export function hasMetricAlias(query: string, alias: string): boolean {
-  alias = escapeRe('$' + alias)
-  return new RegExp(`${alias}([^a-z0-9]|$)`).test(query)
+    axiosParams,
+    items: sortedItems,
+    hasMore,
+
+    query,
+    error,
+    columns: styledColumns,
+    groupingColumns,
+  })
 }
 
 //------------------------------------------------------------------------------
 
-export type UseGaugeQuery = ReturnType<typeof useGaugeQuery>
+export type UseHeatmapQuery = ReturnType<typeof useHeatmapQuery>
 
-export function useGaugeQuery(axiosParamsSource: AxiosParamsSource) {
-  const { route } = useRouter()
+export function useHeatmapQuery(axiosParamsSource: AxiosParamsSource) {
+  const route = useRoute()
+
+  const axiosParams = computed(() => {
+    return axiosParamsSource()
+  })
 
   const { status, loading, data, reload } = useWatchAxios(() => {
+    if (!axiosParams.value) {
+      return axiosParams.value
+    }
+
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/metrics/${projectId}/gauge`,
-      params: axiosParamsSource(),
+      url: `/api/v1/metrics/${projectId}/heatmap`,
+      params: axiosParams.value,
     }
   })
 
-  const values = computed((): TableItem => {
-    return data.value?.values ?? {}
+  const xAxis = computed(() => {
+    return data.value?.heatmap?.xAxis ?? []
   })
 
-  const columns = computed((): ColumnInfo[] => {
-    return data.value?.columns ?? []
+  const yAxis = computed(() => {
+    return data.value?.heatmap?.yAxis ?? []
   })
 
-  const baseQueryParts = computed((): QueryPart[] => {
-    return data.value?.baseQueryParts ?? []
+  const heatmapData = computed(() => {
+    return data.value?.heatmap?.data ?? []
   })
 
-  const queryParts = computed((): QueryPart[] => {
-    return data.value?.queryParts ?? []
+  const query = computed((): BackendQueryInfo | undefined => {
+    return data.value?.query
+  })
+
+  const error = computed(() => {
+    const parts = query.value?.parts ?? []
+    for (let part of parts) {
+      if (part.error) {
+        return part.error
+      }
+    }
+    return undefined
   })
 
   return proxyRefs({
     status,
     loading,
-
-    baseQueryParts,
-    queryParts,
-    values,
-    columns,
-
     reload,
+
+    axiosParams,
+    xAxis,
+    yAxis,
+    data: heatmapData,
+
+    query,
+    error,
   })
+}
+
+//------------------------------------------------------------------------------
+
+export function hasMetricAlias(query: string, alias: string): boolean {
+  alias = escapeRe('$' + alias)
+  return new RegExp(`${alias}([^a-z0-9]|$)`).test(query)
 }

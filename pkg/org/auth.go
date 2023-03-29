@@ -2,15 +2,12 @@ package org
 
 import (
 	"context"
-	"crypto/subtle"
 	"database/sql"
 	"net/http"
 	"time"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
-	"github.com/uptrace/uptrace/pkg/httperror"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"go.opentelemetry.io/otel/trace"
 
@@ -22,39 +19,26 @@ const (
 	tokenTTL        = 7 * 24 * time.Hour
 )
 
-var (
-	ErrUnauthorized = httperror.Unauthorized("please log in")
-	ErrAccessDenied = httperror.Forbidden("access denied")
-)
-
-var AnonymousUser = &bunconf.User{
-	Username: "anonymous",
-}
-
 type (
 	userCtxKey    struct{}
 	projectCtxKey struct{}
 )
 
-func init() {
-	AnonymousUser.Init()
-}
-
-func UserFromContext(ctx context.Context) *bunconf.User {
-	user := ctx.Value(userCtxKey{}).(*bunconf.User)
+func UserFromContext(ctx context.Context) *User {
+	user := ctx.Value(userCtxKey{}).(*User)
 	return user
 }
 
-func ContextWithUser(ctx context.Context, user *bunconf.User) context.Context {
+func ContextWithUser(ctx context.Context, user *User) context.Context {
 	return context.WithValue(ctx, userCtxKey{}, user)
 }
 
-func ProjectFromContext(ctx context.Context) *bunconf.Project {
-	project := ctx.Value(projectCtxKey{}).(*bunconf.Project)
+func ProjectFromContext(ctx context.Context) *Project {
+	project := ctx.Value(projectCtxKey{}).(*Project)
 	return project
 }
 
-func ContextWithProject(ctx context.Context, project *bunconf.Project) context.Context {
+func ContextWithProject(ctx context.Context, project *Project) context.Context {
 	return context.WithValue(ctx, projectCtxKey{}, project)
 }
 
@@ -70,7 +54,7 @@ func NewMiddleware(app *bunapp.App) *Middleware {
 	conf := app.Config()
 
 	if len(conf.Auth.Users) > 0 || len(conf.Auth.OIDC) > 0 {
-		userProviders = append(userProviders, NewJWTProvider(conf.Auth.Users, conf.SecretKey))
+		userProviders = append(userProviders, NewJWTProvider(app, conf.SecretKey))
 	}
 	for _, cloudflare := range conf.Auth.Cloudflare {
 		userProviders = append(userProviders, NewCloudflareProvider(cloudflare))
@@ -116,11 +100,11 @@ func (m *Middleware) UserAndProject(next bunrouter.HandlerFunc) bunrouter.Handle
 	}
 }
 
-func (m *Middleware) userFromRequest(req bunrouter.Request) *bunconf.User {
+func (m *Middleware) userFromRequest(req bunrouter.Request) *User {
 	ctx := req.Context()
 
 	if len(m.userProviders) == 0 {
-		return AnonymousUser
+		return nil
 	}
 
 	for _, provider := range m.userProviders {
@@ -144,7 +128,7 @@ func (m *Middleware) userFromRequest(req bunrouter.Request) *bunconf.User {
 	return nil
 }
 
-func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*bunconf.Project, error) {
+func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*Project, error) {
 	ctx := req.Context()
 
 	projectID, err := req.Params().Uint32("project_id")
@@ -155,24 +139,10 @@ func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*bunconf.Projec
 	project, err := SelectProject(ctx, app, projectID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, ErrUnauthorized
+			return nil, ErrProjectNotFound
 		}
 		return nil, err
 	}
 
 	return project, nil
-}
-
-//------------------------------------------------------------------------------
-
-func findUserByPassword(app *bunapp.App, username string, password string) *bunconf.User {
-	users := app.Config().Auth.Users
-	for i := range users {
-		user := &users[i]
-		if subtle.ConstantTimeCompare([]byte(user.Username), []byte(username)) == 1 &&
-			subtle.ConstantTimeCompare([]byte(user.Password), []byte(password)) == 1 {
-			return user
-		}
-	}
-	return nil
 }

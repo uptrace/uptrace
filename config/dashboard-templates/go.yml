@@ -1,7 +1,50 @@
+schema: v1
 id: uptrace.go.runtime_by_service_host
 name: 'Go: Runtime'
 
 table:
+  gauges:
+    - name: Number of hosts
+      description: Number of host.name
+      metrics:
+        - process.runtime.go.goroutines as $goroutines
+      query:
+        - uniq($goroutines.host.name) as num_host
+      template: ${num_host} hosts
+
+    - name: Number of services
+      description: Number of service.name
+      metrics:
+        - process.runtime.go.goroutines as $goroutines
+      query:
+        - uniq($goroutines.service.name) as num_service
+      template: ${num_service} services
+
+    - name: Max GC pause
+      description: Max garbage collector pause
+      metrics:
+        - process.runtime.go.gc.pause_ns as $gc_pause
+      query:
+        - max($gc_pause) as max_gc_pause
+      columns:
+        max_gc_pause: { unit: nanoseconds }
+
+    - name: Total heap in use
+      description: Total heap memory in use
+      metrics:
+        - process.runtime.go.mem.heap_inuse as $mem_in_use
+      query:
+        - $mem_in_use
+      columns:
+        mem_in_use: { unit: bytes }
+
+    - name: Total heap objects
+      description: Total heap live objects
+      metrics:
+        - process.runtime.go.mem.heap_objects as $heap_objects
+      query:
+        - $heap_objects
+
   metrics:
     - process.runtime.go.gc.pause_ns as $gc_pause
     - process.runtime.go.mem.heap_inuse as $mem_in_use
@@ -10,14 +53,14 @@ table:
   query:
     - group by service.name
     - group by host.name
-    - max($gc_pause) as gc_pause_max
+    - max($gc_pause) as max_gc_pause
     - $mem_in_use
     - $heap_objects
     - $goroutines
   columns:
-    gc_pause_max: { unit: nanoseconds }
+    max_gc_pause: { unit: nanoseconds }
 
-entries:
+grid:
   - name: Max GC stop-the-world pause
     metrics:
       - process.runtime.go.gc.pause_ns as $gc_pause
@@ -25,6 +68,12 @@ entries:
       - max($gc_pause) as gc_pause_max
     columns:
       gc_pause_max: { unit: nanoseconds }
+
+  - name: Number of completed garbage collection cycles
+    metrics:
+      - process.runtime.go.gc.count as $gc_count
+    query:
+      - per_min($gc_count) as gc_count
 
   - name: Heap memory in use
     metrics:
@@ -41,6 +90,14 @@ entries:
       - $heap_alloc
     columns:
       heap_alloc: { unit: bytes }
+
+  - name: Bytes of heap memory obtained from the OS
+    metrics:
+      - process.runtime.go.mem.heap_sys as $heap_sys
+    query:
+      - $heap_sys
+    columns:
+      heap_sys: { unit: bytes }
 
   - name: Heap live objects
     metrics:
@@ -61,6 +118,7 @@ entries:
       - delta($cgo_calls)
 
 ---
+schema: v1
 id: uptrace.go.sql_client_by_service_host
 name: 'Go: SQL client'
 
@@ -79,7 +137,7 @@ table:
     timing_p90: { unit: milliseconds }
     timing_p99: { unit: milliseconds }
 
-entries:
+grid:
   - name: Number of queries
     metrics:
       - go.sql.query_timing as $query_timing
@@ -87,7 +145,6 @@ entries:
       - per_min($query_timing) as queries
 
   - name: Query percentiles
-    chart_type: area
     metrics:
       - go.sql.query_timing as $query_timing
     query:
@@ -98,6 +155,7 @@ entries:
       p50: { unit: milliseconds }
       p90: { unit: milliseconds }
       p99: { unit: milliseconds }
+    chart: area
 
   - name: Number of established connections both in use and idle
     metrics:

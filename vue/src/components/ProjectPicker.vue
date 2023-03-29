@@ -30,7 +30,7 @@
 
     <v-btn
       v-if="!autocompleteActive && activeProject"
-      :to="{ name: 'ProjectSettings', params: { projectId: activeProject.id } }"
+      :to="{ name: 'ProjectShow', params: { projectId: activeProject.id } }"
       icon
       small
       title="Project settings"
@@ -47,7 +47,8 @@ import { defineComponent, ref, computed } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'
-import { useUser, Project } from '@/use/org'
+import { useUser } from '@/org/use-users'
+import { Project } from '@/org/use-projects'
 
 interface Autocomplete {
   focus: () => void

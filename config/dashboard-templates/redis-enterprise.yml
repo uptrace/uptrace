@@ -1,3 +1,4 @@
+schema: v1
 id: uptrace.redis.nodes_by_cluster_node
 name: 'Redis: Nodes'
 
@@ -10,7 +11,7 @@ table:
       query:
         - sum($node_up) as up
         - count($node_up) as total
-      template: $up of $total
+      template: ${up} of ${total}
 
     - name: DBs up
       description: Number of databases up and running out of total
@@ -19,7 +20,7 @@ table:
       query:
         - sum($bdb_up) as up
         - count($bdb_up) as total
-      template: $up of $total
+      template: ${up} of ${total}
 
     - name: Shards up
       description: Number of shards up and running out of total
@@ -28,7 +29,7 @@ table:
       query:
         - sum($redis_up) as up
         - count($redis_up) as total
-      template: $up of $total
+      template: ${up} of ${total}
 
     - name: CPU usage
       description: CPU usage
@@ -63,7 +64,7 @@ table:
         - node_total_req as $req
       query:
         - $req
-      template: $req/sec
+      template: ${req}/sec
 
   metrics:
     - node_cpu_idle as $cpu_idle
@@ -87,7 +88,7 @@ table:
     ingress: { unit: bytes }
     egress: { unit: bytes }
 
-entries:
+grid:
   - name: Redis used memory
     metrics:
       - redis_used_memory as $used_mem
@@ -144,6 +145,7 @@ entries:
       egress: { unit: bytes }
 
 ---
+schema: v1
 id: uptrace.redis.nodes_by_cluster_bdb
 name: 'Redis: Databases'
 
@@ -167,7 +169,7 @@ table:
     ingress: { unit: bytes }
     egress: { unit: bytes }
 
-gauges:
+grid_gauges:
   - name: Used RAM
     description: Memory used by db (in bigredis this includes flash)
     metrics:
@@ -199,7 +201,7 @@ gauges:
       - bdb_total_req as $req
     query:
       - $req
-    template: $req/sec
+    template: ${req}/sec
 
   - name: Ingress
     description: Incoming network traffic to DB
@@ -209,7 +211,7 @@ gauges:
       - $ingress
     columns:
       ingress: { unit: bytes }
-    template: $ingress/sec
+    template: ${ingress}/sec
 
   - name: Egress
     description: Outgoing network traffic to DB
@@ -219,7 +221,7 @@ gauges:
       - $egress
     columns:
       egress: { unit: bytes }
-    template: $egress/sec
+    template: ${egress}/sec
 
   - name: RAM Fragm.
     description: RAM fragmentation ratio (RSS / allocated RAM)
@@ -230,7 +232,7 @@ gauges:
     columns:
       mem_frag: { unit: percents }
 
-entries:
+grid:
   - name: Used memory
     metrics:
       - bdb_used_memory as $mem_used
@@ -298,6 +300,7 @@ entries:
       lua_mem: { unit: bytes }
 
 ---
+schema: v1
 id: uptrace.redis.shards_by_cluster_bdb_node
 name: 'Redis: Shards'
 
@@ -319,7 +322,7 @@ table:
     mem_used: { unit: bytes }
     mem_frag: { unit: percents }
 
-gauges:
+grid_gauges:
   - name: Used RAM
     description: redis_used_memory	Memory used by shard (in bigredis this includes flash)
     metrics:
@@ -344,7 +347,7 @@ gauges:
       - redis_process_cpu_usage_percent as $cpu_usage
     query:
       - $cpu_usage
-    template: $cpu_usage%
+    template: ${cpu_usage}%
 
   - name: Clients
     description: Number of client connections to the specific shard
@@ -374,7 +377,7 @@ gauges:
     query:
       - $defrag
 
-entries:
+grid:
   - name: Used memory
     metrics:
       - redis_used_memory as $mem_used

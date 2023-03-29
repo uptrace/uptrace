@@ -108,71 +108,6 @@ metrics_from_spans:
       - span.event_name
     where: span.is_event
 
-##
-## Alerting rules for monitoring metrics.
-##
-## See https://uptrace.dev/get/alerting.html for details.
-##
-alerting:
-  rules:
-    - name: Network errors
-      metrics:
-        - system.network.errors as $net_errors
-      query:
-        - $net_errors > 0 group by host.name
-      # for the last 5 minutes
-      for: 5m
-      annotations:
-        summary: '{{ $labels.host_name }} has high number of net errors: {{ $values.net_errors }}'
-
-    - name: Filesystem usage >= 90%
-      metrics:
-        - system.filesystem.usage as $fs_usage
-      query:
-        - group by host.name
-        - group by device
-        - where device !~ "loop"
-        - $fs_usage{state="used"} / $fs_usage >= 0.9
-      for: 5m
-      annotations:
-        summary: '{{ $labels.host_name }} has high FS usage: {{ $values.fs_usage }}'
-
-    - name: Uptrace is dropping spans
-      metrics:
-        - uptrace.projects.spans as $spans
-      query:
-        - $spans{type=dropped} > 0
-      for: 1m
-      annotations:
-        summary: 'Uptrace has dropped {{ $values.spans }} spans'
-
-    - name: Always firing (for fun and testing)
-      metrics:
-        - process.runtime.go.goroutines as $goroutines
-      query:
-        - $goroutines >= 0 group by host.name
-      for: 1m
-      annotations:
-        summary: '{{ $labels.host_name }} has high number of goroutines: {{ $values.goroutines }}'
-
-  # Create alerts from error logs and span events.
-  create_alerts_from_spans:
-    enabled: true
-    labels:
-      alert_kind: error
-
-##
-## AlertManager client configuration.
-## See https://uptrace.dev/get/alerting.html for details.
-##
-## Note that this is NOT an AlertManager config and you need to configure AlertManager separately.
-## See https://prometheus.io/docs/alerting/latest/configuration/ for details.
-##
-alertmanager_client:
-  # AlertManager API endpoints that Uptrace uses to manage alerts.
-  urls:
-    - 'http://localhost:9093/api/v2/alerts'
-
 auth:
   users:
     - username: uptrace
@@ -289,6 +224,9 @@ metrics:
 
   # The number of measures to insert in a single query.
   #batch_size: 10000
+
+  # The size of the buffer for converting cumulative metrics to delta.
+  #cum_to_delta_size: 100000
 
 ##
 ## uptrace-go client configuration.

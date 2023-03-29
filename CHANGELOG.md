@@ -7,10 +7,17 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 #### Breaking changes
 
 - PostgreSQL database is mandatory now. PostgreSQL is only used to store metadata such as users,
-  dashboards, metric name, etc. It usually takes only few megabytes of disk space.
+  dashboards, metric name, etc. PostgreSQL DB usually takes only few megabytes of disk space.
+
+  SQLite support is removed.
+
+- Alerting rules in the config are ignored. Use Uptrace UI to create monitors instead.
+
+- AlertManager client config is ignored. Use Uptrace UI to create AlertManager notification channel.
 
 #### Features
 
+- Ported Alerts, Monitors, and Notifications Channels from Uptrace Cloud.
 - Add filter facets for metrics.
 - Improve UI for switching between table/grid metric views.
 - Allow to quickly change group by in the grid.

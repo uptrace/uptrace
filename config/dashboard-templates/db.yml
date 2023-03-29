@@ -1,3 +1,4 @@
+schema: v1
 id: uptrace.db.clients_by_db_system_pool_name
 name: 'DB: clients by pool name'
 
@@ -17,15 +18,21 @@ table:
   columns:
     avg_timing: { unit: milliseconds }
 
-entries:
+grid:
   - name: Number of queries
     metrics:
       - db.client.connections.use_time as $use_time
     query:
       - per_min($use_time) as queries group by status
+    chart: stacked-bar
+
+  - name: Query heatmap
+    type: heatmap
+    size: large
+    metric: db.client.connections.use_time
+    unit: milliseconds
 
   - name: Query percentiles
-    chart_type: area
     metrics:
       - db.client.connections.use_time as $use_time
     query:
@@ -36,6 +43,7 @@ entries:
       p50: { unit: milliseconds }
       p90: { unit: milliseconds }
       p99: { unit: milliseconds }
+    chart: area
 
   - name: Number of established connections
     metrics:
@@ -46,11 +54,11 @@ entries:
       - $max
 
   - name: Number of idle and used connections
-    chart_type: area
     metrics:
       - db.client.connections.usage as $usage
     query:
       - $usage group by state
+    chart: stacked-bar
 
   - name: Max and min number of idle open connections allowed
     metrics:
@@ -59,3 +67,27 @@ entries:
     query:
       - $idle_max
       - $idle_min
+
+  - name: The number of pending requests for an open connection
+    metrics:
+      - db.client.connections.pending_requests as $pending
+    query:
+      - $pending
+
+  - name: Time it took to create a new connection
+    type: heatmap
+    size: large
+    metric: db.client.connections.create_time
+    unit: milliseconds
+
+  - name: P50 time it took to create a new connection
+    metrics:
+      - db.client.connections.create_time as $create_time
+    query:
+      - p50($create_time)
+
+  - name: Max time it took to create a new connection
+    metrics:
+      - db.client.connections.create_time as $create_time
+    query:
+      - max($create_time)

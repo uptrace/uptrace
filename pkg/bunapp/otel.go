@@ -15,7 +15,7 @@ func configureOpentelemetry(app *App) error {
 	options = append(options, uptrace.WithServiceName(app.conf.Service))
 
 	if conf.UptraceGo.DSN == "" {
-		options = append(options, uptrace.WithDSN(app.conf.GRPCDsn(project)))
+		options = append(options, uptrace.WithDSN(app.conf.GRPCDsn(project.ID, project.Token)))
 	} else {
 		options = append(options, uptrace.WithDSN(conf.UptraceGo.DSN))
 	}

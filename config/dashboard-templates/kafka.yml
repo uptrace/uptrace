@@ -1,0 +1,163 @@
+schema: v1
+id: uptrace.kafka.topics
+name: 'Kafka: Topics'
+
+table:
+  gauges:
+    - name: Topics
+      description: Number of topics in the cluster
+      metrics:
+        - kafka.topic.partitions as $parts
+      query:
+        - uniq($parts.topic)
+
+    - name: Consumers lag
+      description: Consumer group lag
+      metrics:
+        - kafka.consumer_group.lag_sum as $lag
+      query:
+        - sum($lag)
+
+    - name: Brokers
+      description: Number of brokers in the cluster
+      metrics:
+        - kafka.brokers as $brokers
+      query:
+        - $brokers
+
+    - name: Consumers
+      description: Number of members in the consumer group
+      metrics:
+        - kafka.consumer_group.members as $members
+      query:
+        - $members
+
+  metrics:
+    - kafka.topic.partitions as $parts
+    - kafka.consumer_group.offset_sum as $offset
+    - kafka.consumer_group.lag_sum as $lag
+    - kafka.partition.replicas_in_sync as $replicas_in_sync
+  query:
+    - group by topic
+    - $parts
+    - delta($offset) as processed
+    - $lag
+    - $replicas_in_sync
+
+grid:
+  - name: Number of partitions in the topic
+    metrics:
+      - kafka.topic.partitions as $parts
+    query:
+      - $parts
+
+  - name: Number of processed messages across partitions of the topic
+    metrics:
+      - kafka.consumer_group.offset_sum as $offset
+    query:
+      - delta($offset) as processed group by group
+
+  - name: Consumer group lag across all partitions of the topic
+    metrics:
+      - kafka.consumer_group.lag_sum as $lag
+    query:
+      - $lag group by group
+
+---
+schema: v1
+id: uptrace.kafka.partitions
+name: 'Kafka: Partitions'
+
+table:
+  gauges:
+    - name: Brokers
+      description: Number of brokers in the cluster
+      metrics:
+        - kafka.brokers as $brokers
+      query:
+        - $brokers
+
+    - name: Consumers
+      description: Number of members in the consumer group
+      metrics:
+        - kafka.consumer_group.members as $members
+      query:
+        - $members
+
+  metrics:
+    - kafka.partition.current_offset as $current_offset
+    - kafka.partition.replicas_in_sync as $replicas_in_sync
+  query:
+    - group by topic
+    - group by partition
+    - delta($current_offset) as processed
+    - $replicas_in_sync
+
+grid:
+  - name: Number of processed messages for the partition of the topic
+    metrics:
+      - kafka.partition.current_offset as $current_offset
+    query:
+      - delta($current_offset) as processed
+
+  - name: Number of available (unpruned) messages in the partition
+    metrics:
+      - kafka.partition.oldest_offset as $oldest_offset
+      - kafka.partition.current_offset as $current_offset
+    query:
+      - $current_offset - $oldest_offset as messages
+
+  - name: Number of replicas for the partition of the topic
+    metrics:
+      - kafka.partition.replicas as $replicas_total
+      - kafka.partition.replicas_in_sync as $replicas_in_sync
+    query:
+      - $replicas_total
+      - $replicas_in_sync
+
+---
+schema: v1
+id: uptrace.kafka.consumer_groups
+name: 'Kafka: Consumer Groups'
+
+table:
+  gauges:
+    - name: Consumers
+      description: Number of members in the consumer group
+      metrics:
+        - kafka.consumer_group.members as $members
+      query:
+        - $members
+
+  metrics:
+    - kafka.consumer_group.offset as $offset
+    - kafka.consumer_group.lag as $lag
+  query:
+    - group by topic
+    - group by partition
+    - group by group
+    - delta($offset) as processed
+    - $lag
+
+grid_gauges:
+  - name: Consumers
+    description: Number of members in the consumer group
+    metrics:
+      - kafka.consumer_group.members as $members
+    query:
+      - $members
+    template: ${members} consumers
+    grid_query_template: where group = ${group}
+
+grid:
+  - name: Number of processed messages by the consumer group at the partition of the topic
+    metrics:
+      - kafka.consumer_group.offset as $offset
+    query:
+      - delta($offset) as processed
+
+  - name: Lag of the consumer group at the partition of the topic
+    metrics:
+      - kafka.consumer_group.lag as $lag
+    query:
+      - $lag
