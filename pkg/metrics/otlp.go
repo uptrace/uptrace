@@ -316,38 +316,45 @@ func (p *otlpProcessor) otlpExpHistogram(
 			continue
 		}
 
+		size := 1 + len(dp.Positive.BucketCounts) + len(dp.Negative.BucketCounts)
+		hist := make(map[bfloat16.T]uint64, size)
+
+		if dp.ZeroCount > 0 {
+			hist[bfloat16.From(0)] += dp.ZeroCount
+		}
+		base := math.Pow(2, math.Pow(2, float64(dp.Scale)))
+		buildBFloat16Hist(hist, base, int(dp.Positive.Offset), dp.Positive.BucketCounts, +1)
+		buildBFloat16Hist(hist, base, int(dp.Negative.Offset), dp.Negative.BucketCounts, -1)
+
 		dest := p.nextMeasure(scope, metric, HistogramInstrument, dp.Attributes, dp.TimeUnixNano)
 		if isDelta {
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
-
-			hist := make(bfloat16.Map)
 			dest.Histogram = hist
-
-			if dp.ZeroCount > 0 {
-				hist[bfloat16.From(0)] += dp.ZeroCount
-			}
-			base := math.Pow(2, math.Pow(2, float64(dp.Scale)))
-			populateBFloat16Hist(hist, base, int(dp.Positive.Offset), dp.Positive.BucketCounts, +1)
-			populateBFloat16Hist(hist, base, int(dp.Negative.Offset), dp.Negative.BucketCounts, -1)
 		} else {
 			dest.StartTimeUnixNano = dp.StartTimeUnixNano
 			dest.CumPoint = &ExpHistogramPoint{
 				Sum:       dp.GetSum(),
 				Count:     dp.Count,
-				Scale:     dp.Scale,
-				ZeroCount: dp.ZeroCount,
-				Positive: ExpHistogramBuckets{
-					Offset:       dp.Positive.Offset,
-					BucketCounts: dp.Positive.BucketCounts,
-				},
-				Negative: ExpHistogramBuckets{
-					Offset:       dp.Negative.Offset,
-					BucketCounts: dp.Negative.BucketCounts,
-				},
+				Histogram: hist,
 			}
 		}
 		p.enqueue(dest)
+	}
+}
+
+func buildBFloat16Hist(
+	hist map[bfloat16.T]uint64, base float64, offset int, counts []uint64, sign float64,
+) {
+	lower := math.Pow(base, float64(offset))
+	for i, count := range counts {
+		if count == 0 {
+			continue
+		}
+		upper := math.Pow(base, float64(offset+i+1))
+		mean := (lower + upper) / 2
+		hist[bfloat16.From(sign*mean)] += count
+		lower = upper
 	}
 }
 
@@ -358,10 +365,6 @@ func (p *otlpProcessor) otlpSummary(
 ) {
 	for _, dp := range data.Summary.DataPoints {
 		if dp.Flags&uint32(metricspb.DataPointFlags_FLAG_NO_RECORDED_VALUE) != 0 {
-			continue
-		}
-
-		if dp.Count == 0 {
 			continue
 		}
 
@@ -487,19 +490,4 @@ func newBFloat16Histogram(
 		return h.m
 	}
 	return nil
-}
-
-func populateBFloat16Hist(
-	hist bfloat16.Map, base float64, offset int, counts []uint64, sign float64,
-) {
-	lower := math.Pow(base, float64(offset))
-	for i, count := range counts {
-		if count == 0 {
-			continue
-		}
-		upper := math.Pow(base, float64(offset+i+1))
-		mean := (lower + upper) / 2
-		hist[bfloat16.From(sign*mean)] += count
-		lower = upper
-	}
 }

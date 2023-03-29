@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"context"
-	"math"
 	"reflect"
 	"runtime"
 	"sync"
@@ -109,13 +108,14 @@ func (p *MeasureProcessor) processLoop(ctx context.Context) {
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
+	mctx := newMeasureContext(ctx)
 	measures := make([]*Measure, 0, p.batchSize)
 
 loop:
 	for {
 		select {
 		case measure := <-p.ch:
-			if !p.processMeasure(ctx, measure) {
+			if !p.processMeasure(mctx, measure) {
 				break
 			}
 
@@ -154,45 +154,48 @@ loop:
 	}
 }
 
-func (s *MeasureProcessor) processMeasure(ctx context.Context, measure *Measure) bool {
+func (p *MeasureProcessor) processMeasure(ctx *measureContext, measure *Measure) bool {
+	p.initMeasure(ctx, measure)
+
 	switch point := measure.CumPoint.(type) {
 	case nil:
 		return true
 	case *NumberPoint:
-		if !s.convertNumberPoint(ctx, measure, point) {
+		if !p.convertNumberPoint(ctx, measure, point) {
 			return false
 		}
 		measure.CumPoint = nil
 		return true
 	case *HistogramPoint:
-		if !s.convertHistogramPoint(ctx, measure, point) {
+		if !p.convertHistogramPoint(ctx, measure, point) {
 			return false
 		}
 		measure.CumPoint = nil
 		return true
 	case *ExpHistogramPoint:
-		if !s.convertExpHistogramPoint(ctx, measure, point) {
+		if !p.convertExpHistogramPoint(ctx, measure, point) {
 			return false
 		}
 		measure.CumPoint = nil
 		return true
 	default:
-		s.Zap(ctx).Error("unknown cum point type",
+		p.Zap(ctx).Error("unknown cum point type",
 			zap.String("type", reflect.TypeOf(point).String()))
 		return false
 	}
 }
 
-func (s *MeasureProcessor) convertNumberPoint(
+func (p *MeasureProcessor) convertNumberPoint(
 	ctx context.Context, measure *Measure, point *NumberPoint,
 ) bool {
 	key := MeasureKey{
+		ProjectID:         measure.ProjectID,
 		Metric:            measure.Metric,
 		AttrsHash:         measure.AttrsHash,
 		StartTimeUnixNano: measure.StartTimeUnixNano,
 	}
 
-	prevPoint, ok := s.c2d.Lookup(key, point, measure.Time).(*NumberPoint)
+	prevPoint, ok := p.c2d.SwapPoint(key, point, measure.Time).(*NumberPoint)
 	if !ok {
 		return false
 	}
@@ -205,21 +208,22 @@ func (s *MeasureProcessor) convertNumberPoint(
 	return true
 }
 
-func (s *MeasureProcessor) convertHistogramPoint(
+func (p *MeasureProcessor) convertHistogramPoint(
 	ctx context.Context, measure *Measure, point *HistogramPoint,
 ) bool {
 	key := MeasureKey{
+		ProjectID:         measure.ProjectID,
 		Metric:            measure.Metric,
 		AttrsHash:         measure.AttrsHash,
 		StartTimeUnixNano: measure.StartTimeUnixNano,
 	}
 
-	prevPoint, ok := s.c2d.Lookup(key, point, measure.Time).(*HistogramPoint)
+	prevPoint, ok := p.c2d.SwapPoint(key, point, measure.Time).(*HistogramPoint)
 	if !ok {
 		return false
 	}
 	if len(point.BucketCounts) != len(prevPoint.BucketCounts) {
-		s.Zap(ctx).Error("number of buckets does not match")
+		p.Zap(ctx).Error("number of buckets does not match")
 		return false
 	}
 
@@ -238,92 +242,60 @@ func (s *MeasureProcessor) convertHistogramPoint(
 	return true
 }
 
-func (s *MeasureProcessor) convertExpHistogramPoint(
+func (p *MeasureProcessor) convertExpHistogramPoint(
 	ctx context.Context, measure *Measure, point *ExpHistogramPoint,
 ) bool {
 	key := MeasureKey{
+		ProjectID:         measure.ProjectID,
 		Metric:            measure.Metric,
 		AttrsHash:         measure.AttrsHash,
 		StartTimeUnixNano: measure.StartTimeUnixNano,
 	}
 
-	prevPoint, ok := s.c2d.Lookup(key, point, measure.Time).(*ExpHistogramPoint)
+	prevPoint, ok := p.c2d.SwapPoint(key, point, measure.Time).(*ExpHistogramPoint)
 	if !ok {
 		return false
 	}
 
-	if point.Scale != prevPoint.Scale {
-		s.Zap(ctx).Error("scale does not match")
-		return false
-	}
-	if point.Positive.Offset != prevPoint.Positive.Offset {
-		s.Zap(ctx).Error("positive offset does not match")
-		return false
-	}
-	if len(point.Positive.BucketCounts) != len(prevPoint.Positive.BucketCounts) {
-		s.Zap(ctx).Error("positive number of buckets does not match")
-		return false
-	}
-	if point.Negative.Offset != prevPoint.Negative.Offset {
-		s.Zap(ctx).Error("negative offset does not match")
-		return false
-	}
-	if len(point.Negative.BucketCounts) != len(prevPoint.Negative.BucketCounts) {
-		s.Zap(ctx).Error("negative number of buckets does not match")
+	if point.Count < prevPoint.Count {
 		return false
 	}
 
 	measure.Count = point.Count - prevPoint.Count
-	if measure.Count <= 0 {
-		return false
-	}
-	measure.Sum = max(0, point.Sum-prevPoint.Sum)
+	measure.Sum = point.Sum - prevPoint.Sum
 
-	point.ZeroCount -= prevPoint.ZeroCount
-	for i, count := range point.Positive.BucketCounts {
-		point.Positive.BucketCounts[i] = count - prevPoint.Positive.BucketCounts[i]
-	}
-	for i, count := range point.Negative.BucketCounts {
-		point.Negative.BucketCounts[i] = count - prevPoint.Negative.BucketCounts[i]
-	}
-
-	hist := make(bfloat16.Map)
+	var hist map[bfloat16.T]uint64
 	measure.Histogram = hist
 
-	if point.ZeroCount > 0 {
-		hist[bfloat16.From(0)] += point.ZeroCount
+	for mean, count := range point.Histogram {
+		prevCount := prevPoint.Histogram[mean]
+		count -= prevCount
+		if count > 0 {
+			if hist == nil {
+				hist = make(map[bfloat16.T]uint64, len(point.Histogram))
+			}
+			hist[mean] = count
+		}
 	}
-	base := math.Pow(2, math.Pow(2, float64(point.Scale)))
-	populateBFloat16Hist(hist, base, int(point.Positive.Offset), point.Positive.BucketCounts, +1)
-	populateBFloat16Hist(hist, base, int(point.Negative.Offset), point.Negative.BucketCounts, -1)
 
 	return true
 }
 
-func (s *MeasureProcessor) flushMeasures(ctx context.Context, measures []*Measure) {
+func (p *MeasureProcessor) flushMeasures(ctx context.Context, measures []*Measure) {
 	ctx, span := bunotel.Tracer.Start(ctx, "flush-measures")
 
-	s.WaitGroup().Add(1)
-	s.gate.Start()
+	p.WaitGroup().Add(1)
+	p.gate.Start()
 
 	go func() {
 		defer span.End()
-		defer s.gate.Done()
-		defer s.WaitGroup().Done()
+		defer p.gate.Done()
+		defer p.WaitGroup().Done()
 
-		ctx := newMeasureContext(ctx)
-		s._flushMeasures(ctx, measures)
+		if err := InsertMeasures(ctx, p.App, measures); err != nil {
+			p.Zap(ctx).Error("InsertMeasures failed", zap.Error(err))
+		}
 	}()
-}
-
-func (p *MeasureProcessor) _flushMeasures(ctx *measureContext, measures []*Measure) {
-	for _, m := range measures {
-		p.initMeasure(ctx, m)
-	}
-
-	if err := InsertMeasures(ctx, p.App, measures); err != nil {
-		p.Zap(ctx).Error("InsertMeasures failed", zap.Error(err))
-	}
 }
 
 func (p *MeasureProcessor) initMeasure(ctx *measureContext, measure *Measure) {
