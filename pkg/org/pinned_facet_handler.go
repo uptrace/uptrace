@@ -53,7 +53,7 @@ func (h *PinnedFacetHandler) Add(w http.ResponseWriter, req bunrouter.Request) e
 		UserID: user.ID,
 		Attr:   in.Attr,
 	}
-	if _, err := h.DB.NewInsert().
+	if _, err := h.PG.NewInsert().
 		Model(filter).
 		On("CONFLICT (user_id, attr) DO UPDATE").
 		Set("unpinned = false").
@@ -86,7 +86,7 @@ func (h *PinnedFacetHandler) Remove(w http.ResponseWriter, req bunrouter.Request
 		Attr:     in.Attr,
 		Unpinned: true,
 	}
-	if _, err := h.DB.NewInsert().
+	if _, err := h.PG.NewInsert().
 		Model(facet).
 		On("CONFLICT (user_id, attr) DO UPDATE").
 		Set("unpinned = true").

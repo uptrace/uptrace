@@ -15,7 +15,7 @@ import (
 type SavedViewDetails struct {
 	SavedView `bun:",inherit"`
 
-	User      *bunconf.User `json:"user" bun:"-"`
+	User *bunconf.User `json:"user" bun:"-"`
 }
 
 type SavedViewHandler struct {
@@ -31,7 +31,7 @@ func (h *SavedViewHandler) List(w http.ResponseWriter, req bunrouter.Request) er
 	project := org.ProjectFromContext(ctx)
 
 	views := make([]*SavedViewDetails, 0)
-	if err := h.DB.NewSelect().
+	if err := h.PG.NewSelect().
 		Model(&views).
 		Where("project_id = ?", project.ID).
 		OrderExpr("pinned DESC, created_at DESC").
@@ -74,7 +74,7 @@ func (h *SavedViewHandler) Create(w http.ResponseWriter, req bunrouter.Request) 
 		Params: in.Params,
 		Query:  in.Query,
 	}
-	if _, err := h.DB.NewInsert().
+	if _, err := h.PG.NewInsert().
 		Model(view).
 		Exec(ctx); err != nil {
 		return err
@@ -93,7 +93,7 @@ func (h *SavedViewHandler) Delete(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	if _, err := h.DB.NewDelete().
+	if _, err := h.PG.NewDelete().
 		Model(((*SavedView)(nil))).
 		Where("id = ?", viewID).
 		Exec(ctx); err != nil {
@@ -105,7 +105,7 @@ func (h *SavedViewHandler) Delete(w http.ResponseWriter, req bunrouter.Request) 
 
 func (h *SavedViewHandler) selectView(ctx context.Context, viewID uint64) (*SavedView, error) {
 	view := new(SavedView)
-	if err := h.DB.NewSelect().
+	if err := h.PG.NewSelect().
 		Model(view).
 		Where("id = ?", viewID).
 		Scan(ctx); err != nil {
@@ -132,7 +132,7 @@ func (h *SavedViewHandler) updateViewPinned(
 		return err
 	}
 
-	if _, err := h.DB.NewUpdate().
+	if _, err := h.PG.NewUpdate().
 		Model((*SavedView)(nil)).
 		Where("id = ?", id).
 		Set("pinned = ?", pinned).

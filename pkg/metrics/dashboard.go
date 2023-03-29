@@ -58,7 +58,7 @@ func (d *Dashboard) validate() error {
 
 func SelectDashboard(ctx context.Context, app *bunapp.App, id uint64) (*Dashboard, error) {
 	dash := new(Dashboard)
-	if err := app.DB.NewSelect().
+	if err := app.PG.NewSelect().
 		Model(dash).
 		Where("id = ?", id).
 		Scan(ctx); err != nil {
@@ -72,7 +72,7 @@ func SelectDashboardMap(
 ) (map[string]*Dashboard, error) {
 	var dashboards []*Dashboard
 
-	if err := app.DB.NewSelect().
+	if err := app.PG.NewSelect().
 		Model(&dashboards).
 		Where("project_id = ?", projectID).
 		Where("template_id IS NOT NULL").
@@ -94,7 +94,7 @@ func InsertDashboard(ctx context.Context, app *bunapp.App, dash *Dashboard) erro
 		dash.Columns = make(map[string]*MetricColumn)
 	}
 
-	if _, err := app.DB.NewInsert().
+	if _, err := app.PG.NewInsert().
 		Model(dash).
 		Exec(ctx); err != nil {
 		return err
@@ -103,7 +103,7 @@ func InsertDashboard(ctx context.Context, app *bunapp.App, dash *Dashboard) erro
 }
 
 func DeleteDashboard(ctx context.Context, app *bunapp.App, id uint64) error {
-	if _, err := app.DB.NewDelete().
+	if _, err := app.PG.NewDelete().
 		Model((*Dashboard)(nil)).
 		Where("id = ?", id).
 		Exec(ctx); err != nil {

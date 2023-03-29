@@ -1,4 +1,4 @@
-package bunmigrations
+package pgmigrations
 
 import (
 	"embed"

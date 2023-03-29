@@ -11,7 +11,7 @@ import (
 
 func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 	return &cli.Command{
-		Name:  "db",
+		Name:  "pg",
 		Usage: "SQLite management commands",
 		Subcommands: []*cli.Command{
 			{
@@ -24,7 +24,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.DB, migrations)
+					migrator := migrate.NewMigrator(app.PG, migrations)
 					return migrator.Init(ctx)
 				},
 			},
@@ -38,7 +38,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.DB, migrations)
+					migrator := migrate.NewMigrator(app.PG, migrations)
 
 					group, err := migrator.Migrate(ctx)
 					if err != nil {
@@ -62,7 +62,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.DB, migrations)
+					migrator := migrate.NewMigrator(app.PG, migrations)
 
 					group, err := migrator.Rollback(ctx)
 					if err != nil {
@@ -86,7 +86,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.DB, migrations)
+					migrator := migrate.NewMigrator(app.PG, migrations)
 
 					if err := migrator.Init(ctx); err != nil {
 						return err
@@ -129,7 +129,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.DB, migrations)
+					migrator := migrate.NewMigrator(app.PG, migrations)
 
 					return migrator.Lock(ctx)
 				},
@@ -144,7 +144,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.DB, migrations)
+					migrator := migrate.NewMigrator(app.PG, migrations)
 
 					return migrator.Unlock(ctx)
 				},
@@ -159,7 +159,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.DB, migrations)
+					migrator := migrate.NewMigrator(app.PG, migrations)
 
 					name := strings.Join(c.Args().Slice(), "_")
 					mf, err := migrator.CreateGoMigration(ctx, name)
@@ -180,7 +180,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.DB, migrations)
+					migrator := migrate.NewMigrator(app.PG, migrations)
 
 					name := strings.Join(c.Args().Slice(), "_")
 					files, err := migrator.CreateSQLMigrations(ctx, name)
@@ -205,7 +205,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.DB, migrations)
+					migrator := migrate.NewMigrator(app.PG, migrations)
 
 					ms, err := migrator.MigrationsWithStatus(ctx)
 					if err != nil {
@@ -227,7 +227,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					migrator := migrate.NewMigrator(app.DB, migrations)
+					migrator := migrate.NewMigrator(app.PG, migrations)
 
 					group, err := migrator.Migrate(ctx, migrate.WithNopMigration())
 					if err != nil {

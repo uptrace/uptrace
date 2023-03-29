@@ -13,7 +13,7 @@ import (
 )
 
 type DashEntryHandler struct {
-	App *bunapp.App
+	*bunapp.App
 }
 
 func NewDashEntryHandler(app *bunapp.App) *DashEntryHandler {
@@ -50,7 +50,7 @@ func (h *DashEntryHandler) Create(w http.ResponseWriter, req bunrouter.Request) 
 		entry.Columns = make(map[string]*MetricColumn)
 	}
 
-	if _, err := h.App.DB.NewInsert().
+	if _, err := h.PG.NewInsert().
 		Model(entry).
 		Exec(ctx); err != nil {
 		return err
@@ -88,7 +88,7 @@ func (h *DashEntryHandler) Update(w http.ResponseWriter, req bunrouter.Request) 
 	}
 	entry.ID = entryID
 
-	if _, err := h.App.DB.NewUpdate().
+	if _, err := h.PG.NewUpdate().
 		Model(entry).
 		Column("name", "description", "chart_type", "query", "metrics", "columns").
 		Where("id = ?", entryID).
@@ -119,7 +119,7 @@ func (h *DashEntryHandler) Delete(w http.ResponseWriter, req bunrouter.Request) 
 
 	entry := new(DashEntry)
 
-	if _, err := h.App.DB.
+	if _, err := h.PG.
 		NewDelete().
 		Model(entry).
 		Where("id = ?", entryID).
@@ -160,8 +160,8 @@ func (h *DashEntryHandler) UpdateOrder(w http.ResponseWriter, req bunrouter.Requ
 		return err
 	}
 
-	if _, err := h.App.DB.NewUpdate().
-		With("_data", h.App.DB.NewValues(&entries)).
+	if _, err := h.PG.NewUpdate().
+		With("_data", h.PG.NewValues(&entries)).
 		Model(&entries).
 		TableExpr("_data").
 		Set("weight = _data.weight").

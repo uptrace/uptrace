@@ -15,7 +15,7 @@ import (
 var errPrebuiltDashboard = errors.New("you can't edit pre-built dashboards (clone instead)")
 
 type DashHandler struct {
-	App *bunapp.App
+	*bunapp.App
 }
 
 func NewDashHandler(app *bunapp.App) *DashHandler {
@@ -72,7 +72,7 @@ func (h *DashHandler) Update(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	q := h.App.DB.NewUpdate().
+	q := h.PG.NewUpdate().
 		Model(dash).
 		Where("id = ?", dash.ID).
 		Returning("*")
@@ -175,7 +175,7 @@ func (h *DashHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 
 	dashboards := make([]*Dashboard, 0)
 
-	if err := h.App.DB.NewSelect().
+	if err := h.PG.NewSelect().
 		Model(&dashboards).
 		Where("project_id = ?", project.ID).
 		OrderExpr("name ASC").

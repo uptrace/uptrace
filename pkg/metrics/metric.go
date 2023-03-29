@@ -34,7 +34,7 @@ func newInvalidMetric(projectID uint32, metricName string) *Metric {
 
 func SelectMetrics(ctx context.Context, app *bunapp.App, projectID uint32) ([]*Metric, error) {
 	var metrics []*Metric
-	if err := app.DB.NewSelect().
+	if err := app.PG.NewSelect().
 		Model(&metrics).
 		Where("project_id = ?", projectID).
 		OrderExpr("name ASC").
@@ -64,7 +64,7 @@ func SelectMetricMap(
 
 func SelectMetric(ctx context.Context, app *bunapp.App, id uint64) (*Metric, error) {
 	metric := new(Metric)
-	if err := app.DB.NewSelect().
+	if err := app.PG.NewSelect().
 		Model(metric).
 		Where("id = ?", id).
 		Scan(ctx); err != nil {
@@ -77,7 +77,7 @@ func SelectMetricByName(
 	ctx context.Context, app *bunapp.App, projectID uint32, name string,
 ) (*Metric, error) {
 	metric := new(Metric)
-	if err := app.DB.NewSelect().
+	if err := app.PG.NewSelect().
 		Model(metric).
 		Where("name = ?", name).
 		Apply(func(q *bun.SelectQuery) *bun.SelectQuery {
@@ -97,7 +97,7 @@ func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) (inserted boo
 	m.CreatedAt = time.Now().Add(-time.Second)
 	m.UpdatedAt = m.CreatedAt
 
-	if _, err := app.DB.NewInsert().
+	if _, err := app.PG.NewInsert().
 		Model(m).
 		On("CONFLICT (project_id, name) DO UPDATE").
 		Set("description = EXCLUDED.description").

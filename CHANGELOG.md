@@ -2,6 +2,30 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
+## v1.4.0 - Unreleased
+
+#### Breaking changes
+
+- PostgreSQL database is mandatory now. PostgreSQL is only used to store metadata such as users,
+  dashboards, metric name, etc. It usually takes only few megabytes of disk space.
+
+#### Features
+
+- Add filter facets for metrics.
+- Improve UI for switching between table/grid metric views.
+- Allow to quickly change group by in the grid.
+- Allow to add/edit text gauges.
+- Support table visualization in the grid view.
+- Support heatmaps in the grid view.
+- Allow to customize grid size
+- Allow to customize colors for timeseries (just like units).
+- Allow to edit dashboards using YAML.
+
+#### Fixes
+
+- Fix cumulative to delta metrics conversion.
+- Fix exponential histograms handling.
+
 ## v1.3.0 - Jan 20 2023
 
 - Added ability to parse logs as spans using Vector remap language. See
