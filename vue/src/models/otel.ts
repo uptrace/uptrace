@@ -80,6 +80,10 @@ export enum SystemName {
   messagePrefix = 'message:',
 }
 
+export enum EventName {
+  Log = 'log',
+}
+
 export function isDummySystem(system: string | undefined): boolean {
   if (!system) {
     return false
