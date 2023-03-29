@@ -55,7 +55,7 @@ type PinnedFacet struct {
 func SelectPinnedFacets(ctx context.Context, app *bunapp.App, userID uint64) ([]string, error) {
 	var facets []*PinnedFacet
 
-	if err := app.DB.NewSelect().
+	if err := app.PG.NewSelect().
 		Model(&facets).
 		Where("user_id = ?", userID).
 		Scan(ctx); err != nil {

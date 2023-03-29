@@ -27,8 +27,8 @@ import (
 	"github.com/uptrace/uptrace/cmd/uptrace/command"
 	"github.com/uptrace/uptrace/pkg"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunapp/bunmigrations"
 	"github.com/uptrace/uptrace/pkg/bunapp/chmigrations"
+	"github.com/uptrace/uptrace/pkg/bunapp/pgmigrations"
 	"github.com/uptrace/uptrace/pkg/metrics/alerting"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/run"
@@ -62,7 +62,7 @@ func main() {
 			versionCommand,
 			serveCommand,
 			command.NewCHCommand(chmigrations.Migrations),
-			command.NewBunCommand(bunmigrations.Migrations),
+			command.NewBunCommand(pgmigrations.Migrations),
 			command.NewTemplateCommand(),
 			command.NewCHSchemaCommand(),
 		},
@@ -216,13 +216,13 @@ var serveCommand = &cli.Command{
 }
 
 func initPostgres(ctx context.Context, app *bunapp.App) error {
-	if err := app.DB.Ping(); err != nil {
+	if err := app.PG.Ping(); err != nil {
 		app.Logger.Error("PostgreSQL Ping failed (edit `pg` YAML option)",
 			zap.Error(err))
 		return err
 	}
 
-	if err := runBunMigrations(ctx, app); err != nil {
+	if err := runPGMigrations(ctx, app); err != nil {
 		app.Logger.Error("SQL migrations failed",
 			zap.Error(err))
 		return err
@@ -231,8 +231,8 @@ func initPostgres(ctx context.Context, app *bunapp.App) error {
 	return nil
 }
 
-func runBunMigrations(ctx context.Context, app *bunapp.App) error {
-	migrator := migrate.NewMigrator(app.DB, bunmigrations.Migrations)
+func runPGMigrations(ctx context.Context, app *bunapp.App) error {
+	migrator := migrate.NewMigrator(app.PG, pgmigrations.Migrations)
 
 	if err := migrator.Init(ctx); err != nil {
 		return err
@@ -243,8 +243,8 @@ func runBunMigrations(ctx context.Context, app *bunapp.App) error {
 		return err
 	}
 	if len(missing) > 0 {
-		panic("migrations were changed\n" +
-			"run `uptrace db reset` to reset the database before continuing")
+		panic("PostgreSQL schema schema changed\n" +
+			"run `uptrace pg reset` to reset the database (all data will be lost)")
 	}
 
 	group, err := migrator.Migrate(ctx)
@@ -288,8 +288,8 @@ func runCHMigrations(ctx context.Context, app *bunapp.App) error {
 		return err
 	}
 	if len(missing) > 0 {
-		panic("migrations have were changed\n" +
-			"run `uptrace ch reset` to reset the database before continuing")
+		panic("ClickHouse database schema was changed\n" +
+			"run `uptrace ch reset` to reset the database (all data will be lost)")
 	}
 
 	group, err := migrator.Migrate(ctx)
@@ -352,7 +352,7 @@ func startAlerting(group *run.Group, app *bunapp.App) {
 	man := alerting.NewManager(&alerting.ManagerConfig{
 		Engine:   metrics.NewAlertingEngine(app),
 		Rules:    rules,
-		AlertMan: metrics.NewAlertManager(app.DB, app.Notifier, app.Logger),
+		AlertMan: metrics.NewAlertManager(app.PG, app.Notifier, app.Logger),
 		Logger:   app.Logger.Logger,
 	})
 

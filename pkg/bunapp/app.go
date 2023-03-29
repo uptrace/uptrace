@@ -113,7 +113,7 @@ type App struct {
 
 	grpcServer *grpc.Server
 
-	DB *bun.DB
+	PG *bun.DB
 	CH *ch.DB
 
 	Notifier *Notifier
@@ -133,7 +133,7 @@ func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
 	if err := app.initGRPC(); err != nil {
 		return nil, err
 	}
-	app.DB = app.newPG()
+	app.PG = app.newPG()
 	app.CH = app.newCH()
 	app.Notifier = NewNotifier(conf.AlertmanagerClient.URLs)
 

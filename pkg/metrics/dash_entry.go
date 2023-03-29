@@ -57,7 +57,7 @@ func SelectDashEntries(
 	ctx context.Context, app *bunapp.App, dash *Dashboard,
 ) ([]*DashEntry, error) {
 	var entries []*DashEntry
-	if err := app.DB.NewSelect().
+	if err := app.PG.NewSelect().
 		Model(&entries).
 		Where("dash_id = ?", dash.ID).
 		OrderExpr("weight DESC, id ASC").
@@ -78,7 +78,7 @@ func InsertDashEntries(ctx context.Context, app *bunapp.App, entries []*DashEntr
 		}
 	}
 
-	if _, err := app.DB.NewInsert().
+	if _, err := app.PG.NewInsert().
 		Model(&entries).
 		Exec(ctx); err != nil {
 		return err

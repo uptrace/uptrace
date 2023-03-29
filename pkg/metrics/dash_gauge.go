@@ -100,7 +100,7 @@ func SelectDashGauges(
 	ctx context.Context, app *bunapp.App, dashID uint64,
 ) ([]*DashGauge, error) {
 	var gauges []*DashGauge
-	if err := app.DB.NewSelect().
+	if err := app.PG.NewSelect().
 		Model(&gauges).
 		Where("dash_id = ?", dashID).
 		OrderExpr("weight DESC, id ASC").
@@ -121,7 +121,7 @@ func InsertDashGauges(ctx context.Context, app *bunapp.App, gauges []*DashGauge)
 		}
 	}
 
-	if _, err := app.DB.NewInsert().
+	if _, err := app.PG.NewInsert().
 		Model(&gauges).
 		Exec(ctx); err != nil {
 		return err
