@@ -12,7 +12,7 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - ch_data:/var/lib/clickhouse
+      - ch_data3:/var/lib/clickhouse
     ports:
       - '8123:8123'
       - '9000:9000'
@@ -31,7 +31,7 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - 'pg_data:/var/lib/postgresql/data/pgdata'
+      - 'pg_data1:/var/lib/postgresql/data/pgdata'
     ports:
       - '5432:5432'
 
@@ -105,6 +105,6 @@ services:
 
 volumes:
   uptrace_data:
-  ch_data:
+  ch_data3:
   alertmanager_data:
-  pg_data:
+  pg_data1:

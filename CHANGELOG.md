@@ -28,6 +28,7 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 - Allow to customize colors for timeseries (just like units).
 - Allow to edit dashboards using YAML.
 - Add Kafka metrics dashboard.
+- Add `site.path` setting to host Uptrace behind a proxy.
 
 #### Fixes
 
