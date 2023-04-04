@@ -131,8 +131,10 @@ loop:
 			if len(measures) < p.batchSize {
 				break
 			}
+
 			p.flushMeasures(ctx, measures)
-			measures = make([]*Measure, 0, len(measures))
+			measures = measures[:0]
+
 			if !timer.Stop() {
 				<-timer.C
 			}
@@ -280,16 +282,23 @@ func (p *MeasureProcessor) convertExpHistogramPoint(
 	return true
 }
 
-func (p *MeasureProcessor) flushMeasures(ctx context.Context, measures []*Measure) {
+func (p *MeasureProcessor) flushMeasures(ctx context.Context, src []*Measure) {
 	ctx, span := bunotel.Tracer.Start(ctx, "flush-measures")
 
 	p.WaitGroup().Add(1)
 	p.gate.Start()
 
+	measures := make([]*Measure, len(src))
+	copy(measures, src)
+
 	go func() {
 		defer span.End()
 		defer p.gate.Done()
 		defer p.WaitGroup().Done()
+
+		for _, measure := range measures {
+			measure.Time = measure.Time.Truncate(time.Minute)
+		}
 
 		if err := InsertMeasures(ctx, p.App, measures); err != nil {
 			p.Zap(ctx).Error("InsertMeasures failed", zap.Error(err))
@@ -320,7 +329,6 @@ func (p *MeasureProcessor) initMeasure(ctx *measureContext, measure *Measure) {
 		digest.WriteString(value)
 	}
 
-	measure.Time = measure.Time.Truncate(time.Minute)
 	measure.AttrsHash = digest.Sum64()
 	measure.StringKeys = keys
 	measure.StringValues = values
