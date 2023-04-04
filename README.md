@@ -9,15 +9,15 @@ Uptrace is an open-source APM tool that supports distributed tracing, metrics, a
 it to monitor applications and set up automatic alerts to receive notifications via email, Slack,
 Telegram, and more.
 
-Uptrace uses OpenTelelemetry to collect data and ClickHouse database to store it. ClickHouse is the
-only dependency.
+Uptrace uses OpenTelelemetry to collect data and ClickHouse database to store it. Uptrace also
+requires PostgreSQL database to store metadata such as metric names and alerts.
 
 **Features**:
 
 - Spans/logs grouping.
 - SQL-like query language to aggregate spans.
 - Promql-like language to aggregate and monitor metrics.
-- Email/Slack/Telegram notifications using AlertManager.
+- Email/Slack/WebHook/AlertManager notifications.
 - Pre-built metrics dashboards.
 - Multiple users/projects via YAML config.
 - Single sign-on (SSO) using OpenID Connect: Keycloak, Cloudflare, Google Cloud, and others.
@@ -73,11 +73,11 @@ Uptrace app without any limitations.
 
 **Why BSL license**?
 
-We picked the license with the intention to allow users to monitor their applications using Uptrace,
-but to forbid other companies creating a cloud service using the code.
+Uptrace team picked the license with the intention to allow users to monitor their applications
+using Uptrace, but to forbid other companies creating a cloud service using the code.
 
-We provide a [monitoring service](https://uptrace.dev/) ourselves in order to monetize our work and
-sustain development efforts.
+Uptrace team provides a [cloud monitoring service](https://uptrace.dev/) ourselves in order to
+monetize our work and sustain project development.
 
 **Are you open-source?**
 
