@@ -28,7 +28,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/urfave/cli/v2"
 	"github.com/vmihailenco/taskq/v4"
-	"github.com/vmihailenco/taskq/v4/pgq"
+	"github.com/vmihailenco/taskq/pgq/v4"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
