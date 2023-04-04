@@ -2,7 +2,7 @@ version: '3'
 
 services:
   clickhouse:
-    image: clickhouse/clickhouse-server:22.7
+    image: clickhouse/clickhouse-server:22.10
     restart: on-failure
     environment:
       CLICKHOUSE_DB: uptrace
@@ -12,14 +12,32 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - ch_data_2:/var/lib/clickhouse
+      - ch_data:/var/lib/clickhouse
     ports:
       - '8123:8123'
       - '9000:9000'
 
+  postgres:
+    image: postgres:15-alpine
+    restart: on-failure
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: uptrace
+      POSTGRES_PASSWORD: uptrace
+      POSTGRES_DB: uptrace
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready']
+      interval: 1s
+      timeout: 1s
+      retries: 30
+    volumes:
+      - 'pg_data:/var/lib/postgresql/data/pgdata'
+    ports:
+      - '5432:5432'
+
   uptrace:
-    image: 'uptrace/uptrace:1.3.1'
-    #image: 'uptrace/uptrace-dev:latest'
+    #image: 'uptrace/uptrace:1.3.1'
+    image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:
       - uptrace_data:/var/lib/uptrace
@@ -32,8 +50,10 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
 
-  otel-collector:
+  otelcol:
     image: otel/opentelemetry-collector-contrib:0.70.0
     restart: on-failure
     user: '0:0' # required for logs
@@ -85,8 +105,6 @@ services:
 
 volumes:
   uptrace_data:
-    driver: local
-  ch_data_2:
-    driver: local
+  ch_data:
   alertmanager_data:
-    driver: local
+  pg_data:
