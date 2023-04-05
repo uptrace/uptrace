@@ -5,26 +5,28 @@
         <v-col
           v-for="sys in styledSystems"
           :key="sys.system"
-          justify="space-around"
           cols="auto"
           class="text-center text-subtitle-2"
         >
-          <v-avatar :color="sys.color.base" size="12" class="mr-2"></v-avatar>
-          <span class="d-inline-flex mr-1">{{ truncate(sys.system, { length: 32 }) }}</span>
-          <span class="d-inline-flex blue-grey--text">{{
-            percent(sys.duration / totalDuration)
-          }}</span>
+          <v-avatar :color="sys.color" size="12" class="mr-2"></v-avatar>
+          <span class="d-inline-flex mr-1">{{ truncate(sys.name, { length: 32 }) }}</span>
+          <XPct
+            :a="sys.duration"
+            :b="totalDuration"
+            :unit="Unit.Microseconds"
+            class="d-inline-flex blue-grey--text"
+          />
         </v-col>
       </v-row>
     </v-sheet>
 
     <div class="d-flex">
-      <v-tooltip v-for="sys in styledSystems" :key="sys.system" bottom>
+      <v-tooltip v-for="sys in styledSystems" :key="sys.name" bottom>
         <template #activator="{ on }">
           <div :style="sys.barStyle" class="bar" v-on="on"></div>
         </template>
         <div>
-          <span>{{ sys.system }}</span>
+          <span>{{ sys.name }}</span>
           <XDuration :duration="sys.duration" class="ml-1" />
         </div>
       </v-tooltip>
@@ -38,12 +40,16 @@
 import { truncate } from 'lodash-es'
 import { defineComponent, computed, PropType } from 'vue'
 
+// Components
+import XPct from '@/components/XPct.vue'
+
 // Utilities
+import { Unit } from '@/util/fmt'
 import { ColoredSystem } from '@/models/colored-system'
-import { percent } from '@/util/fmt'
 
 export default defineComponent({
   name: 'SpanSystemBarChart',
+  components: { XPct },
 
   props: {
     loading: {
@@ -57,34 +63,37 @@ export default defineComponent({
   },
 
   setup(props) {
-    const totalDuration = computed((): number => {
+    const totalDuration = computed(() => {
       return props.systems.reduce((acc, system) => {
-        if (system.duration) {
-          return acc + system.duration
-        }
-        return acc
+        return acc + system.duration
       }, 0)
     })
 
     const styledSystems = computed(() => {
-      let systems = props.systems.slice(0, 5)
-
-      for (let c of systems) {
-        c.barStyle = {
-          width: pct(c.duration, totalDuration.value),
-          'background-color': c.color.base,
+      return props.systems.map((system) => {
+        return {
+          ...system,
+          barStyle: {
+            width: pct(system.duration, totalDuration.value),
+            'background-color': system.color,
+          },
         }
-      }
-
-      return systems
+      })
     })
 
-    return { styledSystems, totalDuration, truncate, percent }
+    return {
+      Unit,
+
+      totalDuration,
+      styledSystems,
+
+      truncate,
+    }
   },
 })
 
 function pct(a: number, b: number) {
-  if (b === 0) {
+  if (b === 0 || a >= b) {
     return '100%'
   }
   const pct = (a / b) * 100

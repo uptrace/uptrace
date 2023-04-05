@@ -5,7 +5,8 @@ import (
 )
 
 const (
-	AlertType = "alert.type"
+	DisplayName = "display.name"
+	AlertType   = "alert.type"
 
 	SpanSystem  = "span.system"
 	SpanGroupID = "span.group_id"
@@ -47,6 +48,7 @@ const (
 	TelemetrySDKVersion  = "telemetry.sdk.version"
 	TelemetrySDKLanguage = "telemetry.sdk.language"
 
+	HTTPUrl         = "http.url"    // GET
 	HTTPMethod      = "http.method" // GET
 	HTTPRoute       = "http.route"
 	HTTPTarget      = "http.target"

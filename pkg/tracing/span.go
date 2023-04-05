@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/uuid"
 )
 
@@ -40,7 +39,9 @@ type Span struct {
 	Time         time.Time     `json:"time"`
 	Duration     time.Duration `json:"duration"`
 	DurationSelf time.Duration `json:"durationSelf" msgpack:"-" ch:"-"`
-	StartPct     float64       `json:"startPct" msgpack:"-" ch:"-"`
+
+	StartPct float32 `json:"startPct" msgpack:"-" ch:"-"`
+	EndPct   float32 `json:"endPct" msgpack:"-" ch:"-"`
 
 	StatusCode    string `json:"statusCode" ch:",lc"`
 	StatusMessage string `json:"statusMessage"`
@@ -66,6 +67,21 @@ func (s *Span) IsEvent() bool {
 
 func (s *Span) IsError() bool {
 	return isErrorSystem(s.System)
+}
+
+func (s *Span) TreeStartEndTime() (time.Time, time.Time) {
+	startTime := s.Time
+	endTime := s.EndTime()
+	for _, child := range s.Children {
+		s, e := child.TreeStartEndTime()
+		if s.Before(startTime) {
+			startTime = s
+		}
+		if e.After(endTime) {
+			endTime = e
+		}
+	}
+	return startTime, endTime
 }
 
 func (s *Span) EndTime() time.Time {
@@ -103,21 +119,31 @@ func (s *Span) AddEvent(event *Span) {
 	s.Events = append(s.Events, event)
 }
 
-func (s *Span) AdjustDurationSelf(child *Span) {
-	if child.Attrs.Text(attrkey.SpanKind) == ConsumerSpanKind { // async span
-		return
-	}
-	if child.Time.After(s.EndTime()) {
+func (s *Span) UpdateDurationSelf(child *Span, prevEndTime time.Time) {
+	spanEndTime := s.EndTime()
+	childEndTime := child.EndTime()
+
+	if child.Time.After(spanEndTime) {
 		return
 	}
 
-	if child.EndTime().Before(s.EndTime()) {
-		s.subtractDurationSelf(child.Duration)
-		return
+	startTime := maxTime(child.Time, prevEndTime)
+	endTime := minTime(childEndTime, spanEndTime)
+	if endTime.After(startTime) {
+		dur := endTime.Sub(startTime)
+		if dur < s.DurationSelf {
+			s.DurationSelf -= dur
+		} else {
+			s.DurationSelf = 0
+		}
 	}
+}
 
-	endTime := minTime(s.EndTime(), child.EndTime())
-	s.subtractDurationSelf(endTime.Sub(child.Time))
+func maxTime(a, b time.Time) time.Time {
+	if b.Before(a) {
+		return a
+	}
+	return b
 }
 
 func minTime(a, b time.Time) time.Time {
@@ -125,14 +151,6 @@ func minTime(a, b time.Time) time.Time {
 		return b
 	}
 	return a
-}
-
-func (s *Span) subtractDurationSelf(dur time.Duration) {
-	if s.DurationSelf <= dur {
-		s.DurationSelf = 0
-	} else {
-		s.DurationSelf -= dur
-	}
 }
 
 //------------------------------------------------------------------------------

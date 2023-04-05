@@ -16,20 +16,11 @@ interface LabelStyle {
   right?: string
 }
 
-interface BarStyle {
-  left: string
-  width: string
-}
-
-interface ColoredBarStyle extends BarStyle {
-  backgroundColor?: string
-}
-
 interface SpanBar {
+  startPct: number
+  endPct: number
   duration: number
-  style: BarStyle
-  coloredStyle: ColoredBarStyle
-  lightenStyle: ColoredBarStyle
+  durationSelf: number
 }
 
 export interface TraceSpan extends Omit<Span, 'children'>, ColoredSpan<TraceSpan> {
@@ -54,19 +45,14 @@ function _traceSpans(root: TraceSpan, trace: Trace) {
     spans.push(span)
 
     span.level = parent ? parent.level + 1 : 0
-    const spanStartPct = span.startPct
-    const durationPct = spanDurationPct(spanStartPct, span.duration, trace.duration)
-    span.endPct = spanStartPct + durationPct
-
-    span.labelStyle = spanLabelStyle(spanStartPct, durationPct)
+    span.labelStyle = spanLabelStyle(span.startPct, span.endPct)
     span.bars = []
 
-    const style = spanBarStyle(spanStartPct, durationPct)
     span.bars.push({
-      duration: span.durationSelf,
-      style,
-      coloredStyle: Object.assign({}, style, { backgroundColor: span.color }),
-      lightenStyle: Object.assign({}, style, { backgroundColor: span.lightenColor }),
+      startPct: span.startPct,
+      endPct: span.endPct,
+      duration: span.duration,
+      durationSelf: span.durationSelf,
     })
 
     return true
@@ -75,21 +61,7 @@ function _traceSpans(root: TraceSpan, trace: Trace) {
   return spans
 }
 
-export function spanDurationPct(startPct: number, duration: number, traceDuration: number): number {
-  let durationPct = duration / traceDuration
-  if (startPct + durationPct > 1) {
-    return 1 - startPct
-  }
-  return durationPct
-}
-
-export function spanBarStyle(startPct: number, durationPct: number): BarStyle {
-  let left = pct(startPct)
-  let width = durationPct <= 0.001 ? '1px' : pct(durationPct)
-  return { left, width }
-}
-
-export function spanLabelStyle(startPct: number, durationPct: number): LabelStyle {
+export function spanLabelStyle(startPct: number, endPct: number): LabelStyle {
   const labelStyle: LabelStyle = {
     position: 'absolute',
     bottom: '6px',
@@ -98,11 +70,24 @@ export function spanLabelStyle(startPct: number, durationPct: number): LabelStyl
   if (startPct <= 0.5) {
     labelStyle.left = pct(startPct)
   } else {
-    let right = 1 - (startPct + durationPct)
-    labelStyle.right = pct(right)
+    labelStyle.right = pct(1 - endPct)
   }
 
   return labelStyle
+}
+
+export function spanBarStyle(span: TraceSpan, bar: SpanBar, color: string) {
+  const startPct = Math.max(bar.startPct, span.startPct)
+  const endPct = Math.min(bar.endPct, span.endPct)
+
+  let width: any = endPct - startPct
+  if (width >= 0.001) {
+    width = pct(width)
+  } else {
+    width = '1px'
+  }
+
+  return { left: pct(bar.startPct), width, backgroundColor: color }
 }
 
 function pct(n: number) {

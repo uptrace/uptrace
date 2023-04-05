@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div v-frag>
     <template v-if="trace.error">
       <TraceError v-if="trace.error" :error="trace.error" />
     </template>
@@ -10,7 +10,7 @@
       </v-container>
     </template>
 
-    <template v-else>
+    <div v-else>
       <PageToolbar :loading="trace.loading" :fluid="$vuetify.breakpoint.mdAndDown">
         <v-breadcrumbs :items="meta.breadcrumbs" divider=">" large>
           <template #item="{ item }">
@@ -96,7 +96,7 @@
           </v-col>
         </v-row>
       </v-container>
-    </template>
+    </div>
   </div>
 </template>
 
