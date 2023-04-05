@@ -66,12 +66,12 @@ func (s *TraceServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Req
 			return err
 		}
 
-		td := new(tracepb.TracesData)
-		if err := protojson.Unmarshal(body, td); err != nil {
+		traceReq := new(collectortrace.ExportTraceServiceRequest)
+		if err := protojson.Unmarshal(body, traceReq); err != nil {
 			return err
 		}
 
-		resp, err := s.process(ctx, project, td.ResourceSpans)
+		resp, err := s.process(ctx, project, traceReq.ResourceSpans)
 		if err != nil {
 			return err
 		}
@@ -92,12 +92,12 @@ func (s *TraceServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Req
 			return err
 		}
 
-		td := new(collectortrace.ExportTraceServiceRequest)
-		if err := proto.Unmarshal(body, td); err != nil {
+		traceReq := new(collectortrace.ExportTraceServiceRequest)
+		if err := proto.Unmarshal(body, traceReq); err != nil {
 			return err
 		}
 
-		resp, err := s.process(ctx, project, td.ResourceSpans)
+		resp, err := s.process(ctx, project, traceReq.ResourceSpans)
 		if err != nil {
 			return err
 		}

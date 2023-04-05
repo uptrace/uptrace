@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gogo/protobuf/jsonpb"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/uptrace/pkg/attrkey"
@@ -26,6 +25,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -66,9 +66,13 @@ func (s *MetricsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.R
 
 	switch contentType := req.Header.Get("content-type"); contentType {
 	case jsonContentType:
-		metricsReq := new(collectormetricspb.ExportMetricsServiceRequest)
+		body, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			return err
+		}
 
-		if err := jsonpb.Unmarshal(req.Body, metricsReq); err != nil {
+		metricsReq := new(collectormetricspb.ExportMetricsServiceRequest)
+		if err := protojson.Unmarshal(body, metricsReq); err != nil {
 			return err
 		}
 
@@ -77,8 +81,17 @@ func (s *MetricsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.R
 			return err
 		}
 
-		return jsonMarshaler.Marshal(w, resp)
-	case protobufContentType:
+		b, err := protojson.Marshal(resp)
+		if err != nil {
+			return err
+		}
+
+		if _, err := w.Write(b); err != nil {
+			return err
+		}
+
+		return nil
+	case xprotobufContentType, protobufContentType:
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			return err
