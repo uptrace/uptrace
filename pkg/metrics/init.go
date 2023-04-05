@@ -21,8 +21,9 @@ const (
 )
 
 const (
-	protobufContentType = "application/x-protobuf"
-	jsonContentType     = "application/json"
+	protobufContentType  = "application/protobuf"
+	xprotobufContentType = "application/x-protobuf"
+	jsonContentType      = "application/json"
 )
 
 var jsonMarshaler = &jsonpb.Marshaler{}

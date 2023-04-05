@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/gogo/protobuf/jsonpb"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -61,8 +60,13 @@ func (s *LogsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Requ
 
 	switch contentType := req.Header.Get("content-type"); contentType {
 	case jsonContentType:
+		body, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			return err
+		}
+
 		logsReq := new(collectorlogspb.ExportLogsServiceRequest)
-		if err := jsonpb.Unmarshal(req.Body, logsReq); err != nil {
+		if err := protojson.Unmarshal(body, logsReq); err != nil {
 			return err
 		}
 
