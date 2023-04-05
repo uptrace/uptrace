@@ -1,28 +1,16 @@
-import colors, { Color } from 'vuetify/lib/util/colors'
+import Color from 'color'
 
 // Utilities
 import { AttrKey, SystemName } from '@/models/otel'
 import { walkTree, Tree } from '@/models/tree'
+import { eChart as colorSet } from '@/util/colorscheme'
 
-interface SystemColor {
-  lighten: string
-  base: string
-  darken: string
-}
-
-const colorSet = ['blue', 'pink', 'green', 'orange', 'purple', 'teal'].map((name) => {
-  const color = colors[name as keyof typeof colors] as Color
-  return {
-    lighten: color.lighten4,
-    base: color.base,
-    darken: color.darken2,
-  }
-})
+const SYSTEM_LIMIT = 6
 
 export interface ColoredSystem {
-  system: string
+  name: string
   duration: number
-  color: SystemColor
+  color: string
   barStyle?: { [key: string]: string }
 }
 
@@ -33,36 +21,40 @@ export interface ColoredSpan<T> extends Tree<T> {
   durationSelf: number
   attrs: Record<string, any>
 
-  _system: string
-  color: string
-  lightenColor: string
-  darkenColor: string
+  _systemName: string
+  color: SpanColor
+}
+
+export interface SpanColor {
+  base: string
+  lighten: string
+  darken: string
 }
 
 export function spanColoredSystems<T extends ColoredSpan<T>>(root: T): ColoredSystem[] {
   const sysMap: ColoredSystemMap = {}
 
   walkTree(root, (span, parent) => {
-    span._system = span.system
-    if (span._system === SystemName.funcs) {
-      const service = parent?._system ?? span.attrs[AttrKey.serviceName]
+    span._systemName = span.system
+    if (span._systemName === SystemName.funcs) {
+      const service = parent?._systemName ?? span.attrs[AttrKey.serviceName]
       if (service) {
-        span._system = service
+        span._systemName = service
       }
     }
 
-    if (!span._system) {
+    if (!span._systemName) {
       return true
     }
 
-    let sysInfo = sysMap[span._system]
+    let sysInfo = sysMap[span._systemName]
     if (!sysInfo) {
       sysInfo = {
-        system: span._system,
+        name: span._systemName,
         duration: 0,
-        color: undefined as unknown as SystemColor,
+        color: '',
       }
-      sysMap[span._system] = sysInfo
+      sysMap[span._systemName] = sysInfo
     }
 
     const dur = span.durationSelf
@@ -73,14 +65,36 @@ export function spanColoredSystems<T extends ColoredSpan<T>>(root: T): ColoredSy
     return true
   })
 
-  const systems = systemMapToList(sysMap)
-  const otherColor = colorSet[colorSet.length - 1]
+  let systems = systemMapToList(sysMap)
+  const otherSystem = {
+    name: 'other',
+    duration: 0,
+    color: colorSet[colorSet.length - 1],
+  }
+
+  for (let system of systems.slice(SYSTEM_LIMIT)) {
+    otherSystem.duration += system.duration
+    delete sysMap[system.name]
+  }
+
+  systems = systems.slice(0, SYSTEM_LIMIT)
+  if (otherSystem.duration > 0) {
+    systems.push(otherSystem)
+  }
+
+  // last color is reserved for other
+  for (let i = 0; i < systems.length && i < colorSet.length - 1; i++) {
+    const system = systems[i]
+    system.color = colorSet[i]
+  }
 
   walkTree(root, (span) => {
-    const color = sysMap[span._system]?.color ?? otherColor
-    span.color = color.base
-    span.lightenColor = color.lighten
-    span.darkenColor = color.darken
+    const color = sysMap[span._systemName]?.color || otherSystem.color
+    span.color = {
+      base: color,
+      lighten: Color(color).lighten(0.33).hex(),
+      darken: Color(color).darken(0.33).hex(),
+    }
     return true
   })
 

@@ -53,7 +53,7 @@ func (c *spanContext) Project(projectID uint32) (*org.Project, bool) {
 
 	project, err := org.SelectProject(c.Context, c.App, projectID)
 	if err != nil {
-		c.Zap(c.Context).Error("SelectProjectCached failed", zap.Error(err))
+		c.Zap(c.Context).Error("SelectProject failed", zap.Error(err))
 		return nil, false
 	}
 
@@ -74,9 +74,16 @@ func initSpanOrEvent(ctx *spanContext, span *Span) {
 		span.EventName = utf8util.TruncMedium(span.EventName)
 	} else {
 		assignSpanSystemAndGroupID(ctx, project, span)
-		span.Name = utf8util.TruncMedium(span.Name)
+
+		if name, _ := span.Attrs[attrkey.DisplayName].(string); name != "" {
+			span.Name = name
+			delete(span.Attrs, attrkey.DisplayName)
+		}
+
 		if span.Name == "" {
 			span.Name = "<empty>"
+		} else {
+			span.Name = utf8util.TruncMedium(span.Name)
 		}
 	}
 

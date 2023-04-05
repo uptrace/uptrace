@@ -25,14 +25,15 @@ type SpanData struct {
 }
 
 func (sd *SpanData) Decode(span *Span) error {
+	if err := msgpack.Unmarshal(sd.Data, span); err != nil {
+		return fmt.Errorf("msgpack.Unmarshal failed: %w", err)
+	}
+
 	span.ProjectID = sd.ProjectID
 	span.TraceID = sd.TraceID
 	span.ID = sd.ID
 	span.ParentID = sd.ParentID
-
-	if err := msgpack.Unmarshal(sd.Data, span); err != nil {
-		return fmt.Errorf("msgpack.Unmarshal failed: %w", err)
-	}
+	span.DurationSelf = span.Duration
 
 	span.Type = span.System
 	if i := strings.IndexByte(span.Type, ':'); i >= 0 {

@@ -63,10 +63,19 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 	}
 
 	root, numSpan := buildSpanTree(spans)
-	traceDur := root.TreeEndTime().Sub(root.Time)
+	traceInfo := NewTraceInfo(root)
 
 	_ = root.Walk(func(span, parent *Span) error {
-		span.StartPct = spanStartPct(span, root.Time, traceDur)
+		span.StartPct = spanPct(traceInfo, span.Time)
+		span.EndPct = spanPct(traceInfo, span.EndTime())
+
+		prevEndTime := span.Time
+		for _, child := range span.Children {
+			span.UpdateDurationSelf(child, prevEndTime)
+			if endTime := child.EndTime(); endTime.After(prevEndTime) {
+				prevEndTime = endTime
+			}
+		}
 
 		slices.SortFunc(span.Children, func(a, b *Span) bool { return a.Time.Before(b.Time) })
 		slices.SortFunc(span.Events, func(a, b *Span) bool { return a.Time.Before(b.Time) })
@@ -75,23 +84,10 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 	})
 
 	return httputil.JSON(w, bunrouter.H{
-		"trace": bunrouter.H{
-			"id":       traceID,
-			"time":     root.Time,
-			"duration": traceDur,
-		},
+		"trace":   traceInfo,
 		"root":    root,
 		"numSpan": numSpan,
 	})
-}
-
-func spanStartPct(span *Span, traceTime time.Time, traceDur time.Duration) float64 {
-	dur := span.Time.Sub(traceTime)
-	pct := float64(dur) / float64(traceDur)
-	if pct > 1 {
-		pct = 1
-	}
-	return pct
 }
 
 func (h *TraceHandler) ShowSpan(w http.ResponseWriter, req bunrouter.Request) error {
@@ -118,4 +114,34 @@ func (h *TraceHandler) ShowSpan(w http.ResponseWriter, req bunrouter.Request) er
 	return httputil.JSON(w, bunrouter.H{
 		"span": span,
 	})
+}
+
+//------------------------------------------------------------------------------
+
+type TraceInfo struct {
+	ID       uuid.UUID     `json:"id"`
+	Time     time.Time     `json:"time"`
+	Duration time.Duration `json:"duration"`
+}
+
+func NewTraceInfo(root *Span) *TraceInfo {
+	startTime, endTime := root.TreeStartEndTime()
+	return &TraceInfo{
+		ID:       root.TraceID,
+		Time:     startTime,
+		Duration: endTime.Sub(startTime),
+	}
+}
+
+func spanPct(trace *TraceInfo, spanTime time.Time) float32 {
+	if trace.Duration == 0 {
+		return 0
+	}
+
+	dur := spanTime.Sub(trace.Time)
+	pct := float64(dur) / float64(trace.Duration)
+	if pct > 1 {
+		pct = 1
+	}
+	return float32(pct)
 }
