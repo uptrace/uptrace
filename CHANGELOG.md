@@ -7,7 +7,8 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 #### Breaking changes
 
 - PostgreSQL database is mandatory now. PostgreSQL is only used to store metadata such as users,
-  dashboards, metric name, etc. PostgreSQL DB usually only takes few megabytes of disk space.
+  dashboards, metric names, alerts etc. PostgreSQL DB usually only takes few megabytes of disk
+  space.
 
   SQLite support is removed.
 

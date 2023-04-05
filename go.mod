@@ -22,7 +22,7 @@ require (
 	github.com/uptrace/go-clickhouse/chdebug v0.3.2-0.20230329131310-2d63e3b0ac7b
 	github.com/uptrace/go-clickhouse/chotel v0.3.2-0.20230329131310-2d63e3b0ac7b
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.21
-	github.com/uptrace/uptrace-go v1.13.0
+	github.com/uptrace/uptrace-go v1.14.0
 	github.com/urfave/cli/v2 v2.25.1
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/vmihailenco/tagparser v0.1.2
@@ -103,7 +103,7 @@ require (
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.21 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	go.mongodb.org/mongo-driver v1.11.3 // indirect
+	go.mongodb.org/mongo-driver v1.11.4 // indirect
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.40.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.14.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.37.0 // indirect
@@ -115,7 +115,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v0.37.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	mellium.im/sasl v0.3.1 // indirect
@@ -127,5 +127,5 @@ require (
 	github.com/uptrace/bun v1.1.12
 	github.com/uptrace/bun/extra/bundebug v1.1.12
 	github.com/uptrace/bun/extra/bunotel v1.1.12
-	google.golang.org/genproto v0.0.0-20230327215041-6ac7f18bb9d5 // indirect
+	google.golang.org/genproto v0.0.0-20230403163135-c38d8f061ccd // indirect
 )
