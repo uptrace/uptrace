@@ -238,7 +238,7 @@ const routes: RouteConfig[] = [
       allSystem: SystemName.eventsAll,
       eventsMode: false,
       defaultQuery: exploreAttr(AttrKey.spanGroupId, true),
-      itenListRouteName: 'EventList',
+      itemListRouteName: 'EventList',
       groupListRouteName: 'EventGroupList',
     },
     children: [
