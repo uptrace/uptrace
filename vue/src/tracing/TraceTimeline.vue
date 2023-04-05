@@ -51,9 +51,9 @@
               <span
                 v-for="(bar, i) in span.bars"
                 :key="i"
-                :title="`${durationFixed(bar.duration)} ${spanName(span)}`"
+                :title="`${duration(bar.duration)} ${spanName(span)}`"
                 class="span-bar"
-                :style="bar.coloredStyle"
+                :style="spanBarStyle(span, bar, span.color.base)"
               ></span>
 
               <TraceTimelineChildrenBars
@@ -97,7 +97,8 @@ import TraceTimelineChildrenBars from '@/tracing/TraceTimelineChildrenBars.vue'
 
 // Utilities
 import { spanName } from '@/models/span'
-import { durationFixed } from '@/util/fmt/duration'
+import { spanBarStyle } from '@/models/trace-span'
+import { duration } from '@/util/fmt/duration'
 
 export default defineComponent({
   name: 'TraceTimeline',
@@ -122,7 +123,7 @@ export default defineComponent({
       props.trace.activeSpanId = span.id
     }
 
-    return { dialog, showSpan, spanName, durationFixed }
+    return { dialog, showSpan, spanName, duration, spanBarStyle }
   },
 })
 </script>

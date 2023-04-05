@@ -4,9 +4,9 @@
       <span
         v-for="(bar, i) in child.bars"
         :key="`${child.id}-${i}`"
-        :title="`${durationFixed(bar.duration)} ${child.name}`"
+        :title="`${duration(bar.duration)} ${child.name}`"
         class="span-bar"
-        :style="hidden ? bar.coloredStyle : bar.lightenStyle"
+        :style="spanBarStyle(span, bar, hidden ? child.color.base : span.color.lighten)"
       ></span>
       <TraceTimelineChildrenBars
         v-if="child.children"
@@ -27,7 +27,8 @@ import { defineComponent, computed, PropType } from 'vue'
 import { TraceSpan, UseTrace } from '@/tracing/use-trace'
 
 // Utilities
-import { durationFixed } from '@/util/fmt/duration'
+import { duration } from '@/util/fmt/duration'
+import { spanBarStyle } from '@/models/trace-span'
 
 export default defineComponent({
   name: 'TraceTimelineChildrenBars',
@@ -53,11 +54,10 @@ export default defineComponent({
 
   setup(props) {
     const internalChildren = computed(() => {
-      return props.children.filter((child) => {
-        return child.endPct <= props.span.endPct && child.kind !== 'consumer'
-      })
+      return props.children.filter((child) => child.kind !== 'consumer')
     })
-    return { internalChildren, durationFixed }
+
+    return { internalChildren, duration, spanBarStyle }
   },
 })
 </script>

@@ -59,6 +59,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 		sentryHandler := NewSentryHandler(app, sp)
 
 		g.POST("/:project_id/store/", sentryHandler.Store)
+		g.POST("/:project_id/envelope/", sentryHandler.Envelope)
 	})
 
 	router.WithGroup("/api/v1", func(g *bunrouter.Group) {

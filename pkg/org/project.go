@@ -59,10 +59,16 @@ func SelectProjectByDSN(
 		return nil, fmt.Errorf("dsn %q does not have a token", dsnStr)
 	}
 
+	return SelectProjectByToken(ctx, app, dsn.Token)
+}
+
+func SelectProjectByToken(
+	ctx context.Context, app *bunapp.App, token string,
+) (*Project, error) {
 	project := new(Project)
 	if err := app.PG.NewSelect().
 		Model(project).
-		Where("token = ?", dsn.Token).
+		Where("token = ?", token).
 		Limit(1).
 		Scan(ctx); err != nil {
 		return nil, err

@@ -89,3 +89,11 @@ func formatSQL(query string) string {
 
 	return string(out)
 }
+
+func lazyCopy[S ~[]E, E any](s S) S {
+	// Preserve nil in case it matters.
+	if s == nil {
+		return nil
+	}
+	return s[:len(s):len(s)]
+}
