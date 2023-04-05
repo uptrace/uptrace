@@ -1,7 +1,7 @@
 <template>
   <v-autocomplete
     ref="autocomplete"
-    v-autowidth="{ minWidth: '60px' }"
+    v-autowidth="{ minWidth: 60 }"
     :value="value"
     :items="filteredItems"
     item-value="system"
@@ -9,6 +9,7 @@
     :search-input.sync="searchInput"
     no-filter
     placeholder="system"
+    prefix="system: "
     multiple
     clearable
     auto-select-first
@@ -35,7 +36,7 @@
           ></v-checkbox>
         </v-list-item-action>
         <v-list-item-content>
-          <v-list-item-title>{{ item.system }}</v-list-item-title>
+          <v-list-item-title :class="{ 'pl-4': item.indent }">{{ item.system }}</v-list-item-title>
         </v-list-item-content>
         <v-list-item-action class="my-0">
           <v-list-item-action-text><XNum :value="item.count" /></v-list-item-action-text>

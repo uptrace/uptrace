@@ -1,15 +1,13 @@
 <template>
   <v-autocomplete
     ref="autocomplete"
-    v-autowidth="{ minWidth: '40px' }"
-    :value="value"
-    :items="filteredItems"
-    item-value="value"
-    item-text="value"
-    :search-input.sync="searchInput"
+    v-model="activeValue"
+    v-autowidth="{ minWidth: 40 }"
+    :items="attrValues.filteredItems"
+    :search-input.sync="attrValues.searchInput"
     no-filter
     placeholder="none"
-    :prefix="`${paramName}: `"
+    :prefix="`${name}: `"
     multiple
     clearable
     auto-select-first
@@ -17,20 +15,19 @@
     dense
     outlined
     background-color="light-blue lighten-5"
-    class="mr-2 v-select--fit"
-    @change="$emit('input', $event)"
+    class="v-select--fit"
   >
     <template #item="{ item, attrs }">
       <v-list-item
         v-bind="attrs"
         @click="
-          $emit('input', [item.value])
+          activeValue = [item.value]
           autocomplete.blur()
         "
       >
         <v-list-item-action class="my-0 mr-4">
           <v-checkbox
-            :input-value="value.indexOf(item.value) >= 0"
+            :input-value="activeValue.indexOf(item.value) >= 0"
             dense
             @click.stop="toggleValue(item.value)"
           ></v-checkbox>
@@ -54,13 +51,13 @@
         <v-list-item>
           <v-list-item-content>
             <v-list-item-title class="text-subtitle-1 font-weight-regular">
-              To start filtering, set <code>{{ attr }}</code> attribute.
+              To start filtering, set <code>{{ attrKey }}</code> attribute.
             </v-list-item-title>
           </v-list-item-content>
         </v-list-item>
         <div class="my-4 d-flex justify-center">
           <v-btn
-            href="https://uptrace.dev/opentelemetry/span-naming.html#resource-attributes"
+            href="https://uptrace.dev/get/get-started.html#resource-attributes"
             target="_blank"
             color="primary"
           >
@@ -74,50 +71,93 @@
 </template>
 
 <script lang="ts">
-import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
 import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
-import { Item } from '@/tracing/query/use-quick-span-filters'
+import { useRoute } from '@/use/router'
+import { UseDateRange } from '@/use/date-range'
+import { UseUql } from '@/use/uql'
+import { useDataSource, Item } from '@/use/datasource'
 
 // Utilities
 import { truncateMiddle } from '@/util/string'
+import { extractFilterState } from '@/components/facet/lexer'
+import { quote, escapeRe } from '@/util/string'
 
 export default defineComponent({
   name: 'QuickSpanFilter',
 
   props: {
-    value: {
-      type: Array as PropType<string[]>,
+    dateRange: {
+      type: Object as PropType<UseDateRange>,
       required: true,
     },
-    loading: {
-      type: Boolean,
-      default: false,
-    },
-    items: {
-      type: Array as PropType<Item[]>,
+    uql: {
+      type: Object as PropType<UseUql>,
       required: true,
     },
-    attr: {
+    name: {
       type: String,
       required: true,
     },
-    paramName: {
+    attrKey: {
       type: String,
       required: true,
     },
   },
 
   setup(props, ctx) {
+    const route = useRoute()
     const autocomplete = shallowRef()
-    const searchInput = shallowRef('')
 
-    const filteredItems = computed(() => {
-      if (!searchInput.value) {
-        return props.items
+    const attrValues = useDataSource(() => {
+      const { projectId } = route.value.params
+      return {
+        url: `/api/v1/tracing/${projectId}/attr-values?attr_key=${props.attrKey}`,
+        params: {
+          ...props.dateRange.axiosParams(),
+          ...props.uql.axiosParams(),
+        },
+        cache: true,
       }
-      return fuzzyFilter(props.items, searchInput.value, { key: 'value' })
+    })
+
+    const activeValue = computed({
+      get() {
+        for (let part of props.uql.parts) {
+          const state = extractFilterState(part.query)
+          if (!state) {
+            continue
+          }
+          if (state.attr === props.attrKey) {
+            return state.values
+          }
+        }
+        return []
+      },
+      set(values: string[]) {
+        const editor = props.uql.createEditor()
+        const re = new RegExp(
+          `^where\\s+${escapeRe(props.attrKey)}\\s+(=|in|like|not\\s+like)\\s+`,
+          'i',
+        )
+
+        if (!values.length) {
+          editor.remove(re)
+          props.uql.query = editor.toString()
+          return
+        }
+
+        let query: string
+        if (values.length === 1) {
+          query = `where ${props.attrKey} = ${quote(values[0])}`
+        } else {
+          query = `where ${props.attrKey} in (${values.join(', ')})`
+        }
+
+        editor.replaceOrPush(re, query)
+        props.uql.query = editor.toString()
+      },
     })
 
     function withComma(item: Item, index: number): string {
@@ -129,20 +169,22 @@ export default defineComponent({
     }
 
     function toggleValue(value: string) {
-      const values = props.value.slice()
+      const values = activeValue.value.slice()
+
       const index = values.indexOf(value)
       if (index >= 0) {
         values.splice(index, 1)
       } else {
         values.push(value)
       }
-      ctx.emit('input', values)
+
+      activeValue.value = values
     }
 
     return {
       autocomplete,
-      searchInput,
-      filteredItems,
+      activeValue,
+      attrValues,
       withComma,
       toggleValue,
     }

@@ -8,25 +8,27 @@ import { AttrKey } from '@/models/otel'
 import { quote, escapeRe } from '@/util/string'
 
 const QUERY_PART_SEP = ' | '
-export const GROUP_ID_FILTER_RE = /^where\s+span\.group_id\s+=\s+(\S+)$/i
+
+export interface BackendPart {
+  query: string
+  error?: string
+  disabled?: boolean
+}
 
 export interface QueryPart {
+  id: number
   query: string
   error: string
   disabled: boolean
 }
 
-interface UqlConfig {
-  query?: string
-  paramName?: string
-  syncQuery?: boolean
+export interface BackendQueryInfo {
+  parts: BackendPart[]
 }
 
 export type UseUql = ReturnType<typeof useUql>
 
-export function useUql(cfg: UqlConfig = {}) {
-  const paramName = cfg.paramName ?? 'query'
-
+export function useUql(queryValue = '') {
   const rawMode = shallowRef(false)
   const parts = shallowRef<QueryPart[]>([])
 
@@ -38,6 +40,7 @@ export function useUql(cfg: UqlConfig = {}) {
       return formatParts(parts.value)
     },
   })
+  query.value = queryValue ?? ''
 
   const whereQuery = computed((): string => {
     return parts.value
@@ -45,23 +48,6 @@ export function useUql(cfg: UqlConfig = {}) {
       .map((part) => part.query)
       .join(QUERY_PART_SEP)
   })
-
-  query.value = cfg.query ?? ''
-
-  if (cfg.syncQuery) {
-    useRouteQuery().sync({
-      fromQuery(params) {
-        if (params[paramName]) {
-          query.value = params[paramName]
-        }
-      },
-      toQuery() {
-        return {
-          [paramName]: query.value,
-        }
-      },
-    })
-  }
 
   function addPart(part: QueryPart) {
     parts.value.push(reactive(part))
@@ -79,9 +65,10 @@ export function useUql(cfg: UqlConfig = {}) {
     parts.value = parts.value.filter((part) => part.query.length > 0)
   }
 
-  function syncParts(other: QueryPart[]) {
+  function setQueryInfo(other: BackendQueryInfo) {
+    // Don't remove any parts.
     parts.value.forEach((part: QueryPart, i: number) => {
-      const otherPart = other[i]
+      const otherPart = other.parts[i]
       if (!otherPart) {
         return
       }
@@ -105,6 +92,21 @@ export function useUql(cfg: UqlConfig = {}) {
     query.value = editor.toString()
   }
 
+  function syncQueryParams(paramName = 'query') {
+    useRouteQuery().sync({
+      fromQuery(params) {
+        if (paramName in params) {
+          query.value = params[paramName] ?? ''
+        }
+      },
+      toQuery() {
+        return {
+          [paramName]: query.value,
+        }
+      },
+    })
+  }
+
   return proxyRefs({
     rawMode,
     query,
@@ -115,7 +117,8 @@ export function useUql(cfg: UqlConfig = {}) {
     removePart,
     cleanup,
 
-    syncParts,
+    setQueryInfo,
+    syncQueryParams,
     axiosParams,
 
     createEditor,
@@ -127,18 +130,14 @@ export function parseParts(query: any): QueryPart[] {
   if (typeof query !== 'string' || !query) {
     return []
   }
-
-  return query
-    .split(QUERY_PART_SEP)
-    .map((s) => s.trim())
-    .filter((s) => s.length)
-    .map((s) => {
-      return createPart(s)
-    })
+  return split(query, QUERY_PART_SEP).map((part) => {
+    return createQueryPart(part)
+  })
 }
 
-export function createPart(query = ''): QueryPart {
+export function createQueryPart(query = ''): QueryPart {
   return {
+    id: Math.random() * Number.MAX_VALUE,
     query,
     error: '',
     disabled: false,
@@ -205,14 +204,14 @@ export class UqlEditor {
 
   replaceOrPush(re: RegExp, query: string) {
     if (!this.replace(re, query)) {
-      this.parts.push(createPart(query))
+      this.parts.push(createQueryPart(query))
     }
     return this
   }
 
   replaceOrUnshift(re: RegExp, query: string) {
     if (!this.replace(re, query)) {
-      this.parts.unshift(createPart(query))
+      this.parts.unshift(createQueryPart(query))
     }
     return this
   }
@@ -231,27 +230,16 @@ export class UqlEditor {
     }
   }
 
-  groupId() {
-    for (let part of this.parts) {
-      const m = part.query.match(GROUP_ID_FILTER_RE)
-      if (m) {
-        return m[1]
-      }
-    }
-    return ''
-  }
-
-  removeGroupFilter() {
-    this.remove(GROUP_ID_FILTER_RE)
-    return this
-  }
-
   addGroupBy(column: string) {
     return this.add(`group by ${column}`)
   }
 
-  replaceGroupBy(column: string) {
-    return this.replaceOrUnshift(/^group\s+by\s+/i, `group by ${column}`)
+  resetGroupBy(column = '') {
+    this.remove(/^group by /i)
+    if (column) {
+      this.add(`group by ${column}`)
+    }
+    return this
   }
 }
 
@@ -272,4 +260,11 @@ export function exploreAttr(column: string, isEventSystem = false) {
         `{p50,p90,p99}(${AttrKey.spanDuration})`,
       ]
   return ss.join(QUERY_PART_SEP)
+}
+
+function split(s: string, sep: string): string[] {
+  return s
+    .split(sep)
+    .map((s) => s.trim())
+    .filter((s) => s.length)
 }

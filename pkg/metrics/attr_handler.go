@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
@@ -13,6 +14,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
+	"golang.org/x/exp/slices"
 )
 
 type AttrFilter struct {
@@ -20,22 +22,21 @@ type AttrFilter struct {
 	App *bunapp.App
 
 	ProjectID uint32
-	Metrics   []string
-	Attr      string
+	Metric    []string
+
+	AttrKey     string
+	SearchInput string
 }
 
-func decodeAttrFilter(app *bunapp.App, req bunrouter.Request) (*AttrFilter, error) {
+func DecodeAttrFilter(app *bunapp.App, req bunrouter.Request, f *AttrFilter) error {
 	ctx := req.Context()
-
-	f := new(AttrFilter)
-	f.App = app
 	f.ProjectID = org.ProjectFromContext(ctx).ID
 
 	if err := bunapp.UnmarshalValues(req, f); err != nil {
-		return nil, err
+		return err
 	}
 
-	return f, nil
+	return nil
 }
 
 var _ urlstruct.ValuesUnmarshaler = (*QueryFilter)(nil)
@@ -44,13 +45,24 @@ func (f *AttrFilter) UnmarshalValues(ctx context.Context, values url.Values) err
 	if err := f.TimeFilter.UnmarshalValues(ctx, values); err != nil {
 		return err
 	}
+
+	seen := make(map[string]bool, len(f.Metric))
+	for i := len(f.Metric) - 1; i >= 0; i-- {
+		metric := f.Metric[i]
+		if seen[metric] {
+			f.Metric = append(f.Metric[:i], f.Metric[i+1:]...)
+		} else {
+			seen[metric] = true
+		}
+	}
+
 	return nil
 }
 
 //------------------------------------------------------------------------------
 
 type AttrHandler struct {
-	App *bunapp.App
+	*bunapp.App
 }
 
 func NewAttrHandler(app *bunapp.App) *AttrHandler {
@@ -59,16 +71,49 @@ func NewAttrHandler(app *bunapp.App) *AttrHandler {
 	}
 }
 
-func (h *AttrHandler) Keys(w http.ResponseWriter, req bunrouter.Request) error {
-	ctx := req.Context()
+type AttrKeyItem struct {
+	Value  string `json:"value"`
+	Count  uint64 `json:"count"`
+	Pinned bool   `json:"pinned"`
+}
 
-	f, err := decodeAttrFilter(h.App, req)
-	if err != nil {
+func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+	user := org.UserFromContext(ctx)
+
+	f := new(AttrFilter)
+	f.TimeLT = time.Now()
+	f.TimeGTE = time.Now().Add(-24 * time.Hour)
+
+	if err := DecodeAttrFilter(h.App, req, f); err != nil {
 		return err
 	}
 
-	if len(f.Metrics) == 0 {
-		return errors.New("at least one metric is required")
+	if len(f.Metric) == 0 {
+		items := make([]*AttrKeyItem, 0)
+
+		subq := h.CH.NewSelect().
+			Distinct().
+			ColumnExpr("metric").
+			ColumnExpr("arrayJoin(string_keys) AS value").
+			TableExpr("?", h.DistTable("measure_hours")).
+			Where("project_id = ?", f.ProjectID).
+			Where("time >= ?", time.Now().Add(-24*time.Hour))
+
+		if err := h.CH.NewSelect().
+			ColumnExpr("value").
+			ColumnExpr("count() AS count").
+			TableExpr("(?)", subq).
+			GroupExpr("value").
+			OrderExpr("count DESC").
+			Limit(10000).
+			Scan(ctx, &items); err != nil {
+			return err
+		}
+
+		return httputil.JSON(w, bunrouter.H{
+			"items": items,
+		})
 	}
 
 	attrKeys, err := h.selectAttrKeys(ctx, f)
@@ -76,43 +121,79 @@ func (h *AttrHandler) Keys(w http.ResponseWriter, req bunrouter.Request) error {
 		return err
 	}
 
+	var pinnedAttrMap map[string]bool
+	if user != nil {
+		pinnedAttrMap, err = org.SelectPinnedFacetMap(ctx, h.App, user.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	items := make([]*AttrKeyItem, len(attrKeys))
+
+	for i, attrKey := range attrKeys {
+		items[i] = &AttrKeyItem{
+			Value:  attrKey,
+			Pinned: pinnedAttrMap[attrKey],
+		}
+	}
+
+	slices.SortFunc(items, func(a, b *AttrKeyItem) bool {
+		return org.CoreAttrLess(a.Value, b.Value)
+	})
+
 	return httputil.JSON(w, bunrouter.H{
-		"attrs": attrKeys,
+		"items": items,
 	})
 }
 
 func (h *AttrHandler) selectAttrKeys(ctx context.Context, f *AttrFilter) ([]string, error) {
-	keys := make([]string, 0)
 	tableName := measureTableForWhere(h.App, &f.TimeFilter)
 
-	if len(f.Metrics) == 0 {
-		if err := h.App.CH.NewSelect().
-			ColumnExpr("DISTINCT arrayJoin(attr_keys)").
+	keys := make([]string, 0)
+
+	if len(f.Metric) <= 1 {
+		q := h.CH.NewSelect().
+			ColumnExpr("DISTINCT arrayJoin(string_keys) AS key").
 			TableExpr("?", tableName).
 			Where("project_id = ?", f.ProjectID).
 			Where("time >= ?", f.TimeGTE).
 			Where("time < ?", f.TimeLT).
-			ScanColumns(ctx, &keys); err != nil {
+			OrderExpr("key ASC").
+			Limit(1000)
+
+		if len(f.Metric) == 1 {
+			q = q.Where("metric = ?", f.Metric[0])
+		}
+
+		if err := q.ScanColumns(ctx, &keys); err != nil {
 			return nil, err
 		}
 		return keys, nil
 	}
 
-	q := h.App.CH.NewSelect().
+	subq := h.CH.NewSelect().
 		TableExpr("?", tableName).
-		ColumnExpr("DISTINCT metric").
-		ColumnExpr("arrayJoin(attr_keys) AS key").
 		Where("project_id = ?", f.ProjectID).
 		Where("time >= ?", f.TimeGTE).
 		Where("time < ?", f.TimeLT).
-		Where("metric IN (?)", ch.In(f.Metrics))
+		Where("metric IN (?)", ch.In(f.Metric))
 
-	if err := h.App.CH.NewSelect().
+	var numMetric int
+	if err := subq.Clone().ColumnExpr("uniq(metric)").Scan(ctx, &numMetric); err != nil {
+		return nil, err
+	}
+
+	subq = subq.ColumnExpr("DISTINCT metric").
+		ColumnExpr("arrayJoin(string_keys) AS key")
+
+	if err := h.CH.NewSelect().
 		ColumnExpr("key").
-		TableExpr("(?) AS q", q).
+		TableExpr("(?)", subq).
 		GroupExpr("key").
-		Having("count() = ?", len(f.Metrics)).
+		Having("count() = ?", numMetric).
 		OrderExpr("key").
+		Limit(1000).
 		ScanColumns(ctx, &keys); err != nil {
 		return nil, err
 	}
@@ -120,62 +201,66 @@ func (h *AttrHandler) selectAttrKeys(ctx context.Context, f *AttrFilter) ([]stri
 	return keys, nil
 }
 
-//------------------------------------------------------------------------------
-
-func (h *AttrHandler) Where(w http.ResponseWriter, req bunrouter.Request) error {
+func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := decodeAttrFilter(h.App, req)
-	if err != nil {
+	f := new(AttrFilter)
+	if err := DecodeAttrFilter(h.App, req, f); err != nil {
 		return err
 	}
 
-	if len(f.Metrics) == 0 {
-		return errors.New("at least one metric is required")
+	if len(f.Metric) == 0 {
+		return errors.New(`"metric" query param is required`)
 	}
-	if f.Attr == "" {
-		return fmt.Errorf("attribute query param is required")
+	if f.AttrKey == "" {
+		return fmt.Errorf(`"attr_key" query param is required`)
 	}
 
-	where, err := h.selectWhereSuggestions(ctx, f)
+	items, hasMore, err := h.selectAttrValues(ctx, f)
 	if err != nil {
 		return err
 	}
 
 	return httputil.JSON(w, bunrouter.H{
-		"suggestions": where,
+		"items":   items,
+		"hasMore": hasMore,
 	})
 }
 
-func (h *AttrHandler) selectWhereSuggestions(
+type AttrValueItem struct {
+	Value string `json:"value"`
+}
+
+func (h *AttrHandler) selectAttrValues(
 	ctx context.Context, f *AttrFilter,
-) ([]WhereSuggestion, error) {
-	var values []string
+) (any, bool, error) {
+	const limit = 1000
 
 	tableName := measureTableForWhere(h.App, &f.TimeFilter)
-	if err := f.App.CH.NewSelect().
+
+	items := make([]AttrValueItem, 0)
+
+	if err := h.CH.NewSelect().
+		ColumnExpr("DISTINCT string_values[indexOf(string_keys, ?)] AS value", f.AttrKey).
 		TableExpr("?", tableName).
-		ColumnExpr("DISTINCT ? AS value", CHColumn(f.Attr)).
 		Where("project_id = ?", f.ProjectID).
+		Where("metric IN (?)", ch.In(f.Metric)).
 		Where("time >= ?", f.TimeGTE).
 		Where("time < ?", f.TimeLT).
-		Where("metric IN (?)", ch.In(f.Metrics)).
-		Where("has(attr_keys, ?)", f.Attr).
+		Where("has(string_keys, ?)", f.AttrKey).
+		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
+			if f.SearchInput != "" {
+				q = q.Where("string_values[indexOf(string_keys, ?)] like ?",
+					f.AttrKey, "%"+f.SearchInput+"%")
+			}
+			return q
+		}).
 		OrderExpr("value ASC").
-		Limit(1000).
-		ScanColumns(ctx, &values); err != nil {
-		return nil, err
+		Limit(limit).
+		Scan(ctx, &items); err != nil {
+		return nil, false, err
 	}
 
-	suggestions := make([]WhereSuggestion, 0, len(values))
-
-	for _, value := range values {
-		suggestions = append(suggestions, WhereSuggestion{
-			Text:  fmt.Sprintf("%s = %q", f.Attr, value),
-			Key:   f.Attr,
-			Value: value,
-		})
-	}
-
-	return suggestions, nil
+	hasMore := f.SearchInput != "" || len(items) == limit
+	return items, hasMore, nil
 }

@@ -54,8 +54,8 @@
 
     <v-row v-else no-gutters align="center">
       <v-col class="d-flex flex-wrap align-start">
-        <template v-for="(part, i) in uql.parts">
-          <div v-if="i === partEditor.index" :key="i" class="mr-2 d-inline-block">
+        <template v-for="part in uql.parts">
+          <div v-if="part.id === partEditor.partId" :key="part.id" class="mr-2 d-inline-block">
             <v-text-field
               v-model="partEditor.query"
               v-autowidth="{ minWidth: '200px' }"
@@ -72,7 +72,7 @@
           </div>
           <UptraceQueryChip
             v-else
-            :key="i"
+            :key="part.id"
             :query="part.query"
             :error="part.error"
             :disabled="part.disabled || disabled"
@@ -94,7 +94,7 @@
 import { defineComponent, shallowRef, computed, watch, proxyRefs, PropType } from 'vue'
 
 // Composables
-import { createPart, QueryPart, UseUql } from '@/use/uql'
+import { createQueryPart, QueryPart, UseUql } from '@/use/uql'
 
 // Components
 import UptraceQueryChip from '@/components/UptraceQueryChip.vue'
@@ -142,22 +142,22 @@ export default defineComponent({
 })
 
 function usePartEditor(uql: UseUql) {
-  const partIndex = shallowRef<number>()
+  const partId = shallowRef<number>()
   const partQuery = shallowRef('')
 
   const editing = computed(() => {
-    return partIndex.value !== undefined
+    return partId.value !== undefined
   })
 
   function addPart() {
-    const part = createPart()
+    const part = createQueryPart()
     uql.addPart(part)
 
-    startEditing(uql.parts.length - 1, part)
+    startEditing(part)
   }
 
-  function startEditing(i: number, part: QueryPart) {
-    partIndex.value = i
+  function startEditing(part: QueryPart) {
+    partId.value = part.id
     partQuery.value = part.query
   }
 
@@ -171,13 +171,13 @@ function usePartEditor(uql: UseUql) {
   }
 
   function cancelEdits() {
-    partIndex.value = undefined
+    partId.value = undefined
     partQuery.value = ''
     uql.cleanup()
   }
 
   return proxyRefs({
-    index: partIndex,
+    partId: partId,
     query: partQuery,
     editing,
 

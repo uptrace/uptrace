@@ -1,18 +1,12 @@
 package tracing
 
 import (
-	"context"
-	"math"
 	"math/rand"
 	"strings"
 	"time"
 
-	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/uuid"
-	"github.com/vmihailenco/msgpack/v5"
-	"go.uber.org/zap"
-	"golang.org/x/exp/slices"
 )
 
 const (
@@ -29,26 +23,27 @@ const (
 )
 
 type Span struct {
-	ProjectID uint32 `json:"projectId" ch:"project_id"`
-	System    string `json:"system" ch:"system,lc"`
-	GroupID   uint64 `json:"groupId,string" ch:"group_id"`
+	ProjectID uint32 `json:"projectId" msgpack:"-"`
+	Type      string `json:"-" msgpack:"-" ch:",lc"`
+	System    string `json:"system" ch:",lc"`
+	GroupID   uint64 `json:"groupId,string"`
 
-	TraceID  uuid.UUID `json:"traceId" ch:"trace_id,type:UUID"`
-	ID       uint64    `json:"id,string" ch:"id"`
-	ParentID uint64    `json:"parentId,string,omitempty" ch:"parent_id"`
+	TraceID  uuid.UUID `json:"traceId" msgpack:"-" ch:"type:UUID"`
+	ID       uint64    `json:"id,string" msgpack:"-" ch:"id"`
+	ParentID uint64    `json:"parentId,string,omitempty" msgpack:"-"`
 
-	Name       string `json:"name" ch:"name,lc"`
-	EventName  string `json:"eventName,omitempty" ch:"event_name,lc"`
-	Kind       string `json:"kind" ch:"kind,lc"`
+	Name       string `json:"name" ch:",lc"`
+	EventName  string `json:"eventName,omitempty" ch:",lc"`
+	Kind       string `json:"kind" ch:",lc"`
 	Standalone bool   `json:"standalone,omitempty" ch:"-"`
 
-	Time         time.Time     `json:"time" ch:"time"`
-	Duration     time.Duration `json:"duration" ch:"duration"`
+	Time         time.Time     `json:"time"`
+	Duration     time.Duration `json:"duration"`
 	DurationSelf time.Duration `json:"durationSelf" msgpack:"-" ch:"-"`
 	StartPct     float64       `json:"startPct" msgpack:"-" ch:"-"`
 
-	StatusCode    string `json:"statusCode" ch:"status_code,lc"`
-	StatusMessage string `json:"statusMessage" ch:"status_message"`
+	StatusCode    string `json:"statusCode" ch:",lc"`
+	StatusMessage string `json:"statusMessage"`
 
 	Attrs  AttrMap     `json:"attrs" ch:"-"`
 	Events []*Span     `json:"events,omitempty" msgpack:"-" ch:"-"`
@@ -101,26 +96,11 @@ func (s *Span) Walk(fn func(child, parent *Span) error) error {
 }
 
 func (s *Span) AddChild(child *Span) {
-	s.Children = addSpanSorted(s.Children, child)
-}
-
-func addSpanSorted(a []*Span, x *Span) []*Span {
-	if len(a) == 0 {
-		return []*Span{x}
-	}
-
-	for i := len(a) - 1; i >= 0; i-- {
-		el := a[i]
-		if x.Time.After(el.Time) {
-			return slices.Insert(a, i+1, x)
-		}
-	}
-
-	return slices.Insert(a, 0, x)
+	s.Children = append(s.Children, child)
 }
 
 func (s *Span) AddEvent(event *Span) {
-	s.Events = addSpanSorted(s.Events, event)
+	s.Events = append(s.Events, event)
 }
 
 func (s *Span) AdjustDurationSelf(child *Span) {
@@ -157,10 +137,9 @@ func (s *Span) subtractDurationSelf(dur time.Duration) {
 
 //------------------------------------------------------------------------------
 
-func buildSpanTree(ctx context.Context, app *bunapp.App, spansPtr *[]*Span) *Span {
-	spans := *spansPtr
-	m := make(map[uint64]*Span, len(spans))
+func buildSpanTree(spans []*Span) (*Span, int) {
 	var root *Span
+	m := make(map[uint64]*Span, len(spans))
 
 	for _, s := range spans {
 		if s.IsEvent() {
@@ -169,70 +148,58 @@ func buildSpanTree(ctx context.Context, app *bunapp.App, spansPtr *[]*Span) *Spa
 
 		if s.ParentID == 0 {
 			root = s
+			continue
 		}
 
-		s.DurationSelf = s.Duration
 		m[s.ID] = s
 	}
 
 	if root == nil {
-		root = newFakeRoot(spans)
+		root = newFakeRoot(spans[0])
 	}
 
-	if len(m) != len(spans) {
-		for _, s := range spans {
-			if !s.IsEvent() {
-				continue
-			}
+	for _, s := range spans {
+		if s.IsEvent() {
 			if span, ok := m[s.ParentID]; ok {
 				span.AddEvent(s)
 			} else {
 				root.AddEvent(s)
 			}
+			continue
 		}
 
-		spans = spans[:0]
-		for _, s := range m {
-			spans = append(spans, s)
-		}
-
-		*spansPtr = spans
-	}
-
-	for _, s := range spans {
 		if s.ParentID == 0 {
+			if s.ID != root.ID {
+				s.ParentID = root.ID
+				root.AddChild(s)
+			}
 			continue
 		}
 
 		parent := m[s.ParentID]
 		if parent == nil {
-			app.Zap(ctx).Error("can't find parent span", zap.Uint64("parent_id", s.ParentID))
 			parent = root
 		}
-
 		parent.AddChild(s)
-		parent.AdjustDurationSelf(s)
 	}
 
-	return root
+	return root, len(m) + 1
 }
 
-func newFakeRoot(spans []*Span) *Span {
-	sample := spans[0]
-	minTime := time.Unix(0, math.MaxInt64)
+func newFakeRoot(sample *Span) *Span {
+	span := &Span{
+		ID:      rand.Uint64(),
+		TraceID: sample.TraceID,
 
-	for _, s := range spans {
-		if s.Time.Before(minTime) {
-			minTime = s.Time
-		}
-	}
+		ProjectID: sample.ProjectID,
+		Type:      "service",
+		System:    "service:" + SystemUnknown,
+		Kind:      SpanKindInternal,
 
-	span := new(Span)
-	span.ID = rand.Uint64()
-	span.TraceID = sample.TraceID
-	span.Attrs = AttrMap{
-		attrkey.SpanTime:       minTime,
-		attrkey.SpanStatusCode: OKStatusCode,
+		Name:       "The span is missing. Make sure to configure the upstream service to report to Uptrace, end spans on all conditions, and shut down OpenTelemetry when the app exits.",
+		Time:       sample.Time,
+		StatusCode: StatusCodeUnset,
+		Attrs:      make(AttrMap),
 	}
 	return span
 }
@@ -247,10 +214,10 @@ func isEventSystem(s string) bool {
 		s = s[:idx]
 	}
 	switch s {
-	case SystemEventOther,
-		SystemEventLog,
-		SystemEventExceptions,
-		SystemEventMessage:
+	case EventTypeOther,
+		EventTypeLog,
+		EventTypeExceptions,
+		EventTypeMessage:
 		return true
 	default:
 		return false
@@ -263,21 +230,9 @@ func isLogSystem(s string) bool {
 
 func isErrorSystem(s string) bool {
 	switch s {
-	case SystemEventExceptions, "log:error", "log:fatal", "log:panic":
+	case EventTypeExceptions, "log:error", "log:fatal", "log:panic":
 		return true
 	default:
 		return false
 	}
-}
-
-func marshalSpan(span *Span) []byte {
-	b, err := msgpack.Marshal(span)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func unmarshalSpan(b []byte, span *Span) error {
-	return msgpack.Unmarshal(b, span)
 }

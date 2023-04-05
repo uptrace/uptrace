@@ -1,12 +1,12 @@
 <template>
   <v-menu v-model="menu" offset-y :close-on-content-click="false">
     <template #activator="{ on, attrs }">
-      <v-btn text class="v-btn--filter" v-bind="attrs" v-on="on"> Where </v-btn>
+      <v-btn text class="v-btn--filter" v-bind="attrs" v-on="on">Where</v-btn>
     </template>
     <v-card class="pa-3">
       <v-row>
         <v-col cols="auto">
-          <v-form ref="form" v-model="isValid" class="pa-3" style="width: 400px">
+          <v-form ref="formRef" v-model="form.isValid" class="pa-3" style="width: 400px">
             <v-row>
               <v-col class="space-around">
                 <UqlChip
@@ -51,15 +51,18 @@
                 </v-avatar>
               </v-col>
               <v-col>
-                <SimpleSuggestions
-                  v-model="column"
-                  :loading="columnSuggestions.loading"
-                  :suggestions="columnSuggestions"
-                  :rules="rules.column"
+                <v-autocomplete
+                  v-model="form.column"
+                  :loading="columnsDs.loading"
+                  :items="columnsDs.items"
+                  :rules="form.rules.column"
                   label="Column"
+                  return-object
+                  outlined
                   dense
-                  class="fit"
-                />
+                  clearable
+                  hide-details="auto"
+                ></v-autocomplete>
               </v-col>
             </v-row>
 
@@ -71,8 +74,8 @@
               </v-col>
               <v-col>
                 <v-autocomplete
-                  v-model="op"
-                  :rules="rules.op"
+                  v-model="form.op"
+                  :rules="form.rules.op"
                   label="Operator"
                   :items="opItems"
                   outlined
@@ -92,17 +95,15 @@
                 </v-avatar>
               </v-col>
               <v-col>
-                <SimpleSuggestions
-                  v-model="colValue"
-                  :loading="valueSuggestions.loading"
-                  :suggestions="valueSuggestions"
-                  :rules="rules.colValue"
+                <Combobox
+                  v-model="form.columnValue"
+                  :data-source="valuesDs"
+                  :rules="form.rules.columnValue"
                   label="Value"
                   :placeholder="valuePlaceholder"
                   :hint="valueHint"
                   :disabled="valueDisabled"
                   dense
-                  class="fit"
                 />
               </v-col>
             </v-row>
@@ -110,7 +111,7 @@
             <v-row>
               <v-spacer />
               <v-col cols="auto">
-                <v-btn :disabled="!isValid" class="primary" @click="addFilter">Filter</v-btn>
+                <v-btn :disabled="!form.isValid" class="primary" @click="addFilter">Filter</v-btn>
               </v-col>
             </v-row>
           </v-form>
@@ -121,17 +122,16 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, watch, proxyRefs, PropType } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
+import { useRoute } from '@/use/router'
 import { AxiosParams } from '@/use/axios'
-import { UseSystems } from '@/tracing/system/use-systems'
-import { useSuggestions, Suggestion } from '@/use/suggestions'
+import { useDataSource, Item } from '@/use/datasource'
 import { UseUql } from '@/use/uql'
 
 // Components
-import SimpleSuggestions from '@/components/SimpleSuggestions.vue'
+import Combobox from '@/components/Combobox.vue'
 import UqlChip from '@/components/UqlChip.vue'
 
 // Utilities
@@ -139,26 +139,27 @@ import { requiredRule } from '@/util/validation'
 import { quote } from '@/util/string'
 import { AttrKey } from '@/models/otel'
 
-const compOp = {
-  contains: 'contains',
-  doesNotContain: 'does not contain',
+interface Column extends Item {
+  ordered?: boolean
+  searchable?: boolean
+}
 
-  like: 'like',
-  notLike: 'not like',
+enum Op {
+  Exists = 'exists',
+  NotExists = 'not exists',
 
-  exists: 'exists',
-  doesNotExist: 'does not exist',
+  Like = 'like',
+  NotLike = 'not like',
+
+  Contains = 'contains',
+  NotContains = 'not contains',
 }
 
 export default defineComponent({
   name: 'WhereFilterMenu',
-  components: { SimpleSuggestions, UqlChip },
+  components: { Combobox, UqlChip },
 
   props: {
-    systems: {
-      type: Object as PropType<UseSystems>,
-      required: true,
-    },
     uql: {
       type: Object as PropType<UseUql>,
       required: true,
@@ -170,21 +171,12 @@ export default defineComponent({
   },
 
   setup(props) {
-    const { route } = useRouter()
+    const route = useRoute()
     const menu = shallowRef(false)
-    const column = shallowRef<Suggestion>()
-    const op = shallowRef('')
-    const colValue = shallowRef<Suggestion>()
+    const formRef = shallowRef()
+    const form = useForm()
 
-    const form = shallowRef()
-    const isValid = shallowRef(false)
-    const rules = {
-      column: [requiredRule],
-      op: [requiredRule],
-      colValue: [],
-    }
-
-    const columnSuggestions = useSuggestions(
+    const columnsDs = useDataSource<Column>(
       () => {
         if (!menu.value) {
           return null
@@ -192,7 +184,7 @@ export default defineComponent({
 
         const { projectId } = route.value.params
         return {
-          url: `/api/v1/tracing/${projectId}/suggestions/attributes`,
+          url: `/api/v1/tracing/${projectId}/attr-keys?with_columns`,
           params: props.axiosParams,
         }
       },
@@ -200,34 +192,25 @@ export default defineComponent({
     )
 
     const opItems = computed((): string[] => {
-      return [
-        '=',
-        '!=',
-        '<',
-        '<=',
-        '>',
-        '>=',
-        compOp.contains,
-        compOp.doesNotContain,
-        compOp.like,
-        compOp.notLike,
-        compOp.exists,
-        compOp.doesNotExist,
-      ]
+      const ops = []
+      ops.push(Op.Contains, Op.NotContains, Op.Like, Op.NotLike)
+      ops.push('=', '!=', '<', '<=', '>', '>=')
+      ops.push(Op.Exists, Op.NotExists)
+      return ops
     })
 
-    const valueSuggestions = useSuggestions(
+    const valuesDs = useDataSource(
       () => {
-        if (!menu.value || !column.value || !column.value.text) {
+        if (!menu.value || !form.column || !form.column.value) {
           return
         }
 
         const { projectId } = route.value.params
         return {
-          url: `/api/v1/tracing/${projectId}/suggestions/values`,
+          url: `/api/v1/tracing/${projectId}/attr-values`,
           params: {
             ...props.axiosParams,
-            attr_key: column.value.text,
+            attr_key: form.column.value,
           },
         }
       },
@@ -235,12 +218,12 @@ export default defineComponent({
     )
 
     const valuePlaceholder = computed((): string => {
-      switch (op.value) {
-        case compOp.like:
-        case compOp.notLike:
+      switch (form.op) {
+        case Op.Like:
+        case Op.NotLike:
           return '%substring% or %suffix or prefix%'
-        case compOp.contains:
-        case compOp.doesNotContain:
+        case Op.Contains:
+        case Op.NotContains:
           return 'substr1|substr2|substr3'
         default:
           return ''
@@ -248,12 +231,12 @@ export default defineComponent({
     })
 
     const valueHint = computed((): string => {
-      switch (op.value) {
-        case compOp.like:
-        case compOp.notLike:
+      switch (form.op) {
+        case Op.Like:
+        case Op.NotLike:
           return '"%" matches zero or more characters'
-        case compOp.contains:
-        case compOp.doesNotContain:
+        case Op.Contains:
+        case Op.NotContains:
           return 'Case-insensitive options separated with "|"'
         default:
           return ''
@@ -261,9 +244,9 @@ export default defineComponent({
     })
 
     const valueDisabled = computed((): boolean => {
-      switch (op.value) {
-        case compOp.exists:
-        case compOp.doesNotExist:
+      switch (form.op) {
+        case Op.Exists:
+        case Op.NotExists:
           return true
         default:
           return false
@@ -272,25 +255,25 @@ export default defineComponent({
 
     function addFilter() {
       setTimeout(() => {
-        if (!column.value || !op.value) {
+        if (!form.column || !form.op) {
           return
         }
 
         const editor = props.uql.createEditor()
 
         if (valueDisabled.value) {
-          editor.add(`where ${column.value.text} ${op.value}`)
+          editor.add(`where ${form.column.value} ${form.op}`)
         } else {
-          const value = colValue.value?.text ?? ''
-          editor.add(`where ${column.value.text} ${op.value} ${quote(value)}`)
+          const value = form.columnValue?.value ?? ''
+          editor.add(`where ${form.column.value} ${form.op} ${quote(value)}`)
         }
 
         props.uql.commitEdits(editor)
 
-        column.value = undefined
-        op.value = ''
-        colValue.value = undefined
-        form.value.resetValidation()
+        form.column = undefined
+        form.op = ''
+        form.columnValue = undefined
+        formRef.value.resetValidation()
 
         menu.value = false
       }, 10)
@@ -298,32 +281,49 @@ export default defineComponent({
 
     watch(valueDisabled, (disabled) => {
       if (disabled) {
-        colValue.value = undefined
+        form.columnValue = undefined
       }
     })
 
     return {
       AttrKey,
       menu,
-
       form,
-      isValid,
-      rules,
-      columnSuggestions,
+      formRef,
+
+      columnsDs,
       opItems,
-      valueSuggestions,
+      valuesDs,
       valuePlaceholder,
       valueHint,
       valueDisabled,
-
-      column,
-      op,
-      colValue,
 
       addFilter,
     }
   },
 })
+
+function useForm() {
+  const isValid = shallowRef(false)
+  const rules = {
+    column: [requiredRule],
+    op: [requiredRule],
+    columnValue: [],
+  }
+
+  const column = shallowRef<Column>()
+  const op = shallowRef('')
+  const columnValue = shallowRef<Item>()
+
+  return proxyRefs({
+    isValid,
+    rules,
+
+    column,
+    op,
+    columnValue,
+  })
+}
 </script>
 
 <style lang="scss" scoped>

@@ -1,8 +1,17 @@
+schema: v1
 id: uptrace.system.overview_by_host
 name: 'System: CPU/RAM/Swap'
 
 table:
   gauges:
+    - name: Number of hosts
+      description: Number of host.name
+      metrics:
+        - system.memory.usage as $mem_usage
+      query:
+        - uniq($mem_usage.host.name) as num_host
+      template: ${num_host} hosts
+
     - name: Total RAM
       description: Total RAM across all nodes
       metrics:
@@ -49,7 +58,7 @@ table:
     swap_util: { unit: percents }
     mem_used: { unit: bytes }
 
-entries:
+grid:
   - name: CPU 1 minute load average
     metrics:
       - system.cpu.load_average.1m as $load_avg_1m
@@ -85,13 +94,13 @@ entries:
       mem_util: { unit: percents }
 
   - name: RAM usage
-    chart_type: stacked-area
     metrics:
       - system.memory.usage as $mem_usage
     query:
       - $mem_usage group by state
     columns:
       mem_usage: { unit: bytes }
+    chart: stacked-area
 
   - name: Swap or pagefile utilization
     metrics:
@@ -102,27 +111,30 @@ entries:
       swap_util: { unit: percents }
 
   - name: Swap or pagefile usage
-    chart_type: stacked-area
     metrics:
       - system.paging.usage as $paging
     query:
       - $paging group by state
     columns:
       paging: { unit: bytes }
+    chart: stacked-area
 
   - name: Number of page operations
     metrics:
       - system.paging.operations as $page_ops
     query:
       - per_min($page_ops) as page_ops group by direction
+    chart: stacked-area
 
   - name: Number of page faults
     metrics:
       - system.paging.faults as $page_faults
     query:
       - per_min($page_faults) as page_faults group by type
+    chart: stacked-area
 
 ---
+schema: v1
 id: uptrace.system.network_by_host
 name: 'System: Network Metrics'
 
@@ -143,7 +155,7 @@ table:
     transmit: { unit: bytes }
     receive: { unit: bytes }
 
-entries:
+grid:
   - name: Network connections
     metrics:
       - system.network.connections as $net_conns
@@ -168,20 +180,22 @@ entries:
     metrics:
       - system.network.io as $net_io
     query:
-      - per_min($net_io{direction=transmit}) as transmit
-      - per_min($net_io{direction=receive}) as receive
+      - per_min($net_io) group by direction
     columns:
-      transmit: { unit: bytes }
-      receive: { unit: bytes }
+      per_min(net_io): { unit: bytes }
+    chart: stacked-area
 
   - name: Network transmit/receive packets
     metrics:
       - system.network.packets as $net_packets
     query:
-      - per_min($net_packets{direction=transmit}) as transmit
-      - per_min($net_packets{direction=receive}) as receive
+      - per_min($net_packets) group by direction
+    columns:
+      per_min(net_packets): { unit: bytes }
+    chart: stacked-bar
 
 ---
+schema: v1
 id: uptrace.system.disk_by_host_device
 name: 'System: Disk Metrics'
 
@@ -199,7 +213,7 @@ table:
   columns:
     disk_time: { unit: seconds }
 
-entries:
+grid:
   - name: Time disk spent activated
     metrics:
       - system.disk.io_time as $disk_time
@@ -237,6 +251,7 @@ entries:
       - $pending_ops
 
 ---
+schema: v1
 id: uptrace.system.filesystem_by_host_device
 name: 'System: Filesystem Metrics'
 
@@ -254,7 +269,7 @@ table:
     fs_util: { unit: percents }
     inode_util: { unit: percents }
 
-entries:
+grid:
   - name: Filesystem utilization
     metrics:
       - system.filesystem.usage as $fs_usage
@@ -264,13 +279,13 @@ entries:
       fs_util: { unit: percents }
 
   - name: Filesystem usage
-    chart_type: stacked-area
     metrics:
       - system.filesystem.usage as $fs_usage
     query:
       - $fs_usage group by state
     columns:
       fs_usage: { unit: bytes }
+    chart: stacked-area
 
   - name: inodes utilization
     metrics:
@@ -281,8 +296,8 @@ entries:
       fs_util: { unit: percents }
 
   - name: inodes usage
-    chart_type: stacked-area
     metrics:
       - system.filesystem.inodes.usage as $inodes
     query:
       - $inodes group by state
+    chart: stacked-bar

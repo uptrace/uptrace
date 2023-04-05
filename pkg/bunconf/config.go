@@ -71,6 +71,9 @@ func expandEnv(conf string) string {
 }
 
 func validateConfig(conf *Config) error {
+	if err := validateUsers(conf.Auth.Users); err != nil {
+		return err
+	}
 	if err := validateProjects(conf.Projects); err != nil {
 		return err
 	}
@@ -88,23 +91,41 @@ func validateConfig(conf *Config) error {
 	if _, err := url.Parse(conf.Site.Addr); err != nil {
 		return fmt.Errorf("invalid site.addr option: %w", err)
 	}
+	if conf.Site.Path == "" {
+		conf.Site.Path = "/"
+	}
 
 	if conf.Spans.BatchSize == 0 {
 		conf.Spans.BatchSize = ScaleWithCPU(1000, 32000)
 	}
 	if conf.Spans.BufferSize == 0 {
-		conf.Spans.BufferSize = 2 * runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
+		conf.Spans.BufferSize = runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
 	}
 
 	if conf.Metrics.BatchSize == 0 {
 		conf.Metrics.BatchSize = ScaleWithCPU(1000, 32000)
 	}
 	if conf.Metrics.BufferSize == 0 {
-		conf.Metrics.BufferSize = 2 * runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
+		conf.Metrics.BufferSize = runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
+	}
+	if conf.Metrics.CumToDeltaSize == 0 {
+		conf.Metrics.CumToDeltaSize = ScaleWithCPU(10000, 500000)
 	}
 
-	if conf.DB.DSN == "" {
-		return fmt.Errorf(`db.dsn option can not be empty`)
+	return nil
+}
+
+func validateUsers(users []User) error {
+	if len(users) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]bool, len(users))
+	for i := range users {
+		user := &users[i]
+		if seen[user.Username] {
+			return fmt.Errorf("user with username=%q already exists", user.Username)
+		}
 	}
 
 	return nil
@@ -139,6 +160,7 @@ type Config struct {
 
 	Site struct {
 		Addr string `yaml:"addr"`
+		Path string `yaml:"path"`
 	} `yaml:"site"`
 
 	Listen struct {
@@ -146,7 +168,7 @@ type Config struct {
 		GRPC Listen `yaml:"grpc"`
 	} `yaml:"listen"`
 
-	DB BunConfig `yaml:"db"`
+	PG BunConfig `yaml:"pg"`
 	CH CHConfig  `yaml:"ch"`
 
 	CHSchema struct {
@@ -178,8 +200,9 @@ type Config struct {
 	Metrics struct {
 		DropAttrs []string `yaml:"drop_attrs"`
 
-		BufferSize int `yaml:"buffer_size"`
-		BatchSize  int `yaml:"batch_size"`
+		BufferSize     int `yaml:"buffer_size"`
+		BatchSize      int `yaml:"batch_size"`
+		CumToDeltaSize int `yaml:"cum_to_delta_size"`
 	} `yaml:"metrics"`
 
 	MetricsFromSpans []SpanMetric `yaml:"metrics_from_spans"`
@@ -191,19 +214,6 @@ type Config struct {
 	} `yaml:"auth" json:"auth"`
 
 	Projects []Project `yaml:"projects"`
-
-	Alerting struct {
-		Rules []AlertRule `yaml:"rules"`
-
-		CreateAlertsFromSpans struct {
-			Enabled bool              `yaml:"enabled"`
-			Labels  map[string]string `yaml:"labels"`
-		} `yaml:"create_alerts_from_spans"`
-	} `yaml:"alerting"`
-
-	AlertmanagerClient struct {
-		URLs []string `yaml:"urls"`
-	} `yaml:"alertmanager_client"`
 
 	UptraceGo struct {
 		DSN string     `yaml:"dsn"`
@@ -261,36 +271,6 @@ type CHTableOverride struct {
 	TTL string `yaml:"ttl"`
 }
 
-type User struct {
-	Username string `yaml:"username" json:"username"`
-	Password string `yaml:"password" json:"-"`
-}
-
-type CloudflareProvider struct {
-	TeamURL  string `yaml:"team_url" json:"team_url"`
-	Audience string `yaml:"audience" json:"audience"`
-}
-
-type OIDCProvider struct {
-	ID           string   `yaml:"id" json:"id"`
-	DisplayName  string   `yaml:"display_name" json:"display_name"`
-	IssuerURL    string   `yaml:"issuer_url" json:"issuer_url"`
-	ClientID     string   `yaml:"client_id" json:"client_id"`
-	ClientSecret string   `yaml:"client_secret" json:"client_secret"`
-	RedirectURL  string   `yaml:"redirect_url" json:"redirect_url"`
-	Scopes       []string `yaml:"scopes" json:"scopes"`
-	Claim        string   `yaml:"claim" json:"claim"`
-}
-
-type Project struct {
-	ID                  uint32   `yaml:"id" json:"id"`
-	Name                string   `yaml:"name" json:"name"`
-	Token               string   `yaml:"token" json:"token"`
-	PinnedAttrs         []string `yaml:"pinned_attrs" json:"pinnedAttrs"`
-	GroupByEnv          bool     `yaml:"group_by_env" json:"groupByEnv"`
-	GroupFuncsByService bool     `yaml:"group_funcs_by_service" json:"groupFuncsByService"`
-}
-
 func (c *Config) GRPCEndpoint() string {
 	return fmt.Sprintf("%s://%s:%s", c.Listen.GRPC.Scheme, c.Listen.GRPC.Host, c.Listen.GRPC.Port)
 }
@@ -299,28 +279,36 @@ func (c *Config) HTTPEndpoint() string {
 	return fmt.Sprintf("%s://%s:%s", c.Listen.HTTP.Scheme, c.Listen.HTTP.Host, c.Listen.HTTP.Port)
 }
 
-func (c *Config) GRPCDsn(project *Project) string {
+func (c *Config) GRPCDsn(projectID uint32, projectToken string) string {
 	return fmt.Sprintf("%s://%s@%s:%s/%d",
-		c.Listen.GRPC.Scheme, project.Token, c.Listen.GRPC.Host, c.Listen.GRPC.Port, project.ID)
+		c.Listen.GRPC.Scheme, projectToken, c.Listen.GRPC.Host, c.Listen.GRPC.Port, projectID)
 }
 
-func (c *Config) HTTPDsn(project *Project) string {
+func (c *Config) HTTPDsn(projectID uint32, projectToken string) string {
 	return fmt.Sprintf("%s://%s@%s:%s/%d",
-		c.Listen.HTTP.Scheme, project.Token, c.Listen.HTTP.Host, c.Listen.HTTP.Port, project.ID)
+		c.Listen.HTTP.Scheme, projectToken, c.Listen.HTTP.Host, c.Listen.HTTP.Port, projectID)
 }
 
-func (c *Config) SitePath(sitePath string) string {
+func (c *Config) SiteURL(sitePath string, args ...any) string {
 	u, err := url.Parse(c.Site.Addr)
 	if err != nil {
 		panic(err)
 	}
-	u.Path = path.Join(u.Path, sitePath)
+	u.Path = path.Join(u.Path, fmt.Sprintf(sitePath, args...))
 	return u.String()
 }
 
 type BunConfig struct {
-	Driver string `yaml:"driver"`
-	DSN    string `yaml:"dsn"`
+	DSN string `yaml:"dsn"`
+
+	Addr     string `yaml:"addr"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	Database string `yaml:"database"`
+
+	TLS *TLSClient `yaml:"tls"`
+
+	ConnParams map[string]any `yaml:"conn_params"`
 }
 
 type CHConfig struct {

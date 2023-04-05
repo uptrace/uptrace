@@ -8,7 +8,7 @@ import (
 
 	"github.com/uptrace/uptrace"
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func readDashboardTemplates() ([]*DashboardTpl, error) {
@@ -47,148 +47,275 @@ func parseDashboards(data []byte) ([]*DashboardTpl, error) {
 
 	dec := yaml.NewDecoder(bytes.NewReader(data))
 	for {
-		dashboard := new(DashboardTpl)
-		if err := dec.Decode(&dashboard); err != nil {
+		tpl := new(DashboardTpl)
+		if err := yamlUnmarshalDashboardTpl(dec, tpl); err != nil {
 			if err == io.EOF {
 				break
 			}
 			return nil, err
 		}
-
-		if err := dashboard.Validate(); err != nil {
-			return nil, err
-		}
-
-		dashboards = append(dashboards, dashboard)
+		dashboards = append(dashboards, tpl)
 	}
 
 	return dashboards, nil
 }
 
-type DashboardTpl struct {
-	ID   string `yaml:"id"`
-	Name string `yaml:"name"`
-
-	Table struct {
-		Metrics []string                 `yaml:"metrics"`
-		Query   []string                 `yaml:"query"`
-		Columns map[string]*MetricColumn `yaml:"columns"`
-		Gauges  []*DashGaugeTpl          `yaml:"gauges"`
-	} `yaml:"table"`
-
-	Gauges  []*DashGaugeTpl `yaml:"gauges"`
-	Entries []*DashEntryTpl `yaml:"entries"`
-}
-
-func (d *DashboardTpl) Validate() error {
-	if d.ID == "" {
-		return fmt.Errorf("template id is required")
-	}
-	if err := d.validate(); err != nil {
-		return fmt.Errorf("%s: %w", d.ID, err)
-	}
-	return nil
-}
-
-func (d *DashboardTpl) validate() error {
-	if d.Name == "" {
-		return fmt.Errorf("dashboard name is required")
-	}
-
-	if len(d.Table.Query) == 0 && len(d.Entries) == 0 {
-		return fmt.Errorf("either dashboard query or an entry is required")
-	}
-	if _, err := upql.ParseMetrics(d.Table.Metrics); err != nil {
+func yamlUnmarshalDashboardTpl(dec *yaml.Decoder, tpl *DashboardTpl) error {
+	if err := dec.Decode(&tpl); err != nil {
 		return err
 	}
-	for _, gauge := range d.Table.Gauges {
-		if err := gauge.Validate(); err != nil {
-			return err
-		}
-	}
 
-	for _, gauge := range d.Gauges {
-		if err := gauge.Validate(); err != nil {
-			return err
-		}
-	}
-	for _, entry := range d.Entries {
-		if err := entry.Validate(); err != nil {
+	tpl.Grid = make([]GridColumnTpl, len(tpl.GridNodes))
+	for i := range tpl.GridNodes {
+		var err error
+		tpl.Grid[i], err = yamlDecodeGridColumnTpl(&tpl.GridNodes[i])
+		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func yamlDecodeGridColumnTpl(node *yaml.Node) (any, error) {
+	type GridColumnTpl struct {
+		Type GridColumnType `yaml:"type"`
+	}
+
+	tpl := new(GridColumnTpl)
+	if err := node.Decode(tpl); err != nil {
+		return nil, err
+	}
+
+	switch tpl.Type {
+	case "", GridColumnChart:
+		tpl := new(ChartGridColumnTpl)
+		if err := node.Decode(tpl); err != nil {
+			return nil, err
+		}
+		return tpl, nil
+	case GridColumnTable:
+		tpl := new(TableGridColumnTpl)
+		if err := node.Decode(tpl); err != nil {
+			return nil, err
+		}
+		return tpl, nil
+	case GridColumnHeatmap:
+		tpl := new(HeatmapGridColumnTpl)
+		if err := node.Decode(tpl); err != nil {
+			return nil, err
+		}
+		return tpl, nil
+	default:
+		return nil, fmt.Errorf("unsupported grid column type: %q", tpl.Type)
+	}
+}
+
+type DashboardTpl struct {
+	Schema string `yaml:"schema"`
+	ID     string `yaml:"id"`
+	Name   string `yaml:"name"`
+
+	Table struct {
+		Gauges  []*DashGaugeTpl          `yaml:"gauges,omitempty"`
+		Metrics []string                 `yaml:"metrics"`
+		Query   []string                 `yaml:"query"`
+		Columns map[string]*MetricColumn `yaml:"columns,omitempty"`
+	} `yaml:"table"`
+
+	GridGauges []*DashGaugeTpl `yaml:"grid_gauges,omitempty"`
+	GridNodes  []yaml.Node     `yaml:"grid"`
+	Grid       []GridColumnTpl `yaml:"-"`
+}
+
+func NewDashboardTpl(
+	dash *Dashboard, grid []GridColumn, tableGauges, gridGauges []*DashGauge,
+) (*DashboardTpl, error) {
+	tpl := new(DashboardTpl)
+	tpl.Schema = "v1"
+	tpl.ID = dash.TemplateID
+	tpl.Name = dash.Name
+
+	if tpl.ID == "" {
+		tpl.ID = fmt.Sprintf("project_%d.dashboard_%d", dash.ProjectID, dash.ID)
+	}
+
+	tpl.Table.Metrics = make([]string, len(dash.TableMetrics))
+	for i, metric := range dash.TableMetrics {
+		tpl.Table.Metrics[i] = metric.String()
+	}
+	tpl.Table.Query = upql.SplitQuery(dash.TableQuery)
+	tpl.Table.Columns = dash.TableColumnMap
+
+	tpl.GridNodes = make([]yaml.Node, len(grid))
+	for i, col := range grid {
+		var colTpl any
+		switch col := col.(type) {
+		case *ChartGridColumn:
+			colTpl = NewChartGridColumnTpl(col)
+		case *TableGridColumn:
+			colTpl = NewTableGridColumnTpl(col)
+		case *HeatmapGridColumn:
+			colTpl = NewHeatmapGridColumnTpl(col)
+		default:
+			return nil, fmt.Errorf("unsupported grid column type: %T", col)
+		}
+
+		node := &tpl.GridNodes[i]
+		if err := node.Encode(colTpl); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(tableGauges) > 0 {
+		tpl.Table.Gauges = make([]*DashGaugeTpl, len(tableGauges))
+		for i, gauge := range tableGauges {
+			tpl.Table.Gauges[i] = NewDashGaugeTpl(gauge)
+		}
+	}
+
+	if len(gridGauges) > 0 {
+		tpl.GridGauges = make([]*DashGaugeTpl, len(gridGauges))
+		for i, gauge := range gridGauges {
+			tpl.GridGauges[i] = NewDashGaugeTpl(gauge)
+		}
+	}
+
+	return tpl, nil
 }
 
 type DashGaugeTpl struct {
-	Name        string                   `yaml:"name"`
-	Description string                   `yaml:"description"`
-	Template    string                   `yaml:"template"`
-	Metrics     []string                 `yaml:"metrics"`
-	Query       []string                 `yaml:"query"`
-	Columns     map[string]*MetricColumn `yaml:"columns"`
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+	Template    string `yaml:"template"`
+
+	Metrics []string                 `yaml:"metrics"`
+	Query   []string                 `yaml:"query"`
+	Columns map[string]*MetricColumn `yaml:"columns,omitempty"`
+
+	GridQueryTemplate string `yaml:"grid_query_template,omitempty"`
 }
 
-func (g *DashGaugeTpl) Validate() error {
-	if g.Name == "" {
-		return fmt.Errorf("gauge name is required")
-	}
-	if g.Description == "" {
-		return fmt.Errorf("gauge description is required")
-	}
-	if len(g.Metrics) == 0 {
-		return fmt.Errorf("gauge requires at least one metric")
-	}
-	if len(g.Query) == 0 {
-		return fmt.Errorf("gauge query is required")
+func NewDashGaugeTpl(gauge *DashGauge) *DashGaugeTpl {
+	tpl := new(DashGaugeTpl)
+
+	tpl.Name = gauge.Name
+	tpl.Description = gauge.Description
+	tpl.Template = gauge.Template
+
+	tpl.Metrics = make([]string, len(gauge.Metrics))
+	for i, metric := range gauge.Metrics {
+		tpl.Metrics[i] = metric.String()
 	}
 
-	if _, err := upql.ParseMetrics(g.Metrics); err != nil {
-		return err
-	}
+	tpl.Query = upql.SplitQuery(gauge.Query)
+	tpl.Columns = gauge.ColumnMap
 
-	return nil
+	tpl.GridQueryTemplate = gauge.GridQueryTemplate
+
+	return tpl
 }
 
-type DashEntryTpl struct {
-	Name        string                   `yaml:"name"`
-	Description string                   `yaml:"description"`
-	ChartType   string                   `yaml:"chart_type"`
-	Metrics     []string                 `yaml:"metrics"`
-	Query       []string                 `yaml:"query"`
-	Columns     map[string]*MetricColumn `yaml:"columns"`
+type GridColumnTpl interface{}
+
+type BaseGridColumnTpl struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description,omitempty"`
+
+	Width  int32 `yaml:"width,omitempty"`
+	Height int32 `yaml:"height,omitempty"`
+	XAxis  int32 `yaml:"xAxis,omitempty"`
+	YAxis  int32 `yaml:"yAxis,omitempty"`
+
+	GridQueryTemplate string `yaml:"grid_query_template,omitempty"`
+
+	Type GridColumnType `yaml:"type"`
 }
 
-const (
-	LineChartType        = "line"
-	AreaChartType        = "area"
-	BarChartType         = "bar"
-	StackedAreaChartType = "stacked-area"
-	StackedBarChartType  = "stacked-bar"
-)
+func (c *BaseGridColumnTpl) From(gridColType GridColumnType, baseCol *BaseGridColumn) {
+	c.Name = baseCol.Name
+	c.Description = baseCol.Description
 
-func (e *DashEntryTpl) Validate() error {
-	if e.Name == "" {
-		return fmt.Errorf("entry name is required")
+	c.Width = baseCol.Width
+	c.Height = baseCol.Height
+	c.XAxis = baseCol.XAxis
+	c.YAxis = baseCol.YAxis
+
+	c.GridQueryTemplate = baseCol.GridQueryTemplate
+
+	c.Type = gridColType
+}
+
+type ChartGridColumnTpl struct {
+	BaseGridColumnTpl `yaml:",inline"`
+
+	ChartKind ChartKind                   `yaml:"chart"`
+	Metrics   []string                    `yaml:"metrics"`
+	Query     []string                    `yaml:"query"`
+	Columns   map[string]*MetricColumn    `yaml:"columns,omitempty"`
+	Styles    map[string]*TimeseriesStyle `yaml:"styles,omitempty"`
+	Legend    *ChartLegend                `yaml:"legend,omitempty"`
+}
+
+func NewChartGridColumnTpl(col *ChartGridColumn) *ChartGridColumnTpl {
+	tpl := new(ChartGridColumnTpl)
+	tpl.BaseGridColumnTpl.From(GridColumnChart, col.BaseGridColumn)
+
+	tpl.Metrics = make([]string, len(col.Params.Metrics))
+	for i, metric := range col.Params.Metrics {
+		tpl.Metrics[i] = metric.String()
 	}
 
-	switch e.ChartType {
-	case "", LineChartType, AreaChartType, BarChartType, StackedAreaChartType, StackedBarChartType:
-	default:
-		return fmt.Errorf("unknown chart type: %q", e.ChartType)
+	tpl.ChartKind = col.Params.ChartKind
+	tpl.Query = upql.SplitQuery(col.Params.Query)
+	tpl.Columns = col.Params.ColumnMap
+	tpl.Styles = col.Params.TimeseriesMap
+	tpl.Legend = col.Params.Legend
+	if tpl.Legend.Type == "" {
+		tpl.Legend = nil
 	}
 
-	if len(e.Metrics) == 0 {
-		return fmt.Errorf("entry requires at least one metric")
-	}
-	if len(e.Query) == 0 {
-		return fmt.Errorf("entry query is required")
+	return tpl
+}
+
+type TableGridColumnTpl struct {
+	BaseGridColumnTpl `yaml:",inline"`
+
+	Metrics []string                 `yaml:"metrics"`
+	Query   []string                 `yaml:"query"`
+	Columns map[string]*MetricColumn `yaml:"columns,omitempty"`
+}
+
+func NewTableGridColumnTpl(col *TableGridColumn) *TableGridColumnTpl {
+	tpl := new(TableGridColumnTpl)
+	tpl.BaseGridColumnTpl.From(GridColumnTable, col.BaseGridColumn)
+
+	tpl.Metrics = make([]string, len(col.Params.Metrics))
+	for i, metric := range col.Params.Metrics {
+		tpl.Metrics[i] = metric.String()
 	}
 
-	if _, err := upql.ParseMetrics(e.Metrics); err != nil {
-		return err
-	}
+	tpl.Query = upql.SplitQuery(col.Params.Query)
+	tpl.Columns = col.Params.ColumnMap
 
-	return nil
+	return tpl
+}
+
+type HeatmapGridColumnTpl struct {
+	BaseGridColumnTpl `yaml:",inline"`
+
+	Metric string   `yaml:"metric"`
+	Unit   string   `yaml:"unit,omitempty"`
+	Query  []string `yaml:"query"`
+}
+
+func NewHeatmapGridColumnTpl(col *HeatmapGridColumn) *HeatmapGridColumnTpl {
+	tpl := new(HeatmapGridColumnTpl)
+	tpl.BaseGridColumnTpl.From(GridColumnHeatmap, col.BaseGridColumn)
+
+	tpl.Metric = col.Params.Metric
+	tpl.Unit = col.Params.Unit
+	tpl.Query = upql.SplitQuery(col.Params.Query)
+
+	return tpl
 }

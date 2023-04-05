@@ -2,8 +2,8 @@ package metrics
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -11,7 +11,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/bunutil"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
 	"go.uber.org/zap"
 )
 
@@ -42,13 +41,13 @@ func NewDashSyncer(app *bunapp.App) *DashSyncer {
 	ctx := app.Context()
 	projects := app.Config().Projects
 	for i := range projects {
-		s.Sync(ctx, projects[i].ID)
+		s.CreateDashboards(ctx, projects[i].ID)
 	}
 
 	return s
 }
 
-func (s *DashSyncer) Sync(ctx context.Context, projectID uint32) {
+func (s *DashSyncer) CreateDashboards(ctx context.Context, projectID uint32) {
 	s.debouncerMu.Lock()
 	defer s.debouncerMu.Unlock()
 
@@ -60,7 +59,7 @@ func (s *DashSyncer) Sync(ctx context.Context, projectID uint32) {
 
 	debouncer.Run(15*time.Second, func() {
 		if err := bunotel.RunWithNewRoot(ctx, "sync-dashboards", func(ctx context.Context) error {
-			return s.syncDashboards(ctx, projectID)
+			return s.createDashboards(ctx, projectID)
 		}); err != nil {
 			s.logger.Error("syncDashboards failed",
 				zap.Uint32("project_id", projectID),
@@ -69,39 +68,50 @@ func (s *DashSyncer) Sync(ctx context.Context, projectID uint32) {
 	})
 }
 
-func (s *DashSyncer) syncDashboards(ctx context.Context, projectID uint32) error {
-	dashMap, err := SelectDashboardMap(ctx, s.app, projectID)
-	if err != nil {
-		return fmt.Errorf("SelectDashboardMap failed: %w", err)
-	}
-
+func (s *DashSyncer) createDashboards(ctx context.Context, projectID uint32) error {
 	metricMap, err := SelectMetricMap(ctx, s.app, projectID)
 	if err != nil {
 		return fmt.Errorf("SelectMetricMap failed: %w", err)
 	}
 
+	var dashboards []*Dashboard
+
+	if err := s.app.PG.NewSelect().
+		Model(&dashboards).
+		Where("project_id = ?", projectID).
+		Where("template_id IS NOT NULL").
+		Scan(ctx); err != nil {
+		return fmt.Errorf("SelectDashboardMap failed: %w", err)
+	}
+
+	dashMap := make(map[string]*Dashboard, len(dashboards))
+
+	for _, dash := range dashboards {
+		dashMap[dash.TemplateID] = dash
+	}
+
 	for _, tpl := range s.templates {
 		dash, ok := dashMap[tpl.ID]
-		if !ok {
-			dash = &Dashboard{
-				TemplateID: tpl.ID,
-				ProjectID:  projectID,
+		if ok {
+			if s.isDashChanged(ctx, dash) {
+				continue
 			}
 		}
 
-		builder := &DashBuilder{
-			metricMap: metricMap,
-			dash:      dash,
-			logger:    s.logger,
-		}
+		builder := NewDashBuilder(projectID, dash)
+
 		if err := builder.Build(tpl); err != nil {
 			return fmt.Errorf("building dashboard %s failed: %w", tpl.ID, err)
 		}
 
-		if dash.ID != 0 {
-			if err := DeleteDashboard(ctx, s.app, dash.ID); err != nil {
-				return fmt.Errorf("DeleteDashboard failed: %w", err)
-			}
+		if !builder.HasMetrics(metricMap) {
+			continue
+		}
+
+		if builder.oldDash != nil {
+			// Preserve some fields.
+			builder.dash.Name = builder.oldDash.Name
+			builder.dash.GridQuery = builder.oldDash.GridQuery
 		}
 
 		if err := builder.Save(ctx, s.app); err != nil {
@@ -112,152 +122,267 @@ func (s *DashSyncer) syncDashboards(ctx context.Context, projectID uint32) error
 	return nil
 }
 
+func (s *DashSyncer) isDashChanged(ctx context.Context, dash *Dashboard) bool {
+	if !dash.CreatedAt.Equal(dash.UpdatedAt) {
+		return true
+	}
+
+	n, err := s.app.PG.NewSelect().
+		Model((*BaseGridColumn)(nil)).
+		Where("dash_id = ?", dash.ID).
+		Where("updated_at != created_at").
+		Count(ctx)
+	if err != nil {
+		s.logger.Ctx(ctx).Error("countChangedColumns failed", zap.Error(err))
+		return true
+	}
+	if n > 0 {
+		return true
+	}
+
+	n, err = s.app.PG.NewSelect().
+		Model((*DashGauge)(nil)).
+		Where("dash_id = ?", dash.ID).
+		Where("updated_at != created_at").
+		Count(ctx)
+	if err != nil {
+		s.logger.Ctx(ctx).Error("countChangedGauges failed", zap.Error(err))
+		return true
+	}
+	if n > 0 {
+		return true
+	}
+
+	return false
+}
+
+//------------------------------------------------------------------------------
+
 type DashBuilder struct {
-	metricMap map[string]*Metric
+	projectID uint32
+	oldDash   *Dashboard
 	dash      *Dashboard
 	gauges    []*DashGauge
-	entries   []*DashEntry
-	logger    *otelzap.Logger
+	grid      []GridColumn
+}
+
+func NewDashBuilder(projectID uint32, oldDash *Dashboard) *DashBuilder {
+	return &DashBuilder{
+		projectID: projectID,
+		oldDash:   oldDash,
+	}
 }
 
 func (b *DashBuilder) Build(tpl *DashboardTpl) error {
-	metrics, err := upql.ParseMetrics(tpl.Table.Metrics)
-	if err != nil {
+	now := time.Now()
+	b.dash = &Dashboard{
+		ProjectID: b.projectID,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+
+	if err := b.dash.FromTemplate(tpl); err != nil {
 		return err
 	}
-
-	b.dash.Name = tpl.Name
-	b.dash.Metrics = metrics
-	b.dash.Query = strings.Join(tpl.Table.Query, " | ")
-	b.dash.Columns = tpl.Table.Columns
-	b.dash.IsTable = len(b.dash.Metrics) > 0 && b.dash.Query != ""
-
-	for _, gauge := range tpl.Table.Gauges {
-		if err := b.gauge(gauge, DashTable); err != nil {
-			return err
-		}
-	}
-
-	for _, gauge := range tpl.Gauges {
-		if err := b.gauge(gauge, DashGrid); err != nil {
-			return err
-		}
-	}
-
-	for _, entry := range tpl.Entries {
-		if err := b.entry(entry); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (b *DashBuilder) gauge(tpl *DashGaugeTpl, dashKind string) error {
-	metrics, err := upql.ParseMetrics(tpl.Metrics)
-	if err != nil {
-		return err
-	}
-
-	for _, metric := range metrics {
-		if _, ok := b.metricMap[metric.Name]; !ok {
-			b.logger.Debug("metric not found",
-				zap.Uint32("project_id", b.dash.ProjectID),
-				zap.String("metric", metric.Name))
-			return nil
-		}
-	}
-
-	b.gauges = append(b.gauges, &DashGauge{
-		DashKind:    dashKind,
-		Name:        tpl.Name,
-		Description: tpl.Description,
-		Template:    tpl.Template,
-		Metrics:     metrics,
-		Query:       strings.Join(tpl.Query, " | "),
-		Columns:     tpl.Columns,
-	})
-	return nil
-}
-
-func (b *DashBuilder) entry(tpl *DashEntryTpl) error {
-	metrics, err := upql.ParseMetrics(tpl.Metrics)
-	if err != nil {
-		return err
-	}
-
-	for _, metric := range metrics {
-		if _, ok := b.metricMap[metric.Name]; !ok {
-			b.logger.Debug("metric not found",
-				zap.Uint32("project_id", b.dash.ProjectID),
-				zap.String("metric", metric.Name))
-			return nil
-		}
-	}
-
-	b.entries = append(b.entries, &DashEntry{
-		Name:        tpl.Name,
-		Description: tpl.Description,
-		ChartType:   tpl.ChartType,
-		Metrics:     metrics,
-		Query:       strings.Join(tpl.Query, " | "),
-		Columns:     tpl.Columns,
-	})
-	return nil
-}
-
-func (b *DashBuilder) Save(ctx context.Context, app *bunapp.App) error {
-	if !b.dash.IsTable && len(b.entries) == 0 {
-		return nil
-	}
-
 	if err := b.dash.Validate(); err != nil {
 		return err
 	}
 
-	for _, metric := range b.dash.Metrics {
-		if _, ok := b.metricMap[metric.Name]; !ok {
-			b.logger.Debug("metric not found",
-				zap.Uint32("project_id", b.dash.ProjectID),
-				zap.String("metric", metric.Name))
-			return nil
+	for index, gauge := range tpl.Table.Gauges {
+		if err := b.gauge(index, gauge, DashTable); err != nil {
+			return err
 		}
+	}
+
+	for index, gauge := range tpl.GridGauges {
+		if err := b.gauge(index, gauge, DashGrid); err != nil {
+			return err
+		}
+	}
+
+	for _, tpl := range tpl.Grid {
+		if err := b.gridColumn(tpl); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (b *DashBuilder) gauge(index int, tpl *DashGaugeTpl, dashKind DashKind) error {
+	gauge := &DashGauge{
+		ProjectID: b.projectID,
+		DashKind:  dashKind,
+		Index:     sql.NullInt64{Int64: int64(index), Valid: true},
+		CreatedAt: b.dash.CreatedAt,
+		UpdatedAt: b.dash.UpdatedAt,
+	}
+	if err := gauge.FromTemplate(tpl); err != nil {
+		return err
+	}
+	if err := gauge.Validate(); err != nil {
+		return err
+	}
+
+	b.gauges = append(b.gauges, gauge)
+	return nil
+}
+
+func (b *DashBuilder) gridColumn(tpl GridColumnTpl) error {
+	switch tpl := tpl.(type) {
+	case *ChartGridColumnTpl:
+		col := &ChartGridColumn{
+			BaseGridColumn: &BaseGridColumn{
+				ProjectID: b.projectID,
+				Type:      GridColumnChart,
+				CreatedAt: b.dash.CreatedAt,
+				UpdatedAt: b.dash.UpdatedAt,
+			},
+		}
+		col.BaseGridColumn.Params.Any = &col.Params
+
+		if err := col.FromTemplate(tpl); err != nil {
+			return err
+		}
+		if err := col.Validate(); err != nil {
+			return err
+		}
+
+		b.grid = append(b.grid, col)
+		return nil
+	case *TableGridColumnTpl:
+		col := &TableGridColumn{
+			BaseGridColumn: &BaseGridColumn{
+				ProjectID: b.projectID,
+				Type:      GridColumnTable,
+				CreatedAt: b.dash.CreatedAt,
+				UpdatedAt: b.dash.UpdatedAt,
+			},
+		}
+		col.BaseGridColumn.Params.Any = &col.Params
+
+		if err := col.FromTemplate(tpl); err != nil {
+			return err
+		}
+		if err := col.Validate(); err != nil {
+			return err
+		}
+
+		b.grid = append(b.grid, col)
+		return nil
+	case *HeatmapGridColumnTpl:
+		col := &HeatmapGridColumn{
+			BaseGridColumn: &BaseGridColumn{
+				ProjectID: b.projectID,
+				Type:      GridColumnHeatmap,
+				CreatedAt: b.dash.CreatedAt,
+				UpdatedAt: b.dash.UpdatedAt,
+			},
+		}
+		col.BaseGridColumn.Params.Any = &col.Params
+
+		if err := col.FromTemplate(tpl); err != nil {
+			return err
+		}
+		if err := col.Validate(); err != nil {
+			return err
+		}
+
+		b.grid = append(b.grid, col)
+		return nil
+	default:
+		return fmt.Errorf("unsupported grid column template type: %T", tpl)
+	}
+}
+
+func (b *DashBuilder) HasMetrics(metricMap map[string]*Metric) bool {
+	for _, metric := range b.dash.TableMetrics {
+		if _, ok := metricMap[metric.Name]; !ok {
+			return false
+		}
+	}
+
+gauge_loop:
+	for i := len(b.gauges) - 1; i >= 0; i-- {
+		gauge := b.gauges[i]
+		for _, metric := range gauge.Metrics {
+			if _, ok := metricMap[metric.Name]; !ok {
+
+				b.gauges = append(b.gauges[:i], b.gauges[i+1:]...)
+				continue gauge_loop
+			}
+		}
+	}
+
+grid_loop:
+	for i := len(b.grid) - 1; i >= 0; i-- {
+		col := b.grid[i]
+		switch col := col.(type) {
+		case *ChartGridColumn:
+			for _, metric := range col.Params.Metrics {
+				if _, ok := metricMap[metric.Name]; !ok {
+					b.grid = append(b.grid[:i], b.grid[i+1:]...)
+					continue grid_loop
+				}
+			}
+
+		case *TableGridColumn:
+			for _, metric := range col.Params.Metrics {
+				if _, ok := metricMap[metric.Name]; !ok {
+					b.grid = append(b.grid[:i], b.grid[i+1:]...)
+					continue grid_loop
+				}
+			}
+
+		case *HeatmapGridColumn:
+			if _, ok := metricMap[col.Params.Metric]; !ok {
+				b.grid = append(b.grid[:i], b.grid[i+1:]...)
+				continue grid_loop
+			}
+
+		default:
+			panic(fmt.Errorf("unsupported grid column type: %T", col))
+		}
+
+	}
+
+	return len(b.grid) > 0
+}
+
+func (b *DashBuilder) Save(ctx context.Context, app *bunapp.App) error {
+	if b.oldDash != nil {
+		if err := DeleteDashboard(ctx, app, b.oldDash.ID); err != nil {
+			return fmt.Errorf("DeleteDashboard failed: %w", err)
+		}
+
+		b.dash.ID = b.oldDash.ID
 	}
 
 	if err := InsertDashboard(ctx, app, b.dash); err != nil {
-		return err
-	}
-
-	for i, gauge := range b.gauges {
-		gauge.DashID = b.dash.ID
-		gauge.ProjectID = b.dash.ProjectID
-		gauge.Weight = len(b.gauges) - i
+		return fmt.Errorf("InsertDashboard failed: %w", err)
 	}
 
 	for _, gauge := range b.gauges {
-		if err := gauge.Validate(); err != nil {
+		gauge.DashID = b.dash.ID
+	}
+
+	baseCols := make([]*BaseGridColumn, len(b.grid))
+	for i, col := range b.grid {
+		baseCol := col.Base()
+		baseCol.DashID = b.dash.ID
+		baseCols[i] = baseCol
+	}
+
+	if len(b.gauges) > 0 {
+		if err := InsertDashGauges(ctx, app, b.gauges); err != nil {
 			return err
 		}
 	}
 
-	if err := InsertDashGauges(ctx, app, b.gauges); err != nil {
-		return err
-	}
-
-	for i, entry := range b.entries {
-		entry.DashID = b.dash.ID
-		entry.ProjectID = b.dash.ProjectID
-		entry.Weight = len(b.entries) - i
-	}
-
-	for _, entry := range b.entries {
-		if err := entry.Validate(); err != nil {
+	if len(baseCols) > 0 {
+		if err := InsertGridColumns(ctx, app, baseCols); err != nil {
 			return err
 		}
-	}
-
-	if err := InsertDashEntries(ctx, app, b.entries); err != nil {
-		return err
 	}
 
 	return nil

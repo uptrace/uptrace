@@ -1,29 +1,19 @@
 <template>
-  <XPlaceholder>
-    <template v-if="explore.errorCode === 'invalid_query'" #placeholder>
+  <div>
+    <template v-if="groups.errorCode === 'invalid_query'">
       <v-row>
         <v-col>
           <v-banner>
             <v-icon slot="icon" color="error" size="36">mdi-alert-circle</v-icon>
-            <span class="subtitle-1 text--secondary">{{ explore.errorMessage }}</span>
+            <span class="subtitle-1 text--secondary">{{ groups.errorMessage }}</span>
           </v-banner>
 
-          <PrismCode v-if="explore.query" :code="explore.query" language="sql" />
+          <PrismCode v-if="groups.query" :code="groups.query" language="sql" />
         </v-col>
       </v-row>
     </template>
 
-    <UptraceQuery :uql="uql" class="mt-1 mb-3">
-      <SpanQueryBuilder
-        :uql="uql"
-        :systems="systems"
-        :axios-params="axiosParams"
-        :agg-disabled="['EventGroupList', 'SpanGroupList'].indexOf($route.name) === -1"
-        @click:reset="resetQuery"
-      />
-    </UptraceQuery>
-
-    <v-row>
+    <v-row v-else>
       <v-col>
         <v-card rounded="lg" outlined class="mb-4">
           <v-toolbar flat color="light-blue lighten-5">
@@ -31,59 +21,50 @@
               <span>Groups</span>
             </v-toolbar-title>
 
+            <v-text-field
+              v-model="searchInput"
+              label="Quick search over group names"
+              clearable
+              outlined
+              dense
+              hide-details="auto"
+              class="ml-8"
+              style="max-width: 300px"
+            />
+
             <v-spacer />
 
             <div class="text-body-2 blue-grey--text text--darken-3">
-              <strong><XNum :value="explore.pager.numItem" verbose /></strong> groups
+              <span v-if="groups.hasMore">more than </span>
+              <strong><XNum :value="numGroup" verbose /></strong> groups
             </div>
           </v-toolbar>
 
-          <v-card-text>
-            <v-slide-group v-model="activeColumns" multiple center-active show-arrows class="mb-4">
-              <v-slide-item
-                v-for="(col, i) in explore.plotColumns"
-                v-slot="{ active, toggle }"
-                :key="col.name"
-                :value="col.name"
-              >
-                <v-btn
-                  :input-value="active"
-                  active-class="blue white--text"
-                  small
-                  depressed
-                  rounded
-                  :class="{ 'ml-1': i > 0 }"
-                  style="text-transform: none"
-                  @click="toggle"
-                >
-                  {{ col.name }}
-                </v-btn>
-              </v-slide-item>
-            </v-slide-group>
-
-            <GroupsTable
+          <v-container fluid>
+            <GroupsList
               :date-range="dateRange"
               :events-mode="eventsMode"
               :uql="uql"
-              :loading="explore.loading"
-              :items="explore.pageItems"
-              :columns="explore.columns"
-              :group-columns="explore.groupColumns"
-              :plot-columns="activeColumns"
-              :order="explore.order"
-              :axios-params="axiosParams"
+              :loading="groups.loading"
+              :is-resolved="groups.status.isResolved()"
+              :groups="filteredGroups"
+              :columns="groups.columns"
+              :plottable-columns="groups.plottableColumns"
+              show-plotted-column-items
+              :order="groups.order"
               :show-system="showSystem"
+              :axios-params="internalAxiosParams"
+              @update:num-group="numGroup = $event"
             />
-          </v-card-text>
+          </v-container>
         </v-card>
-
-        <XPagination :pager="explore.pager" />
       </v-col>
     </v-row>
-  </XPlaceholder>
+  </div>
 </template>
 
 <script lang="ts">
+import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
 import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 
 // Composables
@@ -91,18 +72,16 @@ import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/tracing/system/use-systems'
 import { UseUql } from '@/use/uql'
-import { useSpanExplore } from '@/tracing/use-span-explore'
+import { useGroups, Group } from '@/tracing/use-explore-spans'
 
 // Components
-import UptraceQuery from '@/components/UptraceQuery.vue'
-import SpanQueryBuilder from '@/tracing/query/SpanQueryBuilder.vue'
-import GroupsTable from '@/tracing/GroupsTable.vue'
+import GroupsList from '@/tracing/GroupsList.vue'
 
 import { isDummySystem } from '@/models/otel'
 
 export default defineComponent({
   name: 'TracingGroups',
-  components: { UptraceQuery, SpanQueryBuilder, GroupsTable },
+  components: { GroupsList },
 
   props: {
     dateRange: {
@@ -121,14 +100,6 @@ export default defineComponent({
       type: Boolean,
       required: true,
     },
-    query: {
-      type: String,
-      required: true,
-    },
-    spanListRoute: {
-      type: String,
-      required: true,
-    },
     axiosParams: {
       type: Object as PropType<Record<string, any>>,
       required: true,
@@ -137,14 +108,30 @@ export default defineComponent({
 
   setup(props) {
     const { route } = useRouter()
-    const activeColumns = shallowRef<string[]>([])
 
-    const explore = useSpanExplore(() => {
+    const groups = useGroups(() => {
       const { projectId } = route.value.params
       return {
         url: `/api/v1/tracing/${projectId}/groups`,
         params: props.axiosParams,
       }
+    })
+
+    const searchInput = shallowRef('')
+    const numGroup = shallowRef(0)
+    const filteredGroups = computed((): Group[] => {
+      if (!searchInput.value) {
+        return groups.items
+      }
+      return fuzzyFilter(groups.items, searchInput.value, { key: '_name' })
+    })
+
+    const internalAxiosParams = computed(() => {
+      if (!groups.status.isResolved()) {
+        // Block requests until items are ready.
+        return { _: undefined }
+      }
+      return props.axiosParams
     })
 
     const showSystem = computed(() => {
@@ -163,44 +150,22 @@ export default defineComponent({
     })
 
     watch(
-      () => explore.plotColumns,
-      (allColumns) => {
-        if (allColumns.length && !activeColumns.value.length) {
-          activeColumns.value = [allColumns[0].name]
+      () => groups.queryInfo,
+      (queryInfo) => {
+        if (queryInfo) {
+          props.uql.setQueryInfo(queryInfo)
         }
       },
     )
-
-    watch(
-      () => explore.queryParts,
-      (queryParts) => {
-        if (queryParts) {
-          props.uql.syncParts(queryParts)
-        }
-      },
-    )
-
-    watch(
-      () => props.query,
-      () => {
-        if (!route.value.query.query) {
-          resetQuery()
-        }
-      },
-      { immediate: true },
-    )
-
-    function resetQuery() {
-      props.uql.query = props.query
-    }
 
     return {
-      route,
-      activeColumns,
-      explore,
-      showSystem,
+      internalAxiosParams,
+      groups,
 
-      resetQuery,
+      searchInput,
+      numGroup,
+      filteredGroups,
+      showSystem,
     }
   },
 })

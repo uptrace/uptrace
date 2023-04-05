@@ -17,17 +17,13 @@ module.exports = {
     '@typescript-eslint/no-non-null-assertion': 'off',
     '@typescript-eslint/ban-ts-comment': 'off',
 
-    'vue/multi-word-component-names': 'off',
+    'vue/no-v-html': 'off',
     'vue/no-mutating-props': 'off',
     'vue/no-template-shadow': 'off',
+    'vue/multi-word-component-names': 'off',
 
     '@typescript-eslint/no-unused-vars': ['error', { args: 'none' }],
-    'no-unused-vars': [
-      'error',
-      // we are only using this rule to check for unused arguments since TS
-      // catches unused variables but not args.
-      { varsIgnorePattern: '.*', args: 'after-used', argsIgnorePattern: '^_' },
-    ],
+    'no-unused-vars': ['error', { args: 'none' }],
   },
   overrides: [
     {

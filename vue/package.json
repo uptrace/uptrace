@@ -25,11 +25,13 @@
     "querystring-es3": "0.2.1",
     "roboto-fontface": "^0.10.0",
     "sql-formatter": "11.0.2",
-    "vue": "2.7.13",
+    "vue": "2.7.14",
     "vue-frag": "1.4.1",
     "vue-prism-component": "1.2.0",
     "vue-router": "3.6.5",
-    "vuetify": "2.6.12"
+    "vuetify": "2.6.13",
+    "fuzzaldrin-plus": "^0.6.0",
+    "gridstack": "^7.2.3"
   },
   "devDependencies": {
     "@types/chai": "4.3.3",
@@ -54,14 +56,13 @@
     "eslint": "8.26.0",
     "eslint-plugin-prettier": "4.2.1",
     "eslint-plugin-vue": "9.6.0",
-    "fuzzaldrin-plus": "^0.6.0",
     "prettier": "2.7.1",
     "regenerator-runtime": "0.13.10",
     "sass": "1.32.8",
     "sass-loader": "10.1.1",
     "typescript": "4.8.4",
     "vue-cli-plugin-vuetify": "2.5.8",
-    "vue-template-compiler": "2.7.13",
+    "vue-template-compiler": "2.7.14",
     "vuedraggable": "^2.24.3",
     "vuetify-loader": "1.9.2"
   }

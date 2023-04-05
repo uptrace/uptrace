@@ -20,9 +20,34 @@ type Error interface {
 	HTTPStatusCode() int
 }
 
-type httpError struct {
-	Status int `json:"status"`
+//------------------------------------------------------------------------------
 
+func Wrap(err error) Error {
+	return wrappedError{
+		error: err,
+	}
+}
+
+type wrappedError struct {
+	error
+}
+
+func (e wrappedError) HTTPStatusCode() int {
+	return http.StatusBadRequest
+}
+
+func (e wrappedError) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]any{
+		"status":  e.HTTPStatusCode(),
+		"code":    "bad_request",
+		"message": e.Error(),
+	})
+}
+
+//------------------------------------------------------------------------------
+
+type httpError struct {
+	Status  int    `json:"status"`
 	Code    string `json:"code"`
 	Message string `json:"message"`
 }

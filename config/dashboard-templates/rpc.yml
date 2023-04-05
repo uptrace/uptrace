@@ -1,0 +1,103 @@
+schema: v1
+id: uptrace.rpc.client_by_service_method_host
+name: 'RPC: client'
+
+table:
+  metrics:
+    - rpc.client.duration as $dur
+  query:
+    - group by rpc.service
+    - group by rpc.method
+    - group by host.name
+    - per_min($dur)
+    - p50($dur)
+    - p99($dur)
+
+grid:
+  - name: Number of RPC requests
+    metrics:
+      - rpc.client.duration as $dur
+    query:
+      - per_min($dur)
+
+  - name: P50 duration
+    metrics:
+      - rpc.client.duration as $dur
+    query:
+      - p50($dur)
+
+  - name: P90 duration
+    metrics:
+      - rpc.client.duration as $dur
+    query:
+      - p90($dur)
+
+  - name: P99 duration
+    metrics:
+      - rpc.client.duration as $dur
+    query:
+      - p99($dur)
+
+  - name: Max duration
+    metrics:
+      - rpc.client.duration as $dur
+    query:
+      - max($dur)
+
+  - name: RPC heatmap
+    type: heatmap
+    size: large
+    metric: rpc.client.duration
+    unit: milliseconds
+---
+schema: v1
+id: uptrace.rpc.server_by_service_method
+name: 'RPC: server'
+
+table:
+  metrics:
+    - rpc.server.duration as $dur
+  query:
+    - group by rpc.service
+    - group by rpc.method
+    - group by host.name
+    - per_min($dur)
+    - p50($dur)
+    - p99($dur)
+
+grid:
+  - name: Number of RPC requests
+    metrics:
+      - rpc.server.duration as $dur
+    query:
+      - per_min($dur)
+
+  - name: P50 duration
+    metrics:
+      - rpc.server.duration as $dur
+    query:
+      - p50($dur)
+
+  - name: P90 duration
+    metrics:
+      - rpc.server.duration as $dur
+    query:
+      - p90($dur)
+
+  - name: P99 duration
+    metrics:
+      - rpc.server.duration as $dur
+    query:
+      - p99($dur)
+
+  - name: Max duration
+    metrics:
+      - rpc.server.duration as $dur
+    query:
+      - max($dur)
+
+  - name: RPC heatmap
+    type: heatmap
+    size: large
+    metric: rpc.server.duration
+    unit: milliseconds

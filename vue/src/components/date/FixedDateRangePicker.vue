@@ -27,7 +27,7 @@ import PeriodPickerMenu from '@/components/date/PeriodPickerMenu.vue'
 
 // Utilities
 import { periodsForDays } from '@/models/period'
-import { hour } from '@/util/fmt/date'
+import { HOUR } from '@/util/fmt/date'
 
 export default defineComponent({
   name: 'FixedDateRangePicker',
@@ -65,7 +65,7 @@ export default defineComponent({
           return
         }
 
-        const period = periods.value.find((p) => p.milliseconds === hour)
+        const period = periods.value.find((p) => p.milliseconds === HOUR)
         if (period) {
           props.dateRange.changeAround(props.around, period.milliseconds)
           return

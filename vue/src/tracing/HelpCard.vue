@@ -16,11 +16,13 @@
             and configure it using the provided DSN (connection string).
           </p>
 
-          <p>For Go, Python, and .NET, use <strong>OTLP/gRPC</strong> (port 14317):</p>
+          <p>
+            For Go, Python, .NET, Rust, Erlang, and Elixir, use <strong>OTLP/gRPC</strong> port:
+          </p>
 
           <PrismCode :code="`UPTRACE_DSN=${project.grpc.dsn}`" class="mb-4" />
 
-          <p>For Ruby and Node.JS, use <strong>OTLP/HTTP</strong> (port 14318):</p>
+          <p>For Ruby, Node.JS, and PHP, use <strong>OTLP/HTTP</strong> port:</p>
 
           <PrismCode :code="`UPTRACE_DSN=${project.http.dsn}`" class="mb-4" />
         </v-col>
@@ -127,7 +129,7 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
-import { useProject } from '@/use/project'
+import { useProject } from '@/org/use-projects'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'

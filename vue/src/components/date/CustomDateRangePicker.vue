@@ -32,7 +32,7 @@ import { UseDateRange } from '@/use/date-range'
 import DateTextInput from '@/components/date/DateTextInput.vue'
 
 // Utilities
-import { hour } from '@/util/fmt/date'
+import { HOUR } from '@/util/fmt/date'
 
 export default defineComponent({
   name: 'CustomDateRangePicker',
@@ -46,7 +46,7 @@ export default defineComponent({
   },
 
   setup(props, { emit }) {
-    const gte = shallowRef(new Date(Date.now() - hour))
+    const gte = shallowRef(new Date(Date.now() - HOUR))
     const lt = shallowRef(new Date())
 
     const isValid = computed((): boolean => {

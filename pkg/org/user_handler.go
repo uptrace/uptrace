@@ -9,6 +9,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserHandler struct {
@@ -22,21 +23,22 @@ func NewUserHandler(app *bunapp.App) *UserHandler {
 }
 
 func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) error {
-	user, err := UserFromContext(req.Context())
+	ctx := req.Context()
+	user := UserFromContext(ctx)
+
+	projects, err := SelectProjects(ctx, h.App)
 	if err != nil {
 		return err
 	}
 
 	return httputil.JSON(w, bunrouter.H{
 		"user":     user,
-		"projects": h.Config().Projects,
+		"projects": projects,
 	})
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error {
-	if len(h.Config().Auth.Users) == 0 {
-		return httperror.InternalServerError("Configure some users before continuing")
-	}
+	ctx := req.Context()
 
 	var in struct {
 		Username string `json:"username"`
@@ -46,8 +48,12 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	user := findUserByPassword(h.App, in.Username, in.Password)
-	if user == nil {
+	user, err := SelectUserByUsername(ctx, h.App, in.Username)
+	if err != nil {
+		return err
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(in.Password)); err != nil {
 		return httperror.BadRequest("credentials", "user with such credentials not found")
 	}
 

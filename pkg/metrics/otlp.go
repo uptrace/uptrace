@@ -9,15 +9,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gogo/protobuf/jsonpb"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bununit"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
@@ -27,6 +25,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -67,9 +66,13 @@ func (s *MetricsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.R
 
 	switch contentType := req.Header.Get("content-type"); contentType {
 	case jsonContentType:
-		metricsReq := new(collectormetricspb.ExportMetricsServiceRequest)
+		body, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			return err
+		}
 
-		if err := jsonpb.Unmarshal(req.Body, metricsReq); err != nil {
+		metricsReq := new(collectormetricspb.ExportMetricsServiceRequest)
+		if err := protojson.Unmarshal(body, metricsReq); err != nil {
 			return err
 		}
 
@@ -78,8 +81,17 @@ func (s *MetricsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.R
 			return err
 		}
 
-		return jsonMarshaler.Marshal(w, resp)
-	case protobufContentType:
+		b, err := protojson.Marshal(resp)
+		if err != nil {
+			return err
+		}
+
+		if _, err := w.Write(b); err != nil {
+			return err
+		}
+
+		return nil
+	case xprotobufContentType, protobufContentType:
 		body, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			return err
@@ -145,7 +157,7 @@ func (s *MetricsServiceServer) Export(
 func (s *MetricsServiceServer) export(
 	ctx context.Context,
 	req *collectormetricspb.ExportMetricsServiceRequest,
-	project *bunconf.Project,
+	project *org.Project,
 ) (*collectormetricspb.ExportMetricsServiceResponse, error) {
 	p := otlpProcessor{
 		App: s.App,
@@ -196,7 +208,7 @@ type otlpProcessor struct {
 	mp *MeasureProcessor
 
 	ctx      context.Context
-	project  *bunconf.Project
+	project  *org.Project
 	resource AttrMap
 
 	metricIDMap map[MetricKey]struct{}
@@ -212,7 +224,7 @@ func (p *otlpProcessor) otlpGauge(
 			continue
 		}
 
-		dest := p.nextMeasure(scope, metric, GaugeInstrument, dp.Attributes, dp.TimeUnixNano)
+		dest := p.nextMeasure(scope, metric, InstrumentGauge, dp.Attributes, dp.TimeUnixNano)
 		switch num := dp.Value.(type) {
 		case *metricspb.NumberDataPoint_AsInt:
 			dest.Value = float64(num.AsInt)
@@ -242,13 +254,13 @@ func (p *otlpProcessor) otlpSum(
 
 		if !data.Sum.IsMonotonic {
 			// Agg temporality does not matter.
-			dest.Instrument = AdditiveInstrument
+			dest.Instrument = InstrumentAdditive
 			dest.Value = toFloat64(dp.Value)
 			p.enqueue(dest)
 			continue
 		}
 
-		dest.Instrument = CounterInstrument
+		dest.Instrument = InstrumentCounter
 
 		if isDelta {
 			dest.Sum = toFloat64(dp.Value)
@@ -287,7 +299,7 @@ func (p *otlpProcessor) otlpHistogram(
 			continue
 		}
 
-		dest := p.nextMeasure(scope, metric, HistogramInstrument, dp.Attributes, dp.TimeUnixNano)
+		dest := p.nextMeasure(scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
 		if isDelta {
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
@@ -316,38 +328,45 @@ func (p *otlpProcessor) otlpExpHistogram(
 			continue
 		}
 
-		dest := p.nextMeasure(scope, metric, HistogramInstrument, dp.Attributes, dp.TimeUnixNano)
+		size := 1 + len(dp.Positive.BucketCounts) + len(dp.Negative.BucketCounts)
+		hist := make(map[bfloat16.T]uint64, size)
+
+		if dp.ZeroCount > 0 {
+			hist[bfloat16.From(0)] += dp.ZeroCount
+		}
+		base := math.Pow(2, math.Pow(2, float64(dp.Scale)))
+		buildBFloat16Hist(hist, base, int(dp.Positive.Offset), dp.Positive.BucketCounts, +1)
+		buildBFloat16Hist(hist, base, int(dp.Negative.Offset), dp.Negative.BucketCounts, -1)
+
+		dest := p.nextMeasure(scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
 		if isDelta {
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
-
-			hist := make(bfloat16.Map)
 			dest.Histogram = hist
-
-			if dp.ZeroCount > 0 {
-				hist[bfloat16.From(0)] += dp.ZeroCount
-			}
-			base := math.Pow(2, math.Pow(2, float64(dp.Scale)))
-			populateBFloat16Hist(hist, base, int(dp.Positive.Offset), dp.Positive.BucketCounts, +1)
-			populateBFloat16Hist(hist, base, int(dp.Negative.Offset), dp.Negative.BucketCounts, -1)
 		} else {
 			dest.StartTimeUnixNano = dp.StartTimeUnixNano
 			dest.CumPoint = &ExpHistogramPoint{
 				Sum:       dp.GetSum(),
 				Count:     dp.Count,
-				Scale:     dp.Scale,
-				ZeroCount: dp.ZeroCount,
-				Positive: ExpHistogramBuckets{
-					Offset:       dp.Positive.Offset,
-					BucketCounts: dp.Positive.BucketCounts,
-				},
-				Negative: ExpHistogramBuckets{
-					Offset:       dp.Negative.Offset,
-					BucketCounts: dp.Negative.BucketCounts,
-				},
+				Histogram: hist,
 			}
 		}
 		p.enqueue(dest)
+	}
+}
+
+func buildBFloat16Hist(
+	hist map[bfloat16.T]uint64, base float64, offset int, counts []uint64, sign float64,
+) {
+	lower := math.Pow(base, float64(offset))
+	for i, count := range counts {
+		if count == 0 {
+			continue
+		}
+		upper := math.Pow(base, float64(offset+i+1))
+		mean := (lower + upper) / 2
+		hist[bfloat16.From(sign*mean)] += count
+		lower = upper
 	}
 }
 
@@ -361,11 +380,7 @@ func (p *otlpProcessor) otlpSummary(
 			continue
 		}
 
-		if dp.Count == 0 {
-			continue
-		}
-
-		dest := p.nextMeasure(scope, metric, HistogramInstrument, dp.Attributes, dp.TimeUnixNano)
+		dest := p.nextMeasure(scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
 
 		dest.Sum = dp.Sum
 		dest.Count = dp.Count
@@ -386,7 +401,7 @@ func (p *otlpProcessor) otlpSummary(
 func (p *otlpProcessor) nextMeasure(
 	scope *commonpb.InstrumentationScope,
 	metric *metricspb.Metric,
-	instrument string,
+	instrument Instrument,
 	labels []*commonpb.KeyValue,
 	unixNano uint64,
 ) *Measure {
@@ -487,19 +502,4 @@ func newBFloat16Histogram(
 		return h.m
 	}
 	return nil
-}
-
-func populateBFloat16Hist(
-	hist bfloat16.Map, base float64, offset int, counts []uint64, sign float64,
-) {
-	lower := math.Pow(base, float64(offset))
-	for i, count := range counts {
-		if count == 0 {
-			continue
-		}
-		upper := math.Pow(base, float64(offset+i+1))
-		mean := (lower + upper) / 2
-		hist[bfloat16.From(sign*mean)] += count
-		lower = upper
-	}
 }

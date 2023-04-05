@@ -13,6 +13,10 @@ export function useRouter() {
   return { router, route }
 }
 
+export function useRouterOnly() {
+  return router
+}
+
 export function useRoute() {
   const route = computed((): Route => {
     return router.app.$root.$route
@@ -29,7 +33,7 @@ interface QueryItem {
   fromQuery?(query: Query): void
 }
 
-type OnRouteUpdatedHook = (route: Route) => void
+type OnRouteChangedHook = (route: Route) => void
 
 export const useRouteQuery = defineStore(() => {
   const { router, route } = useRouter()
@@ -37,17 +41,11 @@ export const useRouteQuery = defineStore(() => {
   let isFreshRoute = false
   const lastFreshRoute = shallowRef<Route>()
 
-  const routeUpdatedHooks = shallowRef<OnRouteUpdatedHook[]>([])
+  const onRouteChangedHooks = shallowRef<OnRouteChangedHook[]>([])
   const items = shallowRef<QueryItem[]>([])
 
   const query = computed((): Query | undefined => {
     let query: Query = {}
-
-    for (let key in route.value.query) {
-      if (key.startsWith('utm_')) {
-        query[key] = route.value.query[key]
-      }
-    }
 
     for (let item of items.value) {
       if (!item.toQuery) {
@@ -77,22 +75,19 @@ export const useRouteQuery = defineStore(() => {
       }
     }
 
-    const onSuccess = () => {
-      ignoreNext = omit(route, 'matched') as Route
-      ignoreNext.query = query
+    const savedRoute = ignoreNext
+    function onError() {
+      ignoreNext = savedRoute
     }
+
+    ignoreNext = omit(route, 'matched') as Route
+    ignoreNext.query = query
 
     if (isFreshRoute) {
       isFreshRoute = false
-      router
-        .replace({ query, hash: route.hash })
-        .then(onSuccess)
-        .catch(() => {})
+      router.replace({ query, hash: route.hash }).catch(onError)
     } else {
-      router
-        .push({ query, hash: route.hash })
-        .then(onSuccess)
-        .catch(() => {})
+      router.push({ query, hash: route.hash }).catch(onError)
     }
   }, 100)
 
@@ -127,17 +122,17 @@ export const useRouteQuery = defineStore(() => {
     return remove
   }
 
-  function onRouteUpdated(hook: OnRouteUpdatedHook) {
-    routeUpdatedHooks.value.push(hook)
+  function onRouteChanged(hook: OnRouteChangedHook) {
+    onRouteChangedHooks.value.push(hook)
     // eslint-disable-next-line no-self-assign
-    routeUpdatedHooks.value = routeUpdatedHooks.value.slice()
+    onRouteChangedHooks.value = onRouteChangedHooks.value.slice()
 
     onBeforeUnmount(() => {
-      const idx = routeUpdatedHooks.value.findIndex((v) => v === hook)
+      const idx = onRouteChangedHooks.value.findIndex((v) => v === hook)
       if (idx >= 0) {
-        routeUpdatedHooks.value.splice(idx, 1)
+        onRouteChangedHooks.value.splice(idx, 1)
         // eslint-disable-next-line no-self-assign
-        routeUpdatedHooks.value = routeUpdatedHooks.value.slice()
+        onRouteChangedHooks.value = onRouteChangedHooks.value.slice()
       } else {
         // eslint-disable-next-line no-console
         console.error("can't find the hook")
@@ -167,7 +162,7 @@ export const useRouteQuery = defineStore(() => {
         }
       }
 
-      for (let hook of routeUpdatedHooks.value) {
+      for (let hook of onRouteChangedHooks.value) {
         hook(route)
       }
 
@@ -188,7 +183,6 @@ export const useRouteQuery = defineStore(() => {
 
       isFreshRoute = true
       updateQueryDebounced(route, query.value)
-      ignoreNext = omit(route, 'matched') as Route
     },
     { flush: 'post' },
   )
@@ -203,7 +197,7 @@ export const useRouteQuery = defineStore(() => {
     { immediate: true, flush: 'post' },
   )
 
-  return { route: lastFreshRoute, onRouteUpdated, sync }
+  return { lastRoute: lastFreshRoute, onRouteChanged, sync }
 })
 
 function routeEqual(r1: Route, r2: Route): boolean {

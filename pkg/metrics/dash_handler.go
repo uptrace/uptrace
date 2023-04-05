@@ -1,21 +1,20 @@
 package metrics
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/uptrace/bunrouter"
-
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
 	"github.com/uptrace/uptrace/pkg/org"
+	"gopkg.in/yaml.v3"
 )
 
-var errPrebuiltDashboard = errors.New("you can't edit pre-built dashboards (clone instead)")
-
 type DashHandler struct {
-	App *bunapp.App
+	*bunapp.App
 }
 
 func NewDashHandler(app *bunapp.App) *DashHandler {
@@ -38,8 +37,9 @@ func (h *DashHandler) Create(w http.ResponseWriter, req bunrouter.Request) error
 	dash := new(Dashboard)
 	dash.Name = in.Name
 	dash.ProjectID = project.ID
-	if dash.Columns == nil {
-		dash.Columns = make(map[string]*MetricColumn)
+
+	if err := dash.Validate(); err != nil {
+		return err
 	}
 
 	if err := InsertDashboard(ctx, h.App, dash); err != nil {
@@ -55,24 +55,17 @@ func (h *DashHandler) Update(w http.ResponseWriter, req bunrouter.Request) error
 	ctx := req.Context()
 	dash := dashFromContext(ctx)
 
-	if dash.TemplateID != "" {
-		return errPrebuiltDashboard
-	}
-
 	var in struct {
 		Name      *string `json:"name"`
-		BaseQuery *string `json:"baseQuery"`
-
-		IsTable *bool                    `json:"isTable"`
-		Metrics []upql.Metric            `json:"metrics"`
-		Query   *string                  `json:"query"`
-		Columns map[string]*MetricColumn `json:"columnMap"`
+		GridQuery *string `json:"gridQuery"`
 	}
 	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
 		return err
 	}
 
-	q := h.App.DB.NewUpdate().
+	// No need to update updated_at column, because we know how to preserve these columns.
+
+	q := h.PG.NewUpdate().
 		Model(dash).
 		Where("id = ?", dash.ID).
 		Returning("*")
@@ -81,28 +74,52 @@ func (h *DashHandler) Update(w http.ResponseWriter, req bunrouter.Request) error
 		dash.Name = *in.Name
 		q = q.Column("name")
 	}
-	if in.BaseQuery != nil {
-		dash.BaseQuery = *in.BaseQuery
-		q = q.Column("base_query")
+	if in.GridQuery != nil {
+		dash.GridQuery = *in.GridQuery
+		q = q.Column("grid_query")
 	}
-	if in.IsTable != nil {
-		dash.IsTable = *in.IsTable
-		q = q.Column("is_table")
-	}
-	if in.Metrics != nil {
-		dash.Metrics = in.Metrics
-		q = q.Column("metrics")
-	}
-	if in.Query != nil {
-		dash.Query = *in.Query
-		q = q.Column("query")
-	}
-	if in.Columns != nil {
-		dash.Columns = in.Columns
-		q = q.Column("columns")
+
+	if err := dash.Validate(); err != nil {
+		return err
 	}
 
 	if _, err := q.Exec(ctx); err != nil {
+		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"dashboard": dash,
+	})
+}
+
+func (h *DashHandler) UpdateTable(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+	dash := dashFromContext(ctx)
+
+	var in struct {
+		TableMetrics   []upql.MetricAlias       `json:"tableMetrics"`
+		TableQuery     string                   `json:"tableQuery"`
+		TableColumnMap map[string]*MetricColumn `json:"tableColumnMap"`
+	}
+	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
+		return err
+	}
+
+	dash.TableMetrics = in.TableMetrics
+	dash.TableQuery = in.TableQuery
+	dash.TableColumnMap = in.TableColumnMap
+	dash.UpdatedAt = time.Now()
+
+	if err := dash.Validate(); err != nil {
+		return err
+	}
+
+	if _, err := h.PG.NewUpdate().
+		Column("table_metrics", "table_query", "table_grouping", "table_column_map", "updated_at").
+		Model(dash).
+		Where("id = ?", dash.ID).
+		Returning("*").
+		Exec(ctx); err != nil {
 		return err
 	}
 
@@ -115,16 +132,12 @@ func (h *DashHandler) Clone(w http.ResponseWriter, req bunrouter.Request) error 
 	ctx := req.Context()
 	dash := dashFromContext(ctx)
 
-	if _, err := org.UserFromContext(ctx); err != nil {
-		return err
-	}
-
-	gauges, err := SelectDashGauges(ctx, h.App, dash.ID)
+	gauges, err := SelectDashGauges(ctx, h.App, dash.ID, "")
 	if err != nil {
 		return err
 	}
 
-	entries, err := SelectDashEntries(ctx, h.App, dash)
+	grid, err := SelectBaseGridColumns(ctx, h.App, dash.ID)
 	if err != nil {
 		return err
 	}
@@ -137,22 +150,26 @@ func (h *DashHandler) Clone(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	for _, gauge := range gauges {
-		gauge.ID = 0
-		gauge.DashID = dash.ID
+	if len(gauges) > 0 {
+		for _, gauge := range gauges {
+			gauge.ID = 0
+			gauge.DashID = dash.ID
+		}
+
+		if err := InsertDashGauges(ctx, h.App, gauges); err != nil {
+			return err
+		}
 	}
 
-	if err := InsertDashGauges(ctx, h.App, gauges); err != nil {
-		return err
-	}
+	if len(grid) > 0 {
+		for _, col := range grid {
+			col.ID = 0
+			col.DashID = dash.ID
+		}
 
-	for _, entry := range entries {
-		entry.ID = 0
-		entry.DashID = dash.ID
-	}
-
-	if err := InsertDashEntries(ctx, h.App, entries); err != nil {
-		return err
+		if err := InsertGridColumns(ctx, h.App, grid); err != nil {
+			return err
+		}
 	}
 
 	return httputil.JSON(w, bunrouter.H{
@@ -179,10 +196,11 @@ func (h *DashHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 
 	dashboards := make([]*Dashboard, 0)
 
-	if err := h.App.DB.NewSelect().
+	if err := h.PG.NewSelect().
 		Model(&dashboards).
 		Where("project_id = ?", project.ID).
-		OrderExpr("name ASC").
+		OrderExpr("pinned DESC, name ASC").
+		Limit(1000).
 		Scan(ctx); err != nil {
 		return err
 	}
@@ -194,22 +212,113 @@ func (h *DashHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 
 func (h *DashHandler) Show(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
-	dashboard := dashFromContext(ctx)
+	dash := dashFromContext(ctx)
 
-	tableGauges, gridGauges, err := SelectTableGridGauges(ctx, h.App, dashboard.ID)
-	if err != nil {
-		return err
-	}
-
-	entries, err := SelectDashEntries(ctx, h.App, dashboard)
+	grid, err := SelectBaseGridColumns(ctx, h.App, dash.ID)
 	if err != nil {
 		return err
 	}
 
 	return httputil.JSON(w, bunrouter.H{
-		"dashboard":   dashboard,
-		"tableGauges": tableGauges,
-		"gridGauges":  gridGauges,
-		"entries":     entries,
+		"dashboard": dash,
+		"grid":      grid,
+		"yamlUrl": h.SiteURL(
+			fmt.Sprintf("/api/v1/metrics/%d/dashboards/%d/yaml", dash.ProjectID, dash.ID),
+		),
 	})
+}
+
+func (h *DashHandler) ShowYAML(w http.ResponseWriter, req bunrouter.Request) error {
+	tpl, err := h.dashboardTpl(req)
+	if err != nil {
+		return err
+	}
+
+	b, err := yaml.Marshal(tpl)
+	if err != nil {
+		return err
+	}
+
+	header := w.Header()
+	header.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.yaml", tpl.ID))
+	header.Set("Content-Type", "text/yaml")
+
+	if _, err := w.Write(b); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (h *DashHandler) dashboardTpl(req bunrouter.Request) (*DashboardTpl, error) {
+	ctx := req.Context()
+	dash := dashFromContext(ctx)
+
+	grid, err := SelectGridColumns(ctx, h.App, dash.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	tableGauges, err := SelectDashGauges(ctx, h.App, dash.ID, DashTable)
+	if err != nil {
+		return nil, err
+	}
+
+	gridGauges, err := SelectDashGauges(ctx, h.App, dash.ID, DashTable)
+	if err != nil {
+		return nil, err
+	}
+
+	tpl, err := NewDashboardTpl(dash, grid, tableGauges, gridGauges)
+	if err != nil {
+		return nil, err
+	}
+
+	return tpl, nil
+}
+
+func (h *DashHandler) FromYAML(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+	dash := dashFromContext(ctx)
+
+	tpl := new(DashboardTpl)
+
+	dec := yaml.NewDecoder(req.Body)
+	if err := yamlUnmarshalDashboardTpl(dec, tpl); err != nil {
+		return err
+	}
+
+	builder := NewDashBuilder(dash.ProjectID, dash)
+	if err := builder.Build(tpl); err != nil {
+		return err
+	}
+	if err := builder.Save(ctx, h.App); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *DashHandler) Pin(w http.ResponseWriter, req bunrouter.Request) error {
+	return h.updatePinned(w, req, true)
+}
+
+func (h *DashHandler) Unpin(w http.ResponseWriter, req bunrouter.Request) error {
+	return h.updatePinned(w, req, false)
+}
+
+func (h *DashHandler) updatePinned(
+	w http.ResponseWriter, req bunrouter.Request, pinned bool,
+) error {
+	ctx := req.Context()
+	dash := dashFromContext(ctx)
+
+	if _, err := h.PG.NewUpdate().
+		Model((*Dashboard)(nil)).
+		Where("id = ?", dash.ID).
+		Set("pinned = ?", pinned).
+		Exec(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }

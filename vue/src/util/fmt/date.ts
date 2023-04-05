@@ -9,11 +9,11 @@ import {
   subMilliseconds,
 } from 'date-fns'
 
-export const millisecond = 1
-export const second = 1000 * millisecond
-export const minute = 60 * second
-export const hour = 60 * minute
-export const day = 24 * hour
+export const MILLISECOND = 1
+export const SECOND = 1000 * MILLISECOND
+export const MINUTE = 60 * SECOND
+export const HOUR = 60 * MINUTE
+export const DAY = 24 * HOUR
 
 export function toDate(v: any): Date {
   if (v instanceof Date) {
@@ -101,11 +101,11 @@ export function parseUTC(s: string): Date {
 }
 
 export function toUTC(dt: Date): Date {
-  return addMilliseconds(dt, dt.getTimezoneOffset() * minute)
+  return addMilliseconds(dt, dt.getTimezoneOffset() * MINUTE)
 }
 
 export function toLocal(dt: Date): Date {
-  return subMilliseconds(dt, dt.getTimezoneOffset() * minute)
+  return subMilliseconds(dt, dt.getTimezoneOffset() * MINUTE)
 }
 
 export function ceilDate(dt: Date, prec: number): Date {

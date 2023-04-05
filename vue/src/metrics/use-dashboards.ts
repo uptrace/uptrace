@@ -1,62 +1,26 @@
-import { omit } from 'lodash-es'
-import { shallowRef, ref, reactive, computed, watch, proxyRefs } from 'vue'
+import { omit, mergeWith } from 'lodash-es'
+import { ref, reactive, computed, watch, proxyRefs } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
+import { useRoute } from '@/use/router'
 import { useAxios } from '@/use/axios'
-import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
+import { useWatchAxios } from '@/use/watch-axios'
 import { useForceReload } from '@/use/force-reload'
 
 // Types
-import { MetricColumn, MetricAlias } from '@/metrics/types'
-
-export interface Dashboard {
-  id: string
-  projectId: number
-  templateId: number
-
-  name: string
-  baseQuery: string
-
-  isTable: boolean
-  metrics: MetricAlias[] | null
-  query: string
-  columnMap: Record<string, MetricColumn>
-}
-
-export interface DashGauge {
-  id: string
-  projectId: number
-  dashId: string
-
-  name: string
-  template: string
-
-  metrics: MetricAlias[]
-  query: string
-  columnMap: Record<string, MetricColumn>
-}
-
-export interface DashEntry {
-  id: string
-  projectId: number
-  dashId: string
-
-  name: string
-  description: string
-  chartType: ChartType
-
-  metrics: MetricAlias[]
-  query: string
-  columnMap: Record<string, MetricColumn>
-}
-
-//------------------------------------------------------------------------------
+import {
+  defaultChartLegend,
+  Dashboard,
+  GridColumn,
+  GridColumnType,
+  MetricColumn,
+  MetricAlias,
+} from '@/metrics/types'
 
 export type UseDashboards = ReturnType<typeof useDashboards>
 
 export function useDashboards() {
-  const { route } = useRouter()
+  const route = useRoute()
   const { forceReloadParams } = useForceReload()
   const dashboards = ref<Dashboard[]>([])
 
@@ -73,11 +37,7 @@ export function useDashboards() {
   })
 
   const active = computed((): Dashboard | undefined => {
-    return dashboards.value.find((d) => d.id === route.value.params.dashId)
-  })
-
-  const tree = computed(() => {
-    return buildDashTree(dashboards.value)
+    return dashboards.value.find((d) => String(d.id) === route.value.params.dashId)
   })
 
   watch(
@@ -92,7 +52,6 @@ export function useDashboards() {
     loading,
     isEmpty,
     items: dashboards,
-    tree,
 
     active,
 
@@ -100,57 +59,13 @@ export function useDashboards() {
   })
 }
 
-interface DashCategory {
-  name: string
-  children: Dashboard[]
-}
-
-export type DashTree = DashCategory | Dashboard
-
-function buildDashTree(dashboards: Dashboard[]): DashTree[] {
-  if (dashboards.length <= 7) {
-    return dashboards
-  }
-
-  const tree: DashTree[] = []
-  const m: Record<string, DashCategory> = {}
-
-  for (let dash of dashboards) {
-    const match = dash.name.match(/^(\w+): /)
-    if (!match) {
-      tree.push(dash)
-      continue
-    }
-
-    const categoryName = match[1]
-    let category = m[categoryName]
-
-    if (!category) {
-      category = { name: categoryName, children: [] }
-      m[categoryName] = category
-      tree.push(category)
-    }
-
-    category.children.push({
-      ...dash,
-      name: dash.name.slice(match[0].length),
-    })
-  }
-
-  tree.sort((a, b) => a.name.localeCompare(b.name))
-
-  return tree
-}
-
 //------------------------------------------------------------------------------
 
 export type UseDashboard = ReturnType<typeof useDashboard>
 
 export function useDashboard() {
-  const { route } = useRouter()
+  const route = useRoute()
   const { forceReloadParams } = useForceReload()
-
-  const entries = ref<DashEntry[]>([])
 
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId, dashId } = route.value.params
@@ -161,88 +76,114 @@ export function useDashboard() {
   })
 
   const dashboard = computed((): Dashboard | undefined => {
-    if (data.value) {
-      return reactive(data.value.dashboard)
+    const dash = data.value?.dashboard
+    if (!dash) {
+      return undefined
     }
-    return undefined
+    dash.tableMetrics ??= []
+    dash.tableGrouping ??= []
+    dash.tableColumnMap ??= {}
+    return dash
+  })
+
+  const grid = computed((): GridColumn[] => {
+    const grid = data.value?.grid ?? []
+
+    for (let col of grid) {
+      col.width = col.width || 6
+      col.height = col.height || 14
+
+      switch (col.type) {
+        case GridColumnType.Chart:
+          col.params.metrics ??= []
+          col.params.columnMap ??= {}
+          col.params.timeseriesMap ??= {}
+          col.params.legend = mergeWith(
+            col.params.legend,
+            defaultChartLegend(),
+            (objValue, srcValue) => objValue || srcValue,
+          )
+          break
+        case GridColumnType.Table:
+          col.params.metrics ??= []
+          col.params.columnMap ??= {}
+          break
+        case GridColumnType.Heatmap:
+          break
+      }
+    }
+
+    return grid
+  })
+
+  const yamlUrl = computed((): string => {
+    return data.value?.yamlUrl ?? ''
   })
 
   const isTemplate = computed((): boolean => {
     return Boolean(dashboard.value?.templateId)
   })
 
-  const isGridFull = computed((): boolean => {
-    return entries.value.length >= 20
-  })
-
-  const tableGauges = computed((): DashGauge[] => {
-    return data.value?.tableGauges ?? []
-  })
-
-  const gridGauges = computed((): DashGauge[] => {
-    return data.value?.gridGauges ?? []
-  })
-
-  const metrics = computed({
+  const tableMetrics = computed({
     get() {
-      return dashboard.value?.metrics ?? []
+      return dashboard.value?.tableMetrics ?? []
     },
     set(v: MetricAlias[]) {
       if (dashboard.value) {
-        dashboard.value.metrics = v
+        dashboard.value.tableMetrics = v
       }
     },
   })
 
-  const columnMap = computed((): Record<string, MetricColumn> => {
-    return dashboard.value?.columnMap ?? {}
+  const tableColumnMap = computed((): Record<string, MetricColumn> => {
+    return dashboard.value?.tableColumnMap ?? {}
   })
-
-  watch(
-    () => data.value?.entries ?? [],
-    (entriesValue) => {
-      entries.value = entriesValue.map((e: DashEntry) => reactive(e))
-    },
-  )
-
-  function addGridEntry() {
-    if (!dashboard.value) {
-      return
-    }
-    entries.value.push(
-      reactive(
-        newEmptyDashEntry({
-          dashId: dashboard.value.id,
-        }),
-      ),
-    )
-  }
 
   return proxyRefs({
     status,
     loading,
     axiosData: data,
+    reload,
 
     data: dashboard,
-    active: dashboard,
+    grid,
     isTemplate,
-    isGridFull,
-    tableGauges,
-    gridGauges,
-    entries: entries,
+    yamlUrl,
 
-    metrics,
-    columnMap,
+    tableMetrics,
+    tableColumnMap,
+  })
+}
 
-    addGridEntry,
+export function useYamlDashboard() {
+  const route = useRoute()
+  const { forceReloadParams } = useForceReload()
+
+  const { status, loading, data, reload } = useWatchAxios(() => {
+    const { projectId, dashId } = route.value.params
+    return {
+      url: `/api/v1/metrics/${projectId}/dashboards/${dashId}/yaml`,
+      params: forceReloadParams.value,
+    }
+  })
+
+  const yaml = computed(() => {
+    return data.value ?? ''
+  })
+
+  return proxyRefs({
+    status,
+    loading,
     reload,
+
+    yaml,
   })
 }
 
 //------------------------------------------------------------------------------
 
 export function useDashManager() {
-  const { route } = useRouter()
+  const route = useRoute()
   const { loading: pending, request } = useAxios()
 
   function create(dash: Partial<Dashboard>) {
@@ -266,12 +207,40 @@ export function useDashManager() {
     })
   }
 
+  function updateTable(data: Partial<Dashboard>) {
+    const { projectId, dashId } = route.value.params
+    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/table`
+
+    return request({ method: 'PUT', url, data }).then((resp) => {
+      return resp.data.dashboard as Dashboard
+    })
+  }
+
+  function updateYaml(data: string) {
+    const { projectId, dashId } = route.value.params
+    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/yaml`
+
+    return request({ method: 'PUT', url, data })
+  }
+
   function clone(dash: Dashboard) {
     const url = `/api/v1/metrics/${dash.projectId}/dashboards/${dash.id}`
 
     return request({ method: 'POST', url }).then((resp) => {
       return resp.data.dashboard as Dashboard
     })
+  }
+
+  function pin(dash: Dashboard) {
+    const url = `/api/v1/metrics/${dash.projectId}/dashboards/${dash.id}/pinned`
+
+    return request({ method: 'PUT', url })
+  }
+
+  function unpin(dash: Dashboard) {
+    const url = `/api/v1/metrics/${dash.projectId}/dashboards/${dash.id}/unpinned`
+
+    return request({ method: 'PUT', url })
   }
 
   function del(dash: Dashboard) {
@@ -282,136 +251,72 @@ export function useDashManager() {
     })
   }
 
-  return proxyRefs({ pending, create, update, clone, del })
-}
-
-export function useDashAttrs(axiosReq: AxiosRequestSource) {
-  const { status, loading, data, reload } = useWatchAxios(axiosReq)
-
-  const keys = computed((): string[] => {
-    const attrs = data.value?.attrs ?? []
-    return attrs
-  })
-
   return proxyRefs({
-    status,
-    loading,
-    keys,
-
-    reload,
+    pending,
+    create,
+    update,
+    updateTable,
+    updateYaml,
+    clone,
+    pin,
+    unpin,
+    delete: del,
   })
-}
-
-export function useDashQueryManager(dashboard: UseDashboard) {
-  const savedQuery = shallowRef('')
-  const man = useDashManager()
-
-  const pending = computed(() => {
-    return man.pending
-  })
-
-  const isDirty = computed(() => {
-    if (!dashboard.data || dashboard.isTemplate) {
-      return false
-    }
-    return dashboard.data.baseQuery !== savedQuery.value
-  })
-
-  watch(
-    () => dashboard.axiosData,
-    (data) => {
-      savedQuery.value = data?.dashboard?.baseQuery ?? ''
-    },
-    { immediate: true },
-  )
-
-  function save() {
-    if (!dashboard.data) {
-      return
-    }
-    man.update({ baseQuery: dashboard.data.baseQuery }).then(() => {
-      dashboard.reload()
-    })
-  }
-
-  return proxyRefs({ pending, isDirty, save })
 }
 
 //------------------------------------------------------------------------------
 
-export function newEmptyDashEntry(entry: Partial<DashEntry> = {}) {
-  return {
-    id: '',
-    projectId: 0,
-    dashId: '',
-
-    name: '',
-    description: '',
-    chartType: ChartType.Line,
-
-    metrics: [],
-    query: '',
-    columnMap: {},
-
-    ...entry,
-  }
-}
-
-export enum ChartType {
-  Line = 'line',
-  Area = 'area',
-  Bar = 'bar',
-  StackedArea = 'stacked-area',
-  StackedBar = 'stacked-bar',
-}
-
-export function useDashEntryManager() {
-  const { route } = useRouter()
+export function useGridColumnManager() {
+  const route = useRoute()
   const { loading: pending, request } = useAxios()
 
-  function create(entry: Partial<DashEntry>) {
-    const { projectId, dashId } = route.value.params
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/entries`
-
-    return request({ method: 'POST', url, data: entry }).then((resp) => {
-      return resp.data.entry as DashEntry
-    })
-  }
-
-  function update(entry: DashEntry) {
-    const { id, projectId, dashId } = entry
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/entries/${id}`
-
-    return request({ method: 'PUT', url, data: entry }).then((resp) => {
-      return resp.data.entry as DashEntry
-    })
-  }
-
-  function save(entry: DashEntry) {
-    if (entry.id) {
-      return update(entry)
+  function save(gridCol: GridColumn) {
+    if (gridCol.id) {
+      return update(gridCol)
     }
-    return create(omit(entry, 'id'))
+    return create(omit(gridCol, 'id'))
   }
 
-  function del(entry: DashEntry) {
-    const { id, projectId, dashId } = entry
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/entries/${id}`
-
-    return request({ method: 'DELETE', url, data: entry }).then((resp) => {
-      return resp.data.entry as DashEntry
-    })
-  }
-
-  function updateOrder(entries: DashEntry[]) {
+  function create(gridCol: Omit<GridColumn, 'id'>) {
     const { projectId, dashId } = route.value.params
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/entries`
+    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/grid`
 
-    const data = entries.map((entry, index) => {
-      return { id: entry.id, weight: entries.length - index }
+    return request({ method: 'POST', url, data: gridCol }).then((resp) => {
+      return resp.data.gridCol as GridColumn
     })
+  }
 
-    return request({ method: 'PUT', url, data })
+  function update(gridCol: GridColumn) {
+    const { id, projectId, dashId } = gridCol
+    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/grid/${id}`
+
+    return request({ method: 'PUT', url, data: gridCol }).then((resp) => {
+      return resp.data.gridCol as GridColumn
+    })
+  }
+
+  function del(gridCol: GridColumn) {
+    const { id, projectId, dashId } = gridCol
+    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/grid/${id}`
+
+    return request({ method: 'DELETE', url, data: gridCol }).then((resp) => {
+      return resp.data.gridCol as GridColumn
+    })
+  }
+
+  interface GridColumnPos {
+    id: number
+    width: number
+    height: number
+    xAxis: number
+    yAxis: number
+  }
+
+  function updateOrder(grid: GridColumnPos[]) {
+    const { projectId, dashId } = route.value.params
+    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/grid`
+
+    return request({ method: 'PUT', url, data: grid })
   }
 
   return proxyRefs({ pending, create, update, save, del, updateOrder })

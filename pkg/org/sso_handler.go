@@ -36,7 +36,7 @@ func NewSSOHandler(app *bunapp.App, router *bunrouter.Group) *SSOHandler {
 
 	for _, oidcConf := range conf.Auth.OIDC {
 		if oidcConf.RedirectURL == "" {
-			oidcConf.RedirectURL = conf.SitePath(fmt.Sprintf("/api/v1/sso/%s/callback", oidcConf.ID))
+			oidcConf.RedirectURL = conf.SiteURL(fmt.Sprintf("/api/v1/sso/%s/callback", oidcConf.ID))
 		}
 
 		handler, err := NewSSOMethodHandler(app, oidcConf)
@@ -153,7 +153,7 @@ func (h *SSOMethodHandler) Callback(w http.ResponseWriter, req bunrouter.Request
 
 func (h *SSOMethodHandler) exchange(
 	w http.ResponseWriter, req bunrouter.Request,
-) (*bunconf.User, error) {
+) (*User, error) {
 	ctx := req.Context()
 
 	existingState, _ := req.Cookie(stateCookieName)
@@ -215,9 +215,12 @@ func (h *SSOMethodHandler) exchange(
 		return nil, fmt.Errorf("oidc: claim is empty: %s", claim)
 	}
 
-	return &bunconf.User{
+	user := &User{
 		Username: username,
-	}, nil
+	}
+	user.Init()
+
+	return user, nil
 }
 
 func randState(nByte int) (string, error) {

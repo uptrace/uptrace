@@ -2,30 +2,54 @@ package org
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 	"fmt"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
-	"go.uber.org/zap"
 )
+
+type Project struct {
+	bun.BaseModel `bun:"projects,alias:p"`
+
+	ID                  uint32   `json:"id" bun:",pk,autoincrement"`
+	Name                string   `json:"name" bun:",nullzero"`
+	Token               string   `json:"token" bun:",nullzero"`
+	PinnedAttrs         []string `json:"pinnedAttrs" bun:",array"`
+	GroupByEnv          bool     `json:"groupByEnv"`
+	GroupFuncsByService bool     `json:"groupFuncsByService"`
+}
+
+func (p *Project) Init() error {
+	if p.ID == 0 {
+		return errors.New("project id can't be zero")
+	}
+	if p.Name == "" {
+		return errors.New("project name can't be empty")
+	}
+	if p.Token == "" {
+		return errors.New("project token can't be empty")
+	}
+	return nil
+}
 
 func SelectProject(
 	ctx context.Context, app *bunapp.App, projectID uint32,
-) (*bunconf.Project, error) {
-	projects := app.Config().Projects
-	for i := range projects {
-		project := &projects[i]
-		if project.ID == projectID {
-			return project, nil
-		}
+) (*Project, error) {
+	project := new(Project)
+	if err := app.PG.NewSelect().
+		Model(project).
+		Where("id = ?", projectID).
+		Limit(1).
+		Scan(ctx); err != nil {
+		return nil, err
 	}
-	return nil, sql.ErrNoRows
+	return project, nil
 }
 
 func SelectProjectByDSN(
 	ctx context.Context, app *bunapp.App, dsnStr string,
-) (*bunconf.Project, error) {
+) (*Project, error) {
 	dsn, err := ParseDSN(dsnStr)
 	if err != nil {
 		return nil, err
@@ -35,18 +59,23 @@ func SelectProjectByDSN(
 		return nil, fmt.Errorf("dsn %q does not have a token", dsnStr)
 	}
 
-	projects := app.Config().Projects
-
-	for i := range projects {
-		project := &projects[i]
-		if project.Token == dsn.Token {
-			if project.ID != dsn.ProjectID {
-				app.Zap(ctx).Error("project token and project id don't match",
-					zap.String("dsn", dsnStr))
-			}
-			return project, nil
-		}
+	project := new(Project)
+	if err := app.PG.NewSelect().
+		Model(project).
+		Where("token = ?", dsn.Token).
+		Limit(1).
+		Scan(ctx); err != nil {
+		return nil, err
 	}
+	return project, nil
+}
 
-	return nil, fmt.Errorf("project with token %q not found", dsn.Token)
+func SelectProjects(ctx context.Context, app *bunapp.App) ([]*Project, error) {
+	projects := make([]*Project, 9)
+	if err := app.PG.NewSelect().
+		Model(&projects).
+		Scan(ctx); err != nil {
+		return nil, err
+	}
+	return projects, nil
 }

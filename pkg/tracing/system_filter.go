@@ -16,9 +16,6 @@ type SystemFilter struct {
 	org.TimeFilter
 	ProjectID uint32
 
-	Envs     []string
-	Services []string
-
 	System  []string
 	GroupID uint64
 }
@@ -59,9 +56,9 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 			case system == SystemAll:
 				// nothing
 			case system == SystemEventsAll:
-				q = q.WhereOr("s.system IN (?)", ch.In(eventSystems))
+				q = q.WhereOr("s.type IN (?)", ch.In(EventTypes))
 			case system == SystemSpansAll:
-				q = q.WhereOr("s.system NOT IN (?)", ch.In(eventSystems))
+				q = q.WhereOr("s.type NOT IN (?)", ch.In(EventTypes))
 			case strings.HasSuffix(system, ":all"):
 				system := strings.TrimSuffix(system, ":all")
 				q = q.WhereOr("startsWith(s.system, ?)", system)
@@ -74,13 +71,6 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 
 	if f.GroupID != 0 {
 		q = q.Where("s.group_id = ?", f.GroupID)
-	}
-
-	if len(f.Envs) > 0 {
-		q = q.Where("s.deployment_environment IN (?)", ch.In(f.Envs))
-	}
-	if len(f.Services) > 0 {
-		q = q.Where("s.service IN (?)", ch.In(f.Services))
 	}
 
 	return q

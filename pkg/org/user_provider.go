@@ -2,6 +2,7 @@ package org
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"sync"
@@ -10,28 +11,33 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 )
 
 var errNoUser = errors.New("org: no user")
 
 type UserProvider interface {
-	Auth(req bunrouter.Request) (*bunconf.User, error)
+	Auth(req bunrouter.Request) (*User, error)
 }
 
 type JWTProvider struct {
+	app       *bunapp.App
 	secretKey string
 }
 
-func NewJWTProvider(secretKey string) *JWTProvider {
+func NewJWTProvider(app *bunapp.App, secretKey string) *JWTProvider {
 	return &JWTProvider{
+		app:       app,
 		secretKey: secretKey,
 	}
 }
 
 var _ UserProvider = (*JWTProvider)(nil)
 
-func (p *JWTProvider) Auth(req bunrouter.Request) (*bunconf.User, error) {
+func (p *JWTProvider) Auth(req bunrouter.Request) (*User, error) {
+	ctx := req.Context()
+
 	cookie, err := req.Cookie(tokenCookieName)
 	if err != nil || cookie.Value == "" {
 		return nil, errNoUser
@@ -42,9 +48,17 @@ func (p *JWTProvider) Auth(req bunrouter.Request) (*bunconf.User, error) {
 		return nil, err
 	}
 
-	return &bunconf.User{
-		Username: username,
-	}, nil
+	user, err := SelectUserByUsername(ctx, p.app, username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			user := &User{
+				Username: username,
+			}
+			user.Init()
+		}
+		return nil, err
+	}
+	return user, nil
 }
 
 var jwtSigningMethod = jwt.SigningMethodHS256
@@ -96,7 +110,7 @@ func NewCloudflareProvider(conf *bunconf.CloudflareProvider) *CloudflareProvider
 	}
 }
 
-func (p *CloudflareProvider) Auth(req bunrouter.Request) (*bunconf.User, error) {
+func (p *CloudflareProvider) Auth(req bunrouter.Request) (*User, error) {
 	ctx := req.Context()
 	headers := req.Header
 
@@ -118,10 +132,13 @@ func (p *CloudflareProvider) Auth(req bunrouter.Request) (*bunconf.User, error) 
 		return nil, fmt.Errorf("parseCloudflareToken failed: %w", err)
 	}
 
-	return &bunconf.User{
+	user := &User{
 		// TODO: is there a username?
-		Username: claims.Email,
-	}, nil
+		Email: claims.Email,
+	}
+	user.Init()
+
+	return user, nil
 }
 
 func (p *CloudflareProvider) getVerifier(ctx context.Context) *oidc.IDTokenVerifier {

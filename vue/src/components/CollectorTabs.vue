@@ -20,7 +20,7 @@
 import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
-import { ConnDetails } from '@/use/project'
+import { ConnDetails } from '@/org/use-projects'
 
 export default defineComponent({
   name: 'CollectorTabs',

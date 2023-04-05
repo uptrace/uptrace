@@ -23,9 +23,9 @@
             <v-tabs optional class="ml-lg-10 ml-xl-16">
               <template v-if="user.isAuth && $route.params.projectId">
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
-                <v-tab :to="{ name: 'SpanGroupList' }">Spans</v-tab>
-                <v-tab :to="{ name: 'EventGroupList' }">Events</v-tab>
+                <v-tab :to="{ name: 'SpanGroupList' }">Tracing</v-tab>
                 <v-tab :to="{ name: 'MetricsDashList' }">Metrics</v-tab>
+                <v-tab :to="{ name: 'Alerting' }">Alerts</v-tab>
               </template>
               <v-tab v-if="!user.isAuth" :to="{ name: 'Login' }">Login</v-tab>
             </v-tabs>
@@ -42,18 +42,24 @@
             </v-btn>
 
             <v-menu v-if="user.isAuth" bottom offset-y>
-              <template #activator="{ on }">
-                <v-btn icon v-on="on">
-                  <v-icon>mdi-dots-vertical</v-icon>
+              <template #activator="{ attrs, on }">
+                <v-btn elevation="0" color="transparent" class="pl-1 pr-0" v-bind="attrs" v-on="on">
+                  <v-avatar size="26px">
+                    <img alt="Avatar" :src="user.current.avatar" />
+                  </v-avatar>
+                  <v-icon>mdi-menu-down</v-icon>
                 </v-btn>
               </template>
 
               <v-list>
                 <v-list-item>
                   <v-list-item-content>
-                    <v-list-item-title class="font-weight-bold">{{
-                      user.current.username || 'Anonymous'
-                    }}</v-list-item-title>
+                    <v-list-item-title class="font-weight-bold">
+                      {{ user.current.username || 'Anonymous' }}
+                    </v-list-item-title>
+                    <v-list-item-subtitle v-if="user.current.email">
+                      {{ user.current.email }}
+                    </v-list-item-subtitle>
                   </v-list-item-content>
                 </v-list-item>
 
@@ -70,7 +76,8 @@
     </v-app-bar>
 
     <v-main>
-      <XSnackbar />
+      <GlobalSnackbar />
+      <GlobalConfirm />
       <router-view :date-range="dateRange" />
     </v-main>
 
@@ -118,21 +125,29 @@ import { defineComponent, computed } from 'vue'
 import { useRoute, useRouteQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 import { useDateRange } from '@/use/date-range'
-import { useUser } from '@/use/org'
+import { useUser } from '@/org/use-users'
 
 // Components
 import UptraceLogoLarge from '@/components/UptraceLogoLarge.vue'
 import UptraceLogoSmall from '@/components/UptraceLogoSmall.vue'
 import ProjectPicker from '@/components/ProjectPicker.vue'
 import Search from '@/components/Search.vue'
-import XSnackbar from '@/components/XSnackbar.vue'
+import GlobalSnackbar from '@/components/GlobalSnackbar.vue'
+import GlobalConfirm from '@/components/GlobalConfirm.vue'
 
 // Utilities
 import { SystemName } from '@/models/otel'
 
 export default defineComponent({
   name: 'App',
-  components: { UptraceLogoLarge, UptraceLogoSmall, ProjectPicker, Search, XSnackbar },
+  components: {
+    UptraceLogoLarge,
+    UptraceLogoSmall,
+    ProjectPicker,
+    Search,
+    GlobalSnackbar,
+    GlobalConfirm,
+  },
 
   setup() {
     useRouteQuery()

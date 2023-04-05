@@ -12,9 +12,8 @@ import (
 
 type Engine struct {
 	storage Storage
-
-	vars map[string][]Timeseries
-	buf  []byte
+	vars    map[string][]Timeseries
+	buf     []byte
 }
 
 type Storage interface {
@@ -32,12 +31,11 @@ func NewEngine(storage Storage) *Engine {
 type Result struct {
 	Columns    []string
 	Timeseries []Timeseries
-	Vars       map[string][]Timeseries
 }
 
 func (e *Engine) Run(query []*QueryPart) *Result {
 	e.vars = make(map[string][]Timeseries)
-	exprs, metrics := compile(e.storage, query)
+	exprs := compile(e.storage, query)
 	result := new(Result)
 
 	for _, expr := range exprs {
@@ -73,14 +71,6 @@ func (e *Engine) Run(query []*QueryPart) *Result {
 			result.Timeseries = append(result.Timeseries, tmp...)
 		}
 	}
-
-	result.Vars = e.vars
-	for metricName, timeseries := range metrics {
-		if _, ok := result.Vars[metricName]; !ok {
-			result.Vars[metricName] = timeseries
-		}
-	}
-	e.vars = nil
 
 	return result
 }
@@ -257,21 +247,13 @@ func (e *Engine) join(
 			ts1 = &joined[len(joined)-1]
 		}
 
-		value := make([]float64, len(ts1.Value))
+		joinedValue := make([]float64, len(ts1.Value))
 		for i, v1 := range ts1.Value {
 			v2 := ts2.Value[i]
-
-			if ts2.Unit != ts1.Unit {
-				num, err := bununit.ConvertValue(v2, ts2.Unit, ts1.Unit)
-				if err != nil {
-					return nil, err
-				}
-				v2 = num
-			}
-
-			value[i] = op(v1, v2)
+			joinedValue[i] = op(v1, v2)
 		}
-		ts1.Value = value
+		ts1.Value = joinedValue
+		ts1.Unit = bununit.None
 	}
 
 	return joined, nil
@@ -445,7 +427,7 @@ func (e *Engine) callFunc(fn *FuncCall) ([]Timeseries, error) {
 	switch fn.Func {
 	case "delta":
 		if len(fn.Args) != 1 {
-			return nil, fmt.Errorf("delta func expects a single argument")
+			return nil, fmt.Errorf("delta func expects a single arg")
 		}
 
 		timeseries, err := e.eval(fn.Args[0])

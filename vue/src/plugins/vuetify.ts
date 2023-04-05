@@ -6,7 +6,10 @@ Vue.use(Vuetify)
 export default new Vuetify({
   breakpoint: {
     thresholds: {
-      lg: 1440,
+      lg: 1536,
     },
+  },
+  theme: {
+    options: { variations: false },
   },
 })

@@ -1,95 +1,103 @@
 <template>
-  <XPlaceholder>
-    <template v-if="trace.error" #placeholder>
+  <div>
+    <template v-if="trace.error">
       <TraceError v-if="trace.error" :error="trace.error" />
     </template>
 
-    <template v-else-if="!trace.root" #placeholder>
+    <template v-else-if="!trace.root">
       <v-container :fluid="$vuetify.breakpoint.mdAndDown">
         <v-skeleton-loader type="article, image, table" />
       </v-container>
     </template>
 
-    <PageToolbar :loading="trace.loading" :fluid="$vuetify.breakpoint.mdAndDown">
-      <v-breadcrumbs :items="meta.breadcrumbs" divider=">" large>
-        <template #item="{ item }">
-          <v-breadcrumbs-item :to="item.to" :exact="item.exact">
-            {{ item.text }}
-          </v-breadcrumbs-item>
-        </template>
-      </v-breadcrumbs>
+    <template v-else>
+      <PageToolbar :loading="trace.loading" :fluid="$vuetify.breakpoint.mdAndDown">
+        <v-breadcrumbs :items="meta.breadcrumbs" divider=">" large>
+          <template #item="{ item }">
+            <v-breadcrumbs-item :to="item.to" :exact="item.exact">
+              {{ item.text }}
+            </v-breadcrumbs-item>
+          </template>
+        </v-breadcrumbs>
 
-      <v-spacer />
+        <v-spacer />
 
-      <FixedDateRangePicker
-        v-if="trace.root"
-        :date-range="dateRange"
-        :around="trace.root.time"
-        show-reload
-      />
-    </PageToolbar>
+        <FixedDateRangePicker
+          v-if="trace.root"
+          :date-range="dateRange"
+          :around="trace.root.time"
+          show-reload
+        />
+      </PageToolbar>
 
-    <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="py-4">
-      <v-row v-if="trace.root" class="px-4 text-body-2">
-        <v-col class="word-break-all">
-          {{ eventOrSpanName(trace.root.name) }}
-        </v-col>
-      </v-row>
+      <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="py-4">
+        <v-row v-if="trace.root" class="px-4 text-body-2">
+          <v-col class="word-break-all">
+            {{ eventOrSpanName(trace.root.name) }}
+          </v-col>
+        </v-row>
 
-      <v-row v-if="trace.root" align="end" class="px-4 text-subtitle-2 text-center">
-        <v-col v-if="trace.root.kind" cols="auto">
-          <div class="grey--text font-weight-regular">Kind</div>
-          <div>{{ trace.root.kind }}</div>
-        </v-col>
+        <v-row v-if="trace.root" align="end" class="px-4 text-subtitle-2 text-center">
+          <v-col v-if="trace.root.kind" cols="auto">
+            <div class="grey--text font-weight-regular">Kind</div>
+            <div>{{ trace.root.kind }}</div>
+          </v-col>
 
-        <v-col v-if="trace.root.statusCode" cols="auto">
-          <div class="grey--text font-weight-regular">Status</div>
-          <div :class="{ 'error--text': trace.root.statusCode === 'error' }">
-            {{ trace.root.statusCode }}
-          </div>
-        </v-col>
+          <v-col v-if="trace.root.statusCode" cols="auto">
+            <div class="grey--text font-weight-regular">Status</div>
+            <div :class="{ 'error--text': trace.root.statusCode === 'error' }">
+              {{ trace.root.statusCode }}
+            </div>
+          </v-col>
 
-        <v-col cols="auto">
-          <div class="grey--text font-weight-regular">Time</div>
-          <XDate :date="trace.root.time" format="full" />
-        </v-col>
+          <v-col cols="auto">
+            <div class="grey--text font-weight-regular">Time</div>
+            <XDate :date="trace.root.time" format="full" />
+          </v-col>
 
-        <v-col cols="auto">
-          <div class="grey--text font-weight-regular">Duration</div>
-          <XDuration :duration="trace.root.duration" fixed />
-        </v-col>
+          <v-col cols="auto">
+            <div class="grey--text font-weight-regular">Duration</div>
+            <XDuration :duration="trace.root.duration" fixed />
+          </v-col>
 
-        <v-col cols="auto">
-          <v-btn v-if="groupRoute" depressed small :to="groupRoute" exact>View group</v-btn>
-          <v-btn v-if="exploreTraceRoute" depressed small :to="exploreTraceRoute" exact class="ml-2"
-            >Explore trace</v-btn
-          >
-        </v-col>
-      </v-row>
+          <v-col cols="auto">
+            <v-btn v-if="groupRoute" depressed small :to="groupRoute" exact>View group</v-btn>
+            <v-btn
+              v-if="exploreTraceRoute"
+              depressed
+              small
+              :to="exploreTraceRoute"
+              exact
+              class="ml-2"
+              >Explore trace</v-btn
+            >
+          </v-col>
+        </v-row>
 
-      <v-row v-if="trace.root && trace.root.groupId">
-        <v-col>
-          <v-card outlined rounded="lg">
-            <v-card-text>
-              <LoadPctileChart :axios-params="axiosParams" />
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
+        <v-row v-if="trace.root && trace.root.groupId">
+          <v-col>
+            <v-card outlined rounded="lg">
+              <v-card-text>
+                <LoadPctileChart :axios-params="axiosParams" />
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
 
-      <v-row>
-        <v-col>
-          <SpanSystemBarChart :systems="trace.coloredSystems" />
-        </v-col>
-      </v-row>
+        <v-row>
+          <v-col>
+            <SpanSystemBarChart :systems="trace.coloredSystems" />
+          </v-col>
+        </v-row>
 
-      <v-row>
-        <v-col>
-          <TraceTabs :date-range="dateRange" :trace="trace" />
-        </v-col>
-      </v-row>
-    </v-container>
-  </XPlaceholder>
+        <v-row>
+          <v-col>
+            <TraceTabs :date-range="dateRange" :trace="trace" />
+          </v-col>
+        </v-row>
+      </v-container>
+    </template>
+  </div>
 </template>
 
 <script lang="ts">

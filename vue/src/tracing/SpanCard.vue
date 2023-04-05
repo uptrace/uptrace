@@ -1,13 +1,7 @@
 <template>
   <div>
-    <PageToolbar :fluid="fluid">
-      <v-breadcrumbs :items="meta.breadcrumbs" divider=">" large>
-        <template #item="{ item }">
-          <v-breadcrumbs-item :to="item.to" :exact="item.exact">
-            {{ item.text }}
-          </v-breadcrumbs-item>
-        </template>
-      </v-breadcrumbs>
+    <PageToolbar :loading="loading" :fluid="fluid">
+      <v-breadcrumbs :items="breadcrumbs" divider=">" large></v-breadcrumbs>
 
       <v-spacer />
 
@@ -15,146 +9,38 @@
     </PageToolbar>
 
     <v-container :fluid="fluid" class="py-4">
-      <v-row class="px-4 text-subtitle-1">
-        <v-col class="word-break-all">
-          <template v-if="span.eventName">
-            <span>{{ span.eventName }}</span>
-            <template v-if="span.name">
-              <span class="mx-2"> &bull; </span>
-              <span>{{ spanName(span, 1000) }}</span>
-            </template>
-          </template>
-          <span v-else>{{ spanName(span, 1000) }}</span>
-        </v-col>
-      </v-row>
-
-      <v-row align="end" class="px-4 text-subtitle-2 text-center">
-        <v-col v-if="span.attrs[AttrKey.deploymentEnvironment]" cols="auto">
-          <div class="grey--text font-weight-regular">Env</div>
-          <div>{{ span.attrs[AttrKey.deploymentEnvironment] }}</div>
-        </v-col>
-
-        <v-col v-if="span.attrs[AttrKey.serviceName]" cols="auto">
-          <div class="grey--text font-weight-regular">Service</div>
-          <div>{{ span.attrs[AttrKey.serviceName] }}</div>
-        </v-col>
-
-        <v-col v-if="span.kind" cols="auto">
-          <div class="grey--text font-weight-regular">Kind</div>
-          <div>{{ span.kind }}</div>
-        </v-col>
-
-        <v-col v-if="span.statusCode" cols="auto">
-          <div class="grey--text font-weight-regular">Status</div>
-          <div :class="{ 'error--text': span.statusCode === 'error' }">
-            {{ span.statusCode }}
-          </div>
-        </v-col>
-
-        <v-col cols="auto">
-          <div class="grey--text font-weight-regular">Time</div>
-          <XDate v-if="span.time" :date="span.time" format="full" />
-        </v-col>
-
-        <v-col v-if="span.duration > 0" cols="auto">
-          <div class="grey--text font-weight-regular">Duration</div>
-          <XDuration :duration="span.duration" fixed />
-        </v-col>
-
-        <v-col cols="auto">
-          <div class="mb-0">
-            <v-btn v-if="meta.traceRoute" depressed small :to="meta.traceRoute" exact>
-              View trace
-            </v-btn>
-            <v-btn v-if="meta.groupRoute" depressed small :to="meta.groupRoute" exact class="ml-2">
-              View group
-            </v-btn>
-          </div>
-        </v-col>
-      </v-row>
-
-      <v-row>
-        <v-col>
-          <v-sheet outlined rounded="lg">
-            <v-tabs v-model="activeTab" background-color="transparent" class="light-blue lighten-5">
-              <v-tab href="#attrs">Attrs</v-tab>
-              <v-tab v-if="dbStatement" href="#dbStatement">SQL</v-tab>
-              <v-tab v-if="dbStatementPretty" href="#dbStatementPretty">SQL pretty</v-tab>
-              <v-tab v-if="excStacktrace" href="#excStacktrace">Stacktrace</v-tab>
-              <v-tab v-if="span.events && span.events.length" href="#events">
-                Events ({{ span.events.length }})
-              </v-tab>
-              <v-tab v-if="span.groupId" href="#pctile">Percentiles</v-tab>
-            </v-tabs>
-
-            <v-tabs-items v-model="activeTab">
-              <v-tab-item value="attrs" class="pa-4">
-                <AttrsTable :date-range="dateRange" :span="span" />
-              </v-tab-item>
-
-              <v-tab-item value="dbStatement">
-                <PrismCode :code="dbStatement" language="sql" />
-              </v-tab-item>
-              <v-tab-item value="dbStatementPretty">
-                <PrismCode :code="dbStatementPretty" language="sql" />
-              </v-tab-item>
-
-              <v-tab-item value="excStacktrace">
-                <PrismCode :code="excStacktrace" />
-              </v-tab-item>
-
-              <v-tab-item value="events">
-                <EventPanels :date-range="dateRange" :events="span.events" />
-              </v-tab-item>
-
-              <v-tab-item value="pctile" class="pa-4">
-                <LoadPctileChart :axios-params="axiosParams" />
-              </v-tab-item>
-            </v-tabs-items>
-          </v-sheet>
-        </v-col>
-      </v-row>
+      <SpanBodyCard :date-range="dateRange" :span="span" @find:span="$emit('find:span', $event)" />
     </v-container>
   </div>
 </template>
 
 <script lang="ts">
-import { format } from 'sql-formatter'
-import { defineComponent, ref, computed, proxyRefs, PropType } from 'vue'
+import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { createUqlEditor } from '@/use/uql'
 
 // Components
 import FixedDateRangePicker from '@/components/date/FixedDateRangePicker.vue'
-import LoadPctileChart from '@/components/LoadPctileChart.vue'
-import AttrsTable from '@/tracing/AttrsTable.vue'
-import EventPanels from '@/tracing/EventPanels.vue'
+import SpanBodyCard from '@/tracing/SpanBodyCard.vue'
 
-// Utilities
-import { AttrKey, isEventSystem } from '@/models/otel'
-import { spanName, eventOrSpanName, Span } from '@/models/span'
-
-interface Props {
-  dateRange: UseDateRange
-  span: Span
-}
+// Utitlies
+import { eventOrSpanName, Span } from '@/models/span'
+import { isEventSystem, AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'SpanCard',
-  components: {
-    FixedDateRangePicker,
-    AttrsTable,
-    EventPanels,
-    LoadPctileChart,
-  },
+  components: { FixedDateRangePicker, SpanBodyCard },
 
   props: {
     dateRange: {
       type: Object as PropType<UseDateRange>,
       required: true,
+    },
+    loading: {
+      type: Boolean,
+      default: false,
     },
     span: {
       type: Object as PropType<Span>,
@@ -167,162 +53,76 @@ export default defineComponent({
   },
 
   setup(props) {
-    const activeTab = ref('attrs')
-
-    const axiosParams = computed(() => {
-      return {
-        ...props.dateRange.axiosParams(),
-        system: props.span.system,
-        group_id: props.span.groupId,
-      }
+    const isEvent = computed((): boolean => {
+      return isEventSystem(props.span.system)
     })
 
-    const dbStatement = computed((): string => {
-      return props.span.attrs[AttrKey.dbStatement] ?? ''
-    })
+    const breadcrumbs = computed(() => {
+      const bs: any[] = []
 
-    const dbStatementPretty = computed((): string => {
-      try {
-        return format(dbStatement.value)
-      } catch (err) {
-        return ''
-      }
-    })
-
-    const excStacktrace = computed((): string => {
-      return props.span.attrs[AttrKey.exceptionStacktrace] ?? ''
-    })
-
-    return {
-      AttrKey,
-      meta: useMeta(props),
-      activeTab,
-
-      axiosParams,
-
-      dbStatement,
-      dbStatementPretty,
-      excStacktrace,
-
-      spanName,
-    }
-  },
-})
-
-function useMeta(props: Props) {
-  const { route } = useRouter()
-
-  const traceRoute = computed(() => {
-    if (props.span.standalone) {
-      return null
-    }
-    if (route.value.name === 'TraceShow' && route.value.params.traceId === props.span.traceId) {
-      return null
-    }
-
-    return {
-      name: 'TraceShow',
-      params: {
-        traceId: props.span.traceId,
-      },
-    }
-  })
-
-  const groupRoute = computed(() => {
-    switch (route.value.name) {
-      case 'SpanList':
-      case 'EventList':
-      case 'SpanGroupList':
-      case 'EventGroupList':
-        return undefined
-    }
-
-    return {
-      name: isEventSystem(props.span.system) ? 'EventGroupList' : 'SpanGroupList',
-      query: {
-        ...props.dateRange.queryParams(),
-        system: props.span.system,
-        query: createUqlEditor()
-          .exploreAttr(AttrKey.spanGroupId, isEventSystem(props.span.system))
-          .where(AttrKey.spanGroupId, '=', props.span.groupId)
-          .toString(),
-      },
-    }
-  })
-
-  const breadcrumbs = computed(() => {
-    const bs: any[] = []
-
-    bs.push({
-      text: props.span.system,
-      to: {
-        name: isEventSystem(props.span.system) ? 'EventGroupList' : 'SpanGroupList',
-        query: {
-          ...props.dateRange.queryParams(),
-          system: props.span.system,
-        },
-      },
-      exact: true,
-    })
-
-    bs.push({
-      text: eventOrSpanName(props.span, 50),
-      to: {
-        name: isEventSystem(props.span.system) ? 'EventList' : 'SpanList',
-        query: {
-          ...props.dateRange.queryParams(),
-          system: props.span.system,
-          query: createUqlEditor()
-            .exploreAttr(AttrKey.spanGroupId)
-            .where(AttrKey.spanGroupId, '=', props.span.groupId)
-            .toString(),
-        },
-      },
-      exact: true,
-    })
-
-    if (props.span.standalone) {
       bs.push({
-        text: props.span.traceId,
+        text: props.span.system,
         to: {
-          name: 'SpanShow',
-          params: {
-            traceId: props.span.traceId,
-            spanId: props.span.id,
+          name: isEvent.value ? 'EventGroupList' : 'SpanGroupList',
+          params: { projectId: props.span.projectId },
+          query: {
+            ...props.dateRange.queryParams(),
+            system: props.span.system,
           },
         },
         exact: true,
       })
-    } else {
+
       bs.push({
-        text: props.span.traceId,
+        text: eventOrSpanName(props.span, 40),
         to: {
-          name: 'TraceShow',
-          params: {
-            traceId: props.span.traceId,
+          name: isEvent.value ? 'EventList' : 'SpanList',
+          params: { projectId: props.span.projectId },
+          query: {
+            ...props.dateRange.queryParams(),
+            system: props.span.system,
+            query: createUqlEditor()
+              .exploreAttr(AttrKey.spanGroupId, isEvent.value)
+              .where(AttrKey.spanGroupId, '=', props.span.groupId)
+              .toString(),
           },
         },
         exact: true,
       })
+
+      if (!props.span.standalone && props.span.traceId) {
+        bs.push({
+          text: props.span.traceId,
+          to: {
+            name: 'TraceShow',
+            params: {
+              projectId: props.span.projectId,
+              traceId: props.span.traceId,
+            },
+          },
+          exact: true,
+        })
+      }
 
       bs.push({
         text: 'Span',
         to: {
           name: 'SpanShow',
           params: {
+            projectId: props.span.projectId,
             traceId: props.span.traceId,
             spanId: props.span.id,
           },
         },
         exact: true,
       })
-    }
 
-    return bs
-  })
+      return bs
+    })
 
-  return proxyRefs({ groupRoute, traceRoute, breadcrumbs })
-}
+    return { breadcrumbs }
+  },
+})
 </script>
 
 <style lang="scss" scoped></style>

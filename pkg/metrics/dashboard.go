@@ -2,28 +2,66 @@ package metrics
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/uptrace/bun"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
+	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
+)
+
+type DashKind string
+
+const (
+	DashGrid  DashKind = "grid"
+	DashTable DashKind = "table"
 )
 
 type Dashboard struct {
 	bun.BaseModel `bun:"dashboards,alias:d"`
 
-	ID         uint64 `json:"id,string" bun:",pk,autoincrement"`
+	ID         uint64 `json:"id" bun:",pk,autoincrement"`
 	ProjectID  uint32 `json:"projectId"`
 	TemplateID string `json:"templateId" bun:",nullzero"`
 
-	Name      string `json:"name"`
-	BaseQuery string `json:"baseQuery" bun:",nullzero"`
+	Name   string `json:"name"`
+	Pinned bool   `json:"pinned"`
 
-	IsTable bool                     `json:"isTable" bun:",nullzero"`
-	Metrics []upql.Metric            `json:"metrics" bun:",nullzero"`
-	Query   string                   `json:"query" bun:",nullzero"`
-	Columns map[string]*MetricColumn `json:"columnMap" bun:",nullzero"`
+	GridQuery string `json:"gridQuery" bun:",nullzero"`
+
+	TableMetrics   []upql.MetricAlias       `json:"tableMetrics" bun:",type:jsonb,nullzero"`
+	TableQuery     string                   `json:"tableQuery" bun:",nullzero"`
+	TableGrouping  []string                 `json:"tableGrouping" bun:",type:jsonb,nullzero"`
+	TableColumnMap map[string]*MetricColumn `json:"tableColumnMap" bun:",type:jsonb,nullzero"`
+
+	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
+	UpdatedAt time.Time `json:"updatedAt" bun:",nullzero"`
+}
+
+func (d *Dashboard) FromTemplate(tpl *DashboardTpl) error {
+	if tpl.Schema != "v1" {
+		return fmt.Errorf("unsupported template schema: %q", tpl.Schema)
+	}
+	if d.TemplateID != "" && d.TemplateID != tpl.ID {
+		return fmt.Errorf("template id does not match: got %q, has %q", tpl.ID, d.TemplateID)
+	}
+
+	metrics, err := parseMetrics(tpl.Table.Metrics)
+	if err != nil {
+		return err
+	}
+
+	d.TemplateID = tpl.ID
+	d.Name = tpl.Name
+	d.TableMetrics = metrics
+	d.TableQuery = strings.Join(tpl.Table.Query, " | ")
+	d.TableColumnMap = tpl.Table.Columns
+
+	return nil
 }
 
 func (d *Dashboard) Validate() error {
@@ -41,24 +79,43 @@ func (d *Dashboard) validate() error {
 		return fmt.Errorf("project id can't be zero")
 	}
 
-	if d.IsTable {
-		if len(d.Metrics) == 0 {
-			return fmt.Errorf("at least one metric is required")
-		}
+	if d.TableMetrics == nil {
+		d.TableMetrics = make([]upql.MetricAlias, 0)
+	} else if len(d.TableMetrics) > 6 {
+		return errors.New("you can't use more than 6 metrics in a single table")
+	}
 
-		if d.Query == "" {
-			return fmt.Errorf("query can't be empty")
-		}
-		if err := upql.Validate(d.Query); err != nil {
+	if d.TableQuery != "" {
+		query, err := upql.ParseError(d.TableQuery)
+		if err != nil {
 			return fmt.Errorf("can't parse query: %w", err)
 		}
+
+		d.TableGrouping = make([]string, 0)
+		for _, part := range query.Parts {
+			grouping, ok := part.AST.(*ast.Grouping)
+			if !ok {
+				continue
+			}
+			d.TableGrouping = append(d.TableGrouping, grouping.Names...)
+		}
 	}
+	if d.TableColumnMap == nil {
+		d.TableColumnMap = make(map[string]*MetricColumn)
+	}
+
+	if d.CreatedAt.IsZero() {
+		now := time.Now()
+		d.CreatedAt = now
+		d.UpdatedAt = now
+	}
+
 	return nil
 }
 
 func SelectDashboard(ctx context.Context, app *bunapp.App, id uint64) (*Dashboard, error) {
 	dash := new(Dashboard)
-	if err := app.DB.NewSelect().
+	if err := app.PG.NewSelect().
 		Model(dash).
 		Where("id = ?", id).
 		Scan(ctx); err != nil {
@@ -67,35 +124,10 @@ func SelectDashboard(ctx context.Context, app *bunapp.App, id uint64) (*Dashboar
 	return dash, nil
 }
 
-func SelectDashboardMap(
-	ctx context.Context, app *bunapp.App, projectID uint32,
-) (map[string]*Dashboard, error) {
-	var dashboards []*Dashboard
-
-	if err := app.DB.NewSelect().
-		Model(&dashboards).
-		Where("project_id = ?", projectID).
-		Where("template_id IS NOT NULL").
-		Scan(ctx); err != nil {
-		return nil, err
-	}
-
-	m := make(map[string]*Dashboard, len(dashboards))
-
-	for _, dash := range dashboards {
-		m[dash.TemplateID] = dash
-	}
-
-	return m, nil
-}
-
 func InsertDashboard(ctx context.Context, app *bunapp.App, dash *Dashboard) error {
-	if dash.Columns == nil {
-		dash.Columns = make(map[string]*MetricColumn)
-	}
-
-	if _, err := app.DB.NewInsert().
+	if _, err := app.PG.NewInsert().
 		Model(dash).
+		On("CONFLICT DO NOTHING").
 		Exec(ctx); err != nil {
 		return err
 	}
@@ -103,7 +135,7 @@ func InsertDashboard(ctx context.Context, app *bunapp.App, dash *Dashboard) erro
 }
 
 func DeleteDashboard(ctx context.Context, app *bunapp.App, id uint64) error {
-	if _, err := app.DB.NewDelete().
+	if _, err := app.PG.NewDelete().
 		Model((*Dashboard)(nil)).
 		Where("id = ?", id).
 		Exec(ctx); err != nil {

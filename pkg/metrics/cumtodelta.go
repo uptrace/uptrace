@@ -3,42 +3,12 @@ package metrics
 import (
 	"time"
 
+	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/zyedidia/generic/list"
 )
 
-type NumberPoint struct {
-	Int    int64
-	Double float64
-}
-
-func NewIntPoint(n int64) *NumberPoint {
-	return &NumberPoint{
-		Int: n,
-	}
-}
-
-type HistogramPoint struct {
-	Sum          float64   `msgpack:"id:0"`
-	Count        uint64    `msgpack:"id:1"`
-	Bounds       []float64 `msgpack:"id:2"`
-	BucketCounts []uint64  `msgpack:"id:3"`
-}
-
-type ExpHistogramPoint struct {
-	Sum       float64             `msgpack:"id:0"`
-	Count     uint64              `msgpack:"id:1"`
-	Scale     int32               `msgpack:"id:2"`
-	ZeroCount uint64              `msgpack:"id:3"`
-	Positive  ExpHistogramBuckets `msgpack:"id:4"`
-	Negative  ExpHistogramBuckets `msgpack:"id:5"`
-}
-
-type ExpHistogramBuckets struct {
-	Offset       int32    `msgpack:"id:0"`
-	BucketCounts []uint64 `msgpack:"id:1"`
-}
-
 type MeasureKey struct {
+	ProjectID         uint32
 	Metric            string
 	AttrsHash         uint64
 	StartTimeUnixNano uint64
@@ -71,7 +41,7 @@ func (c *CumToDeltaConv) Len() int {
 	return len(c.mp)
 }
 
-func (c *CumToDeltaConv) Lookup(key MeasureKey, point any, time time.Time) any {
+func (c *CumToDeltaConv) SwapPoint(key MeasureKey, point any, time time.Time) any {
 	if node, ok := c.mp[key]; ok {
 		c.list.Remove(node)
 		c.list.PushFrontNode(node)
@@ -109,4 +79,36 @@ func (c *CumToDeltaConv) Lookup(key MeasureKey, point any, time time.Time) any {
 	c.mp[key] = back
 
 	return nil
+}
+
+//------------------------------------------------------------------------------
+
+type NumberPoint struct {
+	Int    int64
+	Double float64
+}
+
+func NewIntPoint(n int64) *NumberPoint {
+	return &NumberPoint{
+		Int: n,
+	}
+}
+
+func NewDoublePoint(n float64) *NumberPoint {
+	return &NumberPoint{
+		Double: n,
+	}
+}
+
+type HistogramPoint struct {
+	Sum          float64
+	Count        uint64
+	Bounds       []float64
+	BucketCounts []uint64
+}
+
+type ExpHistogramPoint struct {
+	Sum       float64
+	Count     uint64
+	Histogram map[bfloat16.T]uint64
 }

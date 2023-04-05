@@ -9,9 +9,9 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 	"github.com/uptrace/uptrace/pkg/tracing/upql"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
@@ -26,11 +26,11 @@ type SpanFilter struct {
 	Query string
 
 	// For stats explorer.
-	Column string
+	Column []string
 
 	// For attrs suggestions.
-	AttrKey   string
-	AttrValue string
+	AttrKey     string
+	SearchInput string
 
 	parts     []*upql.QueryPart
 	columnMap map[string]bool
@@ -138,7 +138,7 @@ func NewSpanIndexQuery(app *bunapp.App) *ch.SelectQuery {
 }
 
 func buildSpanIndexQuery(app *bunapp.App, f *SpanFilter, dur time.Duration) *ch.SelectQuery {
-	q := NewSpanIndexQuery(app).WithQuery(f.whereClause)
+	q := NewSpanIndexQuery(app).Apply(f.whereClause)
 	q, f.columnMap = compileUQL(q, f.parts, dur)
 	return q
 }
@@ -259,7 +259,7 @@ func AppendCHColumn(b []byte, name upql.Name, dur time.Duration) []byte {
 			b, "sumIf(s.count, s.status_code = 'error') / sum(s.count)", dur.Minutes())
 	case attrkey.SpanIsEvent:
 		return chschema.AppendQuery(
-			b, "s.system IN (?)", ch.In(eventSystems))
+			b, "s.type IN (?)", ch.In(EventTypes))
 	default:
 		if name.FuncName != "" {
 			b = append(b, name.FuncName...)
@@ -350,19 +350,19 @@ func AppendCond(cond upql.Cond, dur time.Duration) []byte {
 		return b
 	}
 
-	if cond.Right.IsNum() {
-		b = append(b, "toFloat64OrDefault("...)
-	}
 	b = AppendCHColumn(b, cond.Left, dur)
-	if cond.Right.IsNum() {
-		b = append(b, ")"...)
-	}
 
 	b = append(b, ' ')
 	b = append(b, cond.Op...)
 	b = append(b, ' ')
 
+	if cond.Right.IsNum() {
+		b = append(b, "toString("...)
+	}
 	b = cond.Right.Append(b)
+	if cond.Right.IsNum() {
+		b = append(b, ')')
+	}
 
 	return b
 }
@@ -407,8 +407,8 @@ func spanSystemTableForWhere(app *bunapp.App, f *org.TimeFilter) ch.Ident {
 }
 
 func spanSystemTableForGroup(app *bunapp.App, f *org.TimeFilter) (ch.Ident, time.Duration) {
-	tablePeriod, groupPeriod := org.TableGroupPeriod(f)
-	return spanSystemTable(app, tablePeriod), groupPeriod
+	tablePeriod, groupingPeriod := org.TableGroupingPeriod(f)
+	return spanSystemTable(app, tablePeriod), groupingPeriod
 }
 
 func spanSystemTable(app *bunapp.App, period time.Duration) ch.Ident {
@@ -424,8 +424,8 @@ func spanSystemTable(app *bunapp.App, period time.Duration) ch.Ident {
 //------------------------------------------------------------------------------
 
 func spanServiceTableForGroup(app *bunapp.App, f *org.TimeFilter) (ch.Ident, time.Duration) {
-	tablePeriod, groupPeriod := org.TableGroupPeriod(f)
-	return spanServiceTable(app, tablePeriod), groupPeriod
+	tablePeriod, groupingPeriod := org.TableGroupingPeriod(f)
+	return spanServiceTable(app, tablePeriod), groupingPeriod
 }
 
 func spanServiceTable(app *bunapp.App, period time.Duration) ch.Ident {
@@ -445,8 +445,8 @@ func spanHostTableForWhere(app *bunapp.App, f *org.TimeFilter) ch.Ident {
 }
 
 func spanHostTableForGroup(app *bunapp.App, f *org.TimeFilter) (ch.Ident, time.Duration) {
-	tablePeriod, groupPeriod := org.TableGroupPeriod(f)
-	return spanHostTable(app, tablePeriod), groupPeriod
+	tablePeriod, groupingPeriod := org.TableGroupingPeriod(f)
+	return spanHostTable(app, tablePeriod), groupingPeriod
 }
 
 func spanHostTable(app *bunapp.App, period time.Duration) ch.Ident {

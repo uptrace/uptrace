@@ -14,7 +14,6 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
-	"github.com/uptrace/bun/dialect/sqlitedialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bundebug"
 	"github.com/uptrace/bun/extra/bunotel"
@@ -28,13 +27,15 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/urfave/cli/v2"
+	"github.com/vmihailenco/taskq/v4"
+	"github.com/vmihailenco/taskq/pgq/v4"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	_ "modernc.org/sqlite"
+	"github.com/zyedidia/generic/cache"
 )
 
 type appCtxKey struct{}
@@ -114,16 +115,23 @@ type App struct {
 
 	grpcServer *grpc.Server
 
-	DB *bun.DB
+	PG *bun.DB
 	CH *ch.DB
 
-	Notifier *Notifier
+	QueueFactory taskq.Factory
+	MainQueue    taskq.Queue
+
+	HTTPClient *http.Client
 }
 
 func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
 	app := &App{
 		startTime: time.Now(),
 		conf:      conf,
+
+		HTTPClient: &http.Client{
+			Timeout: 5 * time.Second,
+		},
 	}
 
 	app.undoneCtx = ContextWithApp(ctx, app)
@@ -134,9 +142,9 @@ func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
 	if err := app.initGRPC(); err != nil {
 		return nil, err
 	}
-	app.DB = app.newDB()
+	app.PG = app.newPG()
 	app.CH = app.newCH()
-	app.Notifier = NewNotifier(conf.AlertmanagerClient.URLs)
+	app.initTaskq()
 
 	switch conf.Service {
 	case "serve":
@@ -301,8 +309,8 @@ func (app *App) initGRPC() error {
 	opts = append(opts,
 		grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
 		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
-		grpc.ReadBufferSize(512<<10),
 		grpc.MaxRecvMsgSize(32<<20),
+		grpc.ReadBufferSize(512<<10),
 	)
 
 	if app.conf.Listen.GRPC.TLS != nil {
@@ -324,34 +332,49 @@ func (app *App) GRPCServer() *grpc.Server {
 
 //------------------------------------------------------------------------------
 
-func (app *App) newDB() *bun.DB {
-	db := app.newBunDB()
+func (app *App) newPG() *bun.DB {
+	conf := app.conf.PG
+
+	var options []pgdriver.Option
+
+	if conf.DSN != "" {
+		options = append(options, pgdriver.WithDSN(conf.DSN))
+	}
+	if conf.Addr != "" {
+		options = append(options, pgdriver.WithAddr(conf.Addr))
+	}
+	if conf.User != "" {
+		options = append(options, pgdriver.WithUser(conf.User))
+	}
+	if conf.Password != "" {
+		options = append(options, pgdriver.WithPassword(conf.Password))
+	}
+	if conf.Database != "" {
+		options = append(options, pgdriver.WithDatabase(conf.Database))
+	}
+	if conf.TLS != nil {
+		tlsConf, err := conf.TLS.TLSConfig()
+		if err != nil {
+			panic(fmt.Errorf("pgdriver.tls option failed: %w", err))
+		}
+		options = append(options, pgdriver.WithTLSConfig(tlsConf))
+	} else {
+		options = append(options, pgdriver.WithInsecure(true))
+	}
+	if len(conf.ConnParams) > 0 {
+		options = append(options, pgdriver.WithConnParams(conf.ConnParams))
+	}
+
+	pgdb := sql.OpenDB(pgdriver.NewConnector(options...))
+	db := bun.NewDB(pgdb, pgdialect.New())
+
 	db.AddQueryHook(bundebug.NewQueryHook(
 		bundebug.WithEnabled(app.Debugging()),
 		bundebug.FromEnv("BUNDEBUG", "DEBUG"),
 	))
 	db.AddQueryHook(bunotel.NewQueryHook())
+
 	return db
-}
-
-func (app *App) newBunDB() *bun.DB {
-	switch driverName := app.conf.DB.Driver; driverName {
-	case "", "sqlite":
-		sqldb, err := sql.Open("sqlite", app.conf.DB.DSN)
-		if err != nil {
-			panic(err)
-		}
-
-		db := bun.NewDB(sqldb, sqlitedialect.New())
-		db.SetMaxOpenConns(1)
-		db.SetMaxIdleConns(1)
-		return db
-	case "postgres":
-		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(app.conf.DB.DSN)))
-		return bun.NewDB(sqldb, pgdialect.New())
-	default:
-		panic(fmt.Errorf("unsupported database/sql driver: %q", driverName))
-	}
 }
 
 //------------------------------------------------------------------------------
@@ -413,9 +436,45 @@ func (app *App) newCH() *ch.DB {
 	return db
 }
 
+func (app *App) initTaskq() {
+	app.QueueFactory = pgq.NewFactory(app.PG)
+	app.MainQueue = app.QueueFactory.RegisterQueue(&taskq.QueueConfig{
+		Name: "main",
+		Storage: newLocalStorage(),
+	})
+}
+
+func (app *App) RegisterTask(name string, conf *taskq.TaskConfig) *taskq.Task {
+	return taskq.RegisterTask(name, conf)
+}
+
 func (app *App) DistTable(tableName string) ch.Ident {
 	if app.conf.CHSchema.Cluster != "" {
 		return ch.Ident(tableName + "_dist")
 	}
 	return ch.Ident(tableName)
+}
+
+func (app *App) SiteURL(path string, args ...any) string {
+	return app.conf.SiteURL(path, args...)
+}
+
+//------------------------------------------------------------------------------
+
+type localStorage struct {
+	cache *cache.Cache[string, struct{}]
+}
+
+func newLocalStorage() *localStorage {
+	return &localStorage{
+		cache: cache.New[string, struct{}](10000),
+	}
+}
+
+func (s *localStorage) Exists(ctx context.Context, key string) bool {
+	if _, ok := s.cache.Get(key); ok {
+		return true
+	}
+	s.cache.Put(key, struct{}{})
+	return false
 }

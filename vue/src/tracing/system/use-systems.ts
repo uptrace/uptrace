@@ -13,11 +13,14 @@ export interface System {
   rate: number
   errorCount: number
   errorPct: number
+
+  indent?: boolean
 }
 
 export type SystemsFilter = (systems: System[]) => System[]
 
 export interface SystemTreeNode extends System {
+  numChildren: number
   children?: SystemTreeNode[]
 }
 
@@ -60,7 +63,7 @@ export function useSystems(params: () => Record<string, any>) {
     },
   })
 
-  function syncQuery() {
+  function syncQueryParams() {
     useRouteQuery().sync({
       fromQuery(params) {
         const system = params.system
@@ -101,7 +104,7 @@ export function useSystems(params: () => Record<string, any>) {
     hasNoData,
     activeSystem,
 
-    syncQuery,
+    syncQueryParams,
     axiosParams,
     queryParams,
     reset,
@@ -117,33 +120,46 @@ function addDummySystems(systems: System[]): System[] {
   const typeMap: Record<string, SystemTreeNode> = {}
 
   for (let sys of systems) {
-    const i = sys.system.indexOf(':')
-    if (i === -1) {
-      continue
+    let typ = sys.system
+
+    const i = typ.indexOf(':')
+    if (i >= 0) {
+      typ = typ.slice(0, i)
     }
-    const typ = sys.system.slice(0, i)
 
     const typeSys = typeMap[typ]
     if (typeSys) {
+      typeSys.count += sys.count
       typeSys.rate += sys.rate
+      typeSys.numChildren!++
       continue
     }
 
     typeMap[typ] = {
       ...sys,
       system: typ,
+      numChildren: 1,
     }
   }
 
-  for (let sysType in typeMap) {
-    const sys = typeMap[sysType]
+  for (let systemType in typeMap) {
+    const typ = typeMap[systemType]
+    if (typ.numChildren <= 1) {
+      continue
+    }
+
+    for (let item of systems) {
+      if (item.system.startsWith(typ.system)) {
+        item.indent = true
+      }
+    }
+
     systems.push({
-      ...sys,
-      system: sys.system + ':all',
+      ...typ,
+      system: typ.system + ':all',
     })
   }
 
   systems = orderBy(systems, 'system')
-
   return systems
 }

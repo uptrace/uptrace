@@ -1,34 +1,27 @@
 <template>
-  <v-form v-model="form.isValid">
+  <v-form ref="form" v-model="isValid" lazy-validation @submit.prevent="submit">
     <v-card outlined>
       <v-toolbar color="light-blue lighten-5" flat>
         <v-toolbar-title>Dashboard table</v-toolbar-title>
         <v-btn icon href="https://uptrace.dev/get/querying-metrics.html" target="_blank"
           ><v-icon>mdi-help-circle-outline</v-icon></v-btn
         >
-        <DashLockedIcon v-if="dashboard.isTemplate" />
 
         <v-spacer />
 
-        <v-btn
-          small
-          outlined
-          :loading="tableQuery.loading"
-          class="mr-4"
-          @click="tableQuery.reload()"
-        >
+        <v-btn small outlined :loading="tableQuery.loading" @click="tableQuery.reload()">
           <v-icon small left>mdi-refresh</v-icon>
           <span>Reload</span>
         </v-btn>
 
-        <v-toolbar-items>
+        <v-toolbar-items class="ml-4">
           <v-btn icon @click="$emit('click:cancel')">
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </v-toolbar-items>
       </v-toolbar>
 
-      <v-container class="py-6 indent-rows">
+      <v-container fluid class="pa-6">
         <v-row align="center" dense>
           <v-col cols="auto">
             <v-avatar color="blue darken-1" size="40">
@@ -37,19 +30,14 @@
           </v-col>
           <v-col>
             <v-sheet max-width="800" class="px-4 text-subtitle-1 text--primary">
-              Select up to 6 metrics you want to display for each row in the table. The selected
-              metrics should have some common attributes that will be used to join metrics together.
+              Select metrics you want to display for each row in the table. The selected metrics
+              should have some common attributes that will be used to join timeseries together.
             </v-sheet>
           </v-col>
         </v-row>
         <v-row>
           <v-col>
-            <MetricsPicker
-              v-model="dashboard.metrics"
-              :metrics="metrics.items"
-              :uql="uql"
-              :disabled="dashboard.isGrid"
-            />
+            <MetricsPicker v-model="dashboard.tableMetrics" :uql="uql" :editable="editable" />
           </v-col>
         </v-row>
 
@@ -63,18 +51,20 @@
           </v-col>
           <v-col>
             <v-sheet max-width="800" class="px-4 text-subtitle-1 text--primary">
-              Select some aggregations and group-by attributes to display as columns in the table.
-              Each row in the table will lead to a separate grid-based dashboard.
+              Add some aggregations and group-by attributes to display as columns in the table. Each
+              row in the table will lead to a separate grid-based dashboard.
             </v-sheet>
           </v-col>
         </v-row>
         <v-row>
           <v-col>
-            <MetricQueryBuilder
+            <MetricsQueryBuilder
               :date-range="dateRange"
               :metrics="activeMetrics"
               :uql="uql"
-              show-dash-group-by
+              show-agg
+              show-group-by
+              show-metrics-where
               :disabled="!activeMetrics.length"
             />
           </v-col>
@@ -85,46 +75,36 @@
         <v-row>
           <v-col>
             <v-row dense>
-              <v-col cols="auto">
-                <v-chip
-                  v-for="(col, colName) in columnMap"
-                  :key="colName"
-                  outlined
-                  label
-                  class="ma-1"
-                >
-                  <span>{{ colName }}</span>
-                  <UnitPicker v-model="col.unit" target-class="mr-n4" />
-                </v-chip>
+              <v-col v-for="(col, colName) in dashboard.tableColumnMap" :key="colName" cols="auto">
+                <MetricColumnChip :name="colName" :column="col" />
               </v-col>
             </v-row>
 
-            <v-row dense>
+            <v-row>
               <v-col>
-                <MetricItemsTable
+                <TimeseriesTable
                   :loading="tableQuery.loading"
                   :items="tableQuery.items"
                   :columns="tableQuery.columns"
                   :order="tableQuery.order"
-                  :axios-params="axiosParams"
-                  :column-map="columnMap"
+                  :axios-params="tableQuery.axiosParams"
                 />
               </v-col>
             </v-row>
           </v-col>
         </v-row>
 
-        <v-divider class="my-8" />
+        <v-row v-if="editable" class="mt-8">
+          <v-col>
+            <v-divider />
+          </v-col>
+        </v-row>
 
-        <v-row v-if="!dashboard.isTemplate">
+        <v-row v-if="editable">
           <v-spacer />
           <v-col cols="auto">
             <v-btn text class="mr-2" @click="$emit('click:cancel')">Cancel</v-btn>
-            <v-btn
-              color="primary"
-              :disabled="!form.isValid"
-              :loading="dashMan.pending"
-              @click="saveDash"
+            <v-btn type="submit" color="primary" :disabled="!isValid" :loading="dashMan.pending"
               >Save</v-btn
             >
           </v-col>
@@ -135,31 +115,32 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, reactive, computed, watch, proxyRefs, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
 import { useUql } from '@/use/uql'
-import { useActiveMetrics, UseMetrics } from '@/metrics/use-metrics'
-import { useDashManager, UseDashboard } from '@/metrics/use-dashboards'
-import { UseTableQuery } from '@/metrics/use-query'
-import { MetricColumn } from '@/metrics/types'
+import { useActiveMetrics } from '@/metrics/use-metrics'
+import { useDashManager } from '@/metrics/use-dashboards'
+import { useTableQuery } from '@/metrics/use-query'
 
 // Components
-import UnitPicker from '@/components/UnitPicker.vue'
-import DashLockedIcon from '@/metrics/DashLockedIcon.vue'
 import MetricsPicker from '@/metrics/MetricsPicker.vue'
-import MetricQueryBuilder from '@/metrics/query/MetricQueryBuilder.vue'
-import MetricItemsTable from '@/metrics/MetricItemsTable.vue'
+import MetricsQueryBuilder from '@/metrics/query/MetricsQueryBuilder.vue'
+import TimeseriesTable from '@/metrics/TimeseriesTable.vue'
+import MetricColumnChip from '@/metrics/MetricColumnChip.vue'
+
+// Utilities
+import { updateColumnMap, Dashboard, MetricColumn } from '@/metrics/types'
+import { eChart as colorScheme } from '@/util/colorscheme'
 
 export default defineComponent({
   name: 'DashTableForm',
   components: {
-    UnitPicker,
-    DashLockedIcon,
     MetricsPicker,
-    MetricQueryBuilder,
-    MetricItemsTable,
+    MetricsQueryBuilder,
+    TimeseriesTable,
+    MetricColumnChip,
   },
 
   props: {
@@ -167,54 +148,50 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
-    metrics: {
-      type: Object as PropType<UseMetrics>,
-      required: true,
-    },
     dashboard: {
-      type: Object as PropType<UseDashboard>,
+      type: Object as PropType<Dashboard>,
       required: true,
     },
-    tableQuery: {
-      type: Object as PropType<UseTableQuery>,
-      required: true,
-    },
-    axiosParams: {
-      type: Object as PropType<Record<string, any>>,
-      default: undefined,
+    editable: {
+      type: Boolean,
+      default: false,
     },
   },
 
   setup(props, ctx) {
     const uql = useUql()
+
+    const isValid = shallowRef(false)
     const dashMan = useDashManager()
 
-    const activeMetrics = useActiveMetrics(
-      computed(() => props.metrics.items),
-      computed(() => props.dashboard.metrics),
+    const activeMetrics = useActiveMetrics(computed(() => props.dashboard.tableMetrics))
+
+    const tableQuery = useTableQuery(
+      () => {
+        if (!props.dashboard.tableQuery || !props.dashboard.tableMetrics.length) {
+          return undefined
+        }
+
+        return {
+          ...props.dateRange.axiosParams(),
+          metric: props.dashboard.tableMetrics.map((m) => m.name),
+          alias: props.dashboard.tableMetrics.map((m) => m.alias),
+          query: props.dashboard.tableQuery,
+        }
+      },
+      computed(() => props.dashboard.tableColumnMap),
     )
 
-    const columnMap = computed((): Record<string, MetricColumn> => {
-      const columnMap: Record<string, MetricColumn> = {}
-
-      for (let col of props.tableQuery.columns) {
-        if (!col.isGroup) {
-          columnMap[col.name] = {
-            unit: col.unit,
-          }
-        }
-      }
-      for (let colName in props.dashboard.columnMap) {
-        if (colName in columnMap) {
-          columnMap[colName] = props.dashboard.columnMap[colName]
-        }
-      }
-
-      return reactive(columnMap)
-    })
+    watch(
+      () => tableQuery.columns,
+      (columns) => {
+        updateColumnMap(props.dashboard.tableColumnMap, columns)
+        assignColors(props.dashboard.tableColumnMap)
+      },
+    )
 
     watch(
-      () => props.dashboard.data?.query ?? '',
+      () => props.dashboard.tableQuery,
       (query) => {
         uql.query = query
       },
@@ -224,33 +201,26 @@ export default defineComponent({
     watch(
       () => uql.query,
       (query) => {
-        if (props.dashboard.data) {
-          props.dashboard.data.query = query
-        }
+        props.dashboard.tableQuery = query
       },
     )
 
     watch(
-      () => props.tableQuery.queryParts,
-      (queryParts) => {
-        if (queryParts) {
-          uql.syncParts(queryParts)
+      () => tableQuery.query,
+      (query) => {
+        if (query) {
+          uql.setQueryInfo(query)
         }
       },
       { immediate: true },
     )
 
-    function saveDash() {
-      if (!props.dashboard.data) {
-        return
-      }
-
+    function submit() {
       dashMan
-        .update({
-          baseQuery: props.dashboard.data.baseQuery,
-          metrics: props.dashboard.data.metrics,
-          query: props.dashboard.data.query,
-          columnMap: columnMap.value,
+        .updateTable({
+          tableMetrics: props.dashboard.tableMetrics,
+          tableQuery: props.dashboard.tableQuery,
+          tableColumnMap: props.dashboard.tableColumnMap,
         })
         .then((dash) => {
           ctx.emit('click:save', dash)
@@ -259,29 +229,39 @@ export default defineComponent({
 
     return {
       uql,
+
+      isValid,
       dashMan,
-      form: useForm(),
+      submit,
 
       activeMetrics,
-      columnMap,
-
-      saveDash,
+      tableQuery,
     }
   },
 })
 
-function useForm() {
-  const isValid = shallowRef(false)
+function assignColors(colMap: Record<string, MetricColumn>) {
+  const colors = new Set(colorScheme)
 
-  return proxyRefs({
-    isValid,
-  })
+  for (let colName in colMap) {
+    const col = colMap[colName]
+    if (!col.color) {
+      continue
+    }
+    colors.delete(col.color)
+  }
+
+  const values = colors.values()
+  for (let colName in colMap) {
+    const col = colMap[colName]
+    if (col.color) {
+      continue
+    }
+
+    const first = values.next()
+    col.color = first.value
+  }
 }
 </script>
 
-<style lang="scss" scoped>
-.indent-rows ::v-deep .row {
-  padding-left: 12px !important;
-  padding-right: 12px !important;
-}
-</style>
+<style lang="scss" scoped></style>

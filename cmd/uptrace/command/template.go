@@ -77,9 +77,6 @@ func validateYAML(b []byte) error {
 		if !strings.HasPrefix(dashboard.ID, prefix) {
 			return fmt.Errorf("%s must have %q prefix", dashboard.ID, prefix)
 		}
-		if err := dashboard.Validate(); err != nil {
-			return err
-		}
 	}
 
 	return nil

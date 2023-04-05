@@ -2,9 +2,8 @@ package metrics
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strings"
+	"math"
 	"time"
 
 	"github.com/uptrace/go-clickhouse/ch"
@@ -17,18 +16,15 @@ import (
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
-const attrPrefix = "attr_"
-
 type CHStorageConfig struct {
-	Projects []uint32
 	org.TimeFilter
+
+	ProjectID uint32
 	MetricMap map[string]*Metric
 
 	TableName      ch.Ident
+	TableMode      bool
 	GroupingPeriod time.Duration
-
-	GroupByTime bool
-	FillHoles   bool
 }
 
 type CHStorage struct {
@@ -58,12 +54,12 @@ func (s *CHStorage) MakeTimeseries(f *upql.TimeseriesFilter) []upql.Timeseries {
 		ts.Filters = f.Filters
 		ts.Grouping = f.Grouping
 		ts.GroupByAll = f.GroupByAll
-	}
-	if metric, ok := s.conf.MetricMap[f.Metric]; ok {
-		ts.Unit = metric.Unit
+		if metric, ok := s.conf.MetricMap[f.Metric]; ok {
+			ts.Unit = metric.Unit
+		}
 	}
 
-	if !s.conf.GroupByTime {
+	if s.conf.TableMode {
 		ts.Value = []float64{0}
 		return []upql.Timeseries{ts}
 	}
@@ -84,92 +80,46 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 		return nil, fmt.Errorf("can't find metric with alias %q", f.Metric)
 	}
 
-	subq, err := s.subquery(s.db.NewSelect(), metric, f)
+	q := s.db.NewSelect().
+		ColumnExpr("metric").
+		TableExpr("?", s.conf.TableName).
+		Where("project_id = ?", s.conf.ProjectID).
+		Where("metric = ?", metric.Name).
+		Where("time >= ?", s.conf.TimeGTE).
+		Where("time < ?", s.conf.TimeLT).
+		GroupExpr("metric")
+
+	subq, err := s.subquery(q, metric, f)
 	if err != nil {
 		return nil, err
 	}
 
-	q := s.db.NewSelect().
+	q = s.db.NewSelect().
+		ColumnExpr("metric").
+		ColumnExpr("groupArray(toFloat64(value)) AS value").
+		ColumnExpr("groupArray(time_) AS time").
 		TableExpr("(?)", subq).
-		ColumnExpr("project_id, metric").
-		ColumnExpr("max(annotations) AS annotations").
-		ColumnExpr("groupArray(value) AS value").
-		GroupExpr("project_id, metric").
+		GroupExpr("metric").
 		Limit(10000)
 
 	if len(f.Grouping) > 0 {
 		for _, attrKey := range f.Grouping {
-			attrKey = attrPrefix + attrKey
 			q = q.Column(attrKey).Group(attrKey)
 		}
 	} else if f.GroupByAll {
 		q = q.
-			ColumnExpr("anyLast(attr_keys) AS attr_keys").
-			ColumnExpr("anyLast(attr_values) AS attr_values").
+			ColumnExpr("anyLast(string_keys) AS string_keys").
+			ColumnExpr("anyLast(string_values) AS string_values").
 			GroupExpr("attrs_hash")
 	}
-	if s.conf.GroupByTime {
-		q = q.ColumnExpr("groupArray(time_) AS time")
-	}
 
-	var ms []map[string]any
+	var items []map[string]any
 
-	if err := q.Scan(s.ctx, &ms); err != nil {
+	if err := q.Scan(s.ctx, &items); err != nil {
 		return nil, err
 	}
 
-	timeseries := make([]upql.Timeseries, 0, len(ms))
-
-	for _, m := range ms {
-		annotations := m["annotations"].(string)
-
-		timeseries = append(timeseries, upql.Timeseries{
-			ProjectID:  m["project_id"].(uint32),
-			Metric:     f.Metric,
-			Func:       f.Func,
-			Filters:    f.Filters,
-			Unit:       metricUnit(metric, f),
-			Value:      m["value"].([]float64),
-			Grouping:   f.Grouping,
-			GroupByAll: f.GroupByAll,
-		})
-		ts := &timeseries[len(timeseries)-1]
-
-		if annotations != "" {
-			if err := json.Unmarshal([]byte(annotations), &ts.Annotations); err != nil {
-				return nil, err
-			}
-		}
-		if s.conf.GroupByTime {
-			ts.Time = m["time"].([]time.Time)
-		}
-
-		if s.conf.GroupByTime && s.conf.FillHoles {
-			ts.Value = bunutil.FillOrdered(
-				ts.Value, ts.Time, s.conf.TimeGTE, s.conf.TimeLT, s.conf.GroupingPeriod)
-			ts.Time = bunutil.FillTime(ts.Time, s.conf.TimeGTE, s.conf.TimeLT, s.conf.GroupingPeriod)
-		}
-
-		if len(f.Grouping) > 0 {
-			attrs := make(map[string]string, len(m))
-			for k, v := range m {
-				if !strings.HasPrefix(k, attrPrefix) {
-					continue
-				}
-				k = strings.TrimPrefix(k, attrPrefix)
-				if s, ok := v.(string); ok {
-					attrs[k] = s
-				}
-			}
-			ts.Attrs = upql.AttrsFromMap(attrs)
-		} else if f.GroupByAll {
-			keys := m["attr_keys"].([]string)
-			values := m["attr_values"].([]string)
-			ts.Attrs = upql.AttrsFromKeysValues(keys, values)
-		}
-	}
-
-	return timeseries, nil
+	return s.newTimeseries(metric, f, items)
 }
 
 func (s *CHStorage) subquery(
@@ -177,58 +127,45 @@ func (s *CHStorage) subquery(
 	metric *Metric,
 	f *upql.TimeseriesFilter,
 ) (_ *ch.SelectQuery, err error) {
-	q = q.
-		ColumnExpr("m.project_id, m.metric").
-		ColumnExpr("max(m.annotations) AS annotations").
-		TableExpr("? AS m", s.conf.TableName).
-		Where("m.metric = ?", metric.Name).
-		Where("m.time >= ?", s.conf.TimeGTE).
-		Where("m.time < ?", s.conf.TimeLT).
-		GroupExpr("m.project_id, m.metric")
-
-	if len(s.conf.Projects) > 0 {
-		q = q.Where("project_id IN (?)", ch.In(s.conf.Projects))
-	}
-
 	if len(f.Filters) > 0 {
-		q, err = s.filters(q, metric, f.Filters)
+		where, err := compileFilters(f.Filters)
 		if err != nil {
 			return nil, err
 		}
+		q = q.Where(where)
 	}
 	for _, filters := range f.Where {
-		q, err = s.filters(q, metric, filters)
+		where, err := compileFilters(filters)
 		if err != nil {
 			return nil, err
 		}
+		q = q.Where(where)
 	}
 
 	if len(f.Grouping) > 0 {
 		for _, attrKey := range f.Grouping {
 			col := CHColumn(attrKey)
 			q = q.
-				ColumnExpr("? AS ?", col, ch.Ident(attrPrefix+attrKey)).
+				ColumnExpr("? AS ?", col, ch.Ident(attrKey)).
 				GroupExpr("?", col)
 		}
 	} else if f.GroupByAll {
 		q = q.
 			ColumnExpr("attrs_hash").
-			ColumnExpr("anyLast(attr_keys) AS attr_keys").
-			ColumnExpr("anyLast(attr_values) AS attr_values").
+			ColumnExpr("anyLast(string_keys) AS string_keys").
+			ColumnExpr("anyLast(string_values) AS string_values").
 			GroupExpr("attrs_hash")
 	}
 
-	if s.conf.GroupByTime {
-		q = q.
-			ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_",
-				s.conf.GroupingPeriod.Minutes()).
-			GroupExpr("time_").
-			OrderExpr("time_")
-	}
+	q = q.
+		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_",
+			s.conf.GroupingPeriod.Minutes()).
+		GroupExpr("time_").
+		OrderExpr("time_")
 
-	isValueInstrument := isValueInstrument(metric.Instrument)
+	shouldDedup := f.Func != "uniq" && isValueInstrument(metric.Instrument)
 
-	if isValueInstrument {
+	if shouldDedup {
 		switch f.Func {
 		case "min":
 			q = q.ColumnExpr("min(value) AS value")
@@ -241,10 +178,9 @@ func (s *CHStorage) subquery(
 		q = q.GroupExpr("attrs_hash")
 
 		q = s.db.NewSelect().
-			ColumnExpr("project_id, metric").
-			ColumnExpr("max(annotations) AS annotations").
-			TableExpr("(?) AS wrapper", q).
-			GroupExpr("project_id, metric")
+			ColumnExpr("metric").
+			TableExpr("(?)", q).
+			GroupExpr("metric")
 	}
 
 	q, err = s.agg(q, metric, f)
@@ -252,55 +188,53 @@ func (s *CHStorage) subquery(
 		return nil, err
 	}
 
-	if isValueInstrument {
+	if shouldDedup {
 		if len(f.Grouping) > 0 {
 			for _, attrKey := range f.Grouping {
-				attrKey = attrPrefix + attrKey
 				q = q.Column(attrKey).Group(attrKey)
 			}
 		} else if f.GroupByAll {
 			q = q.
 				ColumnExpr("attrs_hash").
-				ColumnExpr("anyLast(attr_keys) AS attr_keys").
-				ColumnExpr("anyLast(attr_values) AS attr_values").
+				ColumnExpr("anyLast(string_keys) AS string_keys").
+				ColumnExpr("anyLast(string_values) AS string_values").
 				GroupExpr("attrs_hash")
 		}
 
-		if s.conf.GroupByTime {
-			q = q.ColumnExpr("time_").GroupExpr("time_").OrderExpr("time_ ASC")
-		}
+		q = q.ColumnExpr("time_").GroupExpr("time_").OrderExpr("time_ ASC")
 	}
 
 	return q, nil
 }
 
-func (s *CHStorage) filters(
-	q *ch.SelectQuery, metric *Metric, filters []ast.Filter,
-) (*ch.SelectQuery, error) {
+func compileFilters(filters []ast.Filter) (string, error) {
 	var b []byte
 	for i := range filters {
 		filter := &filters[i]
 
+		attrKey := filter.LHS
+
+		if filter.Op == ast.FilterExists {
+			b = chschema.AppendQuery(b, "has(string_keys, ?)", attrKey)
+			continue
+		}
+
 		col := CHColumn(filter.LHS)
-		var val any
+		var val string
 
 		switch rhs := filter.RHS.(type) {
 		case *ast.Number:
-			var err error
-			val, err = rhs.ConvertValue(metric.Unit)
-			if err != nil {
-				return nil, err
-			}
+			val = rhs.Text
 		case ast.StringValue:
 			val = rhs.Text
 		default:
-			return nil, fmt.Errorf("unknown RHS: %T", rhs)
+			return "", fmt.Errorf("unknown RHS: %T", rhs)
 		}
 
 		if i > 0 {
 			b = append(b, ' ')
-			if filter.Sep != "" {
-				b = append(b, filter.Sep...)
+			if filter.BoolOp != "" {
+				b = append(b, filter.BoolOp...)
 			} else {
 				b = append(b, ast.BoolAnd...)
 			}
@@ -321,10 +255,10 @@ func (s *CHStorage) filters(
 		case ast.FilterNotLike:
 			b = chschema.AppendQuery(b, "? NOT LIKE ?", col, val)
 		default:
-			return nil, fmt.Errorf("unsupported op: %s", filter.Op)
+			return "", fmt.Errorf("unsupported op: %s", filter.Op)
 		}
 	}
-	return q.Where(unsafeconv.String(b)), nil
+	return unsafeconv.String(b), nil
 }
 
 func (s *CHStorage) agg(
@@ -332,81 +266,87 @@ func (s *CHStorage) agg(
 	metric *Metric,
 	f *upql.TimeseriesFilter,
 ) (*ch.SelectQuery, error) {
+	if f.Func == "uniq" {
+		q = q.ColumnExpr(
+			"uniqCombined64(string_values[indexOf(string_keys, ?)]) AS value", f.Attr)
+		return q, nil
+	}
+
+	if f.Attr != "" {
+		return nil, fmt.Errorf("unexpected attribute: %s", f.Attr)
+	}
 	if f.Func == "rate" {
 		f.Func = "per_min"
 	}
 
 	switch metric.Instrument {
-	case InvalidInstrument:
+	case InstrumentDeleted:
 		return nil, fmt.Errorf("metric %q not found", metric.Name)
 
-	case CounterInstrument:
+	case InstrumentCounter:
 		switch f.Func {
 		case "per_min", "per_minute":
-			q = q.ColumnExpr("sum(sum) / ? AS value",
+			q = q.ColumnExpr("sumWithOverflow(sum) / ? AS value",
 				s.conf.GroupingPeriod.Minutes())
 			return q, nil
 		case "per_sec", "per_second":
-			q = q.ColumnExpr("sum(sum) / ? AS value",
+			q = q.ColumnExpr("sumWithOverflow(sum) / ? AS value",
 				s.conf.GroupingPeriod.Seconds())
 			return q, nil
 		case "", "sum":
-			q = q.ColumnExpr("sum(sum) AS value")
+			q = q.ColumnExpr("sumWithOverflow(sum) AS value")
 			return q, nil
 		default:
 			return nil, unsupportedInstrumentFunc(metric.Instrument, f.Func)
 		}
 
-	case GaugeInstrument:
+	case InstrumentGauge:
 		switch f.Func {
-		case "", "avg":
+		case "", "avg", "delta":
 			q = q.ColumnExpr("avg(value) AS value")
 			return q, nil
-		case "sum":
-			q = q.ColumnExpr("sum(value) AS value")
+		case "sum": // may be okay
+			q = q.ColumnExpr("sumWithOverflow(value) AS value")
 			return q, nil
 		case "min":
-			q = q.ColumnExpr("toFloat64(min(value)) AS value")
+			q = q.ColumnExpr("min(value) AS value")
 			return q, nil
 		case "max":
-			q = q.ColumnExpr("toFloat64(max(value)) AS value")
-			return q, nil
-		case "count":
-			q = q.ColumnExpr("toFloat64(count()) AS value")
+			q = q.ColumnExpr("max(value) AS value")
 			return q, nil
 		default:
 			return nil, unsupportedInstrumentFunc(metric.Instrument, f.Func)
 		}
 
-	case AdditiveInstrument:
+	case InstrumentAdditive:
 		switch f.Func {
-		case "", "sum":
-			q = q.ColumnExpr("sum(value) AS value")
+		case "", "sum", "delta":
+			q = q.ColumnExpr("sumWithOverflow(value) AS value")
 			return q, nil
-		case "avg":
+		case "avg": // may be okay
 			q = q.ColumnExpr("avg(value) AS value")
 			return q, nil
 		case "min":
-			q = q.ColumnExpr("toFloat64(min(value)) AS value")
+			q = q.ColumnExpr("min(value) AS value")
 			return q, nil
 		case "max":
-			q = q.ColumnExpr("toFloat64(max(value)) AS value")
+			q = q.ColumnExpr("max(value) AS value")
 			return q, nil
 		default:
 			return nil, unsupportedInstrumentFunc(metric.Instrument, f.Func)
 		}
 
-	case HistogramInstrument:
+	case InstrumentHistogram:
 		switch f.Func {
 		case "count":
-			q = q.ColumnExpr("toFloat64(sum(count)) AS value")
+			q = q.ColumnExpr("sumWithOverflow(count) AS value")
 			return q, nil
 		case "per_min", "per_minute":
-			q = q.ColumnExpr("sum(count) / ? AS value",
+			q = q.ColumnExpr("sumWithOverflow(count) / ? AS value",
 				s.conf.GroupingPeriod.Minutes())
 			return q, nil
 		case "per_sec", "per_second":
-			q = q.ColumnExpr("sum(count) / ? AS value",
+			q = q.ColumnExpr("sumWithOverflow(count) / ? AS value",
 				s.conf.GroupingPeriod.Seconds())
 			return q, nil
 		case "min":
@@ -416,7 +356,7 @@ func (s *CHStorage) agg(
 			q = quantileColumn(q, 1)
 			return q, nil
 		case "avg":
-			q = q.ColumnExpr("sum(sum) / sum(count) AS value")
+			q = q.ColumnExpr("sumWithOverflow(sum) / sumWithOverflow(count) AS value")
 			return q, nil
 		case "p50":
 			q = quantileColumn(q, 0.5)
@@ -442,36 +382,121 @@ func (s *CHStorage) agg(
 	}
 }
 
-func quantileColumn(q *ch.SelectQuery, quantile float64) *ch.SelectQuery {
-	return q.ColumnExpr("quantilesBFloat16Merge(?)(histogram)[1] AS value", quantile)
+func (s *CHStorage) newTimeseries(
+	metric *Metric, f *upql.TimeseriesFilter, items []map[string]any,
+) ([]upql.Timeseries, error) {
+	timeseries := make([]upql.Timeseries, 0, len(items))
+
+	for _, m := range items {
+		timeseries = append(timeseries, upql.Timeseries{
+			Metric:     f.Metric,
+			Func:       f.Func,
+			Filters:    f.Filters,
+			Unit:       metricUnit(metric, f),
+			Grouping:   f.Grouping,
+			GroupByAll: f.GroupByAll,
+		})
+		ts := &timeseries[len(timeseries)-1]
+
+		ts.Value = m["value"].([]float64)
+		delete(m, "value")
+
+		ts.Time = m["time"].([]time.Time)
+		delete(m, "time")
+
+		ts.Value = bunutil.Fill(
+			ts.Value,
+			ts.Time,
+			math.NaN(),
+			s.conf.TimeGTE,
+			s.conf.TimeLT,
+			s.conf.GroupingPeriod,
+		)
+		ts.Time = bunutil.FillTime(ts.Time, s.conf.TimeGTE, s.conf.TimeLT, s.conf.GroupingPeriod)
+
+		if s.conf.TableMode {
+			ts.Time = nil
+			ts.Value = []float64{s.tableValue(metric, f, ts.Value)}
+		}
+
+		switch {
+		case len(f.Grouping) > 0:
+			attrs := make([]string, 0, 2*len(f.Grouping))
+			for _, attrKey := range f.Grouping {
+				attrs = append(attrs, attrKey, fmt.Sprint(m[attrKey]))
+				delete(m, attrKey)
+			}
+			ts.Attrs = upql.NewAttrs(attrs...)
+		case f.GroupByAll:
+			keys := m["string_keys"].([]string)
+			values := m["string_values"].([]string)
+			ts.Attrs = upql.AttrsFromKeysValues(keys, values)
+			delete(m, "string_keys")
+			delete(m, "string_values")
+		}
+
+		if len(m) > 0 {
+			ts.Annotations = m
+		}
+	}
+
+	return timeseries, nil
 }
 
-func metricUnit(metric *Metric, f *upql.TimeseriesFilter) string {
-	switch metric.Instrument {
-	case CounterInstrument, GaugeInstrument, AdditiveInstrument:
-		return metric.Unit
-	case HistogramInstrument:
-		switch f.Func {
-		case "count", "per_min", "per_minute", "per_sec", "per_second":
-			return bununit.None
-		default:
-			return metric.Unit
-		}
+func (s *CHStorage) tableValue(
+	metric *Metric, f *upql.TimeseriesFilter, value []float64,
+) float64 {
+	switch f.Func {
+	case "":
+		// continue below
+	case "min":
+		return minValue(value)
+	case "max":
+		return maxValue(value)
+	case "avg", "per_min", "per_minute", "per_sec", "per_second",
+		"p50", "p75", "p90", "p95", "p99":
+		return avg(value)
+	case "count":
+		return sum(value)
+	case "delta":
+		return delta(value)
+	case "uniq":
+		return last(value)
 	default:
-		return bununit.None
+		return last(value)
+	}
+
+	switch metric.Instrument {
+	case InstrumentCounter:
+		return sum(value)
+	default:
+		return last(value)
 	}
 }
 
-func isValueInstrument(instrument string) bool {
+func quantileColumn(q *ch.SelectQuery, quantile float64) *ch.SelectQuery {
+	return q.ColumnExpr("quantileBFloat16Merge(?)(histogram) AS value", quantile)
+}
+
+func metricUnit(metric *Metric, f *upql.TimeseriesFilter) string {
+	switch f.Func {
+	case "count", "per_min", "per_minute", "per_sec", "per_second", "uniq":
+		return bununit.None
+	default:
+		return metric.Unit
+	}
+}
+
+func isValueInstrument(instrument Instrument) bool {
 	switch instrument {
-	case GaugeInstrument, AdditiveInstrument:
+	case InstrumentGauge, InstrumentAdditive:
 		return true
 	default:
 		return false
 	}
 }
 
-func unsupportedInstrumentFunc(instrument, funcName string) error {
+func unsupportedInstrumentFunc(instrument Instrument, funcName string) error {
 	if funcName == "" {
 		return fmt.Errorf("%s instrument requires a func", instrument)
 	}
@@ -483,5 +508,5 @@ func CHColumn(key string) ch.Safe {
 }
 
 func AppendCHColumn(b []byte, key string) []byte {
-	return chschema.AppendQuery(b, "attr_values[indexOf(attr_keys, ?)]", key)
+	return chschema.AppendQuery(b, "string_values[indexOf(string_keys, ?)]", key)
 }

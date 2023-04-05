@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
-	"github.com/uptrace/uptrace/pkg/tracing/attrkey"
 )
 
 type AttrMap map[string]any

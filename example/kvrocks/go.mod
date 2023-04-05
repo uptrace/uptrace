@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/go-redis/redis/extra/redisotel/v9 v9.0.0-rc.1.0.20221118133217-bbff4dd5dc78
 	github.com/go-redis/redis/v9 v9.0.0-rc.1.0.20221118133217-bbff4dd5dc78
-	github.com/uptrace/uptrace-go v1.11.6
+	github.com/uptrace/uptrace-go v1.13.0
 	go.opentelemetry.io/otel v1.11.1
 	go.opentelemetry.io/otel/metric v0.33.0
 )
