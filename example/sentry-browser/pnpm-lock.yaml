@@ -1,0 +1,65 @@
+lockfileVersion: '6.0'
+
+dependencies:
+  '@sentry/browser':
+    specifier: ^7.46.0
+    version: 7.46.0
+
+packages:
+
+  /@sentry-internal/tracing@7.46.0:
+    resolution: {integrity: sha512-KYoppa7PPL8Er7bdPoxTNUfIY804JL7hhOEomQHYD22rLynwQ4AaLm3YEY75QWwcGb0B7ZDMV+tSumW7Rxuwuw==}
+    engines: {node: '>=8'}
+    dependencies:
+      '@sentry/core': 7.46.0
+      '@sentry/types': 7.46.0
+      '@sentry/utils': 7.46.0
+      tslib: 1.14.1
+    dev: false
+
+  /@sentry/browser@7.46.0:
+    resolution: {integrity: sha512-4rX9hKPjxzfH5LhZzO5DlS5NXQ8qZg2ibepaqEgcDHrpYh5813mjjnE4OQA8wiZ6WuG3xKFgHBrGeliD5jXz9w==}
+    engines: {node: '>=8'}
+    dependencies:
+      '@sentry-internal/tracing': 7.46.0
+      '@sentry/core': 7.46.0
+      '@sentry/replay': 7.46.0
+      '@sentry/types': 7.46.0
+      '@sentry/utils': 7.46.0
+      tslib: 1.14.1
+    dev: false
+
+  /@sentry/core@7.46.0:
+    resolution: {integrity: sha512-BnNHGh/ZTztqQedFko7vb2u6yLs/kWesOQNivav32ZbsEpVCjcmG1gOJXh2YmGIvj3jXOC9a4xfIuh+lYFcA6A==}
+    engines: {node: '>=8'}
+    dependencies:
+      '@sentry/types': 7.46.0
+      '@sentry/utils': 7.46.0
+      tslib: 1.14.1
+    dev: false
+
+  /@sentry/replay@7.46.0:
+    resolution: {integrity: sha512-rHsAFdeEu47JRy6mEwwN+M+zTTWlOFWw9sR/eDCvik2lxAXBN2mXvf/N/MN9zQB3+QnS13ke+SvwVW7CshLOXg==}
+    engines: {node: '>=12'}
+    dependencies:
+      '@sentry/core': 7.46.0
+      '@sentry/types': 7.46.0
+      '@sentry/utils': 7.46.0
+    dev: false
+
+  /@sentry/types@7.46.0:
+    resolution: {integrity: sha512-2FMEMgt2h6u7AoELhNhu9L54GAh67KKfK2pJ1kEXJHmWxM9FSCkizjLs/t+49xtY7jEXr8qYq8bV967VfDPQ9g==}
+    engines: {node: '>=8'}
+    dev: false
+
+  /@sentry/utils@7.46.0:
+    resolution: {integrity: sha512-elRezDAF84guMG0OVIIZEWm6wUpgbda4HGks98CFnPsrnMm3N1bdBI9XdlxYLtf+ir5KsGR5YlEIf/a0kRUwAQ==}
+    engines: {node: '>=8'}
+    dependencies:
+      '@sentry/types': 7.46.0
+      tslib: 1.14.1
+    dev: false
+
+  /tslib@1.14.1:
+    resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
+    dev: false

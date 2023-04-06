@@ -16,6 +16,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/uuid"
+	"go.uber.org/zap"
 )
 
 type SentryHandler struct {
@@ -49,18 +50,29 @@ func (h *SentryHandler) Store(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
+	if err := h.processEvent(ctx, project, event); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *SentryHandler) processEvent(
+	ctx context.Context, project *org.Project, event *SentryEvent,
+) error {
+	traceID, err := uuid.Parse(event.EventID)
+	if err != nil {
+		return err
+	}
+
 	span := new(Span)
-	span.ProjectID = project.ID
-	span.EventName = otelEventLog
 
 	if err := h.spanFromEvent(span, event); err != nil {
 		return err
 	}
 
-	traceID, err := uuid.Parse(event.EventID)
-	if err != nil {
-		return err
-	}
+	span.ProjectID = project.ID
+	span.EventName = otelEventLog
 	span.TraceID = traceID
 
 	if event.Level != "" {
@@ -76,7 +88,7 @@ func (h *SentryHandler) Store(w http.ResponseWriter, req bunrouter.Request) erro
 }
 
 func (h *SentryHandler) spanFromEvent(span *Span, event *SentryEvent) error {
-	span.Time = event.Timestamp
+	span.Time = event.Timestamp.Time
 	span.Attrs = make(AttrMap, len(event.Tags)+1)
 
 	for k, v := range event.Contexts {
@@ -174,29 +186,38 @@ func (h *SentryHandler) Envelope(w http.ResponseWriter, req bunrouter.Request) e
 
 	rd := bufio.NewReader(req.Body)
 
+	b, err := rd.ReadBytes('\n')
+	if err != nil {
+		return err
+	}
+
 	header := new(SentryEnvelopeHeader)
-	if err := decodeNextLine(rd, &header); err != nil {
+	if err := json.Unmarshal(b, header); err != nil {
 		return err
 	}
 
 	for {
-		header := new(SentryItemHeader)
-		if err := decodeNextLine(rd, header); err != nil {
+		b, err := rd.ReadBytes('\n')
+		if err != nil {
 			if err == io.EOF {
 				break
 			}
 			return err
 		}
 
-		b, err := rd.ReadBytes('\n')
-		if err != nil {
+		header := new(SentryItemHeader)
+		if err := json.Unmarshal(b, header); err != nil {
+			return err
+		}
+
+		b, err = rd.ReadBytes('\n')
+		if err != nil && err != io.EOF {
 			return err
 		}
 
 		switch header.Type {
 		case "transaction":
 			event := new(SentryEvent)
-
 			if err := json.Unmarshal(b, &event); err != nil {
 				return err
 			}
@@ -204,8 +225,17 @@ func (h *SentryHandler) Envelope(w http.ResponseWriter, req bunrouter.Request) e
 			if err := h.processTransaction(ctx, project, event); err != nil {
 				return err
 			}
+		case "event":
+			event := new(SentryEvent)
+			if err := json.Unmarshal(b, &event); err != nil {
+				return err
+			}
+
+			if err := h.processEvent(ctx, project, event); err != nil {
+				return err
+			}
 		default:
-			// ignore
+			h.Zap(ctx).Error("sentry: unsupported item type", zap.String("type", header.Type))
 		}
 	}
 
@@ -297,9 +327,22 @@ func (h *SentryHandler) processTransaction(
 func (h *SentryHandler) projectFromRequest(req bunrouter.Request) (*org.Project, error) {
 	ctx := req.Context()
 
+	sentryKey, err := h.sentryKey(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return org.SelectProjectByToken(ctx, h.App, sentryKey)
+}
+
+func (h *SentryHandler) sentryKey(req bunrouter.Request) (string, error) {
+	if s := req.URL.Query().Get("sentry_key"); s != "" {
+		return s, nil
+	}
+
 	auth := req.Header.Get("X-Sentry-Auth")
 	if auth == "" {
-		return nil, errors.New("sentry: X-Sentry-Auth header can't be empty")
+		return "", errors.New("sentry: X-Sentry-Auth header can't be empty")
 	}
 
 	var sentryKey string
@@ -313,18 +356,10 @@ func (h *SentryHandler) projectFromRequest(req bunrouter.Request) (*org.Project,
 	}
 
 	if sentryKey == "" {
-		return nil, fmt.Errorf("sentry: can't find sentry_key in %q", auth)
+		return "", fmt.Errorf("sentry: can't find sentry_key in %q", auth)
 	}
 
-	return org.SelectProjectByToken(ctx, h.App, sentryKey)
-}
-
-func decodeNextLine(rd *bufio.Reader, dest any) error {
-	b, err := rd.ReadBytes('\n')
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(b, dest)
+	return sentryKey, nil
 }
 
 func getString(m map[string]any, key string) string {
@@ -333,14 +368,7 @@ func getString(m map[string]any, key string) string {
 }
 
 type SentryEnvelopeHeader struct {
-	DSN   string `json:"dsn"`
-	Trace struct {
-		PublicKey   string `json:"public_key"`
-		Release     string `json:"release"`
-		SampleRate  string `json:"sample_rate"`
-		TraceID     string `json:"trace_id"`
-		Transaction string `json:"transaction"`
-	} `json:"trace"`
+	DSN string `json:"dsn"`
 }
 
 type SentryItemHeader struct {
@@ -369,7 +397,7 @@ type SentryEvent struct {
 	ServerName  string            `json:"server_name"`
 	Threads     []SentryThread    `json:"threads"`
 	Tags        map[string]string `json:"tags"`
-	Timestamp   time.Time         `json:"timestamp"`
+	Timestamp   SentryTime        `json:"timestamp"`
 	Transaction string            `json:"transaction"`
 	User        struct {
 		ID        string            `json:"id"`
@@ -491,4 +519,26 @@ type SentrySpan struct {
 	StartTime    time.Time         `json:"start_timestamp"`
 	EndTime      time.Time         `json:"timestamp"`
 	Data         map[string]any    `json:"data"`
+}
+
+type SentryTime struct {
+	time.Time
+}
+
+func (t *SentryTime) UnmarshalJSON(b []byte) error {
+	if len(b) >= 2 && b[0] == '"' && b[len(b)-1] == '"' {
+		return t.Time.UnmarshalJSON(b)
+	}
+
+	var unix float64
+
+	if err := json.Unmarshal(b, &unix); err != nil {
+		return err
+	}
+
+	secs := int64(unix)
+	nanosecs := (unix - float64(secs)) * float64(time.Second)
+	t.Time = time.Unix(secs, int64(nanosecs))
+
+	return nil
 }

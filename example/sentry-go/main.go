@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -16,9 +15,9 @@ func main() {
 		TracesSampleRate: 1.0,
 	})
 	if err != nil {
-		log.Fatalf("sentry.Init: %s", err)
+		panic(err)
 	}
-	defer sentry.Flush(2 * time.Second)
+	defer sentry.Flush(3 * time.Second)
 
 	sentry.CaptureMessage("It works!")
 

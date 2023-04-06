@@ -1,0 +1,14 @@
+{
+  "name": "sentry-browser",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@sentry/browser": "^7.46.0"
+  }
+}

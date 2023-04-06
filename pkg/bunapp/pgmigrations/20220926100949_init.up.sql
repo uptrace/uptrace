@@ -256,8 +256,7 @@ CREATE INDEX alerts_monitor_id_idx ON alerts (monitor_id);
 
 --bun:split
 
-CREATE UNIQUE INDEX alerts_dedup_hash_unq ON alerts (dedup_hash)
-WHERE dedup_hash IS NOT NULL;
+CREATE UNIQUE INDEX alerts_dedup_hash_unq ON alerts (dedup_hash);
 
 --==============================================================================
 --bun:split
