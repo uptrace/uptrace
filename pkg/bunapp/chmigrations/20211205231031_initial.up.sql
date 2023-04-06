@@ -58,7 +58,7 @@ CREATE TABLE ?DB.spans_data ?ON_CLUSTER (
   trace_id UUID Codec(?CODEC),
   id UInt64 Codec(T64, ?CODEC),
   parent_id UInt64 Codec(?CODEC),
-  time DateTime Codec(Delta, ?CODEC),
+  time DateTime64(9) Codec(Delta, ?CODEC),
   data String Codec(?CODEC)
 )
 ENGINE = ?(REPLICATED)MergeTree()

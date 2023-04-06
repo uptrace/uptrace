@@ -12,12 +12,22 @@
       </v-col>
 
       <v-col cols="auto">
-        <v-btn depressed small :to="groupRoute" exact class="ml-2">View group</v-btn>
+        <v-btn v-if="groupRoute" depressed small :to="groupRoute" exact class="ml-2"
+          >View group</v-btn
+        >
+        <NewMonitorMenu
+          v-if="event.groupId"
+          :name="`${event.system} > ${event.name}`"
+          :where="`where ${AttrKey.spanGroupId} = '${event.groupId}'`"
+          events-mode
+          verbose
+          class="ml-2"
+        />
         <slot name="append-action"></slot>
       </v-col>
     </v-row>
 
-    <v-row>
+    <v-row v-if="event.groupId">
       <v-col>
         <PctileChart :loading="percentiles.loading" :data="percentiles.data" />
       </v-col>
@@ -25,7 +35,12 @@
 
     <v-row>
       <v-col>
-        <AttrsTable :date-range="dateRange" :span="event" />
+        <AttrsTable
+          :date-range="dateRange"
+          :system="event.system"
+          :group-id="event.groupId"
+          :attrs="event.attrs"
+        />
       </v-col>
     </v-row>
   </div>
@@ -42,15 +57,16 @@ import { createUqlEditor } from '@/use/uql'
 
 // Components
 import PctileChart from '@/components/PctileChart.vue'
+import NewMonitorMenu from '@/tracing/NewMonitorMenu.vue'
 import AttrsTable from '@/tracing/AttrsTable.vue'
 
 // Utilities
 import { AttrKey } from '@/models/otel'
-import { Span } from '@/models/span'
+import { SpanEvent } from '@/models/span'
 
 export default defineComponent({
   name: 'EventPanelContent',
-  components: { PctileChart, AttrsTable },
+  components: { PctileChart, NewMonitorMenu, AttrsTable },
 
   props: {
     dateRange: {
@@ -58,7 +74,7 @@ export default defineComponent({
       required: true,
     },
     event: {
-      type: Object as PropType<Span>,
+      type: Object as PropType<SpanEvent>,
       required: true,
     },
   },
@@ -67,6 +83,9 @@ export default defineComponent({
     const { route } = useRouter()
 
     const percentiles = usePercentiles(() => {
+      if (!props.event.groupId) {
+        return undefined
+      }
       const { projectId } = route.value.params
       return {
         url: `/api/v1/tracing/${projectId}/percentiles`,
@@ -79,9 +98,11 @@ export default defineComponent({
     })
 
     const groupRoute = computed(() => {
+      if (!props.event.groupId) {
+        return undefined
+      }
       return {
         name: 'EventList',
-        params: { projectId: props.event.projectId },
         query: {
           ...props.dateRange.queryParams(),
           system: props.event.system,
@@ -92,6 +113,7 @@ export default defineComponent({
         },
       }
     })
+
     return {
       AttrKey,
 

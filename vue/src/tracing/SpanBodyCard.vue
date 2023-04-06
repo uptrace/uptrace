@@ -81,7 +81,12 @@
 
           <v-tabs-items v-model="activeTab">
             <v-tab-item value="attrs" class="pa-4">
-              <AttrsTable :date-range="dateRange" :span="span" />
+              <AttrsTable
+                :date-range="dateRange"
+                :system="span.system"
+                :group-id="span.groupId"
+                :attrs="span.attrs"
+              />
             </v-tab-item>
 
             <v-tab-item value="dbStatement">

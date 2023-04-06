@@ -20,7 +20,7 @@ type SpanData struct {
 	TraceID   uuid.UUID
 	ID        uint64
 	ParentID  uint64
-	Time      time.Time
+	Time      time.Time `ch:"type:DateTime64(9)"`
 	Data      []byte
 }
 
@@ -33,6 +33,7 @@ func (sd *SpanData) Decode(span *Span) error {
 	span.TraceID = sd.TraceID
 	span.ID = sd.ID
 	span.ParentID = sd.ParentID
+	span.Time = sd.Time
 	span.DurationSelf = span.Duration
 
 	span.Type = span.System
@@ -56,25 +57,51 @@ func initSpanData(data *SpanData, span *Span) {
 func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 	var data SpanData
 
-	q := app.CH.NewSelect().
-		ColumnExpr("project_id, trace_id, id, parent_id, data").
+	baseq := app.CH.NewSelect().
+		ColumnExpr("project_id, trace_id, id, parent_id, time, data").
 		Model(&data).
 		ModelTableExpr("?", app.DistTable("spans_data_buffer")).
-		Where("trace_id = ?", span.TraceID).
-		Limit(1)
+		Where("trace_id = ?", span.TraceID)
 
+	q := baseq.Clone().Limit(1)
 	if span.ProjectID != 0 {
 		q = q.Where("project_id = ?", span.ProjectID)
 	}
 	if span.ID != 0 {
 		q = q.Where("id = ?", span.ID)
 	}
-
 	if err := q.Scan(ctx); err != nil {
 		return err
 	}
 
-	return data.Decode(span)
+	if err := data.Decode(span); err != nil {
+		return err
+	}
+
+	if span.IsEvent() {
+		return nil
+	}
+
+	var events []*SpanData
+
+	if err := baseq.Clone().
+		Where("type IN (?)", ch.In(EventTypes)).
+		Where("parent_id = ?", span.ID).
+		OrderExpr("time ASC").
+		Limit(100).
+		Scan(ctx, &events); err != nil {
+		return err
+	}
+
+	for _, eventData := range events {
+		event := new(Span)
+		if err := eventData.Decode(event); err != nil {
+			return err
+		}
+		span.AddEvent(event.Event())
+	}
+
+	return nil
 }
 
 func SelectTraceSpans(ctx context.Context, app *bunapp.App, traceID uuid.UUID) ([]*Span, error) {

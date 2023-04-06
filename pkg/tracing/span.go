@@ -36,7 +36,7 @@ type Span struct {
 	Kind       string `json:"kind" ch:",lc"`
 	Standalone bool   `json:"standalone,omitempty" ch:"-"`
 
-	Time         time.Time     `json:"time"`
+	Time         time.Time     `json:"time" msgpack:"-"`
 	Duration     time.Duration `json:"duration"`
 	DurationSelf time.Duration `json:"durationSelf" msgpack:"-" ch:"-"`
 
@@ -46,13 +46,22 @@ type Span struct {
 	StatusCode    string `json:"statusCode" ch:",lc"`
 	StatusMessage string `json:"statusMessage"`
 
-	Attrs  AttrMap     `json:"attrs" ch:"-"`
-	Events []*Span     `json:"events,omitempty" msgpack:"-" ch:"-"`
-	Links  []*SpanLink `json:"links,omitempty" ch:"-"`
+	Attrs  AttrMap      `json:"attrs" ch:"-"`
+	Events []*SpanEvent `json:"events,omitempty" ch:"-"`
+	Links  []*SpanLink  `json:"links,omitempty" ch:"-"`
 
 	Children []*Span `json:"children,omitempty" msgpack:"-" ch:"-"`
 
 	logMessageHash uint64
+}
+
+type SpanEvent struct {
+	Name  string    `json:"name"`
+	Time  time.Time `json:"time"`
+	Attrs AttrMap   `json:"attrs"`
+
+	System  string `json:"system,omitempty"`
+	GroupID uint64 `json:"groupId,omitempty"`
 }
 
 type SpanLink struct {
@@ -67,6 +76,17 @@ func (s *Span) IsEvent() bool {
 
 func (s *Span) IsError() bool {
 	return isErrorSystem(s.System)
+}
+
+func (s *Span) Event() *SpanEvent {
+	return &SpanEvent{
+		Name:  s.EventName,
+		Time:  s.Time,
+		Attrs: s.Attrs,
+
+		System:  s.System,
+		GroupID: s.GroupID,
+	}
 }
 
 func (s *Span) TreeStartEndTime() (time.Time, time.Time) {
@@ -115,7 +135,7 @@ func (s *Span) AddChild(child *Span) {
 	s.Children = append(s.Children, child)
 }
 
-func (s *Span) AddEvent(event *Span) {
+func (s *Span) AddEvent(event *SpanEvent) {
 	s.Events = append(s.Events, event)
 }
 
@@ -179,9 +199,9 @@ func buildSpanTree(spans []*Span) (*Span, int) {
 	for _, s := range spans {
 		if s.IsEvent() {
 			if span, ok := m[s.ParentID]; ok {
-				span.AddEvent(s)
+				span.AddEvent(s.Event())
 			} else {
-				root.AddEvent(s)
+				root.AddEvent(s.Event())
 			}
 			continue
 		}

@@ -569,7 +569,11 @@ func hashSpan(project *org.Project, digest *xxhash.Digest, span *Span, keys ...s
 
 //------------------------------------------------------------------------------
 
-func initEventFromHostSpan(dest *Span, hostSpan *Span) {
+func initEventFromHostSpan(dest *Span, event *SpanEvent, hostSpan *Span) {
+	dest.EventName = event.Name
+	dest.Time = event.Time
+	dest.Attrs = event.Attrs
+
 	dest.ProjectID = hostSpan.ProjectID
 	dest.TraceID = hostSpan.TraceID
 	dest.ID = rand.Uint64()
@@ -578,7 +582,9 @@ func initEventFromHostSpan(dest *Span, hostSpan *Span) {
 	dest.Name = hostSpan.Name
 	dest.Kind = hostSpan.Kind
 	for k, v := range hostSpan.Attrs {
-		dest.Attrs.SetDefault(k, v)
+		if _, ok := dest.Attrs[k]; !ok {
+			dest.Attrs[k] = v
+		}
 	}
 	dest.Duration = hostSpan.Duration
 	dest.StatusCode = hostSpan.StatusCode

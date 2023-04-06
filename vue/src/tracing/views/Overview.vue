@@ -90,7 +90,7 @@ import SystemQuickMetrics from '@/tracing/system/SystemQuickMetrics.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
 
 // Utilities
-import { AttrKey, SystemName } from '@/models/otel'
+import { isErrorSystem, AttrKey } from '@/models/otel'
 import { DAY } from '@/util/fmt/date'
 
 export default defineComponent({
@@ -134,17 +134,10 @@ export default defineComponent({
         return []
       }
 
-      const candidates = [
-        SystemName.logFatal,
-        SystemName.logPanic,
-        SystemName.logError,
-        SystemName.logWarn,
-      ]
       const chosen = []
-      for (let candidate of candidates) {
-        const found = systems.items.find((v) => v.system === candidate)
-        if (found) {
-          chosen.push(candidate)
+      for (let system of systems.items) {
+        if (isErrorSystem(system.system)) {
+          chosen.push(system.system)
         }
       }
       return chosen

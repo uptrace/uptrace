@@ -23,6 +23,15 @@ receivers:
   jaeger:
     protocols:
       grpc:
+  postgresql:
+    endpoint: localhost:5432
+    transport: tcp
+    username: uptrace
+    password: uptrace
+    databases:
+      - uptrace
+    tls:
+      insecure: true
 
 processors:
   resourcedetection:
@@ -50,7 +59,7 @@ service:
       processors: [batch]
       exporters: [otlp/uptrace, logging]
     metrics:
-      receivers: [otlp]
+      receivers: [otlp, postgresql]
       processors: [batch]
       exporters: [otlp/uptrace]
     metrics/hostmetrics:

@@ -12,6 +12,7 @@ import '@/plugins/frag'
 import '@/plugins/axios'
 import '@/plugins/prism'
 import '@/plugins/global'
+import '@/plugins/sentry'
 import vuetify from '@/plugins/vuetify'
 
 Vue.config.productionTip = false

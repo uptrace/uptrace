@@ -22,23 +22,38 @@ func main() {
 	sentry.CaptureMessage("It works!")
 
 	ctx := context.Background()
+	doWork(ctx)
+}
 
-	span := sentry.StartSpan(ctx, "doWork",
-		sentry.TransactionName(fmt.Sprintf("doWork: %s", "hello")))
+func doWork(ctx context.Context) {
+	span := sentry.StartSpan(ctx, "doWork")
+	span.SetData("code.function", "main.doWork")
 	defer span.Finish()
 
+	ctx = span.Context()
+
 	{
-		ctx := span.Context()
-		span := sentry.StartSpan(ctx, "suboperation1")
+		span := sentry.StartSpan(ctx, "SELECT")
+		span.SetData("db.system", "postgresql")
+		span.SetData("db.statement", "SELECT * FROM articles LIMIT 100")
 
 		{
-			span := sentry.StartSpan(span.Context(), "suboperation3")
+			ctx := span.Context()
+			span := sentry.StartSpan(ctx, "GET /foo/bar")
+			span.SetData("http.method", "GET")
+			span.SetData("http.route", "/foo/bar")
+			span.SetData("http.url", "https://mydomain.com/foo/bar?q=123")
 			span.Finish()
 		}
 
 		span.Finish()
-
-		span = sentry.StartSpan(ctx, "suboperation2")
-		span.Finish()
 	}
+
+	span = sentry.StartSpan(ctx, "AuthService.Auth")
+	span.SetData("rpc.system", "grpc")
+	span.SetData("rpc.service", "AuthService.Auth")
+	span.SetData("rpc.method", "Auth")
+	span.Finish()
+
+	fmt.Println("trace id:", span.TraceID)
 }

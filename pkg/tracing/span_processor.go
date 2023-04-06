@@ -156,11 +156,16 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 		dataSpans = append(dataSpans, SpanData{})
 		initSpanData(&dataSpans[len(dataSpans)-1], span)
 
+		if span.EventName != "" {
+			continue
+		}
+
 		var errorCount int
 		var logCount int
 
-		for _, eventSpan := range span.Events {
-			initEventFromHostSpan(eventSpan, span)
+		for _, event := range span.Events {
+			eventSpan := new(Span)
+			initEventFromHostSpan(eventSpan, event, span)
 			initEvent(spanCtx, eventSpan)
 
 			spanCounter.Add(
@@ -192,6 +197,7 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 		index.EventCount = uint8(len(span.Events))
 		index.EventErrorCount = uint8(errorCount)
 		index.EventLogCount = uint8(logCount)
+		span.Events = nil
 	}
 
 	if _, err := s.CH.NewInsert().

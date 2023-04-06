@@ -6,7 +6,7 @@ import { useRouter } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
 import { useForceReload } from '@/use/force-reload'
 import { traceSpans, Trace, TraceSpan } from '@/models/trace-span'
-import { Span } from '@/models/span'
+import { SpanEvent } from '@/models/span'
 import { spanColoredSystems, ColoredSystem } from '@/models/colored-system'
 
 // Utilities
@@ -63,8 +63,8 @@ export function useTrace() {
     return spans.value.find((span) => span.id === activeSpanId.value)
   })
 
-  const events = computed((): Record<string, Span[]> => {
-    const eventMap: Record<string, Span[]> = {}
+  const events = computed((): Record<string, SpanEvent[]> => {
+    const eventMap: Record<string, SpanEvent[]> = {}
 
     for (let span of spans.value) {
       if (!span.events) {
@@ -72,6 +72,9 @@ export function useTrace() {
       }
 
       for (let event of span.events) {
+        if (!event.system) {
+          continue
+        }
         let arr = eventMap[event.system]
         if (!arr) {
           arr = []

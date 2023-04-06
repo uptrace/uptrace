@@ -68,7 +68,7 @@ export default defineComponent({
   },
 
   setup(props) {
-    const events = computed((): Span[] => {
+    const events = computed(() => {
       return props.span?.events ?? []
     })
 

@@ -78,7 +78,6 @@ import { defineComponent, shallowRef, nextTick, proxyRefs, PropType } from 'vue'
 import { useRoute, useRouteQuery } from '@/use/router'
 import { UsePager } from '@/use/pager'
 import { UseOrder } from '@/use/order'
-import { UseDateRange } from '@/use/date-range'
 
 // Components
 import ThOrder from '@/components/ThOrder.vue'
@@ -98,10 +97,6 @@ export default defineComponent({
   },
 
   props: {
-    dateRange: {
-      type: Object as PropType<UseDateRange>,
-      required: true,
-    },
     eventsMode: {
       type: Boolean,
       required: true,

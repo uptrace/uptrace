@@ -23,15 +23,16 @@
         <tr v-for="key in attrKeys" :key="key">
           <th>{{ key }}</th>
           <td>
-            <CodeOrText :value="span.attrs[key]" :name="key">
+            <CodeOrText :value="attrs[key]" :name="key">
               <template #text>
                 <KeyValueFilterLink
+                  v-if="groupId"
                   :date-range="dateRange"
                   :name="key"
-                  :value="span.attrs[key]"
-                  :project-id="span.projectId"
-                  :system="span.system"
-                  :group-id="span.groupId"
+                  :value="attrs[key]"
+                  :project-id="$route.params.projectId"
+                  :system="system"
+                  :group-id="groupId"
                   :is-event="isEvent"
                 />
               </template>
@@ -48,7 +49,7 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Utilities
 import { AttrKey, isEventSystem } from '@/models/otel'
-import { Span } from '@/models/span'
+import { AttrMap } from '@/models/span'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
@@ -66,21 +67,29 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
-    span: {
-      type: Object as PropType<Span>,
+    system: {
+      type: String,
+      default: undefined,
+    },
+    groupId: {
+      type: String,
+      default: undefined,
+    },
+    attrs: {
+      type: Object as PropType<AttrMap>,
       required: true,
     },
   },
 
   setup(props) {
     const attrKeys = computed((): string[] => {
-      const keys = Object.keys(props.span.attrs)
+      const keys = Object.keys(props.attrs)
       keys.sort()
       return keys
     })
 
     const isEvent = computed((): boolean => {
-      return isEventSystem(props.span.system)
+      return isEventSystem(props.system)
     })
 
     return {

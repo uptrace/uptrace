@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/uptrace/bunrouter"
@@ -41,7 +42,7 @@ func (h *TraceHandler) FindTrace(w http.ResponseWriter, req bunrouter.Request) e
 		"span": bunrouter.H{
 			"projectId":  span.ProjectID,
 			"traceId":    span.TraceID,
-			"id":         span.ID,
+			"id":         strconv.FormatUint(span.ID, 10),
 			"standalone": span.Standalone,
 		},
 	})
@@ -80,7 +81,7 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 		}
 
 		slices.SortFunc(span.Children, func(a, b *Span) bool { return a.Time.Before(b.Time) })
-		slices.SortFunc(span.Events, func(a, b *Span) bool { return a.Time.Before(b.Time) })
+		slices.SortFunc(span.Events, func(a, b *SpanEvent) bool { return a.Time.Before(b.Time) })
 
 		return nil
 	})

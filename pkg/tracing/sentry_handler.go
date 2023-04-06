@@ -72,15 +72,28 @@ func (h *SentryHandler) processEvent(
 	}
 
 	span.ProjectID = project.ID
-	span.EventName = otelEventLog
 	span.TraceID = traceID
 	span.Standalone = true
 
-	if event.Level != "" {
-		span.Attrs[attrkey.LogSeverity] = event.Level
-	}
 	if event.Message != "" {
+		span.EventName = otelEventLog
+		if event.Level != "" {
+			span.Attrs[attrkey.LogSeverity] = event.Level
+		}
 		span.Attrs[attrkey.LogMessage] = event.Message
+	}
+
+	if len(event.Exception.Values) > 0 {
+		if span.EventName == "" {
+			span.EventName = otelEventException
+		}
+		exc := &event.Exception.Values[0]
+		if exc.Type != "" {
+			span.Attrs[attrkey.ExceptionType] = exc.Type
+		}
+		if exc.Value != "" {
+			span.Attrs[attrkey.ExceptionMessage] = exc.Value
+		}
 	}
 
 	h.sp.AddSpan(ctx, span)
@@ -89,18 +102,23 @@ func (h *SentryHandler) processEvent(
 }
 
 func (h *SentryHandler) spanFromEvent(span *Span, event *SentryEvent) error {
+	span.Attrs = make(AttrMap)
 	span.Time = event.Timestamp.Time
-	span.Attrs = make(AttrMap, len(event.Tags)+1)
 
-	for k, v := range event.Contexts {
-		span.Attrs["contexts."+k] = v
+	for k, m := range event.Contexts {
+		forEachKV(m, k+".", func(k string, v any) {
+			span.Attrs[k] = v
+		})
 	}
 	for k, v := range event.Tags {
-		span.Attrs["tags."+k] = v
+		k = attrkey.Clean(k)
+		if k != "" {
+			span.Attrs["tags."+k] = v
+		}
 	}
-	for k, v := range event.Extra {
-		span.Attrs["extra."+k] = v
-	}
+	forEachKV(event.Extra, "extra.", func(k string, v any) {
+		span.Attrs[k] = v
+	})
 
 	if event.ServerName != "" {
 		span.Attrs[attrkey.HostName] = event.ServerName
@@ -131,7 +149,10 @@ func (h *SentryHandler) spanFromEvent(span *Span, event *SentryEvent) error {
 		span.Attrs["enduser.segment"] = event.User.Segment
 	}
 	for k, v := range event.User.Data {
-		span.Attrs["enduser.data."+k] = v
+		k = attrkey.Clean(k)
+		if k != "" {
+			span.Attrs["enduser.data."+k] = v
+		}
 	}
 
 	if req := event.Request; req != nil {
@@ -151,10 +172,16 @@ func (h *SentryHandler) spanFromEvent(span *Span, event *SentryEvent) error {
 			span.Attrs["http.cookies"] = req.Cookies
 		}
 		for k, v := range req.Headers {
-			span.Attrs["http.headers."+k] = v
+			k = attrkey.Clean(k)
+			if k != "" {
+				span.Attrs["http.headers."+k] = v
+			}
 		}
 		for k, v := range req.Env {
-			span.Attrs["http.env."+k] = v
+			k = attrkey.Clean(k)
+			if k != "" {
+				span.Attrs["http.env."+k] = v
+			}
 		}
 	}
 
@@ -174,7 +201,37 @@ func (h *SentryHandler) spanFromEvent(span *Span, event *SentryEvent) error {
 		// ignore
 	}
 
+	for i := range event.Breadcrumbs {
+		bc := &event.Breadcrumbs[i]
+		span.Events = append(span.Events, h.newSpanFromBreadcrumb(bc))
+	}
+
 	return nil
+}
+
+func (h *SentryHandler) newSpanFromBreadcrumb(bc *SentryBreadcrumb) *SpanEvent {
+	event := new(SpanEvent)
+	event.Time = bc.Timestamp.Time
+	event.Attrs = bc.Data
+
+	if bc.Type != "" {
+		if event.Attrs == nil {
+			event.Attrs = make(AttrMap)
+		}
+		event.Attrs["breadcrumb.type"] = bc.Type
+	}
+
+	if bc.Level != "" && bc.Message != "" {
+		event.Name = bc.Level + " " + bc.Message
+		return event
+	}
+
+	if bc.Category != "" {
+		event.Name = bc.Category
+	} else {
+		event.Name = bc.Message
+	}
+	return event
 }
 
 func (h *SentryHandler) Envelope(w http.ResponseWriter, req bunrouter.Request) error {
@@ -299,8 +356,14 @@ func (h *SentryHandler) processTransaction(
 		dest.Time = src.StartTime
 		dest.Duration = src.EndTime.Sub(src.StartTime)
 
-		for k, v := range src.Tags {
+		forEachKV(src.Data, "", func(k string, v any) {
 			dest.Attrs[k] = v
+		})
+		for k, v := range src.Tags {
+			k = attrkey.Clean(k)
+			if k != "" {
+				dest.Attrs["tags."+k] = v
+			}
 		}
 
 		h.sp.AddSpan(ctx, dest)
@@ -378,7 +441,7 @@ type SentryItemHeader struct {
 }
 
 type SentryEvent struct {
-	Breadcrumbs []*SentryBreadcrumb       `json:"breadcrumbs"`
+	Breadcrumbs []SentryBreadcrumb        `json:"breadcrumbs"`
 	Contexts    map[string]map[string]any `json:"contexts"`
 	Dist        string                    `json:"dist"`
 	Environment string                    `json:"environment"`
@@ -412,7 +475,9 @@ type SentryEvent struct {
 	Logger    string            `json:"logger"`
 	Modules   map[string]string `json:"modules"`
 	Request   *SentryRequest    `json:"request"`
-	Exception []SentryException `json:"exception"`
+	Exception struct {
+		Values []SentryException `json:"values"`
+	} `json:"exception"`
 	// DebugMeta *DebugMeta        `json:"debug_meta"`
 
 	// The fields below are only relevant for transactions.
@@ -431,7 +496,7 @@ type SentryBreadcrumb struct {
 	Message   string         `json:"message"`
 	Data      map[string]any `json:"data"`
 	Level     string         `json:"level"`
-	Timestamp time.Time      `json:"timestamp"`
+	Timestamp SentryTime     `json:"timestamp"`
 }
 
 type SentryPackage struct {
@@ -542,4 +607,20 @@ func (t *SentryTime) UnmarshalJSON(b []byte) error {
 	t.Time = time.Unix(secs, int64(nanosecs))
 
 	return nil
+}
+
+func forEachKV(m map[string]any, prefix string, fn func(string, any)) {
+	for k, v := range m {
+		k = attrkey.Clean(k)
+		if k == "" {
+			continue
+		}
+
+		switch v := v.(type) {
+		case map[string]any:
+			forEachKV(v, k+".", fn)
+		default:
+			fn(k, v)
+		}
+	}
 }

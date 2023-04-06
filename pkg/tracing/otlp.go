@@ -36,7 +36,7 @@ func initSpanFromOTLP(dest *Span, resource AttrMap, src *tracepb.Span) {
 		dest.Attrs[key] = value
 	})
 
-	dest.Events = make([]*Span, len(src.Events))
+	dest.Events = make([]*SpanEvent, len(src.Events))
 	for i, event := range src.Events {
 		dest.Events[i] = newSpanFromOTLPEvent(event)
 	}
@@ -47,17 +47,17 @@ func initSpanFromOTLP(dest *Span, resource AttrMap, src *tracepb.Span) {
 	}
 }
 
-func newSpanFromOTLPEvent(event *tracepb.Span_Event) *Span {
-	span := new(Span)
-	span.EventName = event.Name
-	span.Time = time.Unix(0, int64(event.TimeUnixNano))
+func newSpanFromOTLPEvent(src *tracepb.Span_Event) *SpanEvent {
+	dest := new(SpanEvent)
+	dest.Name = src.Name
+	dest.Time = time.Unix(0, int64(src.TimeUnixNano))
 
-	span.Attrs = make(AttrMap, len(event.Attributes))
-	otlpconv.ForEachKeyValue(event.Attributes, func(key string, value any) {
-		span.Attrs[key] = value
+	dest.Attrs = make(AttrMap, len(src.Attributes))
+	otlpconv.ForEachKeyValue(src.Attributes, func(key string, value any) {
+		dest.Attrs[key] = value
 	})
 
-	return span
+	return dest
 }
 
 func otlpSpanID(b []byte) uint64 {

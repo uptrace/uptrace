@@ -28,8 +28,17 @@ export interface Span {
   statusMessage: string
 
   attrs: AttrMap
-  events?: Span[]
+  events?: SpanEvent[]
   children?: Span[]
+}
+
+export interface SpanEvent {
+  name: string
+  time: string
+  attrs: AttrMap
+
+  system?: string
+  groupId?: string
 }
 
 export function eventOrSpanName(span: Span, maxLength = 100): string {
