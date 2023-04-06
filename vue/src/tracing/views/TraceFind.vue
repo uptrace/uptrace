@@ -31,14 +31,27 @@ export default defineComponent({
     const traceSearch = useTraceSearch()
 
     watch(
-      () => traceSearch.trace,
-      (trace) => {
-        if (trace) {
+      () => traceSearch.span,
+      (span) => {
+        if (!span) {
+          return
+        }
+
+        if (span.standalone) {
+          router.replace({
+            name: 'SpanShow',
+            params: {
+              projectId: String(span.projectId),
+              traceId: span.traceId,
+              spanId: span.id,
+            },
+          })
+        } else {
           router.replace({
             name: 'TraceShow',
             params: {
-              projectId: String(trace.projectId),
-              traceId: trace.id,
+              projectId: String(span.projectId),
+              traceId: span.traceId,
             },
           })
         }

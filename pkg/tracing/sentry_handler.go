@@ -74,6 +74,7 @@ func (h *SentryHandler) processEvent(
 	span.ProjectID = project.ID
 	span.EventName = otelEventLog
 	span.TraceID = traceID
+	span.Standalone = true
 
 	if event.Level != "" {
 		span.Attrs[attrkey.LogSeverity] = event.Level

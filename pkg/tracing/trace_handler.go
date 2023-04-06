@@ -38,9 +38,11 @@ func (h *TraceHandler) FindTrace(w http.ResponseWriter, req bunrouter.Request) e
 	}
 
 	return httputil.JSON(w, bunrouter.H{
-		"trace": map[string]any{
-			"id":        span.TraceID,
-			"projectId": span.ProjectID,
+		"span": bunrouter.H{
+			"projectId":  span.ProjectID,
+			"traceId":    span.TraceID,
+			"id":         span.ID,
+			"standalone": span.Standalone,
 		},
 	})
 }
