@@ -3,8 +3,9 @@ package alerting
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
+
+	"github.com/segmentio/encoding/json"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunapp"

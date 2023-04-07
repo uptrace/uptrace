@@ -3,7 +3,6 @@ package tracing
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/segmentio/encoding/json"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/attrkey"

@@ -1,8 +1,9 @@
 package upql
 
 import (
-	"encoding/json"
 	"strings"
+
+	"github.com/segmentio/encoding/json"
 
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"golang.org/x/exp/slices"
