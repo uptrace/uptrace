@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -19,7 +20,8 @@ func main() {
 	}
 	defer sentry.Flush(3 * time.Second)
 
-	sentry.CaptureMessage("It works!")
+	eventId := sentry.CaptureException(errors.New("Yeah, it works!"))
+	fmt.Println("exception id:", *eventId)
 
 	ctx := context.Background()
 	doWork(ctx)

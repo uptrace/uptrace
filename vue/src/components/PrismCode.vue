@@ -1,17 +1,20 @@
 <template>
   <v-sheet ref="el" :dark="dark" class="x-code" :class="{ 'x-code--wrap': wrap }">
     <prism :code="code" :inline="inline" :language="language" />
+
+    <CopyBtn :target="target" class="mr-n3 mt-n3" />
   </v-sheet>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue'
+import { defineComponent, shallowRef, computed } from 'vue'
 
 import Prism from 'vue-prism-component'
+import CopyBtn from '@/components/CopyBtn.vue'
 
 export default defineComponent({
   name: 'PrismCode',
-  components: { Prism },
+  components: { Prism, CopyBtn },
 
   props: {
     code: {
@@ -33,15 +36,20 @@ export default defineComponent({
   },
 
   setup(props) {
-    const el = ref<any>()
+    const el = shallowRef<any>()
 
     const wrap = computed((): boolean => {
       return !props.code.includes('\n')
     })
 
+    function target() {
+      return el.value!.$el.querySelector('pre')
+    }
+
     return {
       el,
       wrap,
+      target,
     }
   },
 })
@@ -50,7 +58,6 @@ export default defineComponent({
 <style lang="scss">
 .v-sheet.x-code {
   position: relative;
-  margin: 16px 0;
   padding: 12px;
   background-color: map-get($grey, 'lighten-5');
 

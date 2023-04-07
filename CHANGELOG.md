@@ -19,7 +19,11 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 #### Features
 
 - Port Alerts, Monitors, and Notifications Channels from Uptrace Cloud.
+- Accept errors and spans from [Sentry SDK](https://uptrace.dev/get/ingest/sentry.html).
 - Add filter facets for metrics.
+
+## Improvements
+
 - Improve UI for switching between table/grid metric views.
 - Allow to quickly change group by in the grid.
 - Allow to add/edit text gauges.

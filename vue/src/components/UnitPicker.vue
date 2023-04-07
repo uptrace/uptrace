@@ -9,7 +9,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, PropType } from 'vue'
+import { defineComponent, computed } from 'vue'
 
 // Components
 import BtnSelectMenu from '@/components/BtnSelectMenu.vue'
@@ -23,12 +23,8 @@ export default defineComponent({
 
   props: {
     value: {
-      type: String as PropType<Unit>,
+      type: String,
       required: true,
-    },
-    base: {
-      type: String as PropType<Unit>,
-      default: undefined,
     },
     targetClass: {
       type: String,
@@ -38,40 +34,22 @@ export default defineComponent({
 
   setup(props) {
     const availableItems = computed(() => {
-      switch (props.base) {
-        case undefined:
-          return [
-            { short: 'unit', text: 'none', value: Unit.None },
-            { short: '', text: '', value: Unit.Bytes },
-            { short: '', text: '', value: Unit.Nanoseconds },
-            { short: '', text: '', value: Unit.Microseconds },
-            { short: '', text: '', value: Unit.Milliseconds },
-            { short: '', text: '', value: Unit.Seconds },
-            { short: '', text: '', value: Unit.Percents },
-          ]
-        case Unit.Bytes:
-          return [
-            { short: '', text: '', value: Unit.Bytes },
-            { short: '', text: '', value: Unit.Kilobytes },
-            { short: '', text: '', value: Unit.Megabytes },
-            { short: '', text: '', value: Unit.Gigabytes },
-            { short: '', text: '', value: Unit.Terabytes },
-          ]
-        case Unit.Nanoseconds:
-        case Unit.Microseconds:
-        case Unit.Milliseconds:
-        case Unit.Seconds:
-          return [
-            { short: '', text: '', value: Unit.Nanoseconds },
-            { short: '', text: '', value: Unit.Microseconds },
-            { short: '', text: '', value: Unit.Milliseconds },
-            { short: '', text: '', value: Unit.Seconds },
-          ]
-        case Unit.Percents:
-          return [{ short: '', text: '', value: Unit.Percents }]
-        default:
-          return [{ short: 'unit', text: 'none', value: Unit.None }]
+      const items = [
+        { short: 'unit', text: 'none', value: Unit.None },
+        { short: '', text: '', value: Unit.Bytes },
+        { short: '', text: '', value: Unit.Nanoseconds },
+        { short: '', text: '', value: Unit.Microseconds },
+        { short: '', text: '', value: Unit.Milliseconds },
+        { short: '', text: '', value: Unit.Seconds },
+        { short: '', text: '', value: Unit.Percents },
+      ]
+      if (props.value) {
+        const i = items.findIndex((item) => item.value === props.value)
+        if (i === -1) {
+          items.push({ short: '', text: '', value: props.value as Unit })
+        }
       }
+      return items
     })
 
     const items = computed(() => {

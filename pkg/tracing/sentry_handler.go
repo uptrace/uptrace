@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	"go.uber.org/zap"
 )
@@ -83,22 +85,54 @@ func (h *SentryHandler) processEvent(
 		span.Attrs[attrkey.LogMessage] = event.Message
 	}
 
-	if len(event.Exception.Values) > 0 {
+	exceptions, err := h.decodeExceptions(event.Exception)
+	if err != nil {
+		return err
+	}
+
+	if len(exceptions) > 0 {
 		if span.EventName == "" {
 			span.EventName = otelEventException
 		}
-		exc := &event.Exception.Values[0]
+		exc := &exceptions[0]
 		if exc.Type != "" {
 			span.Attrs[attrkey.ExceptionType] = exc.Type
 		}
 		if exc.Value != "" {
 			span.Attrs[attrkey.ExceptionMessage] = exc.Value
 		}
+		if exc.Stacktrace != nil {
+			if stacktrace := exc.Stacktrace.String(); stacktrace != "" {
+				span.Attrs[attrkey.ExceptionStacktrace] = stacktrace
+			}
+		}
 	}
 
 	h.sp.AddSpan(ctx, span)
 
 	return nil
+}
+
+func (h *SentryHandler) decodeExceptions(b []byte) ([]SentryException, error) {
+	if len(b) <= 2 {
+		return nil, nil
+	}
+
+	if b[0] == '{' && b[len(b)-1] == '}' {
+		var in struct {
+			Values []SentryException `json:"values"`
+		}
+		if err := json.Unmarshal(b, &in); err != nil {
+			return nil, err
+		}
+		return in.Values, nil
+	}
+
+	var exceptions []SentryException
+	if err := json.Unmarshal(b, &exceptions); err != nil {
+		return nil, err
+	}
+	return exceptions, nil
 }
 
 func (h *SentryHandler) spanFromEvent(span *Span, event *SentryEvent) error {
@@ -475,9 +509,7 @@ type SentryEvent struct {
 	Logger    string            `json:"logger"`
 	Modules   map[string]string `json:"modules"`
 	Request   *SentryRequest    `json:"request"`
-	Exception struct {
-		Values []SentryException `json:"values"`
-	} `json:"exception"`
+	Exception json.RawMessage   `json:"exception"`
 	// DebugMeta *DebugMeta        `json:"debug_meta"`
 
 	// The fields below are only relevant for transactions.
@@ -536,6 +568,14 @@ type SentryStacktrace struct {
 	FramesOmitted []uint        `json:"frames_omitted"`
 }
 
+func (s *SentryStacktrace) String() string {
+	b := make([]byte, 0, 40*len(s.Frames))
+	for i := range s.Frames {
+		b = s.Frames[i].AppendString(b)
+	}
+	return unsafeconv.String(b)
+}
+
 type SentryFrame struct {
 	Function string `json:"function"`
 	Symbol   string `json:"symbol"`
@@ -563,6 +603,36 @@ type SentryFrame struct {
 	ImageAddr       string `json:"image_addr"`
 	Platform        string `json:"platform"`
 	StackStart      bool   `json:"stack_start"`
+}
+
+func (f *SentryFrame) AppendString(b []byte) []byte {
+	if f.Module != "" {
+		b = append(b, f.Module...)
+		b = append(b, '.')
+	}
+	if f.Function != "" {
+		b = append(b, f.Function...)
+	}
+
+	b = append(b, ' ')
+
+	if f.AbsPath != "" {
+		b = append(b, f.AbsPath...)
+	} else if f.Filename != "" {
+		b = append(b, f.Filename...)
+	}
+	if f.Lineno > 0 {
+		b = append(b, ':')
+		b = strconv.AppendInt(b, int64(f.Lineno), 10)
+	}
+	if f.Colno > 0 {
+		b = append(b, ':')
+		b = strconv.AppendInt(b, int64(f.Colno), 10)
+	}
+
+	b = append(b, '\n')
+
+	return b
 }
 
 type SentryMechanism struct {
