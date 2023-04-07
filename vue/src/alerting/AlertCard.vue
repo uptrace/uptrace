@@ -60,6 +60,7 @@ import { defineComponent, computed } from 'vue'
 import { useTitle } from '@vueuse/core'
 import { useRoute } from '@/use/router'
 import { useDateRange } from '@/use/date-range'
+import { useProject } from '@/org/use-projects'
 import { useAlert, useAlertManager, AlertType, AlertState } from '@/alerting/use-alerts'
 
 // Components
@@ -68,7 +69,7 @@ import AlertCardSpan from '@/alerting/AlertCardSpan.vue'
 import AlertCardMetric from '@/alerting/AlertCardMetric.vue'
 
 // Utilities
-import { AttrKey, isEventSystem } from '@/models/otel'
+import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'AlertCard',
@@ -88,6 +89,7 @@ export default defineComponent({
   setup(props, ctx) {
     const route = useRoute()
     const dateRange = useDateRange()
+    const project = useProject()
 
     const alert = useAlert(() => {
       const { projectId } = route.value.params
@@ -107,6 +109,13 @@ export default defineComponent({
       const bs: any[] = []
 
       bs.push({
+        text: project.data?.name ?? 'Project',
+        to: {
+          name: 'ProjectShow',
+        },
+      })
+
+      bs.push({
         text: 'Alerts',
         to: {
           name: 'AlertList',
@@ -119,23 +128,8 @@ export default defineComponent({
         return bs
       }
 
-      const system = alert.data.attrs[AttrKey.spanSystem]
-      if (system) {
-        bs.push({
-          text: system,
-          to: {
-            name: isEventSystem(system) ? 'EventGroupList' : 'SpanGroupList',
-            query: {
-              ...dateRange.queryParams(),
-              system,
-            },
-          },
-          exact: true,
-        })
-      }
-
       bs.push({
-        text: truncate(alert.data.name, { length: 80 }),
+        text: truncate(alert.data.name, { length: 60 }),
         to: {
           name: 'AlertShow',
           params: { alertId: alert.data.id },
