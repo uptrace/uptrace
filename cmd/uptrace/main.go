@@ -339,8 +339,8 @@ func loadInitialData(ctx context.Context, app *bunapp.App) error {
 	for i := range conf.Auth.Users {
 		src := &conf.Auth.Users[i]
 		dest := &org.User{
-			Username:      src.Username,
 			Email:         src.Email,
+			Name:          src.Name,
 			Avatar:        src.Avatar,
 			NotifyByEmail: src.NotifyByEmail,
 		}
@@ -353,7 +353,7 @@ func loadInitialData(ctx context.Context, app *bunapp.App) error {
 
 		if _, err := app.PG.NewInsert().
 			Model(dest).
-			On("CONFLICT (username) DO UPDATE").
+			On("CONFLICT (email) DO UPDATE").
 			Set("password = EXCLUDED.password").
 			Set("avatar = EXCLUDED.avatar").
 			Exec(ctx); err != nil {
@@ -376,16 +376,53 @@ func loadInitialData(ctx context.Context, app *bunapp.App) error {
 			return err
 		}
 
-		if _, err := app.PG.NewInsert().
-			Model(dest).
-			On("CONFLICT (id) DO UPDATE").
-			Set("name = EXCLUDED.name").
-			Set("pinned_attrs = EXCLUDED.pinned_attrs").
-			Set("group_by_env = EXCLUDED.group_by_env").
-			Set("group_funcs_by_service = EXCLUDED.group_funcs_by_service").
-			Exec(ctx); err != nil {
+		if err := createProject(ctx, app, dest); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func createProject(ctx context.Context, app *bunapp.App, project *org.Project) error {
+	project.CreatedAt = time.Now()
+	project.UpdatedAt = project.CreatedAt
+
+	if _, err := app.PG.NewInsert().
+		Model(project).
+		On("CONFLICT (id) DO UPDATE").
+		Set("name = EXCLUDED.name").
+		Set("pinned_attrs = EXCLUDED.pinned_attrs").
+		Set("group_by_env = EXCLUDED.group_by_env").
+		Set("group_funcs_by_service = EXCLUDED.group_funcs_by_service").
+		Returning("*").
+		Exec(ctx); err != nil {
+		return err
+	}
+
+	if !project.UpdatedAt.Equal(project.CreatedAt) {
+		return nil
+	}
+
+	monitor := &alerting.ErrorMonitor{
+		BaseMonitor: &alerting.BaseMonitor{
+			ProjectID:             project.ID,
+			Name:                  "Notify on all errors",
+			State:                 alerting.MonitorActive,
+			NotifyEveryoneByEmail: true,
+
+			Type: alerting.MonitorError,
+		},
+		Params: alerting.ErrorMonitorParams{
+			NotifyOnNewErrors:       true,
+			NotifyOnRecurringErrors: true,
+			Matchers:                make([]org.AttrMatcher, 0),
+		},
+	}
+	if _, err := app.PG.NewInsert().
+		Model(monitor).
+		Exec(ctx); err != nil {
+		return err
 	}
 
 	return nil

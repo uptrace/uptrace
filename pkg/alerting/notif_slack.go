@@ -138,12 +138,12 @@ func slackErrorAlertText(project *org.Project, alert *ErrorAlert) string {
 		if alert.State == org.AlertOpen {
 			return fmt.Sprintf(
 				":red_circle: *[%s] The error is reopened by %s*\n%s",
-				project.Name, alert.Event.User.Username, alertName,
+				project.Name, alert.Event.User.Username(), alertName,
 			)
 		}
 		return fmt.Sprintf(
 			":white_check_mark: *[%s] The error is closed by %s*\n%s",
-			project.Name, alert.Event.User.Username, alertName,
+			project.Name, alert.Event.User.Username(), alertName,
 		)
 	}
 
@@ -167,12 +167,12 @@ func slackMetricAlertText(project *org.Project, alert *MetricAlert) string {
 		if alert.State == org.AlertOpen {
 			return fmt.Sprintf(
 				":red_circle: *[%s] The metric alert is reopened by %s*\n%s",
-				project.Name, alert.Event.User.Username, alertName,
+				project.Name, alert.Event.User.Username(), alertName,
 			)
 		}
 		return fmt.Sprintf(
 			":white_check_mark: *[%s] The metric alert is closed by %s*\n%s",
-			project.Name, alert.Event.User.Username, alertName,
+			project.Name, alert.Event.User.Username(), alertName,
 		)
 	}
 

@@ -10,6 +10,7 @@
               <v-tab :to="{ name: 'AlertList' }">Alerts</v-tab>
               <v-tab :to="{ name: 'MonitorList' }">Monitors</v-tab>
               <v-tab :to="{ name: 'NotifChannelList' }">Channels</v-tab>
+              <v-tab :to="{ name: 'NotifChannelEmail' }">Email notifications</v-tab>
             </v-tabs>
           </template>
         </v-toolbar>
@@ -24,14 +25,12 @@
 import { defineComponent, computed } from 'vue'
 
 // Composables
-import { useUser } from '@/org/use-users'
 import { useProject } from '@/org/use-projects'
 
 export default defineComponent({
   name: 'Alerting',
 
   setup() {
-    const user = useUser()
     const project = useProject()
 
     const breadcrumbs = computed(() => {
@@ -49,7 +48,7 @@ export default defineComponent({
       return bs
     })
 
-    return { user, breadcrumbs }
+    return { breadcrumbs }
   },
 })
 </script>

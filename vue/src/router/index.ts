@@ -24,6 +24,7 @@ import ChannelList from '@/alerting/views/ChannelList.vue'
 import ChannelShowSlack from '@/alerting/views/ChannelShowSlack.vue'
 import ChannelShowWebhook from '@/alerting/views/ChannelShowWebhook.vue'
 import ChannelShowAlertmanager from '@/alerting/views/ChannelShowAlertmanager.vue'
+import EmailNotifications from '@/alerting/views/EmailNotifications.vue'
 
 import Overview from '@/tracing/views/Overview.vue'
 import OverviewAttr from '@/tracing/views/OverviewAttr.vue'
@@ -117,6 +118,12 @@ const routes: RouteConfig[] = [
         name: 'MonitorList',
         path: 'monitors',
         components: { alerting: MonitorList },
+      },
+
+      {
+        name: 'NotifChannelEmail',
+        path: 'email',
+        components: { alerting: EmailNotifications },
       },
     ],
   },

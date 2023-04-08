@@ -136,7 +136,7 @@ func (h *SSOMethodHandler) Callback(w http.ResponseWriter, req bunrouter.Request
 		return err
 	}
 
-	token, err := encodeUserToken(h.Config().SecretKey, user.Username, tokenTTL)
+	token, err := encodeUserToken(h.Config().SecretKey, user.Email, tokenTTL)
 	if err != nil {
 		return err
 	}
@@ -193,30 +193,30 @@ func (h *SSOMethodHandler) exchange(
 
 	// This default claim works with Keycloak, but not with Google Cloud
 	// which only supports `email` claim.
-	claim := "preferred_username"
+	claim := "email"
 
 	if len(h.conf.Claim) > 0 {
 		claim = h.conf.Claim
 	}
 
-	var username string
-	usernameClaim := (*claims)[claim]
+	var email string
+	emailClaim := (*claims)[claim]
 
-	switch usernameClaim := usernameClaim.(type) {
+	switch emailClaim := emailClaim.(type) {
 	case string:
-		username = usernameClaim
+		email = emailClaim
 	case nil:
 		return nil, fmt.Errorf("oidc: claim is unset: %s", claim)
 	default:
 		return nil, fmt.Errorf("oidc: claim must be a string: %s", claim)
 	}
 
-	if len(username) == 0 {
+	if len(email) == 0 {
 		return nil, fmt.Errorf("oidc: claim is empty: %s", claim)
 	}
 
 	user := &User{
-		Username: username,
+		Email: email,
 	}
 	user.Init()
 

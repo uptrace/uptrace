@@ -255,9 +255,6 @@ func selectEmailRecipientsForMonitor(
 			cb,
 		)
 	}
-
-	// TODO: support email notif channel
-
 	return nil, nil
 }
 

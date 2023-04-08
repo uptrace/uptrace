@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -18,6 +19,9 @@ type Project struct {
 	PinnedAttrs         []string `json:"pinnedAttrs" bun:",array"`
 	GroupByEnv          bool     `json:"groupByEnv"`
 	GroupFuncsByService bool     `json:"groupFuncsByService"`
+
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 func (p *Project) Init() error {
@@ -31,6 +35,14 @@ func (p *Project) Init() error {
 		return errors.New("project token can't be empty")
 	}
 	return nil
+}
+
+func (p *Project) SettingsURL() string {
+	return fmt.Sprintf("/projects/%d", p.ID)
+}
+
+func (p *Project) EmailSettingsURL() string {
+	return fmt.Sprintf("/alerting/%d/email", p.ID)
 }
 
 func SelectProject(

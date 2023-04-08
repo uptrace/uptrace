@@ -43,16 +43,16 @@ func (p *JWTProvider) Auth(req bunrouter.Request) (*User, error) {
 		return nil, errNoUser
 	}
 
-	username, err := decodeUserToken(p.secretKey, cookie.Value)
+	email, err := decodeUserToken(p.secretKey, cookie.Value)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := SelectUserByUsername(ctx, p.app, username)
+	user, err := SelectUserByEmail(ctx, p.app, email)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			user := &User{
-				Username: username,
+				Email: email,
 			}
 			user.Init()
 		}
@@ -63,9 +63,9 @@ func (p *JWTProvider) Auth(req bunrouter.Request) (*User, error) {
 
 var jwtSigningMethod = jwt.SigningMethodHS256
 
-func encodeUserToken(secretKey string, username string, ttl time.Duration) (string, error) {
+func encodeUserToken(secretKey string, email string, ttl time.Duration) (string, error) {
 	claims := &jwt.RegisteredClaims{
-		Subject:   username,
+		Subject:   email,
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
 	}
 	token := jwt.NewWithClaims(jwtSigningMethod, claims)
@@ -133,7 +133,6 @@ func (p *CloudflareProvider) Auth(req bunrouter.Request) (*User, error) {
 	}
 
 	user := &User{
-		// TODO: is there a username?
 		Email: claims.Email,
 	}
 	user.Init()

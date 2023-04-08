@@ -34,12 +34,12 @@
             <v-card flat class="px-14 py-8">
               <v-alert v-if="error" type="error">{{ error }}</v-alert>
 
-              <!-- Basic Login (username/password) -->
+              <!-- Basic Login (email/password) -->
               <v-text-field
-                v-model="username"
+                v-model="email"
                 prepend-inner-icon="mdi-account"
-                label="Username"
-                :rules="rules.username"
+                label="Email"
+                :rules="rules.email"
                 required
                 filled
               ></v-text-field>
@@ -91,12 +91,12 @@ export default defineComponent({
 
     const isValid = shallowRef(false)
     const rules = {
-      username: [requiredRule],
+      email: [requiredRule],
       password: [requiredRule],
     }
     const error = shallowRef('')
 
-    const username = shallowRef('uptrace')
+    const email = shallowRef('uptrace@localhost')
     const password = shallowRef('uptrace')
 
     const { loading, request } = useAxios()
@@ -126,7 +126,7 @@ export default defineComponent({
 
     function login() {
       const data = {
-        username: username.value,
+        email: email.value,
         password: password.value,
       }
 
@@ -141,7 +141,7 @@ export default defineComponent({
       rules,
       error,
 
-      username,
+      email,
       password,
 
       loading,

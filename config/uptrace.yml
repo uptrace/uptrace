@@ -110,10 +110,10 @@ metrics_from_spans:
 
 auth:
   users:
-    - username: uptrace
+    - name: Anonymous
+      email: uptrace@localhost
       password: uptrace
-    - username: admin
-      password: admin
+      notify_by_email: true
 
   # Cloudflare Zero Trust Access (Identity)
   # See https://developers.cloudflare.com/cloudflare-one/identity/ for more info.
@@ -227,6 +227,18 @@ metrics:
 
   # The size of the buffer for converting cumulative metrics to delta.
   #cum_to_delta_size: 100000
+
+##
+## SMTP settings to send emails.
+## https://uptrace.dev/get/alerting.html
+##
+smtp_mailer:
+  # enabled: true
+  # host: smtp.gmail.com
+  # port: 587
+  # username: '[SENDER]@gmail.com'
+  # password: '[APP_PASSWORD]'
+  # from: '[SENDER]@gmail.com'
 
 ##
 ## uptrace-go client configuration.

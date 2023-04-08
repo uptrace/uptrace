@@ -1,10 +1,10 @@
 package bunconf
 
 type User struct {
-	Username string `yaml:"username"`
+	Email    string `yaml:"email"`
 	Password string `yaml:"password"`
 
-	Email  string `yaml:"email"`
+	Name   string `yaml:"name"`
 	Avatar string `yaml:"avatar"`
 
 	NotifyByEmail bool `yaml:"notify_by_email"`

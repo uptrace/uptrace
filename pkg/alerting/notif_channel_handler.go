@@ -2,6 +2,7 @@ package alerting
 
 import (
 	"bytes"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -86,10 +87,6 @@ func (h *NotifChannelHandler) UpdateNotifChannelState(
 ) error {
 	ctx := req.Context()
 	channel := NotifChannelFromContext(ctx).Base()
-
-	if state == NotifChannelDelivering {
-		// TODO: validate before activating
-	}
 
 	if err := UpdateNotifChannelState(ctx, h.App, channel, state); err != nil {
 		return err
@@ -410,6 +407,69 @@ func (h *NotifChannelHandler) sendWebhookTestMsg(
 	}
 
 	return nil
+}
+
+//------------------------------------------------------------------------------
+
+func (h *NotifChannelHandler) EmailShow(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+	user := org.UserFromContext(ctx)
+	project := org.ProjectFromContext(ctx)
+
+	data := &org.UserProjectData{
+		NotifyOnMetrics:         true,
+		NotifyOnNewErrors:       true,
+		NotifyOnRecurringErrors: true,
+	}
+
+	if err := h.PG.NewSelect().
+		Model(data).
+		Where("user_id = ?", user.ID).
+		Where("project_id = ?", project.ID).
+		Scan(ctx); err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"channel": data,
+	})
+}
+
+func (h *NotifChannelHandler) EmailUpdate(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+	user := org.UserFromContext(ctx)
+	project := org.ProjectFromContext(ctx)
+
+	var in struct {
+		NotifyOnMetrics         bool `json:"notifyOnMetrics"`
+		NotifyOnNewErrors       bool `json:"notifyOnNewErrors"`
+		NotifyOnRecurringErrors bool `json:"notifyOnRecurringErrors"`
+	}
+	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
+		return err
+	}
+
+	data := &org.UserProjectData{
+		UserID:                  user.ID,
+		ProjectID:               project.ID,
+		NotifyOnMetrics:         in.NotifyOnMetrics,
+		NotifyOnNewErrors:       in.NotifyOnNewErrors,
+		NotifyOnRecurringErrors: in.NotifyOnRecurringErrors,
+	}
+
+	if _, err := h.PG.NewInsert().
+		Model(data).
+		On("CONFLICT (user_id, project_id) DO UPDATE").
+		Set("notify_on_metrics = EXCLUDED.notify_on_metrics").
+		Set("notify_on_new_errors = EXCLUDED.notify_on_new_errors").
+		Set("notify_on_recurring_errors = EXCLUDED.notify_on_recurring_errors").
+		Exec(ctx); err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"channel": data,
+	})
 }
 
 //------------------------------------------------------------------------------

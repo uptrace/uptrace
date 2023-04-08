@@ -16,6 +16,9 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 - AlertManager client config is ignored. Use Uptrace UI to create AlertManager notification channel.
 
+- `users.username` is replaced with `users.email` so users can receive email notifications. To set
+  user's name, use `users.name` field.
+
 #### Features
 
 - Port Alerts, Monitors, and Notifications Channels from Uptrace Cloud.
@@ -39,11 +42,6 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 - Fix cumulative to delta metrics conversion.
 - Fix exponential histograms handling.
-
-#### TODO
-
-Email notification channel is missing in v1.4.0. We plan to introduce it the follow-up release.
-Meanwhile you can still use AlertManager integration.
 
 ## v1.3.0 - Jan 20 2023
 

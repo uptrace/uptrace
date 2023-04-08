@@ -118,7 +118,7 @@ func (m *Middleware) userFromRequest(req bunrouter.Request) *User {
 
 		if span := trace.SpanFromContext(ctx); span.IsRecording() {
 			span.SetAttributes(
-				semconv.EnduserIDKey.String(user.Username),
+				semconv.EnduserIDKey.String(user.Email),
 			)
 		}
 

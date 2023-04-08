@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -15,27 +16,40 @@ import (
 type User struct {
 	bun.BaseModel `bun:"users,alias:u"`
 
-	ID       uint64 `json:"id" bun:",pk,autoincrement"`
-	Username string `json:"username"`
+	ID uint64 `json:"id" bun:",pk,autoincrement"`
+
+	Email    string `json:"email" bun:",nullzero"`
 	Password string `json:"-" bun:",nullzero"`
 
-	Email  string `json:"email" bun:",nullzero"`
+	Name   string `json:"name"`
 	Avatar string `json:"avatar" bun:",nullzero"`
 
 	NotifyByEmail bool `json:"notifyByEmail"`
 }
 
 func (u *User) Init() error {
-	if u.Username == "" {
-		u.Username = u.Email
+	if u.Email == "" {
+		return errors.New("user email can't be empty")
 	}
-	if u.Username == "" {
-		return errors.New("username can't be empty")
+	if u.Name == "" {
+		u.Name = "Anonymous"
 	}
 	if u.Avatar == "" {
 		u.Avatar = u.gravatar()
 	}
 	return nil
+}
+
+func (u *User) Username() string {
+	if u.Name != "" {
+		return u.Name
+	}
+
+	i := strings.IndexByte(u.Email, '@')
+	if i == 0 {
+		return u.Email
+	}
+	return u.Email[:i]
 }
 
 func (u *User) SetPassword(pass string) error {
@@ -56,11 +70,7 @@ func hashPassword(pass string) (string, error) {
 }
 
 func (u *User) gravatar() string {
-	email := u.Email
-	if email == "" {
-		email = u.Username
-	}
-	return fmt.Sprintf("https://gravatar.com/avatar/%s?d=identicon", md5s(email))
+	return fmt.Sprintf("https://gravatar.com/avatar/%s?d=identicon", md5s(u.Email))
 }
 
 func md5s(s string) string {
@@ -79,11 +89,11 @@ func SelectUser(ctx context.Context, app *bunapp.App, id uint64) (*User, error) 
 	return user, nil
 }
 
-func SelectUserByUsername(ctx context.Context, app *bunapp.App, username string) (*User, error) {
+func SelectUserByEmail(ctx context.Context, app *bunapp.App, email string) (*User, error) {
 	user := new(User)
 	if err := app.PG.NewSelect().
 		Model(user).
-		Where("username = ?", username).
+		Where("email = ?", email).
 		Scan(ctx); err != nil {
 		return nil, err
 	}

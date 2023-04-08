@@ -41,14 +41,14 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 	ctx := req.Context()
 
 	var in struct {
-		Username string `json:"username"`
+		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 	if err := json.NewDecoder(req.Body).Decode(&in); err != nil {
 		return err
 	}
 
-	user, err := SelectUserByUsername(ctx, h.App, in.Username)
+	user, err := SelectUserByEmail(ctx, h.App, in.Email)
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 		return httperror.BadRequest("credentials", "user with such credentials not found")
 	}
 
-	token, err := encodeUserToken(h.Config().SecretKey, user.Username, tokenTTL)
+	token, err := encodeUserToken(h.Config().SecretKey, user.Email, tokenTTL)
 	if err != nil {
 		return err
 	}

@@ -62,7 +62,6 @@
         <v-checkbox
           v-model="monitor.notifyEveryoneByEmail"
           label="Notify everyone by email"
-          disabled
           hide-details="auto"
           class="mt-0"
         />

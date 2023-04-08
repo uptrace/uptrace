@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/wneessen/go-mail"
 	"gopkg.in/yaml.v3"
 )
 
@@ -112,6 +113,16 @@ func validateConfig(conf *Config) error {
 		conf.Metrics.CumToDeltaSize = ScaleWithCPU(10000, 500000)
 	}
 
+	if conf.SMTPMailer.Port == 0 {
+		conf.SMTPMailer.Port = 25
+	}
+	if conf.SMTPMailer.From == "" {
+		conf.SMTPMailer.From = "no-reply@localhost"
+	}
+	if conf.SMTPMailer.AuthType == "" {
+		conf.SMTPMailer.AuthType = mail.SMTPAuthPlain
+	}
+
 	return nil
 }
 
@@ -123,8 +134,8 @@ func validateUsers(users []User) error {
 	seen := make(map[string]bool, len(users))
 	for i := range users {
 		user := &users[i]
-		if seen[user.Username] {
-			return fmt.Errorf("user with username=%q already exists", user.Username)
+		if seen[user.Email] {
+			return fmt.Errorf("user with username=%q already exists", user.Email)
 		}
 	}
 
@@ -219,6 +230,17 @@ type Config struct {
 		DSN string     `yaml:"dsn"`
 		TLS *TLSClient `yaml:"tls"`
 	} `yaml:"uptrace_go"`
+
+	SMTPMailer struct {
+		Enabled  bool              `json:"enabled"`
+		Host     string            `yaml:"host"`
+		Port     int               `yaml:"port"`
+		AuthType mail.SMTPAuthType `yaml:"auth_type"`
+		Username string            `yaml:"username"`
+		Password string            `yaml:"password"`
+
+		From string `yaml:"from"`
+	} `yaml:"smtp_mailer"`
 }
 
 type SpanMetric struct {

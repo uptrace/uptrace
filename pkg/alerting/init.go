@@ -67,6 +67,9 @@ func initRouter(ctx context.Context, app *bunapp.App) {
 			g.POST("/slack", handler.SlackCreate)
 			g.POST("/webhook", handler.WebhookCreate)
 
+			g.GET("/email", handler.EmailShow)
+			g.PUT("/email", handler.EmailUpdate)
+
 			g = g.Use(middleware.NotifChannel)
 
 			g.DELETE("/:channel_id", handler.Delete)
@@ -205,7 +208,7 @@ func initTasks(ctx context.Context, app *bunapp.App) {
 		Handler: createErrorAlertHandler,
 	})
 	_ = app.RegisterTask(NotifyByEmailTask.Name(), &taskq.TaskConfig{
-		Handler: notifyByEmailHandler,
+		Handler: NewEmailNotifier(app).NotifyHandler,
 	})
 	_ = app.RegisterTask(NotifyBySlackTask.Name(), &taskq.TaskConfig{
 		Handler: notifyBySlackHandler,
