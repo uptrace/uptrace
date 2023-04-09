@@ -127,6 +127,13 @@ services:
       - '1025:1025'
       - '8025:8025'
 
+  vector:
+    image: timberio/vector:0.28.X-alpine
+    volumes:
+      - ./config/vector.toml:/etc/vector/vector.toml:ro
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
   keycloak:
     image: quay.io/keycloak/keycloak:19.0.2
     restart: on-failure

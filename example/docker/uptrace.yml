@@ -245,7 +245,7 @@ uptrace_go:
 ##
 smtp_mailer:
   enabled: true
-  host: localhost
+  host: mailhog
   port: 1025
   username: mailhog
   password: mailhog
