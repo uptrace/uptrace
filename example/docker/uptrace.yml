@@ -113,10 +113,10 @@ metrics_from_spans:
 ##
 auth:
   users:
-    - username: uptrace
+    - name: Anonymous
+      email: uptrace@localhost
       password: uptrace
-    - username: admin
-      password: admin
+      notify_by_email: true
 
   # Cloudflare Zero Trust Access (Identity)
   # See https://developers.cloudflare.com/cloudflare-one/identity/ for more info.
@@ -238,6 +238,18 @@ uptrace_go:
   #   cert_file: config/tls/uptrace.crt
   #   key_file: config/tls/uptrace.key
   #   insecure_skip_verify: true
+
+##
+## SMTP settings to send emails.
+## https://uptrace.dev/get/alerting.html
+##
+smtp_mailer:
+  enabled: true
+  host: localhost
+  port: 1025
+  username: mailhog
+  password: mailhog
+  from: 'uptrace@localhost'
 
 ##
 ## Logging configuration.

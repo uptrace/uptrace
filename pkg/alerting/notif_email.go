@@ -44,7 +44,9 @@ func NewEmailNotifier(app *bunapp.App) *EmailNotifier {
 		mail.WithPort(conf.Port),
 		mail.WithSMTPAuth(conf.AuthType),
 		mail.WithUsername(conf.Username),
-		mail.WithPassword(conf.Password))
+		mail.WithPassword(conf.Password),
+		mail.WithTLSPolicy(mail.TLSOpportunistic),
+	)
 	if err != nil {
 		app.Logger.Error("mail.NewClient failed", zap.Error(err))
 		return &EmailNotifier{

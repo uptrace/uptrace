@@ -33,15 +33,11 @@ distro. To get some test data, just reload the UI few times. It usually takes ab
 the data to appear.
 
 To configure OpenTelemetry for your programming language, see
-[documentation](https://uptrace.dev/get/).
+[documentation](https://uptrace.dev/get/get-started.html).
 
 ## Alerting
 
-Uptrace can monitor metrics using [alerting rules](https://uptrace.dev/get/alerting.html#alerting)
-and send notifications via email/Slack/Telegram using AlertManager integration.
-
 This example uses MailHog to test email notifications. Open
-[http://localhost:8025](http://localhost:8025) to view available notifications and
-[http://localhost:9093](http://localhost:9093) to view alerts.
+[http://localhost:8025](http://localhost:8025) to view available email notifications.
 
 See [documentation](https://uptrace.dev/get/alerting.html) for more details.

@@ -233,12 +233,12 @@ metrics:
 ## https://uptrace.dev/get/alerting.html
 ##
 smtp_mailer:
-  # enabled: true
-  # host: smtp.gmail.com
-  # port: 587
-  # username: '[SENDER]@gmail.com'
-  # password: '[APP_PASSWORD]'
-  # from: '[SENDER]@gmail.com'
+  enabled: true
+  host: localhost
+  port: 1025
+  username: mailhog
+  password: mailhog
+  from: 'uptrace@localhost'
 
 ##
 ## uptrace-go client configuration.

@@ -84,7 +84,7 @@ services:
       - '8025:8025'
 
   vector:
-    image: timberio/vector:0.24.X-alpine
+    image: timberio/vector:0.28.X-alpine
     volumes:
       - ./vector.toml:/etc/vector/vector.toml:ro
 
