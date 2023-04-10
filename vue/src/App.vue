@@ -5,11 +5,7 @@
         <v-row align="center" class="flex-nowrap">
           <v-col cols="auto">
             <div class="mt-2">
-              <UptraceLogoLarge
-                v-if="!user.isAuth || $vuetify.breakpoint.lgAndUp"
-                :to="{ name: 'Home' }"
-              />
-              <UptraceLogoSmall v-else :to="{ name: 'Home' }" />
+              <UptraceLogoSmall />
             </div>
           </v-col>
 
@@ -85,6 +81,19 @@
       <v-container fluid>
         <v-row justify="center" align="center">
           <v-col cols="auto">
+            <v-btn
+              href="https://uptrace.dev/compare/"
+              target="_blank"
+              color="deep-orange darken-3"
+              small
+              dark
+            >
+              <v-icon left>mdi-shield-check</v-icon>
+              <span>Uptrace Enterprise</span>
+            </v-btn>
+          </v-col>
+
+          <v-col cols="auto">
             <v-btn href="https://uptrace.dev/get/" target="_blank" text rounded small>
               <v-icon small class="mr-1">mdi-help-circle-outline</v-icon>
               <span>Docs</span>
@@ -128,7 +137,6 @@ import { useDateRange } from '@/use/date-range'
 import { useUser } from '@/org/use-users'
 
 // Components
-import UptraceLogoLarge from '@/components/UptraceLogoLarge.vue'
 import UptraceLogoSmall from '@/components/UptraceLogoSmall.vue'
 import ProjectPicker from '@/components/ProjectPicker.vue'
 import Search from '@/components/Search.vue'
@@ -141,7 +149,6 @@ import { SystemName } from '@/models/otel'
 export default defineComponent({
   name: 'App',
   components: {
-    UptraceLogoLarge,
     UptraceLogoSmall,
     ProjectPicker,
     Search,

@@ -17,12 +17,14 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 - AlertManager client config is ignored. Use Uptrace UI to create AlertManager notification channel.
 
-- `auth.users.username` is replaced with `users.email` so users can receive email notifications. To
-  set user's name, use `auth.users.name` field.
+- `auth.users.username` is replaced with `auth.users.email` so users can receive email
+  notifications. As the result, emails are used to authenticate users. To set user's name, use
+  `auth.users.name` field.
 
 #### Features
 
-- Port Alerts, Monitors, and Notifications Channels from Uptrace Enterprise edition.
+- Port Alerts, Monitors, and Notifications Channels from
+  [Uptrace Enterprise](https://uptrace.dev/compare) edition.
 - Accept errors and spans from [Sentry SDK](https://uptrace.dev/get/ingest/sentry.html).
 - Add filter facets for metrics.
 

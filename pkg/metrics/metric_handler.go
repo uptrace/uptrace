@@ -94,7 +94,7 @@ func selectMetrics(ctx context.Context, app *bunapp.App, f *MetricFilter) ([]*Me
 	q := app.PG.NewSelect().
 		Model(&metrics).
 		Where("project_id = ?", f.ProjectID).
-		Where("updated_at >= ?", time.Now().Add(-24*time.Hour)).
+		Where("updated_at IS NULL OR updated_at >= ?", time.Now().Add(-24*time.Hour)).
 		OrderExpr("name ASC").
 		Limit(10000)
 

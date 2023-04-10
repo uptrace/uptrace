@@ -108,7 +108,7 @@ func SelectTraceSpans(ctx context.Context, app *bunapp.App, traceID uuid.UUID) (
 	var data []SpanData
 
 	if err := app.CH.NewSelect().
-		ColumnExpr("project_id, trace_id, id, parent_id").
+		ColumnExpr("project_id, trace_id, id, parent_id, time, data").
 		Model(&data).
 		ModelTableExpr("?", app.DistTable("spans_data_buffer")).
 		Column("data").

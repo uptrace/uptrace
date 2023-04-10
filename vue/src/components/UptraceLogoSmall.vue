@@ -1,6 +1,7 @@
 <template>
   <a
-    href="https://uptrace.dev/compare-open-source"
+    href="https://uptrace.dev/"
+    target="_blank"
     class="d-inline-block"
     v-bind="$attrs"
     v-on="$listeners"

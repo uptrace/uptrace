@@ -56,10 +56,11 @@ func initSpanOrEvent(ctx *spanContext, app *bunapp.App, span *Span) {
 }
 
 func initSpanAttrs(ctx *spanContext, span *Span) {
+	normAttrs(span.Attrs, span.Attrs)
+
 	if msg, _ := span.Attrs[attrkey.LogMessage].(string); msg != "" {
 		parseLogMessage(ctx, span, msg)
 	}
-
 	if s, _ := span.Attrs[attrkey.HTTPUserAgent].(string); s != "" {
 		initHTTPUserAgent(span.Attrs, s)
 	}
@@ -169,6 +170,54 @@ func populateSpanFromParams(span *Span, params AttrMap) {
 		}
 	}
 
+	normAttrs(span.Attrs, params)
+
+	if span.TraceID.IsZero() {
+		for _, key := range []string{"trace_id", "traceid"} {
+			value, _ := params[key].(string)
+			if value == "" {
+				continue
+			}
+
+			traceID, err := uuid.Parse(value)
+			if err != nil {
+				continue
+			}
+
+			if !traceID.IsZero() {
+				span.TraceID = traceID
+				delete(params, key)
+				break
+			}
+		}
+	}
+
+	if span.ParentID == 0 {
+		for _, key := range []string{"span_id", "spanid"} {
+			value, _ := params[key].(string)
+			if value == "" {
+				continue
+			}
+
+			spanID, err := parseSpanID(value)
+			if err != nil {
+				continue
+			}
+
+			if spanID != 0 {
+				span.ParentID = spanID
+				delete(params, key)
+				break
+			}
+		}
+	}
+
+	for key, value := range params {
+		attrs.SetClashingKeys(key, value)
+	}
+}
+
+func normAttrs(attrs, params AttrMap) {
 	if _, ok := attrs[attrkey.ServiceName]; !ok {
 		for _, key := range []string{
 			attrkey.ServiceName,
@@ -204,6 +253,7 @@ func populateSpanFromParams(span *Span, params AttrMap) {
 		for _, key := range []string{
 			attrkey.DBSystem,
 			"db_system",
+			"db.type",
 		} {
 			value, _ := params[key].(string)
 			if value == "" {
@@ -267,50 +317,6 @@ func populateSpanFromParams(span *Span, params AttrMap) {
 				break
 			}
 		}
-	}
-
-	if span.TraceID.IsZero() {
-		for _, key := range []string{"trace_id", "traceid"} {
-			value, _ := params[key].(string)
-			if value == "" {
-				continue
-			}
-
-			traceID, err := uuid.Parse(value)
-			if err != nil {
-				continue
-			}
-
-			if !traceID.IsZero() {
-				span.TraceID = traceID
-				delete(params, key)
-				break
-			}
-		}
-	}
-
-	if span.ParentID == 0 {
-		for _, key := range []string{"span_id", "spanid"} {
-			value, _ := params[key].(string)
-			if value == "" {
-				continue
-			}
-
-			spanID, err := parseSpanID(value)
-			if err != nil {
-				continue
-			}
-
-			if spanID != 0 {
-				span.ParentID = spanID
-				delete(params, key)
-				break
-			}
-		}
-	}
-
-	for key, value := range params {
-		attrs.SetClashingKeys(key, value)
 	}
 }
 

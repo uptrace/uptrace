@@ -372,7 +372,7 @@ func (app *App) newPG() *bun.DB {
 		bundebug.WithEnabled(app.Debugging()),
 		bundebug.FromEnv("BUNDEBUG", "DEBUG"),
 	))
-	db.AddQueryHook(bunotel.NewQueryHook())
+	db.AddQueryHook(bunotel.NewQueryHook(bunotel.WithFormattedQueries(true)))
 
 	return db
 }
