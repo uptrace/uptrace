@@ -10,6 +10,7 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -35,8 +36,12 @@ func NewDashSyncer(app *bunapp.App) *DashSyncer {
 }
 
 func (s *DashSyncer) CreateDashboardsHandler(ctx context.Context, projectID uint32) error {
-	ctx, span := bunotel.Tracer.Start(ctx, "process-measures")
+	ctx, span := bunotel.Tracer.Start(ctx, "create-dashboards")
 	defer span.End()
+
+	span.SetAttributes(
+		attribute.Int64("project_id", int64(projectID)),
+	)
 
 	return s.app.PG.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		var locked bool
