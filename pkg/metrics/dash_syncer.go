@@ -4,13 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"sync"
 	"time"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
-	"github.com/uptrace/uptrace/pkg/bunutil"
 	"go.uber.org/zap"
 )
 
@@ -18,9 +17,6 @@ type DashSyncer struct {
 	app *bunapp.App
 
 	templates []*DashboardTpl
-
-	debouncerMu  sync.Mutex
-	debouncerMap map[uint32]*bunutil.Debouncer
 
 	logger *otelzap.Logger
 }
@@ -31,40 +27,27 @@ func NewDashSyncer(app *bunapp.App) *DashSyncer {
 		app.Logger.Error("readDashboardTemplates failed", zap.Error(err))
 	}
 
-	s := &DashSyncer{
-		app:          app,
-		templates:    templates,
-		debouncerMap: make(map[uint32]*bunutil.Debouncer),
-		logger:       app.Logger,
+	return &DashSyncer{
+		app:       app,
+		templates: templates,
+		logger:    app.Logger,
 	}
-
-	ctx := app.Context()
-	projects := app.Config().Projects
-	for i := range projects {
-		s.CreateDashboards(ctx, projects[i].ID)
-	}
-
-	return s
 }
 
-func (s *DashSyncer) CreateDashboards(ctx context.Context, projectID uint32) {
-	s.debouncerMu.Lock()
-	defer s.debouncerMu.Unlock()
+func (s *DashSyncer) CreateDashboardsHandler(ctx context.Context, projectID uint32) error {
+	ctx, span := bunotel.Tracer.Start(ctx, "process-measures")
+	defer span.End()
 
-	debouncer, ok := s.debouncerMap[projectID]
-	if !ok {
-		debouncer = bunutil.NewDebouncer()
-		s.debouncerMap[projectID] = debouncer
-	}
-
-	debouncer.Run(15*time.Second, func() {
-		if err := bunotel.RunWithNewRoot(ctx, "sync-dashboards", func(ctx context.Context) error {
-			return s.createDashboards(ctx, projectID)
-		}); err != nil {
-			s.logger.Error("syncDashboards failed",
-				zap.Uint32("project_id", projectID),
-				zap.Error(err))
+	return s.app.PG.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		var locked bool
+		if err := tx.NewRaw("SELECT pg_try_advisory_xact_lock(?)", projectID).
+			Scan(ctx, &locked); err != nil {
+			return err
 		}
+		if !locked {
+			return nil
+		}
+		return s.createDashboards(ctx, projectID)
 	})
 }
 

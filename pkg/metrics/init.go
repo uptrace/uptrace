@@ -10,6 +10,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/vmihailenco/taskq/v4"
 	"go.opentelemetry.io/otel/metric/instrument"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	"go.uber.org/zap"
@@ -34,6 +35,7 @@ var measureCounter, _ = bunotel.Meter.Int64Counter(
 )
 
 func Init(ctx context.Context, app *bunapp.App) {
+	initTasks(ctx, app)
 	initOTLP(ctx, app)
 	initRoutes(ctx, app)
 	if err := initSpanMetrics(ctx, app); err != nil {
@@ -269,4 +271,14 @@ func (m *Middleware) DashGauge(next bunrouter.HandlerFunc) bunrouter.HandlerFunc
 
 func dashGaugeFromContext(ctx context.Context) *DashGauge {
 	return ctx.Value(dashGaugeCtxKey{}).(*DashGauge)
+}
+
+//------------------------------------------------------------------------------
+
+var createDashboardsTask *taskq.Task
+
+func initTasks(ctx context.Context, app *bunapp.App) {
+	createDashboardsTask = app.RegisterTask("create-dashboards", &taskq.TaskConfig{
+		Handler: NewDashSyncer(app).CreateDashboardsHandler,
+	})
 }

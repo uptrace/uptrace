@@ -4,14 +4,15 @@ import (
 	"context"
 	"reflect"
 	"runtime"
-	"sync"
 	"time"
+	"sync"
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
+	"github.com/zyedidia/generic/cache"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
@@ -25,14 +26,14 @@ type MeasureProcessor struct {
 	batchSize int
 	dropAttrs map[string]struct{}
 
-	ch   chan *Measure
-	gate *syncutil.Gate
+	queue chan *Measure
+	gate  *syncutil.Gate
 
 	c2d    *CumToDeltaConv
 	logger *otelzap.Logger
 
-	metricMapMu sync.RWMutex
-	metricMap   map[MetricKey]struct{}
+	metricCacheMu sync.RWMutex
+	metricCache *cache.Cache[MetricKey, struct{}]
 
 	dashSyncer *DashSyncer
 }
@@ -45,13 +46,14 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 
 		batchSize: conf.Metrics.BatchSize,
 
-		ch:   make(chan *Measure, conf.Metrics.BufferSize),
-		gate: syncutil.NewGate(maxprocs),
+		queue: make(chan *Measure, conf.Metrics.BufferSize),
+		gate:  syncutil.NewGate(maxprocs),
 
 		c2d:    NewCumToDeltaConv(conf.Metrics.CumToDeltaSize),
 		logger: app.Logger,
 
-		metricMap:  make(map[MetricKey]struct{}),
+		metricCache: cache.New[MetricKey, struct{}](conf.Metrics.CumToDeltaSize),
+
 		dashSyncer: NewDashSyncer(app),
 	}
 
@@ -76,7 +78,7 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 
 	if _, err := bunotel.Meter.RegisterCallback(
 		func(ctx context.Context, o metric.Observer) error {
-			o.ObserveInt64(bufferSize, int64(len(p.ch)))
+			o.ObserveInt64(bufferSize, int64(len(p.queue)))
 			return nil
 		},
 		bufferSize,
@@ -89,9 +91,10 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 
 func (p *MeasureProcessor) AddMeasure(ctx context.Context, measure *Measure) {
 	select {
-	case p.ch <- measure:
+	case p.queue <- measure:
 	default:
-		p.logger.Error("measure buffer is full (consider increasing metrics.buffer_size)")
+		p.logger.Error("measure buffer is full (consider increasing metrics.buffer_size)",
+			zap.Int("len", len(p.queue)))
 		measureCounter.Add(
 			ctx,
 			1,
@@ -107,32 +110,19 @@ func (p *MeasureProcessor) processLoop(ctx context.Context) {
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
-	mctx := newMeasureContext(ctx)
 	measures := make([]*Measure, 0, p.batchSize)
 
 loop:
 	for {
 		select {
-		case measure := <-p.ch:
-			if !p.processMeasure(mctx, measure) {
-				break
-			}
-
-			p.upsertMetric(ctx, measure)
-
+		case measure := <-p.queue:
 			measures = append(measures, measure)
-			measureCounter.Add(
-				ctx,
-				1,
-				bunotel.ProjectIDAttr(measure.ProjectID),
-				attribute.String("type", "inserted"),
-			)
 
 			if len(measures) < p.batchSize {
 				break
 			}
 
-			p.flushMeasures(ctx, measures)
+			p.processMeasures(ctx, measures)
 			measures = measures[:0]
 
 			if !timer.Stop() {
@@ -141,8 +131,8 @@ loop:
 			timer.Reset(timeout)
 		case <-timer.C:
 			if len(measures) > 0 {
-				p.flushMeasures(ctx, measures)
-				measures = make([]*Measure, 0, len(measures))
+				p.processMeasures(ctx, measures)
+				measures = measures[:0]
 			}
 			timer.Reset(timeout)
 		case <-p.Done():
@@ -151,7 +141,59 @@ loop:
 	}
 
 	if len(measures) > 0 {
-		p.flushMeasures(ctx, measures)
+		p.processMeasures(ctx, measures)
+	}
+}
+
+func (p *MeasureProcessor) processMeasures(ctx context.Context, src []*Measure) {
+	ctx, span := bunotel.Tracer.Start(ctx, "process-measures")
+
+	p.WaitGroup().Add(1)
+	p.gate.Start()
+
+	measures := make([]*Measure, len(src))
+	copy(measures, src)
+
+	go func() {
+		defer span.End()
+		defer p.gate.Done()
+		defer p.WaitGroup().Done()
+
+		mctx := newMeasureContext(ctx)
+		p._processMeasures(mctx, measures)
+	}()
+}
+
+func (p *MeasureProcessor) _processMeasures(ctx *measureContext, measures []*Measure) {
+	for i := len(measures) - 1; i >= 0; i-- {
+		measure := measures[i]
+
+		if !p.processMeasure(ctx, measure) {
+			measures = append(measures[:i], measures[i+1:]...)
+			continue
+		}
+
+		measureCounter.Add(
+			ctx,
+			1,
+			bunotel.ProjectIDAttr(measure.ProjectID),
+			attribute.String("type", "inserted"),
+		)
+
+		p.upsertMetric(ctx, measure)
+		measure.Time = measure.Time.Truncate(time.Minute)
+	}
+
+	if len(measures) > 0 {
+		if err := InsertMeasures(ctx, p.App, measures); err != nil {
+			p.Zap(ctx).Error("InsertMeasures failed", zap.Error(err))
+		}
+	}
+
+	if len(ctx.metrics) > 0 {
+		if err := p.upsertMetrics(ctx, ctx.metrics); err != nil {
+			p.Zap(ctx).Error("upsertMetrics failed", zap.Error(err))
+		}
 	}
 }
 
@@ -184,6 +226,34 @@ func (p *MeasureProcessor) processMeasure(ctx *measureContext, measure *Measure)
 			zap.String("type", reflect.TypeOf(point).String()))
 		return false
 	}
+}
+
+func (p *MeasureProcessor) initMeasure(ctx *measureContext, measure *Measure) {
+	keys := make([]string, 0, len(measure.Attrs))
+	values := make([]string, 0, len(measure.Attrs))
+
+	for key := range measure.Attrs {
+		if _, ok := p.dropAttrs[key]; ok {
+			delete(measure.Attrs, key)
+			continue
+		}
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+
+	digest := ctx.ResettedDigest()
+
+	for _, key := range keys {
+		value := measure.Attrs[key]
+		values = append(values, value)
+
+		digest.WriteString(key)
+		digest.WriteString(value)
+	}
+
+	measure.AttrsHash = digest.Sum64()
+	measure.StringKeys = keys
+	measure.StringValues = values
 }
 
 func (p *MeasureProcessor) convertNumberPoint(
@@ -282,99 +352,74 @@ func (p *MeasureProcessor) convertExpHistogramPoint(
 	return true
 }
 
-func (p *MeasureProcessor) flushMeasures(ctx context.Context, src []*Measure) {
-	ctx, span := bunotel.Tracer.Start(ctx, "flush-measures")
-
-	p.WaitGroup().Add(1)
-	p.gate.Start()
-
-	measures := make([]*Measure, len(src))
-	copy(measures, src)
-
-	go func() {
-		defer span.End()
-		defer p.gate.Done()
-		defer p.WaitGroup().Done()
-
-		for _, measure := range measures {
-			measure.Time = measure.Time.Truncate(time.Minute)
-		}
-
-		if err := InsertMeasures(ctx, p.App, measures); err != nil {
-			p.Zap(ctx).Error("InsertMeasures failed", zap.Error(err))
-		}
-	}()
-}
-
-func (p *MeasureProcessor) initMeasure(ctx *measureContext, measure *Measure) {
-	keys := make([]string, 0, len(measure.Attrs))
-	values := make([]string, 0, len(measure.Attrs))
-
-	for key := range measure.Attrs {
-		if _, ok := p.dropAttrs[key]; ok {
-			delete(measure.Attrs, key)
-			continue
-		}
-		keys = append(keys, key)
-	}
-	slices.Sort(keys)
-
-	digest := ctx.ResettedDigest()
-
-	for _, key := range keys {
-		value := measure.Attrs[key]
-		values = append(values, value)
-
-		digest.WriteString(key)
-		digest.WriteString(value)
-	}
-
-	measure.AttrsHash = digest.Sum64()
-	measure.StringKeys = keys
-	measure.StringValues = values
-}
-
 type MetricKey struct {
 	ProjectID uint32
 	Metric    string
 }
 
-func (p *MeasureProcessor) upsertMetric(ctx context.Context, measure *Measure) {
+func (p *MeasureProcessor) upsertMetric(ctx *measureContext, measure *Measure) {
 	key := MetricKey{
 		ProjectID: measure.ProjectID,
 		Metric:    measure.Metric,
 	}
 
-	p.metricMapMu.RLock()
-	_, ok := p.metricMap[key]
-	p.metricMapMu.RUnlock()
-	if ok {
+	p.metricCacheMu.RLock()
+	_, found := p.metricCache.Get(key)
+	p.metricCacheMu.RUnlock()
+
+	if found {
 		return
 	}
 
-	p.metricMapMu.Lock()
-	defer p.metricMapMu.Unlock()
+	p.metricCacheMu.Lock()
+	defer p.metricCacheMu.Unlock()
 
-	if _, ok := p.metricMap[key]; ok {
+	if _, found := p.metricCache.Get(key); found {
 		return
 	}
-	p.metricMap[key] = struct{}{}
+	p.metricCache.Put(key, struct{}{})
 
-	metric := &Metric{
+	ctx.metrics = append(ctx.metrics, Metric{
 		ProjectID:   measure.ProjectID,
 		Name:        measure.Metric,
 		Description: measure.Description,
 		Unit:        measure.Unit,
 		Instrument:  measure.Instrument,
+		AttrKeys:    measure.StringKeys,
+	})
+}
+
+func (p *MeasureProcessor) upsertMetrics(ctx *measureContext, metrics []Metric) error {
+	if _, err := p.PG.NewInsert().
+		Model(&metrics).
+		On("CONFLICT (project_id, name) DO UPDATE").
+		Set("description = EXCLUDED.description").
+		Set("unit = EXCLUDED.unit").
+		Set("instrument = EXCLUDED.instrument").
+		Set("attr_keys = EXCLUDED.attr_keys").
+		Set("updated_at = now()").
+		Returning("updated_at").
+		Exec(ctx); err != nil {
+		return err
 	}
-	inserted, err := UpsertMetric(ctx, p.App, metric)
-	if err != nil {
-		p.Zap(ctx).Error("CreateMetric failed", zap.Error(err))
-		return
+
+	seen := make(map[uint32]bool)
+	for i := range ctx.metrics {
+		metric := &ctx.metrics[i]
+
+		if metric.UpdatedAt.IsZero() || seen[metric.ProjectID] {
+			continue
+		}
+		seen[metric.ProjectID] = true
+
+		job := createDashboardsTask.NewJob(metric.ProjectID)
+		job.OnceInPeriod(30 * time.Second)
+		if err := p.MainQueue.AddJob(ctx, job); err != nil {
+			p.Zap(ctx).Error("DefaultQueue.Add failed", zap.Error(err))
+		}
 	}
-	if inserted {
-		p.dashSyncer.CreateDashboards(ctx, metric.ProjectID)
-	}
+
+	return nil
 }
 
 //------------------------------------------------------------------------------
@@ -383,16 +428,17 @@ type measureContext struct {
 	context.Context
 
 	digest *xxhash.Digest
+	metrics   []Metric
 }
 
 func newMeasureContext(ctx context.Context) *measureContext {
 	return &measureContext{
-		Context: ctx,
-		digest:  xxhash.New(),
+		Context:   ctx,
+		digest:    xxhash.New(),
 	}
 }
 
-func (ctx *measureContext) ResettedDigest() *xxhash.Digest {
-	ctx.digest.Reset()
-	return ctx.digest
+func (c *measureContext) ResettedDigest() *xxhash.Digest {
+	c.digest.Reset()
+	return c.digest
 }

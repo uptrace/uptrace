@@ -24,7 +24,7 @@ receivers:
     protocols:
       grpc:
   postgresql:
-    endpoint: localhost:5432
+    endpoint: postgres:5432
     transport: tcp
     username: uptrace
     password: uptrace
@@ -59,11 +59,11 @@ service:
       processors: [batch]
       exporters: [otlp/uptrace, logging]
     metrics:
-      receivers: [otlp, postgresql]
+      receivers: [otlp]
       processors: [batch]
       exporters: [otlp/uptrace]
     metrics/hostmetrics:
-      receivers: [hostmetrics]
+      receivers: [hostmetrics, postgresql]
       processors: [batch, resourcedetection]
       exporters: [otlp/uptrace]
     logs:

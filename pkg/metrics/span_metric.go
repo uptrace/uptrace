@@ -51,12 +51,18 @@ func createSpanMetricMeta(ctx context.Context, app *bunapp.App, metric *bunconf.
 	for i := range projects {
 		project := &projects[i]
 
-		if _, err := UpsertMetric(ctx, app, &Metric{
+		attrKeys := make([]string, len(metric.Attrs))
+		for i, attr := range metric.Attrs {
+			attrKeys[i], _ = splitNameAlias(attr)
+		}
+
+		if err := UpsertMetric(ctx, app, &Metric{
 			ProjectID:   project.ID,
 			Name:        metric.Name,
 			Description: metric.Description,
 			Unit:        metric.Unit,
 			Instrument:  Instrument(metric.Instrument),
+			AttrKeys:    attrKeys,
 		}); err != nil {
 			return err
 		}

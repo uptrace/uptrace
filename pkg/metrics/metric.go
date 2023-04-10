@@ -96,24 +96,22 @@ func SelectMetricByName(
 	return metric, nil
 }
 
-func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) (inserted bool, _ error) {
-	m.CreatedAt = time.Now().Add(-time.Second)
-	m.UpdatedAt = m.CreatedAt
-
+func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) error {
+	if m.CreatedAt.IsZero() {
+		m.CreatedAt = time.Now()
+	}
 	if _, err := app.PG.NewInsert().
 		Model(m).
 		On("CONFLICT (project_id, name) DO UPDATE").
 		Set("description = EXCLUDED.description").
 		Set("unit = EXCLUDED.unit").
 		Set("instrument = EXCLUDED.instrument").
+		Set("attr_keys = EXCLUDED.attr_keys").
 		Set("updated_at = EXCLUDED.updated_at").
-		Returning("id, created_at, updated_at").
 		Exec(ctx); err != nil {
-		return false, err
+		return err
 	}
-
-	inserted = m.UpdatedAt.Equal(m.CreatedAt)
-	return inserted, nil
+	return nil
 }
 
 //------------------------------------------------------------------------------

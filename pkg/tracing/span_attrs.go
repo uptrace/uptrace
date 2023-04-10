@@ -1,7 +1,6 @@
 package tracing
 
 import (
-	"context"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -25,44 +24,10 @@ import (
 	"github.com/uptrace/uptrace/pkg/utf8util"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
-	"go.uber.org/zap"
 )
 
-type spanContext struct {
-	context.Context
-	*bunapp.App
-
-	projects map[uint32]*org.Project
-	digest   *xxhash.Digest
-}
-
-func newSpanContext(ctx context.Context, app *bunapp.App) *spanContext {
-	return &spanContext{
-		Context: ctx,
-		App:     app,
-
-		projects: make(map[uint32]*org.Project),
-		digest:   xxhash.New(),
-	}
-}
-
-func (c *spanContext) Project(projectID uint32) (*org.Project, bool) {
-	if p, ok := c.projects[projectID]; ok {
-		return p, true
-	}
-
-	project, err := org.SelectProject(c.Context, c.App, projectID)
-	if err != nil {
-		c.Zap(c.Context).Error("SelectProject failed", zap.Error(err))
-		return nil, false
-	}
-
-	c.projects[projectID] = project
-	return project, true
-}
-
-func initSpanOrEvent(ctx *spanContext, span *Span) {
-	project, ok := ctx.Project(span.ProjectID)
+func initSpanOrEvent(ctx *spanContext, app *bunapp.App, span *Span) {
+	project, ok := ctx.Project(app, span.ProjectID)
 	if !ok {
 		return
 	}
@@ -590,8 +555,8 @@ func initEventFromHostSpan(dest *Span, event *SpanEvent, hostSpan *Span) {
 	dest.StatusCode = hostSpan.StatusCode
 }
 
-func initEvent(ctx *spanContext, span *Span) {
-	project, ok := ctx.Project(span.ProjectID)
+func initEvent(ctx *spanContext, app *bunapp.App, span *Span) {
+	project, ok := ctx.Project(app, span.ProjectID)
 	if !ok {
 		return
 	}
