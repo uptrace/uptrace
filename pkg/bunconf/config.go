@@ -72,6 +72,12 @@ func expandEnv(conf string) string {
 }
 
 func validateConfig(conf *Config) error {
+	if conf.CHSchema.Cluster != "" {
+		if !conf.CHSchema.Replicated {
+			conf.CHSchema.Replicated = true
+		}
+	}
+
 	if err := validateUsers(conf.Auth.Users); err != nil {
 		return err
 	}

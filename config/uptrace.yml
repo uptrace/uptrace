@@ -154,7 +154,7 @@ ch_schema:
   # Compression codec, for example, LZ4, ZSTD(3), or Default.
   compression: ZSTD(3)
 
-  # Whether to use ReplicatedMergeTree instead of MergeTree.
+  # Whether to use Replicated* engines.
   replicated: false
 
   # Cluster name for Distributed tables and ON CLUSTER clause.

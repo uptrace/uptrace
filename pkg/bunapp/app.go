@@ -445,6 +445,9 @@ func (app *App) initTaskq() {
 }
 
 func (app *App) RegisterTask(name string, conf *taskq.TaskConfig) *taskq.Task {
+	if conf.RetryLimit == 0 {
+		conf.RetryLimit = 16
+	}
 	return taskq.RegisterTask(name, conf)
 }
 
