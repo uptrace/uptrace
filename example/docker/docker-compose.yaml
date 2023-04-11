@@ -36,8 +36,8 @@ services:
       - '5432:5432'
 
   uptrace:
-    image: 'uptrace/uptrace:1.4.0-beta.1'
-    #image: 'uptrace/uptrace-dev:latest'
+    #image: 'uptrace/uptrace:1.4.0-beta.1'
+    image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:
       - uptrace_data:/var/lib/uptrace
@@ -47,11 +47,6 @@ services:
     ports:
       - '14317:14317'
       - '14318:14318'
-    depends_on:
-      clickhouse:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
 
   otelcol:
     image: otel/opentelemetry-collector-contrib:0.70.0
