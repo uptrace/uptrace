@@ -142,6 +142,10 @@ export function useActiveMetrics(activeMetrics: ShallowRef<MetricAlias[]>) {
   const route = useRoute()
 
   const { data } = useWatchAxios(() => {
+    if (!activeMetrics.value.length) {
+      return undefined
+    }
+
     const { projectId } = route.value.params
     return {
       url: `/api/v1/metrics/${projectId}/describe`,

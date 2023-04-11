@@ -35,7 +35,7 @@
           <v-col cols="6">
             <v-autocomplete
               v-model="gridColumn.params.metric"
-              :items="heatmapMetrics"
+              :items="metrics.items"
               item-text="name"
               item-value="name"
               placeholder="Select a histogram metric..."
@@ -197,7 +197,7 @@ import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 // Composables
 import { UseDateRange } from '@/use/date-range'
 import { useUql } from '@/use/uql'
-import { useActiveMetrics } from '@/metrics/use-metrics'
+import { useMetrics, useActiveMetrics } from '@/metrics/use-metrics'
 import { useHeatmapQuery } from '@/metrics/use-query'
 import { useGridColumnManager } from '@/metrics/use-dashboards'
 
@@ -208,7 +208,7 @@ import HeatmapChart from '@/components/HeatmapChart.vue'
 // Utilities
 import { UNITS } from '@/util/fmt'
 import { requiredRule } from '@/util/validation'
-import { HeatmapGridColumn, Metric, Instrument } from '@/metrics/types'
+import { HeatmapGridColumn, Instrument } from '@/metrics/types'
 
 export default defineComponent({
   name: 'DashGridColumnHeatmapForm',
@@ -217,10 +217,6 @@ export default defineComponent({
   props: {
     dateRange: {
       type: Object as PropType<UseDateRange>,
-      required: true,
-    },
-    metrics: {
-      type: Array as PropType<Metric[]>,
       required: true,
     },
     gridColumn: {
@@ -239,16 +235,35 @@ export default defineComponent({
     const rules = { metric: [requiredRule], name: [requiredRule] }
     const gridColumnMan = useGridColumnManager()
 
+    const uql = useUql()
+    const activeMetrics = useActiveMetrics(
+      computed(() => {
+        if (!props.gridColumn.params.metric) {
+          return []
+        }
+        return [
+          {
+            name: props.gridColumn.params.metric,
+            alias: props.gridColumn.params.metric,
+          },
+        ]
+      }),
+    )
+
     const unitItems = computed(() => {
       return UNITS.map((unit) => {
         return { value: unit, text: unit || 'none' }
       })
     })
 
+    const metrics = useMetrics(() => {
+      return { instrument: Instrument.Histogram }
+    })
+
     watch(
       () => props.gridColumn.params.metric,
       (metricName) => {
-        const metric = heatmapMetrics.value.find((metric) => metric.name === metricName)
+        const metric = metrics.items.find((metric) => metric.name === metricName)
         if (metric) {
           props.gridColumn.params.unit = metric.unit
         }
@@ -265,12 +280,6 @@ export default defineComponent({
       })
     }
 
-    const heatmapMetrics = computed(() => {
-      return props.metrics.filter((metric) => {
-        return metric.instrument === Instrument.Histogram
-      })
-    })
-
     const heatmapQuery = useHeatmapQuery(() => {
       if (!props.gridColumn.params.metric) {
         return undefined
@@ -283,16 +292,6 @@ export default defineComponent({
         query: props.gridColumn.params.query,
       }
     })
-
-    const uql = useUql()
-    const activeMetrics = useActiveMetrics(
-      computed(() => [
-        {
-          name: props.gridColumn.params.metric,
-          alias: props.gridColumn.params.metric,
-        },
-      ]),
-    )
 
     watch(
       () => props.gridColumn.params.query,
@@ -329,7 +328,7 @@ export default defineComponent({
       unitItems,
       submit,
 
-      heatmapMetrics,
+      metrics,
       heatmapQuery,
 
       uql,

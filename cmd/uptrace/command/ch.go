@@ -27,11 +27,14 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 					}
 					defer app.Stop()
 
-					db := app.CH
-					for i := 0; i < 30; i++ {
-						if err := db.Ping(ctx); err != nil {
+					for {
+						if err := app.CH.Ping(ctx); err != nil {
+							conf := app.Config().CH
 							app.Zap(ctx).Info("ClickHouse is down",
-								zap.Error(err), zap.String("dsn", app.Config().CH.DSN))
+								zap.Error(err),
+								zap.String("addr", conf.Addr),
+								zap.String("user", conf.User),
+								zap.String("password", conf.Password))
 							time.Sleep(time.Second)
 							continue
 						}
@@ -286,13 +289,12 @@ func NewCHMigrator(app *bunapp.App, migrations *chmigrate.Migrations) *chmigrate
 	args["METRICS_STORAGE"] = defaultValue(chSchema.Metrics.StoragePolicy, "default")
 	args["METRICS_TTL"] = ch.Safe(chSchema.Metrics.TTLDelete)
 
-	db := app.CH
-	fmter := db.Formatter()
+	fmter := app.CH.Formatter()
 	for k, v := range args {
 		fmter = fmter.WithNamedArg(k, v)
 	}
 
-	return chmigrate.NewMigrator(db.WithFormatter(fmter), migrations)
+	return chmigrate.NewMigrator(app.CH.WithFormatter(fmter), migrations)
 }
 
 func defaultValue(s1, s2 string) string {

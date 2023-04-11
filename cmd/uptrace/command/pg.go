@@ -3,10 +3,12 @@ package command
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/uptrace/bun/migrate"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/urfave/cli/v2"
+	"go.uber.org/zap"
 )
 
 func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
@@ -14,6 +16,35 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 		Name:  "pg",
 		Usage: "SQLite management commands",
 		Subcommands: []*cli.Command{
+			{
+				Name:  "wait",
+				Usage: "wait until PostgreSQL is up and running",
+				Action: func(c *cli.Context) error {
+					ctx, app, err := bunapp.StartCLI(c)
+					if err != nil {
+						return err
+					}
+					defer app.Stop()
+
+					for {
+						if err := app.PG.Ping(); err != nil {
+							conf := app.Config().PG
+							app.Zap(ctx).Info("PostgreSQL is down",
+								zap.Error(err),
+								zap.String("addr", conf.Addr),
+								zap.String("user", conf.User),
+								zap.String("password", conf.Password))
+							time.Sleep(time.Second)
+							continue
+						}
+
+						app.Zap(ctx).Info("PostgreSQL is up and runnining")
+						break
+					}
+
+					return nil
+				},
+			},
 			{
 				Name:  "init",
 				Usage: "create migration tables",
