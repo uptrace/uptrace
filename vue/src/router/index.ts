@@ -166,18 +166,14 @@ const routes: RouteConfig[] = [
   },
 
   {
-    path: '/alerts',
-    beforeEnter: redirectToProject('AlertList'),
-  },
-  {
     path: '/alerts/:projectId(\\d+)/:alertId(\\d+)',
     redirect: { name: 'AlertList' },
   },
-
   {
-    path: '/:projectId(\\d+)',
-    redirect: { name: 'Overview' },
+    path: '/alerts',
+    beforeEnter: redirectToProject('AlertList'),
   },
+
   {
     name: 'Overview',
     path: '/overview/:projectId(\\d+)',
@@ -207,6 +203,14 @@ const routes: RouteConfig[] = [
       },
     ],
   },
+  {
+    path: '/:projectId(\\d+)',
+    redirect: { name: 'Overview' },
+  },
+  {
+    path: '/overview',
+    beforeEnter: redirectToProject('SystemOverview'),
+  },
 
   {
     path: '/spans/:projectId(\\d+)',
@@ -234,6 +238,10 @@ const routes: RouteConfig[] = [
       },
     ],
   },
+  {
+    path: '/spans',
+    beforeEnter: redirectToProject('SpanGroupList'),
+  },
 
   {
     path: '/events/:projectId(\\d+)',
@@ -260,6 +268,10 @@ const routes: RouteConfig[] = [
         components: { tracing: TracingSpans },
       },
     ],
+  },
+  {
+    path: '/events',
+    beforeEnter: redirectToProject('EventGroupList'),
   },
 
   {
