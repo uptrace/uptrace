@@ -36,6 +36,7 @@ receivers:
 processors:
   resourcedetection:
     detectors: ['system']
+  cumulativetodelta:
   batch:
     send_batch_size: 10000
     timeout: 10s
@@ -60,11 +61,11 @@ service:
       exporters: [otlp/uptrace, logging]
     metrics:
       receivers: [otlp]
-      processors: [batch]
+      processors: [cumulativetodelta, batch]
       exporters: [otlp/uptrace]
     metrics/hostmetrics:
       receivers: [hostmetrics, postgresql]
-      processors: [batch, resourcedetection]
+      processors: [cumulativetodelta, batch, resourcedetection]
       exporters: [otlp/uptrace]
     logs:
       receivers: [otlp]

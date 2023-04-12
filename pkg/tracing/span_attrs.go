@@ -36,6 +36,12 @@ func initSpanOrEvent(ctx *spanContext, app *bunapp.App, span *Span) {
 
 	if span.EventName != "" {
 		assignEventSystemAndGroupID(ctx, project, span)
+
+		if name, _ := span.Attrs[attrkey.DisplayName].(string); name != "" {
+			span.Name = name
+			delete(span.Attrs, attrkey.DisplayName)
+		}
+
 		span.EventName = utf8util.TruncMedium(span.EventName)
 	} else {
 		assignSpanSystemAndGroupID(ctx, project, span)

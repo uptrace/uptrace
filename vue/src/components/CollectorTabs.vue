@@ -41,6 +41,14 @@ export default defineComponent({
 
     const otlpGrpc = computed(() => {
       return `
+processors:
+  resourcedetection:
+    detectors: [env, system]
+  cumulativetodelta:
+  batch:
+    send_batch_size: 10000
+    timeout: 10s
+
 exporters:
   otlp/uptrace:
     endpoint: ${props.grpc.endpoint}
@@ -57,7 +65,7 @@ service:
       exporters: [otlp/uptrace]
     metrics:
       receivers: [otlp]
-      processors: [batch, resourcedetection]
+      processors: [cumulativetodelta, batch, resourcedetection]
       exporters: [otlp/uptrace]
     logs:
       receivers: [otlp]
@@ -68,6 +76,14 @@ service:
 
     const otlpHttp = computed(() => {
       return `
+processors:
+  resourcedetection:
+    detectors: [env, system]
+  cumulativetodelta:
+  batch:
+    send_batch_size: 10000
+    timeout: 10s
+
 exporters:
   otlphttp/uptrace:
     endpoint: ${props.http.endpoint}
@@ -84,7 +100,7 @@ service:
       exporters: [otlphttp/uptrace]
     metrics:
       receivers: [otlp]
-      processors: [batch, resourcedetection]
+      processors: [cumulativetodelta, batch, resourcedetection]
       exporters: [otlphttp/uptrace]
     logs:
       receivers: [otlp]

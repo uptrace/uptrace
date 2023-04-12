@@ -13,7 +13,7 @@ SERVICE_NAME="uptrace"
 PROCESS_NAME="uptrace"
 FPM_DIR="$( cd "$( dirname ${BASH_SOURCE[0]} )" && pwd )"
 
-cp $REPO_DIR/config/uptrace.yml $FPM_DIR/uptrace.yml
+cp $REPO_DIR/config/uptrace.dist.yml $FPM_DIR/uptrace.yml
 
 CONFIG_PATH="$FPM_DIR/uptrace.yml"
 SERVICE_PATH="$FPM_DIR/$SERVICE_NAME.service"
