@@ -3,9 +3,11 @@ package alerting
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/uptrace/uptrace/pkg/uuid"
@@ -55,15 +57,67 @@ func createErrorAlertHandler(
 			BaseAlert: baseAlert,
 		}
 		alert.BaseAlert.Params.Any = &alert.Params
-	}
 
-	params := &alert.Params
-	params.TraceID = traceID
-	params.SpanID = spanID
+		alert.Params.TraceID = traceID
+		alert.Params.SpanID = spanID
+		alert.Params.SpanCount = 1
 
-	if alert.ID == 0 {
 		return createAlert(ctx, app, alert)
 	}
+
+	spanCount, spanCountTime, err := countAlertSpans(ctx, app, alert, span)
+	if err != nil {
+		return err
+	}
+
+	spanCountThreshold := nextSpanCountThreshold(alert.Params.SpanCount)
+	triggered := spanCount >= spanCountThreshold || alert.State == org.AlertClosed
+
+	newParams := alert.Params.Clone()
+	newParams.SpanCount = spanCount
+	newParams.SpanCountTime = spanCountTime
+	if triggered {
+		newParams.TraceID = traceID
+		newParams.SpanID = spanID
+	}
+
+	q := app.PG.NewUpdate().
+		Model(alert).
+		Set("params = ?", newParams).
+		Where("id = ?", alert.ID).
+		Where("state = ?", alert.State).
+		Where("params = ?", alert.Params).
+		Returning("state, params, updated_at")
+
+	if triggered {
+		q = q.Set("state = ?", org.AlertOpen).
+			Set("updated_at = ?", span.Time)
+	}
+
+	res, err := q.Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return nil
+	}
+
+	if triggered {
+		if err := createAlertEvent(ctx, app, alert, &org.AlertEvent{
+			ProjectID: alert.ProjectID,
+			AlertID:   alert.ID,
+			Name:      org.AlertEventRecurring,
+			Params:    bunutil.Params{Any: alert.Params},
+		}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -112,5 +166,52 @@ func addSpanAttrs(attrs map[string]string, span *tracing.Span, keys ...string) {
 				attrs[key] = value[0]
 			}
 		}
+	}
+}
+
+func countAlertSpans(
+	ctx context.Context, app *bunapp.App, alert *ErrorAlert, span *tracing.Span,
+) (uint64, time.Time, error) {
+	timeGTE := alert.Params.SpanCountTime
+	timeLT := time.Now().Add(-time.Minute).Truncate(time.Minute)
+
+	var spanCount uint64
+
+	if err := tracing.NewSpanIndexQuery(app).
+		ColumnExpr("toUInt64(sum(s.count))").
+		Where("s.project_id = ?", span.ProjectID).
+		Where("s.type = ?", span.Type).
+		Where("s.system = ?", span.System).
+		Where("s.group_id = ?", span.GroupID).
+		Where("s.time >= ?", timeGTE).
+		Where("s.time < ?", timeLT).
+		Scan(ctx, &spanCount); err != nil {
+		return 0, time.Time{}, err
+	}
+
+	if !alert.Params.SpanCountTime.IsZero() {
+		spanCount += alert.Params.SpanCount
+	}
+
+	return spanCount, timeLT, nil
+}
+
+func nextSpanCountThreshold(n uint64) uint64 {
+	if n < 1e6 {
+		next := uint64(100)
+		for {
+			if next > n {
+				return next
+			}
+			next *= 10
+		}
+	}
+
+	next := uint64(2e6)
+	for {
+		if next > n {
+			return next
+		}
+		next <<= 1
 	}
 }

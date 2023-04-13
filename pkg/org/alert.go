@@ -72,9 +72,15 @@ func (a *BaseAlert) URL() string {
 }
 
 type ErrorAlertParams struct {
-	TraceID   uuid.UUID `json:"traceId"`
-	SpanID    uint64    `json:"spanId,string"`
-	SpanCount uint64    `json:"spanCount"`
+	TraceID       uuid.UUID `json:"traceId"`
+	SpanID        uint64    `json:"spanId,string"`
+	SpanCount     uint64    `json:"spanCount"`
+	SpanCountTime time.Time `json:"spanCountTime,omitempty"`
+}
+
+func (p *ErrorAlertParams) Clone() *ErrorAlertParams {
+	clone := *p
+	return &clone
 }
 
 func InsertAlert(ctx context.Context, app *bunapp.App, a *BaseAlert) (bool, error) {

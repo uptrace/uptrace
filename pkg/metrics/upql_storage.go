@@ -475,7 +475,7 @@ func (s *CHStorage) tableValue(
 }
 
 func quantileColumn(q *ch.SelectQuery, quantile float64) *ch.SelectQuery {
-	return q.ColumnExpr("quantileBFloat16Merge(?)(histogram) AS value", quantile)
+	return q.ColumnExpr("quantilesBFloat16Merge(?)(histogram)[1] AS value", quantile)
 }
 
 func metricUnit(metric *Metric, f *upql.TimeseriesFilter) string {
