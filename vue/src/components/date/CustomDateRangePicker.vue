@@ -3,7 +3,7 @@
     <v-row no-gutters>
       <v-col class="pt-3 text-body-1">From date</v-col>
       <v-col cols="auto">
-        <DateTextInput v-model="gte" />
+        <DateTextInput v-model="gte" @input="updateLt" />
       </v-col>
     </v-row>
     <v-row no-gutters>
@@ -23,6 +23,7 @@
 </template>
 
 <script lang="ts">
+import { addMilliseconds } from 'date-fns'
 import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 
 // Composables
@@ -73,6 +74,10 @@ export default defineComponent({
       { immediate: true },
     )
 
+    function updateLt(gteValue: Date) {
+      lt.value = addMilliseconds(gteValue, props.dateRange.duration)
+    }
+
     function apply() {
       emit('input', gte.value, lt.value)
     }
@@ -83,6 +88,7 @@ export default defineComponent({
       isValid,
 
       apply,
+      updateLt,
     }
   },
 })
