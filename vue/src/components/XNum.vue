@@ -2,7 +2,7 @@
 import Vue, { PropType } from 'vue'
 
 // Utilities
-import { unitFromName, createFormatter, Unit } from '@/util/fmt'
+import { createFormatter, Unit } from '@/util/fmt'
 
 export default Vue.component('XNum', {
   functional: true,
@@ -17,12 +17,11 @@ export default Vue.component('XNum', {
     },
     unit: {
       type: String as PropType<Unit>,
-      default: undefined,
+      default: Unit.None,
     },
   },
   render(h, { props }) {
-    const unit = props.unit ?? unitFromName(props.name, props.value)
-    const fmt = createFormatter(unit)
+    const fmt = createFormatter(props.unit)
     return h('span', fmt(props.value))
   },
 })

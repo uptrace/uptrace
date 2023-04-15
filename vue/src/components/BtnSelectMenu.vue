@@ -28,6 +28,7 @@
             <slot name="item" :item="item">
               <v-list-item-content>
                 <v-list-item-title>{{ item.text }}</v-list-item-title>
+                <v-list-item-subtitle v-if="item.hint">{{ item.hint }}</v-list-item-subtitle>
               </v-list-item-content>
             </slot>
           </v-list-item>

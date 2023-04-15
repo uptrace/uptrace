@@ -114,24 +114,35 @@ function metricColumns(metric: Metric): ColumnItem[] {
     case Instrument.Gauge:
       return [
         { value: alias, hint: `same as avg(${alias})` },
-        { value: `avg(${alias})`, hint: 'avg value, e.g. on different hostnames' },
-        { value: `min(${alias})`, hint: 'minimim value' },
-        { value: `max(${alias})`, hint: 'maximum value' },
-        { value: `sum(${alias})`, hint: 'sum of values (usually invalid)' },
+        { value: `avg(${alias})`, hint: 'avg of observed values' },
+        { value: `last(${alias})`, hint: 'last avg value' },
+        { value: `min(${alias})`, hint: 'minimim of observed values' },
+        { value: `max(${alias})`, hint: 'maximum of observed values' },
+        { value: `sum(${alias})`, hint: 'sum of observed values (usually invalid)' },
       ]
     case Instrument.Additive:
       return [
         { value: alias, hint: `same as sum(${alias})` },
-        { value: `sum(${alias})`, hint: 'sum of values, e.g. on different hostnames' },
-        { value: `avg(${alias})`, hint: 'avg value in different timeseries' },
+        { value: `sum(${alias})`, hint: 'sum of observed values' },
+        { value: `avg(${alias})`, hint: 'avg of observed values' },
+        { value: `last(${alias})`, hint: 'last avg value' },
         { value: `min(${alias})` },
         { value: `max(${alias})` },
       ]
     case Instrument.Counter:
       return [
-        { value: `${alias}`, hint: 'sum of values' },
+        { value: alias, hint: 'sum of observed values' },
         { value: `per_min(${alias})`, hint: 'sum(value) / number_of_minutes' },
         { value: `per_sec(${alias})`, hint: 'sum(value) / number_of_seconds' },
+      ]
+    case Instrument.Summary:
+      return [
+        { value: `avg(${alias})`, hint: 'avg of observed values' },
+        { value: `last(${alias})`, hint: 'last avg value' },
+        { value: `sum(${alias})`, hint: 'sum of of observed values' },
+        { value: `count(${alias})`, hint: 'number of observations' },
+        { value: `per_min(${alias})`, hint: 'count() / number_of_minutes' },
+        { value: `per_sec(${alias})`, hint: 'count() / number_of_seconds' },
       ]
     case Instrument.Histogram:
       return [
@@ -140,10 +151,11 @@ function metricColumns(metric: Metric): ColumnItem[] {
         { value: `p90(${alias})` },
         { value: `p95(${alias})` },
         { value: `p99(${alias})` },
-        { value: `count(${alias})`, hint: 'number of occurrences' },
+        { value: `count(${alias})`, hint: 'number of observed values' },
         { value: `per_min(${alias})`, hint: 'count() / number_of_minutes' },
         { value: `per_sec(${alias})`, hint: 'count() / number_of_seconds' },
-        { value: `avg(${alias})` },
+        { value: `avg(${alias})`, hint: 'avg of observed values' },
+        { value: `last(${alias})`, hint: 'last avg value' },
         { value: `min(${alias})` },
         { value: `max(${alias})` },
       ]

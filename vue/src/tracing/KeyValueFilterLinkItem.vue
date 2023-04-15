@@ -29,7 +29,6 @@ import { buildWhere, exploreAttr } from '@/use/uql'
 // Utilities
 import { AttrKey, isEventSystem } from '@/models/otel'
 import { truncateMiddle } from '@/util/string'
-import { createFormatter, unitFromName } from '@/util/fmt'
 
 interface MenuItem {
   title: string
@@ -131,8 +130,7 @@ export default defineComponent({
     })
 
     function format(v: any): string {
-      const fmt = createFormatter(unitFromName(props.name))
-      return truncateMiddle(fmt(v))
+      return truncateMiddle(String(v))
     }
 
     function link(query: Record<string, any> = {}) {

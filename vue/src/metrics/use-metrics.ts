@@ -187,6 +187,8 @@ export function defaultMetricQuery(instrument: Instrument, alias: string) {
       return `per_min(${alias})`
     case Instrument.Histogram:
       return `p50(${alias}) | p90(${alias}) | per_min(${alias})`
+    case Instrument.Summary:
+      return `avg(${alias})`
     default:
       // eslint-disable-next-line no-console
       console.error('unknown metric instrument', instrument)

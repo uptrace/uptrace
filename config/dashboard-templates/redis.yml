@@ -26,7 +26,7 @@ table:
       query:
         - $mem_frag
       columns:
-        mem_frag: { unit: percents }
+        mem_frag: { unit: utilization }
 
     - name: Ingress
       description: Incoming network traffic
@@ -94,7 +94,7 @@ grid:
       - per_min($misses) as misses
       - hits / (hits + misses) as hit_rate
     columns:
-      hit_rate: { unit: percents }
+      hit_rate: { unit: utilization }
 
   - name: Number of processed commands
     metrics:

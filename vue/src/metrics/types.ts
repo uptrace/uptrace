@@ -183,6 +183,7 @@ export enum Instrument {
   Additive = 'additive',
   Counter = 'counter',
   Histogram = 'histogram',
+  Summary = 'summary',
 }
 
 export interface MetricColumn {

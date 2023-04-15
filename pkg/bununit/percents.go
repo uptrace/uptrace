@@ -3,25 +3,37 @@ package bununit
 import "math"
 
 func FormatPercents(n float64) string {
-	return percents(n, false)
-}
-
-func FormatPercentsSign(n float64) string {
-	return percents(n, true)
-}
-
-func percents(n float64, sign bool) string {
 	switch {
 	case math.IsNaN(n):
 		return "0%"
 	case math.IsInf(n, +1):
-		n = 1
+		return "+Inf"
 	case math.IsInf(n, -1):
-		n = -1
-	case n <= -10:
-		return format(-999, 0, sign) + "%"
-	case n >= 10:
-		return format(999, 0, sign) + "%"
+		return "-Inf"
+	}
+
+	abs := math.Abs(n)
+	if abs < 0.001 {
+		return "0%"
+	}
+
+	if abs < 1 {
+		return format(n, 2) + "%"
+	}
+	if abs < 10 {
+		return format(n, 1) + "%"
+	}
+	return format(n, 0) + "%"
+}
+
+func FormatUtilization(n float64) string {
+	switch {
+	case math.IsNaN(n):
+		return "0%"
+	case math.IsInf(n, +1):
+		return "+Inf"
+	case math.IsInf(n, -1):
+		return "-Inf"
 	}
 
 	abs := math.Abs(n)
@@ -33,10 +45,10 @@ func percents(n float64, sign bool) string {
 	abs *= 100
 
 	if abs < 1 {
-		return format(n, 2, sign) + "%"
+		return format(n, 2) + "%"
 	}
 	if abs < 10 {
-		return format(n, 1, sign) + "%"
+		return format(n, 1) + "%"
 	}
-	return format(n, 0, sign) + "%"
+	return format(n, 0) + "%"
 }

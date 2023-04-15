@@ -4,8 +4,8 @@ import (
 	"context"
 	"reflect"
 	"runtime"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
@@ -33,7 +33,7 @@ type MeasureProcessor struct {
 	logger *otelzap.Logger
 
 	metricCacheMu sync.RWMutex
-	metricCache *cache.Cache[MetricKey, struct{}]
+	metricCache   *cache.Cache[MetricKey, time.Time]
 
 	dashSyncer *DashSyncer
 }
@@ -52,7 +52,7 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 		c2d:    NewCumToDeltaConv(conf.Metrics.CumToDeltaSize),
 		logger: app.Logger,
 
-		metricCache: cache.New[MetricKey, struct{}](conf.Metrics.CumToDeltaSize),
+		metricCache: cache.New[MetricKey, time.Time](conf.Metrics.CumToDeltaSize),
 
 		dashSyncer: NewDashSyncer(app),
 	}
@@ -364,10 +364,10 @@ func (p *MeasureProcessor) upsertMetric(ctx *measureContext, measure *Measure) {
 	}
 
 	p.metricCacheMu.RLock()
-	_, found := p.metricCache.Get(key)
+	cachedAt, found := p.metricCache.Get(key)
 	p.metricCacheMu.RUnlock()
 
-	if found {
+	if found && time.Since(cachedAt) < 15*time.Minute {
 		return
 	}
 
@@ -377,7 +377,7 @@ func (p *MeasureProcessor) upsertMetric(ctx *measureContext, measure *Measure) {
 	if _, found := p.metricCache.Get(key); found {
 		return
 	}
-	p.metricCache.Put(key, struct{}{})
+	p.metricCache.Put(key, time.Now())
 
 	ctx.metrics = append(ctx.metrics, Metric{
 		ProjectID:   measure.ProjectID,
@@ -407,7 +407,7 @@ func (p *MeasureProcessor) upsertMetrics(ctx *measureContext, metrics []Metric) 
 	for i := range ctx.metrics {
 		metric := &ctx.metrics[i]
 
-		if metric.UpdatedAt.IsZero() || seen[metric.ProjectID] {
+		if !metric.UpdatedAt.IsZero() || seen[metric.ProjectID] {
 			continue
 		}
 		seen[metric.ProjectID] = true
@@ -427,14 +427,14 @@ func (p *MeasureProcessor) upsertMetrics(ctx *measureContext, metrics []Metric) 
 type measureContext struct {
 	context.Context
 
-	digest *xxhash.Digest
-	metrics   []Metric
+	digest  *xxhash.Digest
+	metrics []Metric
 }
 
 func newMeasureContext(ctx context.Context) *measureContext {
 	return &measureContext{
-		Context:   ctx,
-		digest:    xxhash.New(),
+		Context: ctx,
+		digest:  xxhash.New(),
 	}
 }
 

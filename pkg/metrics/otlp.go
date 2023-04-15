@@ -22,6 +22,7 @@ import (
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	metricspb "go.opentelemetry.io/proto/otlp/metrics/v1"
 	"go.uber.org/zap"
+	"golang.org/x/exp/maps"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -169,12 +170,23 @@ func (s *MetricsServiceServer) export(
 	}
 
 	for _, rms := range req.ResourceMetrics {
-		p.resource = make(AttrMap, len(rms.Resource.Attributes))
+		resource := make(AttrMap, len(rms.Resource.Attributes))
 		otlpconv.ForEachKeyValue(rms.Resource.Attributes, func(key string, value any) {
-			p.resource[key] = fmt.Sprint(value)
+			resource[key] = fmt.Sprint(value)
 		})
 
 		for _, sm := range rms.ScopeMetrics {
+			var scope AttrMap
+			if len(sm.Scope.Attributes) > 0 {
+				scope = make(AttrMap, len(resource)+len(sm.Scope.Attributes))
+				maps.Copy(scope, resource)
+				otlpconv.ForEachKeyValue(sm.Scope.Attributes, func(key string, value any) {
+					scope[key] = fmt.Sprint(value)
+				})
+			} else {
+				scope = resource
+			}
+
 			for _, metric := range sm.Metrics {
 				if metric == nil {
 					continue
@@ -182,15 +194,15 @@ func (s *MetricsServiceServer) export(
 
 				switch data := metric.Data.(type) {
 				case *metricspb.Metric_Gauge:
-					p.otlpGauge(sm.Scope, metric, data)
+					p.otlpGauge(scope, metric, data)
 				case *metricspb.Metric_Sum:
-					p.otlpSum(sm.Scope, metric, data)
+					p.otlpSum(scope, metric, data)
 				case *metricspb.Metric_Histogram:
-					p.otlpHistogram(sm.Scope, metric, data)
+					p.otlpHistogram(scope, metric, data)
 				case *metricspb.Metric_ExponentialHistogram:
-					p.otlpExpHistogram(sm.Scope, metric, data)
+					p.otlpExpHistogram(scope, metric, data)
 				case *metricspb.Metric_Summary:
-					p.otlpSummary(sm.Scope, metric, data)
+					p.otlpSummary(scope, metric, data)
 				default:
 					p.Zap(p.ctx).Error("unknown metric",
 						zap.String("type", fmt.Sprintf("%T", data)))
@@ -207,15 +219,14 @@ type otlpProcessor struct {
 
 	mp *MeasureProcessor
 
-	ctx      context.Context
-	project  *org.Project
-	resource AttrMap
+	ctx     context.Context
+	project *org.Project
 
 	metricIDMap map[MetricKey]struct{}
 }
 
 func (p *otlpProcessor) otlpGauge(
-	scope *commonpb.InstrumentationScope,
+	scope AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_Gauge,
 ) {
@@ -240,7 +251,7 @@ func (p *otlpProcessor) otlpGauge(
 }
 
 func (p *otlpProcessor) otlpSum(
-	scope *commonpb.InstrumentationScope,
+	scope AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_Sum,
 ) {
@@ -289,7 +300,7 @@ func (p *otlpProcessor) otlpSum(
 }
 
 func (p *otlpProcessor) otlpHistogram(
-	scope *commonpb.InstrumentationScope,
+	scope AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_Histogram,
 ) {
@@ -318,7 +329,7 @@ func (p *otlpProcessor) otlpHistogram(
 }
 
 func (p *otlpProcessor) otlpExpHistogram(
-	scope *commonpb.InstrumentationScope,
+	scope AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_ExponentialHistogram,
 ) {
@@ -371,7 +382,7 @@ func buildBFloat16Hist(
 }
 
 func (p *otlpProcessor) otlpSummary(
-	scope *commonpb.InstrumentationScope,
+	scope AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_Summary,
 ) {
@@ -380,33 +391,24 @@ func (p *otlpProcessor) otlpSummary(
 			continue
 		}
 
-		dest := p.nextMeasure(scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
+		dest := p.nextMeasure(scope, metric, InstrumentSummary, dp.Attributes, dp.TimeUnixNano)
 
 		dest.Sum = dp.Sum
 		dest.Count = dp.Count
-
-		if len(dp.QuantileValues) > 0 {
-			hist := make(bfloat16.Map, len(dp.QuantileValues))
-			dest.Histogram = hist
-
-			for _, qv := range dp.QuantileValues {
-				hist[bfloat16.From(qv.Value)] += uint64(qv.Quantile * float64(dp.Count))
-			}
-		}
 
 		p.enqueue(dest)
 	}
 }
 
 func (p *otlpProcessor) nextMeasure(
-	scope *commonpb.InstrumentationScope,
+	scope AttrMap,
 	metric *metricspb.Metric,
 	instrument Instrument,
 	labels []*commonpb.KeyValue,
 	unixNano uint64,
 ) *Measure {
-	attrs := make(AttrMap, len(p.resource)+len(labels))
-	attrs.Merge(p.resource)
+	attrs := make(AttrMap, len(scope)+len(labels))
+	maps.Copy(attrs, scope)
 	otlpconv.ForEachKeyValue(labels, func(key string, value any) {
 		attrs[key] = fmt.Sprint(value)
 	})
@@ -421,9 +423,6 @@ func (p *otlpProcessor) nextMeasure(
 	out.Instrument = instrument
 	out.Attrs = attrs
 	out.Time = time.Unix(0, int64(unixNano))
-
-	// out.Attrs["otel_library_name"] = scope.Name
-	// out.Attrs["otel_library_version"] = scope.Version
 
 	return out
 }

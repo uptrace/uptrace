@@ -1,6 +1,6 @@
 import { Unit } from './unit'
 import { datetime } from '@/util/fmt/date'
-import { num, numShort, bytes, bytesShort, percent } from './num'
+import { num, numShort, bytes, bytesShort, percents, utilization } from './num'
 import { duration, durationShort } from './duration'
 
 export * from './unit'
@@ -20,7 +20,9 @@ export function createFormatter(unit: string | Unit | Formatter): Formatter {
 
   switch (unit) {
     case Unit.Percents:
-      return percent
+      return percents
+    case Unit.Utilization:
+      return utilization
     case Unit.Date:
       return datetime
     case Unit.Nanoseconds:
@@ -46,7 +48,9 @@ export function createFormatter(unit: string | Unit | Formatter): Formatter {
 export function createShortFormatter(unit: Unit | string): Formatter {
   switch (unit) {
     case Unit.Percents:
-      return percent
+      return percents
+    case Unit.Utilization:
+      return utilization
     case Unit.Date:
       return datetime
     case Unit.Nanoseconds:

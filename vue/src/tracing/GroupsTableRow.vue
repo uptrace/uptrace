@@ -20,7 +20,7 @@
           :time="timeseries.time"
           :unit="col.unit"
           :color="columnMap[col.name].color"
-          :group="group[AttrKey.groupId]"
+          :group="group._id"
           class="mr-2"
         />
         <XNum :value="group[col.name]" :name="col.name" :unit="col.unit" />

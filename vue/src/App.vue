@@ -82,7 +82,7 @@
         <v-row justify="center" align="center">
           <v-col cols="auto">
             <v-btn
-              href="https://uptrace.dev/compare/"
+              href="https://uptrace.dev/get/enterprise.html"
               target="_blank"
               color="deep-orange darken-3"
               small

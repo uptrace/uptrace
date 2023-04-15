@@ -50,6 +50,7 @@ func (s *DashSyncer) CreateDashboardsHandler(ctx context.Context, projectID uint
 			return err
 		}
 		if !locked {
+			fmt.Println("not locked")
 			return nil
 		}
 		return s.createDashboards(ctx, projectID)

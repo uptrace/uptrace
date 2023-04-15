@@ -120,7 +120,8 @@ DO $$ BEGIN
     'gauge',
     'additive',
     'counter',
-    'histogram'
+    'histogram',
+    'summary'
   );
 EXCEPTION
   WHEN duplicate_object THEN NULL;

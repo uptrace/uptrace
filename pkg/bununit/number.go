@@ -7,14 +7,6 @@ import (
 )
 
 func FormatNumber(n float64) string {
-	return number(n, false)
-}
-
-func FormatNumberSign(n float64) string {
-	return number(n, true)
-}
-
-func number(n float64, sign bool) string {
 	if math.IsNaN(n) || math.IsInf(n, 0) || n == 0 {
 		return "0"
 	}
@@ -22,49 +14,45 @@ func number(n float64, sign bool) string {
 	abs := math.Abs(n)
 
 	if abs < 0.01 {
-		return round(n, 3, sign)
+		return round(n, 3)
 	}
 	if abs < 0.1 {
-		return round(n, 2, sign)
+		return round(n, 2)
 	}
 	if abs < 100 {
-		return round(n, 1, sign)
+		return round(n, 1)
 	}
 	if abs < 1000 {
-		return round(n, 0, sign)
+		return round(n, 0)
 	}
 
 	n /= 1000
 	abs /= 1000
 
 	if abs < 100 {
-		return round(n, 1, sign) + "k"
+		return round(n, 1) + "k"
 	}
 	if abs < 1000 {
-		return round(n, 0, sign) + "k"
+		return round(n, 0) + "k"
 	}
 
 	n /= 1000
 	abs /= 1000
 
 	if abs < 100 {
-		return round(n, 1, sign) + "m"
+		return round(n, 1) + "m"
 	}
 	if abs < 1000 {
-		return round(n, 0, sign) + "m"
+		return round(n, 0) + "m"
 	}
 
 	n /= 1000
-	return round(n, 1, sign) + "b"
+	return round(n, 1) + "b"
 }
 
 //------------------------------------------------------------------------------
 
 func FormatFloat(n float64) string {
-	return float(n, false)
-}
-
-func float(n float64, sign bool) string {
 	if n == 0 {
 		return "0"
 	}
@@ -72,38 +60,32 @@ func float(n float64, sign bool) string {
 	abs := math.Abs(n)
 
 	if abs < 0.01 {
-		return round(n, 3, sign)
+		return round(n, 3)
 	}
 	if abs < 0.1 {
-		return round(n, 2, sign)
+		return round(n, 2)
 	}
 	if abs < 100 {
-		return round(n, 1, sign)
+		return round(n, 1)
 	}
-	return round(n, 0, sign)
+	return round(n, 0)
 }
 
 //------------------------------------------------------------------------------
 
-func round(f float64, mantissa int, sign bool) string {
+func round(f float64, mantissa int) string {
 	f = roundFloat(f, mantissa)
-	if sign && f > 0 {
-		return "+" + strconv.FormatFloat(f, 'f', -1, 64)
-	}
 	return strconv.FormatFloat(f, 'f', -1, 64)
 }
 
-func format(n float64, mantissa int, sign bool) string {
-	format := getFormat(mantissa, sign)
+func format(n float64, mantissa int) string {
+	format := getFormat(mantissa)
 	return fmt.Sprintf(format, n)
 }
 
-func getFormat(mantissa int, sign bool) string {
+func getFormat(mantissa int) string {
 	b := make([]byte, 0, 8)
 	b = append(b, '%')
-	if sign {
-		b = append(b, '+')
-	}
 	b = append(b, '.')
 	b = strconv.AppendInt(b, int64(mantissa), 10)
 	b = append(b, 'f')

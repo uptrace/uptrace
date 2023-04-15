@@ -38,7 +38,7 @@ table:
       query:
         - 1 - $cpu_idle as cpu_usage
       columns:
-        cpu_usage: { unit: percents }
+        cpu_usage: { unit: utilization }
 
     - name: Used RAM
       description: Memory used by shard (in bigredis this includes flash)
@@ -83,7 +83,7 @@ table:
     - $ingress
     - $egress
   columns:
-    cpu_usage: { unit: percents }
+    cpu_usage: { unit: utilization }
     mem_available: { unit: bytes }
     ingress: { unit: bytes }
     egress: { unit: bytes }
@@ -114,7 +114,7 @@ grid:
     query:
       - 1 - $cpu_idle as cpu_usage
     columns:
-      cpu_usage: { unit: percents }
+      cpu_usage: { unit: utilization }
 
   - name: Number of connections
     metrics:
@@ -230,7 +230,7 @@ grid_gauges:
     query:
       - $mem_frag
     columns:
-      mem_frag: { unit: percents }
+      mem_frag: { unit: utilization }
 
 grid:
   - name: Used memory
@@ -289,7 +289,7 @@ grid:
     query:
       - $mem_frag
     columns:
-      mem_frag: { unit: percents }
+      mem_frag: { unit: utilization }
 
   - name: Redis lua scripting heap size
     metrics:
@@ -320,7 +320,7 @@ table:
     - $mem_frag
   columns:
     mem_used: { unit: bytes }
-    mem_frag: { unit: percents }
+    mem_frag: { unit: utilization }
 
 grid_gauges:
   - name: Used RAM
@@ -339,7 +339,7 @@ grid_gauges:
     query:
       - $fragmentation
     columns:
-      fragmentation: { unit: percents }
+      fragmentation: { unit: utilization }
 
   - name: CPU usage
     description: Shard process CPU usage
@@ -400,7 +400,7 @@ grid:
     query:
       - $fragmentation
     columns:
-      fragmentation: { unit: percents }
+      fragmentation: { unit: utilization }
 
   - name: Shard process CPU usage
     metrics:
@@ -417,7 +417,7 @@ grid:
       - delta($misses) as misses
       - hits / (hits + misses) as hit_rate
     columns:
-      hit_rate: { unit: percents }
+      hit_rate: { unit: utilization }
 
   - name: DB Keys
     metrics:

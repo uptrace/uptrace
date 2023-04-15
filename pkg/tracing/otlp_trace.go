@@ -16,6 +16,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	collectortrace "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
+	"golang.org/x/exp/maps"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -154,19 +155,26 @@ func (s *TraceServiceServer) process(
 		resource := AttrMap(otlpconv.Map(rss.Resource.Attributes))
 
 		for _, ss := range rss.ScopeSpans {
+			var scope AttrMap
 			if ss.Scope != nil {
+				scope = maps.Clone(resource)
 				if ss.Scope.Name != "" {
-					resource[attrkey.OtelLibraryName] = ss.Scope.Name
+					scope[attrkey.OtelLibraryName] = ss.Scope.Name
 				}
 				if ss.Scope.Version != "" {
-					resource[attrkey.OtelLibraryVersion] = ss.Scope.Version
+					scope[attrkey.OtelLibraryVersion] = ss.Scope.Version
 				}
+				otlpconv.ForEachKeyValue(ss.Scope.Attributes, func(key string, value any) {
+					scope[key] = value
+				})
+			} else {
+				scope = resource
 			}
 
 			mem := make([]Span, len(ss.Spans))
 			for i, otlpSpan := range ss.Spans {
 				span := &mem[i]
-				initSpanFromOTLP(span, resource, otlpSpan)
+				initSpanFromOTLP(span, scope, otlpSpan)
 				span.ProjectID = project.ID
 				s.sp.AddSpan(ctx, span)
 			}

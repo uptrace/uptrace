@@ -50,14 +50,6 @@ func ParseBytes(s string) (int64, error) {
 }
 
 func FormatBytes(n float64) string {
-	return bytes(n, false)
-}
-
-func FormatBytesSign(n float64) string {
-	return bytes(n, true)
-}
-
-func bytes(n float64, sign bool) string {
 	if math.IsNaN(n) || math.IsInf(n, 0) || n == 0 {
 		return "0"
 	}
@@ -65,7 +57,7 @@ func bytes(n float64, sign bool) string {
 	abs := math.Abs(n)
 
 	if abs < 1024 {
-		return format(n, 0, sign)
+		return format(n, 0)
 	}
 
 	for _, suffix := range []string{"KB", "MB", "GB", "TB", "PB"} {
@@ -73,15 +65,15 @@ func bytes(n float64, sign bool) string {
 		abs /= 1024
 
 		if abs < 1 {
-			return format(n, 2, sign) + suffix
+			return format(n, 2) + suffix
 		}
 		if abs < 10 {
-			return format(n, 1, sign) + suffix
+			return format(n, 1) + suffix
 		}
 		if abs < 1000 {
-			return format(n, 0, sign) + suffix
+			return format(n, 0) + suffix
 		}
 	}
 
-	return format(n, 0, sign) + "PB"
+	return format(n, 0) + "PB"
 }

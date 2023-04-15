@@ -41,7 +41,8 @@ export default defineComponent({
         { short: '', text: '', value: Unit.Microseconds },
         { short: '', text: '', value: Unit.Milliseconds },
         { short: '', text: '', value: Unit.Seconds },
-        { short: '', text: '', value: Unit.Percents },
+        { short: '', text: '', value: Unit.Utilization, hint: '0 <= n <= 1' },
+        { short: '', text: '', value: Unit.Percents, hint: '0 <= n <= 100%' },
       ]
       if (props.value) {
         const i = items.findIndex((item) => item.value === props.value)

@@ -11,6 +11,7 @@ import (
 	"github.com/uptrace/go-clickhouse/ch/chschema"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bununit"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/upql"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
@@ -66,6 +67,7 @@ func (f *SpanFilter) UnmarshalValues(ctx context.Context, values url.Values) err
 
 type ColumnInfo struct {
 	Name    string `json:"name"`
+	Unit    string `json:"unit"`
 	IsNum   bool   `json:"isNum"`
 	IsGroup bool   `json:"isGroup"`
 }
@@ -89,6 +91,7 @@ func (f *SpanFilter) columns(items []map[string]any) []ColumnInfo {
 				columns = append(columns, ColumnInfo{
 					Name:  name.String(),
 					IsNum: isNumColumn(item[name.String()]),
+					Unit:  unitFromName(name),
 				})
 			}
 		case *upql.Group:
@@ -96,6 +99,7 @@ func (f *SpanFilter) columns(items []map[string]any) []ColumnInfo {
 				columns = append(columns, ColumnInfo{
 					Name:    name.String(),
 					IsGroup: true,
+					Unit:    unitFromName(name),
 				})
 			}
 		}
@@ -110,6 +114,27 @@ func isNumColumn(v any) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+func unitFromName(name upql.Name) string {
+	var unit string
+
+	switch name.AttrKey {
+	case attrkey.SpanErrorPct:
+		unit = bununit.Utilization
+	case attrkey.SpanDuration:
+		unit = bununit.Nanoseconds
+	}
+
+	switch name.FuncName {
+	case "",
+		"sum", "avg", "min", "max",
+		"any", "anyLast",
+		"p50", "p75", "p90", "p95", "p99":
+		return unit
+	default:
+		return ""
 	}
 }
 

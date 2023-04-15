@@ -8,4 +8,5 @@ const (
 	InstrumentAdditive  Instrument = "additive"
 	InstrumentHistogram Instrument = "histogram"
 	InstrumentCounter   Instrument = "counter"
+	InstrumentSummary   Instrument = "summary"
 )

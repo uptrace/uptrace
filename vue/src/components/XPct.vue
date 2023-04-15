@@ -3,8 +3,8 @@ import Vue from 'vue'
 import { PropType } from 'vue'
 
 // Utilities
-import { percent } from '@/util/fmt/num'
-import { unitFromName, createFormatter, Unit } from '@/util/fmt'
+import { percents } from '@/util/fmt/num'
+import { createFormatter, Unit } from '@/util/fmt'
 import { formatTemplate } from '@/util/string'
 
 export default Vue.component('XPct', {
@@ -24,7 +24,7 @@ export default Vue.component('XPct', {
     },
     unit: {
       type: String as PropType<Unit>,
-      default: undefined,
+      default: Unit.None,
     },
     title: {
       type: String,
@@ -32,16 +32,12 @@ export default Vue.component('XPct', {
     },
   },
   render(h, { props, data }) {
-    const unit = props.unit ?? unitFromName(props.name, 0)
-
-    const fmt = createFormatter(unit)
-
+    const fmt = createFormatter(props.unit)
     data.attrs = {
       ...data.attrs,
       title: formatTemplate(props.title, fmt(props.a), fmt(props.b)),
     }
-
-    return h('span', data, percent(pct(props.a, props.b)))
+    return h('span', data, percents(pct(props.a, props.b)))
   },
 })
 

@@ -33,7 +33,7 @@ table:
       query:
         - $mem_usage{state!=free} / $mem_usage as mem_util
       columns:
-        mem_util: { unit: percents }
+        mem_util: { unit: utilization }
 
     - name: Avg free RAM
       description: Avg free RAM across all nodes
@@ -54,8 +54,8 @@ table:
     - $mem_usage{state=used} as mem_used
   columns:
     cpu_wait: { unit: seconds }
-    mem_util: { unit: percents }
-    swap_util: { unit: percents }
+    mem_util: { unit: utilization }
+    swap_util: { unit: utilization }
     mem_used: { unit: bytes }
 
 grid:
@@ -91,7 +91,7 @@ grid:
     query:
       - $mem_usage{state!=free} / $mem_usage as mem_util
     columns:
-      mem_util: { unit: percents }
+      mem_util: { unit: utilization }
 
   - name: RAM usage
     metrics:
@@ -108,7 +108,7 @@ grid:
     query:
       - $paging{state!=free} / $paging as swap_util
     columns:
-      swap_util: { unit: percents }
+      swap_util: { unit: utilization }
 
   - name: Swap or pagefile usage
     metrics:
@@ -266,8 +266,8 @@ table:
     - $fs_usage{state="used"} / $fs_usage as fs_util
     - $inodes{state="used"} / $inodes as inode_util
   columns:
-    fs_util: { unit: percents }
-    inode_util: { unit: percents }
+    fs_util: { unit: utilization }
+    inode_util: { unit: utilization }
 
 grid:
   - name: Filesystem utilization
@@ -276,7 +276,7 @@ grid:
     query:
       - $fs_usage{state="used"} / $fs_usage as fs_util
     columns:
-      fs_util: { unit: percents }
+      fs_util: { unit: utilization }
 
   - name: Filesystem usage
     metrics:
@@ -293,7 +293,7 @@ grid:
     query:
       - $inodes{state="used"} / $inodes as inode_util
     columns:
-      fs_util: { unit: percents }
+      fs_util: { unit: utilization }
 
   - name: inodes usage
     metrics:

@@ -73,19 +73,32 @@ export function numShort(n: number | undefined, opts = {}): string {
   return trimMantissa(n, 1, opts) + 'b'
 }
 
-export function percent(n: any): string {
+//------------------------------------------------------------------------------
+
+export function percents(n: any): string {
+  if (typeof n !== 'number' || Math.abs(n) < 0.0001) {
+    return '0%'
+  }
+  const value = numbro(n).format({
+    mantissa: percentsMantissa(n),
+    optionalMantissa: true,
+  })
+  return value + '%'
+}
+
+export function utilization(n: any): string {
   if (typeof n !== 'number' || Math.abs(n) < 0.0001) {
     return '0%'
   }
 
   return numbro(n).format({
     output: 'percent',
-    mantissa: percentMantissa(n),
+    mantissa: percentsMantissa(n),
     optionalMantissa: true,
   })
 }
 
-function percentMantissa(n: number): number {
+function percentsMantissa(n: number): number {
   n = Math.abs(n)
   if (n < 0.01) {
     return 2
@@ -95,6 +108,8 @@ function percentMantissa(n: number): number {
   }
   return 0
 }
+
+//------------------------------------------------------------------------------
 
 export function bytes(n: number | undefined): string {
   if (typeof n !== 'number' || n === 0) {

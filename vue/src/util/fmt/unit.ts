@@ -1,8 +1,7 @@
-import { AttrKey } from '@/models/otel'
-
 export enum Unit {
   None = '',
   Percents = 'percents',
+  Utilization = 'utilization',
 
   Nanoseconds = 'nanoseconds',
   Microseconds = 'microseconds',
@@ -26,6 +25,7 @@ export const UNITS = [
   Unit.Milliseconds,
   Unit.Seconds,
   Unit.Percents,
+  Unit.Utilization,
 ]
 
 export function unitShortName(unit: Unit): string {
@@ -34,6 +34,8 @@ export function unitShortName(unit: Unit): string {
       return ''
     case Unit.Percents:
       return '%'
+    case Unit.Utilization:
+      return 'util'
 
     case Unit.Nanoseconds:
       return 'ns'
@@ -58,61 +60,4 @@ export function unitShortName(unit: Unit): string {
     default:
       return unit
   }
-}
-
-export function unitFromName(name: string, value?: unknown): Unit {
-  const isNum = typeof value === 'number'
-
-  if (!isNum && value !== undefined) {
-    return Unit.None
-  }
-
-  switch (name) {
-    case 'count':
-    case 'rate':
-      return Unit.None
-    case 'errorPct':
-      return Unit.Percents
-    case 'p50':
-    case 'p90':
-    case 'p99':
-      return Unit.Nanoseconds
-  }
-
-  let key = ''
-
-  const m = name.match(/(\S+)\((\S+)\)/)
-  if (m) {
-    key = m[2]
-  } else {
-    key = name
-  }
-
-  if (isDurationField(key)) {
-    return Unit.Nanoseconds
-  }
-  if (isByteField(key)) {
-    return Unit.Bytes
-  }
-  if (isPercentField(key)) {
-    return Unit.Percents
-  }
-
-  return Unit.None
-}
-
-export function isDurationField(s: string): boolean {
-  return s === AttrKey.spanDuration || hasField(s, 'duration')
-}
-
-export function isByteField(s: string): boolean {
-  return hasField(s, 'bytes')
-}
-
-export function isPercentField(s: string): boolean {
-  return s === AttrKey.spanErrorPct || hasField(s, 'pct')
-}
-
-function hasField(s: string, field: string): boolean {
-  return s.endsWith('.' + field) || s.endsWith('_' + field)
 }

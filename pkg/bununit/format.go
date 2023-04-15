@@ -8,6 +8,8 @@ func Format(v float64, unit string) string {
 		return FormatNumber(v)
 	case Percents:
 		return FormatPercents(v)
+	case Utilization:
+		return FormatUtilization(v)
 
 	case Nanoseconds:
 		return FormatMicroseconds(v / 1000)

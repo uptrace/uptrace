@@ -302,7 +302,7 @@ func (s *CHStorage) agg(
 
 	case InstrumentGauge:
 		switch f.Func {
-		case "", "avg", "delta":
+		case "", "avg", "last", "delta":
 			q = q.ColumnExpr("avg(value) AS value")
 			return q, nil
 		case "sum": // may be okay
@@ -323,7 +323,7 @@ func (s *CHStorage) agg(
 		case "", "sum", "delta":
 			q = q.ColumnExpr("sumWithOverflow(value) AS value")
 			return q, nil
-		case "avg": // may be okay
+		case "avg", "last": // may be okay
 			q = q.ColumnExpr("avg(value) AS value")
 			return q, nil
 		case "min":
@@ -331,6 +331,29 @@ func (s *CHStorage) agg(
 			return q, nil
 		case "max":
 			q = q.ColumnExpr("max(value) AS value")
+			return q, nil
+		default:
+			return nil, unsupportedInstrumentFunc(metric.Instrument, f.Func)
+		}
+
+	case InstrumentSummary:
+		switch f.Func {
+		case "avg", "last":
+			q = q.ColumnExpr("sumWithOverflow(sum) / sumWithOverflow(count) AS value")
+			return q, nil
+		case "sum":
+			q = q.ColumnExpr("sumWithOverflow(sum) AS value")
+			return q, nil
+		case "count":
+			q = q.ColumnExpr("sumWithOverflow(count) AS value")
+			return q, nil
+		case "per_min", "per_minute":
+			q = q.ColumnExpr("sumWithOverflow(count) / ? AS value",
+				s.conf.GroupingPeriod.Minutes())
+			return q, nil
+		case "per_sec", "per_second":
+			q = q.ColumnExpr("sumWithOverflow(count) / ? AS value",
+				s.conf.GroupingPeriod.Seconds())
 			return q, nil
 		default:
 			return nil, unsupportedInstrumentFunc(metric.Instrument, f.Func)
@@ -355,7 +378,7 @@ func (s *CHStorage) agg(
 		case "max":
 			q = quantileColumn(q, 1)
 			return q, nil
-		case "avg":
+		case "avg", "last":
 			q = q.ColumnExpr("sumWithOverflow(sum) / sumWithOverflow(count) AS value")
 			return q, nil
 		case "p50":
@@ -453,14 +476,15 @@ func (s *CHStorage) tableValue(
 		return minValue(value)
 	case "max":
 		return maxValue(value)
-	case "avg", "per_min", "per_minute", "per_sec", "per_second",
+	case "avg",
+		"per_min", "per_minute", "per_sec", "per_second",
 		"p50", "p75", "p90", "p95", "p99":
 		return avg(value)
 	case "count":
 		return sum(value)
 	case "delta":
 		return delta(value)
-	case "uniq":
+	case "last", "uniq":
 		return last(value)
 	default:
 		return last(value)

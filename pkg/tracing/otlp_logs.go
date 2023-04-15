@@ -21,6 +21,7 @@ import (
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
 	"go.uber.org/zap"
+	"golang.org/x/exp/maps"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -153,17 +154,25 @@ func (s *LogsServiceServer) export(
 		resource := AttrMap(otlpconv.Map(rl.Resource.Attributes))
 
 		for _, sl := range rl.ScopeLogs {
+			var scope AttrMap
 			if sl.Scope != nil {
+				scope = maps.Clone(resource)
 				if sl.Scope.Name != "" {
-					resource[attrkey.OtelLibraryName] = sl.Scope.Name
+					scope[attrkey.OtelLibraryName] = sl.Scope.Name
 				}
 				if sl.Scope.Version != "" {
-					resource[attrkey.OtelLibraryVersion] = sl.Scope.Version
+					scope[attrkey.OtelLibraryVersion] = sl.Scope.Version
 				}
+				otlpconv.ForEachKeyValue(sl.Scope.Attributes, func(key string, value any) {
+					scope[key] = value
+				})
+
+			} else {
+				scope = resource
 			}
 
 			for _, lr := range sl.LogRecords {
-				span := s.convLog(resource, lr)
+				span := s.convLog(scope, lr)
 				span.ProjectID = project.ID
 				s.sp.AddSpan(ctx, span)
 			}

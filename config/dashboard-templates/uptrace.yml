@@ -14,7 +14,7 @@ table:
     - p99($spans) as p99
     - max($spans) as max
   columns:
-    error_rate: { unit: percents }
+    error_rate: { unit: utilization }
 
 grid:
   - name: Number of spans
@@ -30,7 +30,7 @@ grid:
     query:
       - count($spans{span.status_code='error'}) / count($spans) as error_rate
     columns:
-      error_rate: { unit: percents }
+      error_rate: { unit: utilization }
 
   - name: P50 span duration
     metrics:
@@ -98,7 +98,7 @@ table:
     - p99($spans) as p99
     - max($spans) as max
   columns:
-    error_rate: { unit: percents }
+    error_rate: { unit: utilization }
 
 grid:
   - name: Number of spans
@@ -114,7 +114,7 @@ grid:
     query:
       - count($spans{span.status_code='error'}) / count($spans) as error_rate
     columns:
-      error_rate: { unit: percents }
+      error_rate: { unit: utilization }
 
   - name: P50 span duration
     metrics:

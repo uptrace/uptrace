@@ -8,8 +8,9 @@ import (
 const (
 	Invalid string = "_"
 
-	None     string = ""
-	Percents string = "percents"
+	None        string = ""
+	Percents    string = "percents"
+	Utilization string = "utilization"
 
 	Nanoseconds  string = "nanoseconds"
 	Microseconds string = "microseconds"
