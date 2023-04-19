@@ -2,6 +2,7 @@ package upql
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/cespare/xxhash/v2"
@@ -12,11 +13,13 @@ import (
 
 type Engine struct {
 	storage Storage
+	consts  map[string]float64
 	vars    map[string][]Timeseries
 	buf     []byte
 }
 
 type Storage interface {
+	Consts() map[string]float64
 	MakeTimeseries(f *TimeseriesFilter) []Timeseries
 	SelectTimeseries(f *TimeseriesFilter) ([]Timeseries, error)
 }
@@ -24,6 +27,7 @@ type Storage interface {
 func NewEngine(storage Storage) *Engine {
 	return &Engine{
 		storage: storage,
+		consts:  storage.Consts(),
 		vars:    make(map[string][]Timeseries),
 	}
 }
@@ -89,12 +93,22 @@ func (e *Engine) eval(expr Expr) ([]Timeseries, error) {
 	case *TimeseriesExpr:
 		return expr.Timeseries, nil
 	case *RefExpr:
-		if ts, ok := e.vars[expr.Metric]; ok {
+		if ts, ok := e.vars[expr.Name]; ok {
 			clone := make([]Timeseries, len(ts))
 			copy(clone, ts)
 			return clone, nil
 		}
-		return nil, fmt.Errorf("can't find timeseries %q", expr.Metric)
+
+		if num, ok := e.consts[expr.Name]; ok {
+			timeseries := e.storage.MakeTimeseries(nil)
+			ts := &timeseries[0]
+			for i := range ts.Value {
+				ts.Value[i] = num
+			}
+			return timeseries, nil
+		}
+
+		return nil, fmt.Errorf("can't resolve name %q", expr.Name)
 	case *BinaryExpr:
 		return e.binaryExpr(expr)
 	case ParenExpr:
@@ -120,16 +134,30 @@ func (e *Engine) eval(expr Expr) ([]Timeseries, error) {
 	}
 }
 
+func (e *Engine) resolveNumber(expr Expr) Expr {
+	if ref, ok := expr.(*RefExpr); ok {
+		if num, ok := e.consts[ref.Name]; ok {
+			return &ast.Number{
+				Text: strconv.FormatFloat(num, 'f', -1, 64),
+			}
+		}
+	}
+	return expr
+}
+
 func (e *Engine) binaryExpr(expr *BinaryExpr) ([]Timeseries, error) {
+	lhs := e.resolveNumber(expr.LHS)
+	rhs := e.resolveNumber(expr.RHS)
+
 	{
-		lhsNum, lhsOK := expr.LHS.(*ast.Number)
-		rhsNum, rhsOK := expr.RHS.(*ast.Number)
+		lhsNum, lhsOK := lhs.(*ast.Number)
+		rhsNum, rhsOK := rhs.(*ast.Number)
 
 		if lhsOK && rhsOK {
 			return e.binaryExprNum(lhsNum.Float64(), rhsNum.Float64(), expr.Op)
 		}
 		if lhsOK {
-			rhs, err := e.eval(expr.RHS)
+			rhs, err := e.eval(rhs)
 			if err != nil {
 				return nil, err
 			}
@@ -145,7 +173,7 @@ func (e *Engine) binaryExpr(expr *BinaryExpr) ([]Timeseries, error) {
 			return e.binaryExprNumLeft(lhs, rhs, expr.Op)
 		}
 		if rhsOK {
-			lhs, err := e.eval(expr.LHS)
+			lhs, err := e.eval(lhs)
 			if err != nil {
 				return nil, err
 			}
@@ -162,43 +190,43 @@ func (e *Engine) binaryExpr(expr *BinaryExpr) ([]Timeseries, error) {
 		}
 	}
 
-	lhs, err := e.eval(expr.LHS)
+	lhsTimeseries, err := e.eval(lhs)
 	if err != nil {
 		return nil, err
 	}
 
-	rhs, err := e.eval(expr.RHS)
+	rhsTimeseries, err := e.eval(rhs)
 	if err != nil {
 		return nil, err
 	}
 
 	switch expr.Op {
 	case "+":
-		return e.join(lhs, rhs, addOp)
+		return e.join(lhsTimeseries, rhsTimeseries, addOp)
 	case "-":
-		return e.join(lhs, rhs, subtractOp)
+		return e.join(lhsTimeseries, rhsTimeseries, subtractOp)
 	case "*":
-		return e.join(lhs, rhs, multiplyOp)
+		return e.join(lhsTimeseries, rhsTimeseries, multiplyOp)
 	case "/":
-		return e.join(lhs, rhs, divideOp)
+		return e.join(lhsTimeseries, rhsTimeseries, divideOp)
 	case "%":
-		return e.join(lhs, rhs, remOp)
+		return e.join(lhsTimeseries, rhsTimeseries, remOp)
 	case "==":
-		return e.join(lhs, rhs, equalOp)
+		return e.join(lhsTimeseries, rhsTimeseries, equalOp)
 	case "!=":
-		return e.join(lhs, rhs, notEqualOp)
+		return e.join(lhsTimeseries, rhsTimeseries, notEqualOp)
 	case ">":
-		return e.join(lhs, rhs, gtOp)
+		return e.join(lhsTimeseries, rhsTimeseries, gtOp)
 	case ">=":
-		return e.join(lhs, rhs, gteOp)
+		return e.join(lhsTimeseries, rhsTimeseries, gteOp)
 	case "<":
-		return e.join(lhs, rhs, ltOp)
+		return e.join(lhsTimeseries, rhsTimeseries, ltOp)
 	case "<=":
-		return e.join(lhs, rhs, lteOp)
+		return e.join(lhsTimeseries, rhsTimeseries, lteOp)
 	case "and":
-		return e.join(lhs, rhs, andOp)
+		return e.join(lhsTimeseries, rhsTimeseries, andOp)
 	case "or":
-		return e.join(lhs, rhs, orOp)
+		return e.join(lhsTimeseries, rhsTimeseries, orOp)
 	default:
 		return nil, fmt.Errorf("unsupported binary op: %q", expr.Op)
 	}
@@ -425,22 +453,34 @@ func (e *Engine) evalBinaryExprNumRight(
 
 func (e *Engine) callFunc(fn *FuncCall) ([]Timeseries, error) {
 	switch fn.Func {
-	case "delta":
-		if len(fn.Args) != 1 {
-			return nil, fmt.Errorf("delta func expects a single arg")
-		}
-
-		timeseries, err := e.eval(fn.Args[0])
-		if err != nil {
-			return nil, err
-		}
-
-		for i := range timeseries {
-			delta(&timeseries[i])
-		}
-
-		return timeseries, nil
+	case funcDelta:
+		return e.callSingleArgFunc(fn.Func, fn, delta)
+	case funcPerMin:
+		return e.callSingleArgFunc(fn.Func, fn, perMin)
+	case funcPerSec:
+		return e.callSingleArgFunc(fn.Func, fn, perSec)
 	default:
-		return nil, fmt.Errorf("unknown func: %s", fn.Func)
+		return nil, fmt.Errorf("unsupported func: %s", fn.Func)
 	}
+}
+
+func (e *Engine) callSingleArgFunc(
+	funcName string,
+	fn *FuncCall,
+	op FuncOp,
+) ([]Timeseries, error) {
+	if len(fn.Args) != 1 {
+		return nil, fmt.Errorf("%s func expects a single arg", funcName)
+	}
+
+	timeseries, err := e.eval(fn.Args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range timeseries {
+		op(timeseries[i].Value, e.consts)
+	}
+
+	return timeseries, nil
 }

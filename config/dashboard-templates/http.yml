@@ -10,11 +10,11 @@ table:
     - process.runtime.go.goroutines as $goroutines
   query:
     - group by service.name | group by host.name
-    - per_min($srv_dur) as req_per_min
+    - per_min(count($srv_dur)) as req_per_min
     - p90($srv_dur) as dur_p90
     - p99($srv_dur) AS dur_p99
-    - per_min($req_len) as req_len
-    - per_min($resp_len) as resp_len
+    - per_min(count($req_len)) as req_len
+    - per_min(count($resp_len)) as resp_len
   columns:
     dur_p90: { unit: microseconds }
     dur_p99: { unit: microseconds }
@@ -26,22 +26,26 @@ grid:
     metrics:
       - http.server.duration as $srv_dur
     query:
-      - per_min($srv_dur) as req_per_min
+      - per_min(count($srv_dur)) as req_per_min
 
   - name: HTTP request duration
     metrics:
       - http.server.duration as $srv_dur
     query:
-      - p90($srv_dur) as dur_p90 | p99($srv_dur) AS dur_p99
+      - p50($srv_dur) as dur_p50
+      - p90($srv_dur) as dur_p90
+      - p99($srv_dur) AS dur_p99
     columns:
+      dur_p50: { unit: microseconds }
       dur_p90: { unit: microseconds }
       dur_p99: { unit: microseconds }
+    chart: area
 
   - name: HTTP request length
     metrics:
       - http.server.request_content_length as $req_len
     query:
-      - per_min($req_len) as req_len
+      - per_min(count($req_len)) as req_len
     columns:
       req_len: { unit: bytes }
 
@@ -49,7 +53,7 @@ grid:
     metrics:
       - http.server.response_content_length as $resp_len
     query:
-      - per_min($resp_len) as resp_len
+      - per_min(count($resp_len)) as resp_len
     columns:
       resp_len: { unit: bytes }
 

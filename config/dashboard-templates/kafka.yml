@@ -146,7 +146,7 @@ grid_gauges:
       - kafka.consumer_group.members as $members
     query:
       - $members
-    template: ${members} consumers
+    template: ${members}
     grid_query_template: where group = ${group}
 
 grid:

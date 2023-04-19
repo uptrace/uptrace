@@ -162,7 +162,7 @@ grid:
       - http.server.duration as $srv_dur
     query:
       - $net_conns
-      - per_min($srv_dur) as req_per_min
+      - per_min(count($srv_dur)) as req_per_min
 
   - name: Network dropped packets
     metrics:
@@ -249,6 +249,12 @@ grid:
       - system.disk.pending_operations as $pending_ops
     query:
       - $pending_ops
+
+  - name: Number of disk reads/writes merged into single physical disk access operations
+    metrics:
+      - system.disk.merged as $merged
+    query:
+      - $merged
 
 ---
 schema: v1

@@ -4,14 +4,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/getsentry/sentry-go"
 )
 
 func main() {
+	dsn := os.Getenv("UPTRACE_DSN")
+	if dsn == "" {
+		dsn = "http://project2_secret_token@localhost:14318/2"
+	}
+	fmt.Println("using DSN:", dsn)
+
 	err := sentry.Init(sentry.ClientOptions{
-		Dsn:              "http://project2_secret_token@localhost:14318/2",
+		Dsn:              dsn,
+		Debug:            true,
 		EnableTracing:    true,
 		TracesSampleRate: 1.0,
 	})

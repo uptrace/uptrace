@@ -13,17 +13,19 @@ table:
     - $usage as conns
     - $usage{state='idle'} as idle
     - $timeouts
-    - per_min($use_time) as queries
+    - per_min(count($use_time)) as queries
     - avg($use_time) as avg_timing
   columns:
     avg_timing: { unit: milliseconds }
+    conns: { unit: '' }
+    idle: { unit: '' }
 
 grid:
   - name: Number of queries
     metrics:
       - db.client.connections.use_time as $use_time
     query:
-      - per_min($use_time) as queries group by status
+      - per_min(count($use_time)) as queries group by status
     chart: stacked-bar
 
   - name: Query heatmap

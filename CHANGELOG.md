@@ -26,6 +26,7 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 - Port Alerts, Monitors, and Notifications Channels from
   [Uptrace Enterprise](https://uptrace.dev/compare) edition.
 - Accept errors and spans from [Sentry SDK](https://uptrace.dev/get/ingest/sentry.html).
+- Documented [FluentBit](https://uptrace.dev/get/ingest/fluent-bit.html) integration.
 - Add filter facets for metrics.
 
 ## Improvements

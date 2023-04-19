@@ -14,7 +14,7 @@ import (
 func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 	return &cli.Command{
 		Name:  "pg",
-		Usage: "SQLite management commands",
+		Usage: "PostgreSQL management commands",
 		Subcommands: []*cli.Command{
 			{
 				Name:  "wait",

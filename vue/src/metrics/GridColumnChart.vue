@@ -13,7 +13,7 @@
         />
       </v-col>
       <v-col
-        v-if="legend.type !== LegendType.None && timeseries.length"
+        v-if="legend.type !== LegendType.None"
         v-element-resize
         cols="auto"
         class="pr-2"
@@ -21,7 +21,7 @@
       >
         <ChartLegendTable
           v-if="legend.type === LegendType.Table"
-          :loading="timeseries.loading"
+          :loading="loading"
           :timeseries="timeseries"
           :values="legend.values"
           :max-length="legend.maxLength ?? 40"
@@ -30,7 +30,7 @@
         />
         <ChartLegendList
           v-else-if="legend.type === LegendType.List"
-          :loading="timeseries.loading"
+          :loading="loading"
           :timeseries="timeseries"
           :values="legend.values"
           :direction="legend.placement === LegendPlacement.Bottom ? 'row' : 'column'"
@@ -154,7 +154,7 @@ export default defineComponent({
 
     const currentTimeseries = shallowRef<StyledTimeseries[]>()
     const activeTimeseries = computed(() => {
-      if (currentTimeseries.value) {
+      if (props.legend.type !== LegendType.None && currentTimeseries.value) {
         return currentTimeseries.value
       }
       return props.timeseries

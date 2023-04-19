@@ -129,7 +129,7 @@ table:
   query:
     - group by service.name
     - group by host.name
-    - per_min($query_timing) as queries
+    - per_min(count($query_timing)) as queries
     - p90($query_timing) as timing_p90
     - p99($query_timing) as timing_p99
     - $conns_open
@@ -142,7 +142,7 @@ grid:
     metrics:
       - go.sql.query_timing as $query_timing
     query:
-      - per_min($query_timing) as queries
+      - per_min(count($query_timing)) as queries
 
   - name: Query percentiles
     metrics:

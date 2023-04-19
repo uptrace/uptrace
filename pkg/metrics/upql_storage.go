@@ -45,6 +45,13 @@ func NewCHStorage(ctx context.Context, db *ch.DB, conf *CHStorageConfig) *CHStor
 
 var _ upql.Storage = (*CHStorage)(nil)
 
+func (s *CHStorage) Consts() map[string]float64 {
+	return map[string]float64{
+		"_seconds": s.conf.GroupingPeriod.Seconds(),
+		"_minutes": s.conf.GroupingPeriod.Minutes(),
+	}
+}
+
 func (s *CHStorage) MakeTimeseries(f *upql.TimeseriesFilter) []upql.Timeseries {
 	var ts upql.Timeseries
 
@@ -220,13 +227,22 @@ func compileFilters(filters []ast.Filter) (string, error) {
 		}
 
 		col := CHColumn(filter.LHS)
-		var val string
+		var val any
 
 		switch rhs := filter.RHS.(type) {
 		case *ast.Number:
 			val = rhs.Text
 		case ast.StringValue:
 			val = rhs.Text
+		case ast.StringValues:
+			var b []byte
+			for i, text := range rhs.Texts {
+				if i > 0 {
+					b = append(b, ", "...)
+				}
+				b = chschema.AppendString(b, text)
+			}
+			val = ch.Safe(b)
 		default:
 			return "", fmt.Errorf("unknown RHS: %T", rhs)
 		}
@@ -246,6 +262,10 @@ func compileFilters(filters []ast.Filter) (string, error) {
 			b = chschema.AppendQuery(b, "? = ?", col, val)
 		case ast.FilterNotEqual:
 			b = chschema.AppendQuery(b, "? != ?", col, val)
+		case ast.FilterIn:
+			b = chschema.AppendQuery(b, "? IN (?)", col, val)
+		case ast.FilterNotIn:
+			b = chschema.AppendQuery(b, "? NOT IN (?)", col, val)
 		case ast.FilterRegexp:
 			b = chschema.AppendQuery(b, "match(?, ?)", col, val)
 		case ast.FilterNotRegexp:
@@ -285,15 +305,7 @@ func (s *CHStorage) agg(
 
 	case InstrumentCounter:
 		switch f.Func {
-		case "per_min", "per_minute":
-			q = q.ColumnExpr("sumWithOverflow(sum) / ? AS value",
-				s.conf.GroupingPeriod.Minutes())
-			return q, nil
-		case "per_sec", "per_second":
-			q = q.ColumnExpr("sumWithOverflow(sum) / ? AS value",
-				s.conf.GroupingPeriod.Seconds())
-			return q, nil
-		case "", "sum":
+		case "", "sum", "count", "per_min", "per_sec":
 			q = q.ColumnExpr("sumWithOverflow(sum) AS value")
 			return q, nil
 		default:
@@ -341,19 +353,17 @@ func (s *CHStorage) agg(
 		case "avg", "last":
 			q = q.ColumnExpr("sumWithOverflow(sum) / sumWithOverflow(count) AS value")
 			return q, nil
+		case "min":
+			q = q.ColumnExpr("min(min) AS value")
+			return q, nil
+		case "max":
+			q = q.ColumnExpr("max(max) AS value")
+			return q, nil
 		case "sum":
 			q = q.ColumnExpr("sumWithOverflow(sum) AS value")
 			return q, nil
 		case "count":
 			q = q.ColumnExpr("sumWithOverflow(count) AS value")
-			return q, nil
-		case "per_min", "per_minute":
-			q = q.ColumnExpr("sumWithOverflow(count) / ? AS value",
-				s.conf.GroupingPeriod.Minutes())
-			return q, nil
-		case "per_sec", "per_second":
-			q = q.ColumnExpr("sumWithOverflow(count) / ? AS value",
-				s.conf.GroupingPeriod.Seconds())
 			return q, nil
 		default:
 			return nil, unsupportedInstrumentFunc(metric.Instrument, f.Func)
@@ -361,25 +371,14 @@ func (s *CHStorage) agg(
 
 	case InstrumentHistogram:
 		switch f.Func {
-		case "count":
-			q = q.ColumnExpr("sumWithOverflow(count) AS value")
-			return q, nil
-		case "per_min", "per_minute":
-			q = q.ColumnExpr("sumWithOverflow(count) / ? AS value",
-				s.conf.GroupingPeriod.Minutes())
-			return q, nil
-		case "per_sec", "per_second":
-			q = q.ColumnExpr("sumWithOverflow(count) / ? AS value",
-				s.conf.GroupingPeriod.Seconds())
-			return q, nil
-		case "min":
-			q = quantileColumn(q, 0)
-			return q, nil
-		case "max":
-			q = quantileColumn(q, 1)
-			return q, nil
 		case "avg", "last":
 			q = q.ColumnExpr("sumWithOverflow(sum) / sumWithOverflow(count) AS value")
+			return q, nil
+		case "min":
+			q = q.ColumnExpr("min(min) AS value")
+			return q, nil
+		case "max":
+			q = q.ColumnExpr("max(max) AS value")
 			return q, nil
 		case "p50":
 			q = quantileColumn(q, 0.5)
@@ -395,6 +394,9 @@ func (s *CHStorage) agg(
 			return q, nil
 		case "p99":
 			q = quantileColumn(q, 0.99)
+			return q, nil
+		case "count":
+			q = q.ColumnExpr("sumWithOverflow(count) AS value")
 			return q, nil
 		default:
 			return nil, unsupportedInstrumentFunc(metric.Instrument, f.Func)

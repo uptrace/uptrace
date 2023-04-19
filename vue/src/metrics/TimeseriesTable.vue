@@ -18,7 +18,7 @@
         :class="{ 'cursor-pointer': 'click' in $listeners }"
         @click="$emit('click', item)"
       >
-        <template #default="{ metrics, value, time }">
+        <template #default="{ rowId, metrics, value, time }">
           <template v-for="attrKey in grouping">
             <td v-if="attrKey === AttrKey.spanGroupId" :key="attrKey">
               <router-link :to="spanListRouteFor(item)">{{ eventOrSpanName(item) }}</router-link>
@@ -34,7 +34,7 @@
                 :time="time"
                 :unit="col.unit"
                 :color="col.color"
-                :group="item._query"
+                :group="rowId"
                 class="mr-2"
               />
               <XNum :value="item[col.name] || 0" :unit="col.unit" />

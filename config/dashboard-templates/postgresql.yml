@@ -29,8 +29,11 @@ table:
       description: Number of backends (connections)
       metrics:
         - postgresql.backends as $backends
+        - postgresql.connection.max as $max_conns
       query:
         - $backends
+        - $max_conns
+      template: ${backends} of ${max_conns}
 
   metrics:
     - postgresql.db_size as $db_size
@@ -149,6 +152,36 @@ grid:
       - postgresql.table.vacuum.count as $vacuum_count
     query:
       - $vacuum_count
+
+---
+schema: v1
+id: uptrace.db.postgresql_table_indexes
+name: 'DB: PostgreSQL indexes'
+
+table:
+  metrics:
+    - postgresql.index.scans as $index_scans
+    - postgresql.index.size as $index_size
+  query:
+    - group by host.name
+    - group by postgresql.database.name
+    - group by postgresql.table.name
+    - group by postgresql.index.name
+    - per_min($index_scans)
+    - $index_size
+
+grid:
+  - name: Number of index scans
+    metrics:
+      - postgresql.index.scans as $index_scans
+    query:
+      - per_min($index_scans)
+
+  - name: Index size
+    metrics:
+      - postgresql.index.size as $index_size
+    query:
+      - $index_size
 
 ---
 schema: v1

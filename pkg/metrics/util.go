@@ -94,14 +94,29 @@ func sumCount(ns []float64) (float64, int) {
 	return sum, count
 }
 
-func delta(ns []float64) float64 {
-	if len(ns) == 0 {
+func delta(value []float64) float64 {
+	for i, num := range value {
+		if !math.IsNaN(num) {
+			value = value[i:]
+			break
+		}
+	}
+
+	if len(value) == 0 {
 		return 0
 	}
-	first := ns[0]
-	last := ns[len(ns)-1]
-	if delta := last - first; delta >= 0 {
-		return delta
+
+	prevNum := value[0]
+	value = value[1:]
+	var sum float64
+
+	for _, num := range value {
+		if math.IsNaN(num) {
+			continue
+		}
+		sum += num - prevNum
+		prevNum = num
 	}
-	return 0
+
+	return sum
 }

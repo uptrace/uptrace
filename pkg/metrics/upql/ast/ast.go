@@ -18,7 +18,7 @@ type Selector struct {
 }
 
 type NamedExpr struct {
-	Expr  Expr // *Name | *BinaryExpr | *FuncCall
+	Expr  Expr
 	Alias string
 }
 
@@ -35,7 +35,6 @@ type Expr interface {
 }
 
 type Name struct {
-	// Used to convert simple FuncCall to Name
 	Func    string
 	Name    string
 	Filters []Filter
@@ -170,6 +169,8 @@ type FilterOp string
 const (
 	FilterEqual     FilterOp = "="
 	FilterNotEqual  FilterOp = "!="
+	FilterIn        FilterOp = "in"
+	FilterNotIn     FilterOp = "not in"
 	FilterRegexp    FilterOp = "~"
 	FilterNotRegexp FilterOp = "!~"
 	FilterLike      FilterOp = "like"
@@ -232,10 +233,26 @@ func (v StringValue) AppendString(b []byte) []byte {
 	return strconv.AppendQuote(b, v.Text)
 }
 
-//------------------------------------------------------------------------------
+type StringValues struct {
+	Texts []string
+}
 
-// SplitAliasName splits metric alias and attr name.
-// Alias must start with the `$` sign.
+func (v StringValues) AppendString(b []byte) []byte {
+	b = append(b, '(')
+	for i, text := range v.Texts {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		if IsIdent(text) {
+			b = append(b, text...)
+		} else {
+			b = strconv.AppendQuote(b, text)
+		}
+	}
+	b = append(b, ')')
+	return b
+}
+
 func SplitAliasName(s string) (string, string) {
 	if s == "" {
 		return "", ""
@@ -254,8 +271,6 @@ func Alias(s string) string {
 	alias, _ := SplitAliasName(s)
 	return alias
 }
-
-//------------------------------------------------------------------------------
 
 var opPrecedence = [][]BinaryOp{
 	[]BinaryOp{"^"},

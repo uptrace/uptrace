@@ -314,10 +314,14 @@ func (p *otlpProcessor) otlpHistogram(
 		if isDelta {
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
+			dest.Min = dp.GetMin()
+			dest.Max = dp.GetMax()
 			dest.Histogram = newBFloat16Histogram(dp.ExplicitBounds, dp.BucketCounts)
 		} else {
 			dest.StartTimeUnixNano = dp.StartTimeUnixNano
 			dest.CumPoint = &HistogramPoint{
+				Min:          dp.GetMin(),
+				Max:          dp.GetMax(),
 				Sum:          dp.GetSum(),
 				Count:        dp.Count,
 				Bounds:       dp.ExplicitBounds,
@@ -351,12 +355,16 @@ func (p *otlpProcessor) otlpExpHistogram(
 
 		dest := p.nextMeasure(scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
 		if isDelta {
+			dest.Min = dp.GetMin()
+			dest.Max = dp.GetMax()
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
 			dest.Histogram = hist
 		} else {
 			dest.StartTimeUnixNano = dp.StartTimeUnixNano
 			dest.CumPoint = &ExpHistogramPoint{
+				Min:       dp.GetMin(),
+				Max:       dp.GetMax(),
 				Sum:       dp.GetSum(),
 				Count:     dp.Count,
 				Histogram: hist,
@@ -391,8 +399,20 @@ func (p *otlpProcessor) otlpSummary(
 			continue
 		}
 
-		dest := p.nextMeasure(scope, metric, InstrumentSummary, dp.Attributes, dp.TimeUnixNano)
+		avg := dp.Sum / float64(dp.Count)
+		min, max := avg, avg
+		for _, qv := range dp.QuantileValues {
+			if qv.Value < min {
+				min = qv.Value
+			}
+			if qv.Value > max {
+				max = qv.Value
+			}
+		}
 
+		dest := p.nextMeasure(scope, metric, InstrumentSummary, dp.Attributes, dp.TimeUnixNano)
+		dest.Min = min
+		dest.Max = max
 		dest.Sum = dp.Sum
 		dest.Count = dp.Count
 

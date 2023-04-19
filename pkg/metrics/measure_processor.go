@@ -298,19 +298,31 @@ func (p *MeasureProcessor) convertHistogramPoint(
 		return false
 	}
 
-	measure.Count = point.Count - prevPoint.Count
-	if measure.Count <= 0 {
+	if point.Count < prevPoint.Count {
 		return false
 	}
-	measure.Sum = max(0, point.Sum-prevPoint.Sum)
 
-	for i, num := range point.BucketCounts {
-		prevNum := prevPoint.BucketCounts[i]
-		point.BucketCounts[i] = max(0, num-prevNum)
-	}
+	measure.Min = point.Min
+	measure.Max = point.Max
+	measure.Sum = point.Sum - prevPoint.Sum
+	measure.Count = point.Count - prevPoint.Count
 
-	measure.Histogram = newBFloat16Histogram(point.Bounds, point.BucketCounts)
+	counts := makeDeltaCounts(point.BucketCounts, prevPoint.BucketCounts)
+	measure.Histogram = newBFloat16Histogram(point.Bounds, counts)
+
 	return true
+}
+
+func makeDeltaCounts(counts, prevCounts []uint64) []uint64 {
+	for i, count := range counts {
+		prevCount := prevCounts[i]
+		if count > prevCount {
+			prevCounts[i] = count - prevCount
+		} else {
+			prevCounts[i] = 0
+		}
+	}
+	return prevCounts
 }
 
 func (p *MeasureProcessor) convertExpHistogramPoint(
@@ -332,8 +344,10 @@ func (p *MeasureProcessor) convertExpHistogramPoint(
 		return false
 	}
 
-	measure.Count = point.Count - prevPoint.Count
+	measure.Min = point.Min
+	measure.Max = point.Max
 	measure.Sum = point.Sum - prevPoint.Sum
+	measure.Count = point.Count - prevPoint.Count
 
 	var hist map[bfloat16.T]uint64
 	measure.Histogram = hist

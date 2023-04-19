@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
-	"reflect"
 	"time"
 
 	"github.com/uptrace/bunrouter"
@@ -20,7 +19,6 @@ import (
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
-	"go.uber.org/zap"
 	"golang.org/x/exp/maps"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -200,27 +198,28 @@ func (s *LogsServiceServer) convLog(resource AttrMap, lr *logspb.LogRecord) *Spa
 		span.Attrs[key] = value
 	})
 
-	if str, _ := span.Attrs[attrkey.LogMessage].(string); str == "" {
-		span.Attrs[attrkey.LogMessage] = s.logMessage(span, lr)
-	}
 	if lr.SeverityText != "" {
 		span.Attrs[attrkey.LogSeverity] = lr.SeverityText
+	}
+	if lr.Body.Value != nil {
+		s.processLogRecordBody(span, lr.Body.Value)
+	}
+
+	if !span.Attrs.Has(attrkey.LogMessage) {
+		if msg := popLogMessageParam(span.Attrs); msg != "" {
+			span.Attrs[attrkey.LogMessage] = msg
+		}
 	}
 
 	return span
 }
 
-func (s *LogsServiceServer) logMessage(span *Span, lr *logspb.LogRecord) string {
-	switch v := lr.Body.Value.(type) {
-	case nil:
-		// skip
+func (s *LogsServiceServer) processLogRecordBody(span *Span, bodyValue any) {
+	switch v := bodyValue.(type) {
 	case *commonpb.AnyValue_StringValue:
-		return v.StringValue
-	default:
-		bodyType := reflect.TypeOf(lr.Body.Value).String()
-		s.Logger.Info("unsupported body type", zap.String("type", bodyType))
+		span.Attrs[attrkey.LogMessage] = v.StringValue
+	case *commonpb.AnyValue_KvlistValue:
+		params := otlpconv.Map(v.KvlistValue.Values)
+		populateSpanFromParams(span, params)
 	}
-
-	str, _ := span.Attrs["{OriginalFormat}"].(string)
-	return str
 }

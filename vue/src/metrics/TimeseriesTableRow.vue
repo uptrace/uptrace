@@ -1,6 +1,6 @@
 <template>
   <tr @click="$emit('click')">
-    <slot :metrics="metrics" :value="defaultValue" :time="timeseries.time" />
+    <slot :row-id="rowId" :metrics="metrics" :value="defaultValue" :time="timeseries.time" />
   </tr>
 </template>
 
@@ -60,7 +60,7 @@ export default defineComponent({
       return value
     })
 
-    return { timeseries, metrics, defaultValue }
+    return { rowId: Symbol(), timeseries, metrics, defaultValue }
   },
 })
 </script>

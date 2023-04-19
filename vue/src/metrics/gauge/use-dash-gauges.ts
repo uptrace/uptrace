@@ -195,7 +195,7 @@ export function formatGauge(
         template = template.replaceAll(varName(col.name), '-')
         continue
       }
-      template = template.replaceAll(varName(col.name), fmt(val, col.unit))
+      template = template.replaceAll(varName(col.name), fmtVar(val, col.unit))
     }
     return template
   }
@@ -205,9 +205,16 @@ export function formatGauge(
   if (val === undefined) {
     return '-'
   }
-  return fmt(val, col.unit)
+  return fmtVar(val, col.unit)
 }
 
 function varName(colName: string): string {
   return '${' + colName + '}'
+}
+
+function fmtVar(val: any, unit: string): string {
+  if (unit.startsWith('{') && unit.endsWith('}')) {
+    return fmt(val)
+  }
+  return fmt(val, unit)
 }

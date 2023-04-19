@@ -13,7 +13,6 @@ func Parse(s string) (any, error) {
 	p := &queryParser{
 		lexer: newLexer(s),
 	}
-	p.lexer.IgnoreSpaces()
 
 	expr, err := p.parseQuery()
 	if err == errBacktrack {

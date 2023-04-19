@@ -30,7 +30,7 @@ ch:
   max_execution_time: 30s
 
 ##
-## SQLite/PostgreSQL db that is used to store metadata such us metric names, dashboards, alerts,
+## PostgreSQL db that is used to store metadata such us metric names, dashboards, alerts,
 ## and so on.
 ##
 pg:

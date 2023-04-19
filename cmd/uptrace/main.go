@@ -284,7 +284,7 @@ func runPGMigrations(ctx context.Context, app *bunapp.App) error {
 		return nil
 	}
 
-	app.Logger.Info("migrated SQLite database", zap.String("migrations", group.String()))
+	app.Logger.Info("migrated PostgreSQL database", zap.String("migrations", group.String()))
 	return nil
 }
 

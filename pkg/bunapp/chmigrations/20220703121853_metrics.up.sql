@@ -5,6 +5,8 @@ CREATE TABLE ?DB.measure_minutes ?ON_CLUSTER (
   attrs_hash UInt64 Codec(Delta, ?CODEC),
 
   instrument LowCardinality(String) Codec(?CODEC),
+  min SimpleAggregateFunction(min, Float64) Codec(?CODEC),
+  max SimpleAggregateFunction(max, Float64) Codec(?CODEC),
   sum SimpleAggregateFunction(sum, Float64) Codec(?CODEC),
   count SimpleAggregateFunction(sum, UInt64) Codec(T64, ?CODEC),
   value SimpleAggregateFunction(anyLast, Float64) Codec(?CODEC),
@@ -35,6 +37,8 @@ CREATE TABLE ?DB.measure_hours ?ON_CLUSTER (
   attrs_hash UInt64 Codec(Delta, ?CODEC),
 
   instrument LowCardinality(String) Codec(?CODEC),
+  min SimpleAggregateFunction(min, Float64) Codec(?CODEC),
+  max SimpleAggregateFunction(max, Float64) Codec(?CODEC),
   sum SimpleAggregateFunction(sum, Float64) Codec(?CODEC),
   count SimpleAggregateFunction(sum, UInt64) Codec(T64, ?CODEC),
   value SimpleAggregateFunction(anyLast, Float64) Codec(?CODEC),
@@ -62,6 +66,8 @@ AS SELECT
   attrs_hash,
 
   anyLast(instrument) AS instrument,
+  min(min) AS min,
+  max(max) AS max,
   sum(sum) AS sum,
   sum(count) AS count,
   anyLast(value) AS value,

@@ -45,8 +45,6 @@ type lexer struct {
 	s   string
 	lex bunlex.Lexer
 
-	ignoreSpaces bool
-
 	tokens []Token
 	pos    int
 }
@@ -59,35 +57,38 @@ func newLexer(s string) *lexer {
 	return lex
 }
 
-func (l *lexer) Reset(s string) {
-	l.ignoreSpaces = false
+func (l *lexer) Reset(s string) error {
+	l.s = s
+	l.lex.Reset(s)
 
 	l.tokens = l.tokens[:0]
 	l.pos = 0
 
-	l.s = s
-	l.lex.Reset(s)
-}
-
-func (l *lexer) IgnoreSpaces() *lexer {
-	l.ignoreSpaces = true
-	return l
-}
-
-func (l *lexer) NextToken() (*Token, error) {
-	tok, err := l.PeekToken()
-	if err != nil {
-		return nil, err
+	for {
+		tok, err := l.readToken()
+		if err != nil {
+			return err
+		}
+		if tok == eofToken {
+			break
+		}
 	}
+
+	return nil
+}
+
+func (l *lexer) NextToken() *Token {
+	tok := l.PeekToken()
 	l.pos++
-	return tok, nil
+	return tok
 }
 
-func (l *lexer) PeekToken() (*Token, error) {
+func (l *lexer) PeekToken() *Token {
 	if l.pos < len(l.tokens) {
-		return &l.tokens[l.pos], nil
+		tok := &l.tokens[l.pos]
+		return tok
 	}
-	return l.readToken()
+	return eofToken
 }
 
 func (l *lexer) Pos() int {
@@ -116,7 +117,7 @@ func (l *lexer) readToken() (*Token, error) {
 		return l.ident(l.lex.Pos() - 1)
 	}
 
-	if l.ignoreSpaces && bunlex.IsWhitespace(c) {
+	if bunlex.IsWhitespace(c) {
 		return l.readToken()
 	}
 

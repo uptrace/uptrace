@@ -1,16 +1,16 @@
 <template>
-  <div class="d-inline-block">
+  <div class="d-inline-block" style="max-width: 600px">
     <v-chip
       label
       color="grey lighten-4"
       :class="{ disabled: disabled }"
       @click="$emit('click:edit')"
     >
-      <v-icon left @click.stop="$emit('click:delete')">mdi-close</v-icon>
+      <v-icon v-if="deletable" left @click.stop="$emit('click:delete')">mdi-close</v-icon>
       <span v-if="info.keyword" class="mr-1 font-weight-medium">{{ info.keyword }}</span>
-      <span>{{ info.expr }}</span>
+      <span class="d-inline-block text-truncate">{{ info.expr }}</span>
     </v-chip>
-    <div v-if="error" class="text-caption text-no-wrap red--text text--darken-2">
+    <div v-if="error" class="ml-2 text-caption red--text text--darken-2 text-no-wrap text-truncate">
       {{ error }}
     </div>
   </div>
@@ -32,6 +32,10 @@ export default defineComponent({
       default: '',
     },
     disabled: {
+      type: Boolean,
+      default: false,
+    },
+    deletable: {
       type: Boolean,
       default: false,
     },

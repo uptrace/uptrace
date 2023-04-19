@@ -2,8 +2,14 @@
 
 import { init, captureMessage } from '@sentry/browser'
 
+let dsn = process.env.UPTRACE_DSN
+if (!dsn) {
+  dsn = 'http://project2_secret_token@localhost:14318/2'
+}
+console.log('using dsn:', dsn)
+
 init({
-  dsn: 'http://project2_secret_token@localhost:14318/2',
+  dsn: dsn,
   tracesSampleRate: 1.0,
 })
 

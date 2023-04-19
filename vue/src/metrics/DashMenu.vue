@@ -54,7 +54,7 @@
         </v-list-item-content>
       </v-list-item>
 
-      <v-list-item v-if="!dashboard.isTemplate" ripple @click="deleteDash">
+      <v-list-item ripple @click="deleteDash">
         <v-list-item-action>
           <v-icon>mdi-playlist-minus</v-icon>
         </v-list-item-action>

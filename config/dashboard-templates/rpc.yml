@@ -6,10 +6,10 @@ table:
   metrics:
     - rpc.client.duration as $dur
   query:
+    - group by host.name
     - group by rpc.service
     - group by rpc.method
-    - group by host.name
-    - per_min($dur)
+    - per_min(count($dur)) as requests
     - p50($dur)
     - p99($dur)
 
@@ -18,7 +18,7 @@ grid:
     metrics:
       - rpc.client.duration as $dur
     query:
-      - per_min($dur)
+      - per_min(count($dur)) as requests
 
   - name: P50 duration
     metrics:
@@ -49,6 +49,7 @@ grid:
     size: large
     metric: rpc.client.duration
     unit: milliseconds
+
 ---
 schema: v1
 id: uptrace.rpc.server_by_service_method
@@ -58,10 +59,10 @@ table:
   metrics:
     - rpc.server.duration as $dur
   query:
+    - group by host.name
     - group by rpc.service
     - group by rpc.method
-    - group by host.name
-    - per_min($dur)
+    - per_min(count($dur)) as requests
     - p50($dur)
     - p99($dur)
 
@@ -70,7 +71,7 @@ grid:
     metrics:
       - rpc.server.duration as $dur
     query:
-      - per_min($dur)
+      - per_min(count($dur)) as requests
 
   - name: P50 duration
     metrics:

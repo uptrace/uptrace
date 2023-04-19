@@ -101,6 +101,8 @@ func NewDoublePoint(n float64) *NumberPoint {
 }
 
 type HistogramPoint struct {
+	Min          float64
+	Max          float64
 	Sum          float64
 	Count        uint64
 	Bounds       []float64
@@ -108,6 +110,8 @@ type HistogramPoint struct {
 }
 
 type ExpHistogramPoint struct {
+	Min       float64
+	Max       float64
 	Sum       float64
 	Count     uint64
 	Histogram map[bfloat16.T]uint64

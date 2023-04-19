@@ -278,7 +278,7 @@ metrics:
   #batch_size: 10000
 
 ##
-## SQLite/PostgreSQL db that is used to store metadata such us metric names, dashboards, alerts,
+## PostgreSQL db that is used to store metadata such us metric names, dashboards, alerts,
 ## and so on.
 ##
 db:

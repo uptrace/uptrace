@@ -17,7 +17,7 @@ func multiplyOp(v1, v2 float64) float64 {
 }
 
 func divideOp(v1, v2 float64) float64 {
-	if isNaN(v1) || isNaN(v2) {
+	if math.IsNaN(v1) || math.IsNaN(v2) {
 		return 0
 	}
 	if v2 == 0 {
@@ -27,7 +27,7 @@ func divideOp(v1, v2 float64) float64 {
 }
 
 func remOp(v1, v2 float64) float64 {
-	if isNaN(v1) || isNaN(v2) {
+	if math.IsNaN(v1) || math.IsNaN(v2) {
 		return 0
 	}
 	return float64(int64(v1) % int64(v2))
@@ -76,7 +76,7 @@ func lteOp(v1, v2 float64) float64 {
 }
 
 func andOp(v1, v2 float64) float64 {
-	if isNaN(v1) || isNaN(v2) {
+	if math.IsNaN(v1) || math.IsNaN(v2) {
 		return 0
 	}
 	if v1 != 0 && v2 != 0 {
@@ -86,26 +86,37 @@ func andOp(v1, v2 float64) float64 {
 }
 
 func orOp(v1, v2 float64) float64 {
-	if v1 != 0 && !isNaN(v1) {
+	if v1 != 0 && !math.IsNaN(v1) {
 		return v1
 	}
-	if v2 != 0 && !isNaN(v1) {
+	if v2 != 0 && !math.IsNaN(v1) {
 		return v2
 	}
 	return 0
 }
 
-func delta(ts *Timeseries) {
-	if len(ts.Value) == 0 {
+type FuncOp func(value []float64, consts map[string]float64)
+
+func delta(value []float64, consts map[string]float64) {
+	for i, num := range value {
+		if math.IsNaN(num) {
+			value[i] = 0
+			continue
+		}
+		value = value[i:]
+		break
+	}
+
+	if len(value) == 1 { // table mode
 		return
 	}
 
-	prevNum := ts.Value[0]
-	ts.Value[0] = 0
-	value := ts.Value[1:]
+	prevNum := value[0]
+	value[0] = 0
+	value = value[1:]
 
 	for i, num := range value {
-		if isNaN(num) {
+		if math.IsNaN(num) {
 			value[i] = 0
 			continue
 		}
@@ -119,13 +130,29 @@ func delta(ts *Timeseries) {
 	}
 }
 
+func perMin(value []float64, consts map[string]float64) {
+	period, ok := consts["_minutes"]
+	if !ok {
+		return
+	}
+	for i, num := range value {
+		value[i] = num / period
+	}
+}
+
+func perSec(value []float64, consts map[string]float64) {
+	period, ok := consts["_seconds"]
+	if !ok {
+		return
+	}
+	for i, num := range value {
+		value[i] = num / period
+	}
+}
+
 func nan(f float64) float64 {
-	if isNaN(f) {
+	if math.IsNaN(f) {
 		return 0
 	}
 	return f
-}
-
-func isNaN(f float64) bool {
-	return math.IsNaN(f)
 }

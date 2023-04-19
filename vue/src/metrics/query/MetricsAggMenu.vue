@@ -125,24 +125,25 @@ function metricColumns(metric: Metric): ColumnItem[] {
         { value: alias, hint: `same as sum(${alias})` },
         { value: `sum(${alias})`, hint: 'sum of observed values' },
         { value: `avg(${alias})`, hint: 'avg of observed values' },
-        { value: `last(${alias})`, hint: 'last avg value' },
+        { value: `last(${alias})`, hint: 'last avg value in table view' },
         { value: `min(${alias})` },
         { value: `max(${alias})` },
       ]
     case Instrument.Counter:
       return [
-        { value: alias, hint: 'sum of observed values' },
-        { value: `per_min(${alias})`, hint: 'sum(value) / number_of_minutes' },
-        { value: `per_sec(${alias})`, hint: 'sum(value) / number_of_seconds' },
+        { value: alias, hint: `same as sum(${alias})` },
+        { value: `sum(${alias})`, hint: 'sum of observed values' },
+        { value: `per_min(${alias})`, hint: 'sum(value) / _minutes' },
+        { value: `per_sec(${alias})`, hint: 'sum(value) / _seconds' },
       ]
     case Instrument.Summary:
       return [
         { value: `avg(${alias})`, hint: 'avg of observed values' },
-        { value: `last(${alias})`, hint: 'last avg value' },
+        { value: `last(${alias})`, hint: 'last avg value in table view' },
         { value: `sum(${alias})`, hint: 'sum of of observed values' },
         { value: `count(${alias})`, hint: 'number of observations' },
-        { value: `per_min(${alias})`, hint: 'count() / number_of_minutes' },
-        { value: `per_sec(${alias})`, hint: 'count() / number_of_seconds' },
+        { value: `per_min(count(${alias}))`, hint: 'count() / _minutes' },
+        { value: `per_sec(count(${alias}))`, hint: 'count() / _seconds' },
       ]
     case Instrument.Histogram:
       return [
@@ -151,13 +152,13 @@ function metricColumns(metric: Metric): ColumnItem[] {
         { value: `p90(${alias})` },
         { value: `p95(${alias})` },
         { value: `p99(${alias})` },
-        { value: `count(${alias})`, hint: 'number of observed values' },
-        { value: `per_min(${alias})`, hint: 'count() / number_of_minutes' },
-        { value: `per_sec(${alias})`, hint: 'count() / number_of_seconds' },
         { value: `avg(${alias})`, hint: 'avg of observed values' },
-        { value: `last(${alias})`, hint: 'last avg value' },
+        { value: `last(${alias})`, hint: 'last avg value in table view' },
         { value: `min(${alias})` },
         { value: `max(${alias})` },
+        { value: `count(${alias})`, hint: 'number of observed values' },
+        { value: `per_min(count(${alias}))`, hint: 'count() / _minutes' },
+        { value: `per_sec(count(${alias}))`, hint: 'count() / _seconds' },
       ]
     default:
       throw new Error(`unknown instrument: ${metric.instrument}`)

@@ -7,13 +7,13 @@ export * from './unit'
 export * from './duration'
 export * from './num'
 
-export function fmt(val: any, unit: Unit | string, ...args: any[]): string {
+export function fmt(val: any, unit = '', ...args: any[]): string {
   return createFormatter(unit)(val, ...args)
 }
 
 export type Formatter = (val: any, ...args: any[]) => string
 
-export function createFormatter(unit: string | Unit | Formatter): Formatter {
+export function createFormatter(unit: string | Formatter): Formatter {
   if (typeof unit === 'function') {
     return unit
   }
@@ -45,7 +45,7 @@ export function createFormatter(unit: string | Unit | Formatter): Formatter {
   return none
 }
 
-export function createShortFormatter(unit: Unit | string): Formatter {
+export function createShortFormatter(unit = ''): Formatter {
   switch (unit) {
     case Unit.Percents:
       return percents

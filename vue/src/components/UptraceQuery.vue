@@ -77,7 +77,7 @@
             :error="part.error"
             :disabled="part.disabled || disabled"
             class="mr-2 mb-1"
-            @click:edit="partEditor.startEditing(i, part)"
+            @click:edit="partEditor.startEditing(part)"
             @click:delete="uql.removePart(i)"
           />
         </template>

@@ -187,7 +187,7 @@ func NewDashboardTpl(
 type DashGaugeTpl struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
-	Template    string `yaml:"template"`
+	Template    string `yaml:"template,omitempty"`
 
 	Metrics []string                 `yaml:"metrics"`
 	Query   []string                 `yaml:"query"`

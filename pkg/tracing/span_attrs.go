@@ -137,7 +137,7 @@ func parseTextLogMessage(ctx *spanContext, span *Span, msg string) {
 }
 
 func popLogMessageParam(params AttrMap) string {
-	for _, key := range []string{"message", "msg"} {
+	for _, key := range []string{"log", "message", "msg"} {
 		if value, _ := params[key].(string); value != "" {
 			delete(params, key)
 			return value

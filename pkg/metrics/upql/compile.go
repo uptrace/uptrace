@@ -8,7 +8,11 @@ import (
 	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
 )
 
-//------------------------------------------------------------------------------
+const (
+	funcDelta  = "delta"
+	funcPerMin = "per_min"
+	funcPerSec = "per_sec"
+)
 
 type Expr interface {
 	String() string
@@ -45,11 +49,11 @@ func (e *TimeseriesExpr) String() string {
 }
 
 type RefExpr struct {
-	Metric string
+	Name string
 }
 
 func (e *RefExpr) String() string {
-	return e.Metric
+	return e.Name
 }
 
 type BinaryExpr struct {
@@ -182,7 +186,7 @@ func (c *compiler) selector(expr ast.Expr) Expr {
 	case *ast.Name:
 		if !strings.HasPrefix(expr.Name, "$") {
 			return &RefExpr{
-				Metric: expr.Name,
+				Name: expr.Name,
 			}
 		}
 
@@ -229,7 +233,7 @@ func (c *compiler) selector(expr ast.Expr) Expr {
 
 func (c *compiler) funcCall(fn *ast.FuncCall) Expr {
 	switch fn.Func {
-	case "delta":
+	case funcDelta, funcPerMin, funcPerSec:
 		// continue below
 	default:
 		if len(fn.Args) == 1 {
@@ -245,7 +249,14 @@ func (c *compiler) funcCall(fn *ast.FuncCall) Expr {
 
 	args := make([]Expr, len(fn.Args))
 	for i, arg := range fn.Args {
-		args[i] = c.selector(arg)
+		expr := c.selector(arg)
+		if expr, ok := expr.(*TimeseriesExpr); ok {
+			if expr.Func == "" {
+				// Propagate func name to handle `delta` in table mode.
+				expr.Func = fn.Func
+			}
+		}
+		args[i] = expr
 	}
 	return &FuncCall{
 		AST:  fn,

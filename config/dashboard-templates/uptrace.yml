@@ -7,7 +7,7 @@ table:
     - uptrace.tracing.spans as $spans
   query:
     - group by service.name
-    - per_min($spans) as spans_per_min
+    - per_min(count($spans)) as spans_per_min
     - count($spans{span.status_code='error'}) / count($spans) as error_rate
     - p50($spans) as p50
     - p90($spans) as p90
@@ -21,7 +21,7 @@ grid:
     metrics:
       - uptrace.tracing.spans as $spans
     query:
-      - per_min($spans) as spans group by span.status_code
+      - per_min(count($spans)) as spans group by span.status_code
     chart: stacked-bar
 
   - name: Error rate
@@ -78,7 +78,7 @@ grid:
       - uptrace.tracing.events as $events
     query:
       - group by span.group_id
-      - per_min($events)
+      - per_min(count($events))
       - where span.is_error = 1
 
 ---
@@ -91,7 +91,7 @@ table:
     - uptrace.tracing.spans as $spans
   query:
     - group by host.name
-    - per_min($spans) as spans_per_min
+    - per_min(count($spans)) as spans_per_min
     - count($spans{span.status_code='error'}) / count($spans) as error_rate
     - p50($spans) as p50
     - p90($spans) as p90
@@ -105,7 +105,7 @@ grid:
     metrics:
       - uptrace.tracing.spans as $spans
     query:
-      - per_min($spans) as spans group by span.status_code
+      - per_min(count($spans)) as spans group by span.status_code
     chart: stacked-bar
 
   - name: Error rate

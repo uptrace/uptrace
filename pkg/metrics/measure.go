@@ -22,6 +22,8 @@ type Measure struct {
 	Time      time.Time `ch:"type:DateTime"`
 	AttrsHash uint64
 
+	Min       float64
+	Max       float64
 	Sum       float64
 	Count     uint64
 	Value     float64
