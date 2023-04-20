@@ -29,7 +29,7 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 - Documented [FluentBit](https://uptrace.dev/get/ingest/fluent-bit.html) integration.
 - Add filter facets for metrics.
 
-## Improvements
+#### Improvements
 
 - Improve UI for switching between table/grid metric views.
 - Allow to quickly change group by in the grid.
@@ -46,6 +46,33 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 - Fix cumulative to delta metrics conversion.
 - Fix exponential histograms handling.
+
+### Migrating from previous versions
+
+Uptrace v1.4.0 contains backwards incompatible changes that require resetting database schema.
+
+To migrate to v1.4.0:
+
+1. Stop Uptrace: `sudo systemctl stop uptrace`.
+1. [Install](https://uptrace.dev/get/install.html) new version.
+1. Configure PostgreSQL database in `uptrace.yml` config.
+
+   ```yaml
+   pg:
+     addr: localhost:5432
+     user: uptrace
+     password: uptrace
+     database: uptrace
+   ```
+
+1. Reset PostgreSQL and ClickHouse databases:
+
+   ```shell
+   uptrace pg reset
+   uptrace ch reset
+   ```
+
+1. Start Uptrace: `sudo systemctl start uptrace`.
 
 ## v1.3.0 - Jan 20 2023
 
