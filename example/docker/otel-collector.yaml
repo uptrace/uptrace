@@ -32,6 +32,13 @@ receivers:
       - uptrace
     tls:
       insecure: true
+  prometheus/otelcol:
+    config:
+      scrape_configs:
+        - job_name: 'otelcol'
+          scrape_interval: 10s
+          static_configs:
+            - targets: ['0.0.0.0:8888']
 
 processors:
   resourcedetection:
@@ -50,7 +57,9 @@ exporters:
     headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14317/1' }
 
 service:
-  # telemetry:
+  telemetry:
+    metrics:
+      address: ':8888'
   #   logs:
   #     level: DEBUG
   pipelines:
@@ -63,7 +72,7 @@ service:
       processors: [batch]
       exporters: [otlp/uptrace]
     metrics/hostmetrics:
-      receivers: [hostmetrics, postgresql]
+      receivers: [hostmetrics, postgresql, prometheus/otelcol]
       processors: [batch, resourcedetection]
       exporters: [otlp/uptrace]
     logs:
