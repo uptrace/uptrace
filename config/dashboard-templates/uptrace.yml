@@ -145,3 +145,75 @@ grid:
     size: large
     metric: uptrace.tracing.spans
     unit: microseconds
+
+---
+schema: v1
+id: uptrace.collector.projects
+name: 'Uptrace: collector stats by project'
+
+table:
+  gauges:
+    - name: Queued spans
+      description: Number of spans in the buffer
+      metrics:
+        - uptrace.tracing.queue_length as $queue_len
+      query:
+        - $queue_len
+
+    - name: Queued measures
+      description: Number of measures in the buffer
+      metrics:
+        - uptrace.metrics.queue_length as $queue_len
+      query:
+        - $queue_len
+
+  metrics:
+    - uptrace.projects.spans as $spans
+    - uptrace.projects.measures as $measures
+  query:
+    - group by project_id
+    - per_min($spans) as spans_per_min
+    - per_min($measures) as measures_per_min
+
+grid:
+  - name: Number of processed spans
+    metrics:
+      - uptrace.projects.spans as $spans
+    query:
+      - per_min($spans) group by type
+
+  - name: Number of processed measures
+    metrics:
+      - uptrace.projects.measures as $measures
+    query:
+      - per_min($measures) group by type
+
+---
+schema: v1
+id: uptrace.collector.hosts
+name: 'Uptrace: collector stats by host'
+
+table:
+  metrics:
+    - uptrace.projects.spans as $spans
+    - uptrace.projects.measures as $measures
+
+  query:
+    - group by host.name
+    - per_min($spans{type=inserted}) as spans_inserted
+    - per_min($spans{type=dropped}) as spans_dropped
+    - per_min($measures{type=inserted}) as measures_inserted
+    - per_min($measures{type=dropped}) as measures_dropped
+
+grid:
+  - name: Number of processed spans
+    metrics:
+      - uptrace.projects.spans as $spans
+    query:
+      - per_min($spans) group by type
+
+  - name: Number of processed measures
+    metrics:
+      - uptrace.projects.measures as $measures
+    query:
+      - per_min($measures) group by type

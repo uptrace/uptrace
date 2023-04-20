@@ -15,6 +15,7 @@ import (
 	"github.com/zyedidia/generic/cache"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric/instrument"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
 	"golang.org/x/exp/slices"
@@ -74,14 +75,16 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 		p.processLoop(app.Context())
 	}()
 
-	bufferSize, _ := bunotel.Meter.Int64ObservableGauge("uptrace.measures.buffer_size")
+	queueLen, _ := bunotel.Meter.Int64ObservableGauge("uptrace.metrics.queue_length",
+		instrument.WithUnit("{measures}"),
+	)
 
 	if _, err := bunotel.Meter.RegisterCallback(
 		func(ctx context.Context, o metric.Observer) error {
-			o.ObserveInt64(bufferSize, int64(len(p.queue)))
+			o.ObserveInt64(queueLen, int64(len(p.queue)))
 			return nil
 		},
-		bufferSize,
+		queueLen,
 	); err != nil {
 		panic(err)
 	}

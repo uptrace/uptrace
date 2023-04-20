@@ -40,4 +40,10 @@ To configure OpenTelemetry for your programming language, see
 This example uses MailHog to test email notifications. Open
 [http://localhost:8025](http://localhost:8025) to view available email notifications.
 
-See [documentation](https://uptrace.dev/get/alerting.html) for more details.
+See [Alerting and Notifications](https://uptrace.dev/get/alerting.html) for more details.
+
+## OpenTelemetry Collector
+
+This example also comes with a pre-configured OpenTelemetry Collector to monitor
+[host metrics](https://uptrace.dev/opentelemetry/collector-host-metrics.html) and
+[PostgreSQL](https://uptrace.dev/opentelemetry/postgresql-monitoring.html).

@@ -12,7 +12,7 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - ch_data5:/var/lib/clickhouse
+      - ch_data6:/var/lib/clickhouse
     ports:
       - '8123:8123'
       - '9000:9000'
@@ -31,13 +31,13 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - 'pg_data2:/var/lib/postgresql/data/pgdata'
+      - 'pg_data3:/var/lib/postgresql/data/pgdata'
     ports:
       - '5432:5432'
 
   uptrace:
-    #image: 'uptrace/uptrace:1.4.0-beta.1'
-    image: 'uptrace/uptrace-dev:latest'
+    image: 'uptrace/uptrace:1.4.0-rc.3'
+    #image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:
       - uptrace_data:/var/lib/uptrace
@@ -59,18 +59,6 @@ services:
     ports:
       - '4317:4317'
       - '4318:4318'
-
-  alertmanager:
-    image: prom/alertmanager:v0.24.0
-    restart: on-failure
-    volumes:
-      - ../../config/alertmanager.yml:/etc/alertmanager/config.yml
-      - alertmanager_data:/alertmanager
-    ports:
-      - 9093:9093
-    command:
-      - '--config.file=/etc/alertmanager/config.yml'
-      - '--storage.path=/alertmanager'
 
   mailhog:
     image: mailhog/mailhog:v1.0.1
@@ -100,6 +88,5 @@ services:
 
 volumes:
   uptrace_data:
-  ch_data5:
-  alertmanager_data:
-  pg_data2:
+  ch_data6:
+  pg_data3:

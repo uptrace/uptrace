@@ -278,7 +278,8 @@ func dashGaugeFromContext(ctx context.Context) *DashGauge {
 var createDashboardsTask *taskq.Task
 
 func initTasks(ctx context.Context, app *bunapp.App) {
+	dashSyncer := NewDashSyncer(app)
 	createDashboardsTask = app.RegisterTask("create-dashboards", &taskq.TaskConfig{
-		Handler: NewDashSyncer(app).CreateDashboardsHandler,
+		Handler: dashSyncer.CreateDashboardsHandler,
 	})
 }

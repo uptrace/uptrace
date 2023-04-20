@@ -145,6 +145,10 @@ var serveCommand = &cli.Command{
 		metrics.Init(ctx, app)
 		alerting.Init(ctx, app)
 
+		if err := syncDashboards(ctx, app); err != nil {
+			app.Zap(ctx).Error("syncDashboards failed", zap.Error(err))
+		}
+
 		var group run.Group
 
 		{
@@ -454,7 +458,20 @@ func handleStaticFiles(app *bunapp.App, fsys fs.FS) {
 	})
 }
 
-func startAlerting(group *run.Group, app *bunapp.App) {
+func syncDashboards(ctx context.Context, app *bunapp.App) error {
+	projects, err := org.SelectProjects(ctx, app)
+	if err != nil {
+		return err
+	}
+
+	dashSyncer := metrics.NewDashSyncer(app)
+	for _, project := range projects {
+		if err := dashSyncer.CreateDashboardsHandler(ctx, project.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func genSampleTrace() {
