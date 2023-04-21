@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 )
@@ -15,7 +15,7 @@ import (
 type SavedViewDetails struct {
 	SavedView `bun:",inherit"`
 
-	User *bunconf.User `json:"user" bun:"-"`
+	User *org.User `json:"user" bun:"-"`
 }
 
 type SavedViewHandler struct {
@@ -40,6 +40,38 @@ func (h *SavedViewHandler) List(w http.ResponseWriter, req bunrouter.Request) er
 		return err
 	}
 
+	if len(views) == 0 {
+		return httputil.JSON(w, bunrouter.H{
+			"views": views,
+		})
+	}
+
+	userIDs := make([]uint64, 0, len(views))
+	userMap := make(map[uint64]*org.User)
+
+	for _, view := range views {
+		if _, ok := userMap[view.UserID]; ok {
+			continue
+		}
+		userMap[view.UserID] = nil
+		userIDs = append(userIDs, view.UserID)
+	}
+
+	var users []*org.User
+	if err := h.PG.NewSelect().
+		Model(&users).
+		Where("id IN (?)", bun.In(userIDs)).
+		Scan(ctx); err != nil {
+		return err
+	}
+
+	for _, user := range users {
+		userMap[user.ID] = user
+	}
+	for _, view := range views {
+		view.User = userMap[view.UserID]
+	}
+
 	return httputil.JSON(w, bunrouter.H{
 		"views": views,
 	})
@@ -47,6 +79,7 @@ func (h *SavedViewHandler) List(w http.ResponseWriter, req bunrouter.Request) er
 
 func (h *SavedViewHandler) Create(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
+	user := org.UserFromContext(ctx)
 	project := org.ProjectFromContext(ctx)
 
 	var in struct {
@@ -67,6 +100,7 @@ func (h *SavedViewHandler) Create(w http.ResponseWriter, req bunrouter.Request) 
 	}
 
 	view := &SavedView{
+		UserID:    user.ID,
 		ProjectID: project.ID,
 
 		Name:   in.Name,

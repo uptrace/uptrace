@@ -2,7 +2,7 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
-## v1.4.0 - Unreleased
+## v1.4.0 - Apr 21 2023
 
 #### Breaking changes
 
