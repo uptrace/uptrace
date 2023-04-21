@@ -3,7 +3,7 @@
     <v-toolbar flat color="light-blue lighten-5">
       <v-toolbar-title>Slowest groups</v-toolbar-title>
       <v-spacer />
-      <v-btn :to="groupListRoute" small class="primary">View in groupsr</v-btn>
+      <v-btn :to="groupListRoute" small class="primary">View groups</v-btn>
     </v-toolbar>
 
     <v-container fluid>

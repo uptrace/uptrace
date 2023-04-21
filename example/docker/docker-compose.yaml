@@ -12,7 +12,7 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - ch_data6:/var/lib/clickhouse
+      - ch_data7:/var/lib/clickhouse
     ports:
       - '8123:8123'
       - '9000:9000'
@@ -31,12 +31,12 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - 'pg_data3:/var/lib/postgresql/data/pgdata'
+      - 'pg_data4:/var/lib/postgresql/data/pgdata'
     ports:
       - '5432:5432'
 
   uptrace:
-    image: 'uptrace/uptrace:1.4.0-rc.3'
+    image: 'uptrace/uptrace:1.4.0'
     #image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:
@@ -88,5 +88,5 @@ services:
 
 volumes:
   uptrace_data:
-  ch_data6:
-  pg_data3:
+  ch_data7:
+  pg_data4:
