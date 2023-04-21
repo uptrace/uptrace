@@ -55,7 +55,8 @@ export function useUql(queryValue = '') {
     parts.value = parts.value.slice()
   }
 
-  function removePart(index: number) {
+  function removePart(needle: QueryPart) {
+    const index = parts.value.findIndex((part) => part.id === needle.id)
     parts.value.splice(index, 1)
     // eslint-disable-next-line no-self-assign
     parts.value = parts.value.slice()
