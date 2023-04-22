@@ -42,13 +42,12 @@ requires PostgreSQL database to store metadata such as metric names and alerts.
 
 ## Quickstart
 
-With just few minutes of your time, you can decide if you need Uptrace by running a
+In just few minutes, you can decide if you need Uptrace by running a
 [docker-compose example](example/docker). You can also play with the public
-[Uptrace demo](https://app.uptrace.dev/play) (no login required).
+[Uptrace Cloud demo](https://app.uptrace.dev/play) (no login required).
 
-Then follow the [getting started guide](https://uptrace.dev/get/get-started.html) to properly setup
-Uptrace by downloading a Go binary or installing a DEB/RPM package. You only need a ClickHouse
-database to start using Uptrace.
+Then follow the [getting started guide](https://uptrace.dev/get/get-started.html) to install Uptrace
+by downloading a Go binary or a DEB/RPM package.
 
 ## Help
 
