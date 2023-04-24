@@ -2,6 +2,7 @@ package org
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -220,11 +221,23 @@ func (h *SSOMethodHandler) exchange(
 		return nil, fmt.Errorf("oidc: claim is empty: %s", claim)
 	}
 
-	user := &User{
-		Email: email,
-		Name:  username,
+	user, err := SelectUserByEmail(ctx, h.App, email)
+	if err == sql.ErrNoRows {
+		user = &User{
+			Email: email,
+			Name:  username,
+		}
+		user.Init()
+
+		if _, err := h.PG.NewInsert().
+			Model(user).
+			On("CONFLICT (email) DO UPDATE").
+			Exec(ctx); err != nil {
+			return nil, err
+		}
+	} else if err != nil {
+		return nil, err
 	}
-	user.Init()
 
 	return user, nil
 }
