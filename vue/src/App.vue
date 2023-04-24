@@ -51,7 +51,7 @@
                 <v-list-item>
                   <v-list-item-content>
                     <v-list-item-title class="font-weight-bold">
-                      {{ user.current.username || 'Anonymous' }}
+                      {{ user.current.name || 'Anonymous' }}
                     </v-list-item-title>
                     <v-list-item-subtitle v-if="user.current.email">
                       {{ user.current.email }}
