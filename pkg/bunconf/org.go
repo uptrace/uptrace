@@ -16,14 +16,15 @@ type CloudflareProvider struct {
 }
 
 type OIDCProvider struct {
-	ID           string   `yaml:"id" json:"id"`
-	DisplayName  string   `yaml:"display_name" json:"display_name"`
-	IssuerURL    string   `yaml:"issuer_url" json:"issuer_url"`
-	ClientID     string   `yaml:"client_id" json:"client_id"`
-	ClientSecret string   `yaml:"client_secret" json:"client_secret"`
-	RedirectURL  string   `yaml:"redirect_url" json:"redirect_url"`
-	Scopes       []string `yaml:"scopes" json:"scopes"`
-	Claim        string   `yaml:"claim" json:"claim"`
+	ID            string   `yaml:"id" json:"id"`
+	DisplayName   string   `yaml:"display_name" json:"display_name"`
+	IssuerURL     string   `yaml:"issuer_url" json:"issuer_url"`
+	ClientID      string   `yaml:"client_id" json:"client_id"`
+	ClientSecret  string   `yaml:"client_secret" json:"client_secret"`
+	RedirectURL   string   `yaml:"redirect_url" json:"redirect_url"`
+	Scopes        []string `yaml:"scopes" json:"scopes"`
+	Claim         string   `yaml:"claim" json:"claim"`
+	NameAttribute string   `yaml:"name_attribute" json:"name_attribute"`
 }
 
 type Project struct {

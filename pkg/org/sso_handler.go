@@ -202,6 +202,11 @@ func (h *SSOMethodHandler) exchange(
 	var email string
 	emailClaim := (*claims)[claim]
 
+	var username string
+	if len(h.conf.NameAttribute) > 0 {
+		username = (*claims)[h.conf.NameAttribute].(string)
+	}
+
 	switch emailClaim := emailClaim.(type) {
 	case string:
 		email = emailClaim
@@ -217,6 +222,7 @@ func (h *SSOMethodHandler) exchange(
 
 	user := &User{
 		Email: email,
+		Name:  username,
 	}
 	user.Init()
 
