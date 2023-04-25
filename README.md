@@ -75,11 +75,8 @@ Uptrace app without any limitations.
 
 **Why BSL license**?
 
-Uptrace team picked the license with the intention to allow users to monitor their applications
-using Uptrace, but to forbid other companies creating a cloud service using the code.
-
-Uptrace team provides a [cloud monitoring service](https://uptrace.dev/) ourselves in order to
-monetize our work and sustain project development.
+The Uptrace team picked BSL license with the intention to allow users monitor their applications,
+but to forbid other companies creating a [cloud service](https://uptrace.dev/cloud) using the code.
 
 **Are you open-source?**
 

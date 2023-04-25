@@ -447,10 +447,10 @@ func (h *SentryHandler) sentryKey(req bunrouter.Request) (string, error) {
 	var sentryKey string
 
 	for _, kv := range strings.Split(auth, ",") {
-		kv_trimmed := strings.Trim(kv, " ")
+		kv = strings.Trim(kv, " ")
 		const prefix = "sentry_key="
-		if strings.HasPrefix(kv_trimmed, prefix) {
-			sentryKey = strings.TrimPrefix(kv_trimmed, prefix)
+		if strings.HasPrefix(kv, prefix) {
+			sentryKey = strings.TrimPrefix(kv, prefix)
 			break
 		}
 	}
