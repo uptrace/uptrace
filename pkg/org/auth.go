@@ -111,7 +111,7 @@ func (m *Middleware) userFromRequest(req bunrouter.Request) *User {
 		user, err := provider.Auth(req)
 		if err != nil {
 			if err != errNoUser {
-				m.app.Zap(ctx).Error("Auth failed", zap.Error(err))
+				m.app.Zap(ctx).Error("provider.Auth failed", zap.Error(err))
 			}
 			continue
 		}
@@ -120,6 +120,11 @@ func (m *Middleware) userFromRequest(req bunrouter.Request) *User {
 			span.SetAttributes(
 				semconv.EnduserIDKey.String(user.Email),
 			)
+		}
+
+		if err := GetOrCreateUser(ctx, m.app, user); err != nil {
+			m.app.Zap(ctx).Error("GetOrCreateUser failed", zap.Error(err))
+			continue
 		}
 
 		return user

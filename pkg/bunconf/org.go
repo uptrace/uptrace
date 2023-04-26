@@ -11,20 +11,20 @@ type User struct {
 }
 
 type CloudflareProvider struct {
-	TeamURL  string `yaml:"team_url" json:"team_url"`
-	Audience string `yaml:"audience" json:"audience"`
+	TeamURL  string `yaml:"team_url"`
+	Audience string `yaml:"audience"`
 }
 
 type OIDCProvider struct {
-	ID            string   `yaml:"id" json:"id"`
-	DisplayName   string   `yaml:"display_name" json:"display_name"`
-	IssuerURL     string   `yaml:"issuer_url" json:"issuer_url"`
-	ClientID      string   `yaml:"client_id" json:"client_id"`
-	ClientSecret  string   `yaml:"client_secret" json:"client_secret"`
-	RedirectURL   string   `yaml:"redirect_url" json:"redirect_url"`
-	Scopes        []string `yaml:"scopes" json:"scopes"`
-	Claim         string   `yaml:"claim" json:"claim"`
-	NameAttribute string   `yaml:"name_attribute" json:"name_attribute"`
+	ID           string   `yaml:"id"`
+	DisplayName  string   `yaml:"display_name"`
+	IssuerURL    string   `yaml:"issuer_url"`
+	ClientID     string   `yaml:"client_id"`
+	ClientSecret string   `yaml:"client_secret"`
+	RedirectURL  string   `yaml:"redirect_url"`
+	Scopes       []string `yaml:"scopes"`
+	EmailClaim   string   `yaml:"claim"`
+	NameClaim    string   `yaml:"name_claim"`
 }
 
 type Project struct {

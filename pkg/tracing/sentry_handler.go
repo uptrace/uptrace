@@ -327,6 +327,8 @@ func (h *SentryHandler) Envelope(w http.ResponseWriter, req bunrouter.Request) e
 			if err := h.processEvent(ctx, project, event); err != nil {
 				return err
 			}
+		case "client_report":
+			// ignore
 		default:
 			h.Zap(ctx).Error("sentry: unsupported item type", zap.String("type", header.Type))
 		}

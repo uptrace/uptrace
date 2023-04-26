@@ -351,16 +351,8 @@ func loadInitialData(ctx context.Context, app *bunapp.App) error {
 		if err := dest.SetPassword(src.Password); err != nil {
 			return err
 		}
-		if err := dest.Init(); err != nil {
-			return err
-		}
 
-		if _, err := app.PG.NewInsert().
-			Model(dest).
-			On("CONFLICT (email) DO UPDATE").
-			Set("password = EXCLUDED.password").
-			Set("avatar = EXCLUDED.avatar").
-			Exec(ctx); err != nil {
+		if err := org.GetOrCreateUser(ctx, app, dest); err != nil {
 			return err
 		}
 	}

@@ -142,9 +142,6 @@ auth:
   #     # Defaults to 'profile'. 'openid' is requested by default and need not be specified.
   #     scopes:
   #       - profile
-  #     # The OIDC UserInfo claim to use as the user's username.
-  #     # Defaults to 'preferred_username'.
-  #     claim: preferred_username
 
 ##
 ## Various options to tweak ClickHouse schema.
