@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"github.com/zyedidia/generic/cache"
 	"reflect"
 	"runtime"
 	"sync"
@@ -31,8 +32,8 @@ type MeasureProcessor struct {
 	c2d    *CumToDeltaConv
 	logger *otelzap.Logger
 
-	metricMapMu sync.RWMutex
-	metricMap   map[MetricKey]struct{}
+	metricCacheMu sync.RWMutex
+	metricCache   *cache.Cache[MetricKey, time.Time]
 
 	dashSyncer *DashSyncer
 }
@@ -51,8 +52,8 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 		c2d:    NewCumToDeltaConv(conf.Metrics.CumToDeltaSize),
 		logger: app.Logger,
 
-		metricMap:  make(map[MetricKey]struct{}),
-		dashSyncer: NewDashSyncer(app),
+		metricCache: cache.New[MetricKey, time.Time](conf.Metrics.CumToDeltaSize),
+		dashSyncer:  NewDashSyncer(app),
 	}
 
 	if len(conf.Metrics.DropAttrs) > 0 {
@@ -345,20 +346,15 @@ func (p *MeasureProcessor) upsertMetric(ctx context.Context, measure *Measure) {
 		Metric:    measure.Metric,
 	}
 
-	p.metricMapMu.RLock()
-	_, ok := p.metricMap[key]
-	p.metricMapMu.RUnlock()
-	if ok {
+	p.metricCacheMu.RLock()
+	cachedAt, found := p.metricCache.Get(key)
+	p.metricCacheMu.RUnlock()
+	if found && time.Since(cachedAt) < 15*time.Minute {
 		return
 	}
-
-	p.metricMapMu.Lock()
-	defer p.metricMapMu.Unlock()
-
-	if _, ok := p.metricMap[key]; ok {
-		return
-	}
-	p.metricMap[key] = struct{}{}
+	p.metricCacheMu.Lock()
+	defer p.metricCacheMu.Unlock()
+	p.metricCache.Put(key, time.Now())
 
 	metric := &Metric{
 		ProjectID:   measure.ProjectID,
@@ -366,6 +362,7 @@ func (p *MeasureProcessor) upsertMetric(ctx context.Context, measure *Measure) {
 		Description: measure.Description,
 		Unit:        measure.Unit,
 		Instrument:  measure.Instrument,
+		AttrKeys:    measure.StringKeys,
 	}
 	inserted, err := UpsertMetric(ctx, p.App, metric)
 	if err != nil {

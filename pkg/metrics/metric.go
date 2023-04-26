@@ -97,8 +97,10 @@ func SelectMetricByName(
 }
 
 func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) (inserted bool, _ error) {
-	m.CreatedAt = time.Now().Add(-time.Second)
-	m.UpdatedAt = m.CreatedAt
+	if m.CreatedAt.IsZero() {
+		m.CreatedAt = time.Now()
+	}
+	m.UpdatedAt = time.Now()
 
 	if _, err := app.PG.NewInsert().
 		Model(m).
@@ -106,7 +108,8 @@ func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) (inserted boo
 		Set("description = EXCLUDED.description").
 		Set("unit = EXCLUDED.unit").
 		Set("instrument = EXCLUDED.instrument").
-		Set("updated_at = EXCLUDED.updated_at").
+		Set("attr_keys = EXCLUDED.attr_keys").
+		Set("updated_at = now()").
 		Returning("id, created_at, updated_at").
 		Exec(ctx); err != nil {
 		return false, err

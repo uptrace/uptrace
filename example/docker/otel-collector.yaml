@@ -20,16 +20,18 @@ receivers:
       memory:
       network:
       paging:
-  jaeger:
-    protocols:
-      grpc:
 
 processors:
   resourcedetection:
     detectors: ['system']
   batch:
-    send_batch_size: 10000
+    send_batch_size: 10
     timeout: 10s
+  attributes:
+    actions:
+      - key: deployment.environment
+        value: "${env:DEPLOYMENT_ENVIRONMENT}"
+        action: insert
 
 exporters:
   logging:
@@ -38,24 +40,24 @@ exporters:
     endpoint: uptrace:14317
     tls:
       insecure: true
-    headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14317/1' }
+    headers: { 'uptrace-dsn': 'http://project2_secret_token@localhost:14317/2' }
 
 service:
-  # telemetry:
-  #   logs:
-  #     level: DEBUG
+  telemetry:
+    logs:
+      level: DEBUG
   pipelines:
     traces:
-      receivers: [otlp, jaeger]
-      processors: [batch]
+      receivers: [otlp]
+      processors: [batch, attributes]
       exporters: [otlp/uptrace, logging]
     metrics:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [otlp/uptrace]
+      receivers: [hostmetrics, otlp]
+      processors: [batch, attributes]
+      exporters: [otlp/uptrace, logging]
     metrics/hostmetrics:
       receivers: [hostmetrics]
-      processors: [batch, resourcedetection]
+      processors: [batch, resourcedetection, attributes]
       exporters: [otlp/uptrace]
     logs:
       receivers: [otlp]
