@@ -391,7 +391,7 @@ func (p *MeasureProcessor) upsertMetric(ctx *measureContext, measure *Measure) {
 	p.metricCacheMu.Lock()
 	defer p.metricCacheMu.Unlock()
 
-	if _, found := p.metricCache.Get(key); found {
+	if cachedAt, found := p.metricCache.Get(key); found && time.Since(cachedAt) < 15*time.Minute {
 		return
 	}
 	p.metricCache.Put(key, time.Now())
