@@ -110,7 +110,7 @@ metrics_from_spans:
 
 auth:
   users:
-    - name: Anonymous
+    - name: John Doe
       email: uptrace@localhost
       password: uptrace
       notify_by_email: true
@@ -125,26 +125,23 @@ auth:
   #     audience: bea6df23b944e4a0cd178609ba1bb64dc98dfe1f66ae7b918e563f6cf28b37e0
 
   # OpenID Connect (Single Sign-On)
-  # oidc:
-  #   # The ID is used in API endpoints, for example, in redirect URL
-  #   # `http://<uptrace-host>/api/v1/sso/<oidc-id>/callback`.
-  #   - id: keycloak
-  #     # Display name for the button in the login form.
-  #     # Default to 'OpenID Connect'
-  #     display_name: Keycloak
-  #     # The base URL for the OIDC provider.
-  #     issuer_url: http://localhost:8080/realms/uptrace
-  #     # The OAuth 2.0 Client ID
-  #     client_id: uptrace
-  #     # The OAuth 2.0 Client Secret
-  #     client_secret: ogbhd8Q0X0e5AZFGSG3m9oirPvnetqkA
-  #     # Additional OAuth 2.0 scopes to request from the OIDC provider.
-  #     # Defaults to 'profile'. 'openid' is requested by default and need not be specified.
-  #     scopes:
-  #       - profile
-  #     # The OIDC UserInfo claim to use as the user's username.
-  #     # Defaults to 'preferred_username'.
-  #     claim: preferred_username
+  oidc:
+    # The ID is used in API endpoints, for example, in redirect URL
+    # `http://<uptrace-host>/api/v1/sso/<oidc-id>/callback`.
+    # - id: keycloak
+    #   # Display name for the button in the login form.
+    #   # Default to 'OpenID Connect'
+    #   display_name: Keycloak
+    #   # The base URL for the OIDC provider.
+    #   issuer_url: http://localhost:8080/realms/uptrace
+    #   # The OAuth 2.0 Client ID
+    #   client_id: uptrace
+    #   # The OAuth 2.0 Client Secret
+    #   client_secret: s0XFEZHUkCesFRmzKAqaewXJfgYKVkDL
+    #   # Additional OAuth 2.0 scopes to request from the OIDC provider.
+    #   # Defaults to 'profile'. 'openid' is requested by default and need not be specified.
+    #   scopes:
+    #     - profile
 
 ##
 ## Various options to tweak ClickHouse schema.

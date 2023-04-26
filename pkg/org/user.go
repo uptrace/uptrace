@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -21,23 +22,13 @@ type User struct {
 	Email    string `json:"email" bun:",nullzero"`
 	Password string `json:"-" bun:",nullzero"`
 
-	Name   string `json:"name"`
+	Name   string `json:"name" bun:",nullzero"`
 	Avatar string `json:"avatar" bun:",nullzero"`
 
 	NotifyByEmail bool `json:"notifyByEmail"`
-}
 
-func (u *User) Init() error {
-	if u.Email == "" {
-		return errors.New("user email can't be empty")
-	}
-	if u.Name == "" {
-		u.Name = "Anonymous"
-	}
-	if u.Avatar == "" {
-		u.Avatar = u.gravatar()
-	}
-	return nil
+	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
+	UpdatedAt time.Time `json:"updatedAt" bun:",nullzero"`
 }
 
 func (u *User) Username() string {
@@ -98,4 +89,27 @@ func SelectUserByEmail(ctx context.Context, app *bunapp.App, email string) (*Use
 		return nil, err
 	}
 	return user, nil
+}
+
+func GetOrCreateUser(ctx context.Context, app *bunapp.App, user *User) error {
+	if user.Email == "" {
+		return errors.New("user email can't be empty")
+	}
+	user.Email = strings.ToLower(user.Email)
+	if user.Avatar == "" {
+		user.Avatar = user.gravatar()
+	}
+
+	if _, err := app.PG.NewInsert().
+		Model(user).
+		On("CONFLICT (email) DO UPDATE").
+		Set("name = coalesce(EXCLUDED.name, u.name)").
+		Set("password = coalesce(EXCLUDED.password, u.password)").
+		Set("avatar = EXCLUDED.avatar").
+		Set("updated_at = now()").
+		Returning("*").
+		Exec(ctx); err != nil {
+		return err
+	}
+	return nil
 }
