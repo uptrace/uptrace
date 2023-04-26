@@ -2,7 +2,6 @@ package org
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"sync"
@@ -50,12 +49,6 @@ func (p *JWTProvider) Auth(req bunrouter.Request) (*User, error) {
 
 	user, err := SelectUserByEmail(ctx, p.app, email)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			user := &User{
-				Email: email,
-			}
-			user.Init()
-		}
 		return nil, err
 	}
 	return user, nil
