@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"sync"
 	"time"
 
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
@@ -23,6 +24,7 @@ type MeasureValue struct {
 type CumToDeltaConv struct {
 	cap int
 
+	mu   sync.Mutex
 	mp   map[MeasureKey]*list.Node[MeasureValue]
 	list *list.List[MeasureValue]
 }
@@ -38,10 +40,16 @@ func NewCumToDeltaConv(n int) *CumToDeltaConv {
 }
 
 func (c *CumToDeltaConv) Len() int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	return len(c.mp)
 }
 
 func (c *CumToDeltaConv) SwapPoint(key MeasureKey, point any, time time.Time) any {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if node, ok := c.mp[key]; ok {
 		c.list.Remove(node)
 		c.list.PushFrontNode(node)
