@@ -284,7 +284,7 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	timeseries, timeCol := h.selectTimeseries(ctx, f, metricMap)
+	timeseries, timeCol, columnNames := h.selectTimeseries(ctx, f, metricMap)
 	jsonTimeseries := make([]Timeseries, len(timeseries))
 
 	columnMap := make(map[string]*ColumnInfo)
@@ -312,6 +312,15 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 		}
 	}
 
+	if len(timeseries) == 0 {
+		for _, colName := range columnNames {
+			columns = append(columns, &ColumnInfo{
+				Name: colName,
+				// no unit
+			})
+		}
+	}
+
 	return httputil.JSON(w, bunrouter.H{
 		"query":      f.parsedQuery,
 		"timeseries": jsonTimeseries,
@@ -322,7 +331,7 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 
 func (h *QueryHandler) selectTimeseries(
 	ctx context.Context, f *QueryFilter, metricMap map[string]*Metric,
-) ([]upql.Timeseries, []time.Time) {
+) ([]upql.Timeseries, []time.Time, []string) {
 	tableName, groupingPeriod := measureTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
 	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
 		ProjectID:  f.Project.ID,
@@ -335,7 +344,7 @@ func (h *QueryHandler) selectTimeseries(
 	engine := upql.NewEngine(storage)
 	result := engine.Run(f.allParts)
 	timeCol := bunutil.FillTime(nil, f.TimeGTE, f.TimeLT, groupingPeriod)
-	return result.Timeseries, timeCol
+	return result.Timeseries, timeCol, result.Columns
 }
 
 //------------------------------------------------------------------------------

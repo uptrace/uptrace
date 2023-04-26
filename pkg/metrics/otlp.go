@@ -436,7 +436,6 @@ func (p *otlpProcessor) nextMeasure(
 	out := new(Measure)
 
 	out.ProjectID = p.project.ID
-	// enqueue will check whether metric name is empty.
 	out.Metric = attrkey.Clean(metric.Name)
 	out.Description = metric.Description
 	out.Unit = bununit.FromString(metric.Unit)

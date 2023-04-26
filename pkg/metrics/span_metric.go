@@ -9,6 +9,7 @@ import (
 	"github.com/uptrace/go-clickhouse/ch/chschema"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
+	"github.com/uptrace/uptrace/pkg/bununit"
 	"github.com/uptrace/uptrace/pkg/metrics/upql"
 	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
 	"github.com/uptrace/uptrace/pkg/tracing"
@@ -60,7 +61,7 @@ func createSpanMetricMeta(ctx context.Context, app *bunapp.App, metric *bunconf.
 			ProjectID:   project.ID,
 			Name:        metric.Name,
 			Description: metric.Description,
-			Unit:        metric.Unit,
+			Unit:        bununit.FromString(metric.Unit),
 			Instrument:  Instrument(metric.Instrument),
 			AttrKeys:    attrKeys,
 		}); err != nil {

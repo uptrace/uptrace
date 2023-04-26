@@ -32,7 +32,7 @@ func FromString(s string) string {
 
 func fromString(s string) string {
 	switch s {
-	case "", "1", "0":
+	case "", "1", "0", "count":
 		return None
 	case Percents, "%":
 		return Percents
