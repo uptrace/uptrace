@@ -63,8 +63,6 @@ func (h *DashHandler) Update(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	// No need to update updated_at column, because we know how to preserve these columns.
-
 	q := h.PG.NewUpdate().
 		Model(dash).
 		Where("id = ?", dash.ID).

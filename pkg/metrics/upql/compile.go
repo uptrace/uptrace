@@ -252,7 +252,6 @@ func (c *compiler) funcCall(fn *ast.FuncCall) Expr {
 		expr := c.selector(arg)
 		if expr, ok := expr.(*TimeseriesExpr); ok {
 			if expr.Func == "" {
-				// Propagate func name to handle `delta` in table mode.
 				expr.Func = fn.Func
 			}
 		}

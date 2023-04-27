@@ -145,7 +145,6 @@ func convertToTable(
 			columns = append(columns, col)
 		}
 
-		// Add grouping in order.
 		for _, name := range ts.Grouping {
 			if _, ok := columnMap[name]; !ok {
 				col := &ColumnInfo{

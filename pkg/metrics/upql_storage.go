@@ -6,6 +6,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
 	"github.com/uptrace/uptrace/pkg/bununit"
@@ -89,6 +90,7 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 
 	q := s.db.NewSelect().
 		ColumnExpr("metric").
+		ColumnExpr("max(annotations) AS annotations").
 		TableExpr("?", s.conf.TableName).
 		Where("project_id = ?", s.conf.ProjectID).
 		Where("metric = ?", metric.Name).
@@ -103,6 +105,7 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 
 	q = s.db.NewSelect().
 		ColumnExpr("metric").
+		ColumnExpr("max(annotations) AS annotations").
 		ColumnExpr("groupArray(toFloat64(value)) AS value").
 		ColumnExpr("groupArray(time_) AS time").
 		TableExpr("(?)", subq).
@@ -186,6 +189,7 @@ func (s *CHStorage) subquery(
 
 		q = s.db.NewSelect().
 			ColumnExpr("metric").
+			ColumnExpr("max(annotations) AS annotations").
 			TableExpr("(?)", q).
 			GroupExpr("metric")
 	}
@@ -314,7 +318,7 @@ func (s *CHStorage) agg(
 
 	case InstrumentGauge:
 		switch f.Func {
-		case "", "avg", "last", "delta":
+		case "", "avg", "last", "delta", "per_min", "per_sec":
 			q = q.ColumnExpr("avg(value) AS value")
 			return q, nil
 		case "sum": // may be okay
@@ -332,7 +336,7 @@ func (s *CHStorage) agg(
 
 	case InstrumentAdditive:
 		switch f.Func {
-		case "", "sum", "delta":
+		case "", "sum", "delta", "per_min", "per_sec":
 			q = q.ColumnExpr("sumWithOverflow(value) AS value")
 			return q, nil
 		case "avg", "last": // may be okay
@@ -375,10 +379,10 @@ func (s *CHStorage) agg(
 			q = q.ColumnExpr("sumWithOverflow(sum) / sumWithOverflow(count) AS value")
 			return q, nil
 		case "min":
-			q = q.ColumnExpr("min(min) AS value")
+			q = quantileColumn(q, 0)
 			return q, nil
 		case "max":
-			q = q.ColumnExpr("max(max) AS value")
+			q = quantileColumn(q, 1)
 			return q, nil
 		case "p50":
 			q = quantileColumn(q, 0.5)
@@ -439,6 +443,12 @@ func (s *CHStorage) newTimeseries(
 		)
 		ts.Time = bunutil.FillTime(ts.Time, s.conf.TimeGTE, s.conf.TimeLT, s.conf.GroupingPeriod)
 
+		if annotations, _ := m["annotations"].(string); annotations != "" {
+			if err := json.Unmarshal([]byte(annotations), &ts.Annotations); err != nil {
+				return nil, err
+			}
+		}
+
 		if s.conf.TableMode {
 			ts.Time = nil
 			ts.Value = []float64{s.tableValue(metric, f, ts.Value)}
@@ -458,10 +468,6 @@ func (s *CHStorage) newTimeseries(
 			ts.Attrs = upql.AttrsFromKeysValues(keys, values)
 			delete(m, "string_keys")
 			delete(m, "string_values")
-		}
-
-		if len(m) > 0 {
-			ts.Annotations = m
 		}
 	}
 

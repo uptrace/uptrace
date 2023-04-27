@@ -27,7 +27,7 @@ type Measure struct {
 	Sum       float64
 	Count     uint64
 	Value     float64
-	Histogram bfloat16.Map `ch:"type:AggregateFunction(quantilesBFloat16(0.5), Float32)"`
+	Histogram map[bfloat16.T]uint64 `ch:"type:AggregateFunction(quantilesBFloat16(0.5), Float32)"`
 
 	Attrs        AttrMap  `ch:"-"`
 	StringKeys   []string `ch:"type:Array(LowCardinality(String))"`

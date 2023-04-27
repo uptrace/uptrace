@@ -61,8 +61,6 @@ func appendName(b []byte, funcName, metric string, filters []ast.Filter, attrs A
 		b = append(b, '(')
 	}
 
-	// Don't append dollang sign ($), because we want simple cases like `$mem_usage`
-	// to work without an alias.
 	b = append(b, metric...)
 
 	if len(filters) > 0 || len(attrs) > 0 {

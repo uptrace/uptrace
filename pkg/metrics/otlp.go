@@ -264,7 +264,6 @@ func (p *otlpProcessor) otlpSum(
 		dest := p.nextMeasure(scope, metric, "", dp.Attributes, dp.TimeUnixNano)
 
 		if !data.Sum.IsMonotonic {
-			// Agg temporality does not matter.
 			dest.Instrument = InstrumentAdditive
 			dest.Value = toFloat64(dp.Value)
 			p.enqueue(dest)
@@ -314,14 +313,10 @@ func (p *otlpProcessor) otlpHistogram(
 		if isDelta {
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
-			dest.Min = dp.GetMin()
-			dest.Max = dp.GetMax()
 			dest.Histogram = newBFloat16Histogram(dp.ExplicitBounds, dp.BucketCounts)
 		} else {
 			dest.StartTimeUnixNano = dp.StartTimeUnixNano
 			dest.CumPoint = &HistogramPoint{
-				Min:          dp.GetMin(),
-				Max:          dp.GetMax(),
 				Sum:          dp.GetSum(),
 				Count:        dp.Count,
 				Bounds:       dp.ExplicitBounds,
@@ -355,16 +350,12 @@ func (p *otlpProcessor) otlpExpHistogram(
 
 		dest := p.nextMeasure(scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
 		if isDelta {
-			dest.Min = dp.GetMin()
-			dest.Max = dp.GetMax()
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
 			dest.Histogram = hist
 		} else {
 			dest.StartTimeUnixNano = dp.StartTimeUnixNano
 			dest.CumPoint = &ExpHistogramPoint{
-				Min:       dp.GetMin(),
-				Max:       dp.GetMax(),
 				Sum:       dp.GetSum(),
 				Count:     dp.Count,
 				Histogram: hist,
@@ -483,7 +474,7 @@ func toFloat64(value any) float64 {
 //------------------------------------------------------------------------------
 
 type quickBFloat16Histogram struct {
-	m bfloat16.Map
+	m map[bfloat16.T]uint64
 }
 
 func (h *quickBFloat16Histogram) Add(mean float64, count uint64) {

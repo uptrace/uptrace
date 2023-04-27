@@ -107,10 +107,9 @@ type ChartGridColumn struct {
 }
 
 type ChartColumnParams struct {
-	ChartKind ChartKind          `json:"chartKind"`
-	Metrics   []upql.MetricAlias `json:"metrics"`
-	Query     string             `json:"query"`
-	// Use ColumnMap instead of MetricMap for compatibility with TableGridColumn.
+	ChartKind     ChartKind                   `json:"chartKind"`
+	Metrics       []upql.MetricAlias          `json:"metrics"`
+	Query         string                      `json:"query"`
 	ColumnMap     map[string]*MetricColumn    `json:"columnMap"`
 	TimeseriesMap map[string]*TimeseriesStyle `json:"timeseriesMap"`
 	Legend        *ChartLegend                `json:"legend"`

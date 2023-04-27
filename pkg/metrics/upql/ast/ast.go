@@ -190,7 +190,7 @@ type Filter struct {
 	BoolOp BoolOp
 	LHS    string
 	Op     FilterOp
-	RHS    Value // *Number | StringValue
+	RHS    Value
 }
 
 type Value interface {

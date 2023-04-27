@@ -305,8 +305,6 @@ func (p *MeasureProcessor) convertHistogramPoint(
 		return false
 	}
 
-	measure.Min = point.Min
-	measure.Max = point.Max
 	measure.Sum = point.Sum - prevPoint.Sum
 	measure.Count = point.Count - prevPoint.Count
 
@@ -347,8 +345,6 @@ func (p *MeasureProcessor) convertExpHistogramPoint(
 		return false
 	}
 
-	measure.Min = point.Min
-	measure.Max = point.Max
 	measure.Sum = point.Sum - prevPoint.Sum
 	measure.Count = point.Count - prevPoint.Count
 

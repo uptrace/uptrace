@@ -98,7 +98,6 @@ func (s *DashSyncer) createDashboards(ctx context.Context, projectID uint32) err
 		}
 
 		if builder.oldDash != nil {
-			// Preserve some fields.
 			builder.dash.Name = builder.oldDash.Name
 			builder.dash.GridQuery = builder.oldDash.GridQuery
 		}
