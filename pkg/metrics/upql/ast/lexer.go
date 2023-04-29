@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+	"unicode/utf8"
 
 	"github.com/uptrace/uptrace/pkg/bunlex"
 	"github.com/uptrace/uptrace/pkg/bununit"
@@ -128,6 +129,12 @@ func (l *lexer) readToken() (*Token, error) {
 	if bunlex.IsAlpha(c) {
 		return l.ident(l.lex.Pos() - 1)
 	}
+	if utf8.RuneStart(c) {
+		s, e := l.tryIdentMultiBytesUtf8(l.lex.Pos() - 1)
+		if e == nil {
+			return s, nil
+		}
+	}
 
 	return l.charToken(BYTE_TOKEN), nil
 }
@@ -186,6 +193,34 @@ func (l *lexer) ident(start int) (*Token, error) {
 
 	s := l.s[start:l.lex.Pos()]
 	return l.token(IDENT_TOKEN, s, start), nil
+}
+
+func (l *lexer) tryIdentMultiBytesUtf8(start int) (*Token, error) {
+	var advance int
+	for l.lex.Valid() {
+		c := l.lex.PeekByte()
+		if bunlex.IsWhitespace(c) {
+			break
+		}
+		l.lex.Advance()
+		advance += 1
+	}
+
+	s := l.s[start:l.lex.Pos()]
+	var runes []rune
+	for len(s) > 0 {
+		r, size := utf8.DecodeRuneInString(s)
+		runes = append(runes, r)
+		s = s[size:]
+	}
+	if len(runes) == l.lex.Pos()-start {
+		for advance > 0 {
+			l.lex.Rewind()
+			advance -= 1
+		}
+		return nil, errors.New("should be a multibytes utf8 identity")
+	}
+	return l.token(IDENT_TOKEN, string(runes), start), nil
 }
 
 func (l *lexer) token(id TokenID, s string, start int) *Token {
