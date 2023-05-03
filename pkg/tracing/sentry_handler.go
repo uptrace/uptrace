@@ -447,7 +447,8 @@ func (h *SentryHandler) sentryKey(req bunrouter.Request) (string, error) {
 	}
 
 	var sentryKey string
-
+        
+	auth = strings.TrimPrefix(auth, "Sentry ")
 	for _, kv := range strings.Split(auth, ",") {
 		kv = strings.Trim(kv, " ")
 		const prefix = "sentry_key="
