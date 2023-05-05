@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
-	"github.com/zyedidia/generic/list"
+	"github.com/zyedidia/generic/cache"
 )
 
 type MeasureKey struct {
@@ -24,17 +24,13 @@ type MeasureValue struct {
 type CumToDeltaConv struct {
 	cap int
 
-	mu   sync.Mutex
-	mp   map[MeasureKey]*list.Node[MeasureValue]
-	list *list.List[MeasureValue]
+	mu    sync.Mutex
+	cache *cache.Cache[MeasureKey, *MeasureValue]
 }
 
 func NewCumToDeltaConv(n int) *CumToDeltaConv {
 	c := &CumToDeltaConv{
-		cap: n,
-
-		mp:   make(map[MeasureKey]*list.Node[MeasureValue], n),
-		list: list.New[MeasureValue](),
+		cache: cache.New[MeasureKey, *MeasureValue](n),
 	}
 	return c
 }
@@ -43,49 +39,28 @@ func (c *CumToDeltaConv) Len() int {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	return len(c.mp)
+	return c.cache.Size()
 }
 
 func (c *CumToDeltaConv) SwapPoint(key MeasureKey, point any, time time.Time) any {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if node, ok := c.mp[key]; ok {
-		c.list.Remove(node)
-		c.list.PushFrontNode(node)
-
-		if time.Before(node.Value.Time) {
+	if value, ok := c.cache.Get(key); ok {
+		if time.Before(value.Time) {
 			return nil
 		}
 
-		prevPoint := node.Value.Point
-		node.Value.Point = point
-		node.Value.Time = time
+		prevPoint := value.Point
+		value.Point = point
+		value.Time = time
 		return prevPoint
 	}
 
-	if len(c.mp) < c.cap {
-		c.list.PushFront(MeasureValue{
-			Key:   key,
-			Point: point,
-			Time:  time,
-		})
-		c.mp[key] = c.list.Front
-		return nil
-	}
-
-	back := c.list.Back
-
-	c.list.Remove(back)
-	c.list.PushFrontNode(back)
-
-	delete(c.mp, back.Value.Key)
-
-	back.Value.Key = key
-	back.Value.Point = point
-	back.Value.Time = time
-	c.mp[key] = back
-
+	c.cache.Put(key, &MeasureValue{
+		Point: point,
+		Time:  time,
+	})
 	return nil
 }
 
