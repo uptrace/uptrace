@@ -409,8 +409,8 @@ func (h *SentryHandler) processTransaction(
 	span.ID = spanID
 	span.TraceID = traceID
 	span.Name = getString(trace, "op")
-	span.Time = event.StartTime
-	span.Duration = event.Timestamp.Sub(event.StartTime)
+	span.Time = event.StartTime.Time
+	span.Duration = event.Timestamp.Sub(event.StartTime.Time)
 
 	if event.Transaction != "" {
 		if span.Name == "" {
@@ -519,7 +519,7 @@ type SentryEvent struct {
 	// The fields below are only relevant for transactions.
 
 	Type            string       `json:"type"`
-	StartTime       time.Time    `json:"start_timestamp"`
+	StartTime       SentryTime   `json:"start_timestamp"`
 	Spans           []SentrySpan `json:"spans"`
 	TransactionInfo struct {
 		Source string `json:"source"`
