@@ -40,7 +40,6 @@ services:
     #image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:
-      - uptrace_data:/var/lib/uptrace
       - ./uptrace.yml:/etc/uptrace/uptrace.yml
     #environment:
     #  - DEBUG=2
@@ -71,22 +70,6 @@ services:
     volumes:
       - ./vector.toml:/etc/vector/vector.toml:ro
 
-  # jaeger-agent:
-  #   image: jaegertracing/jaeger-agent:latest
-  #   command: ['--reporter.grpc.host-port=localhost:14250']
-  #   network_mode: host
-
-  # jaeger-hot-rod:
-  #   image: jaegertracing/example-hotrod:latest
-  #   command: ['all']
-  #   network_mode: host
-  #   environment:
-  #     - JAEGER_AGENT_HOST=localhost
-  #     - JAEGER_AGENT_PORT=6831
-  #   depends_on:
-  #     - jaeger-agent
-
 volumes:
-  uptrace_data:
   ch_data7:
   pg_data4:

@@ -1,0 +1,41 @@
+<?xml version="1.0" ?>
+<clickhouse>
+  <listen_host>0.0.0.0</listen_host>
+  <keeper_server>
+    <tcp_port>2181</tcp_port>
+    <server_id from_env="KEEPER_ID" />
+    <log_storage_path>/var/lib/clickhouse/coordination/log</log_storage_path>
+    <snapshot_storage_path>/var/lib/clickhouse/coordination/snapshots</snapshot_storage_path>
+
+    <coordination_settings>
+      <operation_timeout_ms>10000</operation_timeout_ms>
+      <session_timeout_ms>30000</session_timeout_ms>
+    </coordination_settings>
+
+    <raft_configuration>
+      <server>
+        <id>1</id>
+        <hostname>clickhouse-1</hostname>
+        <port>9234</port>
+      </server>
+
+      <server>
+        <id>2</id>
+        <hostname>clickhouse-2</hostname>
+        <port>9234</port>
+      </server>
+
+      <server>
+        <id>3</id>
+        <hostname>clickhouse-3</hostname>
+        <port>9234</port>
+      </server>
+
+      <server>
+        <id>4</id>
+        <hostname>clickhouse-4</hostname>
+        <port>9234</port>
+      </server>
+    </raft_configuration>
+  </keeper_server>
+</clickhouse>

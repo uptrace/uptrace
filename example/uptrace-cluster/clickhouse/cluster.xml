@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<clickhouse>
+  <default_replica_path>/clickhouse/tables/{uuid}/{cluster}-{shard}</default_replica_path>
+  <default_replica_name>{replica}</default_replica_name>
+
+  <macros>
+    <cluster>cluster1</cluster>
+    <shard from_env="SHARD" />
+    <replica from_env="REPLICA" />
+  </macros>
+
+  <distributed_ddl>
+    <path>/clickhouse/cluster1/task_queue/ddl</path>
+  </distributed_ddl>
+
+  <remote_servers>
+    <uptrace1>
+      <shard>
+        <replica>
+          <host>clickhouse-1</host>
+          <port>9000</port>
+        </replica>
+        <replica>
+          <host>clickhouse-2</host>
+          <port>9000</port>
+        </replica>
+      </shard>
+      <shard>
+        <replica>
+          <host>clickhouse-3</host>
+          <port>9000</port>
+        </replica>
+        <replica>
+          <host>clickhouse-4</host>
+          <port>9000</port>
+        </replica>
+      </shard>
+    </uptrace1>
+  </remote_servers>
+
+  <zookeeper>
+    <node>
+      <host>clickhouse-1</host>
+      <port>2181</port>
+    </node>
+    <node>
+      <host>clickhouse-2</host>
+      <port>2181</port>
+    </node>
+    <node>
+      <host>clickhouse-3</host>
+      <port>2181</port>
+    </node>
+    <node>
+      <host>clickhouse-4</host>
+      <port>2181</port>
+    </node>
+  </zookeeper>
+</clickhouse>
