@@ -26,5 +26,5 @@ go run api.go -f etc/api-api.yaml
 **Step 5**. Open Uptrace UI at [http://localhost:14318](http://localhost:14318).
 
 See
-[Getting started with GoZero and OpenTelemetry](https://uptrace.dev/get/ingest/opentelemetry.html#already-using-opentelemetry-sdk)
+[Getting started with Go Zero and OpenTelemetry](https://uptrace.dev/opentelemetry/instrumentations/go-zero.html)
 for details.
