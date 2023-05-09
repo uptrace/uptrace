@@ -1,0 +1,12 @@
+Name: api-api
+Host: 0.0.0.0
+Port: 8888
+
+Telemetry:
+  Name: api-api
+  Endpoint: localhost:14317
+  Sampler: 1.0
+  Batcher: otlpgrpc
+  OtlpHeaders:
+    uptrace-dsn: http://project2_secret_token@localhost:14317/2
+
