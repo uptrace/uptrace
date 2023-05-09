@@ -1,14 +1,11 @@
 # Go-zero api example
-## 1. Start Uptrace
-To run this example, 
-[start](https://github.com/uptrace/uptrace/tree/master/example/docker) Uptrace
 
-## 2. Add Uptrace to go-zero api config
+**Step 1**. [Start](https://github.com/uptrace/uptrace/tree/master/example/docker) Uptrace using
+Docker.
 
-Add these below config to `api/etc/api-api.yaml`, to enable uptrace report for go-zero api
+**Step 2**. Update go-zero config at `api/etc/api-api.yaml` to start sending data to Uptrace:
 
 ```yaml
-
 Telemetry:
   Name: api-api
   Endpoint: localhost:14317
@@ -16,18 +13,17 @@ Telemetry:
   Batcher: otlpgrpc
   OtlpHeaders:
     uptrace-dsn: http://project2_secret_token@localhost:14317/2
-
 ```
 
-## 3. Start the go-zero server
+**Step 3**. Start the go-zero server:
+
 ```shell
-cd api
 go run api.go -f etc/api-api.yaml
 ```
-## 4. Test the reporting
 
-Then open http://localhost:8888/from/you   
-Check the result in Uptrace UI http://localhost:14318/spans/2/  
+**Step 4**. Then open http://localhost:8888/from/you to trigger a request for go-zero API.
+
+**Step 5**. Open Uptrace UI at [http://localhost:14318](http://localhost:14318).
 
 See
 [Getting started with GoZero and OpenTelemetry](https://uptrace.dev/get/ingest/opentelemetry.html#already-using-opentelemetry-sdk)
