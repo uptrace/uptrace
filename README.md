@@ -21,7 +21,8 @@ requires PostgreSQL database to store metadata such as metric names and alerts.
 - Pre-built metrics dashboards.
 - Multiple users/projects via YAML config.
 - Single sign-on (SSO) using OpenID Connect: Keycloak, Cloudflare, Google Cloud, and others.
-- Ingesting logs using [Vector](https://uptrace.dev/get/ingest/vector.html).
+- Ingesting logs using [Vector](https://uptrace.dev/get/ingest/vector.html) and
+  [FluentBit](https://uptrace.dev/get/ingest/fluent-bit.html).
 - Ingesting errors and spans using [Sentry SDK](https://uptrace.dev/get/ingest/sentry.html)
   integration.
 
@@ -62,8 +63,8 @@ The Business Source [License](LICENSE) is identical to Apache 2.0 with the only 
 you can't use the code to create a cloud service or, in other words, resell the product to others.
 
 BSL is adopted by MariaDB, Sentry, CockroachDB, Couchbase and many others. In most cases, it is a
-more permissive license than, for example, AGPL, because it allows you to make private changes to
-the code.
+more permissive license than, for example, AGPL or double licensing (MIT + ee), because it allows
+you to make private changes to the code.
 
 In three years, the code also becomes available under Apache 2.0 license. You can learn more about
 BSL [here](https://mariadb.com/bsl-faq-adopting/).
