@@ -32,6 +32,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp/pgmigrations"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/run"
+	"github.com/vmihailenco/taskq/extra/oteltaskq/v4"
 	"golang.org/x/net/http2"
 
 	"github.com/uptrace/uptrace/pkg/httputil"
@@ -211,7 +212,10 @@ var serveCommand = &cli.Command{
 
 		{
 			group.Add(func() error {
-				if err := app.MainQueue.Consumer().Start(ctx); err != nil {
+				consumer := app.MainQueue.Consumer()
+				consumer.AddHook(oteltaskq.NewHook())
+
+				if err := consumer.Start(ctx); err != nil {
 					return err
 				}
 

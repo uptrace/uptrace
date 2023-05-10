@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/go-logr/zapr"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
@@ -27,15 +28,15 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/urfave/cli/v2"
-	"github.com/vmihailenco/taskq/v4"
 	"github.com/vmihailenco/taskq/pgq/v4"
+	"github.com/vmihailenco/taskq/v4"
+	"github.com/zyedidia/generic/cache"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"github.com/zyedidia/generic/cache"
 )
 
 type appCtxKey struct{}
@@ -216,6 +217,9 @@ func (app *App) initZap() {
 	app.Logger = otelzap.New(logger, otelzap.WithMinLevel(level))
 	zap.ReplaceGlobals(logger)
 	otelzap.ReplaceGlobals(app.Logger)
+
+	zaprLogger := zapr.NewLogger(logger)
+	taskq.SetLogger(zaprLogger)
 
 	app.OnStopped("zap", func(ctx context.Context, _ *App) error {
 		_ = app.Logger.Sync()
@@ -438,10 +442,15 @@ func (app *App) newCH() *ch.DB {
 
 func (app *App) initTaskq() {
 	app.QueueFactory = pgq.NewFactory(app.PG)
-	app.MainQueue = app.QueueFactory.RegisterQueue(&taskq.QueueConfig{
-		Name: "main",
+	app.MainQueue = app.RegisterQueue(&taskq.QueueConfig{
+		Name:    "main",
 		Storage: newLocalStorage(),
 	})
+}
+
+func (app *App) RegisterQueue(conf *taskq.QueueConfig) taskq.Queue {
+	queue := app.QueueFactory.RegisterQueue(conf)
+	return queue
 }
 
 func (app *App) RegisterTask(name string, conf *taskq.TaskConfig) *taskq.Task {

@@ -21,17 +21,17 @@ require (
 	github.com/uptrace/go-clickhouse v0.3.2-0.20230427062240-ad9e630abfa1
 	github.com/uptrace/go-clickhouse/chdebug v0.3.2-0.20230427062240-ad9e630abfa1
 	github.com/uptrace/go-clickhouse/chotel v0.3.2-0.20230427062240-ad9e630abfa1
-	github.com/uptrace/opentelemetry-go-extra/otelzap v0.1.21
-	github.com/uptrace/uptrace-go v1.14.0
+	github.com/uptrace/opentelemetry-go-extra/otelzap v0.2.0
+	github.com/uptrace/uptrace-go v1.15.0
 	github.com/urfave/cli/v2 v2.25.1
 	github.com/vmihailenco/msgpack/v5 v5.3.5
 	github.com/vmihailenco/tagparser v0.1.2
 	github.com/zyedidia/generic v1.2.1
-	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.40.0
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.40.0
-	go.opentelemetry.io/otel v1.14.0
-	go.opentelemetry.io/otel/metric v0.37.0
-	go.opentelemetry.io/otel/trace v1.14.0
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.41.1
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.41.1
+	go.opentelemetry.io/otel v1.15.1
+	go.opentelemetry.io/otel/metric v0.38.1
+	go.opentelemetry.io/otel/trace v1.15.1
 	go.opentelemetry.io/proto/otlp v0.19.0
 	go.uber.org/zap v1.24.0
 	go4.org v0.0.0-20230225012048-214862532bf5
@@ -45,14 +45,16 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/cespare/xxhash v1.1.0
 	github.com/coreos/go-oidc/v3 v3.5.0
+	github.com/go-logr/zapr v1.2.3
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/prometheus/alertmanager v0.25.0
 	github.com/slack-go/slack v0.12.2
-	github.com/uptrace/bun/dialect/pgdialect v1.1.12
-	github.com/uptrace/bun/driver/pgdriver v1.1.12
-	github.com/vmihailenco/taskq/pgq/v4 v4.0.0-beta.3
-	github.com/vmihailenco/taskq/v4 v4.0.0-beta.3
+	github.com/uptrace/bun/dialect/pgdialect v1.1.13
+	github.com/uptrace/bun/driver/pgdriver v1.1.13
+	github.com/vmihailenco/taskq/extra/oteltaskq/v4 v4.0.0-beta.4
+	github.com/vmihailenco/taskq/pgq/v4 v4.0.0-beta.4
+	github.com/vmihailenco/taskq/v4 v4.0.0-beta.4
 	github.com/wneessen/go-mail v0.3.9
 	github.com/zeebo/xxh3 v1.0.2
 	golang.org/x/crypto v0.8.0
@@ -110,23 +112,23 @@ require (
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
-	github.com/uptrace/opentelemetry-go-extra/otelsql v0.1.21 // indirect
-	github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.21 // indirect
+	github.com/uptrace/opentelemetry-go-extra/otelsql v0.2.0 // indirect
+	github.com/uptrace/opentelemetry-go-extra/otelutil v0.2.0 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.mongodb.org/mongo-driver v1.11.4 // indirect
-	go.opentelemetry.io/contrib/instrumentation/runtime v0.40.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.14.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.37.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.37.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.14.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.14.0 // indirect
-	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.14.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.14.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v0.37.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/runtime v0.41.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.15.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.38.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.38.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.15.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.15.0 // indirect
+	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.15.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.15.1 // indirect
+	go.opentelemetry.io/otel/sdk/metric v0.38.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	mellium.im/sasl v0.3.1 // indirect
@@ -135,8 +137,8 @@ require (
 require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.2 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
-	github.com/uptrace/bun v1.1.12
-	github.com/uptrace/bun/extra/bundebug v1.1.12
-	github.com/uptrace/bun/extra/bunotel v1.1.12
+	github.com/uptrace/bun v1.1.13
+	github.com/uptrace/bun/extra/bundebug v1.1.13
+	github.com/uptrace/bun/extra/bunotel v1.1.13
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 )

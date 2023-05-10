@@ -101,8 +101,10 @@ func (p *MeasureProcessor) AddMeasure(ctx context.Context, measure *Measure) {
 		measureCounter.Add(
 			ctx,
 			1,
-			bunotel.ProjectIDAttr(measure.ProjectID),
-			attribute.String("type", "dropped"),
+			metric.WithAttributes(
+				bunotel.ProjectIDAttr(measure.ProjectID),
+				attribute.String("type", "dropped"),
+			),
 		)
 	}
 }
@@ -179,8 +181,10 @@ func (p *MeasureProcessor) _processMeasures(ctx *measureContext, measures []*Mea
 		measureCounter.Add(
 			ctx,
 			1,
-			bunotel.ProjectIDAttr(measure.ProjectID),
-			attribute.String("type", "inserted"),
+			metric.WithAttributes(
+				bunotel.ProjectIDAttr(measure.ProjectID),
+				attribute.String("type", "inserted"),
+			),
 		)
 
 		p.upsertMetric(ctx, measure)

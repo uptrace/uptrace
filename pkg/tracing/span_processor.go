@@ -78,8 +78,10 @@ func (p *SpanProcessor) AddSpan(ctx context.Context, span *Span) {
 		spanCounter.Add(
 			ctx,
 			1,
-			bunotel.ProjectIDAttr(span.ProjectID),
-			attribute.String("type", "dropped"),
+			metric.WithAttributes(
+				bunotel.ProjectIDAttr(span.ProjectID),
+				attribute.String("type", "dropped"),
+			),
 		)
 	}
 }
@@ -155,8 +157,10 @@ func (s *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
 		spanCounter.Add(
 			ctx,
 			1,
-			bunotel.ProjectIDAttr(span.ProjectID),
-			attribute.String("type", "inserted"),
+			metric.WithAttributes(
+				bunotel.ProjectIDAttr(span.ProjectID),
+				attribute.String("type", "inserted"),
+			),
 		)
 
 		indexedSpans = append(indexedSpans, SpanIndex{})
@@ -181,8 +185,10 @@ func (s *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
 			spanCounter.Add(
 				ctx,
 				1,
-				bunotel.ProjectIDAttr(span.ProjectID),
-				attribute.String("type", "inserted"),
+				metric.WithAttributes(
+					bunotel.ProjectIDAttr(span.ProjectID),
+					attribute.String("type", "inserted"),
+				),
 			)
 
 			indexedSpans = append(indexedSpans, SpanIndex{})
