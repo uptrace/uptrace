@@ -315,7 +315,7 @@ func (m *Manager) monitorTimeseries(
 		return alert, nil
 	}
 
-	baseAlert.DedupHash = baseAlert.AttrsHash * timeSlot(maxRecentAlertDuration)
+	baseAlert.DedupHash = monitor.ID * baseAlert.AttrsHash * timeSlot(maxRecentAlertDuration)
 	baseAlert.Name = monitor.Name + ": " + ts.Name()
 	baseAlert.State = org.AlertOpen
 	baseAlert.CreatedAt = alertTime

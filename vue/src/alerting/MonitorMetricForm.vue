@@ -522,7 +522,6 @@ export default defineComponent({
 
     function formatNum(n: number) {
       return numbro(n).format({
-        thousandSeparated: true,
         mantissa: mantissa(n),
         trimMantissa: true,
       })
