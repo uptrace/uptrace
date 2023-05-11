@@ -46,4 +46,8 @@ DROP TABLE IF EXISTS measure_minutes_dist ?ON_CLUSTER
 
 --migration:split
 
+DROP TABLE IF EXISTS measure_minutes_buffer_dist ?ON_CLUSTER
+
+--migration:split
+
 DROP TABLE IF EXISTS measure_hours_dist ?ON_CLUSTER

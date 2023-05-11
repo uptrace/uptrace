@@ -68,7 +68,7 @@ func appendWord(b []byte, word string) []byte {
 	for i := 0; i < len(word); i++ {
 		ch := word[i]
 		switch ch {
-		case ':', '&', '|', '!', '(', ')':
+		case ':', '&', '|', '!', '(', ')', ' ':
 			b = append(b, '\\', ch)
 		case '\'', '<', '>':
 			// Do nothing.

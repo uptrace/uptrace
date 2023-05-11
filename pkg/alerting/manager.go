@@ -194,7 +194,7 @@ func (m *Manager) selectTimeseries(
 	storageConf := &metrics.CHStorageConfig{
 		ProjectID:      monitor.ProjectID,
 		MetricMap:      metricMap,
-		TableName:      m.app.DistTable("measure_minutes"),
+		TableName:      m.app.DistTable("measure_minutes_buffer"),
 		GroupingPeriod: time.Minute,
 	}
 	storageConf.TimeFilter = org.TimeFilter{

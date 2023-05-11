@@ -251,7 +251,7 @@ const routes: RouteConfig[] = [
         return items.filter((item: System) => isEventSystem(item.system))
       },
       allSystem: SystemName.eventsAll,
-      eventsMode: false,
+      eventsMode: true,
       defaultQuery: exploreAttr(AttrKey.spanGroupId, true),
       itemListRouteName: 'EventList',
       groupListRouteName: 'EventGroupList',

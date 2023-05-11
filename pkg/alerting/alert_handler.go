@@ -14,6 +14,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"go.uber.org/zap"
+	"golang.org/x/exp/maps"
 )
 
 const stateKey = "state"
@@ -152,7 +153,7 @@ func (h *AlertHandler) List(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	facetMap, err := selectAlertFacets(ctx, h.App, f)
+	facetMap, err := selectAlertFacetMap(ctx, h.App, f)
 	if err != nil {
 		return err
 	}
@@ -183,25 +184,27 @@ func (h *AlertHandler) List(w http.ResponseWriter, req bunrouter.Request) error 
 	})
 }
 
-func selectAlertFacets(
+func selectAlertFacetMap(
 	ctx context.Context, app *bunapp.App, f *AlertFilter,
 ) (map[string]*org.Facet, error) {
 	start := time.Now()
 
-	facetMap, err := _selectAlertFacets(ctx, app, f)
+	facetMap, err := selectAlertFacets(ctx, app, f, "")
 	if err != nil {
 		return nil, err
 	}
 
-	for key := range f.Attrs {
+	for attrKey := range f.Attrs {
 		if time.Since(start) > 5*time.Second {
 			break
 		}
 
 		f := f.Clone()
-		delete(f.Attrs, key)
 
-		newFacetMap, err := _selectAlertFacets(ctx, app, f)
+		f.Attrs = maps.Clone(f.Attrs)
+		delete(f.Attrs, attrKey)
+
+		newFacetMap, err := selectAlertFacets(ctx, app, f, attrKey)
 		if err != nil {
 			app.Zap(ctx).Error("_selectAlertFacets failed", zap.Error(err))
 			continue
@@ -215,8 +218,8 @@ func selectAlertFacets(
 	return facetMap, nil
 }
 
-func _selectAlertFacets(
-	ctx context.Context, app *bunapp.App, f *AlertFilter,
+func selectAlertFacets(
+	ctx context.Context, app *bunapp.App, f *AlertFilter, attrKey string,
 ) (map[string]*org.Facet, error) {
 	searchq := app.PG.NewSelect().
 		Model((*org.BaseAlert)(nil)).
@@ -235,14 +238,19 @@ func _selectAlertFacets(
 		TableExpr("ts_stat($$ ? $$)", searchq).
 		Where("starts_with(word, '~~')")
 
-	var items []*org.FacetItem
-
-	if err := app.PG.NewSelect().
+	q := app.PG.NewSelect().
 		With("q", facetq).
 		ColumnExpr("key, value, count").
 		TableExpr("q").
-		Where("rank <= 15").
-		Scan(ctx, &items); err != nil {
+		Where("rank <= 15")
+
+	if attrKey != "" {
+		q = q.Where("key = ?", attrKey)
+	}
+
+	var items []*org.FacetItem
+
+	if err := q.Scan(ctx, &items); err != nil {
 		return nil, err
 	}
 

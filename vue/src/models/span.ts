@@ -1,7 +1,7 @@
 import { truncate } from 'lodash-es'
 
 // Utilities
-import { EventName } from '@/models/otel'
+import { AttrKey, EventName } from '@/models/otel'
 
 export type AttrMap = { [key: string]: any }
 
@@ -41,17 +41,23 @@ export interface SpanEvent {
   groupId?: string
 }
 
-export function eventOrSpanName(span: Span, maxLength = 100): string {
+export function eventOrSpanName(span: Span, maxLength = 120): string {
   let eventName = span.eventName
   if (eventName) {
     if (eventName === EventName.Log) {
       eventName = JSON.stringify(span.attrs)
     }
-    return truncate(eventName, { length: maxLength })
+    return truncate(eventName, { length: 1.5 * maxLength })
   }
   return spanName(span, maxLength)
 }
 
-export function spanName(span: Span, maxLength = 100): string {
+export function spanName(span: Span, maxLength = 120): string {
+  if (span.system === 'db:redis') {
+    const stmt = span.attrs[AttrKey.dbStatement]
+    if (stmt) {
+      return truncate(stmt, { length: maxLength })
+    }
+  }
   return truncate(span.name, { length: maxLength })
 }

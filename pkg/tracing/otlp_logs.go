@@ -149,7 +149,10 @@ func (s *LogsServiceServer) export(
 	ctx context.Context, resourceLogs []*logspb.ResourceLogs, project *org.Project,
 ) (*collectorlogspb.ExportLogsServiceResponse, error) {
 	for _, rl := range resourceLogs {
-		resource := AttrMap(otlpconv.Map(rl.Resource.Attributes))
+		var resource AttrMap
+		if rl.Resource != nil {
+			resource = AttrMap(otlpconv.Map(rl.Resource.Attributes))
+		}
 
 		for _, sl := range rl.ScopeLogs {
 			var scope AttrMap
@@ -164,7 +167,6 @@ func (s *LogsServiceServer) export(
 				otlpconv.ForEachKeyValue(sl.Scope.Attributes, func(key string, value any) {
 					scope[key] = value
 				})
-
 			} else {
 				scope = resource
 			}

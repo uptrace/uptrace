@@ -39,8 +39,13 @@
       <tbody>
         <template v-for="(span, index) in spans">
           <tr :key="`a-${index}`" class="cursor-pointer" @click="dialog.showSpan(span)">
-            <td>
-              <span>{{ eventOrSpanName(span) }}</span>
+            <td class="word-break-all">
+              <v-tooltip :max-width="600" bottom>
+                <template #activator="{ on }">
+                  <span v-on="on">{{ eventOrSpanName(span, 200) }}</span>
+                </template>
+                <span>{{ eventOrSpanName(span, 1000) }}</span>
+              </v-tooltip>
             </td>
             <td v-if="showSystem">
               <router-link :to="systemRoute(span)" @click.native.stop>{{
