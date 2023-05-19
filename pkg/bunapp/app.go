@@ -384,14 +384,14 @@ func (app *App) newPG() *bun.DB {
 //------------------------------------------------------------------------------
 
 func (app *App) newCH() *ch.DB {
-	conf := app.conf.CH
+	chConf := app.conf.CH
 
-	settings := conf.QuerySettings
+	settings := chConf.QuerySettings
 	if settings == nil {
 		settings = make(map[string]any)
 	}
 	settings["prefer_column_name_to_alias"] = 1
-	if seconds := int(conf.MaxExecutionTime.Seconds()); seconds > 0 {
+	if seconds := int(chConf.MaxExecutionTime.Seconds()); seconds > 0 {
 		settings["max_execution_time"] = seconds
 	}
 
@@ -400,31 +400,34 @@ func (app *App) newCH() *ch.DB {
 		ch.WithAutoCreateDatabase(true),
 	}
 
-	if conf.DSN != "" {
-		opts = append(opts, ch.WithDSN(conf.DSN))
+	if chConf.DSN != "" {
+		opts = append(opts, ch.WithDSN(chConf.DSN))
 	}
-	if conf.Addr != "" {
-		opts = append(opts, ch.WithAddr(conf.Addr))
+	if chConf.Addr != "" {
+		opts = append(opts, ch.WithAddr(chConf.Addr))
 	}
-	if conf.User != "" {
-		opts = append(opts, ch.WithUser(conf.User))
+	if chConf.User != "" {
+		opts = append(opts, ch.WithUser(chConf.User))
 	}
-	if conf.Password != "" {
-		opts = append(opts, ch.WithPassword(conf.Password))
+	if chConf.Password != "" {
+		opts = append(opts, ch.WithPassword(chConf.Password))
 	}
-	if conf.Database != "" {
-		opts = append(opts, ch.WithDatabase(conf.Database))
+	if chConf.Database != "" {
+		opts = append(opts, ch.WithDatabase(chConf.Database))
 	}
-	if conf.TLS != nil {
-		tlsConf, err := conf.TLS.TLSConfig()
+	if app.conf.CHSchema.Cluster != "" {
+		opts = append(opts, ch.WithCluster(app.conf.CHSchema.Cluster))
+	}
+	if chConf.TLS != nil {
+		tlsConf, err := chConf.TLS.TLSConfig()
 		if err != nil {
 			panic(fmt.Errorf("ch.tls option failed: %w", err))
 		}
 		opts = append(opts, ch.WithTLSConfig(tlsConf))
 	}
 
-	if conf.MaxExecutionTime != 0 {
-		opts = append(opts, ch.WithReadTimeout(conf.MaxExecutionTime+5*time.Second))
+	if chConf.MaxExecutionTime != 0 {
+		opts = append(opts, ch.WithReadTimeout(chConf.MaxExecutionTime+5*time.Second))
 	}
 
 	db := ch.Connect(opts...)
