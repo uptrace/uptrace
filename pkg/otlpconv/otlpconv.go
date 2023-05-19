@@ -35,6 +35,8 @@ func ForEachKeyValue(kvs []*commonpb.KeyValue, fn func(key string, value any)) {
 
 func AnyValue(v *commonpb.AnyValue) (any, bool) {
 	switch v := v.Value.(type) {
+	case nil:
+		return nil, false
 	case *commonpb.AnyValue_StringValue:
 		return v.StringValue, true
 	case *commonpb.AnyValue_IntValue:
@@ -59,6 +61,8 @@ func Array(vs []*commonpb.AnyValue) ([]string, bool) {
 	}
 
 	switch value := vs[0].Value; value.(type) {
+	case nil:
+		return nil, false
 	case *commonpb.AnyValue_StringValue:
 		ss := make([]string, len(vs))
 		for i, v := range vs {
