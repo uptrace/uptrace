@@ -9,8 +9,6 @@ KillMode = mixed
 User  = uptrace
 Group = uptrace
 
-WorkingDirectory = /var/lib/uptrace
-
 ExecStart       = /usr/bin/uptrace $UPTRACE_OPTIONS serve
 EnvironmentFile = /etc/uptrace/uptrace.conf
 
