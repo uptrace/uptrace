@@ -33,8 +33,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 							app.Zap(ctx).Info("ClickHouse is down",
 								zap.Error(err),
 								zap.String("addr", conf.Addr),
-								zap.String("user", conf.User),
-								zap.String("password", conf.Password))
+								zap.String("user", conf.User))
 							time.Sleep(time.Second)
 							continue
 						}
