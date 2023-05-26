@@ -46,6 +46,8 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 - Fix cumulative to delta metrics conversion.
 - Fix exponential histograms handling.
+- Fix project token syncing.
+- Respect `site.addr` when building OTLP/gRPC and OTLP/HTTP endpoints and DSNs.
 
 ### Migrating from previous versions
 

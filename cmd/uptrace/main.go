@@ -434,7 +434,7 @@ func handleStaticFiles(app *bunapp.App, fsys fs.FS) {
 	conf := app.Config()
 	router := app.Router()
 
-	fsys = newVueFS(fsys, conf.Site.Path)
+	fsys = newVueFS(fsys, conf.Site.URL.Path)
 	httpFS := http.FS(fsys)
 	fileServer := http.FileServer(httpFS)
 

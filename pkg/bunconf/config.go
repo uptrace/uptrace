@@ -93,13 +93,20 @@ func validateConfig(conf *Config) error {
 	}
 
 	if conf.Site.Addr == "" {
-		conf.Site.Addr = conf.HTTPEndpoint()
+		conf.Site.Addr = fmt.Sprintf("%s://%s:%s",
+			conf.Listen.HTTP.Scheme, conf.Listen.HTTP.Host, conf.Listen.HTTP.Port)
 	}
-	if _, err := url.Parse(conf.Site.Addr); err != nil {
+
+	siteURL, err := url.Parse(conf.Site.Addr)
+	if err != nil {
 		return fmt.Errorf("invalid site.addr option: %w", err)
 	}
-	if conf.Site.Path == "" {
-		conf.Site.Path = "/"
+
+	conf.Site.URL = siteURL
+	if conf.Site.Path != "" {
+		conf.Site.URL.Path = conf.Site.Path
+	} else {
+		conf.Site.URL.Path = "/"
 	}
 
 	if conf.Spans.BatchSize == 0 {
@@ -177,7 +184,9 @@ type Config struct {
 
 	Site struct {
 		Addr string `yaml:"addr"`
-		Path string `yaml:"path"`
+		Path string `yaml:"path"` // DEPRECATED
+
+		URL *url.URL `yaml:"-"`
 	} `yaml:"site"`
 
 	Listen struct {
@@ -300,21 +309,35 @@ type CHTableOverride struct {
 }
 
 func (c *Config) GRPCEndpoint() string {
-	return fmt.Sprintf("%s://%s:%s", c.Listen.GRPC.Scheme, c.Listen.GRPC.Host, c.Listen.GRPC.Port)
+	return fmt.Sprintf("%s://%s:%s",
+		c.Listen.GRPC.Scheme,
+		c.Site.URL.Host,
+		c.Listen.GRPC.Port)
 }
 
 func (c *Config) HTTPEndpoint() string {
-	return fmt.Sprintf("%s://%s:%s", c.Listen.HTTP.Scheme, c.Listen.HTTP.Host, c.Listen.HTTP.Port)
+	return fmt.Sprintf("%s://%s:%s",
+		c.Listen.HTTP.Scheme,
+		c.Site.URL.Host,
+		c.Listen.HTTP.Port)
 }
 
 func (c *Config) GRPCDsn(projectID uint32, projectToken string) string {
 	return fmt.Sprintf("%s://%s@%s:%s/%d",
-		c.Listen.GRPC.Scheme, projectToken, c.Listen.GRPC.Host, c.Listen.GRPC.Port, projectID)
+		c.Listen.GRPC.Scheme,
+		projectToken,
+		c.Site.URL.Host,
+		c.Listen.GRPC.Port,
+		projectID)
 }
 
 func (c *Config) HTTPDsn(projectID uint32, projectToken string) string {
 	return fmt.Sprintf("%s://%s@%s:%s/%d",
-		c.Listen.HTTP.Scheme, projectToken, c.Listen.HTTP.Host, c.Listen.HTTP.Port, projectID)
+		c.Listen.HTTP.Scheme,
+		projectToken,
+		c.Site.URL.Host,
+		c.Listen.HTTP.Port,
+		projectID)
 }
 
 func (c *Config) SiteURL(sitePath string, args ...any) string {

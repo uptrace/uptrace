@@ -98,7 +98,7 @@ func SelectProjectByToken(
 }
 
 func SelectProjects(ctx context.Context, app *bunapp.App) ([]*Project, error) {
-	projects := make([]*Project, 9)
+	projects := make([]*Project, 0)
 	if err := app.PG.NewSelect().
 		Model(&projects).
 		Scan(ctx); err != nil {
