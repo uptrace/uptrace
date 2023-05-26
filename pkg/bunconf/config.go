@@ -92,21 +92,8 @@ func validateConfig(conf *Config) error {
 		return fmt.Errorf("invalid listen.grpc option: %w", err)
 	}
 
-	if conf.Site.Addr == "" {
-		conf.Site.Addr = fmt.Sprintf("%s://%s:%s",
-			conf.Listen.HTTP.Scheme, conf.Listen.HTTP.Host, conf.Listen.HTTP.Port)
-	}
-
-	siteURL, err := url.Parse(conf.Site.Addr)
-	if err != nil {
-		return fmt.Errorf("invalid site.addr option: %w", err)
-	}
-
-	conf.Site.URL = siteURL
-	if conf.Site.Path != "" {
-		conf.Site.URL.Path = conf.Site.Path
-	} else {
-		conf.Site.URL.Path = "/"
+	if err := conf.initSite(); err != nil {
+		return err
 	}
 
 	if conf.Spans.BatchSize == 0 {
@@ -134,6 +121,32 @@ func validateConfig(conf *Config) error {
 	}
 	if conf.SMTPMailer.AuthType == "" {
 		conf.SMTPMailer.AuthType = mail.SMTPAuthPlain
+	}
+
+	return nil
+}
+
+func (conf *Config) initSite() error {
+	if conf.Site.Addr == "" {
+		conf.Site.Addr = fmt.Sprintf("%s://%s:%s",
+			conf.Listen.HTTP.Scheme, conf.Listen.HTTP.Host, conf.Listen.HTTP.Port)
+	}
+
+	siteURL, err := url.Parse(conf.Site.Addr)
+	if err != nil {
+		return fmt.Errorf("invalid site.addr option: %w", err)
+	}
+	conf.Site.URL = siteURL
+
+	conf.Site.Host, conf.Site.Port, err = net.SplitHostPort(conf.Site.URL.Host)
+	if err != nil {
+		return err
+	}
+
+	if conf.Site.Path != "" {
+		conf.Site.URL.Path = conf.Site.Path
+	} else {
+		conf.Site.URL.Path = "/"
 	}
 
 	return nil
@@ -186,7 +199,9 @@ type Config struct {
 		Addr string `yaml:"addr"`
 		Path string `yaml:"path"` // DEPRECATED
 
-		URL *url.URL `yaml:"-"`
+		URL  *url.URL `yaml:"-"`
+		Host string   `yaml:"-"`
+		Port string   `yaml:"-"`
 	} `yaml:"site"`
 
 	Listen struct {
@@ -311,14 +326,14 @@ type CHTableOverride struct {
 func (c *Config) GRPCEndpoint() string {
 	return fmt.Sprintf("%s://%s:%s",
 		c.Listen.GRPC.Scheme,
-		c.Site.URL.Host,
+		c.Site.Host,
 		c.Listen.GRPC.Port)
 }
 
 func (c *Config) HTTPEndpoint() string {
 	return fmt.Sprintf("%s://%s:%s",
 		c.Listen.HTTP.Scheme,
-		c.Site.URL.Host,
+		c.Site.Host,
 		c.Listen.HTTP.Port)
 }
 
@@ -326,7 +341,7 @@ func (c *Config) GRPCDsn(projectID uint32, projectToken string) string {
 	return fmt.Sprintf("%s://%s@%s:%s/%d",
 		c.Listen.GRPC.Scheme,
 		projectToken,
-		c.Site.URL.Host,
+		c.Site.Host,
 		c.Listen.GRPC.Port,
 		projectID)
 }
@@ -335,7 +350,7 @@ func (c *Config) HTTPDsn(projectID uint32, projectToken string) string {
 	return fmt.Sprintf("%s://%s@%s:%s/%d",
 		c.Listen.HTTP.Scheme,
 		projectToken,
-		c.Site.URL.Host,
+		c.Site.Host,
 		c.Listen.HTTP.Port,
 		projectID)
 }
