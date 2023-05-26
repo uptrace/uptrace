@@ -193,9 +193,7 @@ listen:
 ##
 site:
   # Overrides public URL for Vue-powered UI in case you put Uptrace behind a proxy.
-  #addr: 'https://uptrace.mydomain.com'
-  # The base path for the Vue-powered UI in case you serve Uptrace UI behind a sub path.
-  path: '/'
+  #addr: 'https://uptrace.mydomain.com/'
 
 ##
 ## Spans processing options.
