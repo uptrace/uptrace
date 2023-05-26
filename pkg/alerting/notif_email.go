@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -23,7 +24,9 @@ const fromName = "Uptrace"
 type EmailNotifier struct {
 	disabled bool
 
+	mu     sync.Mutex
 	client *mail.Client
+
 	emails *template.Template
 
 	from string
@@ -152,7 +155,7 @@ func (n *EmailNotifier) notifyOnErrorAlert(
 		return err
 	}
 
-	return n.client.DialAndSend(msg)
+	return n.send(msg)
 }
 
 func attrKeys(attrs map[string]any) []string {
@@ -208,6 +211,13 @@ func (n *EmailNotifier) notifyOnMetricAlert(
 	if err := msg.To(recipients...); err != nil {
 		return err
 	}
+
+	return n.send(msg)
+}
+
+func (n *EmailNotifier) send(msg *mail.Msg) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
 
 	return n.client.DialAndSend(msg)
 }

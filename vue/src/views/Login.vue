@@ -5,10 +5,20 @@
         <v-card max-width="500" class="mx-auto">
           <v-toolbar color="primary" dark flat>
             <v-toolbar-title>Log in</v-toolbar-title>
+
+            <v-spacer />
+
+            <v-btn
+              href="https://uptrace.dev/get/config.html#managing-users"
+              target="_blank"
+              outlined
+              small
+              >Create new user</v-btn
+            >
           </v-toolbar>
 
           <template v-if="sso.methods.length">
-            <v-card flat class="px-14 py-8">
+            <v-card flat class="pa-8">
               <v-btn
                 v-for="sso in sso.methods"
                 :key="sso.id"
@@ -31,8 +41,12 @@
           </template>
 
           <v-form v-model="isValid" @submit.prevent="submit">
-            <v-card flat class="px-14 py-8">
+            <v-card flat class="pa-8">
               <v-alert v-if="error" type="error">{{ error }}</v-alert>
+
+              <p>
+                The default login is <code>uptrace@localhost</code> with pass <code>uptrace</code>.
+              </p>
 
               <!-- Basic Login (email/password) -->
               <v-text-field
@@ -96,8 +110,8 @@ export default defineComponent({
     }
     const error = shallowRef('')
 
-    const email = shallowRef('uptrace@localhost')
-    const password = shallowRef('uptrace')
+    const email = shallowRef('')
+    const password = shallowRef('')
 
     const { loading, request } = useAxios()
 
