@@ -62,7 +62,7 @@
               </v-list-item-content>
             </v-list-item>
 
-            <v-list-item v-if="metricMonitorNewRoute" :to="metricMonitorNewRoute">
+            <v-list-item v-if="routeForNewMonitor" :to="routeForNewMonitor">
               <v-list-item-icon>
                 <v-icon>mdi-radar</v-icon>
               </v-list-item-icon>
@@ -132,6 +132,7 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
+import { joinQuery } from '@/use/uql'
 import { useGridColumnManager } from '@/metrics/use-dashboards'
 
 // Components
@@ -174,7 +175,7 @@ export default defineComponent({
     const dialog = shallowRef(false)
 
     const columnError = shallowRef(false)
-    const metricMonitorNewRoute = computed(() => {
+    const routeForNewMonitor = computed(() => {
       switch (props.gridColumn.type) {
         case GridColumnType.Chart:
         case GridColumnType.Table:
@@ -184,7 +185,7 @@ export default defineComponent({
               name: props.gridColumn.name,
               metric: props.gridColumn.params.metrics.map((m) => m.name),
               alias: props.gridColumn.params.metrics.map((m) => m.alias),
-              query: props.gridColumn.params.query,
+              query: joinQuery(props.gridColumn.params.query, props.gridQuery),
               columns: JSON.stringify(props.gridColumn.params.columnMap),
             },
           }
@@ -216,7 +217,7 @@ export default defineComponent({
       dialog,
 
       columnError,
-      metricMonitorNewRoute,
+      routeForNewMonitor,
 
       gridColumnMan,
       internalGridColumn,

@@ -2,6 +2,7 @@ package org
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -71,7 +72,15 @@ func SelectProjectByDSN(
 		return nil, fmt.Errorf("dsn %q does not have a token", dsnStr)
 	}
 
-	return SelectProjectByToken(ctx, app, dsn.Token)
+	project, err := SelectProjectByToken(ctx, app, dsn.Token)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("can't find project with token=%q", dsn.Token)
+		}
+		return nil, err
+	}
+
+	return project, nil
 }
 
 func SelectProjectByToken(

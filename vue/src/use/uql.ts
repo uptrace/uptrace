@@ -152,6 +152,19 @@ export function formatParts(parts: QueryPart[]): string {
     .join(QUERY_PART_SEP)
 }
 
+export function joinQuery(...parts: any[]): string {
+  return parts
+    .filter((part) => {
+      if (typeof part !== 'string') {
+        return false
+      }
+      return part.trim()
+    })
+    .join(QUERY_PART_SEP)
+}
+
+//------------------------------------------------------------------------------
+
 export function createUqlEditor() {
   return new UqlEditor()
 }

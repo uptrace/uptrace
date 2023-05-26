@@ -392,6 +392,7 @@ func createProject(ctx context.Context, app *bunapp.App, project *org.Project) e
 		Model(project).
 		On("CONFLICT (id) DO UPDATE").
 		Set("name = EXCLUDED.name").
+		Set("token = EXCLUDED.token").
 		Set("pinned_attrs = EXCLUDED.pinned_attrs").
 		Set("group_by_env = EXCLUDED.group_by_env").
 		Set("group_funcs_by_service = EXCLUDED.group_funcs_by_service").
