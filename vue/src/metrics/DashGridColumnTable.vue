@@ -61,9 +61,7 @@ export default defineComponent({
     watch(
       () => tableQuery.error,
       (error) => {
-        if (error) {
-          ctx.emit('error', error)
-        }
+        ctx.emit('error', error)
       },
     )
 

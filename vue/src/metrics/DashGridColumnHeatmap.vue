@@ -54,9 +54,7 @@ export default defineComponent({
     watch(
       () => heatmapQuery.error,
       (error) => {
-        if (error) {
-          ctx.emit('error', error)
-        }
+        ctx.emit('error', error)
       },
     )
 

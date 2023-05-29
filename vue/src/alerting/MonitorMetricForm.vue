@@ -39,7 +39,7 @@
           :uql="uql"
           :disabled="!activeMetrics.length"
           show-group-by
-          show-metrics-where
+          show-dash-where
         />
 
         <div v-if="Object.keys(columnMap).length > 1" class="mt-1 d-flex align-center">

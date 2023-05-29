@@ -83,9 +83,7 @@ export default defineComponent({
     watch(
       () => timeseries.error,
       (error) => {
-        if (error) {
-          ctx.emit('error', error)
-        }
+        ctx.emit('error', error)
       },
     )
 

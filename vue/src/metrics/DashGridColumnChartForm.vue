@@ -84,7 +84,7 @@
               :disabled="!activeMetrics.length"
               show-agg
               show-group-by
-              show-metrics-where
+              show-dash-where
             />
           </v-col>
         </v-row>

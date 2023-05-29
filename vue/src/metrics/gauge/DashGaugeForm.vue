@@ -90,7 +90,7 @@
               :uql="uql"
               :disabled="!activeMetrics.length"
               show-agg
-              show-metrics-where
+              show-dash-where
             />
           </v-col>
         </v-row>

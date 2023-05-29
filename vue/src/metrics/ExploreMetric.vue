@@ -56,7 +56,7 @@
             :uql="uql"
             show-agg
             show-group-by
-            show-metrics-where
+            show-dash-where
             :disabled="!activeMetrics.length"
           />
         </v-col>
