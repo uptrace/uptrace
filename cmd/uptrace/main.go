@@ -66,6 +66,7 @@ func main() {
 			command.NewBunCommand(pgmigrations.Migrations),
 			command.NewTemplateCommand(),
 			command.NewCHSchemaCommand(),
+			command.NewConfigCommand(),
 		},
 	}
 

@@ -75,39 +75,6 @@ projects:
     # Group funcs spans by service.name attribute.
     group_funcs_by_service: false
 
-##
-## Create metrics from spans and events.
-##
-metrics_from_spans:
-  - name: uptrace.tracing.spans
-    description: Spans duration (excluding events)
-    instrument: histogram
-    unit: microseconds
-    value: span.duration / 1000
-    attrs:
-      - span.system
-      - span.group_id
-      - service.name
-      - host.name
-      - span.status_code
-    annotations:
-      - span.name
-    where: not span.is_event
-
-  - name: uptrace.tracing.events
-    description: Events count (excluding spans)
-    instrument: counter
-    unit: 1
-    value: span.count
-    attrs:
-      - span.system
-      - span.group_id
-      - service.name
-      - host.name
-    annotations:
-      - span.event_name
-    where: span.is_event
-
 auth:
   users:
     - name: John Doe
@@ -142,6 +109,39 @@ auth:
     #   # Defaults to 'profile'. 'openid' is requested by default and need not be specified.
     #   scopes:
     #     - profile
+
+##
+## Create metrics from spans and events.
+##
+metrics_from_spans:
+  - name: uptrace.tracing.spans
+    description: Spans duration (excluding events)
+    instrument: histogram
+    unit: microseconds
+    value: span.duration / 1000
+    attrs:
+      - span.system
+      - span.group_id
+      - service.name
+      - host.name
+      - span.status_code
+    annotations:
+      - span.name
+    where: not span.is_event
+
+  - name: uptrace.tracing.events
+    description: Events count (excluding spans)
+    instrument: counter
+    unit: 1
+    value: span.count
+    attrs:
+      - span.system
+      - span.group_id
+      - service.name
+      - host.name
+    annotations:
+      - span.event_name
+    where: span.is_event
 
 ##
 ## Various options to tweak ClickHouse schema.
@@ -249,7 +249,7 @@ uptrace_go:
 ##
 ## Logging configuration.
 ##
-logs:
+logging:
   # Zap minimal logging level.
   # Valid values: DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL.
   level: INFO

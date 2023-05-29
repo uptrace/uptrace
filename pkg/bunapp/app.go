@@ -207,8 +207,8 @@ func (app *App) initZap() {
 	}
 
 	level := zap.InfoLevel
-	if app.conf.Logs.Level != "" {
-		level, err = zapcore.ParseLevel(app.conf.Logs.Level)
+	if app.conf.Logging.Level != "" {
+		level, err = zapcore.ParseLevel(app.conf.Logging.Level)
 		if err != nil {
 			panic(err)
 		}

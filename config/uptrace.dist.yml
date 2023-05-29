@@ -249,7 +249,7 @@ uptrace_go:
 ##
 ## Logging configuration.
 ##
-logs:
+logging:
   # Zap minimal logging level.
   # Valid values: DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL.
   level: INFO

@@ -2,6 +2,22 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
+## v1.5.0
+
+#### Breaking changes
+
+#### Features
+
+#### Improvements
+
+- Uptrace config now has sensible default so you can start with an empty YAML config file and add
+  changes as you go.
+- Added `uptrace config dump` to view the current Uptrace config in YAML format.
+
+#### Other changes
+
+- Renamed `logs.LEVEL` to `logging.LEVEL` so it is not confused with logs processing.
+
 ## v1.4.0 - Apr 21 2023
 
 #### Breaking changes

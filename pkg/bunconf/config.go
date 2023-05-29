@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/wneessen/go-mail"
 	"gopkg.in/yaml.v3"
 )
@@ -26,7 +27,7 @@ func ReadConfig(confPath, service string) (*Config, error) {
 		return nil, err
 	}
 
-	conf := new(Config)
+	conf := defaultConfig()
 
 	configStr := expandEnv(string(configBytes))
 	if err := yaml.Unmarshal([]byte(configStr), conf); err != nil {
@@ -41,6 +42,59 @@ func ReadConfig(confPath, service string) (*Config, error) {
 	}
 
 	return conf, nil
+}
+
+// defaultConfig returns a minimal working Uptrace config.
+func defaultConfig() *Config {
+	conf := new(Config)
+
+	conf.CH.Addr = "localhost:9000"
+	conf.CH.User = "default"
+	conf.CH.Database = "uptrace"
+	conf.CH.MaxExecutionTime = 30 * time.Second
+
+	conf.PG.Addr = "localhost:5432"
+	conf.PG.User = "uptrace"
+	conf.PG.Password = "uptrace"
+	conf.PG.Database = "uptrace"
+
+	conf.Projects = []Project{
+		{
+			ID:    1,
+			Name:  "Uptrace",
+			Token: "project1_secret_token",
+			PinnedAttrs: []string{
+				attrkey.ServiceName,
+				attrkey.HostName,
+				attrkey.DeploymentEnvironment,
+			},
+		},
+	}
+	conf.Auth.Users = []User{
+		{
+			Name:          "John Doe",
+			Email:         "uptrace@localhost",
+			Password:      "uptrace",
+			NotifyByEmail: true,
+		},
+	}
+
+	conf.CHSchema.Compression = "ZSTD(3)"
+	conf.CHSchema.Spans.TTLDelete = "30 DAY"
+	conf.CHSchema.Spans.StoragePolicy = "default"
+	conf.CHSchema.Metrics.TTLDelete = "90 DAY"
+	conf.CHSchema.Metrics.StoragePolicy = "default"
+
+	conf.Listen.GRPC.Addr = ":14317"
+	conf.Listen.HTTP.Addr = ":14318"
+
+	conf.SMTPMailer.Port = 25
+	conf.SMTPMailer.From = "no-reply@localhost"
+	conf.SMTPMailer.AuthType = mail.SMTPAuthPlain
+
+	conf.Logging.Level = "INFO"
+
+	return conf
 }
 
 var (
@@ -113,16 +167,6 @@ func validateConfig(conf *Config) error {
 		conf.Metrics.CumToDeltaSize = ScaleWithCPU(10000, 500000)
 	}
 
-	if conf.SMTPMailer.Port == 0 {
-		conf.SMTPMailer.Port = 25
-	}
-	if conf.SMTPMailer.From == "" {
-		conf.SMTPMailer.From = "no-reply@localhost"
-	}
-	if conf.SMTPMailer.AuthType == "" {
-		conf.SMTPMailer.AuthType = mail.SMTPAuthPlain
-	}
-
 	return nil
 }
 
@@ -185,32 +229,18 @@ func validateProjects(projects []Project) error {
 }
 
 type Config struct {
-	Path    string `yaml:"-"`
-	Service string `yaml:"-"`
-
-	Debug     bool   `yaml:"debug"`
-	SecretKey string `yaml:"secret_key"`
-
-	Logs struct {
-		Level string `yaml:"level"`
-	} `yaml:"logs"`
-
-	Site struct {
-		Addr string `yaml:"addr"`
-		Path string `yaml:"path"` // DEPRECATED
-
-		URL  *url.URL `yaml:"-"`
-		Host string   `yaml:"-"`
-		Port string   `yaml:"-"`
-	} `yaml:"site"`
-
-	Listen struct {
-		HTTP Listen `yaml:"http"`
-		GRPC Listen `yaml:"grpc"`
-	} `yaml:"listen"`
-
-	PG BunConfig `yaml:"pg"`
 	CH CHConfig  `yaml:"ch"`
+	PG BunConfig `yaml:"pg"`
+
+	Projects []Project `yaml:"projects"`
+
+	Auth struct {
+		Users      []User                `yaml:"users" json:"users"`
+		Cloudflare []*CloudflareProvider `yaml:"cloudflare" json:"cloudflare"`
+		OIDC       []*OIDCProvider       `yaml:"oidc" json:"oidc"`
+	} `yaml:"auth" json:"auth"`
+
+	MetricsFromSpans []SpanMetric `yaml:"metrics_from_spans"`
 
 	CHSchema struct {
 		Compression string `yaml:"compression"`
@@ -233,6 +263,20 @@ type Config struct {
 		}
 	} `yaml:"ch_schema"`
 
+	Listen struct {
+		HTTP Listen `yaml:"http"`
+		GRPC Listen `yaml:"grpc"`
+	} `yaml:"listen"`
+
+	Site struct {
+		Addr string `yaml:"addr"`
+		Path string `yaml:"path"` // DEPRECATED
+
+		URL  *url.URL `yaml:"-"`
+		Host string   `yaml:"-"`
+		Port string   `yaml:"-"`
+	} `yaml:"site"`
+
 	Spans struct {
 		BufferSize int `yaml:"buffer_size"`
 		BatchSize  int `yaml:"batch_size"`
@@ -246,21 +290,6 @@ type Config struct {
 		CumToDeltaSize int `yaml:"cum_to_delta_size"`
 	} `yaml:"metrics"`
 
-	MetricsFromSpans []SpanMetric `yaml:"metrics_from_spans"`
-
-	Auth struct {
-		Users      []User                `yaml:"users" json:"users"`
-		Cloudflare []*CloudflareProvider `yaml:"cloudflare" json:"cloudflare"`
-		OIDC       []*OIDCProvider       `yaml:"oidc" json:"oidc"`
-	} `yaml:"auth" json:"auth"`
-
-	Projects []Project `yaml:"projects"`
-
-	UptraceGo struct {
-		DSN string     `yaml:"dsn"`
-		TLS *TLSClient `yaml:"tls"`
-	} `yaml:"uptrace_go"`
-
 	SMTPMailer struct {
 		Enabled  bool              `json:"enabled"`
 		Host     string            `yaml:"host"`
@@ -271,6 +300,21 @@ type Config struct {
 
 		From string `yaml:"from"`
 	} `yaml:"smtp_mailer"`
+
+	UptraceGo struct {
+		DSN string     `yaml:"dsn"`
+		TLS *TLSClient `yaml:"tls"`
+	} `yaml:"uptrace_go"`
+
+	Logging struct {
+		Level string `yaml:"level"`
+	} `yaml:"logging"`
+
+	SecretKey string `yaml:"secret_key"`
+	Debug     bool   `yaml:"debug"`
+
+	Path    string `yaml:"-"`
+	Service string `yaml:"-"`
 }
 
 type SpanMetric struct {
