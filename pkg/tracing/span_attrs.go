@@ -12,6 +12,7 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 	ua "github.com/mileusna/useragent"
+	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
@@ -21,6 +22,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"github.com/uptrace/uptrace/pkg/sqlparser"
 	"github.com/uptrace/uptrace/pkg/tracing/norm"
+	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/utf8util"
 	"github.com/uptrace/uptrace/pkg/uuid"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
@@ -36,26 +38,19 @@ func initSpanOrEvent(ctx *spanContext, app *bunapp.App, span *Span) {
 
 	if span.EventName != "" {
 		assignEventSystemAndGroupID(ctx, project, span)
-
-		if name, _ := span.Attrs[attrkey.DisplayName].(string); name != "" {
-			span.Name = name
-			delete(span.Attrs, attrkey.DisplayName)
-		}
-
-		span.EventName = utf8util.TruncMedium(span.EventName)
+		span.EventName = utf8util.TruncLC(span.EventName)
 	} else {
 		assignSpanSystemAndGroupID(ctx, project, span)
+		span.Name = utf8util.TruncLC(span.Name)
+	}
 
-		if name, _ := span.Attrs[attrkey.DisplayName].(string); name != "" {
-			span.Name = name
-			delete(span.Attrs, attrkey.DisplayName)
-		}
-
-		if span.Name == "" {
-			span.Name = "<empty>"
-		} else {
-			span.Name = utf8util.TruncMedium(span.Name)
-		}
+	if name, _ := span.Attrs[attrkey.DisplayName].(string); name != "" {
+		span.DisplayName = utf8util.TruncSmall(name)
+		delete(span.Attrs, attrkey.DisplayName)
+	} else if span.DisplayName != "" {
+		span.DisplayName = utf8util.TruncSmall(span.DisplayName)
+	} else {
+		span.DisplayName = span.EventOrSpanName()
 	}
 
 	span.System = utf8util.TruncSmall(span.System)
@@ -483,7 +478,7 @@ func assignSpanSystemAndGroupID(ctx *spanContext, project *org.Project, span *Sp
 			}
 		})
 		if stmt != "" {
-			span.Name = stmt
+			span.DisplayName = stmt
 		}
 		return
 	}
@@ -578,38 +573,16 @@ func initEvent(ctx *spanContext, app *bunapp.App, span *Span) {
 }
 
 func assignEventSystemAndGroupID(ctx *spanContext, project *org.Project, span *Span) {
+	if span.EventName == otelEventError {
+		span.EventName = otelEventException
+	}
+
 	switch span.EventName {
 	case otelEventLog:
-		sev, _ := span.Attrs[attrkey.LogSeverity].(string)
-		if sev == "" {
-			sev = bunotel.InfoSeverity
-		}
-
-		span.Type = EventTypeLog
-		span.System = EventTypeLog + ":" + strings.ToLower(sev)
-		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
-			hashSpan(project, digest, span,
-				attrkey.LogSeverity,
-			)
-			if span.logMessageHash != 0 {
-				digest.WriteString(strconv.FormatUint(span.logMessageHash, 10))
-			}
-		})
-		span.EventName = logEventName(span)
+		handleLogEvent(ctx, project, span)
 		return
 	case otelEventException:
-		span.Type = EventTypeExceptions
-		span.System = EventTypeExceptions
-		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
-			hashSpan(project, digest, span, attrkey.ExceptionType)
-			if s, _ := span.Attrs[attrkey.ExceptionMessage].(string); s != "" {
-				hashMessage(ctx.digest, s)
-			}
-		})
-		span.EventName = joinTypeMessage(
-			span.Attrs.Text(attrkey.ExceptionType),
-			span.Attrs.Text(attrkey.ExceptionMessage),
-		)
+		handleExceptionEvent(ctx, project, span)
 		return
 	case otelEventMessage:
 		system := eventMessageSystem(span)
@@ -623,22 +596,62 @@ func assignEventSystemAndGroupID(ctx *spanContext, project *org.Project, span *S
 				attrkey.MessageType,
 			)
 		})
-		span.EventName = spanMessageEventName(span)
-		return
-	default:
-		span.Type = EventTypeOther
-		span.System = EventTypeOther
-		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
-			hashSpan(project, digest, span)
-		})
-		if span.EventName == "" {
-			span.EventName = "<empty>"
-		}
+		span.DisplayName = eventMessageDisplayName(span)
 		return
 	}
+
+	if span.Attrs.Has(attrkey.LogMessage) {
+		handleLogEvent(ctx, project, span)
+		return
+	}
+
+	if span.Attrs.Has(attrkey.ExceptionMessage) {
+		handleExceptionEvent(ctx, project, span)
+		return
+	}
+
+	span.Type = EventTypeOther
+	span.System = EventTypeOther
+	span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
+		hashSpan(project, digest, span)
+	})
 }
 
-func logEventName(span *Span) string {
+func handleLogEvent(ctx *spanContext, project *org.Project, span *Span) {
+	sev, _ := span.Attrs[attrkey.LogSeverity].(string)
+	if sev == "" {
+		sev = bunotel.InfoSeverity
+	}
+
+	span.Type = EventTypeLog
+	span.System = EventTypeLog + ":" + strings.ToLower(sev)
+	span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
+		hashSpan(project, digest, span,
+			attrkey.LogSeverity,
+		)
+		if span.logMessageHash != 0 {
+			digest.WriteString(strconv.FormatUint(span.logMessageHash, 10))
+		}
+	})
+	span.DisplayName = logDisplayName(span)
+}
+
+func handleExceptionEvent(ctx *spanContext, project *org.Project, span *Span) {
+	span.Type = EventTypeLog
+	span.System = SystemLogError
+	span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
+		hashSpan(project, digest, span, attrkey.ExceptionType)
+		if s, _ := span.Attrs[attrkey.ExceptionMessage].(string); s != "" {
+			hashMessage(ctx.digest, s)
+		}
+	})
+	span.DisplayName = joinTypeMessage(
+		span.Attrs.Text(attrkey.ExceptionType),
+		span.Attrs.Text(attrkey.ExceptionMessage),
+	)
+}
+
+func logDisplayName(span *Span) string {
 	if msg, _ := span.Attrs[attrkey.LogMessage].(string); msg != "" {
 		sev, _ := span.Attrs[attrkey.LogSeverity].(string)
 		if sev != "" && !strings.HasPrefix(msg, sev) {
@@ -647,12 +660,23 @@ func logEventName(span *Span) string {
 		return msg
 	}
 
+	if name := exceptionDisplayName(span); name != span.EventName {
+		return name
+	}
+
+	if b, err := json.Marshal(span.Attrs); err == nil {
+		return unsafeconv.String(b)
+	}
+
+	return span.EventName
+}
+
+func exceptionDisplayName(span *Span) string {
 	typ, _ := span.Attrs[attrkey.ExceptionType].(string)
 	msg, _ := span.Attrs[attrkey.ExceptionMessage].(string)
 	if typ != "" || msg != "" {
 		return joinTypeMessage(typ, msg)
 	}
-
 	return span.EventName
 }
 
@@ -666,7 +690,7 @@ func eventMessageSystem(span *Span) string {
 	return SystemUnknown
 }
 
-func spanMessageEventName(span *Span) string {
+func eventMessageDisplayName(span *Span) string {
 	if span.EventName != otelEventMessage {
 		return span.EventName
 	}

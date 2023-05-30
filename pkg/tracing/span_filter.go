@@ -224,7 +224,7 @@ func compileUQL(
 	}
 
 	if columnSet[tql.Name{AttrKey: attrkey.SpanGroupID}.String()] {
-		for _, key := range []string{attrkey.SpanSystem, attrkey.SpanName, attrkey.SpanEventName} {
+		for _, key := range []string{attrkey.SpanSystem, attrkey.DisplayName} {
 			name := tql.Name{FuncName: "any", AttrKey: key}
 			if !columnSet[name.String()] {
 				q = tqlColumn(q, name, dur)

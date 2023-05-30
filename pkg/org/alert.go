@@ -8,7 +8,6 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
-	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/pgquery"
@@ -101,11 +100,6 @@ func InsertAlert(ctx context.Context, app *bunapp.App, a *BaseAlert) (bool, erro
 	}
 
 	a.Name = utf8util.Trunc(a.Name, 1000)
-
-	if a.Attrs == nil {
-		a.Attrs = make(map[string]string)
-	}
-	a.Attrs[attrkey.AlertType] = string(a.Type)
 
 	b := pgquery.NewTSBuilder()
 	b.AddTitle(a.Name)

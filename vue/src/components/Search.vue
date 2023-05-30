@@ -47,7 +47,7 @@ export default defineComponent({
           name: 'SpanGroupList',
           params: { traceId: traceId.value },
           query: {
-            system: SystemName.all,
+            system: SystemName.All,
             query,
           },
         })

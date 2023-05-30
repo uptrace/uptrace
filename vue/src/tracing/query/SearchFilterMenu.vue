@@ -27,7 +27,7 @@
           <v-row>
             <v-col>
               <v-text-field
-                v-model="attrValue"
+                v-model="searchInput"
                 label="Contains substr1|substr2|substr3"
                 hint='Case-insensitive options separated with "|"'
                 persistent-hint
@@ -54,16 +54,21 @@ import { defineComponent, shallowRef, computed, watchEffect, PropType } from 'vu
 
 // Composables
 import { useRouter } from '@/use/router'
+import { UseSystems } from '@/tracing/system/use-systems'
 import { UseUql } from '@/use/uql'
 
 // Utilities
 import { isEventSystem, AttrKey, SystemName } from '@/models/otel'
-import { quote } from '@/util/string'
+import { quote, escapeRe } from '@/util/string'
 
 export default defineComponent({
   name: 'SearchFilterMenu',
 
   props: {
+    systems: {
+      type: Object as PropType<UseSystems>,
+      required: true,
+    },
     uql: {
       type: Object as PropType<UseUql>,
       required: true,
@@ -74,50 +79,55 @@ export default defineComponent({
     const { router, route } = useRouter()
     const menu = shallowRef(false)
     const activeItem = shallowRef()
-    const attrValue = shallowRef('')
+    const searchInput = shallowRef('')
 
     const items = computed(() => {
       return [
         {
+          value: 'any',
+          attrs: [AttrKey.displayName],
+          system: SystemName.SpansAll,
+        },
+        {
           value: 'spans',
           attrs: [AttrKey.spanName],
-          system: SystemName.spansAll,
+          system: SystemName.SpansAll,
         },
         {
           value: 'events',
           attrs: [AttrKey.spanEventName],
-          system: SystemName.eventsAll,
+          system: SystemName.EventsAll,
         },
         {
           value: 'http',
           attrs: [AttrKey.httpMethod, AttrKey.httpRoute, AttrKey.httpTarget],
-          system: SystemName.httpAll,
+          system: SystemName.HttpAll,
         },
         {
           value: 'logs',
           attrs: [AttrKey.logSeverity, AttrKey.logMessage],
-          system: SystemName.logAll,
+          system: SystemName.LogAll,
         },
         {
           value: 'exceptions',
           attrs: [AttrKey.exceptionType, AttrKey.exceptionMessage],
-          system: SystemName.exceptions,
+          system: SystemName.LogAll,
         },
         {
-          value: 'code',
+          value: 'funcs',
           attrs: [AttrKey.codeFunction, AttrKey.codeFilepath],
-          system: SystemName.spansAll,
+          system: SystemName.SpansAll,
         },
         {
           value: 'db',
           attrs: [AttrKey.dbOperation, AttrKey.dbSqlTables, AttrKey.dbStatement],
-          system: SystemName.dbAll,
+          system: SystemName.DbAll,
         },
       ]
     })
 
     const isValid = computed(() => {
-      return activeItem.value && attrValue.value
+      return activeItem.value && searchInput.value
     })
 
     watchEffect(() => {
@@ -127,17 +137,25 @@ export default defineComponent({
     })
 
     function addFilter() {
-      if (!isValid.value) {
+      if (!isValid.value || !activeItem.value) {
         menu.value = false
         return
       }
 
-      const { attrs, system } = activeItem.value
+      let system: any = activeItem.value.system
+      if (!system) {
+        system = props.systems.activeSystem
+      }
+
+      const attrs = activeItem.value.attrs
       const key = attrs.length > 1 ? `{${attrs.join(',')}}` : attrs[0]
-      const quotedValue = quote(attrValue.value)
+      const quotedValue = quote(searchInput.value)
 
       const editor = props.uql.createEditor()
-      editor.add(`where ${key} contains ${quotedValue}`)
+      editor.replaceOrPush(
+        new RegExp(`^where\\s+${escapeRe(key)}\\s+contains\\s+.+`, 'i'),
+        `where ${key} contains ${quotedValue}`,
+      )
       const query = editor.toString()
 
       router.push({
@@ -158,7 +176,7 @@ export default defineComponent({
 
       activeItem,
       items,
-      attrValue,
+      searchInput,
       isValid,
 
       addFilter,

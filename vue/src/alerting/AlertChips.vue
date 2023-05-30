@@ -60,7 +60,7 @@ import { defineComponent, PropType } from 'vue'
 import { Alert } from '@/alerting/use-alerts'
 
 // Utilities
-import { AttrKey, SystemName } from '@/models/otel'
+import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'AlertChips',
@@ -73,7 +73,7 @@ export default defineComponent({
   },
 
   setup(props) {
-    return { SystemName, AttrKey }
+    return { AttrKey }
   },
 })
 </script>

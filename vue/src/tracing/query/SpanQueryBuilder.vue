@@ -1,6 +1,6 @@
 <template>
   <div v-frag>
-    <SearchFilterMenu :uql="uql" />
+    <SearchFilterMenu :systems="systems" :uql="uql" />
     <DurationFilterMenu :uql="uql" />
     <AttrFilterMenu
       :uql="uql"
@@ -80,12 +80,12 @@ export default defineComponent({
   },
 
   props: {
-    uql: {
-      type: Object as PropType<UseUql>,
-      required: true,
-    },
     systems: {
       type: Object as PropType<UseSystems>,
+      required: true,
+    },
+    uql: {
+      type: Object as PropType<UseUql>,
       required: true,
     },
     axiosParams: {

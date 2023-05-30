@@ -8,8 +8,14 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 #### Features
 
+- Add support for `display.name` attribute. You can now use `display.name contains "get"` to search
+  for spans and events/logs at the the same time. You can also use `display.name` attribute to
+  [override](https://uptrace.dev/get/grouping.html) default span/event/log names.
+
 #### Improvements
 
+- `span.` prefix is replaced with `.`, for example, instead of `p50(span.duration)` you can write
+  `p50(.duration)`. Old names are deprecated, but still supported.
 - Uptrace config now has sensible default so you can start with an empty YAML config file and add
   changes as you go.
 - Added `uptrace config dump` to view the current Uptrace config in YAML format.

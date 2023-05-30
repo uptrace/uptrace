@@ -57,7 +57,7 @@
 
           <NewMonitorMenu
             v-else
-            :name="`${span.system} > ${eventOrSpanName(span)}`"
+            :name="`${span.system} > ${span.displayName}`"
             :where="`where ${AttrKey.spanGroupId} = '${span.groupId}'`"
             :events-mode="isEvent"
             verbose
@@ -133,7 +133,7 @@ import EventPanels from '@/tracing/EventPanels.vue'
 
 // Utilities
 import { AttrKey, isEventSystem } from '@/models/otel'
-import { spanName, eventOrSpanName, Span } from '@/models/span'
+import { spanName, Span } from '@/models/span'
 
 export default defineComponent({
   name: 'SpanCard',
@@ -244,7 +244,6 @@ export default defineComponent({
       traceRoute,
 
       spanName,
-      eventOrSpanName,
     }
   },
 })

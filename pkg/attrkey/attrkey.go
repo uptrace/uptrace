@@ -6,7 +6,6 @@ import (
 
 const (
 	DisplayName = "display.name"
-	AlertType   = "alert.type"
 
 	SpanSystem  = ".system"
 	SpanGroupID = ".group_id"
@@ -19,10 +18,9 @@ const (
 	SpanEventName = ".event_name"
 	SpanIsEvent   = ".is_event"
 
-	SpanKind         = ".kind"
-	SpanTime         = ".time"
-	SpanDuration     = ".duration"
-	SpanDurationSelf = ".duration_self"
+	SpanKind     = ".kind"
+	SpanTime     = ".time"
+	SpanDuration = ".duration"
 
 	SpanStatusCode    = ".status_code"
 	SpanStatusMessage = ".status_message"

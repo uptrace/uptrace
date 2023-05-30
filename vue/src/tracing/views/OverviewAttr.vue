@@ -40,7 +40,7 @@ import { useGroups } from '@/tracing/use-explore-spans'
 import GroupsList from '@/tracing/GroupsList.vue'
 
 // Utilities
-import { SystemName, AttrKey } from '@/models/otel'
+import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'OverviewAttr',
@@ -125,7 +125,6 @@ export default defineComponent({
     })
 
     return {
-      SystemName,
       AttrKey,
 
       attr,

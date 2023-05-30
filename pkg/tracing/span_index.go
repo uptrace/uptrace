@@ -74,6 +74,8 @@ func mapKeys(m AttrMap) []string {
 
 var (
 	indexedAttrs = []string{
+		attrkey.DisplayName,
+
 		attrkey.DeploymentEnvironment,
 		attrkey.ServiceName,
 		attrkey.HostName,

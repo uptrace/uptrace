@@ -21,6 +21,7 @@ type AlertFilter struct {
 	urlstruct.Pager
 
 	State []string
+	Type  []string
 
 	MonitorID uint64
 }
@@ -37,8 +38,17 @@ func DecodeAlertFilter(req bunrouter.Request, f *AlertFilter) error {
 		return err
 	}
 
-	f.State = f.Attrs[stateKey]
-	delete(f.Attrs, stateKey)
+	f.State = f.Attrs[facetKeyState]
+	delete(f.Attrs, facetKeyState)
+
+	if len(f.State) == 0 {
+		// TODO: remove
+		f.State = f.Attrs["state"]
+		delete(f.Attrs, "state")
+	}
+
+	f.Type = f.Attrs[facetKeyType]
+	delete(f.Attrs, facetKeyType)
 
 	return nil
 }
@@ -92,6 +102,9 @@ func (f *AlertFilter) WhereClause(q *bun.SelectQuery) *bun.SelectQuery {
 
 	if len(f.State) > 0 {
 		q = q.Where("a.state IN (?)", bun.In(f.State))
+	}
+	if len(f.Type) > 0 {
+		q = q.Where("a.type IN (?)", bun.In(f.Type))
 	}
 	if f.MonitorID != 0 {
 		q = q.Where("a.monitor_id = ?", f.MonitorID)

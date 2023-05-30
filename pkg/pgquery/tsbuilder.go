@@ -55,7 +55,7 @@ func (b *TSBuilder) AddAttr(key, value string) {
 }
 
 func BuildAttr(key, value string) string {
-	return "~~" + key + "~~" + utf8util.TruncSmall(value)
+	return "~~" + key + "~~" + utf8util.TruncLC(value)
 }
 
 func EscapeWord(s string) string {

@@ -1,7 +1,7 @@
 <template>
   <tr class="cursor-pointer" @click="expand(!isExpanded)">
     <td v-if="headerValues.includes('_name')" class="word-break-all">
-      {{ truncate(group[AttrKey.spanEventName] || group[AttrKey.spanName], { length: 200 }) }}
+      {{ group[AttrKey.displayName] }}
     </td>
     <td v-for="col in plainColumns" :key="col.name">
       <AnyValue :value="group[col.name]" :name="col.name" />

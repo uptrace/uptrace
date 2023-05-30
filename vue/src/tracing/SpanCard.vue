@@ -15,6 +15,7 @@
 </template>
 
 <script lang="ts">
+import { truncate } from 'lodash-es'
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
@@ -26,7 +27,7 @@ import FixedDateRangePicker from '@/components/date/FixedDateRangePicker.vue'
 import SpanBodyCard from '@/tracing/SpanBodyCard.vue'
 
 // Utitlies
-import { eventOrSpanName, Span } from '@/models/span'
+import { Span } from '@/models/span'
 import { isEventSystem, AttrKey } from '@/models/otel'
 
 export default defineComponent({
@@ -74,7 +75,7 @@ export default defineComponent({
       })
 
       bs.push({
-        text: eventOrSpanName(props.span, 40),
+        text: truncate(props.span.displayName, { length: 40 }),
         to: {
           name: isEvent.value ? 'EventList' : 'SpanList',
           params: { projectId: props.span.projectId },

@@ -146,10 +146,7 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 			filters = append(filters, fmt.Sprintf("%s = %s", col.Name, quote(value)))
 
 			if col.Name == attrkey.SpanGroupID {
-				if s, ok := group[attrkey.SpanName].(string); ok && s != "" {
-					names = append(names, s)
-				}
-				if s, ok := group[attrkey.SpanEventName].(string); ok && s != "" {
+				if s, ok := group[attrkey.DisplayName].(string); ok && s != "" {
 					names = append(names, s)
 				}
 			} else {

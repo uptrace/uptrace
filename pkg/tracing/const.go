@@ -1,5 +1,7 @@
 package tracing
 
+const emptyPlaceholder = "<empty>"
+
 const (
 	SpanTypeFuncs     = "funcs"
 	SpanTypeHTTP      = "http"
@@ -8,10 +10,9 @@ const (
 	SpanTypeMessaging = "messaging"
 	SpanTypeFAAS      = "faas"
 
-	EventTypeLog        = "log"
-	EventTypeExceptions = "exceptions"
-	EventTypeMessage    = "message"
-	EventTypeOther      = "other-events"
+	EventTypeLog     = "log"
+	EventTypeMessage = "message"
+	EventTypeOther   = "other-events"
 )
 
 const (
@@ -21,6 +22,7 @@ const (
 	SystemEventsAll = "events:all"
 	SystemSpansAll  = "spans:all"
 
+	SystemLogAll   = "log:all"
 	SystemLogError = "log:error"
 	SystemLogFatal = "log:fatal"
 	SystemLogPanic = "log:panic"
@@ -30,12 +32,14 @@ const (
 	otelEventLog       = "log"
 	otelEventException = "exception"
 	otelEventMessage   = "message"
+	otelEventError     = "error"
 )
 
 var (
-	EventTypes   = []string{EventTypeLog, EventTypeExceptions, EventTypeMessage, EventTypeOther}
-	ErrorTypes   = []string{EventTypeLog, EventTypeExceptions}
-	ErrorSystems = []string{EventTypeExceptions, SystemLogError, SystemLogFatal, SystemLogPanic}
+	EventTypes       = []string{EventTypeMessage, EventTypeOther}
+	LogAndEventTypes = []string{EventTypeLog, EventTypeMessage, EventTypeOther}
+	ErrorTypes       = []string{EventTypeLog}
+	ErrorSystems     = []string{SystemLogError, SystemLogFatal, SystemLogPanic}
 )
 
 const (

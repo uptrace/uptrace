@@ -1,7 +1,7 @@
 import { truncate } from 'lodash-es'
 
 // Utilities
-import { AttrKey, EventName } from '@/models/otel'
+import { AttrKey } from '@/models/otel'
 
 export type AttrMap = { [key: string]: any }
 
@@ -9,6 +9,7 @@ export interface Span {
   id: string
   parentId?: string
   traceId: string
+  standalone?: boolean
 
   projectId: number
   groupId: string
@@ -18,7 +19,7 @@ export interface Span {
 
   name: string
   eventName?: string
-  standalone?: boolean
+  displayName: string
 
   time: string
   duration: number
@@ -39,17 +40,6 @@ export interface SpanEvent {
 
   system?: string
   groupId?: string
-}
-
-export function eventOrSpanName(span: Span, maxLength = 120): string {
-  let eventName = span.eventName
-  if (eventName) {
-    if (eventName === EventName.Log) {
-      eventName = JSON.stringify(span.attrs)
-    }
-    return truncate(eventName, { length: 1.5 * maxLength })
-  }
-  return spanName(span, maxLength)
 }
 
 export function spanName(span: Span, maxLength = 120): string {

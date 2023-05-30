@@ -148,9 +148,7 @@ func alertAttrs(span *tracing.Span) map[string]string {
 	case tracing.SpanTypeMessaging:
 		addSpanAttrs(attrs, span, attrkey.MessagingSystem)
 	case tracing.EventTypeLog:
-		addSpanAttrs(attrs, span, attrkey.LogSeverity)
-	case tracing.EventTypeExceptions:
-		addSpanAttrs(attrs, span, attrkey.ExceptionType)
+		addSpanAttrs(attrs, span, attrkey.LogSeverity, attrkey.ExceptionType)
 	}
 
 	return attrs
@@ -160,10 +158,15 @@ func addSpanAttrs(attrs map[string]string, span *tracing.Span, keys ...string) {
 	for _, key := range keys {
 		switch value := span.Attrs[key].(type) {
 		case string:
-			attrs[key] = value
+			if value != "" {
+				attrs[key] = value
+			}
 		case []string:
 			if len(value) > 0 {
-				attrs[key] = value[0]
+				str := value[0]
+				if str != "" {
+					attrs[key] = str
+				}
 			}
 		}
 	}

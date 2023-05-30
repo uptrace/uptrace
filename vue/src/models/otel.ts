@@ -8,6 +8,8 @@ export enum AttrKey {
 
   spanName = '.name',
   spanEventName = '.event_name',
+  displayName = 'display.name',
+
   spanIsEvent = '.is_event',
   spanKind = '.kind',
   spanTime = '.time',
@@ -55,24 +57,22 @@ export enum AttrKey {
 }
 
 export enum SystemName {
-  all = 'all',
-  eventsAll = 'events:all',
-  spansAll = 'spans:all',
+  All = 'all',
+  EventsAll = 'events:all',
+  SpansAll = 'spans:all',
+  LogAll = 'log:all',
+  HttpAll = 'http:all',
+  DbAll = 'db:all',
 
-  httpAll = 'http:all',
-  dbAll = 'db:all',
-  logAll = 'log:all',
+  LogWarn = 'log:warn',
+  LogError = 'log:error',
+  LogFatal = 'log:fatal',
+  LogPanic = 'log:panic',
+  Funcs = 'funcs',
+  OtherEvents = 'other-events',
 
-  funcs = 'funcs',
-  exceptions = 'exceptions',
-  logWarn = 'log:warn',
-  logError = 'log:error',
-  logFatal = 'log:fatal',
-  logPanic = 'log:panic',
-  otherEvents = 'other-events',
-
-  logPrefix = 'log:',
-  messagePrefix = 'message:',
+  LogPrefix = 'log:',
+  MessagePrefix = 'message:',
 }
 
 export enum EventName {
@@ -83,7 +83,7 @@ export function isDummySystem(system: string | undefined): boolean {
   if (!system) {
     return false
   }
-  return system === SystemName.all || system.endsWith(':all')
+  return system === SystemName.All || system.endsWith(':all')
 }
 
 export function isEventSystem(system: string | undefined): boolean {
@@ -91,11 +91,11 @@ export function isEventSystem(system: string | undefined): boolean {
     return false
   }
   return (
-    system === SystemName.eventsAll ||
+    system === SystemName.EventsAll ||
     isErrorSystem(system) ||
-    system === SystemName.otherEvents ||
-    system.startsWith(SystemName.logPrefix) ||
-    system.startsWith(SystemName.messagePrefix)
+    system === SystemName.OtherEvents ||
+    system.startsWith(SystemName.LogPrefix) ||
+    system.startsWith(SystemName.MessagePrefix)
   )
 }
 
@@ -104,10 +104,9 @@ export function isErrorSystem(system: string | undefined): boolean {
     return false
   }
   switch (system) {
-    case SystemName.exceptions:
-    case SystemName.logError:
-    case SystemName.logFatal:
-    case SystemName.logPanic:
+    case SystemName.LogError:
+    case SystemName.LogFatal:
+    case SystemName.LogPanic:
       return true
     default:
       return false
@@ -121,8 +120,8 @@ export function splitTypeSystem(s: string | undefined): [string, string] {
 
   const i = s.indexOf(':')
   if (i >= 0) {
-    if (s.slice(i + 1) === SystemName.all) {
-      return [s.slice(0, i), SystemName.all]
+    if (s.slice(i + 1) === SystemName.All) {
+      return [s.slice(0, i), SystemName.All]
     }
     return [s.slice(0, i), s]
   }

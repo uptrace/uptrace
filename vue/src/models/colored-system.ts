@@ -36,7 +36,7 @@ export function spanColoredSystems<T extends ColoredSpan<T>>(root: T): ColoredSy
 
   walkTree(root, (span, parent) => {
     span._systemName = span.system
-    if (span._systemName === SystemName.funcs) {
+    if (span._systemName === SystemName.Funcs) {
       const service = parent?._systemName ?? span.attrs[AttrKey.serviceName]
       if (service) {
         span._systemName = service

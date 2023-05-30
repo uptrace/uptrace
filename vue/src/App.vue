@@ -143,9 +143,6 @@ import Search from '@/components/Search.vue'
 import GlobalSnackbar from '@/components/GlobalSnackbar.vue'
 import GlobalConfirm from '@/components/GlobalConfirm.vue'
 
-// Utilities
-import { SystemName } from '@/models/otel'
-
 export default defineComponent({
   name: 'App',
   components: {
@@ -177,7 +174,6 @@ export default defineComponent({
     })
 
     return {
-      SystemName,
       dateRange,
       user,
       helpRoute,

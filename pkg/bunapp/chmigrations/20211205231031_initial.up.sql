@@ -1,15 +1,16 @@
 CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
+  id UInt64 Codec(T64, ?CODEC),
+  trace_id UUID Codec(?CODEC),
+  parent_id UInt64 Codec(?CODEC),
+
   project_id UInt32 Codec(DoubleDelta, ?CODEC),
   type LowCardinality(String) Codec(?CODEC),
   system LowCardinality(String) Codec(?CODEC),
   group_id UInt64 Codec(Delta, ?CODEC),
 
-  trace_id UUID Codec(?CODEC),
-  id UInt64 Codec(T64, ?CODEC),
-  parent_id UInt64 Codec(?CODEC),
+  kind LowCardinality(String) Codec(?CODEC),
   name LowCardinality(String) Codec(?CODEC),
   event_name String Codec(?CODEC),
-  kind LowCardinality(String) Codec(?CODEC),
 
   time DateTime Codec(Delta, ?CODEC),
   duration Int64 Codec(T64, ?CODEC),

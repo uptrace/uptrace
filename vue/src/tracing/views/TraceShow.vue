@@ -33,7 +33,7 @@
       <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="py-4">
         <v-row v-if="trace.root" class="px-4 text-body-2">
           <v-col class="word-break-all">
-            {{ eventOrSpanName(trace.root.name) }}
+            {{ trace.root.displayName }}
           </v-col>
         </v-row>
 
@@ -101,6 +101,7 @@
 </template>
 
 <script lang="ts">
+import { truncate } from 'lodash-es'
 import { defineComponent, computed, watch, proxyRefs } from 'vue'
 
 // Composables
@@ -118,7 +119,6 @@ import TraceError from '@/tracing/TraceError.vue'
 
 // Utilities
 import { AttrKey, SystemName } from '@/models/otel'
-import { eventOrSpanName } from '@/models/span'
 
 export default defineComponent({
   name: 'TraceShow',
@@ -173,7 +173,7 @@ export default defineComponent({
         name: 'SpanGroupList',
         query: {
           ...dateRange.queryParams(),
-          system: SystemName.spansAll,
+          system: SystemName.SpansAll,
           query: [
             `where ${AttrKey.spanTraceId} = ${trace.root.traceId}`,
             `group by ${AttrKey.spanGroupId}`,
@@ -203,7 +203,6 @@ export default defineComponent({
       axiosParams,
       groupRoute,
       exploreTraceRoute,
-      eventOrSpanName,
     }
   },
 })
@@ -233,7 +232,7 @@ function useMeta(dateRange: UseDateRange, trace: UseTrace) {
 
     if (root.system && root.groupId) {
       bs.push({
-        text: eventOrSpanName(root, 60),
+        text: truncate(root.displayName, { length: 60 }),
         to: {
           name: 'SpanList',
           query: {

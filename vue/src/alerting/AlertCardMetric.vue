@@ -150,7 +150,7 @@ export default defineComponent({
       return {
         name: 'SpanList',
         query: {
-          system: SystemName.all,
+          system: SystemName.All,
           query: [
             AttrKey.spanCountPerMin,
             AttrKey.spanErrorRate,

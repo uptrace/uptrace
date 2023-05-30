@@ -219,7 +219,7 @@ const routes: RouteConfig[] = [
       systemsFilter: (items: System[]) => {
         return items.filter((item: System) => !isEventSystem(item.system))
       },
-      allSystem: SystemName.spansAll,
+      allSystem: SystemName.SpansAll,
       eventsMode: false,
       defaultQuery: exploreAttr(AttrKey.spanGroupId),
       itemListRouteName: 'SpanList',
@@ -250,7 +250,7 @@ const routes: RouteConfig[] = [
       systemsFilter: (items: System[]) => {
         return items.filter((item: System) => isEventSystem(item.system))
       },
-      allSystem: SystemName.eventsAll,
+      allSystem: SystemName.EventsAll,
       eventsMode: true,
       defaultQuery: exploreAttr(AttrKey.spanGroupId, true),
       itemListRouteName: 'EventList',

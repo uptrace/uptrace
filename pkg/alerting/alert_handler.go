@@ -17,7 +17,10 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-const stateKey = "state"
+const (
+	facetKeyState = "alert.state"
+	facetKeyType  = "alert.type"
+)
 
 type AlertHandler struct {
 	*bunapp.App
@@ -153,29 +156,10 @@ func (h *AlertHandler) List(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	facetMap, err := selectAlertFacetMap(ctx, h.App, f)
+	facets, err := selectAlertFacets(ctx, h.App, f)
 	if err != nil {
 		return err
 	}
-
-	stateFacet, err := selectAlertStateFacet(ctx, h.App, f)
-	if err != nil {
-		return err
-	}
-
-	if len(stateFacet.Items) > 0 && !hasOpenState(stateFacet.Items) {
-		stateFacet.Items = append(stateFacet.Items, &org.FacetItem{
-			Key:   stateKey,
-			Value: string(org.AlertOpen),
-			Count: 0,
-		})
-	}
-
-	var facets []*org.Facet
-	if len(stateFacet.Items) > 0 {
-		facets = append(facets, stateFacet)
-	}
-	facets = append(facets, org.FacetMapToList(facetMap)...)
 
 	return httputil.JSON(w, bunrouter.H{
 		"alerts": alerts,
@@ -184,12 +168,44 @@ func (h *AlertHandler) List(w http.ResponseWriter, req bunrouter.Request) error 
 	})
 }
 
+func selectAlertFacets(
+	ctx context.Context, app *bunapp.App, f *AlertFilter,
+) ([]*org.Facet, error) {
+	facetMap, err := selectAlertFacetMap(ctx, app, f)
+	if err != nil {
+		return nil, err
+	}
+
+	delete(facetMap, facetKeyType)
+
+	stateFacet, err := selectAlertStateFacet(ctx, app, f)
+	if err != nil {
+		return nil, err
+	}
+
+	typeFacet, err := selectAlertTypeFacet(ctx, app, f)
+	if err != nil {
+		return nil, err
+	}
+
+	var facets []*org.Facet
+	if len(stateFacet.Items) > 0 {
+		facets = append(facets, stateFacet)
+	}
+	if len(typeFacet.Items) > 0 {
+		facets = append(facets, typeFacet)
+	}
+	facets = append(facets, org.FacetMapToList(facetMap)...)
+
+	return facets, nil
+}
+
 func selectAlertFacetMap(
 	ctx context.Context, app *bunapp.App, f *AlertFilter,
 ) (map[string]*org.Facet, error) {
 	start := time.Now()
 
-	facetMap, err := selectAlertFacets(ctx, app, f, "")
+	facetMap, err := selectAlertFacetsForAttr(ctx, app, f, "")
 	if err != nil {
 		return nil, err
 	}
@@ -204,9 +220,9 @@ func selectAlertFacetMap(
 		f.Attrs = maps.Clone(f.Attrs)
 		delete(f.Attrs, attrKey)
 
-		newFacetMap, err := selectAlertFacets(ctx, app, f, attrKey)
+		newFacetMap, err := selectAlertFacetsForAttr(ctx, app, f, attrKey)
 		if err != nil {
-			app.Zap(ctx).Error("_selectAlertFacets failed", zap.Error(err))
+			app.Zap(ctx).Error("_selectAlertFacetsForAttr failed", zap.Error(err))
 			continue
 		}
 
@@ -218,7 +234,7 @@ func selectAlertFacetMap(
 	return facetMap, nil
 }
 
-func selectAlertFacets(
+func selectAlertFacetsForAttr(
 	ctx context.Context, app *bunapp.App, f *AlertFilter, attrKey string,
 ) (map[string]*org.Facet, error) {
 	searchq := app.PG.NewSelect().
@@ -242,7 +258,7 @@ func selectAlertFacets(
 		With("q", facetq).
 		ColumnExpr("key, value, count").
 		TableExpr("q").
-		Where("rank <= 15")
+		OrderExpr("value ASC")
 
 	if attrKey != "" {
 		q = q.Where("key = ?", attrKey)
@@ -266,18 +282,19 @@ func selectAlertStateFacet(
 	var items []*org.FacetItem
 
 	if err := app.PG.NewSelect().
-		ColumnExpr("? AS key", stateKey).
+		ColumnExpr("? AS key", facetKeyState).
 		ColumnExpr("state AS value").
 		ColumnExpr("count(*) AS count").
 		Model((*org.BaseAlert)(nil)).
 		Apply(f.WhereClause).
 		GroupExpr("state").
+		OrderExpr("value ASC").
 		Scan(ctx, &items); err != nil {
 		return nil, err
 	}
 
 	return &org.Facet{
-		Key:   stateKey,
+		Key:   facetKeyState,
 		Items: items,
 	}, nil
 }
@@ -289,4 +306,30 @@ func hasOpenState(items []*org.FacetItem) bool {
 		}
 	}
 	return false
+}
+
+func selectAlertTypeFacet(
+	ctx context.Context, app *bunapp.App, f *AlertFilter,
+) (*org.Facet, error) {
+	f = f.Clone()
+	f.Type = nil
+
+	var items []*org.FacetItem
+
+	if err := app.PG.NewSelect().
+		ColumnExpr("? AS key", facetKeyType).
+		ColumnExpr("type AS value").
+		ColumnExpr("count(*) AS count").
+		Model((*org.BaseAlert)(nil)).
+		Apply(f.WhereClause).
+		GroupExpr("type").
+		OrderExpr("value ASC").
+		Scan(ctx, &items); err != nil {
+		return nil, err
+	}
+
+	return &org.Facet{
+		Key:   facetKeyType,
+		Items: items,
+	}, nil
 }

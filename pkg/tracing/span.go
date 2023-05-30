@@ -22,19 +22,20 @@ const (
 )
 
 type Span struct {
+	ID         uint64    `json:"id,string" msgpack:"-" ch:"id"`
+	ParentID   uint64    `json:"parentId,string,omitempty" msgpack:"-"`
+	TraceID    uuid.UUID `json:"traceId" msgpack:"-" ch:"type:UUID"`
+	Standalone bool      `json:"standalone,omitempty" ch:"-"`
+
 	ProjectID uint32 `json:"projectId" msgpack:"-"`
 	Type      string `json:"-" msgpack:"-" ch:",lc"`
 	System    string `json:"system" ch:",lc"`
 	GroupID   uint64 `json:"groupId,string"`
+	Kind      string `json:"kind" ch:",lc"`
 
-	TraceID  uuid.UUID `json:"traceId" msgpack:"-" ch:"type:UUID"`
-	ID       uint64    `json:"id,string" msgpack:"-" ch:"id"`
-	ParentID uint64    `json:"parentId,string,omitempty" msgpack:"-"`
-
-	Name       string `json:"name" ch:",lc"`
-	EventName  string `json:"eventName,omitempty" ch:",lc"`
-	Kind       string `json:"kind" ch:",lc"`
-	Standalone bool   `json:"standalone,omitempty" ch:"-"`
+	Name        string `json:"name" ch:",lc"`
+	EventName   string `json:"eventName,omitempty" ch:",lc"`
+	DisplayName string `json:"displayName"`
 
 	Time         time.Time     `json:"time" msgpack:"-"`
 	Duration     time.Duration `json:"duration"`
@@ -70,8 +71,18 @@ type SpanLink struct {
 	Attrs   AttrMap   `json:"attrs"`
 }
 
+func (s *Span) EventOrSpanName() string {
+	if s.EventName != "" {
+		return s.EventName
+	}
+	if s.Name != "" {
+		return s.Name
+	}
+	return emptyPlaceholder
+}
+
 func (s *Span) IsEvent() bool {
-	return isEventSystem(s.System)
+	return s.EventName != ""
 }
 
 func (s *Span) IsError() bool {
@@ -254,7 +265,6 @@ func isEventSystem(s string) bool {
 	switch s {
 	case EventTypeOther,
 		EventTypeLog,
-		EventTypeExceptions,
 		EventTypeMessage:
 		return true
 	default:
@@ -268,7 +278,7 @@ func isLogSystem(s string) bool {
 
 func isErrorSystem(s string) bool {
 	switch s {
-	case EventTypeExceptions, "log:error", "log:fatal", "log:panic":
+	case "log:error", "log:fatal", "log:panic":
 		return true
 	default:
 		return false

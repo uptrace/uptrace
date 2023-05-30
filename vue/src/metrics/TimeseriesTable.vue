@@ -21,7 +21,9 @@
         <template #default="{ rowId, metrics, value, time }">
           <template v-for="attrKey in grouping">
             <td v-if="attrKey === AttrKey.spanGroupId" :key="attrKey">
-              <router-link :to="spanListRouteFor(item)">{{ eventOrSpanName(item) }}</router-link>
+              <router-link :to="spanListRouteFor(item)">{{
+                item[AttrKey.displayName]
+              }}</router-link>
             </td>
             <td v-else :key="attrKey">{{ item[attrKey] }}</td>
           </template>
@@ -47,7 +49,6 @@
 </template>
 
 <script lang="ts">
-import { truncate } from 'lodash-es'
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
@@ -126,17 +127,9 @@ export default defineComponent({
       }
     }
 
-    return { AttrKey, grouping, aggColumns, headers, spanListRouteFor, eventOrSpanName }
+    return { AttrKey, grouping, aggColumns, headers, spanListRouteFor }
   },
 })
-
-function eventOrSpanName(item: Record<string, any>, maxLength = 120) {
-  const eventName = item[AttrKey.spanEventName]
-  if (eventName) {
-    return truncate(eventName, { length: maxLength })
-  }
-  return truncate(item[AttrKey.spanName], { length: maxLength })
-}
 </script>
 
 <style lang="scss" scoped></style>

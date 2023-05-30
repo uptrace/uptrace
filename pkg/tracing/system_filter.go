@@ -50,20 +50,20 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 
 	return q.WhereGroup(" AND ", func(q *ch.SelectQuery) *ch.SelectQuery {
 		for _, system := range f.System {
-			switch {
-			case system == "":
+			switch system {
+			case "", SystemAll:
 				// nothing
-			case system == SystemAll:
-				// nothing
-			case system == SystemEventsAll:
+			case SystemSpansAll:
+				q = q.WhereOr("s.type NOT IN ?", ch.In(LogAndEventTypes))
+			case SystemEventsAll:
 				q = q.WhereOr("s.type IN ?", ch.In(EventTypes))
-			case system == SystemSpansAll:
-				q = q.WhereOr("s.type NOT IN ?", ch.In(EventTypes))
-			case strings.HasSuffix(system, ":all"):
-				system := strings.TrimSuffix(system, ":all")
-				q = q.WhereOr("startsWith(s.system, ?)", system)
 			default:
-				q = q.WhereOr("s.system = ?", system)
+				systemType, systemName := SplitTypeSystem(system)
+				if systemName == SystemAll || systemName == systemType {
+					q = q.WhereOr("s.type = ?", systemType)
+				} else {
+					q = q.WhereOr("s.type = ? AND s.system = ?", systemType, systemName)
+				}
 			}
 		}
 		return q
@@ -83,4 +83,14 @@ func (f *SystemFilter) isEventSystem() bool {
 		}
 	}
 	return true
+}
+
+func SplitTypeSystem(s string) (string, string) {
+	if i := strings.IndexByte(s, ':'); i >= 0 {
+		if s[i+1:] == SystemAll {
+			return s[:i], SystemAll
+		}
+		return s[:i], s
+	}
+	return s, s
 }

@@ -18,14 +18,18 @@ func Trunc(s string, maxLen int) string {
 	return "<invalid UTF-8>"
 }
 
+func TruncLC(s string) string {
+	return Trunc(s, 80)
+}
+
 func TruncSmall(s string) string {
-	return Trunc(s, 100)
+	return Trunc(s, 200)
 }
 
 func TruncMedium(s string) string {
-	return Trunc(s, 255)
+	return Trunc(s, 500)
 }
 
 func TruncLarge(s string) string {
-	return Trunc(s, 500)
+	return Trunc(s, 1000)
 }

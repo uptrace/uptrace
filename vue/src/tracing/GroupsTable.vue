@@ -135,7 +135,7 @@ export default defineComponent({
 
   setup(props) {
     const hasGroupName = computed((): boolean => {
-      return hasColumn(AttrKey.spanName) || hasColumn(AttrKey.spanEventName)
+      return hasColumn(AttrKey.displayName)
     })
 
     const hasSystemColumn = computed(() => {
@@ -155,7 +155,7 @@ export default defineComponent({
     const plainColumns = computed(() => {
       const blacklist: string[] = [AttrKey.spanSystem as string]
       if (hasGroupName.value) {
-        blacklist.push(AttrKey.spanGroupId, AttrKey.spanName, AttrKey.spanEventName)
+        blacklist.push(AttrKey.spanGroupId, AttrKey.displayName)
       }
       return props.columns.filter((col) => {
         if (props.plottableColumns.findIndex((item) => item.name === col.name) >= 0) {
@@ -243,7 +243,7 @@ export default defineComponent({
           return 'err%'
       }
 
-      let m = name.match(/^([0-9a-z]+)\(span\.duration\)$/)
+      let m = name.match(/^([0-9a-z]+)\(\.duration\)$/)
       if (m) {
         return m[1]
       }
