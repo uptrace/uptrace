@@ -109,11 +109,7 @@ func (l *lexer) readToken() (*Token, error) {
 	switch c {
 	case '\'', '"':
 		return l.quotedValue(c)
-	case '(', ')', ',':
-		return l.charToken(BYTE_TOKEN), nil
-	case '_':
-		return l.ident(l.lex.Pos() - 1)
-	case '$':
+	case '_', '$', '.':
 		return l.ident(l.lex.Pos() - 1)
 	}
 

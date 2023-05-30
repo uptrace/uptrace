@@ -92,7 +92,7 @@ metrics_from_spans:
       - span.status_code
     annotations:
       - span.name
-    where: not span.is_event
+    where: span.is_event = 0
 
   - name: uptrace.tracing.events
     description: Events count (excluding spans)
@@ -106,7 +106,7 @@ metrics_from_spans:
       - host.name
     annotations:
       - span.event_name
-    where: span.is_event
+    where: span.is_event = 1
 
 auth:
   users:

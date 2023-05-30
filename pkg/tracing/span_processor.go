@@ -12,7 +12,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/metric/instrument"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
 )
@@ -53,7 +52,7 @@ func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
 	}()
 
 	queueLen, _ := bunotel.Meter.Int64ObservableGauge("uptrace.tracing.queue_length",
-		instrument.WithUnit("{spans}"),
+		metric.WithUnit("{spans}"),
 	)
 
 	if _, err := bunotel.Meter.RegisterCallback(

@@ -14,12 +14,10 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/metric/global"
-	"go.opentelemetry.io/otel/metric/instrument"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 
-	"github.com/go-redis/redis/extra/redisotel/v9"
-	"github.com/go-redis/redis/v9"
+	"github.com/redis/go-redis/extra/redisotel/v9"
+	"github.com/redis/go-redis/v9"
 )
 
 var tracer = otel.Tracer("github.com/go-redis/redis/example/otel")
@@ -103,12 +101,11 @@ func handleRequest(ctx context.Context, rdb *redis.Client) error {
 var re = regexp.MustCompile(`used_disk_percent:\s(\d+)%`)
 
 func monitorKvrocks(ctx context.Context, rdb *redis.Client) error {
-	mp := global.MeterProvider()
-	meter := mp.Meter("github.com/uptrace/uptrace/example/kvrocks")
+	meter := otel.Meter("github.com/uptrace/uptrace/example/kvrocks")
 
 	usedDiskPct, err := meter.Float64ObservableGauge(
 		"kvrocks.used_disk_percent",
-		instrument.WithUnit("%"),
+		metric.WithUnit("%"),
 	)
 	if err != nil {
 		return err

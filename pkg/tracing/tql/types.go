@@ -1,22 +1,32 @@
 package tql
 
 import (
-	"strconv"
-	"time"
+	"fmt"
+	"strings"
 
-	"github.com/uptrace/go-clickhouse/ch/chschema"
+	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
+type Node interface {
+	fmt.Stringer
+	AppendString([]byte) []byte
+}
+
 type Where struct {
-	Conds []Cond
+	Filters []Filter
 }
 
-type Group struct {
+type Selector struct {
+	Columns []Column
+}
+
+type Grouping struct {
 	Names []Name
 }
 
-type Columns struct {
-	Names []Name
+type Column struct {
+	Name  Name
+	Alias string
 }
 
 type Name struct {
@@ -25,137 +35,130 @@ type Name struct {
 }
 
 func (n Name) String() string {
-	return string(n.Append(nil))
+	b := n.AppendString(nil)
+	return unsafeconv.String(b)
 }
 
-func (n *Name) Append(b []byte) []byte {
-	hasFunc := n.FuncName != "" && n.FuncName != "any"
-
-	if hasFunc {
-		b = append(b, n.FuncName...)
-		b = append(b, '(')
+func (n *Name) AppendString(b []byte) []byte {
+	switch n.FuncName {
+	case "", "any":
+		return append(b, n.AttrKey...)
 	}
 
+	b = append(b, n.FuncName...)
+	b = append(b, '(')
 	b = append(b, n.AttrKey...)
-
-	if hasFunc {
-		b = append(b, ')')
-	}
-
+	b = append(b, ')')
 	return b
 }
 
-type Cond struct {
-	Sep   CondSep
-	Left  Name
-	Op    string
-	Right Value
+type Expr struct {
+	LHS Node
+	Ops []ExprOp
 }
 
-type CondSep struct {
-	Op     string
-	Negate bool
+func (e *Expr) String() string {
+	b := e.AppendString(nil)
+	return unsafeconv.String(b)
 }
 
-type Value struct {
-	Kind   ValueKind
-	Text   string
+func (e *Expr) AppendString(b []byte) []byte {
+	b = e.LHS.AppendString(b)
+	for _, v := range e.Ops {
+		b = append(b, ' ')
+		b = append(b, v.Op...)
+		b = append(b, ' ')
+		b = v.RHS.AppendString(b)
+	}
+	return b
+}
+
+type ExprOp struct {
+	Op  BinaryOp
+	RHS Node
+}
+
+type BinaryOp string
+
+//------------------------------------------------------------------------------
+
+type Filter struct {
+	BoolOp BoolOp
+	LHS    Name
+	Op     FilterOp
+	RHS    Value
+}
+
+type BoolOp string
+
+const (
+	BoolAnd BoolOp = "AND"
+	BoolOr  BoolOp = "OR"
+)
+
+type FilterOp string
+
+const (
+	FilterEqual    FilterOp = "="
+	FilterNotEqual FilterOp = "!="
+
+	FilterIn    FilterOp = "in"
+	FilterNotIn FilterOp = "not in"
+
+	FilterLike    FilterOp = "like"
+	FilterNotLike FilterOp = "not like"
+
+	FilterContains    FilterOp = "contains"
+	FilterNotContains FilterOp = "not contains"
+
+	FilterExists    FilterOp = "exists"
+	FilterNotExists FilterOp = "not exists"
+
+	// For compatibility with metrics.
+	FilterRegexp    FilterOp = "~"
+	FilterNotRegexp FilterOp = "!~"
+)
+
+type Value interface {
+	String() string
+}
+
+type StringValue struct {
+	Text string
+}
+
+func (v StringValue) String() string {
+	return v.Text
+}
+
+type StringValues struct {
 	Values []string
 }
 
-func (v *Value) IsNum() bool {
-	switch v.Kind {
-	case NumberValue, DurationValue:
-		return true
-	default:
-		return false
-	}
+func (v StringValues) String() string {
+	return strings.Join(v.Values, "|")
 }
 
-func (v *Value) Append(b []byte) []byte {
-	switch v.Kind {
-	case ArrayValue:
-		b = append(b, '(')
-		for i, str := range v.Values {
-			if i > 0 {
-				b = append(b, ',')
-			}
-			b = chschema.AppendString(b, str)
-		}
-		b = append(b, ')')
-		return b
-	case StringValue:
-		return chschema.AppendString(b, v.Text)
-	case NumberValue:
-		return append(b, v.Text...)
-	case DurationValue:
-		d, err := time.ParseDuration(v.Text)
-		if err != nil {
-			panic("err") // should not happen
-		}
-		return strconv.AppendInt(b, int64(d), 10)
-	default:
-		panic("not reached")
-	}
-}
-
-//------------------------------------------------------------------------------
+type NumberKind int
 
 const (
-	InvalidValue ValueKind = iota
-	StringValue
-	NumberValue
-	DurationValue
-	ArrayValue
+	NumberUnitless NumberKind = iota
+	NumberDuration
+	NumberBytes
 )
 
-type ValueKind int
-
-func (k ValueKind) String() string {
-	switch k {
-	case StringValue:
-		return "string"
-	case NumberValue:
-		return "number"
-	case DurationValue:
-		return "duration"
-	case ArrayValue:
-		return "array"
-	default:
-		return "invalid"
-	}
+type Number struct {
+	Kind NumberKind
+	Text string
 }
 
-func (k ValueKind) IsNum() bool {
-	switch k {
-	case NumberValue, DurationValue:
-		return true
-	default:
-		return false
-	}
+func (n *Number) String() string {
+	return n.Text
 }
 
-//------------------------------------------------------------------------------
-
-const (
-	AndOp string = " AND "
-	OrOp  string = " OR "
-)
-
-const (
-	EqualOp    string = "="
-	NotEqualOp string = "!="
-	InOp       string = "in"
-
-	ContainsOp       string = "contains"
-	DoesNotContainOp string = "does not contain"
-
-	LikeOp    string = "like"
-	NotLikeOp string = "not like"
-
-	ExistsOp       string = "exists"
-	DoesNotExistOp string = "does not exist"
-
-	MatchesOp      string = "~"
-	DoesNotMatchOp string = "!~"
-)
+func clean(attrKey string) string {
+	if strings.HasPrefix(attrKey, "span.") {
+		return strings.TrimPrefix(attrKey, "span")
+	}
+	return attrKey
+}

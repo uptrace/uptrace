@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/uptrace/uptrace/pkg/attrkey"
@@ -37,6 +38,7 @@ func ReadConfig(confPath, service string) (*Config, error) {
 	conf.Path = confPath
 	conf.Service = service
 
+	fixUpConfig(conf)
 	if err := validateConfig(conf); err != nil {
 		return nil, fmt.Errorf("invalid config %s: %w", conf.Path, err)
 	}
@@ -123,6 +125,27 @@ func expandEnv(conf string) string {
 
 		return "$" + envVar
 	})
+}
+
+func fixUpConfig(conf *Config) {
+	for i := range conf.MetricsFromSpans {
+		metric := &conf.MetricsFromSpans[i]
+		metric.Value = cleanAttrName(metric.Value)
+		for i, attr := range metric.Attrs {
+			metric.Attrs[i] = cleanAttrName(attr)
+		}
+		for i, attr := range metric.Annotations {
+			metric.Annotations[i] = cleanAttrName(attr)
+		}
+		metric.Where = cleanAttrName(metric.Where)
+	}
+}
+
+func cleanAttrName(attrKey string) string {
+	if strings.HasPrefix(attrKey, "span.") {
+		return strings.TrimPrefix(attrKey, "span")
+	}
+	return attrKey
 }
 
 func validateConfig(conf *Config) error {

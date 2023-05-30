@@ -119,10 +119,10 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 			continue
 		}
 
-		for i := len(ast.Conds) - 1; i >= 0; i-- {
-			cond := &ast.Conds[i]
-			if cond.Left == colName {
-				ast.Conds = append(ast.Conds[:i], ast.Conds[i+1:]...)
+		for i := len(ast.Filters) - 1; i >= 0; i-- {
+			filter := &ast.Filters[i]
+			if filter.LHS == colName {
+				ast.Filters = append(ast.Filters[:i], ast.Filters[i+1:]...)
 			}
 		}
 	}
@@ -130,7 +130,7 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 	q := buildSpanIndexQuery(h.App, f, 0)
 	q = tqlColumn(q, colName, 0).Group(f.AttrKey).
 		ColumnExpr("count() AS count")
-	if !strings.HasPrefix(f.AttrKey, "span.") {
+	if !strings.HasPrefix(f.AttrKey, ".") {
 		q = q.Where("has(s.all_keys, ?)", f.AttrKey)
 	}
 	if f.SearchInput != "" {

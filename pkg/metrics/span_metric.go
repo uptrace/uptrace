@@ -22,7 +22,6 @@ func initSpanMetrics(ctx context.Context, app *bunapp.App) error {
 	conf := app.Config()
 	for i := range conf.MetricsFromSpans {
 		metric := &conf.MetricsFromSpans[i]
-
 		if metric.Name == "" {
 			return fmt.Errorf("metric name can't be empty")
 		}
@@ -104,7 +103,7 @@ func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMet
 		attrsExpr, aliases := compileSpanMetricAttrs(metric.Attrs)
 		q = q.
 			ColumnExpr("xxHash64(arrayStringConcat([?], '-')) AS attrs_hash", attrsExpr).
-			ColumnExpr("[?] AS string_keys", ch.In(aliases)).
+			ColumnExpr("? AS string_keys", ch.Array(aliases)).
 			ColumnExpr("[?] AS string_values", attrsExpr).
 			GroupExpr(string(attrsExpr))
 	}

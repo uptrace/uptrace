@@ -239,7 +239,7 @@ export default defineComponent({
       switch (name) {
         case AttrKey.spanErrorCount:
           return 'errors'
-        case AttrKey.spanErrorPct:
+        case AttrKey.spanErrorRate:
           return 'err%'
       }
 

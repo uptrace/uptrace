@@ -1,3 +1,4 @@
+GO_MOD_DIRS := $(shell find . -type f -name 'go.mod' -exec dirname {} \; | sort)
 VERSION=$(shell git describe --always --tags --match "v[0-9]*" HEAD)
 BUILD_INFO_IMPORT_PATH=github.com/uptrace/uptrace/pkg/internal/version
 BUILD_INFO=-ldflags "-X $(BUILD_INFO_IMPORT_PATH).Version=$(VERSION)"
@@ -11,9 +12,13 @@ uptrace-vue:
 gomoddownload:
 	go mod download
 
-.PHONY: go_mod_tidy
 go_mod_tidy:
-	rm -f go.sum && go mod tidy -go=1.16 && go mod tidy -go=1.18
+	set -e; for dir in $(GO_MOD_DIRS); do \
+	  echo "go mod tidy in $${dir}"; \
+	  (cd "$${dir}" && \
+	    go get -u ./... && \
+	    go mod tidy -compat=1.20); \
+	done
 
 .PHONY: uptrace
 uptrace:

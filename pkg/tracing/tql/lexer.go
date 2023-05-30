@@ -43,6 +43,7 @@ func (t *Token) String() string {
 //------------------------------------------------------------------------------
 
 type lexer struct {
+	s   string
 	lex bunlex.Lexer
 
 	tokens []Token
@@ -50,33 +51,45 @@ type lexer struct {
 }
 
 func newLexer(s string) *lexer {
-	t := &lexer{
+	lex := &lexer{
 		tokens: make([]Token, 0, 32),
 	}
-	t.Reset(s)
-	return t
+	lex.Reset(s)
+	return lex
 }
 
-func (l *lexer) Reset(s string) {
+func (l *lexer) Reset(s string) error {
+	l.s = s
 	l.lex.Reset(s)
+
 	l.tokens = l.tokens[:0]
 	l.pos = 0
+
+	for {
+		tok, err := l.readToken()
+		if err != nil {
+			return err
+		}
+		if tok == eofToken {
+			break
+		}
+	}
+
+	return nil
 }
 
-func (l *lexer) NextToken() (*Token, error) {
-	tok, err := l.PeekToken()
-	if err != nil {
-		return nil, err
-	}
+func (l *lexer) NextToken() *Token {
+	tok := l.PeekToken()
 	l.pos++
-	return tok, nil
+	return tok
 }
 
-func (l *lexer) PeekToken() (*Token, error) {
+func (l *lexer) PeekToken() *Token {
 	if l.pos < len(l.tokens) {
-		return &l.tokens[l.pos], nil
+		tok := &l.tokens[l.pos]
+		return tok
 	}
-	return l.readToken()
+	return eofToken
 }
 
 func (l *lexer) Pos() int {
@@ -98,10 +111,9 @@ func (l *lexer) readToken() (*Token, error) {
 	case '\'', '"':
 		return l.quotedValue(c)
 	case '-', '+':
-		return l.number()
-	case '(', ')', '{', '}', ',', '|':
-		start := l.lex.Pos() - 1
-		return l.token(BYTE_TOKEN, l.lex.Slice(start, start+1), start), nil
+		return l.number(), nil
+	case '_', '$', '.':
+		return l.ident(l.lex.Pos() - 1), nil
 	}
 
 	if bunlex.IsWhitespace(c) {
@@ -109,10 +121,10 @@ func (l *lexer) readToken() (*Token, error) {
 	}
 
 	if bunlex.IsAlpha(c) {
-		return l.ident(l.lex.Pos() - 1)
+		return l.ident(l.lex.Pos() - 1), nil
 	}
 	if bunlex.IsDigit(c) {
-		return l.number()
+		return l.number(), nil
 	}
 
 	return l.charToken(BYTE_TOKEN), nil
@@ -120,7 +132,7 @@ func (l *lexer) readToken() (*Token, error) {
 
 func (l *lexer) charToken(id TokenID) *Token {
 	pos := l.lex.Pos()
-	return l.token(id, l.lex.Slice(pos-1, pos), pos-1)
+	return l.token(id, l.s[pos-1:pos], pos-1)
 }
 
 func (l *lexer) quotedValue(end byte) (*Token, error) {
@@ -139,21 +151,20 @@ func (l *lexer) quotedValue(end byte) (*Token, error) {
 	return &l.tokens[len(l.tokens)-1], nil
 }
 
-func (l *lexer) number() (*Token, error) {
+func (l *lexer) number() *Token {
 	start := l.lex.Pos() - 1
 	s, _ := l.lex.ReadSepFunc(l.lex.Pos()-1, l.isWordBoundary)
 
 	if _, err := time.ParseDuration(s); err == nil {
-		return l.token(DURATION_TOKEN, s, start), nil
+		return l.token(DURATION_TOKEN, s, start)
 	}
-
-	if _, err := strconv.ParseFloat(s, 64); err != nil {
-		return l.token(VALUE_TOKEN, s, start), nil
+	if _, err := strconv.ParseFloat(s, 64); err == nil {
+		return l.token(NUMBER_TOKEN, s, start)
 	}
-	return l.token(NUMBER_TOKEN, s, start), nil
+	return l.token(VALUE_TOKEN, s, start)
 }
 
-func (l *lexer) ident(start int) (*Token, error) {
+func (l *lexer) ident(start int) *Token {
 	for l.lex.Valid() {
 		c := l.lex.PeekByte()
 		if !isIdent(c) {
@@ -162,8 +173,8 @@ func (l *lexer) ident(start int) (*Token, error) {
 		l.lex.Advance()
 	}
 
-	s := l.lex.Slice(start, l.lex.Pos())
-	return l.token(IDENT_TOKEN, s, start), nil
+	s := l.s[start:l.lex.Pos()]
+	return l.token(IDENT_TOKEN, s, start)
 }
 
 func (l *lexer) token(id TokenID, s string, start int) *Token {

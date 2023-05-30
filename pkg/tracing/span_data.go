@@ -85,7 +85,7 @@ func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 	var events []*SpanData
 
 	if err := baseq.Clone().
-		Where("type IN (?)", ch.In(EventTypes)).
+		Where("type IN ?", ch.In(EventTypes)).
 		Where("parent_id = ?", span.ID).
 		OrderExpr("time ASC").
 		Limit(100).

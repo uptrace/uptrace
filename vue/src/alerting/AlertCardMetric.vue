@@ -153,7 +153,7 @@ export default defineComponent({
           system: SystemName.all,
           query: [
             AttrKey.spanCountPerMin,
-            AttrKey.spanErrorPct,
+            AttrKey.spanErrorRate,
             `{p50,p90,p99}(${AttrKey.spanDuration})`,
             ...where,
           ].join(' | '),

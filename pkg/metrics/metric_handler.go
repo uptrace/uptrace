@@ -140,6 +140,10 @@ func selectMetricsFromCH(
 	if f.Query != "" {
 		query := mql.Parse(f.Query)
 		for _, part := range query.Parts {
+			if part.Error.Wrapped != nil {
+				continue
+			}
+
 			switch v := part.AST.(type) {
 			case *ast.Where:
 				where, err := compileFilters(v.Filters)

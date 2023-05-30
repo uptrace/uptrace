@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"strings"
 	"time"
@@ -86,15 +87,15 @@ func (f *SpanFilter) columns(items []map[string]any) []ColumnInfo {
 		}
 
 		switch ast := part.AST.(type) {
-		case *tql.Columns:
-			for _, name := range ast.Names {
+		case *tql.Selector:
+			for _, col := range ast.Columns {
 				columns = append(columns, ColumnInfo{
-					Name:  name.String(),
-					IsNum: isNumColumn(item[name.String()]),
-					Unit:  unitFromName(name),
+					Name:  col.Name.String(),
+					IsNum: isNumColumn(item[col.Name.String()]),
+					Unit:  unitFromName(col.Name),
 				})
 			}
-		case *tql.Group:
+		case *tql.Grouping:
 			for _, name := range ast.Names {
 				columns = append(columns, ColumnInfo{
 					Name:    name.String(),
@@ -121,7 +122,7 @@ func unitFromName(name tql.Name) string {
 	var unit string
 
 	switch name.AttrKey {
-	case attrkey.SpanErrorPct:
+	case attrkey.SpanErrorPct, attrkey.SpanErrorRate:
 		unit = bununit.Utilization
 	case attrkey.SpanDuration:
 		unit = bununit.Nanoseconds
@@ -180,7 +181,7 @@ func compileUQL(
 		}
 
 		switch ast := part.AST.(type) {
-		case *tql.Group:
+		case *tql.Grouping:
 			for _, name := range ast.Names {
 				q = tqlColumn(q, name, dur)
 				columnSet[name.String()] = true
@@ -197,19 +198,19 @@ func compileUQL(
 		}
 
 		switch ast := part.AST.(type) {
-		case *tql.Columns:
-			for _, name := range ast.Names {
-				if !groupSet[name.String()] && !IsAggColumn(name) {
+		case *tql.Selector:
+			for _, col := range ast.Columns {
+				if !groupSet[col.Name.String()] && !IsAggColumn(col.Name) {
 					part.SetError("must be an agg or a group-by")
 					continue
 				}
 
-				if columnSet[name.String()] {
+				if columnSet[col.Name.String()] {
 					continue
 				}
 
-				q = tqlColumn(q, name, dur)
-				columnSet[name.String()] = true
+				q = tqlColumn(q, col.Name, dur)
+				columnSet[col.Name.String()] = true
 			}
 		case *tql.Where:
 			where, having := AppendWhereHaving(ast, dur)
@@ -244,7 +245,11 @@ func IsAggColumn(col tql.Name) bool {
 
 func isAggAttr(attrKey string) bool {
 	switch attrKey {
-	case attrkey.SpanCount, attrkey.SpanCountPerMin, attrkey.SpanErrorCount, attrkey.SpanErrorPct:
+	case attrkey.SpanCount,
+		attrkey.SpanCountPerMin,
+		attrkey.SpanErrorCount,
+		attrkey.SpanErrorPct,
+		attrkey.SpanErrorRate:
 		return true
 	default:
 		return false
@@ -256,7 +261,7 @@ func tqlColumn(q *ch.SelectQuery, name tql.Name, dur time.Duration) *ch.SelectQu
 	b = AppendCHColumn(b, name, dur)
 	b = append(b, " AS "...)
 	b = append(b, '"')
-	b = name.Append(b)
+	b = name.AppendString(b)
 	b = append(b, '"')
 	return q.ColumnExpr(string(b))
 }
@@ -279,12 +284,12 @@ func AppendCHColumn(b []byte, name tql.Name, dur time.Duration) []byte {
 		return chschema.AppendQuery(b, "sum(s.count) / ?", dur.Minutes())
 	case attrkey.SpanErrorCount:
 		return chschema.AppendQuery(b, "sumIf(s.count, s.status_code = 'error')", dur.Minutes())
-	case attrkey.SpanErrorPct:
+	case attrkey.SpanErrorPct, attrkey.SpanErrorRate:
 		return chschema.AppendQuery(
 			b, "sumIf(s.count, s.status_code = 'error') / sum(s.count)", dur.Minutes())
 	case attrkey.SpanIsEvent:
 		return chschema.AppendQuery(
-			b, "s.type IN (?)", ch.In(EventTypes))
+			b, "s.type IN ?", ch.In(EventTypes))
 	default:
 		if name.FuncName != "" {
 			b = append(b, name.FuncName...)
@@ -306,8 +311,8 @@ func CHAttrExpr(key string) ch.Safe {
 }
 
 func AppendCHAttrExpr(b []byte, key string) []byte {
-	if strings.HasPrefix(key, "span.") {
-		key = strings.TrimPrefix(key, "span.")
+	if strings.HasPrefix(key, ".") {
+		key = strings.TrimPrefix(key, ".")
 		b = append(b, "s."...)
 		return chschema.AppendIdent(b, key)
 	}
@@ -325,29 +330,29 @@ func AppendWhereHaving(ast *tql.Where, dur time.Duration) ([]byte, []byte) {
 	var where []byte
 	var having []byte
 
-	for _, cond := range ast.Conds {
-		bb := AppendCond(cond, dur)
+	for _, filter := range ast.Filters {
+		bb := AppendFilter(filter, dur)
 		if bb == nil {
 			continue
 		}
 
-		if IsAggColumn(cond.Left) {
-			having = appendCond(having, cond, bb)
+		if IsAggColumn(filter.LHS) {
+			having = appendFilter(having, filter, bb)
 		} else {
-			where = appendCond(where, cond, bb)
+			where = appendFilter(where, filter, bb)
 		}
 	}
 
 	return where, having
 }
 
-func AppendCond(cond tql.Cond, dur time.Duration) []byte {
+func AppendFilter(filter tql.Filter, dur time.Duration) []byte {
 	var b []byte
 
-	switch cond.Op {
-	case tql.ExistsOp, tql.DoesNotExistOp:
-		if strings.HasPrefix(cond.Left.AttrKey, "span.") {
-			if cond.Op == tql.DoesNotExistOp {
+	switch filter.Op {
+	case tql.FilterExists, tql.FilterNotExists:
+		if strings.HasPrefix(filter.LHS.AttrKey, ".") {
+			if filter.Op == tql.FilterNotExists {
 				b = append(b, '0')
 			} else {
 				b = append(b, '1')
@@ -355,50 +360,60 @@ func AppendCond(cond tql.Cond, dur time.Duration) []byte {
 			return b
 		}
 
-		if cond.Op == tql.DoesNotExistOp {
+		if filter.Op == tql.FilterNotExists {
 			b = append(b, "NOT "...)
 		}
-		b = chschema.AppendQuery(b, "has(s.all_keys, ?)", cond.Left.AttrKey)
+		b = chschema.AppendQuery(b, "has(s.all_keys, ?)", filter.LHS.AttrKey)
 		return b
-	case tql.ContainsOp, tql.DoesNotContainOp:
-		if cond.Op == tql.DoesNotContainOp {
+	case tql.FilterIn, tql.FilterNotIn:
+		if filter.Op == tql.FilterNotIn {
 			b = append(b, "NOT "...)
 		}
 
-		values := strings.Split(cond.Right.Text, "|")
+		var values []string
+		switch rhs := filter.RHS.(type) {
+		case tql.StringValues:
+			values = rhs.Values
+		case tql.StringValue:
+			values = []string{rhs.Text}
+		default:
+			panic(fmt.Errorf("unsupported IN filter value type: %T", filter.RHS))
+		}
+
+		b = AppendCHColumn(b, filter.LHS, dur)
+		b = append(b, " IN "...)
+		b = chschema.AppendQuery(b, "?", ch.In(values))
+		return b
+	case tql.FilterContains, tql.FilterNotContains:
+		if filter.Op == tql.FilterNotContains {
+			b = append(b, "NOT "...)
+		}
+
+		values := strings.Split(filter.RHS.String(), "|")
 		b = append(b, "multiSearchAnyCaseInsensitiveUTF8("...)
-		b = AppendCHColumn(b, cond.Left, dur)
+		b = AppendCHColumn(b, filter.LHS, dur)
 		b = append(b, ", "...)
-		b = chschema.AppendQuery(b, "[?]", ch.In(values))
+		b = chschema.AppendQuery(b, "?", ch.Array(values))
 		b = append(b, ")"...)
 
 		return b
 	}
 
-	b = AppendCHColumn(b, cond.Left, dur)
+	b = AppendCHColumn(b, filter.LHS, dur)
 
 	b = append(b, ' ')
-	b = append(b, cond.Op...)
+	b = append(b, filter.Op...)
 	b = append(b, ' ')
 
-	if cond.Right.IsNum() {
-		b = append(b, "toString("...)
-	}
-	b = cond.Right.Append(b)
-	if cond.Right.IsNum() {
-		b = append(b, ')')
-	}
+	b = chschema.AppendString(b, filter.RHS.String())
 
 	return b
 }
 
-func appendCond(b []byte, cond tql.Cond, bb []byte) []byte {
+func appendFilter(b []byte, filter tql.Filter, bb []byte) []byte {
 	if len(b) > 0 {
-		b = append(b, cond.Sep.Op...)
+		b = append(b, filter.BoolOp...)
 		b = append(b, ' ')
-	}
-	if cond.Sep.Negate {
-		b = append(b, "NOT "...)
 	}
 	return append(b, bb...)
 }
@@ -410,13 +425,13 @@ func disableColumnsAndGroups(parts []*tql.QueryPart) {
 		}
 
 		switch ast := part.AST.(type) {
-		case *tql.Columns:
+		case *tql.Selector:
 			part.Disabled = true
-		case *tql.Group:
+		case *tql.Grouping:
 			part.Disabled = true
 		case *tql.Where:
-			for _, cond := range ast.Conds {
-				if IsAggColumn(cond.Left) {
+			for _, filter := range ast.Filters {
+				if IsAggColumn(filter.LHS) {
 					part.Disabled = true
 					break
 				}

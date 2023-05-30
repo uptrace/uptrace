@@ -49,7 +49,7 @@ func (h *SystemHandler) selectSystems(
 		ColumnExpr("sum(s.count) AS count").
 		ColumnExpr("sumIf(s.count, s.status_code = 'error') AS errorCount").
 		ColumnExpr("sum(s.count) / ? AS rate", f.TimeFilter.Duration().Minutes()).
-		ColumnExpr("sumIf(s.count, s.status_code = 'error') / sum(s.count) AS errorPct").
+		ColumnExpr("sumIf(s.count, s.status_code = 'error') / sum(s.count) AS errorRate").
 		Apply(f.whereClause).
 		Apply(f.spanqlWhere).
 		GroupExpr("project_id, system").

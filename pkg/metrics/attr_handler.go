@@ -177,7 +177,7 @@ func (h *AttrHandler) selectAttrKeys(ctx context.Context, f *AttrFilter) ([]stri
 		Where("project_id = ?", f.ProjectID).
 		Where("time >= ?", f.TimeGTE).
 		Where("time < ?", f.TimeLT).
-		Where("metric IN (?)", ch.In(f.Metric))
+		Where("metric IN ?", ch.In(f.Metric))
 
 	var numMetric int
 	if err := subq.Clone().ColumnExpr("uniq(metric)").Scan(ctx, &numMetric); err != nil {
@@ -244,7 +244,7 @@ func (h *AttrHandler) selectAttrValues(
 		ColumnExpr("DISTINCT string_values[indexOf(string_keys, ?)] AS value", f.AttrKey).
 		TableExpr("?", tableName).
 		Where("project_id = ?", f.ProjectID).
-		Where("metric IN (?)", ch.In(f.Metric)).
+		Where("metric IN ?", ch.In(f.Metric)).
 		Where("time >= ?", f.TimeGTE).
 		Where("time < ?", f.TimeLT).
 		Where("has(string_keys, ?)", f.AttrKey).

@@ -11,7 +11,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/vmihailenco/taskq/v4"
-	"go.opentelemetry.io/otel/metric/instrument"
+	"go.opentelemetry.io/otel/metric"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	"go.uber.org/zap"
 )
@@ -31,7 +31,7 @@ var jsonMarshaler = &jsonpb.Marshaler{}
 
 var measureCounter, _ = bunotel.Meter.Int64Counter(
 	"uptrace.projects.measures",
-	instrument.WithDescription("Number of processed measures"),
+	metric.WithDescription("Number of processed measures"),
 )
 
 func Init(ctx context.Context, app *bunapp.App) {

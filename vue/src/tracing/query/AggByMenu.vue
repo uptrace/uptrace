@@ -108,10 +108,10 @@ interface FuncItem {
 const aggColumns = [
   { name: AttrKey.spanCount, tooltip: 'Number of spans in a group' },
   { name: AttrKey.spanCountPerMin, tooltip: 'Number of spans per minute in a group' },
-  { name: AttrKey.spanErrorCount, tooltip: 'Number of spans with span.status_code = "error"' },
-  { name: AttrKey.spanErrorPct, tooltip: 'Percent of spans with span.status_code = "error"' },
-  { name: `p75(${AttrKey.spanDuration})`, tooltip: '75th percentile of span.duration' },
-  { name: `max(${AttrKey.spanDuration})`, tooltip: 'Max span.duration' },
+  { name: AttrKey.spanErrorCount, tooltip: 'Number of spans with .status_code = "error"' },
+  { name: AttrKey.spanErrorRate, tooltip: 'Percent of spans with .status_code = "error"' },
+  { name: `p75(${AttrKey.spanDuration})`, tooltip: '75th percentile of .duration' },
+  { name: `max(${AttrKey.spanDuration})`, tooltip: 'Max .duration' },
   { name: `uniq(${AttrKey.enduserId})`, tooltip: 'Number of distinct enduser.id' },
 ]
 

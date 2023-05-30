@@ -42,18 +42,20 @@ func Parse(s string) []*QueryPart {
 func ParseName(s string) (Name, error) {
 	v, err := ParsePart(s)
 	if err != nil {
-		return Name{}, nil
+		return Name{}, err
 	}
 
-	cols, ok := v.(*Columns)
+	sel, ok := v.(*Selector)
 	if !ok {
-		return Name{}, fmt.Errorf("tql: got %T, wanted *Columns", v)
+		return Name{}, fmt.Errorf("tql: got %T, wanted *Selector", v)
 	}
 
-	if len(cols.Names) != 1 {
-		return Name{}, fmt.Errorf("tql: got %d names, wanted 1", len(cols.Names))
+	if len(sel.Columns) != 1 {
+		return Name{}, fmt.Errorf("tql: got %d columns, wanted 1", len(sel.Columns))
 	}
-	return cols.Names[0], nil
+
+	col := &sel.Columns[0]
+	return col.Name, nil
 }
 
 func splitQuery(s string) []string {

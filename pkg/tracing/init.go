@@ -7,7 +7,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/org"
-	"go.opentelemetry.io/otel/metric/instrument"
+	"go.opentelemetry.io/otel/metric"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 )
@@ -20,7 +20,7 @@ const (
 
 var spanCounter, _ = bunotel.Meter.Int64Counter(
 	"uptrace.projects.spans",
-	instrument.WithDescription("Number of processed spans"),
+	metric.WithDescription("Number of processed spans"),
 )
 
 func Init(ctx context.Context, app *bunapp.App) {

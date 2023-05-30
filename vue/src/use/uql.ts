@@ -270,7 +270,7 @@ export function exploreAttr(column: string, isEventSystem = false) {
     : [
         `group by ${column}`,
         AttrKey.spanCountPerMin,
-        AttrKey.spanErrorPct,
+        AttrKey.spanErrorRate,
         `{p50,p90,p99}(${AttrKey.spanDuration})`,
       ]
   return ss.join(QUERY_PART_SEP)

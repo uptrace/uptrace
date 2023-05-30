@@ -6,12 +6,11 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/trace"
 )
 
 var (
-	Meter  = global.Meter("github.com/uptrace/uptrace")
+	Meter  = otel.Meter("github.com/uptrace/uptrace")
 	Tracer = otel.Tracer("github.com/uptrace/uptrace")
 )
 
