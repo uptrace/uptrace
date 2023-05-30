@@ -10,7 +10,7 @@ import (
 	"github.com/uptrace/bunrouter"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
@@ -26,8 +26,8 @@ type QueryFilter struct {
 	Alias  []string
 	Query  string
 
-	parsedQuery *upql.ParsedQuery
-	allParts    []*upql.QueryPart
+	parsedQuery *mql.ParsedQuery
+	allParts    []*mql.QueryPart
 }
 
 func DecodeQueryFilter(req bunrouter.Request, f *QueryFilter) error {
@@ -66,7 +66,7 @@ func (f *QueryFilter) UnmarshalValues(ctx context.Context, values url.Values) (e
 		return fmt.Errorf("got %d metrics and %d aliases", len(f.Metric), len(f.Alias))
 	}
 
-	f.parsedQuery = upql.Parse(f.Query)
+	f.parsedQuery = mql.Parse(f.Query)
 	f.allParts = f.parsedQuery.Parts
 
 	return nil

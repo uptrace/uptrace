@@ -10,8 +10,8 @@ import (
 	"github.com/uptrace/bun"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
-	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 )
 
 type DashKind string
@@ -33,7 +33,7 @@ type Dashboard struct {
 
 	GridQuery string `json:"gridQuery" bun:",nullzero"`
 
-	TableMetrics   []upql.MetricAlias       `json:"tableMetrics" bun:",type:jsonb,nullzero"`
+	TableMetrics   []mql.MetricAlias        `json:"tableMetrics" bun:",type:jsonb,nullzero"`
 	TableQuery     string                   `json:"tableQuery" bun:",nullzero"`
 	TableGrouping  []string                 `json:"tableGrouping" bun:",type:jsonb,nullzero"`
 	TableColumnMap map[string]*MetricColumn `json:"tableColumnMap" bun:",type:jsonb,nullzero"`
@@ -80,13 +80,13 @@ func (d *Dashboard) validate() error {
 	}
 
 	if d.TableMetrics == nil {
-		d.TableMetrics = make([]upql.MetricAlias, 0)
+		d.TableMetrics = make([]mql.MetricAlias, 0)
 	} else if len(d.TableMetrics) > 6 {
 		return errors.New("you can't use more than 6 metrics in a single table")
 	}
 
 	if d.TableQuery != "" {
-		query, err := upql.ParseError(d.TableQuery)
+		query, err := mql.ParseError(d.TableQuery)
 		if err != nil {
 			return fmt.Errorf("can't parse query: %w", err)
 		}

@@ -8,7 +8,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
 	"gopkg.in/yaml.v3"
 )
@@ -95,7 +95,7 @@ func (h *DashHandler) UpdateTable(w http.ResponseWriter, req bunrouter.Request) 
 	dash := dashFromContext(ctx)
 
 	var in struct {
-		TableMetrics   []upql.MetricAlias       `json:"tableMetrics"`
+		TableMetrics   []mql.MetricAlias        `json:"tableMetrics"`
 		TableQuery     string                   `json:"tableQuery"`
 		TableColumnMap map[string]*MetricColumn `json:"tableColumnMap"`
 	}

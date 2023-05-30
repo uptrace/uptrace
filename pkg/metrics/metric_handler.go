@@ -14,8 +14,8 @@ import (
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
-	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
@@ -138,7 +138,7 @@ func selectMetricsFromCH(
 	}
 
 	if f.Query != "" {
-		query := upql.Parse(f.Query)
+		query := mql.Parse(f.Query)
 		for _, part := range query.Parts {
 			switch v := part.AST.(type) {
 			case *ast.Where:

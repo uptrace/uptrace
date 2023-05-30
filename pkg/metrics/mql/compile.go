@@ -1,11 +1,11 @@
-package upql
+package mql
 
 import (
 	"fmt"
 	"strings"
 	"sync"
 
-	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
+	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 )
 
 const (

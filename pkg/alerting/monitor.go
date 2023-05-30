@@ -10,7 +10,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/madalarm"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
 )
@@ -85,10 +85,10 @@ const (
 )
 
 type MetricMonitorParams struct {
-	Metrics    []upql.MetricAlias `json:"metrics"`
-	Query      string             `json:"query"`
-	Column     string             `json:"column"`
-	ColumnUnit string             `json:"columnUnit"`
+	Metrics    []mql.MetricAlias `json:"metrics"`
+	Query      string            `json:"query"`
+	Column     string            `json:"column"`
+	ColumnUnit string            `json:"columnUnit"`
 
 	ForDuration     int32       `json:"forDuration"`
 	ForDurationUnit MonitorUnit `json:"forDurationUnit"`

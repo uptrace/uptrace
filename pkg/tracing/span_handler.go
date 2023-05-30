@@ -16,7 +16,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing/upql"
+	"github.com/uptrace/uptrace/pkg/tracing/tql"
 	"go4.org/syncutil"
 )
 
@@ -259,11 +259,11 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 		OrderExpr("time_ ASC")
 
 	for _, colName := range f.Column {
-		col, err := upql.ParseName(colName)
+		col, err := tql.ParseName(colName)
 		if err != nil {
 			return err
 		}
-		subq = upqlColumn(subq, col, groupingPeriod)
+		subq = tqlColumn(subq, col, groupingPeriod)
 	}
 
 	item := make(map[string]interface{})

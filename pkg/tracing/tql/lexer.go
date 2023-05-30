@@ -1,4 +1,4 @@
-package upql
+package tql
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 
 //go:generate parseme -struct=queryParser
 
-///go:generate stringer -type=TokenID
+// /go:generate stringer -type=TokenID
 type TokenID int8
 
 const (
@@ -42,28 +42,28 @@ func (t *Token) String() string {
 
 //------------------------------------------------------------------------------
 
-type tokenizer struct {
+type lexer struct {
 	lex bunlex.Lexer
 
 	tokens []Token
 	pos    int
 }
 
-func newTokenizer(s string) *tokenizer {
-	t := &tokenizer{
+func newLexer(s string) *lexer {
+	t := &lexer{
 		tokens: make([]Token, 0, 32),
 	}
 	t.Reset(s)
 	return t
 }
 
-func (l *tokenizer) Reset(s string) {
+func (l *lexer) Reset(s string) {
 	l.lex.Reset(s)
 	l.tokens = l.tokens[:0]
 	l.pos = 0
 }
 
-func (l *tokenizer) NextToken() (*Token, error) {
+func (l *lexer) NextToken() (*Token, error) {
 	tok, err := l.PeekToken()
 	if err != nil {
 		return nil, err
@@ -72,22 +72,22 @@ func (l *tokenizer) NextToken() (*Token, error) {
 	return tok, nil
 }
 
-func (l *tokenizer) PeekToken() (*Token, error) {
+func (l *lexer) PeekToken() (*Token, error) {
 	if l.pos < len(l.tokens) {
 		return &l.tokens[l.pos], nil
 	}
 	return l.readToken()
 }
 
-func (l *tokenizer) Pos() int {
+func (l *lexer) Pos() int {
 	return l.pos
 }
 
-func (l *tokenizer) ResetPos(pos int) {
+func (l *lexer) ResetPos(pos int) {
 	l.pos = pos
 }
 
-func (l *tokenizer) readToken() (*Token, error) {
+func (l *lexer) readToken() (*Token, error) {
 	if !l.lex.Valid() {
 		return eofToken, nil
 	}
@@ -118,12 +118,12 @@ func (l *tokenizer) readToken() (*Token, error) {
 	return l.charToken(BYTE_TOKEN), nil
 }
 
-func (l *tokenizer) charToken(id TokenID) *Token {
+func (l *lexer) charToken(id TokenID) *Token {
 	pos := l.lex.Pos()
 	return l.token(id, l.lex.Slice(pos-1, pos), pos-1)
 }
 
-func (l *tokenizer) quotedValue(end byte) (*Token, error) {
+func (l *lexer) quotedValue(end byte) (*Token, error) {
 	start := l.lex.Pos() - 1
 
 	s, err := l.lex.ReadUnquoted(end)
@@ -139,7 +139,7 @@ func (l *tokenizer) quotedValue(end byte) (*Token, error) {
 	return &l.tokens[len(l.tokens)-1], nil
 }
 
-func (l *tokenizer) number() (*Token, error) {
+func (l *lexer) number() (*Token, error) {
 	start := l.lex.Pos() - 1
 	s, _ := l.lex.ReadSepFunc(l.lex.Pos()-1, l.isWordBoundary)
 
@@ -153,7 +153,7 @@ func (l *tokenizer) number() (*Token, error) {
 	return l.token(NUMBER_TOKEN, s, start), nil
 }
 
-func (l *tokenizer) ident(start int) (*Token, error) {
+func (l *lexer) ident(start int) (*Token, error) {
 	for l.lex.Valid() {
 		c := l.lex.PeekByte()
 		if !isIdent(c) {
@@ -166,7 +166,7 @@ func (l *tokenizer) ident(start int) (*Token, error) {
 	return l.token(IDENT_TOKEN, s, start), nil
 }
 
-func (l *tokenizer) token(id TokenID, s string, start int) *Token {
+func (l *lexer) token(id TokenID, s string, start int) *Token {
 	l.tokens = append(l.tokens, Token{
 		ID:    id,
 		Text:  s,
@@ -175,7 +175,7 @@ func (l *tokenizer) token(id TokenID, s string, start int) *Token {
 	return &l.tokens[len(l.tokens)-1]
 }
 
-func (l *tokenizer) isWordBoundary(c byte) bool {
+func (l *lexer) isWordBoundary(c byte) bool {
 	if bunlex.IsWhitespace(c) {
 		return true
 	}

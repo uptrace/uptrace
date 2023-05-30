@@ -1,4 +1,0 @@
-(map[string]interface {}) (len=2) {
-  (string) (len=3) "err": (string) (len=5) "<nil>",
-  (string) (len=3) "uql": (interface {}) <nil>
-}

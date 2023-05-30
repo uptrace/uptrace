@@ -10,7 +10,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing/upql"
+	"github.com/uptrace/uptrace/pkg/tracing/tql"
 	"golang.org/x/exp/slices"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -108,13 +108,13 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 	}
 	f.AttrKey = attrkey.Clean(f.AttrKey)
 
-	colName, err := upql.ParseName(f.AttrKey)
+	colName, err := tql.ParseName(f.AttrKey)
 	if err != nil {
 		return err
 	}
 
 	for _, part := range f.parts {
-		ast, ok := part.AST.(*upql.Where)
+		ast, ok := part.AST.(*tql.Where)
 		if !ok {
 			continue
 		}
@@ -128,7 +128,7 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 	}
 
 	q := buildSpanIndexQuery(h.App, f, 0)
-	q = upqlColumn(q, colName, 0).Group(f.AttrKey).
+	q = tqlColumn(q, colName, 0).Group(f.AttrKey).
 		ColumnExpr("count() AS count")
 	if !strings.HasPrefix(f.AttrKey, "span.") {
 		q = q.Where("has(s.all_keys, ?)", f.AttrKey)

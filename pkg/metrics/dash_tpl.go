@@ -7,7 +7,7 @@ import (
 	"io/fs"
 
 	"github.com/uptrace/uptrace"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"gopkg.in/yaml.v3"
 )
 
@@ -144,7 +144,7 @@ func NewDashboardTpl(
 	for i, metric := range dash.TableMetrics {
 		tpl.Table.Metrics[i] = metric.String()
 	}
-	tpl.Table.Query = upql.SplitQuery(dash.TableQuery)
+	tpl.Table.Query = mql.SplitQuery(dash.TableQuery)
 	tpl.Table.Columns = dash.TableColumnMap
 
 	tpl.GridNodes = make([]yaml.Node, len(grid))
@@ -208,7 +208,7 @@ func NewDashGaugeTpl(gauge *DashGauge) *DashGaugeTpl {
 		tpl.Metrics[i] = metric.String()
 	}
 
-	tpl.Query = upql.SplitQuery(gauge.Query)
+	tpl.Query = mql.SplitQuery(gauge.Query)
 	tpl.Columns = gauge.ColumnMap
 
 	tpl.GridQueryTemplate = gauge.GridQueryTemplate
@@ -267,7 +267,7 @@ func NewChartGridColumnTpl(col *ChartGridColumn) *ChartGridColumnTpl {
 	}
 
 	tpl.ChartKind = col.Params.ChartKind
-	tpl.Query = upql.SplitQuery(col.Params.Query)
+	tpl.Query = mql.SplitQuery(col.Params.Query)
 	tpl.Columns = col.Params.ColumnMap
 	tpl.Styles = col.Params.TimeseriesMap
 	tpl.Legend = col.Params.Legend
@@ -295,7 +295,7 @@ func NewTableGridColumnTpl(col *TableGridColumn) *TableGridColumnTpl {
 		tpl.Metrics[i] = metric.String()
 	}
 
-	tpl.Query = upql.SplitQuery(col.Params.Query)
+	tpl.Query = mql.SplitQuery(col.Params.Query)
 	tpl.Columns = col.Params.ColumnMap
 
 	return tpl
@@ -315,7 +315,7 @@ func NewHeatmapGridColumnTpl(col *HeatmapGridColumn) *HeatmapGridColumnTpl {
 
 	tpl.Metric = col.Params.Metric
 	tpl.Unit = col.Params.Unit
-	tpl.Query = upql.SplitQuery(col.Params.Query)
+	tpl.Query = mql.SplitQuery(col.Params.Query)
 
 	return tpl
 }

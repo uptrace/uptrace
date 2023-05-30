@@ -1,4 +1,4 @@
-package upql
+package tql
 
 import (
 	"fmt"
@@ -47,11 +47,11 @@ func ParseName(s string) (Name, error) {
 
 	cols, ok := v.(*Columns)
 	if !ok {
-		return Name{}, fmt.Errorf("upql: got %T, wanted *Columns", v)
+		return Name{}, fmt.Errorf("tql: got %T, wanted *Columns", v)
 	}
 
 	if len(cols.Names) != 1 {
-		return Name{}, fmt.Errorf("upql: got %d names, wanted 1", len(cols.Names))
+		return Name{}, fmt.Errorf("tql: got %d names, wanted 1", len(cols.Names))
 	}
 	return cols.Names[0], nil
 }

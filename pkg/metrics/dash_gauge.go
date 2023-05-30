@@ -10,7 +10,7 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
 )
 
 type DashGauge struct {
@@ -29,7 +29,7 @@ type DashGauge struct {
 	Description string `json:"description"`
 	Template    string `json:"template" bun:",nullzero"`
 
-	Metrics   []upql.MetricAlias       `json:"metrics"`
+	Metrics   []mql.MetricAlias        `json:"metrics"`
 	Query     string                   `json:"query"`
 	ColumnMap map[string]*MetricColumn `json:"columnMap" bun:",nullzero"`
 
@@ -92,7 +92,7 @@ func (g *DashGauge) validate() error {
 	if g.Query == "" {
 		return fmt.Errorf("query can't be empty")
 	}
-	if _, err := upql.ParseError(g.Query); err != nil {
+	if _, err := mql.ParseError(g.Query); err != nil {
 		return fmt.Errorf("can't parse query: %w", err)
 	}
 
@@ -101,7 +101,7 @@ func (g *DashGauge) validate() error {
 	}
 
 	if false {
-		if _, err := upql.ParseError(g.GridQueryTemplate); err != nil {
+		if _, err := mql.ParseError(g.GridQueryTemplate); err != nil {
 			return fmt.Errorf("can't parse grid query template: %w", err)
 		}
 	}

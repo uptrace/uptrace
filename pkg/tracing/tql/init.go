@@ -1,4 +1,4 @@
-package upql
+package tql
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ func ParsePart(s string) (any, error) {
 	}
 
 	p := &queryParser{
-		tokenizer: newTokenizer(s),
+		lexer: newLexer(s),
 	}
 
 	expr, err := p.parseQuery()
@@ -23,7 +23,7 @@ func ParsePart(s string) (any, error) {
 }
 
 type queryParser struct {
-	*tokenizer
+	*lexer
 	cutPos int
 }
 
@@ -38,11 +38,11 @@ func (p *queryParser) errorWithHint(str string) error {
 		return fmt.Errorf("can't parse %q", str)
 	}
 
-	lupqlTokPos := p.cutPos
-	if lupqlTokPos >= len(p.tokens) {
-		lupqlTokPos = len(p.tokens) - 1
+	ltqlTokPos := p.cutPos
+	if ltqlTokPos >= len(p.tokens) {
+		ltqlTokPos = len(p.tokens) - 1
 	}
-	tok := &p.tokens[lupqlTokPos]
+	tok := &p.tokens[ltqlTokPos]
 
 	pos := tok.Start + len(tok.Text)
 	s := pos - distance

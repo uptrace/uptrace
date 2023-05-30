@@ -13,7 +13,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bununit"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing/upql"
+	"github.com/uptrace/uptrace/pkg/tracing/tql"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
 
@@ -33,7 +33,7 @@ type SpanFilter struct {
 	AttrKey     string
 	SearchInput string
 
-	parts     []*upql.QueryPart
+	parts     []*tql.QueryPart
 	columnMap map[string]bool
 }
 
@@ -46,7 +46,7 @@ func DecodeSpanFilter(app *bunapp.App, req bunrouter.Request) (*SpanFilter, erro
 
 	project := org.ProjectFromContext(req.Context())
 	f.ProjectID = project.ID
-	f.parts = upql.Parse(f.Query)
+	f.parts = tql.Parse(f.Query)
 
 	return f, nil
 }
@@ -86,7 +86,7 @@ func (f *SpanFilter) columns(items []map[string]any) []ColumnInfo {
 		}
 
 		switch ast := part.AST.(type) {
-		case *upql.Columns:
+		case *tql.Columns:
 			for _, name := range ast.Names {
 				columns = append(columns, ColumnInfo{
 					Name:  name.String(),
@@ -94,7 +94,7 @@ func (f *SpanFilter) columns(items []map[string]any) []ColumnInfo {
 					Unit:  unitFromName(name),
 				})
 			}
-		case *upql.Group:
+		case *tql.Group:
 			for _, name := range ast.Names {
 				columns = append(columns, ColumnInfo{
 					Name:    name.String(),
@@ -117,7 +117,7 @@ func isNumColumn(v any) bool {
 	}
 }
 
-func unitFromName(name upql.Name) string {
+func unitFromName(name tql.Name) string {
 	var unit string
 
 	switch name.AttrKey {
@@ -145,7 +145,7 @@ func (f *SpanFilter) spanqlWhere(q *ch.SelectQuery) *ch.SelectQuery {
 		}
 
 		switch ast := part.AST.(type) {
-		case *upql.Where:
+		case *tql.Where:
 			where, _ := AppendWhereHaving(ast, f.TimeFilter.Duration())
 			if len(where) > 0 {
 				q = q.Where(string(where))
@@ -169,7 +169,7 @@ func buildSpanIndexQuery(app *bunapp.App, f *SpanFilter, dur time.Duration) *ch.
 }
 
 func compileUQL(
-	q *ch.SelectQuery, parts []*upql.QueryPart, dur time.Duration,
+	q *ch.SelectQuery, parts []*tql.QueryPart, dur time.Duration,
 ) (*ch.SelectQuery, map[string]bool) {
 	groupSet := make(map[string]bool)
 	columnSet := make(map[string]bool)
@@ -180,9 +180,9 @@ func compileUQL(
 		}
 
 		switch ast := part.AST.(type) {
-		case *upql.Group:
+		case *tql.Group:
 			for _, name := range ast.Names {
-				q = upqlColumn(q, name, dur)
+				q = tqlColumn(q, name, dur)
 				columnSet[name.String()] = true
 
 				q = q.Group(name.String())
@@ -197,7 +197,7 @@ func compileUQL(
 		}
 
 		switch ast := part.AST.(type) {
-		case *upql.Columns:
+		case *tql.Columns:
 			for _, name := range ast.Names {
 				if !groupSet[name.String()] && !IsAggColumn(name) {
 					part.SetError("must be an agg or a group-by")
@@ -208,10 +208,10 @@ func compileUQL(
 					continue
 				}
 
-				q = upqlColumn(q, name, dur)
+				q = tqlColumn(q, name, dur)
 				columnSet[name.String()] = true
 			}
-		case *upql.Where:
+		case *tql.Where:
 			where, having := AppendWhereHaving(ast, dur)
 			if len(where) > 0 {
 				q = q.Where(string(where))
@@ -222,11 +222,11 @@ func compileUQL(
 		}
 	}
 
-	if columnSet[upql.Name{AttrKey: attrkey.SpanGroupID}.String()] {
+	if columnSet[tql.Name{AttrKey: attrkey.SpanGroupID}.String()] {
 		for _, key := range []string{attrkey.SpanSystem, attrkey.SpanName, attrkey.SpanEventName} {
-			name := upql.Name{FuncName: "any", AttrKey: key}
+			name := tql.Name{FuncName: "any", AttrKey: key}
 			if !columnSet[name.String()] {
-				q = upqlColumn(q, name, dur)
+				q = tqlColumn(q, name, dur)
 				columnSet[name.String()] = true
 			}
 		}
@@ -235,7 +235,7 @@ func compileUQL(
 	return q, columnSet
 }
 
-func IsAggColumn(col upql.Name) bool {
+func IsAggColumn(col tql.Name) bool {
 	if col.FuncName != "" {
 		return true
 	}
@@ -251,7 +251,7 @@ func isAggAttr(attrKey string) bool {
 	}
 }
 
-func upqlColumn(q *ch.SelectQuery, name upql.Name, dur time.Duration) *ch.SelectQuery {
+func tqlColumn(q *ch.SelectQuery, name tql.Name, dur time.Duration) *ch.SelectQuery {
 	var b []byte
 	b = AppendCHColumn(b, name, dur)
 	b = append(b, " AS "...)
@@ -261,7 +261,7 @@ func upqlColumn(q *ch.SelectQuery, name upql.Name, dur time.Duration) *ch.Select
 	return q.ColumnExpr(string(b))
 }
 
-func AppendCHColumn(b []byte, name upql.Name, dur time.Duration) []byte {
+func AppendCHColumn(b []byte, name tql.Name, dur time.Duration) []byte {
 	switch name.FuncName {
 	case "p50", "p75", "p90", "p99":
 		return chschema.AppendQuery(b, "quantileTDigest(?)(toFloat64OrDefault(?))",
@@ -321,7 +321,7 @@ func AppendCHAttrExpr(b []byte, key string) []byte {
 	return chschema.AppendQuery(b, "s.attr_values[indexOf(s.attr_keys, ?)]", key)
 }
 
-func AppendWhereHaving(ast *upql.Where, dur time.Duration) ([]byte, []byte) {
+func AppendWhereHaving(ast *tql.Where, dur time.Duration) ([]byte, []byte) {
 	var where []byte
 	var having []byte
 
@@ -341,13 +341,13 @@ func AppendWhereHaving(ast *upql.Where, dur time.Duration) ([]byte, []byte) {
 	return where, having
 }
 
-func AppendCond(cond upql.Cond, dur time.Duration) []byte {
+func AppendCond(cond tql.Cond, dur time.Duration) []byte {
 	var b []byte
 
 	switch cond.Op {
-	case upql.ExistsOp, upql.DoesNotExistOp:
+	case tql.ExistsOp, tql.DoesNotExistOp:
 		if strings.HasPrefix(cond.Left.AttrKey, "span.") {
-			if cond.Op == upql.DoesNotExistOp {
+			if cond.Op == tql.DoesNotExistOp {
 				b = append(b, '0')
 			} else {
 				b = append(b, '1')
@@ -355,13 +355,13 @@ func AppendCond(cond upql.Cond, dur time.Duration) []byte {
 			return b
 		}
 
-		if cond.Op == upql.DoesNotExistOp {
+		if cond.Op == tql.DoesNotExistOp {
 			b = append(b, "NOT "...)
 		}
 		b = chschema.AppendQuery(b, "has(s.all_keys, ?)", cond.Left.AttrKey)
 		return b
-	case upql.ContainsOp, upql.DoesNotContainOp:
-		if cond.Op == upql.DoesNotContainOp {
+	case tql.ContainsOp, tql.DoesNotContainOp:
+		if cond.Op == tql.DoesNotContainOp {
 			b = append(b, "NOT "...)
 		}
 
@@ -392,7 +392,7 @@ func AppendCond(cond upql.Cond, dur time.Duration) []byte {
 	return b
 }
 
-func appendCond(b []byte, cond upql.Cond, bb []byte) []byte {
+func appendCond(b []byte, cond tql.Cond, bb []byte) []byte {
 	if len(b) > 0 {
 		b = append(b, cond.Sep.Op...)
 		b = append(b, ' ')
@@ -403,18 +403,18 @@ func appendCond(b []byte, cond upql.Cond, bb []byte) []byte {
 	return append(b, bb...)
 }
 
-func disableColumnsAndGroups(parts []*upql.QueryPart) {
+func disableColumnsAndGroups(parts []*tql.QueryPart) {
 	for _, part := range parts {
 		if part.Disabled || part.Error != "" {
 			continue
 		}
 
 		switch ast := part.AST.(type) {
-		case *upql.Columns:
+		case *tql.Columns:
 			part.Disabled = true
-		case *upql.Group:
+		case *tql.Group:
 			part.Disabled = true
-		case *upql.Where:
+		case *tql.Where:
 			for _, cond := range ast.Conds {
 				if IsAggColumn(cond.Left) {
 					part.Disabled = true

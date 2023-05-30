@@ -1,4 +1,4 @@
-package upql
+package mql
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/segmentio/encoding/json"
 
-	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
+	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 )
 
 type MetricAlias struct {

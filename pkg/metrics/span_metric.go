@@ -10,10 +10,10 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bununit"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
-	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"github.com/uptrace/uptrace/pkg/tracing"
-	tracingupql "github.com/uptrace/uptrace/pkg/tracing/upql"
+	"github.com/uptrace/uptrace/pkg/tracing/tql"
 )
 
 const spanMetricDur = 1
@@ -147,7 +147,7 @@ func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMet
 }
 
 func compileSpanMetricValue(value string) (ch.Safe, error) {
-	query := upql.Parse(value)
+	query := mql.Parse(value)
 	if len(query.Parts) != 1 {
 		return "", fmt.Errorf("can't parse metric value: %q", value)
 	}
@@ -170,7 +170,7 @@ func compileSpanMetricValue(value string) (ch.Safe, error) {
 func appendSpanMetricExpr(b []byte, expr ast.Expr) (_ []byte, err error) {
 	switch expr := expr.(type) {
 	case *ast.Name:
-		b = tracing.AppendCHColumn(b, tracingupql.Name{
+		b = tracing.AppendCHColumn(b, tql.Name{
 			FuncName: expr.Func,
 			AttrKey:  expr.Name,
 		}, spanMetricDur)
@@ -247,13 +247,13 @@ func compileSpanMetricWhere(query string) (ch.Safe, error) {
 		query = "where " + query
 	}
 
-	parts := tracingupql.Parse(query)
+	parts := tql.Parse(query)
 	if len(parts) != 1 {
 		return "", fmt.Errorf("can't parse metric where: %q", query)
 	}
 
 	part := parts[0]
-	ast, ok := part.AST.(*tracingupql.Where)
+	ast, ok := part.AST.(*tql.Where)
 	if !ok {
 		return "", fmt.Errorf("can't parse metric where: %q", query)
 	}

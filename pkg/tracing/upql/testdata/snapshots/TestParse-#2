@@ -1,8 +1,0 @@
-(map[string]interface {}) (len=2) {
-  (string) (len=3) "err": (string) (len=5) "<nil>",
-  (string) (len=3) "uql": (*uql.Columns)({
-    Names: ([]uql.Name) (len=1) {
-      (uql.Name) avg(a)
-    }
-  })
-}

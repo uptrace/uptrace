@@ -11,8 +11,8 @@ import (
 	"github.com/uptrace/go-clickhouse/ch/chschema"
 	"github.com/uptrace/uptrace/pkg/bununit"
 	"github.com/uptrace/uptrace/pkg/bunutil"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
-	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
@@ -44,7 +44,7 @@ func NewCHStorage(ctx context.Context, db *ch.DB, conf *CHStorageConfig) *CHStor
 	return s
 }
 
-var _ upql.Storage = (*CHStorage)(nil)
+var _ mql.Storage = (*CHStorage)(nil)
 
 func (s *CHStorage) Consts() map[string]float64 {
 	return map[string]float64{
@@ -53,8 +53,8 @@ func (s *CHStorage) Consts() map[string]float64 {
 	}
 }
 
-func (s *CHStorage) MakeTimeseries(f *upql.TimeseriesFilter) []upql.Timeseries {
-	var ts upql.Timeseries
+func (s *CHStorage) MakeTimeseries(f *mql.TimeseriesFilter) []mql.Timeseries {
+	var ts mql.Timeseries
 
 	if f != nil {
 		ts.Metric = f.Metric
@@ -69,7 +69,7 @@ func (s *CHStorage) MakeTimeseries(f *upql.TimeseriesFilter) []upql.Timeseries {
 
 	if s.conf.TableMode {
 		ts.Value = []float64{0}
-		return []upql.Timeseries{ts}
+		return []mql.Timeseries{ts}
 	}
 
 	size := int(s.conf.TimeFilter.Duration() / s.conf.GroupingPeriod)
@@ -79,10 +79,10 @@ func (s *CHStorage) MakeTimeseries(f *upql.TimeseriesFilter) []upql.Timeseries {
 		ts.Time[i] = s.conf.TimeGTE.Add(time.Duration(i) * s.conf.GroupingPeriod)
 	}
 
-	return []upql.Timeseries{ts}
+	return []mql.Timeseries{ts}
 }
 
-func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeseries, error) {
+func (s *CHStorage) SelectTimeseries(f *mql.TimeseriesFilter) ([]mql.Timeseries, error) {
 	metric, ok := s.conf.MetricMap[f.Metric]
 	if !ok {
 		return nil, fmt.Errorf("can't find metric with alias %q", f.Metric)
@@ -135,7 +135,7 @@ func (s *CHStorage) SelectTimeseries(f *upql.TimeseriesFilter) ([]upql.Timeserie
 func (s *CHStorage) subquery(
 	q *ch.SelectQuery,
 	metric *Metric,
-	f *upql.TimeseriesFilter,
+	f *mql.TimeseriesFilter,
 ) (_ *ch.SelectQuery, err error) {
 	if len(f.Filters) > 0 {
 		where, err := compileFilters(f.Filters)
@@ -288,7 +288,7 @@ func compileFilters(filters []ast.Filter) (string, error) {
 func (s *CHStorage) agg(
 	q *ch.SelectQuery,
 	metric *Metric,
-	f *upql.TimeseriesFilter,
+	f *mql.TimeseriesFilter,
 ) (*ch.SelectQuery, error) {
 	if f.Func == "uniq" {
 		q = q.ColumnExpr(
@@ -412,12 +412,12 @@ func (s *CHStorage) agg(
 }
 
 func (s *CHStorage) newTimeseries(
-	metric *Metric, f *upql.TimeseriesFilter, items []map[string]any,
-) ([]upql.Timeseries, error) {
-	timeseries := make([]upql.Timeseries, 0, len(items))
+	metric *Metric, f *mql.TimeseriesFilter, items []map[string]any,
+) ([]mql.Timeseries, error) {
+	timeseries := make([]mql.Timeseries, 0, len(items))
 
 	for _, m := range items {
-		timeseries = append(timeseries, upql.Timeseries{
+		timeseries = append(timeseries, mql.Timeseries{
 			Metric:     f.Metric,
 			Func:       f.Func,
 			Filters:    f.Filters,
@@ -461,11 +461,11 @@ func (s *CHStorage) newTimeseries(
 				attrs = append(attrs, attrKey, fmt.Sprint(m[attrKey]))
 				delete(m, attrKey)
 			}
-			ts.Attrs = upql.NewAttrs(attrs...)
+			ts.Attrs = mql.NewAttrs(attrs...)
 		case f.GroupByAll:
 			keys := m["string_keys"].([]string)
 			values := m["string_values"].([]string)
-			ts.Attrs = upql.AttrsFromKeysValues(keys, values)
+			ts.Attrs = mql.AttrsFromKeysValues(keys, values)
 			delete(m, "string_keys")
 			delete(m, "string_values")
 		}
@@ -475,7 +475,7 @@ func (s *CHStorage) newTimeseries(
 }
 
 func (s *CHStorage) tableValue(
-	metric *Metric, f *upql.TimeseriesFilter, value []float64,
+	metric *Metric, f *mql.TimeseriesFilter, value []float64,
 ) float64 {
 	switch f.Func {
 	case "":
@@ -510,7 +510,7 @@ func quantileColumn(q *ch.SelectQuery, quantile float64) *ch.SelectQuery {
 	return q.ColumnExpr("quantileBFloat16Merge(?)(histogram) AS value", quantile)
 }
 
-func metricUnit(metric *Metric, f *upql.TimeseriesFilter) string {
+func metricUnit(metric *Metric, f *mql.TimeseriesFilter) string {
 	switch f.Func {
 	case "count", "per_min", "per_minute", "per_sec", "per_second", "uniq":
 		return bununit.None

@@ -1,4 +1,4 @@
-package upql
+package mql
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/uptrace/pkg/bununit"
-	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
+	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"golang.org/x/exp/slices"
 )
 

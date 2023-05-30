@@ -10,7 +10,7 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
 )
 
 type GridColumn interface {
@@ -76,7 +76,7 @@ func (c *BaseGridColumn) Validate() error {
 	}
 
 	if false {
-		if _, err := upql.ParseError(c.GridQueryTemplate); err != nil {
+		if _, err := mql.ParseError(c.GridQueryTemplate); err != nil {
 			return fmt.Errorf("can't parse grid query template: %w", err)
 		}
 	}
@@ -108,7 +108,7 @@ type ChartGridColumn struct {
 
 type ChartColumnParams struct {
 	ChartKind     ChartKind                   `json:"chartKind"`
-	Metrics       []upql.MetricAlias          `json:"metrics"`
+	Metrics       []mql.MetricAlias           `json:"metrics"`
 	Query         string                      `json:"query"`
 	ColumnMap     map[string]*MetricColumn    `json:"columnMap"`
 	TimeseriesMap map[string]*TimeseriesStyle `json:"timeseriesMap"`
@@ -222,7 +222,7 @@ func (c *ChartGridColumn) validate() error {
 	if c.Params.Query == "" {
 		return fmt.Errorf("query can't be empty")
 	}
-	if _, err := upql.ParseError(c.Params.Query); err != nil {
+	if _, err := mql.ParseError(c.Params.Query); err != nil {
 		return fmt.Errorf("can't parse query: %w", err)
 	}
 
@@ -244,7 +244,7 @@ type TableGridColumn struct {
 }
 
 type TableColumnParams struct {
-	Metrics   []upql.MetricAlias       `json:"metrics"`
+	Metrics   []mql.MetricAlias        `json:"metrics"`
 	Query     string                   `json:"query"`
 	ColumnMap map[string]*MetricColumn `json:"columnMap"`
 }
@@ -292,7 +292,7 @@ func (c *TableGridColumn) Validate() error {
 	if c.Params.Query == "" {
 		return fmt.Errorf("query can't be empty")
 	}
-	if _, err := upql.ParseError(c.Params.Query); err != nil {
+	if _, err := mql.ParseError(c.Params.Query); err != nil {
 		return fmt.Errorf("can't parse query: %w", err)
 	}
 
@@ -347,7 +347,7 @@ func (c *HeatmapGridColumn) Validate() error {
 	if c.Params.Metric == "" {
 		return errors.New("metric can't be empty")
 	}
-	if _, err := upql.ParseError(c.Params.Query); err != nil {
+	if _, err := mql.ParseError(c.Params.Query); err != nil {
 		return fmt.Errorf("can't parse query: %w", err)
 	}
 

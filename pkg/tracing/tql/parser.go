@@ -1,4 +1,4 @@
-package upql
+package tql
 
 import (
 	"errors"

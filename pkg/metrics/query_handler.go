@@ -20,8 +20,8 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/histutil"
 	"github.com/uptrace/uptrace/pkg/httputil"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
-	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
@@ -68,7 +68,7 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 	}
 
 	tableName, groupingPeriod := measureTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
-	engine := upql.NewEngine(NewCHStorage(ctx, h.CH, &CHStorageConfig{
+	engine := mql.NewEngine(NewCHStorage(ctx, h.CH, &CHStorageConfig{
 		ProjectID:  f.Project.ID,
 		TimeFilter: f.TimeFilter,
 		MetricMap:  metricMap,
@@ -111,7 +111,7 @@ type ColumnInfo struct {
 }
 
 func convertToTable(
-	timeseries []upql.Timeseries, columnNames []string,
+	timeseries []mql.Timeseries, columnNames []string,
 ) ([]*ColumnInfo, []map[string]any) {
 	columnMap := make(map[string]*ColumnInfo)
 	var columns []*ColumnInfo
@@ -253,12 +253,12 @@ func sortTable(
 //------------------------------------------------------------------------------
 
 type Timeseries struct {
-	ID     uint64     `json:"id"`
-	Name   string     `json:"name"`
-	Metric string     `json:"metric"`
-	Unit   string     `json:"unit"`
-	Attrs  upql.Attrs `json:"attrs"`
-	Value  []float64  `json:"value"`
+	ID     uint64    `json:"id"`
+	Name   string    `json:"name"`
+	Metric string    `json:"metric"`
+	Unit   string    `json:"unit"`
+	Attrs  mql.Attrs `json:"attrs"`
+	Value  []float64 `json:"value"`
 }
 
 func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) error {
@@ -330,7 +330,7 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 
 func (h *QueryHandler) selectTimeseries(
 	ctx context.Context, f *QueryFilter, metricMap map[string]*Metric,
-) ([]upql.Timeseries, []time.Time, []string) {
+) ([]mql.Timeseries, []time.Time, []string) {
 	tableName, groupingPeriod := measureTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
 	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
 		ProjectID:  f.Project.ID,
@@ -340,7 +340,7 @@ func (h *QueryHandler) selectTimeseries(
 		TableName:      tableName,
 		GroupingPeriod: groupingPeriod,
 	})
-	engine := upql.NewEngine(storage)
+	engine := mql.NewEngine(storage)
 	result := engine.Run(f.allParts)
 	timeCol := bunutil.FillTime(nil, f.TimeGTE, f.TimeLT, groupingPeriod)
 	return result.Timeseries, timeCol, result.Columns
@@ -382,7 +382,7 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 		GroupingPeriod: groupingPeriod,
 		TableMode:      true,
 	})
-	engine := upql.NewEngine(storage)
+	engine := mql.NewEngine(storage)
 	result := engine.Run(f.allParts)
 
 	columns, table := convertToTable(result.Timeseries, result.Columns)

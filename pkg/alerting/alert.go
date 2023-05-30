@@ -10,7 +10,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bununit"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/madalarm"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
 	"go.uber.org/zap"
 )
@@ -69,10 +69,10 @@ type MetricAlertParams struct {
 	Bounds  madalarm.Bounds `json:"bounds"`
 
 	Monitor struct {
-		Metrics    []upql.MetricAlias `json:"metrics"`
-		Query      string             `json:"query"`
-		Column     string             `json:"column"`
-		ColumnUnit string             `json:"columnUnit"`
+		Metrics    []mql.MetricAlias `json:"metrics"`
+		Query      string            `json:"query"`
+		Column     string            `json:"column"`
+		ColumnUnit string            `json:"columnUnit"`
 	} `json:"monitor"`
 }
 

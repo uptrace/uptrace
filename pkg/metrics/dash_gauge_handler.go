@@ -9,7 +9,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
@@ -47,7 +47,7 @@ type DashGaugeIn struct {
 	Description string `json:"description"`
 	Template    string `json:"template"`
 
-	Metrics   []upql.MetricAlias       `json:"metrics"`
+	Metrics   []mql.MetricAlias        `json:"metrics"`
 	Query     string                   `json:"query"`
 	ColumnMap map[string]*MetricColumn `json:"columnMap"`
 }

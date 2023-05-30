@@ -10,7 +10,7 @@ import (
 	"github.com/uptrace/bun"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
 )
 
 type Metric struct {
@@ -121,12 +121,12 @@ type MetricColumn struct {
 	Color string `json:"color" yaml:"color,omitempty"`
 }
 
-func newMetricAlias(metric *Metric, alias string) upql.MetricAlias {
-	return upql.MetricAlias{Name: metric.Name, Alias: alias}
+func newMetricAlias(metric *Metric, alias string) mql.MetricAlias {
+	return mql.MetricAlias{Name: metric.Name, Alias: alias}
 }
 
-func parseMetrics(ss []string) ([]upql.MetricAlias, error) {
-	metrics := make([]upql.MetricAlias, len(ss))
+func parseMetrics(ss []string) ([]mql.MetricAlias, error) {
+	metrics := make([]mql.MetricAlias, len(ss))
 	for i, s := range ss {
 		metric, err := parseMetricAlias(s)
 		if err != nil {
@@ -139,31 +139,31 @@ func parseMetrics(ss []string) ([]upql.MetricAlias, error) {
 
 var aliasRE = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
-func parseMetricAlias(s string) (upql.MetricAlias, error) {
+func parseMetricAlias(s string) (mql.MetricAlias, error) {
 	for _, sep := range []string{" as ", " AS "} {
 		if ss := strings.Split(s, sep); len(ss) == 2 {
 			name := strings.TrimSpace(ss[0])
 			alias := strings.TrimSpace(ss[1])
 
 			if !strings.HasPrefix(alias, "$") {
-				return upql.MetricAlias{}, fmt.Errorf("alias %q must start with a dollar sign", alias)
+				return mql.MetricAlias{}, fmt.Errorf("alias %q must start with a dollar sign", alias)
 			}
 			alias = strings.TrimPrefix(alias, "$")
 
 			if !aliasRE.MatchString(alias) {
-				return upql.MetricAlias{}, fmt.Errorf("invalid alias: %q", alias)
+				return mql.MetricAlias{}, fmt.Errorf("invalid alias: %q", alias)
 			}
 
-			return upql.MetricAlias{
+			return mql.MetricAlias{
 				Name:  name,
 				Alias: alias,
 			}, nil
 		}
 	}
-	return upql.MetricAlias{}, fmt.Errorf("can't parse metric alias %q", s)
+	return mql.MetricAlias{}, fmt.Errorf("can't parse metric alias %q", s)
 }
 
-func validateMetrics(metrics []upql.MetricAlias) error {
+func validateMetrics(metrics []mql.MetricAlias) error {
 	seen := make(map[string]struct{}, len(metrics))
 	for _, metric := range metrics {
 		if metric.Name == "" {

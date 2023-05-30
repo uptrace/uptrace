@@ -12,7 +12,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/madalarm"
 	"github.com/uptrace/uptrace/pkg/metrics"
-	"github.com/uptrace/uptrace/pkg/metrics/upql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -189,7 +189,7 @@ func (m *Manager) selectTimeseries(
 	monitor *MetricMonitor,
 	metricMap map[string]*metrics.Metric,
 	timeLT time.Time,
-) (*upql.Result, error) {
+) (*mql.Result, error) {
 
 	storageConf := &metrics.CHStorageConfig{
 		ProjectID:      monitor.ProjectID,
@@ -203,9 +203,9 @@ func (m *Manager) selectTimeseries(
 	}
 
 	storage := metrics.NewCHStorage(ctx, m.app.CH, storageConf)
-	engine := upql.NewEngine(storage)
+	engine := mql.NewEngine(storage)
 
-	query := upql.Parse(monitor.Params.Query)
+	query := mql.Parse(monitor.Params.Query)
 	result := engine.Run(query.Parts)
 
 	for _, part := range query.Parts {
@@ -220,7 +220,7 @@ func (m *Manager) selectTimeseries(
 func (m *Manager) monitorTimeseries(
 	ctx context.Context,
 	monitor *MetricMonitor,
-	ts *upql.Timeseries,
+	ts *mql.Timeseries,
 	tm time.Time,
 	attrsHash uint64,
 ) (*MetricAlert, error) {

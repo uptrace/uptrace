@@ -1,10 +1,10 @@
-package upql
+package mql
 
 import (
 	"strconv"
 	"time"
 
-	"github.com/uptrace/uptrace/pkg/metrics/upql/ast"
+	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"golang.org/x/exp/constraints"
 )

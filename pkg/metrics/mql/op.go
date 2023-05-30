@@ -1,4 +1,4 @@
-package upql
+package mql
 
 import "math"
 
