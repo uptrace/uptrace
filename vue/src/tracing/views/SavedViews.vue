@@ -1,7 +1,7 @@
 <template>
   <div>
     <ListViewsDrawer :views="views" />
-    <SaveViewDrawer :views="views" :disabled="!user.isAuth || Boolean($route.params.eventSystem)" />
+    <SaveViewDrawer :views="views" :disabled="!user.isAuth" />
   </div>
 </template>
 

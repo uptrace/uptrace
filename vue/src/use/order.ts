@@ -17,7 +17,7 @@ export function useOrder(conf: Partial<Order> = {}) {
   const desc = shallowRef(conf.desc)
 
   const axiosParams = shallowRef({})
-  const axiosParamsLocked = shallowRef(false)
+  let watchPaused = false
   const ignoreAxiosParamsEnabled = shallowRef(false)
 
   const icon = computed(() => {
@@ -38,7 +38,7 @@ export function useOrder(conf: Partial<Order> = {}) {
       return params
     },
     (params) => {
-      if (!axiosParamsLocked.value) {
+      if (!watchPaused) {
         axiosParams.value = params
       }
     },
@@ -100,13 +100,11 @@ export function useOrder(conf: Partial<Order> = {}) {
     return cls
   }
 
-  function withLockedAxiosParams(cb: () => void) {
-    const oldValue = axiosParamsLocked.value
-    axiosParamsLocked.value = true
-
-    cb()
-
-    axiosParamsLocked.value = oldValue
+  function withPausedWatch(cb: () => void) {
+    watchPaused = true
+    const result = cb()
+    watchPaused = false
+    return result
   }
 
   function reset() {
@@ -121,7 +119,7 @@ export function useOrder(conf: Partial<Order> = {}) {
 
     axiosParams,
     ignoreAxiosParamsEnabled,
-    withLockedAxiosParams,
+    withPausedWatch,
 
     syncQueryParams,
     queryParams,

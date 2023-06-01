@@ -67,7 +67,7 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { useRoute } from '@/use/router'
-import { createUqlEditor, UseUql } from '@/use/uql'
+import { createUqlEditor, joinQuery, useQueryStore } from '@/use/uql'
 import { useMetrics } from '@/metrics/use-metrics'
 import { useGroupTimeseries, Group, ColumnInfo } from '@/tracing/use-explore-spans'
 
@@ -84,9 +84,13 @@ export default defineComponent({
   components: { SparklineChart, NewMonitorMenu },
 
   props: {
-    uql: {
-      type: Object as PropType<UseUql>,
-      default: undefined,
+    systems: {
+      type: Array as PropType<string[]>,
+      required: true,
+    },
+    query: {
+      type: String,
+      default: '',
     },
     groupingColumns: {
       type: Array as PropType<string[]>,
@@ -137,13 +141,14 @@ export default defineComponent({
 
   setup(props) {
     const route = useRoute()
+    const { where } = useQueryStore()
 
     const timeseries = useGroupTimeseries(() => {
       if (!props.plottedColumns.length) {
         return undefined
       }
 
-      const query = [props.axiosParams.query, props.group._query].filter((v) => v).join(' | ')
+      const query = joinQuery(props.axiosParams.query, props.group._query)
       return {
         ...props.axiosParams,
         query,
@@ -156,9 +161,9 @@ export default defineComponent({
     })
 
     const systemRoute = computed(() => {
-      const query = createUqlEditor().exploreAttr(AttrKey.spanGroupId).toString()
+      const query = createUqlEditor().exploreAttr(AttrKey.spanGroupId).add(where.value).toString()
       return {
-        name: props.eventsMode ? 'EventGroupList' : 'SpanGroupList',
+        name: 'SpanGroupList',
         query: {
           ...omit(route.value.query, 'columns'),
           query: query,
@@ -168,9 +173,10 @@ export default defineComponent({
     })
 
     const itemListRoute = computed(() => {
-      const editor = props.uql
-        ? props.uql.createEditor()
+      const editor = props.query
+        ? createUqlEditor(props.query)
         : createUqlEditor().exploreAttr(AttrKey.spanGroupId, props.eventsMode)
+      editor.add(props.group._query)
 
       for (let colName of props.groupingColumns) {
         const value = props.group[colName]
@@ -188,7 +194,7 @@ export default defineComponent({
       }
 
       return {
-        name: props.eventsMode ? 'EventList' : 'SpanList',
+        name: 'SpanList',
         query,
       }
     })
@@ -205,6 +211,14 @@ export default defineComponent({
       }
     }, 500)
 
+    function systemsForGroup(): string[] {
+      const system = props.group[AttrKey.spanSystem]
+      if (system) {
+        return [system]
+      }
+      return props.systems
+    }
+
     return {
       AttrKey,
 
@@ -216,6 +230,7 @@ export default defineComponent({
 
       metrics,
 
+      systemsForGroup,
       truncate,
     }
   },

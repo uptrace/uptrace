@@ -14,16 +14,17 @@
   >
     <template #item="{ item, isExpanded, expand }">
       <GroupsTableRow
-        :uql="uql"
-        :events-mode="eventsModeFor(item)"
+        :systems="systems"
+        :query="query"
         :grouping-columns="groupingColumns"
         :plain-columns="plainColumns"
         :plottable-columns="plottableColumns"
         :plotted-columns="plottedColumns"
-        :axios-params="internalAxiosParams"
+        :axios-params="axiosParams"
         :headers="headers"
         :column-map="columnMap"
         :group="item"
+        :events-mode="isEventSystemGroup(item)"
         :is-expanded="isExpanded"
         :expand="expand"
         @click:metrics="$emit('click:metrics', $event)"
@@ -34,10 +35,9 @@
       <tr class="v-data-table__expanded v-data-table__expanded__content">
         <td :colspan="headers.length" class="pt-2 pb-4">
           <SpansList
-            :events-mode="eventsModeFor(item)"
-            :uql="uql"
-            :axios-params="internalAxiosParams"
+            :axios-params="axiosParams"
             :where="item._query"
+            :events-mode="isEventSystemGroup(item)"
           />
         </td>
       </tr>
@@ -61,7 +61,6 @@ import { defineComponent, computed, PropType } from 'vue'
 import { UseDateRange } from '@/use/date-range'
 import { UseOrder } from '@/use/order'
 import { Group, ColumnInfo } from '@/tracing/use-explore-spans'
-import { UseUql } from '@/use/uql'
 
 // Components
 import GroupsTableRow from '@/tracing/GroupsTableRow.vue'
@@ -83,15 +82,15 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
-    uql: {
-      type: Object as PropType<UseUql>,
-      default: undefined,
-    },
-    loading: {
-      type: Boolean,
+    systems: {
+      type: Array as PropType<string[]>,
       required: true,
     },
-    isResolved: {
+    query: {
+      type: String,
+      default: '',
+    },
+    loading: {
       type: Boolean,
       required: true,
     },
@@ -218,13 +217,6 @@ export default defineComponent({
       return colMap
     })
 
-    const internalAxiosParams = computed(() => {
-      if (!props.isResolved) {
-        return { _: undefined }
-      }
-      return props.axiosParams
-    })
-
     function hasColumn(name: string): boolean {
       if (props.groups.length) {
         const item = props.groups[0]
@@ -261,7 +253,7 @@ export default defineComponent({
       return name
     }
 
-    function eventsModeFor(group: Group) {
+    function isEventSystemGroup(group: Group) {
       const system = group[AttrKey.spanSystem]
       if (system) {
         return isEventSystem(system)
@@ -276,9 +268,8 @@ export default defineComponent({
       plainColumns,
       headers,
       columnMap,
-      internalAxiosParams,
 
-      eventsModeFor,
+      isEventSystemGroup,
     }
   },
 })

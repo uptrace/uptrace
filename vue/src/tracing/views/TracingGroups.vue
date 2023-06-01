@@ -21,17 +21,6 @@
               <span>Groups</span>
             </v-toolbar-title>
 
-            <v-text-field
-              v-model="searchInput"
-              label="Quick search over group names"
-              clearable
-              outlined
-              dense
-              hide-details="auto"
-              class="ml-8"
-              style="max-width: 300px"
-            />
-
             <v-spacer />
 
             <div class="text-body-2 blue-grey--text text--darken-3">
@@ -43,17 +32,18 @@
           <v-container fluid>
             <GroupsList
               :date-range="dateRange"
-              :events-mode="eventsMode"
+              :systems="systems.activeSystems"
               :uql="uql"
               :loading="groups.loading"
-              :is-resolved="groups.status.isResolved()"
-              :groups="filteredGroups"
+              :groups="groups.items"
               :columns="groups.columns"
               :plottable-columns="groups.plottableColumns"
+              :plotted-columns="plottedColumns"
               show-plotted-column-items
               :order="groups.order"
+              :events-mode="systems.isEvent"
               :show-system="showSystem"
-              :axios-params="internalAxiosParams"
+              :axios-params="groups.axiosParams"
               @update:num-group="numGroup = $event"
             />
           </v-container>
@@ -64,20 +54,20 @@
 </template>
 
 <script lang="ts">
-import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
-import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, watch, watchEffect, PropType } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
+import { useRouteQuery } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/tracing/system/use-systems'
 import { UseUql } from '@/use/uql'
-import { useGroups, Group } from '@/tracing/use-explore-spans'
+import { useGroups } from '@/tracing/use-explore-spans'
 
 // Components
 import GroupsList from '@/tracing/GroupsList.vue'
 
-import { isDummySystem } from '@/models/otel'
+// Utilities
+import { isGroupSystem } from '@/models/otel'
 
 export default defineComponent({
   name: 'TracingGroups',
@@ -96,10 +86,6 @@ export default defineComponent({
       type: Object as PropType<UseUql>,
       required: true,
     },
-    eventsMode: {
-      type: Boolean,
-      required: true,
-    },
     axiosParams: {
       type: Object as PropType<Record<string, any>>,
       required: true,
@@ -107,46 +93,56 @@ export default defineComponent({
   },
 
   setup(props) {
-    const { route } = useRouter()
+    props.dateRange.roundUp()
 
     const groups = useGroups(() => {
-      const { projectId } = route.value.params
-      return {
-        url: `/api/v1/tracing/${projectId}/groups`,
-        params: props.axiosParams,
-      }
-    })
-
-    const searchInput = shallowRef('')
-    const numGroup = shallowRef(0)
-    const filteredGroups = computed((): Group[] => {
-      if (!searchInput.value) {
-        return groups.items
-      }
-      return fuzzyFilter(groups.items, searchInput.value, { key: '_name' })
-    })
-
-    const internalAxiosParams = computed(() => {
-      if (!groups.status.isResolved()) {
-        // Block requests until items are ready.
-        return { _: undefined }
-      }
       return props.axiosParams
     })
+    groups.order.syncQueryParams()
+    const numGroup = shallowRef(0)
 
     const showSystem = computed(() => {
-      if (route.value.params.eventSystem) {
-        return false
-      }
-
-      const systems = props.systems.activeSystem
+      const systems = props.systems.activeSystems
       if (systems.length > 1) {
         return true
       }
       if (systems.length === 1) {
-        return isDummySystem(systems[0])
+        return isGroupSystem(systems[0])
       }
       return false
+    })
+
+    const plottedColumns = shallowRef<string[]>()
+    watchEffect(() => {
+      if (!groups.plottableColumns.length) {
+        plottedColumns.value = undefined
+        return
+      }
+
+      if (!plottedColumns.value) {
+        plottedColumns.value = groups.plottableColumns.slice(0, 1).map((col) => col.name)
+        return
+      }
+
+      plottedColumns.value = plottedColumns.value.filter((colName) => {
+        return groups.plottableColumns.findIndex((item) => item.name === colName) >= 0
+      })
+    })
+    useRouteQuery().sync({
+      fromQuery(params) {
+        if (Array.isArray(params.columns)) {
+          plottedColumns.value = params.columns
+        } else if (params.columns) {
+          plottedColumns.value = [params.columns]
+        } else if (params.column) {
+          plottedColumns.value = [params.column]
+        }
+      },
+      toQuery() {
+        return {
+          columns: plottedColumns.value,
+        }
+      },
     })
 
     watch(
@@ -159,13 +155,11 @@ export default defineComponent({
     )
 
     return {
-      internalAxiosParams,
       groups,
 
-      searchInput,
       numGroup,
-      filteredGroups,
       showSystem,
+      plottedColumns,
     }
   },
 })

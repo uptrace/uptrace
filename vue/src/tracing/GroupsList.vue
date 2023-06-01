@@ -1,7 +1,7 @@
 <template>
   <div>
     <v-row v-if="groups.length" dense align="center">
-      <v-col cols="7" lg="8">
+      <v-col cols="7" lg="8" xl="9">
         <v-slide-group
           v-if="systemFilterItems.length > 1"
           v-model="systemFilter"
@@ -32,7 +32,7 @@
 
       <v-spacer />
 
-      <v-col v-if="showPlottedColumnItems" cols="5" lg="4">
+      <v-col v-if="showPlottedColumnItems" cols="5" lg="4" xl="3">
         <v-select
           v-model="internalPlottedColumns"
           :items="plottableColumnItems"
@@ -50,17 +50,18 @@
       <v-col>
         <GroupsTable
           :date-range="dateRange"
-          :uql="uql"
+          :systems="systems"
+          :query="query"
           :loading="loading"
-          :is-resolved="isResolved"
           :groups="pagedGroups"
           :columns="columns"
           :plottable-columns="plottableColumns"
           :plotted-columns="internalPlottedColumns"
           :order="order"
-          :events-mode="$route.params.eventSystem ? true : eventsMode"
           :axios-params="axiosParams"
+          :events-mode="eventsMode"
           :show-system="showSystem"
+          :hide-actions="hideActions"
           @click:metrics="
             activeGroup = $event
             dialog = true
@@ -103,14 +104,12 @@
 
 <script lang="ts">
 import { orderBy } from 'lodash-es'
-import { defineComponent, shallowRef, computed, watch, watchEffect, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 
 // Composables
-import { useRouteQuery } from '@/use/router'
 import { usePager } from '@/use/pager'
 import { UseOrder } from '@/use/order'
 import { UseDateRange } from '@/use/date-range'
-import { UseUql } from '@/use/uql'
 import { Group, ColumnInfo } from '@/tracing/use-explore-spans'
 
 // Components
@@ -130,19 +129,15 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
-    eventsMode: {
-      type: Boolean,
-      default: false,
-    },
-    uql: {
-      type: Object as PropType<UseUql>,
-      default: undefined,
-    },
-    loading: {
-      type: Boolean,
+    systems: {
+      type: Array as PropType<string[]>,
       required: true,
     },
-    isResolved: {
+    query: {
+      type: String,
+      default: '',
+    },
+    loading: {
       type: Boolean,
       required: true,
     },
@@ -160,7 +155,7 @@ export default defineComponent({
     },
     plottedColumns: {
       type: Array as PropType<string[]>,
-      default: undefined,
+      default: () => [],
     },
     showPlottedColumnItems: {
       type: Boolean,
@@ -170,13 +165,21 @@ export default defineComponent({
       type: Object as PropType<UseOrder>,
       required: true,
     },
+    axiosParams: {
+      type: Object as PropType<Record<string, any>>,
+      default: undefined,
+    },
+    eventsMode: {
+      type: Boolean,
+      default: false,
+    },
     showSystem: {
       type: Boolean,
       default: false,
     },
-    axiosParams: {
-      type: Object as PropType<Record<string, any>>,
-      default: undefined,
+    hideActions: {
+      type: Boolean,
+      default: false,
     },
   },
 
@@ -230,44 +233,18 @@ export default defineComponent({
     )
 
     const internalPlottedColumns = shallowRef<string[]>()
-    watchEffect(() => {
-      if (!props.plottableColumns.length) {
-        internalPlottedColumns.value = undefined
-        return
-      }
-
-      if (!internalPlottedColumns.value) {
-        internalPlottedColumns.value =
-          props.plottedColumns ?? props.plottableColumns.slice(0, 1).map((col) => col.name)
-        return
-      }
-
-      internalPlottedColumns.value = internalPlottedColumns.value.filter((colName) => {
-        return props.plottableColumns.findIndex((item) => item.name === colName) >= 0
-      })
-    })
+    watch(
+      () => props.plottedColumns,
+      (plottedColumns) => {
+        internalPlottedColumns.value = plottedColumns
+      },
+      { immediate: true },
+    )
     const plottableColumnItems = computed(() => {
       const items = props.plottableColumns.map((col) => {
         return { text: col.name, value: col.name }
       })
       return items
-    })
-
-    useRouteQuery().sync({
-      fromQuery(params) {
-        if (Array.isArray(params.columns)) {
-          internalPlottedColumns.value = params.columns
-        } else if (params.columns) {
-          internalPlottedColumns.value = [params.columns]
-        } else if (params.column) {
-          internalPlottedColumns.value = [params.column]
-        }
-      },
-      toQuery() {
-        return {
-          columns: internalPlottedColumns.value,
-        }
-      },
     })
 
     return {

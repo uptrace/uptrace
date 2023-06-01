@@ -7,26 +7,25 @@
         <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pb-0">
           <v-row align="center" class="mb-4">
             <v-col cols="auto">
-              <div class="mr-4">
-                <SystemPicker
-                  v-model="systems.activeSystem"
-                  :loading="systems.loading"
-                  :items="systemsItems"
-                  :all-system="allSystem"
-                />
-              </div>
+              <SystemPicker
+                v-model="systems.activeSystems"
+                :loading="systems.loading"
+                :systems="systemItems"
+              />
             </v-col>
             <v-col cols="auto">
-              <v-btn-toggle mandatory group color="blue accent-3">
-                <v-btn :to="{ name: 'SpanGroupList' }">Spans</v-btn>
-                <v-btn :to="{ name: 'EventGroupList' }">Events</v-btn>
-              </v-btn-toggle>
+              <SystemGroupPicker
+                :loading="systems.loading"
+                :systems="systems.items"
+                :system="systems.activeSystems"
+                @update:systems="systemItems = $event"
+              />
             </v-col>
 
             <v-spacer />
 
             <v-col cols="auto">
-              <DateRangePicker :date-range="dateRange" />
+              <DateRangePicker :date-range="dateRange" sync-query-params />
             </v-col>
           </v-row>
 
@@ -34,9 +33,7 @@
             <v-col cols="auto">
               <v-tabs :key="$route.fullPath" background-color="transparent">
                 <v-tab :to="routes.groupList" exact-path>Groups</v-tab>
-                <v-tab :to="routes.spanList" exact-path>{{
-                  $route.name.startsWith('Span') ? 'Spans' : 'Events'
-                }}</v-tab>
+                <v-tab :to="routes.itemList" exact-path>Spans</v-tab>
               </v-tabs>
             </v-col>
             <v-col cols="auto" class="ml-16 align-self-center">
@@ -52,7 +49,7 @@
             :uql="uql"
             :systems="systems"
             :axios-params="axiosParams"
-            :agg-disabled="['EventGroupList', 'SpanGroupList'].indexOf($route.name) === -1"
+            :agg-disabled="['SpanGroupList'].indexOf($route.name) === -1"
             @click:reset="resetQuery"
           />
         </UptraceQuery>
@@ -62,7 +59,6 @@
           :date-range="dateRange"
           :systems="systems"
           :uql="uql"
-          :events-mode="eventsMode"
           :axios-params="axiosParams"
         />
       </v-container>
@@ -71,35 +67,35 @@
 </template>
 
 <script lang="ts">
-import { clone } from 'lodash-es'
-import { defineComponent, computed, watch, proxyRefs, PropType } from 'vue'
+import { pick } from 'lodash-es'
+import { defineComponent, shallowRef, computed, watch, proxyRefs, PropType } from 'vue'
 
 // Composables
-import { useRouter, useRoute } from '@/use/router'
+import { useRoute } from '@/use/router'
 import { useTitle } from '@vueuse/core'
 import { UseDateRange } from '@/use/date-range'
 import { useUser } from '@/org/use-users'
-import { useSystems, SystemsFilter } from '@/tracing/system/use-systems'
-import { useUql } from '@/use/uql'
+import { useSystems, System } from '@/tracing/system/use-systems'
+import { useUql, createUqlEditor, useProvideQueryStore } from '@/use/uql'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import SystemPicker from '@/tracing/system/SystemPicker.vue'
+import SystemGroupPicker from '@/tracing/system/SystemGroupPicker.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
 import SavedViews from '@/tracing/views/SavedViews.vue'
 import UptraceQuery from '@/components/UptraceQuery.vue'
 import SpanQueryBuilder from '@/tracing/query/SpanQueryBuilder.vue'
 
-interface Props {
-  itemListRouteName: string
-  groupListRouteName: string
-}
+// Utilities
+import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'Tracing',
   components: {
     DateRangePicker,
     SystemPicker,
+    SystemGroupPicker,
     HelpCard,
     SavedViews,
     UptraceQuery,
@@ -111,42 +107,17 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
-    systemsFilter: {
-      type: Function as PropType<SystemsFilter>,
-      default: undefined,
-    },
-    allSystem: {
-      type: String,
-      required: true,
-    },
-    eventsMode: {
-      type: Boolean,
-      required: true,
-    },
-    defaultQuery: {
-      type: String,
-      required: true,
-    },
-    itemListRouteName: {
-      type: String,
-      required: true,
-    },
-    groupListRouteName: {
-      type: String,
-      required: true,
-    },
   },
 
   setup(props) {
     useTitle('Explore spans')
-    props.dateRange.syncQueryParams()
-    props.dateRange.roundUp()
 
     const route = useRoute()
     const user = useUser()
 
     const uql = useUql()
     uql.syncQueryParams()
+    useProvideQueryStore(uql)
 
     const systems = useSystems(() => {
       return {
@@ -156,75 +127,69 @@ export default defineComponent({
     })
     systems.syncQueryParams()
 
+    const systemItems = shallowRef<System[]>([])
+
     const axiosParams = computed(() => {
       return {
         ...props.dateRange.axiosParams(),
         ...uql.axiosParams(),
-        system: systems.activeSystem,
+        system: systems.activeSystems,
       }
-    })
-
-    const systemsItems = computed(() => {
-      if (props.systemsFilter) {
-        return props.systemsFilter(systems.items)
-      }
-      return systems.items
     })
 
     watch(
-      () => props.defaultQuery,
-      () => {
-        if (!route.value.query.query) {
+      () => systems.activeSystems,
+      (activeSystem) => {
+        if (activeSystem.length && !route.value.query.query) {
           resetQuery()
         }
       },
-      { immediate: true, flush: 'pre' },
+      { immediate: true, flush: 'post' },
     )
 
-    function resetQuery() {
-      uql.query = props.defaultQuery
+    function resetQuery(clear = false) {
+      uql.query = createUqlEditor()
+        .exploreAttr(AttrKey.spanGroupId, systems.isEvent)
+        .add(clear ? '' : uql.whereQuery)
+        .toString()
     }
 
     return {
       user,
       systems,
-      systemsItems,
+      systemItems,
 
       uql,
       axiosParams,
 
-      routes: useRoutes(props),
+      routes: useRoutes(),
 
       resetQuery,
     }
   },
 })
 
-function useRoutes(props: Props) {
-  const { route } = useRouter()
-
-  const spanList = computed(() => {
-    const query = clone(route.value.query)
-    if (query.sort_by) {
-      delete query.sort_by
-    }
-
-    return {
-      name: props.itemListRouteName,
-      query,
-    }
-  })
+function useRoutes() {
+  const route = useRoute()
 
   const groupList = computed(() => {
-    return {
-      name: props.groupListRouteName,
-      query: route.value.query,
-    }
+    return routeTo('SpanGroupList')
   })
+
+  const itemList = computed(() => {
+    return routeTo('SpanList')
+  })
+
+  function routeTo(routeName: string) {
+    return {
+      name: routeName,
+      query: pick(route.value.query, ['system', 'query', 'time_gte', 'time_dur']),
+    }
+  }
 
   return proxyRefs({
     groupList,
-    spanList,
+    itemList,
   })
 }
 </script>

@@ -26,7 +26,7 @@
           </v-col>
           <v-spacer />
           <v-col cols="auto">
-            <DateRangePicker :date-range="dateRange" :range-days="90" sync-query />
+            <DateRangePicker :date-range="dateRange" :range-days="90" sync-query-params />
           </v-col>
         </v-row>
 

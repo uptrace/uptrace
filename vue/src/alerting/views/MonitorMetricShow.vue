@@ -3,7 +3,7 @@
     <PageToolbar>
       <v-breadcrumbs large :items="breadcrumbs" divider=">"></v-breadcrumbs>
       <v-spacer />
-      <DateRangePicker :date-range="dateRange" :range-days="1" sync-query />
+      <DateRangePicker :date-range="dateRange" :range-days="1" sync-query-params />
     </PageToolbar>
 
     <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="py-4">

@@ -11,14 +11,14 @@
         <v-col>
           <GroupsList
             :date-range="dateRange"
+            :systems="systems"
             :loading="groups.loading"
-            :is-resolved="groups.status.isResolved()"
             :groups="groups.items"
             :columns="groups.columns"
             :plottable-columns="groups.plottableColumns"
             :plotted-columns="plottedColumns"
             :order="groups.order"
-            :axios-params="internalAxiosParams"
+            :axios-params="groups.axiosParams"
           />
         </v-col>
       </v-row>
@@ -33,7 +33,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { createUqlEditor } from '@/use/uql'
+import { createUqlEditor, useQueryStore } from '@/use/uql'
 import { useGroups } from '@/tracing/use-explore-spans'
 
 // Components
@@ -51,6 +51,10 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
+    systems: {
+      type: Array as PropType<string[]>,
+      required: true,
+    },
     axiosParams: {
       type: Object,
       required: true,
@@ -59,6 +63,7 @@ export default defineComponent({
 
   setup(props) {
     const { route } = useRouter()
+    const { where } = useQueryStore()
 
     const attr = computed(() => {
       return route.value.params.attr ?? AttrKey.spanSystem
@@ -68,22 +73,14 @@ export default defineComponent({
       return createUqlEditor()
         .exploreAttr(attr.value)
         .add(`max(${AttrKey.spanDuration})`)
+        .add(where.value)
         .toString()
     })
 
-    const internalAxiosParams = computed(() => {
-      const ss = [query.value, route.value.query.query]
+    const groups = useGroups(() => {
       return {
         ...props.axiosParams,
-        query: ss.join(' | '),
-      }
-    })
-
-    const groups = useGroups(() => {
-      const { projectId } = route.value.params
-      return {
-        url: `/api/v1/tracing/${projectId}/groups`,
-        params: internalAxiosParams.value,
+        query: query.value,
       }
     })
 
@@ -107,20 +104,9 @@ export default defineComponent({
       return {
         name: 'SpanList',
         query: {
-          ...omit(route.value.query, 'sort_by', 'sort_desc'),
+          system: props.systems,
           query: query.value,
         },
-      }
-    })
-
-    const metric = computed((): string => {
-      switch (attr.value) {
-        case AttrKey.serviceName:
-          return 'uptrace.tracing.services'
-        case AttrKey.hostName:
-          return 'uptrace.tracing.hosts'
-        default:
-          return ''
       }
     })
 
@@ -128,12 +114,10 @@ export default defineComponent({
       AttrKey,
 
       attr,
-      internalAxiosParams,
       groups,
       plottedColumns,
       groupListRoute,
       spanListRoute,
-      metric,
     }
   },
 })

@@ -62,12 +62,20 @@ export default defineComponent({
       type: Number,
       default: HOUR,
     },
+    syncQueryParams: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   setup(props) {
     const periods = computed(() => {
       return periodsForDays(30)
     })
+
+    if (props.syncQueryParams) {
+      props.dateRange.syncQueryParams()
+    }
 
     onMounted(() => {
       watchEffect(() => {

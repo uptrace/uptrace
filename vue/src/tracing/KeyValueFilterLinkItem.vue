@@ -94,7 +94,7 @@ export default defineComponent({
       }
 
       const groupLink = link({ query: exploreAttr(props.name, isEvent.value) })
-      groupLink.to.name = isEvent.value ? 'EventGroupList' : 'SpanGroupList'
+      groupLink.to.name = 'SpanGroupList'
 
       const items = [
         {

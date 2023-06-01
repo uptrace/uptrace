@@ -5,19 +5,21 @@ import { shallowRef, computed, proxyRefs } from 'vue'
 import { useRoute, useRouteQuery } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
 
+// Utilities
+import { isEventSystem, isGroupSystem, SystemName } from '@/models/otel'
+
 export interface System {
-  projectId: number | string
   system: string
 
   count: number
   rate: number
   errorCount: number
-  errorPct: number
+  errorRate: number
+  groupCount: number
 
+  isGroup?: boolean
   indent?: boolean
 }
-
-export type SystemsFilter = (systems: System[]) => System[]
 
 export interface SystemTreeNode extends System {
   numChildren: number
@@ -38,8 +40,12 @@ export function useSystems(params: () => Record<string, any>) {
   })
 
   const systems = computed((): System[] => {
-    const systems = data.value?.systems ?? []
-    return addDummySystems(systems ?? [])
+    let systems = data.value?.systems ?? []
+
+    systems = cloneDeep(systems)
+    addAllSystem(systems, SystemName.All)
+    addAllSystemForEachType(systems)
+    return orderBy(systems, 'system')
   })
 
   const hasNoData = computed(() => {
@@ -48,7 +54,7 @@ export function useSystems(params: () => Record<string, any>) {
 
   const internalValue = shallowRef<string[]>([])
 
-  const activeSystem = computed({
+  const activeSystems = computed({
     get(): string[] {
       return internalValue.value
     },
@@ -63,20 +69,23 @@ export function useSystems(params: () => Record<string, any>) {
     },
   })
 
+  const isEvent = computed(() => {
+    return isEventSystem(...activeSystems.value)
+  })
+
   function syncQueryParams() {
     useRouteQuery().sync({
       fromQuery(params) {
         const system = params.system
         if (system) {
-          activeSystem.value = system
+          activeSystems.value = system
         } else {
-          // Reset so we can pick a new system from the list later.
-          activeSystem.value = []
+          activeSystems.value = []
         }
       },
       toQuery() {
-        if (activeSystem.value.length) {
-          return { system: activeSystem.value }
+        if (activeSystems.value.length) {
+          return { system: activeSystems.value }
         }
       },
     })
@@ -84,38 +93,40 @@ export function useSystems(params: () => Record<string, any>) {
 
   function axiosParams() {
     return {
-      system: activeSystem.value,
+      system: activeSystems.value,
     }
   }
 
   function queryParams() {
     return {
-      system: activeSystem.value,
+      system: activeSystems.value,
     }
   }
 
   function reset(): void {
-    activeSystem.value = []
+    activeSystems.value = []
   }
 
   return proxyRefs({
     loading,
+
     items: systems,
     hasNoData,
-    activeSystem,
 
-    syncQueryParams,
+    activeSystems,
+    isEvent,
+
     axiosParams,
     queryParams,
     reset,
+    syncQueryParams,
   })
 }
 
-function addDummySystems(systems: System[]): System[] {
+function addAllSystemForEachType(systems: System[]) {
   if (!systems.length) {
-    return []
+    return
   }
-  systems = cloneDeep(systems)
 
   const typeMap: Record<string, SystemTreeNode> = {}
 
@@ -131,6 +142,9 @@ function addDummySystems(systems: System[]): System[] {
     if (typeSys) {
       typeSys.count += sys.count
       typeSys.rate += sys.rate
+      typeSys.errorCount += sys.errorCount
+      typeSys.errorRate += sys.errorRate
+      typeSys.groupCount += sys.groupCount
       typeSys.numChildren!++
       continue
     }
@@ -157,9 +171,60 @@ function addDummySystems(systems: System[]): System[] {
     systems.push({
       ...typ,
       system: typ.system + ':all',
+      isGroup: true,
     })
   }
+}
 
-  systems = orderBy(systems, 'system')
-  return systems
+export function addAllSystem(systems: System[], systemName: string) {
+  if (!systems.length) {
+    return
+  }
+
+  const index = systems.findIndex((item) => item.system === systemName)
+  if (index >= 0) {
+    return
+  }
+
+  const system = createAllSystem(systems, systemName)
+  systems.unshift(system)
+}
+
+function createAllSystem(systems: System[], systemName: string): System {
+  const allSystem = {
+    system: systemName,
+    count: 0,
+    rate: 0,
+    errorCount: 0,
+    errorRate: 0,
+    groupCount: 0,
+    isGroup: true,
+  }
+  for (let system of systems) {
+    if (!isGroupSystem(system.system)) {
+      allSystem.count += system.count
+      allSystem.rate += system.rate
+      allSystem.errorCount += system.errorCount
+      allSystem.groupCount += system.groupCount
+    }
+  }
+  allSystem.errorRate = allSystem.errorCount / allSystem.count
+  return allSystem
+}
+
+export function systemTypes(systems: System[]): string[] {
+  const types = new Set<string>()
+
+  for (let sys of systems) {
+    let systemType = sys.system
+
+    const i = systemType.indexOf(':')
+    if (i >= 0) {
+      systemType = systemType.slice(0, i)
+    }
+
+    types.add(systemType)
+  }
+
+  return Array.from(types)
 }

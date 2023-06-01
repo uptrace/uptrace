@@ -35,7 +35,7 @@ func createErrorAlertHandler(
 		ProjectID: projectID,
 		DedupHash: groupID,
 
-		Name:  span.EventName,
+		Name:  span.DisplayName,
 		State: org.AlertOpen,
 
 		TrackableModel: org.ModelSpanGroup,

@@ -11,14 +11,15 @@
         <v-col>
           <GroupsList
             :date-range="dateRange"
+            :systems="[system]"
             :loading="groups.loading"
-            :is-resolved="groups.status.isResolved()"
             :groups="groups.items"
             :columns="groups.columns"
             :plottable-columns="groups.plottableColumns"
+            :plotted-columns="[AttrKey.spanCountPerMin]"
             :order="groups.order"
             :events-mode="eventsMode"
-            :axios-params="internalAxiosParams"
+            :axios-params="groups.axiosParams"
           />
         </v-col>
       </v-row>
@@ -32,7 +33,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useRoute } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { createUqlEditor } from '@/use/uql'
+import { createUqlEditor, useQueryStore } from '@/use/uql'
 import { useGroups } from '@/tracing/use-explore-spans'
 
 // Components
@@ -58,6 +59,7 @@ export default defineComponent({
 
   setup(props) {
     const route = useRoute()
+    const { where } = useQueryStore()
 
     const system = computed(() => {
       return route.value.params.system
@@ -67,42 +69,37 @@ export default defineComponent({
       return isEventSystem(system.value)
     })
 
-    const internalAxiosParams = computed(() => {
-      const ss = [
-        createUqlEditor().exploreAttr(AttrKey.spanGroupId, eventsMode.value).toString(),
-        route.value.query.query,
-      ]
-      return {
-        ...props.axiosParams,
-        system: system.value,
-        query: ss.filter((v) => v).join(' | '),
-      }
+    const query = computed(() => {
+      return createUqlEditor()
+        .exploreAttr(AttrKey.spanGroupId, eventsMode.value)
+        .add(where.value)
+        .toString()
     })
 
     const groups = useGroups(() => {
-      const { projectId } = route.value.params
       return {
-        url: `/api/v1/tracing/${projectId}/groups`,
-        params: internalAxiosParams.value,
+        ...props.axiosParams,
+        system: system.value,
+        query: query.value,
       }
     })
+    groups.order.syncQueryParams()
 
     const groupListRoute = computed(() => {
       return {
-        name: eventsMode.value ? 'EventGroupList' : 'SpanGroupList',
+        name: 'SpanGroupList',
         query: {
-          ...route.value.query,
           ...groups.order.queryParams(),
           system: system.value,
-          query: createUqlEditor().exploreAttr(AttrKey.spanGroupId, eventsMode.value).toString(),
+          query: query.value,
         },
       }
     })
 
     return {
+      AttrKey,
       system,
       eventsMode,
-      internalAxiosParams,
       groups,
       groupListRoute,
     }

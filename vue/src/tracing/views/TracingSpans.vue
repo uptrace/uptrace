@@ -4,7 +4,7 @@
       <v-card rounded="lg" outlined class="mb-4">
         <v-toolbar flat color="light-blue lighten-5">
           <v-toolbar-title>
-            <span>{{ $route.name === 'SpanList' ? 'Spans' : 'Events' }}</span>
+            <span>Spans</span>
           </v-toolbar-title>
 
           <v-spacer />
@@ -19,12 +19,11 @@
             <LoadPctileChart :axios-params="axiosParams" class="pa-4" />
 
             <SpansTable
-              :date-range="dateRange"
-              :events-mode="eventsMode"
               :loading="spans.loading"
               :spans="spans.items"
               :order="spans.order"
               :pager="spans.pager"
+              :events-mode="systems.isEvent"
               :show-system="showSystem"
               @click:chip="onChipClick"
             />
@@ -53,7 +52,7 @@ import { SpanChip } from '@/tracing/SpanChips.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 
 // Utilities
-import { isDummySystem, AttrKey } from '@/models/otel'
+import { isGroupSystem, AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'TracingSpans',
@@ -72,10 +71,6 @@ export default defineComponent({
       type: Object as PropType<UseUql>,
       required: true,
     },
-    eventsMode: {
-      type: Boolean,
-      required: true,
-    },
     axiosParams: {
       type: Object as PropType<Record<string, any>>,
       required: true,
@@ -83,6 +78,7 @@ export default defineComponent({
   },
 
   setup(props) {
+    props.dateRange.roundUp()
     const { route } = useRouter()
 
     const spans = useSpans(() => {
@@ -95,37 +91,34 @@ export default defineComponent({
     spans.order.syncQueryParams()
 
     const showSystem = computed(() => {
-      if (route.value.params.eventSystem) {
-        return false
-      }
-
-      const systems = props.systems.activeSystem
+      const systems = props.systems.activeSystems
       if (systems.length > 1) {
         return true
       }
       if (systems.length === 1) {
-        return isDummySystem(systems[0])
+        return isGroupSystem(systems[0])
       }
       return false
     })
 
     watch(
-      () => props.eventsMode,
-      (isEvent) => {
-        spans.order.column = isEvent ? AttrKey.spanTime : AttrKey.spanDuration
-        spans.order.desc = true
-      },
-      { immediate: true },
-    )
-
-    watch(
-      () => spans.queryInfo,
-      (queryInfo) => {
-        if (queryInfo) {
-          props.uql.setQueryInfo(queryInfo)
+      () => props.systems.activeSystems,
+      (system, oldSystem) => {
+        if (!spans.order.column || oldSystem) {
+          resetOrder()
         }
       },
     )
+
+    function resetOrder() {
+      spans.order.column = undefined
+      spans.order.desc = true
+
+      if (!props.systems.activeSystems) {
+        return
+      }
+      spans.order.column = props.systems.isEvent ? AttrKey.spanTime : AttrKey.spanDuration
+    }
 
     function onChipClick(chip: SpanChip) {
       const editor = props.uql.createEditor()
@@ -134,7 +127,6 @@ export default defineComponent({
     }
 
     return {
-      route,
       spans,
       showSystem,
 

@@ -50,6 +50,7 @@ func (h *SystemHandler) selectSystems(
 		ColumnExpr("sumIf(s.count, s.status_code = 'error') AS errorCount").
 		ColumnExpr("sum(s.count) / ? AS rate", f.TimeFilter.Duration().Minutes()).
 		ColumnExpr("sumIf(s.count, s.status_code = 'error') / sum(s.count) AS errorRate").
+		ColumnExpr("uniqCombined64(s.group_id) AS groupCount").
 		Apply(f.whereClause).
 		Apply(f.spanqlWhere).
 		GroupExpr("project_id, system").

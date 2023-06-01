@@ -1,9 +1,9 @@
-import { computed, watch, proxyRefs } from 'vue'
+import { shallowRef, computed, watch, proxyRefs } from 'vue'
 
 // Composables
 import { useRoute } from '@/use/router'
 import { useOrder, Order } from '@/use/order'
-import { useWatchAxios, AxiosRequestSource, AxiosParamsSource } from '@/use/watch-axios'
+import { useWatchAxios, AxiosParamsSource } from '@/use/watch-axios'
 import { BackendQueryInfo } from '@/use/uql'
 
 // Utilities
@@ -28,7 +28,10 @@ interface ExploreConfig {
   order?: Order
 }
 
-export function useGroups(reqSource: AxiosRequestSource, conf: ExploreConfig = {}) {
+export function useGroups(axiosParamsSource: AxiosParamsSource, conf: ExploreConfig = {}) {
+  const route = useRoute()
+  const hasMore = shallowRef(false)
+
   const order = useOrder(
     conf.order ?? {
       column: AttrKey.spanCountPerMin,
@@ -36,20 +39,37 @@ export function useGroups(reqSource: AxiosRequestSource, conf: ExploreConfig = {
     },
   )
 
-  const { status, loading, data } = useWatchAxios(
-    () => {
-      return reqSource()
-    },
-    { ignoreErrors: true },
-  )
+  const axiosParams = computed(() => {
+    return axiosParamsSource()
+  })
+
+  const { status, loading, data } = useWatchAxios(() => {
+    if (!axiosParams.value) {
+      return axiosParams.value
+    }
+
+    const params: Record<string, any> = {
+      ...axiosParams.value,
+      ...order.axiosParams,
+    }
+
+    const { projectId } = route.value.params
+    return {
+      url: `/api/v1/tracing/${projectId}/groups`,
+      params,
+    }
+  })
+
+  const lastAxiosParams = computed(() => {
+    if (loading.value) {
+      return { _: undefined }
+    }
+    return axiosParams.value
+  })
 
   const groups = computed((): Group[] => {
     const groups: Group[] = data.value?.groups ?? []
     return groups
-  })
-
-  const hasMore = computed(() => {
-    return data.value?.hasMore ?? false
   })
 
   const queryInfo = computed((): BackendQueryInfo | undefined => {
@@ -64,15 +84,27 @@ export function useGroups(reqSource: AxiosRequestSource, conf: ExploreConfig = {
     return columns.value.filter((col) => !col.isGroup && col.isNum)
   })
 
-  watch(hasMore, (hasMore) => {
-    order.ignoreAxiosParamsEnabled = !hasMore
-  })
+  watch(
+    () => data.value?.hasMore ?? false,
+    (hasMoreValue) => {
+      hasMore.value = hasMoreValue
+    },
+    { immediate: true },
+  )
+
+  watch(
+    hasMore,
+    (hasMore) => {
+      order.ignoreAxiosParamsEnabled = !hasMore
+    },
+    { immediate: true },
+  )
 
   watch(
     (): Order | undefined => data.value?.order,
     (orderValue) => {
       if (orderValue) {
-        order.withLockedAxiosParams(() => {
+        order.withPausedWatch(() => {
           order.change(orderValue)
         })
       }
@@ -84,6 +116,8 @@ export function useGroups(reqSource: AxiosRequestSource, conf: ExploreConfig = {
     loading,
 
     order,
+    axiosParams: lastAxiosParams,
+
     items: groups,
     hasMore,
 

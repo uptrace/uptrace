@@ -79,38 +79,60 @@ export enum EventName {
   Log = 'log',
 }
 
-export function isDummySystem(system: string | undefined): boolean {
-  if (!system) {
+export function isSpanSystem(...systems: string[]): boolean {
+  if (!systems.length) {
     return false
   }
-  return system === SystemName.All || system.endsWith(':all')
-}
-
-export function isEventSystem(system: string | undefined): boolean {
-  if (!system) {
-    return false
-  }
-  return (
-    system === SystemName.EventsAll ||
-    isErrorSystem(system) ||
-    system === SystemName.OtherEvents ||
-    system.startsWith(SystemName.LogPrefix) ||
-    system.startsWith(SystemName.MessagePrefix)
-  )
-}
-
-export function isErrorSystem(system: string | undefined): boolean {
-  if (!system) {
-    return false
-  }
-  switch (system) {
-    case SystemName.LogError:
-    case SystemName.LogFatal:
-    case SystemName.LogPanic:
-      return true
-    default:
+  return systems.every((system) => {
+    if (system === SystemName.All) {
       return false
+    }
+    return !isEventSystem(system)
+  })
+}
+
+export function isEventSystem(...systems: string[]): boolean {
+  if (!systems.length) {
+    return false
   }
+  return systems.every((system) => {
+    return (
+      system === SystemName.EventsAll ||
+      isErrorSystem(system) ||
+      system === SystemName.OtherEvents ||
+      isLogSystem(system) ||
+      system.startsWith(SystemName.MessagePrefix)
+    )
+  })
+}
+
+export function isErrorSystem(...systems: string[]): boolean {
+  if (!systems.length) {
+    return false
+  }
+  return systems.every((system) => {
+    switch (system) {
+      case SystemName.LogError:
+      case SystemName.LogFatal:
+      case SystemName.LogPanic:
+        return true
+    }
+    return false
+  })
+}
+
+export function isLogSystem(...systems: string[]): boolean {
+  if (!systems.length) {
+    return false
+  }
+  return systems.every((system) => {
+    return system.startsWith('log:')
+  })
+}
+
+export function isGroupSystem(system: string | undefined): boolean {
+  const [type, sys] = splitTypeSystem(system)
+  return type === SystemName.All || sys === SystemName.All
 }
 
 export function splitTypeSystem(s: string | undefined): [string, string] {

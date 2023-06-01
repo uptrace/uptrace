@@ -102,7 +102,7 @@ export default defineComponent({
         return undefined
       }
       return {
-        name: 'EventList',
+        name: 'SpanList',
         query: {
           ...props.dateRange.queryParams(),
           system: props.event.system,

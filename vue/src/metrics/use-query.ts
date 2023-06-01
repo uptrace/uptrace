@@ -275,7 +275,7 @@ export function useTableQuery(
     (): Order | undefined => data.value?.order,
     (orderValue) => {
       if (orderValue) {
-        order.withLockedAxiosParams(() => {
+        order.withPausedWatch(() => {
           order.change(orderValue)
         })
       }

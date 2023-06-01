@@ -127,14 +127,10 @@ export default defineComponent({
     function tabName(item: SavedView): string {
       switch (item.route) {
         case 'SpanGroupList':
-        case 'EventGroupList':
           return 'Groups'
         case 'SpanList':
           return 'Spans'
-        case 'EventList':
-          return 'Events'
         case 'SpanTimeseries':
-        case 'EventTimeseries':
           return 'Timeseries'
         default:
           return ''

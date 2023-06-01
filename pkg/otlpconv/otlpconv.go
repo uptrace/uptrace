@@ -1,10 +1,12 @@
 package otlpconv
 
 import (
+	"encoding/json"
 	"log"
 	"strconv"
 
 	"github.com/uptrace/uptrace/pkg/attrkey"
+	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 )
 
@@ -28,7 +30,7 @@ func ForEachKeyValue(kvs []*commonpb.KeyValue, fn func(key string, value any)) {
 		}
 
 		if value, ok := AnyValue(kv.Value); ok {
-			fn(kv.Key, value)
+			fn(key, value)
 		}
 	}
 }
@@ -60,55 +62,49 @@ func Array(vs []*commonpb.AnyValue) ([]string, bool) {
 		return nil, false
 	}
 
-	switch value := vs[0].Value; value.(type) {
+	ss := make([]string, len(vs))
+	for i, v := range vs {
+		if str, ok := StringValue(v); ok {
+			ss[i] = str
+		}
+	}
+	return ss, true
+}
+
+func StringValue(v *commonpb.AnyValue) (string, bool) {
+	switch v := v.Value.(type) {
 	case nil:
-		return nil, false
+		return "", false
 	case *commonpb.AnyValue_StringValue:
-		ss := make([]string, len(vs))
-		for i, v := range vs {
-			if v == nil {
-				continue
-			}
-			if v, ok := v.Value.(*commonpb.AnyValue_StringValue); ok {
-				ss[i] = v.StringValue
-			}
-		}
-		return ss, true
+		return v.StringValue, true
 	case *commonpb.AnyValue_IntValue:
-		ss := make([]string, len(vs))
-		for i, v := range vs {
-			if v == nil {
-				continue
-			}
-			if v, ok := v.Value.(*commonpb.AnyValue_IntValue); ok {
-				ss[i] = strconv.FormatInt(v.IntValue, 10)
-			}
-		}
-		return ss, true
+		return strconv.FormatInt(v.IntValue, 10), true
 	case *commonpb.AnyValue_DoubleValue:
-		ss := make([]string, len(vs))
-		for i, v := range vs {
-			if v == nil {
-				continue
-			}
-			if v, ok := v.Value.(*commonpb.AnyValue_DoubleValue); ok {
-				ss[i] = strconv.FormatFloat(v.DoubleValue, 'f', -1, 64)
-			}
-		}
-		return ss, true
+		return strconv.FormatFloat(v.DoubleValue, 'f', -1, 64), true
 	case *commonpb.AnyValue_BoolValue:
-		ss := make([]string, len(vs))
-		for i, v := range vs {
-			if v == nil {
-				continue
-			}
-			if v, ok := v.Value.(*commonpb.AnyValue_BoolValue); ok {
-				ss[i] = strconv.FormatBool(v.BoolValue)
-			}
+		return strconv.FormatBool(v.BoolValue), true
+	case *commonpb.AnyValue_ArrayValue:
+		ss, ok := Array(v.ArrayValue.Values)
+		if !ok {
+			return "", false
 		}
-		return ss, true
+
+		b, err := json.Marshal(ss)
+		if err != nil {
+			return "", false
+		}
+
+		return unsafeconv.String(b), true
+	case *commonpb.AnyValue_KvlistValue:
+		attrs := Map(v.KvlistValue.Values)
+
+		b, err := json.Marshal(attrs)
+		if err != nil {
+			return "", false
+		}
+
+		return unsafeconv.String(b), true
 	default:
-		log.Printf("unsupported attribute value %T", value)
-		return nil, false
+		return "", false
 	}
 }

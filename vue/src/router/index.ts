@@ -1,13 +1,8 @@
 import Vue from 'vue'
 import VueRouter, { RouteConfig, NavigationGuard } from 'vue-router'
 
-// Utilities
-import { AttrKey, SystemName, isEventSystem } from '@/models/otel'
-
 // Composables
 import { useUser } from '@/org/use-users'
-import { exploreAttr } from '@/use/uql'
-import { System } from '@/tracing/system/use-systems'
 
 import NotFoundPage from '@/org/views/NotFoundPage.vue'
 import ProjectSettings from '@/org/views/ProjectSettings.vue'
@@ -215,16 +210,6 @@ const routes: RouteConfig[] = [
   {
     path: '/spans/:projectId(\\d+)',
     component: Tracing,
-    props: {
-      systemsFilter: (items: System[]) => {
-        return items.filter((item: System) => !isEventSystem(item.system))
-      },
-      allSystem: SystemName.SpansAll,
-      eventsMode: false,
-      defaultQuery: exploreAttr(AttrKey.spanGroupId),
-      itemListRouteName: 'SpanList',
-      groupListRouteName: 'SpanGroupList',
-    },
     children: [
       {
         name: 'SpanGroupList',
@@ -244,34 +229,8 @@ const routes: RouteConfig[] = [
   },
 
   {
-    path: '/events/:projectId(\\d+)',
-    component: Tracing,
-    props: {
-      systemsFilter: (items: System[]) => {
-        return items.filter((item: System) => isEventSystem(item.system))
-      },
-      allSystem: SystemName.EventsAll,
-      eventsMode: true,
-      defaultQuery: exploreAttr(AttrKey.spanGroupId, true),
-      itemListRouteName: 'EventList',
-      groupListRouteName: 'EventGroupList',
-    },
-    children: [
-      {
-        name: 'EventGroupList',
-        path: '',
-        components: { tracing: TracingGroups },
-      },
-      {
-        name: 'EventList',
-        path: 'spans',
-        components: { tracing: TracingSpans },
-      },
-    ],
-  },
-  {
     path: '/events',
-    beforeEnter: redirectToProject('EventGroupList'),
+    beforeEnter: redirectToProject('SpanGroupList'),
   },
 
   {

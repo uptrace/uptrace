@@ -210,14 +210,12 @@ export default defineComponent({
     const spanGroupRoute = computed(() => {
       switch (route.value.name) {
         case 'SpanList':
-        case 'EventList':
         case 'SpanGroupList':
-        case 'EventGroupList':
           return undefined
       }
 
       return {
-        name: isEvent.value ? 'EventList' : 'SpanList',
+        name: 'SpanList',
         query: {
           ...props.dateRange.queryParams(),
           system: props.span.system,

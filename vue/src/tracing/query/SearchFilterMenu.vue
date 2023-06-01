@@ -58,7 +58,7 @@ import { UseSystems } from '@/tracing/system/use-systems'
 import { UseUql } from '@/use/uql'
 
 // Utilities
-import { isEventSystem, AttrKey, SystemName } from '@/models/otel'
+import { AttrKey, SystemName } from '@/models/otel'
 import { quote, escapeRe } from '@/util/string'
 
 export default defineComponent({
@@ -144,7 +144,7 @@ export default defineComponent({
 
       let system: any = activeItem.value.system
       if (!system) {
-        system = props.systems.activeSystem
+        system = props.systems.activeSystems
       }
 
       const attrs = activeItem.value.attrs
@@ -159,7 +159,7 @@ export default defineComponent({
       const query = editor.toString()
 
       router.push({
-        name: isEventSystem(system) ? 'EventGroupList' : 'SpanGroupList',
+        name: 'SpanGroupList',
         query: {
           ...route.value.query,
           system,

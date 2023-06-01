@@ -64,7 +64,7 @@ export default defineComponent({
       bs.push({
         text: props.span.system,
         to: {
-          name: isEvent.value ? 'EventGroupList' : 'SpanGroupList',
+          name: 'SpanGroupList',
           params: { projectId: props.span.projectId },
           query: {
             ...props.dateRange.queryParams(),
@@ -77,7 +77,7 @@ export default defineComponent({
       bs.push({
         text: truncate(props.span.displayName, { length: 40 }),
         to: {
-          name: isEvent.value ? 'EventList' : 'SpanList',
+          name: 'SpanList',
           params: { projectId: props.span.projectId },
           query: {
             ...props.dateRange.queryParams(),

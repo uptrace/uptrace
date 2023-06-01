@@ -97,10 +97,6 @@ export default defineComponent({
   },
 
   props: {
-    eventsMode: {
-      type: Boolean,
-      required: true,
-    },
     loading: {
       type: Boolean,
       required: true,
@@ -120,6 +116,10 @@ export default defineComponent({
     columns: {
       type: Array as PropType<string[]>,
       default: () => [],
+    },
+    eventsMode: {
+      type: Boolean,
+      required: true,
     },
     showSystem: {
       type: Boolean,

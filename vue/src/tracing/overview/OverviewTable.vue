@@ -179,7 +179,7 @@ export default defineComponent({
 
     function systemRoute(system: string) {
       return {
-        name: isEventSystem(system) ? 'EventGroupList' : 'SpanGroupList',
+        name: 'SpanGroupList',
         query: {
           ...route.value.query,
           system,

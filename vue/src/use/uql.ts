@@ -1,4 +1,5 @@
-import { shallowRef, reactive, computed, proxyRefs } from 'vue'
+import { shallowRef, reactive, computed, watch, proxyRefs } from 'vue'
+import { createInjectionState } from '@vueuse/core'
 
 // Composables
 import { useRouteQuery } from '@/use/router'
@@ -165,8 +166,8 @@ export function joinQuery(...parts: any[]): string {
 
 //------------------------------------------------------------------------------
 
-export function createUqlEditor() {
-  return new UqlEditor()
+export function createUqlEditor(query = '') {
+  return new UqlEditor(query)
 }
 
 export class UqlEditor {
@@ -281,4 +282,38 @@ function split(s: string, sep: string): string[] {
     .split(sep)
     .map((s) => s.trim())
     .filter((s) => s.length)
+}
+
+//------------------------------------------------------------------------------
+
+const [useProvideQueryStore, useQueryStoreOrUndefined] = createInjectionState(createQueryStore)
+
+export { useProvideQueryStore }
+
+export function useQueryStore() {
+  return useQueryStoreOrUndefined() ?? createQueryStore()
+}
+
+function createQueryStore(uql: UseUql | undefined = undefined) {
+  const query = shallowRef('')
+  const where = shallowRef('')
+
+  if (uql) {
+    watch(
+      () => uql.query,
+      (queryValue) => {
+        query.value = queryValue
+      },
+      { flush: 'sync' },
+    )
+    watch(
+      () => uql.whereQuery,
+      (whereQuery) => {
+        where.value = whereQuery
+      },
+      { flush: 'sync' },
+    )
+  }
+
+  return { query, where }
 }

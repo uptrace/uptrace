@@ -156,8 +156,8 @@ export default defineComponent({
   setup() {
     useRouteQuery()
     useForceReload()
-    const dateRange = useDateRange()
 
+    const dateRange = useDateRange()
     const route = useRoute()
     const user = useUser()
 

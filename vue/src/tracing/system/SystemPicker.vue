@@ -1,9 +1,8 @@
 <template>
   <v-autocomplete
     ref="autocomplete"
-    v-autowidth="{ minWidth: 60 }"
     :value="value"
-    :items="filteredItems"
+    :items="filteredSystems"
     item-value="system"
     item-text="system"
     :search-input.sync="searchInput"
@@ -17,8 +16,8 @@
     dense
     outlined
     background-color="light-blue lighten-5"
-    class="v-select--fit"
-    @click:clear="$emit('input', [allSystem])"
+    style="width: 300px"
+    @click:clear="$emit('input', systems.length ? [systems[0].system] : [])"
   >
     <template #item="{ item, attrs }">
       <v-list-item
@@ -39,7 +38,7 @@
           <v-list-item-title :class="{ 'pl-4': item.indent }">{{ item.system }}</v-list-item-title>
         </v-list-item-content>
         <v-list-item-action class="my-0">
-          <v-list-item-action-text><XNum :value="item.count" /></v-list-item-action-text>
+          <v-list-item-action-text><XNum :value="item.groupCount" /></v-list-item-action-text>
         </v-list-item-action>
       </v-list-item>
     </template>
@@ -54,14 +53,10 @@
 
 <script lang="ts">
 import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
-import { defineComponent, shallowRef, computed, watchEffect, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 
 // Composables
-import { useRoute } from '@/use/router'
 import { System } from '@/tracing/system/use-systems'
-
-// Utilities
-import { splitTypeSystem, isDummySystem } from '@/models/otel'
 
 export default defineComponent({
   name: 'SystemPicker',
@@ -75,12 +70,8 @@ export default defineComponent({
       type: Array as PropType<string[]>,
       required: true,
     },
-    items: {
+    systems: {
       type: Array as PropType<System[]>,
-      required: true,
-    },
-    allSystem: {
-      type: String,
       required: true,
     },
     outlined: {
@@ -90,65 +81,47 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
-    const route = useRoute()
     const autocomplete = shallowRef()
     const searchInput = shallowRef('')
 
-    const internalItems = computed(() => {
-      const items = props.items.slice()
-
-      const allSystem = {
-        projectId: route.value.params.projectId,
-        system: props.allSystem,
-        count: 0,
-        rate: 0,
-        errorCount: 0,
-        errorPct: 0,
-      }
-      for (let item of items) {
-        if (!isDummySystem(item.system)) {
-          allSystem.count += item.count
-          allSystem.rate += item.rate
-          allSystem.errorCount += item.errorCount
-        }
-      }
-      allSystem.errorPct = allSystem.errorCount / allSystem.count
-      items.unshift(allSystem)
+    const internalSystems = computed(() => {
+      const systems = props.systems.slice()
 
       for (let system of props.value) {
-        const index = items.findIndex((item) => item.system === system)
+        const index = systems.findIndex((item) => item.system === system)
         if (index === -1) {
-          items.push({
-            projectId: route.value.params.projectId,
+          systems.push({
             system,
             count: 0,
             rate: 0,
             errorCount: 0,
-            errorPct: 0,
+            errorRate: 0,
+            groupCount: 0,
           })
         }
       }
 
-      return items
+      return systems
     })
 
-    const filteredItems = computed(() => {
+    const filteredSystems = computed(() => {
       if (!searchInput.value) {
-        return internalItems.value
+        return internalSystems.value
       }
-      return fuzzyFilter(internalItems.value, searchInput.value, { key: 'system' })
+      return fuzzyFilter(internalSystems.value, searchInput.value, { key: 'system' })
     })
 
-    watchEffect(
+    watch(
+      () => props.systems,
       () => {
         if (props.value.length) {
           return
         }
-        if (internalItems.value.length) {
-          ctx.emit('input', internalItems.value[0].system)
+        if (internalSystems.value.length) {
+          ctx.emit('input', internalSystems.value[0].system)
         }
       },
-      { flush: 'post' },
+      { immediate: true },
     )
 
     function comma(item: System, index: number): string {
@@ -159,7 +132,7 @@ export default defineComponent({
     }
 
     function toggleSystem(system: string) {
-      let activeSystems = props.value.slice() as string[]
+      let activeSystems = props.value.slice()
       const index = activeSystems.indexOf(system)
 
       if (index >= 0) {
@@ -168,46 +141,23 @@ export default defineComponent({
         return
       }
 
-      if (system === props.allSystem) {
-        ctx.emit('input', [props.allSystem])
+      if (system.endsWith(':all')) {
+        ctx.emit('input', [system])
         return
       }
 
       if (activeSystems.length) {
-        const index = activeSystems.indexOf(props.allSystem)
-        if (index >= 0) {
-          activeSystems.splice(index, 1)
-        }
+        activeSystems = activeSystems.filter((system) => !system.endsWith(':all'))
       }
-
-      if (system.endsWith(':all')) {
-        activeSystems = tryRemoveChildren(activeSystems, system)
-      } else {
-        activeSystems = tryRemoveAllSystem(activeSystems, system)
-      }
-
       activeSystems.push(system)
+
       ctx.emit('input', activeSystems)
-    }
-
-    function tryRemoveChildren(systems: string[], needle: string) {
-      const prefix = splitTypeSystem(needle)[0] + ':'
-      return systems.filter((system) => system === needle || !system.startsWith(prefix))
-    }
-
-    function tryRemoveAllSystem(systems: string[], needle: string) {
-      needle = splitTypeSystem(needle)[0] + ':all'
-      const index = systems.indexOf(needle)
-      if (index >= 0) {
-        systems.splice(index, 1)
-      }
-      return systems
     }
 
     return {
       autocomplete,
       searchInput,
-      filteredItems,
+      filteredSystems,
       comma,
       toggleSystem,
     }

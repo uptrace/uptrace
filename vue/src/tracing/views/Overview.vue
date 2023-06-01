@@ -6,31 +6,32 @@
 
     <template v-else>
       <PageToolbar :loading="systems.loading" :fluid="$vuetify.breakpoint.lgAndDown">
-        <SystemPicker
-          v-if="systems.items.length"
-          v-model="systems.activeSystem"
-          :items="systems.items"
-          all-system="all"
-          outlined
-        />
-        <QuickSpanFilter
-          :date-range="dateRange"
-          :uql="uql"
-          name="env"
-          :attr-key="AttrKey.deploymentEnvironment"
-          class="ml-2"
-        />
-        <QuickSpanFilter
-          :date-range="dateRange"
-          :uql="uql"
-          name="service"
-          :attr-key="AttrKey.serviceName"
-          class="ml-2"
-        />
+        <v-toolbar-items>
+          <SystemPicker
+            v-if="systems.items.length"
+            v-model="systems.activeSystems"
+            :systems="spanSystems"
+            outlined
+          />
+          <QuickSpanFilter
+            :date-range="dateRange"
+            :uql="uql"
+            name="env"
+            :attr-key="AttrKey.deploymentEnvironment"
+            class="ml-2"
+          />
+          <QuickSpanFilter
+            :date-range="dateRange"
+            :uql="uql"
+            name="service"
+            :attr-key="AttrKey.serviceName"
+            class="ml-2"
+          />
+        </v-toolbar-items>
 
         <v-spacer />
 
-        <DateRangePicker :date-range="dateRange" />
+        <DateRangePicker :date-range="dateRange" sync-query-params />
       </PageToolbar>
 
       <div class="border-bottom">
@@ -64,7 +65,11 @@
       <v-container :fluid="$vuetify.breakpoint.lgAndDown">
         <v-row>
           <v-col>
-            <router-view :date-range="dateRange" :axios-params="axiosParams" />
+            <router-view
+              :date-range="dateRange"
+              :systems="systems.activeSystems"
+              :axios-params="axiosParams"
+            />
           </v-col>
         </v-row>
       </v-container>
@@ -78,9 +83,9 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useTitle } from '@vueuse/core'
 import { UseDateRange } from '@/use/date-range'
-import { useUql } from '@/use/uql'
+import { useUql, useProvideQueryStore } from '@/use/uql'
 import { useProject } from '@/org/use-projects'
-import { useSystems } from '@/tracing/system/use-systems'
+import { useSystems, addAllSystem } from '@/tracing/system/use-systems'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
@@ -90,7 +95,7 @@ import SystemQuickMetrics from '@/tracing/system/SystemQuickMetrics.vue'
 import HelpCard from '@/tracing/HelpCard.vue'
 
 // Utilities
-import { isErrorSystem, AttrKey } from '@/models/otel'
+import { isSpanSystem, isErrorSystem, SystemName, AttrKey } from '@/models/otel'
 import { DAY } from '@/util/fmt/date'
 
 export default defineComponent({
@@ -107,11 +112,11 @@ export default defineComponent({
   setup(props) {
     useTitle('Overview')
 
-    props.dateRange.syncQueryParams()
-
     const project = useProject()
+
     const uql = useUql()
     uql.syncQueryParams()
+    useProvideQueryStore(uql)
 
     const systems = useSystems(() => {
       return {
@@ -120,6 +125,12 @@ export default defineComponent({
       }
     })
     systems.syncQueryParams()
+
+    const spanSystems = computed(() => {
+      const items = systems.items.filter((item) => isSpanSystem(item.system))
+      addAllSystem(items, SystemName.SpansAll)
+      return items
+    })
 
     const axiosParams = computed(() => {
       return {
@@ -149,6 +160,7 @@ export default defineComponent({
       uql,
       project,
       systems,
+      spanSystems,
       axiosParams,
 
       chosenSystems,
