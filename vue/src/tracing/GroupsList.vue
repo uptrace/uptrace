@@ -230,6 +230,7 @@ export default defineComponent({
         pager.numItem = numItem
         ctx.emit('update:num-group', numItem)
       },
+      { immediate: true },
     )
 
     const internalPlottedColumns = shallowRef<string[]>()

@@ -256,6 +256,15 @@ func isAggAttr(attrKey string) bool {
 	}
 }
 
+func isNumFunc(funcName string) bool {
+	switch funcName {
+	case "sum", "avg", "min", "max", "p50", "p75", "p90", "p99":
+		return true
+	default:
+		return false
+	}
+}
+
 func tqlColumn(q *ch.SelectQuery, name tql.Name, dur time.Duration) *ch.SelectQuery {
 	var b []byte
 	b = AppendCHColumn(b, name, dur)
@@ -296,7 +305,16 @@ func AppendCHColumn(b []byte, name tql.Name, dur time.Duration) []byte {
 			b = append(b, '(')
 		}
 
+		isNum := isNumFunc(name.FuncName)
+		if isNum {
+			b = append(b, "toFloat64OrDefault("...)
+		}
+
 		b = AppendCHAttrExpr(b, name.AttrKey)
+
+		if isNum {
+			b = append(b, ')')
+		}
 
 		if name.FuncName != "" {
 			b = append(b, ')')

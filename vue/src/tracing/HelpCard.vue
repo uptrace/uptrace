@@ -17,7 +17,8 @@
           </p>
 
           <p>
-            For Go, Python, .NET, Rust, Erlang, and Elixir, use <strong>OTLP/gRPC</strong> port:
+            For Go, Python, Java, .NET, Rust, Erlang, and Elixir, use
+            <strong>OTLP/gRPC</strong> port:
           </p>
 
           <PrismCode :code="`UPTRACE_DSN=${project.grpc.dsn}`" class="mb-4" />

@@ -37,6 +37,7 @@ export function useWatchAxios(source: AxiosRequestSource, options: AxiosWatchOpt
     loading,
     data,
     error,
+    errorCode,
     errorMessage,
 
     request,
@@ -120,6 +121,7 @@ export function useWatchAxios(source: AxiosRequestSource, options: AxiosWatchOpt
 
     data,
     error,
+    errorCode,
     errorMessage,
 
     abort,

@@ -1,17 +1,20 @@
 <template>
   <div>
-    <template v-if="groups.errorCode === 'invalid_query'">
-      <v-row>
-        <v-col>
-          <v-banner>
-            <v-icon slot="icon" color="error" size="36">mdi-alert-circle</v-icon>
-            <span class="subtitle-1 text--secondary">{{ groups.errorMessage }}</span>
-          </v-banner>
+    <v-row v-if="groups.errorCode === 'invalid_query'">
+      <v-col>
+        <v-banner>
+          <v-icon slot="icon" color="error" size="36">mdi-alert-circle</v-icon>
+          <div class="subtitle-1 text--secondary">
+            {{ groups.errorMessage }}<br />
+            This is a bug. Please report in on
+            <a href="https://github.com/uptrace/uptrace" target="_blank">GitHub</a> including the
+            error message and the query.
+          </div>
+        </v-banner>
 
-          <PrismCode v-if="groups.query" :code="groups.query" language="sql" />
-        </v-col>
-      </v-row>
-    </template>
+        <PrismCode v-if="groups.backendQuery" :code="groups.backendQuery" language="sql" />
+      </v-col>
+    </v-row>
 
     <v-row v-else>
       <v-col>

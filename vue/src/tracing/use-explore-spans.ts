@@ -1,3 +1,4 @@
+import { format } from 'sql-formatter'
 import { shallowRef, computed, watch, proxyRefs } from 'vue'
 
 // Composables
@@ -43,7 +44,7 @@ export function useGroups(axiosParamsSource: AxiosParamsSource, conf: ExploreCon
     return axiosParamsSource()
   })
 
-  const { status, loading, data } = useWatchAxios(() => {
+  const { status, loading, data, error, errorCode, errorMessage } = useWatchAxios(() => {
     if (!axiosParams.value) {
       return axiosParams.value
     }
@@ -84,6 +85,19 @@ export function useGroups(axiosParamsSource: AxiosParamsSource, conf: ExploreCon
     return columns.value.filter((col) => !col.isGroup && col.isNum)
   })
 
+  const backendQuery = computed((): string => {
+    const query = error.value?.response?.data?.query ?? ''
+    if (!query) {
+      return query
+    }
+
+    try {
+      return format(query)
+    } catch (err) {
+      return query
+    }
+  })
+
   watch(
     () => data.value?.hasMore ?? false,
     (hasMoreValue) => {
@@ -120,6 +134,10 @@ export function useGroups(axiosParamsSource: AxiosParamsSource, conf: ExploreCon
 
     items: groups,
     hasMore,
+
+    errorCode,
+    errorMessage,
+    backendQuery,
 
     queryInfo,
     columns,
