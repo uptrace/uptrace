@@ -196,7 +196,7 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 
 	if _, err := s.CH.NewInsert().
 		Model(&dataSpans).
-		ModelTableExpr("?", s.DistTable("spans_data_buffer")).
+		ModelTableExpr("?", s.DistTable("spans_data")).
 		Exec(ctx); err != nil {
 		s.Zap(ctx).Error("ch.Insert failed",
 			zap.Error(err), zap.String("table", "spans_data"))
@@ -204,7 +204,7 @@ func (s *SpanProcessor) _flushSpans(ctx context.Context, spans []*Span) {
 
 	if _, err := s.CH.NewInsert().
 		Model(&indexedSpans).
-		ModelTableExpr("?", s.DistTable("spans_index_buffer")).
+		ModelTableExpr("?", s.DistTable("spans_index")).
 		Exec(ctx); err != nil {
 		s.Zap(ctx).Error("ch.Insert failed",
 			zap.Error(err), zap.String("table", "spans_index"))

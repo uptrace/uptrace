@@ -13,7 +13,7 @@ import (
 )
 
 type SpanData struct {
-	ch.CHModel `ch:"table:spans_data_buffer,alias:s"`
+	ch.CHModel `ch:"table:spans_data,alias:s"`
 
 	Type      string `ch:",lc"`
 	ProjectID uint32
@@ -59,7 +59,7 @@ func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 	q := app.CH.NewSelect().
 		ColumnExpr("project_id, trace_id, id, parent_id, data").
 		Model(&data).
-		ModelTableExpr("?", app.DistTable("spans_data_buffer")).
+		ModelTableExpr("?", app.DistTable("spans_data")).
 		Where("trace_id = ?", span.TraceID).
 		Limit(1)
 
@@ -83,7 +83,7 @@ func SelectTraceSpans(ctx context.Context, app *bunapp.App, traceID uuid.UUID) (
 	if err := app.CH.NewSelect().
 		ColumnExpr("project_id, trace_id, id, parent_id").
 		Model(&data).
-		ModelTableExpr("?", app.DistTable("spans_data_buffer")).
+		ModelTableExpr("?", app.DistTable("spans_data")).
 		Column("data").
 		Where("trace_id = ?", traceID).
 		OrderExpr("time ASC").
