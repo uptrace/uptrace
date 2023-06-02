@@ -407,16 +407,16 @@ func createProject(ctx context.Context, app *bunapp.App, project *org.Project) e
 		return nil
 	}
 
-	monitor := &alerting.ErrorMonitor{
-		BaseMonitor: &alerting.BaseMonitor{
+	monitor := &org.ErrorMonitor{
+		BaseMonitor: &org.BaseMonitor{
 			ProjectID:             project.ID,
 			Name:                  "Notify on all errors",
-			State:                 alerting.MonitorActive,
+			State:                 org.MonitorActive,
 			NotifyEveryoneByEmail: true,
 
-			Type: alerting.MonitorError,
+			Type: org.MonitorError,
 		},
-		Params: alerting.ErrorMonitorParams{
+		Params: org.ErrorMonitorParams{
 			NotifyOnNewErrors:       true,
 			NotifyOnRecurringErrors: true,
 			Matchers:                make([]org.AttrMatcher, 0),

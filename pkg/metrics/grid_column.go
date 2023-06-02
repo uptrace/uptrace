@@ -181,7 +181,7 @@ func (c *ChartGridColumn) FromTemplate(tpl *ChartGridColumnTpl) error {
 
 	c.Params.ChartKind = tpl.ChartKind
 	c.Params.Metrics = metrics
-	c.Params.Query = strings.Join(tpl.Query, " | ")
+	c.Params.Query = mql.JoinQuery(tpl.Query)
 	c.Params.ColumnMap = tpl.Columns
 	c.Params.Legend = tpl.Legend
 
@@ -266,7 +266,7 @@ func (c *TableGridColumn) FromTemplate(tpl *TableGridColumnTpl) error {
 	}
 
 	c.Params.Metrics = metrics
-	c.Params.Query = strings.Join(tpl.Query, " | ")
+	c.Params.Query = mql.JoinQuery(tpl.Query)
 	c.Params.ColumnMap = tpl.Columns
 
 	return nil
@@ -335,7 +335,7 @@ func (c *HeatmapGridColumn) FromTemplate(tpl *HeatmapGridColumnTpl) error {
 
 	c.Params.Metric = tpl.Metric
 	c.Params.Unit = tpl.Unit
-	c.Params.Query = strings.Join(tpl.Query, " | ")
+	c.Params.Query = mql.JoinQuery(tpl.Query)
 
 	return nil
 }

@@ -34,3 +34,29 @@ func TestClean(t *testing.T) {
 		})
 	}
 }
+
+func TestAWSMetricName(t *testing.T) {
+	type Test struct {
+		namespace string
+		metric    string
+		wanted    string
+	}
+
+	tests := []Test{
+		{"AWS/SES", "Delivery", "amazonaws.com.aws.ses.delivery"},
+		{"AWS/EBS", "VolumeTotalWriteTime", "amazonaws.com.aws.ebs.volume_total_write_time"},
+		{"AWS", "XXX", "amazonaws.com.aws.xxx"},
+		{"AWS", "DBName", "amazonaws.com.aws.db_name"},
+		{"AWS", "XXXX1", "amazonaws.com.aws.xxxx1"},
+		{"AWS", "X1XXX", "amazonaws.com.aws.x1xxx"},
+		{"AWS", "XXXX1Foo", "amazonaws.com.aws.xxxx1_foo"},
+		{"AWS", "XXXX123Foo", "amazonaws.com.aws.xxxx123_foo"},
+		{"AWS", "123foo", "amazonaws.com.aws.123foo"},
+		{"AWS", "123Foo", "amazonaws.com.aws.123_foo"},
+		{"AWS", "StatusCheckFailed_System", "amazonaws.com.aws.status_check_failed_system"},
+	}
+	for _, test := range tests {
+		got := attrkey.AWSMetricName(test.namespace, test.metric)
+		require.Equal(t, test.wanted, got)
+	}
+}

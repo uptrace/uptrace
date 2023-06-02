@@ -1,10 +1,16 @@
-import { pick, orderBy } from 'lodash-es'
-import { reactive, computed, watch, proxyRefs, Ref } from 'vue'
+import { pick, orderBy, cloneDeep } from 'lodash-es'
+import { shallowRef, reactive, computed, watch, proxyRefs, Ref } from 'vue'
+import { refDebounced } from '@vueuse/core'
 
 // Composables
 import { useRoute } from '@/use/router'
 import { useOrder, Order } from '@/use/order'
-import { useWatchAxios, AxiosRequestSource, AxiosParamsSource } from '@/use/watch-axios'
+import {
+  useWatchAxios,
+  AxiosRequestSource,
+  AxiosParamsSource,
+  AxiosParams,
+} from '@/use/watch-axios'
 import { BackendQueryInfo } from '@/use/uql'
 
 // Utilities
@@ -181,6 +187,10 @@ export function useTableQuery(
   const route = useRoute()
   const order = useOrder()
 
+  const searchInput = shallowRef('')
+  const debouncedSearchInput = refDebounced(searchInput, 1000)
+  const hasMore = shallowRef(false)
+
   const axiosParams = computed(() => {
     return axiosParamsSource()
   })
@@ -190,22 +200,26 @@ export function useTableQuery(
       return axiosParams.value
     }
 
+    const params: Record<string, any> = {
+      ...axiosParams.value,
+      ...order.axiosParams,
+      search: debouncedSearchInput.value,
+    }
+
     const { projectId } = route.value.params
     return {
       url: `/api/v1/metrics/${projectId}/table`,
-      params: {
-        ...axiosParams.value,
-        ...order.axiosParams,
-      },
+      params,
     }
+  })
+
+  const lastAxiosParams = shallowRef<AxiosParams>()
+  watch(data, () => {
+    lastAxiosParams.value = cloneDeep(axiosParams.value)
   })
 
   const items = computed((): TableItem[] => {
     return data.value?.items ?? []
-  })
-
-  const hasMore = computed(() => {
-    return data.value?.hasMore ?? true
   })
 
   const sortedItems = computed(() => {
@@ -214,6 +228,17 @@ export function useTableQuery(
       return items.value
     }
     return orderBy(items.value, (item) => item[col] ?? '', order.desc ? 'desc' : 'asc')
+  })
+
+  const filteredItems = computed(() => {
+    const items = sortedItems.value
+    if (!searchInput.value) {
+      return items
+    }
+    const needle = searchInput.value.toLowerCase()
+    return items.filter((item) => {
+      return Object.values(item._attrs).some((value) => value.toLowerCase().includes(needle))
+    })
   })
 
   const columns = computed((): ColumnInfo[] => {
@@ -267,9 +292,21 @@ export function useTableQuery(
     return undefined
   })
 
-  watch(hasMore, (hasMore) => {
-    order.ignoreAxiosParamsEnabled = !hasMore
-  })
+  watch(
+    () => data.value?.hasMore ?? false,
+    (hasMoreValue) => {
+      hasMore.value = hasMoreValue
+    },
+    { immediate: true },
+  )
+
+  watch(
+    hasMore,
+    (hasMore) => {
+      order.ignoreAxiosParamsEnabled = !hasMore
+    },
+    { immediate: true },
+  )
 
   watch(
     (): Order | undefined => data.value?.order,
@@ -283,14 +320,15 @@ export function useTableQuery(
   )
 
   return proxyRefs({
-    order,
-
     status,
     loading,
     reload,
 
-    axiosParams,
-    items: sortedItems,
+    order,
+    axiosParams: lastAxiosParams,
+
+    items: filteredItems,
+    searchInput,
     hasMore,
 
     query,

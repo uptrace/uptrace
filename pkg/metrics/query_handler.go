@@ -72,6 +72,7 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 		ProjectID:  f.Project.ID,
 		TimeFilter: f.TimeFilter,
 		MetricMap:  metricMap,
+		Search:     f.Search,
 
 		TableName:      tableName,
 		GroupingPeriod: groupingPeriod,
@@ -132,16 +133,15 @@ func convertToTable(
 	var buf []byte
 	for i := range timeseries {
 		ts := &timeseries[i]
-		metricName := ts.MetricName()
 
-		if col, ok := columnMap[metricName]; ok {
+		if col, ok := columnMap[ts.MetricName]; ok {
 			col.Unit = ts.Unit
 		} else {
 			col := &ColumnInfo{
-				Name: metricName,
+				Name: ts.MetricName,
 				Unit: ts.Unit,
 			}
-			columnMap[metricName] = col
+			columnMap[ts.MetricName] = col
 			columns = append(columns, col)
 		}
 
@@ -164,7 +164,9 @@ func convertToTable(
 			row = make(map[string]any)
 			rowMap[hash] = row
 
+			row["_name"] = ts.Attrs.String()
 			row["_query"] = ts.WhereQuery()
+			row["_attrs"] = ts.Attrs
 
 			for _, kv := range ts.Attrs {
 				if _, ok := columnMap[kv.Key]; !ok {
@@ -184,7 +186,7 @@ func convertToTable(
 			}
 		}
 
-		row[metricName] = ts.Value[0]
+		row[ts.MetricName] = ts.Value[0]
 	}
 
 	table := make([]map[string]any, 0, len(rowMap))
@@ -296,7 +298,7 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 		name := src.Name()
 		dest.ID = xxh3.HashString(name)
 		dest.Name = name
-		dest.Metric = src.MetricName()
+		dest.Metric = src.MetricName
 		dest.Unit = src.Unit
 		dest.Attrs = src.Attrs
 		dest.Value = src.Value

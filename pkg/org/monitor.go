@@ -1,4 +1,4 @@
-package alerting
+package org
 
 import (
 	"context"
@@ -11,8 +11,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/madalarm"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
-	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing"
 )
 
 type Monitor interface {
@@ -101,6 +99,11 @@ func (m *MetricMonitor) Base() *BaseMonitor {
 	return m.BaseMonitor
 }
 
+func (m *MetricMonitor) Validate() error {
+	// TODO
+	return nil
+}
+
 func (m *MetricMonitor) MadalarmOptions() ([]madalarm.Option, error) {
 	if !m.Params.MinValue.Valid && !m.Params.MaxValue.Valid {
 		return nil, errors.New("at least min or max value is required")
@@ -134,22 +137,18 @@ func NewErrorMonitor() *ErrorMonitor {
 }
 
 type ErrorMonitorParams struct {
-	NotifyOnNewErrors       bool              `json:"notifyOnNewErrors"`
-	NotifyOnRecurringErrors bool              `json:"notifyOnRecurringErrors"`
-	Matchers                []org.AttrMatcher `json:"matchers"`
+	NotifyOnNewErrors       bool          `json:"notifyOnNewErrors"`
+	NotifyOnRecurringErrors bool          `json:"notifyOnRecurringErrors"`
+	Matchers                []AttrMatcher `json:"matchers"`
 }
 
 func (m *ErrorMonitor) Base() *BaseMonitor {
 	return m.BaseMonitor
 }
 
-func (m *ErrorMonitor) Matches(span *tracing.Span) bool {
-	for i := range m.Params.Matchers {
-		if !m.Params.Matchers[i].Matches(span.Attrs) {
-			return false
-		}
-	}
-	return true
+func (m *ErrorMonitor) Validate() error {
+	// TODO
+	return nil
 }
 
 type MonitorChannel struct {
@@ -157,12 +156,21 @@ type MonitorChannel struct {
 	ChannelID uint64
 }
 
+func InsertMonitor(ctx context.Context, app *bunapp.App, monitor Monitor) error {
+	if _, err := app.PG.NewInsert().
+		Model(monitor).
+		Exec(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
 func SelectMonitor(ctx context.Context, app *bunapp.App, id uint64) (Monitor, error) {
 	monitor, err := SelectBaseMonitor(ctx, app, id)
 	if err != nil {
 		return nil, err
 	}
-	return decodeMonitor(monitor)
+	return DecodeMonitor(monitor)
 }
 
 func SelectBaseMonitor(ctx context.Context, app *bunapp.App, id uint64) (*BaseMonitor, error) {
@@ -176,7 +184,7 @@ func SelectBaseMonitor(ctx context.Context, app *bunapp.App, id uint64) (*BaseMo
 	return monitor, nil
 }
 
-func decodeMonitor(base *BaseMonitor) (Monitor, error) {
+func DecodeMonitor(base *BaseMonitor) (Monitor, error) {
 	switch base.Type {
 	case MonitorMetric:
 		monitor := &MetricMonitor{
@@ -215,16 +223,4 @@ func UpdateMonitorState(
 		return err
 	}
 	return nil
-}
-
-func SelectMetricMonitors(ctx context.Context, app *bunapp.App) ([]*MetricMonitor, error) {
-	monitors := make([]*MetricMonitor, 0)
-	if err := app.PG.NewSelect().
-		Model(&monitors).
-		Where("type = ?", MonitorMetric).
-		Where("state NOT IN (?)", MonitorPaused, MonitorFailed).
-		Scan(ctx); err != nil {
-		return nil, err
-	}
-	return monitors, nil
 }

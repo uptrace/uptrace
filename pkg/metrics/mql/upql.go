@@ -1,32 +1,12 @@
 package mql
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/segmentio/encoding/json"
 
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 )
-
-type MetricAlias struct {
-	Name  string `yaml:"name" json:"name"`
-	Alias string `yaml:"alias" json:"alias"`
-}
-
-func (m *MetricAlias) String() string {
-	return m.Name + " as $" + m.Alias
-}
-
-func (m *MetricAlias) Validate() error {
-	if m.Name == "" {
-		return errors.New("metric name can't be empty")
-	}
-	if m.Alias == "" {
-		return errors.New("metric alias can't be empty")
-	}
-	return nil
-}
 
 type ParsedQuery struct {
 	Parts   []*QueryPart  `json:"parts"`
@@ -93,4 +73,8 @@ func Parse(query string) *ParsedQuery {
 
 func SplitQuery(query string) []string {
 	return strings.Split(query, " | ")
+}
+
+func JoinQuery(parts []string) string {
+	return strings.Join(parts, " | ")
 }

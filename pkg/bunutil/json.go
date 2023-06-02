@@ -10,6 +10,7 @@ import (
 
 	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
+	"gopkg.in/yaml.v3"
 )
 
 func IsJSON(s string) (map[string]any, bool) {
@@ -78,6 +79,16 @@ func (f *NullFloat64) UnmarshalJSON(data []byte) error {
 	}
 
 	return err
+}
+
+var _ yaml.Unmarshaler = (*NullFloat64)(nil)
+
+func (f *NullFloat64) UnmarshalYAML(value *yaml.Node) error {
+	if err := value.Decode(&f.Float64); err != nil {
+		return err
+	}
+	f.Valid = true
+	return nil
 }
 
 //------------------------------------------------------------------------------

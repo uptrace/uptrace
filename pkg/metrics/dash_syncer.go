@@ -10,6 +10,8 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
+	"github.com/uptrace/uptrace/pkg/metrics/mql"
+	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
@@ -152,6 +154,7 @@ type DashBuilder struct {
 	dash      *Dashboard
 	gauges    []*DashGauge
 	grid      []GridColumn
+	monitors  []*org.MetricMonitor
 }
 
 func NewDashBuilder(projectID uint32, oldDash *Dashboard) *DashBuilder {
@@ -190,6 +193,12 @@ func (b *DashBuilder) Build(tpl *DashboardTpl) error {
 
 	for _, tpl := range tpl.Grid {
 		if err := b.gridColumn(tpl); err != nil {
+			return err
+		}
+	}
+
+	for _, tpl := range tpl.Monitors {
+		if err := b.monitor(tpl); err != nil {
 			return err
 		}
 	}
@@ -283,6 +292,46 @@ func (b *DashBuilder) gridColumn(tpl GridColumnTpl) error {
 	}
 }
 
+func (b *DashBuilder) monitor(tpl *MonitorTpl) error {
+	metrics, err := parseMetrics(tpl.Metrics)
+	if err != nil {
+		return err
+	}
+
+	monitor := org.NewMetricMonitor()
+
+	monitor.ProjectID = b.projectID
+	monitor.Name = tpl.Name
+	monitor.State = org.MonitorActive
+	monitor.NotifyEveryoneByEmail = true
+
+	monitor.Params.Metrics = metrics
+	monitor.Params.Query = mql.JoinQuery(tpl.Query)
+
+	for colName, col := range tpl.Columns {
+		monitor.Params.Column = colName
+		monitor.Params.ColumnUnit = col.Unit
+		break
+	}
+
+	monitor.Params.ForDuration = tpl.ForDuration
+	monitor.Params.ForDurationUnit = org.MonitorUnitMinutes
+
+	monitor.Params.MinValue = tpl.MinValue
+	monitor.Params.MaxValue = tpl.MaxValue
+
+	if monitor.Params.ForDuration == 0 {
+		monitor.Params.ForDuration = 5
+	}
+
+	if err := monitor.Validate(); err != nil {
+		return err
+	}
+
+	b.monitors = append(b.monitors, monitor)
+	return nil
+}
+
 func (b *DashBuilder) HasMetrics(metricMap map[string]*Metric) bool {
 	for _, metric := range b.dash.TableMetrics {
 		if _, ok := metricMap[metric.Name]; !ok {
@@ -331,7 +380,18 @@ grid_loop:
 		default:
 			panic(fmt.Errorf("unsupported grid column type: %T", col))
 		}
+	}
 
+monitor_loop:
+	for i := len(b.monitors) - 1; i >= 0; i-- {
+		monitor := b.monitors[i]
+		for _, metric := range monitor.Params.Metrics {
+			if _, ok := metricMap[metric.Name]; !ok {
+				b.monitors = append(b.monitors[:i], b.monitors[i+1:]...)
+				continue monitor_loop
+
+			}
+		}
 	}
 
 	return len(b.grid) > 0
@@ -370,6 +430,14 @@ func (b *DashBuilder) Save(ctx context.Context, app *bunapp.App) error {
 	if len(baseCols) > 0 {
 		if err := InsertGridColumns(ctx, app, baseCols); err != nil {
 			return err
+		}
+	}
+
+	if b.oldDash == nil {
+		for _, monitor := range b.monitors {
+			if err := org.InsertMonitor(ctx, app, monitor); err != nil {
+				return err
+			}
 		}
 	}
 

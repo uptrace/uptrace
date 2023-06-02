@@ -9,7 +9,7 @@ table:
       metrics:
         - process.runtime.go.goroutines as $goroutines
       query:
-        - uniq($goroutines.host.name) as num_host
+        - uniq($goroutines, host.name) as num_host
       template: ${num_host} hosts
 
     - name: Number of services
@@ -17,7 +17,7 @@ table:
       metrics:
         - process.runtime.go.goroutines as $goroutines
       query:
-        - uniq($goroutines.service.name) as num_service
+        - uniq($goroutines, service.name) as num_service
       template: ${num_service} services
 
     - name: Max GC pause
@@ -115,7 +115,7 @@ grid:
     metrics:
       - process.runtime.go.cgo.calls as $cgo_calls
     query:
-      - delta($cgo_calls)
+      - per_min(delta($cgo_calls)) as cgo_calls
 
 ---
 schema: v1

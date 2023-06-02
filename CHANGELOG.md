@@ -4,21 +4,34 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 ## v1.5.0
 
-#### Breaking changes
+This release is backwards compatible with v1.4.x, but contains a ClickHouse mutation to add new
+columns.
 
 #### Features
 
 - Add support for `display.name` attribute. You can now use `display.name contains "get"` to search
   for spans and events/logs at the the same time. You can also use `display.name` attribute to
   [override](https://uptrace.dev/get/grouping.html) default span/event/log names.
+- Metric dashboards can now create monitors.
+- Added ability to receive metrics from
+  [AWS CloudWatch](https://uptrace.dev/get/ingest/aws-cloudwatch.html).
 
 #### Improvements
 
+- System picker now shows number of matching groups. Also added a preset for Spans / Logs / Events
+  groups.
 - `span.` prefix is replaced with `.`, for example, instead of `p50(span.duration)` you can write
   `p50(.duration)`. Old names are deprecated, but still supported.
-- Uptrace config now has sensible default so you can start with an empty YAML config file and add
+- Added more metric dashboards and improved existing ones.
+- Uptrace config now has sensible defaults so you can start with an empty YAML config file and add
   changes as you go.
 - Added `uptrace config dump` to view the current Uptrace config in YAML format.
+
+#### Fixes
+
+- Preserve filters when navigating from "Overview" to "Tracing" tabs.
+- Fixed numeric aggregations over custom attributes, for example, `sum(custom.attribute)`.
+- Fixed attributes normalizations, for example, `X-Request-Id` is normalized to `x_request_id`.
 
 #### Other changes
 

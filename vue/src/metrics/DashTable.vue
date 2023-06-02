@@ -54,6 +54,17 @@
               {{ dashboard.name }}
             </v-toolbar-title>
 
+            <v-text-field
+              v-model="tableQuery.searchInput"
+              placeholder="Quick search"
+              clearable
+              outlined
+              dense
+              hide-details="auto"
+              class="ml-8"
+              style="max-width: 300px"
+            />
+
             <v-spacer />
 
             <v-dialog v-model="dialog" max-width="1400">

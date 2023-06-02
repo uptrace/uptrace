@@ -109,7 +109,7 @@ func (m *Middleware) Monitor(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 			return err
 		}
 
-		monitor, err := SelectMonitor(ctx, m.App, monitorID)
+		monitor, err := org.SelectMonitor(ctx, m.App, monitorID)
 		if err != nil {
 			return err
 		}
@@ -124,20 +124,20 @@ func (m *Middleware) Monitor(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	}
 }
 
-func monitorFromContext(ctx context.Context) Monitor {
-	return ctx.Value(monitorCtxKey{}).(Monitor)
+func monitorFromContext(ctx context.Context) org.Monitor {
+	return ctx.Value(monitorCtxKey{}).(org.Monitor)
 }
 
-func metricMonitorFromContext(ctx context.Context) (*MetricMonitor, error) {
-	monitor, ok := ctx.Value(monitorCtxKey{}).(*MetricMonitor)
+func metricMonitorFromContext(ctx context.Context) (*org.MetricMonitor, error) {
+	monitor, ok := ctx.Value(monitorCtxKey{}).(*org.MetricMonitor)
 	if !ok {
 		return nil, sql.ErrNoRows
 	}
 	return monitor, nil
 }
 
-func errorMonitorFromContext(ctx context.Context) (*ErrorMonitor, error) {
-	monitor, ok := ctx.Value(monitorCtxKey{}).(*ErrorMonitor)
+func errorMonitorFromContext(ctx context.Context) (*org.ErrorMonitor, error) {
+	monitor, ok := ctx.Value(monitorCtxKey{}).(*org.ErrorMonitor)
 	if !ok {
 		return nil, sql.ErrNoRows
 	}

@@ -25,6 +25,7 @@ type QueryFilter struct {
 	Metric []string
 	Alias  []string
 	Query  string
+	Search string
 
 	parsedQuery *mql.ParsedQuery
 	allParts    []*mql.QueryPart
@@ -89,6 +90,7 @@ func (f *QueryFilter) MetricMap(ctx context.Context, app *bunapp.App) (map[strin
 		if metricAlias == "" {
 			return nil, fmt.Errorf("metric alias can't be empty")
 		}
+		metricAlias = "$" + metricAlias
 
 		metric, err := SelectMetricByName(ctx, app, f.Project.ID, metricName)
 		if err != nil {

@@ -2,6 +2,11 @@ package attrkey
 
 import "github.com/uptrace/uptrace/pkg/unsafeconv"
 
+func AWSMetricName(namespace, metric string) string {
+	const prefix = "amazonaws.com."
+	return prefix + Clean(namespace) + "." + Clean(metric)
+}
+
 func Clean(s string) string {
 	if isClean(s) {
 		return s
@@ -20,32 +25,50 @@ func isClean(s string) bool {
 
 func clean(s string) string {
 	b := make([]byte, 0, len(s))
-	for _, c := range []byte(s) {
-		if isAllowed(c) {
-			b = append(b, c)
-			continue
-		}
-		if c == '/' {
+
+	var prevCh uint8
+	for i, ch := range []byte(s) {
+		switch ch {
+		case '/':
 			b = append(b, '.')
-			continue
-		}
-		if c == '-' {
+		case '-':
 			b = append(b, '_')
-			continue
+		case '.', '_':
+			b = append(b, ch)
+		default:
+			if isDigit(ch) {
+				b = append(b, ch)
+				break
+			}
+
+			if isLC(ch) {
+				b = append(b, ch)
+				break
+			}
+
+			if isUC(ch) {
+				if isAlnum(prevCh) && i+1 < len(s) {
+					if nextCh := s[i+1]; isAlpha(nextCh) && !isUC(nextCh) {
+						b = append(b, '_')
+					}
+				}
+				b = append(b, ch+32)
+				break
+			}
 		}
-		if c >= 'A' && c <= 'Z' {
-			b = append(b, c+32)
-		}
+
+		prevCh = ch
 	}
+
 	return unsafeconv.String(b)
 }
 
 func isAllowed(c byte) bool {
-	return isAlnum(c) || c == '.' || c == '_'
+	return isDigit(c) || isLC(c) || c == '.' || c == '_'
 }
 
 func isAlnum(c byte) bool {
-	return isAlpha(c) || isDigit(c)
+	return isDigit(c) || isLC(c) || isUC(c)
 }
 
 func isDigit(c byte) bool {
@@ -53,5 +76,13 @@ func isDigit(c byte) bool {
 }
 
 func isAlpha(c byte) bool {
+	return isLC(c) || isUC(c)
+}
+
+func isLC(c byte) bool {
 	return c >= 'a' && c <= 'z'
+}
+
+func isUC(c byte) bool {
+	return c >= 'A' && c <= 'Z'
 }

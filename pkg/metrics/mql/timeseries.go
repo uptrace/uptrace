@@ -2,6 +2,7 @@ package mql
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
@@ -12,10 +13,10 @@ import (
 const sep = '0'
 
 type Timeseries struct {
-	Metric  string
-	Func    string
-	Filters []ast.Filter
-	Unit    string
+	MetricName   string
+	NameTemplate string
+	Filters      []ast.Filter
+	Unit         string
 
 	Attrs       Attrs
 	Annotations map[string]any
@@ -29,10 +30,10 @@ type Timeseries struct {
 
 func newTimeseriesFrom(ts *Timeseries) Timeseries {
 	return Timeseries{
-		Metric:  ts.Metric,
-		Func:    ts.Func,
-		Filters: ts.Filters,
-		Unit:    ts.Unit,
+		MetricName:   ts.MetricName,
+		NameTemplate: ts.NameTemplate,
+		Filters:      ts.Filters,
+		Unit:         ts.Unit,
 
 		Attrs:       ts.Attrs,
 		Annotations: ts.Annotations,
@@ -46,48 +47,34 @@ func newTimeseriesFrom(ts *Timeseries) Timeseries {
 }
 
 func (ts *Timeseries) Name() string {
-	b := appendName(nil, ts.Func, ts.Metric, ts.Filters, ts.Attrs)
-	return unsafeconv.String(b)
+	return buildName(ts.NameTemplate, ts.Filters, ts.Attrs)
 }
 
-func (ts *Timeseries) MetricName() string {
-	b := appendName(nil, ts.Func, ts.Metric, ts.Filters, nil)
-	return unsafeconv.String(b)
-}
-
-func appendName(b []byte, funcName, metric string, filters []ast.Filter, attrs Attrs) []byte {
-	if funcName != "" {
-		b = append(b, funcName...)
-		b = append(b, '(')
+func buildName(template string, filters []ast.Filter, attrs Attrs) string {
+	if len(filters) == 0 && len(attrs) == 0 {
+		return strings.ReplaceAll(template, "$$", "")
 	}
 
-	b = append(b, metric...)
+	b := make([]byte, 0, 10*(len(filters)+len(attrs)))
+	b = append(b, '{')
 
-	if len(filters) > 0 || len(attrs) > 0 {
-		b = append(b, '{')
-
-		for i := range filters {
-			if i > 0 {
-				b = append(b, ',')
-			}
-			b = filters[i].AppendString(b)
+	for i := range filters {
+		if i > 0 {
+			b = append(b, ',')
 		}
+		b = filters[i].AppendString(b)
+	}
 
-		if len(attrs) > 0 {
-			if len(filters) > 0 {
-				b = append(b, ',')
-			}
-			b = attrs.AppendString(b)
+	if len(attrs) > 0 {
+		if len(filters) > 0 {
+			b = append(b, ',')
 		}
-
-		b = append(b, '}')
+		b = attrs.AppendString(b, ",")
 	}
 
-	if funcName != "" {
-		b = append(b, ')')
-	}
+	b = append(b, '}')
 
-	return b
+	return strings.ReplaceAll(template, "$$", unsafeconv.String(b))
 }
 
 func (ts *Timeseries) WhereQuery() string {
@@ -96,11 +83,11 @@ func (ts *Timeseries) WhereQuery() string {
 	}
 
 	b := make([]byte, 0, len(ts.Attrs)*30)
-	b = append(b, "where "...)
 	for i, kv := range ts.Attrs {
 		if i > 0 {
-			b = append(b, " and "...)
+			b = append(b, " | "...)
 		}
+		b = append(b, "where "...)
 		b = append(b, kv.Key...)
 		b = append(b, " = "...)
 		b = strconv.AppendQuote(b, kv.Value)
@@ -115,8 +102,9 @@ func (ts *Timeseries) Clone() *Timeseries {
 
 type TimeseriesFilter struct {
 	Metric     string
-	Func       string
-	Attr       string
+	AggFunc    string
+	TableFunc  string
+	Uniq       []string
 	Filters    []ast.Filter
 	Where      [][]ast.Filter
 	Grouping   []string

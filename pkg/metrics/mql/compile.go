@@ -3,96 +3,12 @@ package mql
 import (
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 )
 
-const (
-	funcDelta  = "delta"
-	funcPerMin = "per_min"
-	funcPerSec = "per_sec"
-)
-
-type Expr interface {
-	String() string
-}
-
-type NamedExpr struct {
-	Part  *QueryPart
-	Expr  Expr
-	Alias string
-}
-
-type TimeseriesExpr struct {
-	AST *ast.Name
-
-	Metric     string
-	Func       string
-	Attr       string
-	Filters    []ast.Filter
-	Where      [][]ast.Filter
-	Grouping   []string
-	GroupByAll bool
-
-	Part       *QueryPart
-	Timeseries []Timeseries
-}
-
-func (e *TimeseriesExpr) String() string {
-	ts := Timeseries{
-		Metric:  e.Metric,
-		Func:    e.Func,
-		Filters: e.Filters,
-	}
-	return ts.Name()
-}
-
-type RefExpr struct {
-	Name string
-}
-
-func (e *RefExpr) String() string {
-	return e.Name
-}
-
-type BinaryExpr struct {
-	AST *ast.BinaryExpr
-
-	Op  ast.BinaryOp
-	LHS Expr
-	RHS Expr
-}
-
-func (e *BinaryExpr) String() string {
-	return e.AST.String()
-}
-
-type ParenExpr struct {
-	Expr
-}
-
-type FuncCall struct {
-	AST *ast.FuncCall
-
-	Func string
-	Args []Expr
-}
-
-func (fn *FuncCall) String() string {
-	return fn.AST.String()
-}
-
-type compiler struct {
-	storage    Storage
-	exprs      []NamedExpr
-	timeseries []*TimeseriesExpr
-}
-
-func compile(storage Storage, parts []*QueryPart) []NamedExpr {
-	c := &compiler{
-		storage: storage,
-	}
+func compile(parts []*QueryPart) ([]NamedExpr, []*TimeseriesExpr) {
+	c := new(compiler)
 
 	for _, part := range parts {
 		if part.Error.Wrapped != nil {
@@ -102,7 +18,12 @@ func compile(storage Storage, parts []*QueryPart) []NamedExpr {
 		switch expr := part.AST.(type) {
 		case *ast.Selector:
 			pos := len(c.timeseries)
-			sel := c.selector(expr.Expr.Expr)
+
+			sel, err := c.selector(expr.Expr.Expr)
+			if err != nil {
+				part.Error.Wrapped = err
+				break
+			}
 
 			for _, ts := range c.timeseries[pos:] {
 				if expr.GroupByAll {
@@ -146,78 +67,51 @@ func compile(storage Storage, parts []*QueryPart) []NamedExpr {
 		}
 	}
 
-	var wg sync.WaitGroup
-
-	for _, expr := range c.timeseries {
-		expr := expr
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			f := &TimeseriesFilter{
-				Metric:     expr.Metric,
-				Func:       expr.Func,
-				Attr:       expr.Attr,
-				Filters:    expr.Filters,
-				Where:      expr.Where,
-				Grouping:   expr.Grouping,
-				GroupByAll: expr.GroupByAll,
-			}
-
-			timeseries, err := storage.SelectTimeseries(f)
-			if err != nil {
-				expr.Part.Error.Wrapped = err
-				return
-			}
-
-			expr.Timeseries = timeseries
-			return
-		}()
-	}
-
-	wg.Wait()
-
-	return c.exprs
+	return c.exprs, c.timeseries
 }
 
-func (c *compiler) selector(expr ast.Expr) Expr {
+type compiler struct {
+	storage    Storage
+	exprs      []NamedExpr
+	timeseries []*TimeseriesExpr
+}
+
+func (c *compiler) selector(astExpr ast.Expr) (_ Expr, retErr error) {
+	defer func() {
+		if v := recover(); v != nil {
+			var ok bool
+			retErr, ok = v.(error)
+			if !ok {
+				panic(v)
+			}
+		}
+	}()
+	expr := c.panickySelector(astExpr)
+	return expr, retErr
+}
+
+func (c *compiler) panickySelector(expr ast.Expr) Expr {
 	switch expr := expr.(type) {
 	case *ast.Name:
 		if !strings.HasPrefix(expr.Name, "$") {
 			return &RefExpr{
-				Name: expr.Name,
+				Name: expr,
 			}
 		}
-
-		metric := strings.TrimPrefix(expr.Name, "$")
-		var attr string
-		if i := strings.IndexByte(metric, '.'); i >= 0 {
-			attr = metric[i+1:]
-			metric = metric[:i]
-		}
-
-		ts := &TimeseriesExpr{
-			AST:     expr,
-			Metric:  metric,
-			Func:    expr.Func,
-			Attr:    attr,
-			Filters: expr.Filters,
-		}
-		c.timeseries = append(c.timeseries, ts)
-		return ts
+		return c.name(expr)
 
 	case *ast.BinaryExpr:
 		return &BinaryExpr{
-			AST: expr,
-			Op:  expr.Op,
-			LHS: c.selector(expr.LHS),
-			RHS: c.selector(expr.RHS),
+			BinaryExpr: expr,
+			Op:         expr.Op,
+			LHS:        c.panickySelector(expr.LHS),
+			RHS:        c.panickySelector(expr.RHS),
 		}
 
 	case ast.ParenExpr:
 		return ParenExpr{
-			Expr: c.selector(expr.Expr),
+			ParenExpr: expr,
+			Expr:      c.panickySelector(expr.Expr),
 		}
 
 	case *ast.Number:
@@ -226,42 +120,88 @@ func (c *compiler) selector(expr ast.Expr) Expr {
 	case *ast.FuncCall:
 		return c.funcCall(expr)
 
+	case *ast.UniqExpr:
+		return c.uniqExpr(expr)
+
 	default:
 		panic(fmt.Errorf("unknown selector expr: %T", expr))
 	}
 }
 
+func (c *compiler) name(name *ast.Name) *TimeseriesExpr {
+	ts := &TimeseriesExpr{
+		Name:    name,
+		Metric:  name.Name,
+		Filters: name.Filters,
+	}
+	c.timeseries = append(c.timeseries, ts)
+	return ts
+}
+
 func (c *compiler) funcCall(fn *ast.FuncCall) Expr {
-	switch fn.Func {
-	case funcDelta, funcPerMin, funcPerSec:
-		// continue below
-	default:
-		if len(fn.Args) == 1 {
-			switch arg := fn.Args[0].(type) {
-			case *ast.Name:
-				if arg.Func == "" {
-					arg.Func = fn.Func
-					return c.selector(arg)
-				}
-			}
+	if isAggFunc(fn.Func) {
+		if len(fn.Args) != 1 {
+			panic(fmt.Errorf("%q requires a single arg", fn.Func))
 		}
+
+		expr, ok := c.panickySelector(fn.Args[0]).(*TimeseriesExpr)
+		if !ok {
+			panic(fmt.Errorf("%q can be only applied to a timeseries", fn.Func))
+		}
+
+		if expr.AggFunc == "" {
+			expr.AggFunc = fn.Func
+			return expr
+		}
+	}
+
+	if isTableFunc(fn.Func) {
+		if len(fn.Args) != 1 {
+			panic(fmt.Errorf("%q requires a single arg", fn.Func))
+		}
+
+		expr, ok := c.panickySelector(fn.Args[0]).(*TimeseriesExpr)
+		if !ok {
+			panic(fmt.Errorf("%q can be only applied to a timeseries", fn.Func))
+		}
+
+		if expr.TableFunc != "" {
+			panic(fmt.Errorf("can't apply %q to %q", fn.Func, expr))
+		}
+
+		expr.TableFunc = fn.Func
+		return expr
+	}
+
+	if !isOpFunc(fn.Func) {
+		if isAggFunc(fn.Func) {
+			panic(fmt.Errorf("can't apply %q in this context", fn.Func))
+		}
+		panic(fmt.Errorf("unsupported func: %q", fn.Func))
 	}
 
 	args := make([]Expr, len(fn.Args))
 	for i, arg := range fn.Args {
-		expr := c.selector(arg)
-		if expr, ok := expr.(*TimeseriesExpr); ok {
-			if expr.Func == "" {
-				expr.Func = fn.Func
-			}
+		sel := c.panickySelector(arg)
+		args[i] = sel
+
+		if expr, ok := sel.(*TimeseriesExpr); ok && expr.TableFunc == "" {
+			expr.TableFunc = fn.Func
 		}
-		args[i] = expr
 	}
+
 	return &FuncCall{
-		AST:  fn,
-		Func: fn.Func,
-		Args: args,
+		FuncCall: fn,
+		Func:     fn.Func,
+		Args:     args,
 	}
+}
+
+func (c *compiler) uniqExpr(uq *ast.UniqExpr) *TimeseriesExpr {
+	expr := c.name(&uq.Name)
+	expr.AggFunc = AggUniq
+	expr.Uniq = uq.Attrs
+	return expr
 }
 
 func (c *compiler) where(expr *ast.Where) error {

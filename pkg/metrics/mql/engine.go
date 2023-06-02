@@ -13,9 +13,10 @@ import (
 
 type Engine struct {
 	storage Storage
-	consts  map[string]float64
-	vars    map[string][]Timeseries
-	buf     []byte
+
+	consts map[string]float64
+	vars   map[string][]Timeseries
+	buf    []byte
 }
 
 type Storage interface {
@@ -37,9 +38,30 @@ type Result struct {
 	Timeseries []Timeseries
 }
 
-func (e *Engine) Run(query []*QueryPart) *Result {
-	e.vars = make(map[string][]Timeseries)
-	exprs := compile(e.storage, query)
+func (e *Engine) Run(parts []*QueryPart) *Result {
+	exprs, timeseriesExprs := compile(parts)
+
+	for _, expr := range timeseriesExprs {
+		f := &TimeseriesFilter{
+			Metric:     expr.Metric,
+			AggFunc:    expr.AggFunc,
+			TableFunc:  expr.TableFunc,
+			Uniq:       expr.Uniq,
+			Filters:    expr.Filters,
+			Where:      expr.Where,
+			Grouping:   expr.Grouping,
+			GroupByAll: expr.GroupByAll,
+		}
+
+		timeseries, err := e.storage.SelectTimeseries(f)
+		if err != nil {
+			expr.Part.Error.Wrapped = err
+			continue
+		}
+
+		expr.Timeseries = timeseries
+	}
+
 	result := new(Result)
 
 	for _, expr := range exprs {
@@ -53,25 +75,17 @@ func (e *Engine) Run(query []*QueryPart) *Result {
 			continue
 		}
 
-		var column string
-		if expr.Alias != "" {
-			column = expr.Alias
-			setTimeseriesMetric(tmp, column)
-		} else {
-			column = expr.Expr.String()
-			if _, ok := expr.Expr.(*TimeseriesExpr); !ok {
-				setTimeseriesMetric(tmp, column)
-			}
-		}
+		metricName := expr.String()
+		updateTimeseries(tmp, metricName, expr.NameTemplate(), expr.Alias != "")
 
-		if _, ok := e.vars[column]; ok {
-			expr.Part.Error.Wrapped = fmt.Errorf("column %q already exists", column)
+		if _, ok := e.vars[metricName]; ok {
+			expr.Part.Error.Wrapped = fmt.Errorf("column %q already exists", metricName)
 			continue
 		}
-		e.vars[column] = tmp
+		e.vars[metricName] = tmp
 
-		if !strings.HasPrefix(column, "_") {
-			result.Columns = append(result.Columns, column)
+		if !strings.HasPrefix(metricName, "_") {
+			result.Columns = append(result.Columns, metricName)
 			result.Timeseries = append(result.Timeseries, tmp...)
 		}
 	}
@@ -79,12 +93,14 @@ func (e *Engine) Run(query []*QueryPart) *Result {
 	return result
 }
 
-func setTimeseriesMetric(timeseries []Timeseries, metric string) {
+func updateTimeseries(timeseries []Timeseries, metricName, nameTemplate string, isAlias bool) {
 	for i := range timeseries {
 		ts := &timeseries[i]
-		ts.Metric = metric
-		ts.Func = ""
-		ts.Filters = nil
+		ts.MetricName = metricName
+		ts.NameTemplate = nameTemplate
+		if isAlias {
+			ts.Filters = nil
+		}
 	}
 }
 
@@ -93,13 +109,13 @@ func (e *Engine) eval(expr Expr) ([]Timeseries, error) {
 	case *TimeseriesExpr:
 		return expr.Timeseries, nil
 	case *RefExpr:
-		if ts, ok := e.vars[expr.Name]; ok {
+		if ts, ok := e.vars[expr.Name.Name]; ok {
 			clone := make([]Timeseries, len(ts))
 			copy(clone, ts)
 			return clone, nil
 		}
 
-		if num, ok := e.consts[expr.Name]; ok {
+		if num, ok := e.consts[expr.Name.Name]; ok {
 			timeseries := e.storage.MakeTimeseries(nil)
 			ts := &timeseries[0]
 			for i := range ts.Value {
@@ -136,7 +152,7 @@ func (e *Engine) eval(expr Expr) ([]Timeseries, error) {
 
 func (e *Engine) resolveNumber(expr Expr) Expr {
 	if ref, ok := expr.(*RefExpr); ok {
-		if num, ok := e.consts[ref.Name]; ok {
+		if num, ok := e.consts[ref.Name.Name]; ok {
 			return &ast.Number{
 				Text: strconv.FormatFloat(num, 'f', -1, 64),
 			}
@@ -453,12 +469,12 @@ func (e *Engine) evalBinaryExprNumRight(
 
 func (e *Engine) callFunc(fn *FuncCall) ([]Timeseries, error) {
 	switch fn.Func {
-	case funcDelta:
-		return e.callSingleArgFunc(fn.Func, fn, delta)
-	case funcPerMin:
-		return e.callSingleArgFunc(fn.Func, fn, perMin)
-	case funcPerSec:
-		return e.callSingleArgFunc(fn.Func, fn, perSec)
+	case FuncDelta:
+		return e.callSingleArgFunc(fn.Func, fn, deltaFunc)
+	case FuncPerMin:
+		return e.callSingleArgFunc(fn.Func, fn, perMinFunc)
+	case FuncPerSec:
+		return e.callSingleArgFunc(fn.Func, fn, perSecFunc)
 	default:
 		return nil, fmt.Errorf("unsupported func: %s", fn.Func)
 	}

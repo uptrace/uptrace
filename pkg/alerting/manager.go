@@ -31,7 +31,7 @@ type Manager struct {
 }
 
 type ManagerConfig struct {
-	Monitors []*MetricMonitor
+	Monitors []*org.MetricMonitor
 	Logger   *zap.Logger
 }
 
@@ -75,7 +75,7 @@ func (m *Manager) Run() {
 }
 
 func (m *Manager) tick(ctx context.Context, tm time.Time) {
-	monitors, err := SelectMetricMonitors(ctx, m.app)
+	monitors, err := m.selectMetricMonitors(ctx)
 	if err != nil {
 		m.conf.Logger.Error("SelectMonitors failed",
 			zap.Error(err))
@@ -101,12 +101,24 @@ func (m *Manager) tick(ctx context.Context, tm time.Time) {
 	}
 }
 
-func (m *Manager) monitor(ctx context.Context, monitor *MetricMonitor, timeLT time.Time) error {
+func (m *Manager) selectMetricMonitors(ctx context.Context) ([]*org.MetricMonitor, error) {
+	monitors := make([]*org.MetricMonitor, 0)
+	if err := m.app.PG.NewSelect().
+		Model(&monitors).
+		Where("type = ?", org.MonitorMetric).
+		Where("state NOT IN (?)", org.MonitorPaused, org.MonitorFailed).
+		Scan(ctx); err != nil {
+		return nil, err
+	}
+	return monitors, nil
+}
+
+func (m *Manager) monitor(ctx context.Context, monitor *org.MetricMonitor, timeLT time.Time) error {
 	metricMap, err := m.selectMetricMap(ctx, monitor)
 	if err != nil {
 		if err == sql.ErrNoRows { // one of the metrics does not exist
-			return UpdateMonitorState(
-				ctx, m.app, monitor.ID, monitor.State, MonitorFailed,
+			return org.UpdateMonitorState(
+				ctx, m.app, monitor.ID, monitor.State, org.MonitorFailed,
 			)
 		}
 		return err
@@ -118,8 +130,8 @@ func (m *Manager) monitor(ctx context.Context, monitor *MetricMonitor, timeLT ti
 	}
 
 	if _, err := monitor.MadalarmOptions(); err != nil {
-		return UpdateMonitorState(
-			ctx, m.app, monitor.ID, monitor.State, MonitorFailed,
+		return org.UpdateMonitorState(
+			ctx, m.app, monitor.ID, monitor.State, org.MonitorFailed,
 		)
 		return err
 	}
@@ -145,22 +157,22 @@ func (m *Manager) monitor(ctx context.Context, monitor *MetricMonitor, timeLT ti
 
 	switch {
 	case len(result.Timeseries) == 0:
-		if err := UpdateMonitorState(
-			ctx, m.app, monitor.ID, monitor.State, MonitorNoData,
+		if err := org.UpdateMonitorState(
+			ctx, m.app, monitor.ID, monitor.State, org.MonitorNoData,
 		); err != nil {
 			return err
 		}
 
-	case firing && monitor.State != MonitorFiring:
-		if err := UpdateMonitorState(
-			ctx, m.app, monitor.ID, monitor.State, MonitorFiring,
+	case firing && monitor.State != org.MonitorFiring:
+		if err := org.UpdateMonitorState(
+			ctx, m.app, monitor.ID, monitor.State, org.MonitorFiring,
 		); err != nil {
 			return err
 		}
 
-	case !firing && monitor.State != MonitorActive:
-		if err := UpdateMonitorState(
-			ctx, m.app, monitor.ID, monitor.State, MonitorActive,
+	case !firing && monitor.State != org.MonitorActive:
+		if err := org.UpdateMonitorState(
+			ctx, m.app, monitor.ID, monitor.State, org.MonitorActive,
 		); err != nil {
 			return err
 		}
@@ -171,7 +183,7 @@ func (m *Manager) monitor(ctx context.Context, monitor *MetricMonitor, timeLT ti
 
 func (m *Manager) selectMetricMap(
 	ctx context.Context,
-	monitor *MetricMonitor,
+	monitor *org.MetricMonitor,
 ) (map[string]*metrics.Metric, error) {
 	metricMap := make(map[string]*metrics.Metric)
 	for _, ma := range monitor.Params.Metrics {
@@ -186,7 +198,7 @@ func (m *Manager) selectMetricMap(
 
 func (m *Manager) selectTimeseries(
 	ctx context.Context,
-	monitor *MetricMonitor,
+	monitor *org.MetricMonitor,
 	metricMap map[string]*metrics.Metric,
 	timeLT time.Time,
 ) (*mql.Result, error) {
@@ -219,7 +231,7 @@ func (m *Manager) selectTimeseries(
 
 func (m *Manager) monitorTimeseries(
 	ctx context.Context,
-	monitor *MetricMonitor,
+	monitor *org.MetricMonitor,
 	ts *mql.Timeseries,
 	tm time.Time,
 	attrsHash uint64,

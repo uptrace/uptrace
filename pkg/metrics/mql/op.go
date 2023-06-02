@@ -95,9 +95,11 @@ func orOp(v1, v2 float64) float64 {
 	return 0
 }
 
+//------------------------------------------------------------------------------
+
 type FuncOp func(value []float64, consts map[string]float64)
 
-func delta(value []float64, consts map[string]float64) {
+func deltaFunc(value []float64, consts map[string]float64) {
 	for i, num := range value {
 		if math.IsNaN(num) {
 			value[i] = 0
@@ -130,7 +132,7 @@ func delta(value []float64, consts map[string]float64) {
 	}
 }
 
-func perMin(value []float64, consts map[string]float64) {
+func perMinFunc(value []float64, consts map[string]float64) {
 	period, ok := consts["_minutes"]
 	if !ok {
 		return
@@ -140,7 +142,7 @@ func perMin(value []float64, consts map[string]float64) {
 	}
 }
 
-func perSec(value []float64, consts map[string]float64) {
+func perSecFunc(value []float64, consts map[string]float64) {
 	period, ok := consts["_seconds"]
 	if !ok {
 		return
@@ -150,9 +152,4 @@ func perSec(value []float64, consts map[string]float64) {
 	}
 }
 
-func nan(f float64) float64 {
-	if math.IsNaN(f) {
-		return 0
-	}
-	return f
-}
+func noop(value []float64, consts map[string]float64) {}

@@ -281,7 +281,7 @@ grid:
     metrics:
       - redis_evicted_keys as $evicted_keys
     query:
-      - delta($evicted_keys) as evicted_keys
+      - per_min(delta($evicted_keys)) as evicted_keys
 
   - name: RAM fragmentation ratio (RSS / allocated RAM)
     metrics:
@@ -316,7 +316,7 @@ table:
     - group by node
     - $mem_used
     - $clients
-    - delta($evicted_keys) as evicted_keys
+    - per_min(delta($evicted_keys)) as evicted_keys
     - $mem_frag
   columns:
     mem_used: { unit: bytes }
@@ -413,8 +413,8 @@ grid:
       - redis_keyspace_read_hits as $hits
       - redis_keyspace_read_misses as $misses
     query:
-      - delta($hits) as hits
-      - delta($misses) as misses
+      - per_min(delta($hits)) as hits
+      - per_min(delta($misses)) as misses
       - hits / (hits + misses) as hit_rate
     columns:
       hit_rate: { unit: utilization }
@@ -429,13 +429,13 @@ grid:
     metrics:
       - redis_evicted_keys as $evicted_keys
     query:
-      - delta($evicted_keys) as evicted_keys
+      - per_min(delta($evicted_keys)) as evicted_keys
 
   - name: DB expired keys
     metrics:
       - redis_expired_keys as $expired_keys
     query:
-      - delta($expired_keys) as expired_keys
+      - per_min(delta($expired_keys)) as expired_keys
 
   - name: Number of keys that were trimmed in the current or last resharding process
     metrics:
@@ -447,13 +447,13 @@ grid:
     metrics:
       - redis_total_commands_processed as $cmds
     query:
-      - delta($cmds) as cmds
+      - per_min(delta($cmds)) as cmds
 
   - name: Number of bytes received by the shard
     metrics:
       - redis_total_net_input_bytes as $input
     query:
-      - delta($input) as input
+      - per_min(delta($input)) as input
     columns:
       input: { unit: bytes }
 
@@ -461,6 +461,6 @@ grid:
     metrics:
       - redis_total_net_output_bytes as $output
     query:
-      - delta($output) as output
+      - per_min(delta($output)) as output
     columns:
       output: { unit: bytes }

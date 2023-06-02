@@ -114,4 +114,9 @@ const (
 	MessageID               = "message.id"
 	MessageCompressedSize   = "message.compressed_size"
 	MessageUncompressedSize = "message.uncompressed_size"
+
+	CloudProvider  = "cloud.provider"
+	CloudAccountID = "cloud.account.id"
+	CloudRegion    = "cloud.region"
+	CloudZone      = "cloud.zone"
 )

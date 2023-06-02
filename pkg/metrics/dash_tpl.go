@@ -7,7 +7,9 @@ import (
 	"io/fs"
 
 	"github.com/uptrace/uptrace"
+	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
+	"github.com/uptrace/uptrace/pkg/org"
 	"gopkg.in/yaml.v3"
 )
 
@@ -126,6 +128,8 @@ type DashboardTpl struct {
 	GridGauges []*DashGaugeTpl `yaml:"grid_gauges,omitempty"`
 	GridNodes  []yaml.Node     `yaml:"grid"`
 	Grid       []GridColumnTpl `yaml:"-"`
+
+	Monitors []*MonitorTpl `yaml:"monitors,omitempty"`
 }
 
 func NewDashboardTpl(
@@ -318,4 +322,17 @@ func NewHeatmapGridColumnTpl(col *HeatmapGridColumn) *HeatmapGridColumnTpl {
 	tpl.Query = mql.SplitQuery(col.Params.Query)
 
 	return tpl
+}
+
+type MonitorTpl struct {
+	Name    string                   `yaml:"name"`
+	Metrics []string                 `yaml:"metrics"`
+	Query   []string                 `yaml:"query"`
+	Columns map[string]*MetricColumn `yaml:"columns,omitempty"`
+
+	ForDuration     int32           `yaml:"for_duration"`
+	ForDurationUnit org.MonitorUnit `yaml:"for_duration_unit"`
+
+	MinValue bunutil.NullFloat64 `yaml:"min_value"`
+	MaxValue bunutil.NullFloat64 `yaml:"max_value"`
 }

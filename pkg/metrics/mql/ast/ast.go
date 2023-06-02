@@ -1,7 +1,6 @@
 package ast
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +9,11 @@ import (
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"golang.org/x/exp/slices"
 )
+
+type Expr interface {
+	AppendString(b []byte) []byte
+	AppendTemplate(b []byte) []byte
+}
 
 type Selector struct {
 	Expr       NamedExpr
@@ -26,12 +30,18 @@ type ParenExpr struct {
 	Expr
 }
 
-func (e ParenExpr) String() string {
-	return "(" + e.Expr.String() + ")"
+func (e ParenExpr) AppendString(b []byte) []byte {
+	b = append(b, '(')
+	b = e.Expr.AppendString(b)
+	b = append(b, ')')
+	return b
 }
 
-type Expr interface {
-	fmt.Stringer
+func (e ParenExpr) AppendTemplate(b []byte) []byte {
+	b = append(b, '(')
+	b = e.Expr.AppendTemplate(b)
+	b = append(b, ')')
+	return b
 }
 
 type Name struct {
@@ -40,9 +50,7 @@ type Name struct {
 	Filters []Filter
 }
 
-func (n *Name) String() string {
-	var b []byte
-
+func (n *Name) AppendString(b []byte) []byte {
 	b = append(b, n.Name...)
 
 	if len(n.Filters) > 0 {
@@ -56,7 +64,13 @@ func (n *Name) String() string {
 		b = append(b, '}')
 	}
 
-	return unsafeconv.String(b)
+	return b
+}
+
+func (n *Name) AppendTemplate(b []byte) []byte {
+	b = append(b, n.Name...)
+	b = append(b, "$$"...)
+	return b
 }
 
 type NumberKind int
@@ -77,6 +91,10 @@ func (n *Number) String() string {
 }
 
 func (n *Number) AppendString(b []byte) []byte {
+	return append(b, n.Text...)
+}
+
+func (n *Number) AppendTemplate(b []byte) []byte {
 	return append(b, n.Text...)
 }
 
@@ -131,12 +149,54 @@ type FuncCall struct {
 	Args []Expr
 }
 
-func (fn *FuncCall) String() string {
-	args := make([]string, len(fn.Args))
+func (fn *FuncCall) AppendString(b []byte) []byte {
+	b = append(b, fn.Func...)
+	b = append(b, '(')
 	for i, arg := range fn.Args {
-		args[i] = arg.String()
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = arg.AppendString(b)
 	}
-	return fn.Func + "(" + strings.Join(args, ", ") + ")"
+	b = append(b, ')')
+	return b
+}
+
+func (fn *FuncCall) AppendTemplate(b []byte) []byte {
+	b = append(b, fn.Func...)
+	b = append(b, '(')
+	for i, arg := range fn.Args {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = arg.AppendTemplate(b)
+	}
+	b = append(b, ')')
+	return b
+}
+
+type UniqExpr struct {
+	Name  Name
+	Attrs []string
+}
+
+func (uq *UniqExpr) AppendString(b []byte) []byte {
+	b = append(b, "uniq"...)
+	b = append(b, '(')
+	for i, attr := range uq.Attrs {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = append(b, uq.Name.Name...)
+		b = append(b, '.')
+		b = append(b, attr...)
+	}
+	b = append(b, ')')
+	return b
+}
+
+func (uq *UniqExpr) AppendTemplate(b []byte) []byte {
+	return uq.AppendString(b)
 }
 
 type BinaryExpr struct {
@@ -145,8 +205,22 @@ type BinaryExpr struct {
 	JoinOn   []string
 }
 
-func (e *BinaryExpr) String() string {
-	return e.LHS.String() + " " + string(e.Op) + " " + e.RHS.String()
+func (e *BinaryExpr) AppendString(b []byte) []byte {
+	b = e.LHS.AppendString(b)
+	b = append(b, ' ')
+	b = append(b, e.Op...)
+	b = append(b, ' ')
+	b = e.RHS.AppendString(b)
+	return b
+}
+
+func (e *BinaryExpr) AppendTemplate(b []byte) []byte {
+	b = e.LHS.AppendTemplate(b)
+	b = append(b, ' ')
+	b = append(b, e.Op...)
+	b = append(b, ' ')
+	b = e.RHS.AppendTemplate(b)
+	return b
 }
 
 type BinaryOp string
@@ -207,12 +281,12 @@ func (f *Filter) AppendString(b []byte) []byte {
 	b = append(b, f.LHS...)
 
 	switch f.Op {
-	case FilterLike, FilterNotLike, FilterExists:
-		b = append(b, ' ')
+	case FilterEqual, FilterNotEqual, FilterRegexp, FilterNotRegexp:
 		b = append(b, f.Op...)
-		b = append(b, ' ')
 	default:
+		b = append(b, ' ')
 		b = append(b, f.Op...)
+		b = append(b, ' ')
 	}
 
 	if f.RHS != nil {
@@ -260,16 +334,10 @@ func SplitAliasName(s string) (string, string) {
 	if s[0] != '$' {
 		return "", s
 	}
-	s = strings.TrimPrefix(s, "$")
 	if i := strings.IndexByte(s, '.'); i >= 0 {
 		return s[:i], s[i+1:]
 	}
-	return s, s
-}
-
-func Alias(s string) string {
-	alias, _ := SplitAliasName(s)
-	return alias
+	return s, ""
 }
 
 var opPrecedence = [][]BinaryOp{
@@ -339,4 +407,11 @@ func unwrapBinaryExpr(expr Expr) *BinaryExpr {
 	default:
 		panic("not reached")
 	}
+}
+
+func clean(attrKey string) string {
+	if strings.HasPrefix(attrKey, "span.") {
+		return strings.TrimPrefix(attrKey, "span")
+	}
+	return attrKey
 }

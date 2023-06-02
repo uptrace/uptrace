@@ -3,6 +3,7 @@ package ast
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 var errAlias = errors.New("alias is required (AS alias)")
@@ -246,7 +247,7 @@ func (p *queryParser) parseQuery() (any, error) {
 			for _, grouping := range grouping {
 				metric, _ := SplitAliasName(grouping)
 				if metric != "" {
-					return nil, fmt.Errorf("inline grouping can't contain a metric: $%s", metric)
+					return nil, fmt.Errorf("inline grouping can't contain a metric: %s", metric)
 				}
 			}
 			return &Selector{
@@ -513,7 +514,7 @@ func (p *queryParser) filter() (Filter, error) {
 			}
 		}
 		return Filter{
-			LHS: lhs.Text,
+			LHS: clean(lhs.Text),
 			Op:  FilterIn,
 			RHS: values,
 		}, nil
@@ -584,7 +585,7 @@ func (p *queryParser) filter() (Filter, error) {
 			}
 		}
 		return Filter{
-			LHS: lhs.Text,
+			LHS: clean(lhs.Text),
 			Op:  FilterNotIn,
 			RHS: values,
 		}, nil
@@ -651,7 +652,7 @@ func (p *queryParser) filter() (Filter, error) {
 
 	r2_i0_i3_has_match:
 		return Filter{
-			LHS: lhs.Text,
+			LHS: clean(lhs.Text),
 			Op:  FilterNotExists,
 		}, nil
 	r2_i0_group_end:
@@ -699,7 +700,7 @@ func (p *queryParser) filter() (Filter, error) {
 
 	r3_i0_i1_has_match:
 		return Filter{
-			LHS: lhs.Text,
+			LHS: clean(lhs.Text),
 			Op:  FilterExists,
 		}, nil
 	r3_i0_group_end:
@@ -747,7 +748,7 @@ func (p *queryParser) filter() (Filter, error) {
 			}
 		}
 		return Filter{
-			LHS: lhs.Text,
+			LHS: clean(lhs.Text),
 			Op:  filterOp,
 			RHS: value,
 		}, nil
@@ -765,7 +766,7 @@ func (p *queryParser) filter() (Filter, error) {
 		lhs = _tok
 	}
 	return Filter{
-		LHS: lhs.Text,
+		LHS: clean(lhs.Text),
 		Op:  FilterEqual,
 		RHS: &Number{Text: "1"},
 	}, nil
@@ -862,24 +863,10 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 		_pos1 := p.Pos()
 		{
 			_tok := p.NextToken()
-			_match := _tok.Text == "="
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r3_i0_group_end
-			}
-		}
-		return FilterEqual, nil
-	r3_i0_group_end:
-	}
-
-	{
-		_pos1 := p.Pos()
-		{
-			_tok := p.NextToken()
 			_match := _tok.Text == "!"
 			if !_match {
 				p.ResetPos(_pos1)
-				goto r4_i0_group_end
+				goto r3_i0_group_end
 			}
 		}
 		{
@@ -887,21 +874,24 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 			_match := _tok.Text == "~"
 			if !_match {
 				p.ResetPos(_pos1)
-				goto r4_i0_group_end
+				goto r3_i0_group_end
 			}
 		}
 		return FilterNotRegexp, nil
-	r4_i0_group_end:
+	r3_i0_group_end:
 	}
+
+	var t *Token
 
 	{
 		_tok := p.NextToken()
-		_match := _tok.Text == "~"
+		_match := _tok.Text == "<" || _tok.Text == ">" || _tok.Text == "=" || _tok.Text == "~"
 		if !_match {
 			return "", errBacktrack
 		}
+		t = _tok
 	}
-	return FilterRegexp, nil
+	return FilterOp(t.Text), nil
 }
 
 func (p *queryParser) values() (StringValues, error) {
@@ -1229,8 +1219,16 @@ func (p *queryParser) namedExpr() (NamedExpr, error) {
 			return NamedExpr{}, errBacktrack
 		}
 	}
+	var alias string
+	if name, ok := expr.(*Name); ok {
+		if len(name.Filters) == 0 && strings.HasPrefix(name.Name, "$") {
+			alias = strings.TrimPrefix(name.Name, "$")
+		}
+	}
+
 	return NamedExpr{
-		Expr: binaryExprPrecedence(expr),
+		Expr:  binaryExprPrecedence(expr),
+		Alias: alias,
 	}, nil
 }
 
@@ -1327,6 +1325,25 @@ func (p *queryParser) term() (Expr, error) {
 	}
 
 	{
+		var uniq *UniqExpr
+		_pos1 := p.Pos()
+		{
+			var _err error
+			uniq, _err = p.uniq()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r1_i0_group_end
+			}
+		}
+		return uniq, nil
+	r1_i0_group_end:
+	}
+
+	{
 		var funcCall *FuncCall
 		_pos1 := p.Pos()
 		{
@@ -1338,15 +1355,15 @@ func (p *queryParser) term() (Expr, error) {
 			_match := _err == nil
 			if !_match {
 				p.ResetPos(_pos1)
-				goto r1_i0_group_end
+				goto r2_i0_group_end
 			}
 		}
 		return funcCall, nil
-	r1_i0_group_end:
+	r2_i0_group_end:
 	}
 
 	{
-		var name *Name
+		var name Name
 		_pos1 := p.Pos()
 		{
 			var _err error
@@ -1357,11 +1374,11 @@ func (p *queryParser) term() (Expr, error) {
 			_match := _err == nil
 			if !_match {
 				p.ResetPos(_pos1)
-				goto r2_i0_group_end
+				goto r3_i0_group_end
 			}
 		}
-		return name, nil
-	r2_i0_group_end:
+		return &name, nil
+	r3_i0_group_end:
 	}
 
 	var expr Expr
@@ -1394,7 +1411,7 @@ func (p *queryParser) term() (Expr, error) {
 	return ParenExpr{Expr: expr}, nil
 }
 
-func (p *queryParser) name() (*Name, error) {
+func (p *queryParser) name() (Name, error) {
 
 	{
 		var filters []Filter
@@ -1422,7 +1439,7 @@ func (p *queryParser) name() (*Name, error) {
 			var _err error
 			filters, _err = p.filters()
 			if _err != nil && _err != errBacktrack {
-				return nil, _err
+				return Name{}, _err
 			}
 			_match := _err == nil
 			if !_match {
@@ -1441,7 +1458,7 @@ func (p *queryParser) name() (*Name, error) {
 				goto i0_group_end
 			}
 		}
-		return &Name{
+		return Name{
 			Name:    name.Text,
 			Filters: filters,
 		}, nil
@@ -1478,7 +1495,7 @@ func (p *queryParser) name() (*Name, error) {
 				goto r1_i0_group_end
 			}
 		}
-		return &Name{
+		return Name{
 			Name: name.Text,
 		}, nil
 	r1_i0_group_end:
@@ -1490,11 +1507,11 @@ func (p *queryParser) name() (*Name, error) {
 		_tok := p.NextToken()
 		_match := _tok.ID == IDENT_TOKEN
 		if !_match {
-			return nil, errBacktrack
+			return Name{}, errBacktrack
 		}
 		name = _tok
 	}
-	return &Name{
+	return Name{
 		Name: name.Text,
 	}, nil
 }
@@ -1693,6 +1710,119 @@ func (p *queryParser) alias() (string, error) {
 	return tok.Text, nil
 }
 
+func (p *queryParser) uniq() (*UniqExpr, error) {
+
+	{
+		var name Name
+		_pos1 := p.Pos()
+		{
+			_tok := p.NextToken()
+			_match := len(_tok.Text) == 4 && (_tok.Text[0] == 'u' || _tok.Text[0] == 'U') && (_tok.Text[1] == 'n' || _tok.Text[1] == 'N') && (_tok.Text[2] == 'i' || _tok.Text[2] == 'I') && (_tok.Text[3] == 'q' || _tok.Text[3] == 'Q')
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "("
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+		}
+		{
+			var _err error
+			name, _err = p.name()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == ")"
+			if !_match {
+				p.ResetPos(_pos1)
+				name = Name{}
+				goto i0_group_end
+			}
+		}
+		{
+			alias, attr := SplitAliasName(name.Name)
+			name.Name = alias
+			uq := &UniqExpr{Name: name}
+			if attr != "" {
+				uq.Attrs = []string{attr}
+			}
+			return uq, nil
+		}
+	i0_group_end:
+	}
+
+	var idents []string
+	var name Name
+
+	{
+		_tok := p.NextToken()
+		_match := len(_tok.Text) == 4 && (_tok.Text[0] == 'u' || _tok.Text[0] == 'U') && (_tok.Text[1] == 'n' || _tok.Text[1] == 'N') && (_tok.Text[2] == 'i' || _tok.Text[2] == 'I') && (_tok.Text[3] == 'q' || _tok.Text[3] == 'Q')
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	{
+		_tok := p.NextToken()
+		_match := _tok.Text == "("
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	{
+		var _err error
+		name, _err = p.name()
+		if _err != nil && _err != errBacktrack {
+			return nil, _err
+		}
+		_match := _err == nil
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	{
+		_tok := p.NextToken()
+		_match := _tok.Text == ","
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	{
+		var _err error
+		idents, _err = p.idents()
+		if _err != nil && _err != errBacktrack {
+			return nil, _err
+		}
+		_match := _err == nil
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	{
+		_tok := p.NextToken()
+		_match := _tok.Text == ")"
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	return &UniqExpr{
+		Name:  name,
+		Attrs: idents,
+	}, nil
+}
+
 func (p *queryParser) funcCall() (*FuncCall, error) {
 
 	var args []Expr
@@ -1804,6 +1934,17 @@ func (p *queryParser) args() ([]Expr, error) {
 //------------------------------------------------------------------------------
 
 func (p *queryParser) grouping() ([]string, error) {
+	idents, err := p.idents()
+	if err != nil {
+		return nil, err
+	}
+	for i, ident := range idents {
+		idents[i] = clean(ident)
+	}
+	return idents, nil
+}
+
+func (p *queryParser) idents() ([]string, error) {
 	var names []string
 
 	var name *Token

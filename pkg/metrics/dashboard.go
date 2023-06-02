@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -58,7 +57,7 @@ func (d *Dashboard) FromTemplate(tpl *DashboardTpl) error {
 	d.TemplateID = tpl.ID
 	d.Name = tpl.Name
 	d.TableMetrics = metrics
-	d.TableQuery = strings.Join(tpl.Table.Query, " | ")
+	d.TableQuery = mql.JoinQuery(tpl.Table.Query)
 	d.TableColumnMap = tpl.Table.Columns
 
 	return nil

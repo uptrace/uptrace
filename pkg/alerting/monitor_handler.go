@@ -82,7 +82,7 @@ func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	var baseMonitors []*BaseMonitor
+	var baseMonitors []*org.BaseMonitor
 
 	if err := h.PG.NewSelect().
 		Model(&baseMonitors).
@@ -94,10 +94,10 @@ func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	monitors := make([]Monitor, len(baseMonitors))
+	monitors := make([]org.Monitor, len(baseMonitors))
 
 	for i, baseMonitor := range baseMonitors {
-		monitor, err := decodeMonitor(baseMonitor)
+		monitor, err := org.DecodeMonitor(baseMonitor)
 		if err != nil {
 			return err
 		}
@@ -119,7 +119,7 @@ func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 	})
 }
 
-func CountMonitorAlerts(ctx context.Context, app *bunapp.App, monitors []*BaseMonitor) error {
+func CountMonitorAlerts(ctx context.Context, app *bunapp.App, monitors []*org.BaseMonitor) error {
 	var group syncutil.Group
 
 	for _, monitor := range monitors {
@@ -149,7 +149,7 @@ type StateCount struct {
 func SelectMonitorStatesCount(ctx context.Context, f *MonitorFilter) ([]StateCount, error) {
 	var states []StateCount
 	if err := f.App.PG.NewSelect().
-		Model((*BaseMonitor)(nil)).
+		Model((*org.BaseMonitor)(nil)).
 		ColumnExpr("state").
 		ColumnExpr("count(*)").
 		Where("project_id = ?", f.ProjectID).
@@ -181,7 +181,7 @@ func (h *MonitorHandler) selectChannelIDs(ctx context.Context, monitorID uint64)
 	ids := make([]uint64, 0)
 	if err := h.PG.NewSelect().
 		ColumnExpr("channel_id").
-		Model((*MonitorChannel)(nil)).
+		Model((*org.MonitorChannel)(nil)).
 		Where("monitor_id = ?", monitorID).
 		Scan(ctx, &ids); err != nil {
 		return nil, err
@@ -192,14 +192,14 @@ func (h *MonitorHandler) selectChannelIDs(ctx context.Context, monitorID uint64)
 type MetricMonitorIn struct {
 	Name string `json:"name"`
 
-	NotifyEveryoneByEmail bool                `json:"notifyEveryoneByEmail"`
-	Params                MetricMonitorParams `json:"params"`
+	NotifyEveryoneByEmail bool                    `json:"notifyEveryoneByEmail"`
+	Params                org.MetricMonitorParams `json:"params"`
 
 	ChannelIDs []uint64 `json:"channelIds"`
 }
 
 func (in *MetricMonitorIn) Validate(
-	ctx context.Context, app *bunapp.App, monitor *MetricMonitor,
+	ctx context.Context, app *bunapp.App, monitor *org.MetricMonitor,
 ) error {
 	if in.Name == "" {
 		return errors.New("name can't be empty")
@@ -219,7 +219,7 @@ func (in *MetricMonitorIn) Validate(
 		return errors.New("forDuration can't be zero")
 	}
 	switch in.Params.ForDurationUnit {
-	case MonitorUnitMinutes, MonitorUnitHours:
+	case org.MonitorUnitMinutes, org.MonitorUnitHours:
 	default:
 		return fmt.Errorf("unsupported duration unit: %q", in.Params.ForDurationUnit)
 	}
@@ -258,10 +258,10 @@ func (h *MonitorHandler) CreateMetricMonitor(w http.ResponseWriter, req bunroute
 		return err
 	}
 
-	monitor := NewMetricMonitor()
+	monitor := org.NewMetricMonitor()
 	monitor.ProjectID = project.ID
-	monitor.State = MonitorActive
-	monitor.Type = MonitorMetric
+	monitor.State = org.MonitorActive
+	monitor.Type = org.MonitorMetric
 
 	if err := in.Validate(ctx, h.App, monitor); err != nil {
 		return err
@@ -311,7 +311,7 @@ func (h *MonitorHandler) UpdateMetricMonitor(w http.ResponseWriter, req bunroute
 	}
 
 	if _, err := h.PG.NewDelete().
-		Model((*MonitorChannel)(nil)).
+		Model((*org.MonitorChannel)(nil)).
 		Where("monitor_id = ?", monitor.ID).
 		Exec(ctx); err != nil {
 		return err
@@ -328,14 +328,14 @@ func (h *MonitorHandler) UpdateMetricMonitor(w http.ResponseWriter, req bunroute
 type ErrorMonitorIn struct {
 	Name string `json:"name"`
 
-	NotifyEveryoneByEmail bool               `json:"notifyEveryoneByEmail"`
-	Params                ErrorMonitorParams `json:"params"`
+	NotifyEveryoneByEmail bool                   `json:"notifyEveryoneByEmail"`
+	Params                org.ErrorMonitorParams `json:"params"`
 
 	ChannelIDs []uint64 `json:"channelIds"`
 }
 
 func (in *ErrorMonitorIn) Validate(
-	ctx context.Context, app *bunapp.App, monitor *ErrorMonitor,
+	ctx context.Context, app *bunapp.App, monitor *org.ErrorMonitor,
 ) error {
 	if in.Name == "" {
 		return errors.New("name can't be empty")
@@ -362,10 +362,10 @@ func (h *MonitorHandler) CreateErrorMonitor(w http.ResponseWriter, req bunrouter
 		return err
 	}
 
-	monitor := NewErrorMonitor()
+	monitor := org.NewErrorMonitor()
 	monitor.ProjectID = project.ID
-	monitor.State = MonitorActive
-	monitor.Type = MonitorError
+	monitor.State = org.MonitorActive
+	monitor.Type = org.MonitorError
 
 	if err := in.Validate(ctx, h.App, monitor); err != nil {
 		return err
@@ -417,7 +417,7 @@ func (h *MonitorHandler) UpdateErrorMonitor(w http.ResponseWriter, req bunrouter
 	}
 
 	if _, err := h.PG.NewDelete().
-		Model((*MonitorChannel)(nil)).
+		Model((*org.MonitorChannel)(nil)).
 		Where("monitor_id = ?", monitor.ID).
 		Exec(ctx); err != nil {
 		return err
@@ -433,11 +433,11 @@ func (h *MonitorHandler) UpdateErrorMonitor(w http.ResponseWriter, req bunrouter
 
 func (h *MonitorHandler) insertMonitorChannels(
 	ctx context.Context,
-	monitor *BaseMonitor,
+	monitor *org.BaseMonitor,
 	channelIDs []uint64,
 ) error {
 	for _, channelID := range channelIDs {
-		mc := &MonitorChannel{
+		mc := &org.MonitorChannel{
 			MonitorID: monitor.ID,
 			ChannelID: channelID,
 		}
@@ -466,15 +466,15 @@ func (h *MonitorHandler) Delete(w http.ResponseWriter, req bunrouter.Request) er
 }
 
 func (h *MonitorHandler) Activate(w http.ResponseWriter, req bunrouter.Request) error {
-	return h.updateState(w, req, MonitorActive)
+	return h.updateState(w, req, org.MonitorActive)
 }
 
 func (h *MonitorHandler) Pause(w http.ResponseWriter, req bunrouter.Request) error {
-	return h.updateState(w, req, MonitorPaused)
+	return h.updateState(w, req, org.MonitorPaused)
 }
 
 func (h *MonitorHandler) updateState(
-	w http.ResponseWriter, req bunrouter.Request, state MonitorState,
+	w http.ResponseWriter, req bunrouter.Request, state org.MonitorState,
 ) error {
 	ctx := req.Context()
 
@@ -482,7 +482,7 @@ func (h *MonitorHandler) updateState(
 	monitor.State = state
 
 	if _, err := h.PG.NewUpdate().
-		Model((*BaseMonitor)(nil)).
+		Model((*org.BaseMonitor)(nil)).
 		Set("state = ?", state).
 		Where("id = ?", monitor.ID).
 		Exec(ctx); err != nil {

@@ -45,14 +45,14 @@ func scheduleNotifyOnErrorAlert(
 
 func selectErrorMonitors(
 	ctx context.Context, app *bunapp.App, alert *ErrorAlert, span *tracing.Span,
-) ([]*ErrorMonitor, error) {
-	var monitors []*ErrorMonitor
+) ([]*org.ErrorMonitor, error) {
+	var monitors []*org.ErrorMonitor
 
 	q := app.PG.NewSelect().
 		Model(&monitors).
 		Where("project_id = ?", alert.ProjectID).
-		Where("type = ?", MonitorError).
-		Where("state = ?", MonitorActive).
+		Where("type = ?", org.MonitorError).
+		Where("state = ?", org.MonitorActive).
 		Limit(100)
 
 	if alert.Params.SpanCount > 0 {
@@ -67,7 +67,7 @@ func selectErrorMonitors(
 
 	for i := len(monitors) - 1; i >= 0; i-- {
 		monitor := monitors[i]
-		if !monitor.Matches(span) {
+		if !monitorMatches(monitor, span) {
 			monitors = append(monitors[:i], monitors[i+1:]...)
 		}
 	}
@@ -75,12 +75,21 @@ func selectErrorMonitors(
 	return monitors, nil
 }
 
+func monitorMatches(m *org.ErrorMonitor, span *tracing.Span) bool {
+	for i := range m.Params.Matchers {
+		if !m.Params.Matchers[i].Matches(span.Attrs) {
+			return false
+		}
+	}
+	return true
+}
+
 func scheduleNotifyByEmailOnErrorAlert(
 	ctx context.Context,
 	app *bunapp.App,
 	alert *ErrorAlert,
 	event *org.AlertEvent,
-	monitors []*ErrorMonitor,
+	monitors []*org.ErrorMonitor,
 ) error {
 	var recipients []string
 
@@ -125,7 +134,7 @@ func scheduleNotifyByChannelsOnErrorAlert(
 	app *bunapp.App,
 	alert *ErrorAlert,
 	event *org.AlertEvent,
-	monitors []*ErrorMonitor,
+	monitors []*org.ErrorMonitor,
 ) error {
 	monitorIDs := make([]uint64, len(monitors))
 	for i, monitor := range monitors {
@@ -141,7 +150,7 @@ func scheduleNotifyByChannelsOnErrorAlert(
 		Limit(100).
 		Apply(func(q *bun.SelectQuery) *bun.SelectQuery {
 			subq := app.PG.NewSelect().
-				Model((*MonitorChannel)(nil)).
+				Model((*org.MonitorChannel)(nil)).
 				ColumnExpr("channel_id").
 				Where("monitor_id IN (?)", bun.In(monitorIDs))
 
@@ -178,7 +187,7 @@ func scheduleNotifyByChannelsOnErrorAlert(
 func scheduleNotifyOnMetricAlert(
 	ctx context.Context, app *bunapp.App, alert *MetricAlert, event *org.AlertEvent,
 ) error {
-	monitor, err := SelectBaseMonitor(ctx, app, alert.MonitorID)
+	monitor, err := org.SelectBaseMonitor(ctx, app, alert.MonitorID)
 	if err != nil {
 		return err
 	}
@@ -211,7 +220,7 @@ func scheduleNotifyOnMetricAlert(
 		Limit(100).
 		Apply(func(q *bun.SelectQuery) *bun.SelectQuery {
 			subq := app.PG.NewSelect().
-				Model((*MonitorChannel)(nil)).
+				Model((*org.MonitorChannel)(nil)).
 				ColumnExpr("channel_id").
 				Where("monitor_id = ?", alert.MonitorID)
 
@@ -244,7 +253,7 @@ func scheduleNotifyOnMetricAlert(
 func selectEmailRecipientsForMonitor(
 	ctx context.Context,
 	app *bunapp.App,
-	monitor *BaseMonitor,
+	monitor *org.BaseMonitor,
 	cb func(q *bun.SelectQuery) *bun.SelectQuery,
 ) ([]string, error) {
 	if monitor.NotifyEveryoneByEmail {

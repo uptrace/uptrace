@@ -43,10 +43,10 @@ type MetricsServiceServer struct {
 	mp *MeasureProcessor
 }
 
-func NewMetricsServiceServer(app *bunapp.App) *MetricsServiceServer {
+func NewMetricsServiceServer(app *bunapp.App, mp *MeasureProcessor) *MetricsServiceServer {
 	return &MetricsServiceServer{
 		App: app,
-		mp:  NewMeasureProcessor(app),
+		mp:  mp,
 	}
 }
 
@@ -238,10 +238,10 @@ func (p *otlpProcessor) otlpGauge(
 		dest := p.nextMeasure(scope, metric, InstrumentGauge, dp.Attributes, dp.TimeUnixNano)
 		switch num := dp.Value.(type) {
 		case *metricspb.NumberDataPoint_AsInt:
-			dest.Value = float64(num.AsInt)
+			dest.Gauge = float64(num.AsInt)
 			p.enqueue(dest)
 		case *metricspb.NumberDataPoint_AsDouble:
-			dest.Value = num.AsDouble
+			dest.Gauge = num.AsDouble
 			p.enqueue(dest)
 		default:
 			p.Zap(p.ctx).Error("unknown data point value",
@@ -265,7 +265,7 @@ func (p *otlpProcessor) otlpSum(
 
 		if !data.Sum.IsMonotonic {
 			dest.Instrument = InstrumentAdditive
-			dest.Value = toFloat64(dp.Value)
+			dest.Gauge = toFloat64(dp.Value)
 			p.enqueue(dest)
 			continue
 		}

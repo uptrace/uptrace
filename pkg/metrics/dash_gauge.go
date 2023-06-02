@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -50,7 +49,7 @@ func (g *DashGauge) FromTemplate(tpl *DashGaugeTpl) error {
 	g.Template = tpl.Template
 
 	g.Metrics = metrics
-	g.Query = strings.Join(tpl.Query, " | ")
+	g.Query = mql.JoinQuery(tpl.Query)
 	g.ColumnMap = tpl.Columns
 
 	return nil

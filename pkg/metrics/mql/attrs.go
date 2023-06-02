@@ -72,14 +72,14 @@ func AttrsFromKeysValues(keys, values []string) Attrs {
 
 func (attrs Attrs) String() string {
 	b := make([]byte, 0, len(attrs)*30)
-	b = attrs.AppendString(b)
+	b = attrs.AppendString(b, ", ")
 	return unsafeconv.String(b)
 }
 
-func (attrs Attrs) AppendString(b []byte) []byte {
+func (attrs Attrs) AppendString(b []byte, sep string) []byte {
 	for i, kv := range attrs {
 		if i > 0 {
-			b = append(b, ',')
+			b = append(b, sep...)
 		}
 		b = kv.AppendString(b)
 	}

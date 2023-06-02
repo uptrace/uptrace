@@ -26,7 +26,7 @@ type Measure struct {
 	Max       float64
 	Sum       float64
 	Count     uint64
-	Value     float64
+	Gauge     float64
 	Histogram map[bfloat16.T]uint64 `ch:"type:AggregateFunction(quantilesBFloat16(0.5), Float32)"`
 
 	Attrs        AttrMap  `ch:"-"`

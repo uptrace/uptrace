@@ -35,23 +35,25 @@ var measureCounter, _ = bunotel.Meter.Int64Counter(
 )
 
 func Init(ctx context.Context, app *bunapp.App) {
+	mp := NewMeasureProcessor(app)
+
 	initTasks(ctx, app)
-	initOTLP(ctx, app)
-	initRoutes(ctx, app)
+	initOTLP(ctx, app, mp)
+	initRoutes(ctx, app, mp)
 	if err := initSpanMetrics(ctx, app); err != nil {
 		app.Logger.Error("initSpanMetrics failed", zap.Error(err))
 	}
 }
 
-func initOTLP(ctx context.Context, app *bunapp.App) {
-	metricsService := NewMetricsServiceServer(app)
+func initOTLP(ctx context.Context, app *bunapp.App, mp *MeasureProcessor) {
+	metricsService := NewMetricsServiceServer(app, mp)
 	collectormetricspb.RegisterMetricsServiceServer(app.GRPCServer(), metricsService)
 
 	router := app.Router()
 	router.POST("/v1/metrics", metricsService.ExportHTTP)
 }
 
-func initRoutes(ctx context.Context, app *bunapp.App) {
+func initRoutes(ctx context.Context, app *bunapp.App, mp *MeasureProcessor) {
 	middleware := NewMiddleware(app)
 	api := app.APIGroup()
 
@@ -136,6 +138,12 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 			g.PUT("/:gauge_id", handler.Update)
 			g.DELETE("/:gauge_id", handler.Delete)
 		})
+
+	api.WithGroup("/cloudwatch", func(g *bunrouter.Group) {
+		handler := NewKinesisHandler(app, mp)
+
+		g.POST("/metrics", handler.Metrics)
+	})
 }
 
 //------------------------------------------------------------------------------
