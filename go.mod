@@ -54,6 +54,7 @@ require (
 	github.com/vmihailenco/taskq/extra/oteltaskq/v4 v4.0.0-beta.4
 	github.com/vmihailenco/taskq/pgq/v4 v4.0.0-beta.4
 	github.com/vmihailenco/taskq/v4 v4.0.0-beta.4
+	github.com/wk8/go-ordered-map/v2 v2.1.7
 	github.com/wneessen/go-mail v0.3.9
 	github.com/zeebo/xxh3 v1.0.2
 	golang.org/x/crypto v0.9.0
@@ -66,6 +67,8 @@ require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

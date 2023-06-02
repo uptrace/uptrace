@@ -15,6 +15,7 @@ columns.
 - Metric dashboards can now create monitors.
 - Added ability to receive metrics from
   [AWS CloudWatch](https://uptrace.dev/get/ingest/aws-cloudwatch.html).
+- Ported Timeseries tab from [Uptrace Cloud](https://uptrace.dev/cloud) version.
 
 #### Improvements
 

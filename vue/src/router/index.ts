@@ -30,6 +30,7 @@ import TracingHelp from '@/tracing/views/Help.vue'
 import Tracing from '@/tracing/views/Tracing.vue'
 import TracingGroups from '@/tracing/views/TracingGroups.vue'
 import TracingSpans from '@/tracing/views/TracingSpans.vue'
+import TracingTimeseries from '@/tracing/views/TracingTimeseries.vue'
 
 import TraceShow from '@/tracing/views/TraceShow.vue'
 import TraceFind from '@/tracing/views/TraceFind.vue'
@@ -220,6 +221,11 @@ const routes: RouteConfig[] = [
         name: 'SpanList',
         path: 'items',
         components: { tracing: TracingSpans },
+      },
+      {
+        name: 'SpanTimeseries',
+        path: 'timeseries',
+        components: { tracing: TracingTimeseries },
       },
     ],
   },

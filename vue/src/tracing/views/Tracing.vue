@@ -34,6 +34,7 @@
               <v-tabs :key="$route.fullPath" background-color="transparent">
                 <v-tab :to="routes.groupList" exact-path>Groups</v-tab>
                 <v-tab :to="routes.itemList" exact-path>Spans</v-tab>
+                <v-tab :to="{ name: 'SpanTimeseries' }" exact-path>Timeseries</v-tab>
               </v-tabs>
             </v-col>
             <v-col cols="auto" class="ml-16 align-self-center">

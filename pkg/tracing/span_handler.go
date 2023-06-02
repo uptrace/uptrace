@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/bunrouter"
@@ -17,6 +18,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
+	orderedmap "github.com/wk8/go-ordered-map/v2"
 	"go4.org/syncutil"
 )
 
@@ -44,7 +46,8 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 		f.SortDesc = true
 	}
 
-	q := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration()).
+	q, _ := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
+	q = q.
 		ColumnExpr("id, trace_id").
 		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if f.SortBy == "" {
@@ -109,11 +112,11 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	q := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration()).
-		Limit(1000)
+	q, columnMap := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
+	q = q.Limit(1000)
 	groups := make([]map[string]any, 0)
 
-	if len(f.columnMap) > 0 {
+	if columnMap.Len() > 0 {
 		if err := q.Scan(ctx, &groups); err != nil {
 			if cherr, ok := err.(*ch.Error); ok {
 				w.WriteHeader(http.StatusBadRequest)
@@ -127,38 +130,21 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 		}
 	}
 
-	columns := f.columns(groups)
+	var grouping []string
+	for pair := columnMap.Oldest(); pair != nil; pair = pair.Next() {
+		col := pair.Value
+		if col.IsGroup {
+			grouping = append(grouping, col.Name)
+		}
+	}
 
 	digest := xxhash.New()
 	for _, group := range groups {
 		digest.Reset()
-		var names []string
-		var filters []string
-
-		for _, col := range columns {
-			if !col.IsGroup {
-				continue
-			}
-
-			value := group[col.Name]
-			digest.WriteString(fmt.Sprint(group[col.Name]))
-
-			filters = append(filters, fmt.Sprintf("%s = %s", col.Name, quote(value)))
-
-			if col.Name == attrkey.SpanGroupID {
-				if s, ok := group[attrkey.DisplayName].(string); ok && s != "" {
-					names = append(names, s)
-				}
-			} else {
-				names = append(names, fmt.Sprintf("%s=%s", col.Name, quote(value)))
-			}
-		}
-
-		group["_id"] = strconv.FormatUint(digest.Sum64(), 10)
-		group["_name"] = strings.Join(names, " ")
-		if len(filters) > 0 {
-			group["_query"] = "where " + strings.Join(filters, " and ")
-		}
+		id, name, query := itemIDName(group, digest, grouping)
+		group["_id"] = strconv.FormatUint(id, 10)
+		group["_name"] = name
+		group["_query"] = query
 	}
 
 	return httputil.JSON(w, bunrouter.H{
@@ -166,7 +152,7 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 		"query": map[string]any{
 			"parts": f.parts,
 		},
-		"columns": columns,
+		"columns": columnList(columnMap),
 	})
 }
 
@@ -183,7 +169,8 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 
 	m := make(map[string]interface{})
 
-	subq := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration()).
+	subq, _ := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
+	subq = subq.
 		ColumnExpr("sum(s.count) AS count").
 		ColumnExpr("sum(s.count) / ? AS rate", minutes).
 		ColumnExpr("toStartOfInterval(s.time, INTERVAL ? minute) AS time_", minutes).
@@ -250,7 +237,8 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 
 	groupingPeriod := org.CalcGroupingPeriod(f.TimeGTE, f.TimeLT, 300)
 
-	subq := buildSpanIndexQuery(h.App, f, groupingPeriod).
+	subq, _ := buildSpanIndexQuery(h.App, f, groupingPeriod)
+	subq = subq.
 		ColumnExpr("toStartOfInterval(time, toIntervalMinute(?)) AS time_", groupingPeriod.Minutes()).
 		GroupExpr("time_").
 		OrderExpr("time_ ASC")
@@ -285,9 +273,151 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 	return httputil.JSON(w, item)
 }
 
+//------------------------------------------------------------------------------
+
+func (h *SpanHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	f, err := DecodeSpanFilter(h.App, req)
+	if err != nil {
+		return err
+	}
+
+	groupingPeriod := f.GroupingPeriod()
+
+	subq, columnMap := buildSpanIndexQuery(h.App, f, groupingPeriod)
+
+	var numAgg int
+	for _, colName := range columnNames(columnMap) {
+		col := columnMap.Value(colName)
+		if !col.IsGroup && col.IsNum {
+			if numAgg >= 4 {
+				columnMap.Delete(colName)
+			}
+			numAgg++
+		}
+	}
+
+	subq = subq.
+		ColumnExpr(
+			"toStartOfInterval(s.time, INTERVAL ? minute) AS `_time`",
+			groupingPeriod.Minutes(),
+		).
+		Group("_time").
+		OrderExpr("`_time` ASC")
+
+	q := h.CH.NewSelect().
+		ColumnExpr("groupArray(`_time`) AS `_time`").
+		TableExpr("(?)", subq).
+		Limit(100)
+
+	var grouping []string
+
+	for pair := columnMap.Oldest(); pair != nil; pair = pair.Next() {
+		colName := pair.Key
+		col := pair.Value
+
+		if col.IsGroup {
+			q = q.Column(colName).Group(colName).OrderExpr("? ASC", ch.Ident(colName))
+			grouping = append(grouping, colName)
+
+			if colName == attrkey.SpanGroupID {
+				q = q.ColumnExpr("any(?) AS ?",
+					ch.Ident(attrkey.DisplayName), ch.Ident(attrkey.DisplayName))
+			}
+		} else if col.IsNum {
+			q = q.ColumnExpr("groupArray(?) AS ?", ch.Ident(colName), ch.Ident(colName))
+		} else {
+			q = q.ColumnExpr("any(?) AS ?", ch.Ident(colName), ch.Ident(colName))
+		}
+	}
+
+	if len(grouping) == 0 {
+		q = q.GroupExpr("tuple()")
+	}
+
+	groups := make([]map[string]any, 0)
+
+	if err := q.Scan(ctx, &groups); err != nil {
+		return err
+	}
+
+	var timeCol []time.Time
+
+	digest := xxhash.New()
+	for _, group := range groups {
+		bunutil.FillHoles(group, f.TimeGTE, f.TimeLT, groupingPeriod)
+
+		if timeCol == nil {
+			timeCol = group["_time"].([]time.Time)
+		}
+		delete(group, "_time")
+
+		digest.Reset()
+		id, name, query := itemIDName(group, digest, grouping)
+		group["_id"] = strconv.FormatUint(id, 10)
+		group["_name"] = name
+		group["_query"] = query
+	}
+
+	return httputil.JSON(w, map[string]any{
+		"groups":  groups,
+		"time":    timeCol,
+		"columns": columnList(columnMap),
+		"query": map[string]any{
+			"parts": f.parts,
+		},
+	})
+}
+
+func itemIDName(
+	item map[string]any, digest *xxhash.Digest, grouping []string,
+) (uint64, string, string) {
+	var names []string
+	var filters []string
+
+	for _, colName := range grouping {
+		value := item[colName]
+		digest.WriteString(fmt.Sprint(value))
+
+		filters = append(filters, fmt.Sprintf("%s = %s", colName, quote(value)))
+
+		if colName == attrkey.SpanGroupID {
+			if s, ok := item[attrkey.DisplayName].(string); ok && s != "" {
+				names = append(names, s)
+			}
+		} else {
+			names = append(names, fmt.Sprintf("%s=%s", colName, quote(value)))
+		}
+	}
+
+	var query string
+	if len(filters) > 0 {
+		query = "where " + strings.Join(filters, " and ")
+	}
+
+	return digest.Sum64(), strings.Join(names, " "), query
+}
+
 func quote(v any) string {
 	if s, ok := v.(string); ok {
 		return strconv.Quote(s)
 	}
 	return fmt.Sprint(v)
+}
+
+func columnNames(m *orderedmap.OrderedMap[string, *ColumnInfo]) []string {
+	names := make([]string, 0, m.Len())
+	for pair := m.Oldest(); pair != nil; pair = pair.Next() {
+		names = append(names, pair.Key)
+	}
+	return names
+}
+
+func columnList(m *orderedmap.OrderedMap[string, *ColumnInfo]) []*ColumnInfo {
+	columns := make([]*ColumnInfo, 0, m.Len())
+	for pair := m.Oldest(); pair != nil; pair = pair.Next() {
+		columns = append(columns, pair.Value)
+	}
+	return columns
 }

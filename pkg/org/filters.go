@@ -74,6 +74,31 @@ func (f *TimeFilter) Duration() time.Duration {
 	return f.TimeLT.Sub(f.TimeGTE)
 }
 
+func (f *TimeFilter) GroupingPeriod() time.Duration {
+	period := GroupingPeriod(f.TimeGTE, f.TimeLT)
+	f.Round(period)
+	return period
+}
+
+func (f *TimeFilter) Round(d time.Duration) {
+	f.TimeGTE, f.TimeLT = roundBounds(f.TimeGTE, f.TimeLT, d)
+}
+
+func roundBounds(gte, lt time.Time, prec time.Duration) (time.Time, time.Time) {
+	gte = ceilTime(gte, prec)
+	lt = ceilTime(lt, prec)
+	return gte, lt
+}
+
+func ceilTime(t time.Time, d time.Duration) time.Time {
+	secs := int64(d / time.Second)
+	r := t.Unix() % secs
+	if r == 0 {
+		return t
+	}
+	return t.Add(time.Duration(secs-r) * time.Second)
+}
+
 //------------------------------------------------------------------------------
 
 type Facet struct {

@@ -16,6 +16,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
+	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
 type SpanFilter struct {
@@ -73,45 +74,10 @@ type ColumnInfo struct {
 	IsGroup bool   `json:"isGroup"`
 }
 
-func (f *SpanFilter) columns(items []map[string]any) []ColumnInfo {
-	var item map[string]any
-	if len(items) > 0 {
-		item = items[0]
-	}
-
-	columns := make([]ColumnInfo, 0)
-
-	for _, part := range f.parts {
-		if part.Disabled || part.Error != "" {
-			continue
-		}
-
-		switch ast := part.AST.(type) {
-		case *tql.Selector:
-			for _, col := range ast.Columns {
-				columns = append(columns, ColumnInfo{
-					Name:  col.Name.String(),
-					IsNum: isNumColumn(item[col.Name.String()]),
-					Unit:  unitFromName(col.Name),
-				})
-			}
-		case *tql.Grouping:
-			for _, name := range ast.Names {
-				columns = append(columns, ColumnInfo{
-					Name:    name.String(),
-					IsGroup: true,
-					Unit:    unitFromName(name),
-				})
-			}
-		}
-	}
-
-	return columns
-}
-
 func isNumColumn(v any) bool {
 	switch v.(type) {
-	case int64, uint64, float32, float64:
+	case int64, uint64, float32, float64,
+		[]int64, []uint64, []float32, []float64:
 		return true
 	default:
 		return false
@@ -163,17 +129,18 @@ func NewSpanIndexQuery(app *bunapp.App) *ch.SelectQuery {
 		TableExpr("? AS s", app.DistTable("spans_index_buffer"))
 }
 
-func buildSpanIndexQuery(app *bunapp.App, f *SpanFilter, dur time.Duration) *ch.SelectQuery {
+func buildSpanIndexQuery(
+	app *bunapp.App, f *SpanFilter, dur time.Duration,
+) (*ch.SelectQuery, *orderedmap.OrderedMap[string, *ColumnInfo]) {
 	q := NewSpanIndexQuery(app).Apply(f.whereClause)
-	q, f.columnMap = compileUQL(q, f.parts, dur)
-	return q
+	return compileUQL(q, f.parts, dur)
 }
 
 func compileUQL(
 	q *ch.SelectQuery, parts []*tql.QueryPart, dur time.Duration,
-) (*ch.SelectQuery, map[string]bool) {
-	groupSet := make(map[string]bool)
-	columnSet := make(map[string]bool)
+) (*ch.SelectQuery, *orderedmap.OrderedMap[string, *ColumnInfo]) {
+	columnMap := orderedmap.New[string, *ColumnInfo]()
+	groupingSet := make(map[string]bool)
 
 	for _, part := range parts {
 		if part.Disabled || part.Error != "" {
@@ -183,11 +150,17 @@ func compileUQL(
 		switch ast := part.AST.(type) {
 		case *tql.Grouping:
 			for _, name := range ast.Names {
-				q = tqlColumn(q, name, dur)
-				columnSet[name.String()] = true
+				colName := name.String()
 
-				q = q.Group(name.String())
-				groupSet[name.String()] = true
+				q = tqlColumn(q, name, dur)
+				columnMap.Set(colName, &ColumnInfo{
+					Name:    colName,
+					Unit:    unitFromName(name),
+					IsGroup: true,
+				})
+
+				q = q.Group(colName)
+				groupingSet[colName] = true
 			}
 		}
 	}
@@ -200,17 +173,23 @@ func compileUQL(
 		switch ast := part.AST.(type) {
 		case *tql.Selector:
 			for _, col := range ast.Columns {
-				if !groupSet[col.Name.String()] && !IsAggColumn(col.Name) {
+				colName := col.Name.String()
+
+				if !groupingSet[colName] && !IsAggColumn(col.Name) {
 					part.SetError("must be an agg or a group-by")
 					continue
 				}
 
-				if columnSet[col.Name.String()] {
+				if _, ok := columnMap.Get(colName); ok {
 					continue
 				}
 
 				q = tqlColumn(q, col.Name, dur)
-				columnSet[col.Name.String()] = true
+				columnMap.Set(colName, &ColumnInfo{
+					Name:  colName,
+					Unit:  unitFromName(col.Name),
+					IsNum: col.Name.IsNum(),
+				})
 			}
 		case *tql.Where:
 			where, having := AppendWhereHaving(ast, dur)
@@ -223,17 +202,19 @@ func compileUQL(
 		}
 	}
 
-	if columnSet[tql.Name{AttrKey: attrkey.SpanGroupID}.String()] {
+	groupIDCol := tql.Name{AttrKey: attrkey.SpanGroupID}
+	if _, ok := columnMap.Get(groupIDCol.String()); ok {
 		for _, key := range []string{attrkey.SpanSystem, attrkey.DisplayName} {
 			name := tql.Name{FuncName: "any", AttrKey: key}
-			if !columnSet[name.String()] {
+			colName := name.String()
+
+			if _, ok := columnMap.Get(colName); !ok {
 				q = tqlColumn(q, name, dur)
-				columnSet[name.String()] = true
 			}
 		}
 	}
 
-	return q, columnSet
+	return q, columnMap
 }
 
 func IsAggColumn(col tql.Name) bool {
@@ -250,15 +231,6 @@ func isAggAttr(attrKey string) bool {
 		attrkey.SpanErrorCount,
 		attrkey.SpanErrorPct,
 		attrkey.SpanErrorRate:
-		return true
-	default:
-		return false
-	}
-}
-
-func isNumFunc(funcName string) bool {
-	switch funcName {
-	case "sum", "avg", "min", "max", "p50", "p75", "p90", "p99":
 		return true
 	default:
 		return false
@@ -305,7 +277,7 @@ func AppendCHColumn(b []byte, name tql.Name, dur time.Duration) []byte {
 			b = append(b, '(')
 		}
 
-		isNum := isNumFunc(name.FuncName)
+		isNum := name.IsNum()
 		if isNum {
 			b = append(b, "toFloat64OrDefault("...)
 		}

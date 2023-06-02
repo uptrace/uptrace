@@ -80,7 +80,8 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 
 func (h *AttrHandler) selectAttrKeys(ctx context.Context, f *SpanFilter) ([]string, error) {
 	keys := make([]string, 0)
-	if err := buildSpanIndexQuery(h.App, f, 0).
+	q, _ := buildSpanIndexQuery(h.App, f, 0)
+	if err := q.
 		ColumnExpr("groupUniqArrayArray(1000)(s.all_keys)").
 		Scan(ctx, &keys); err != nil {
 		return nil, err
@@ -127,7 +128,7 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 		}
 	}
 
-	q := buildSpanIndexQuery(h.App, f, 0)
+	q, _ := buildSpanIndexQuery(h.App, f, 0)
 	q = tqlColumn(q, colName, 0).Group(f.AttrKey).
 		ColumnExpr("count() AS count")
 	if !strings.HasPrefix(f.AttrKey, ".") {

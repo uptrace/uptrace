@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
@@ -32,6 +33,23 @@ type Column struct {
 type Name struct {
 	FuncName string
 	AttrKey  string
+}
+
+func (n Name) IsNum() bool {
+	switch n.FuncName {
+	case "":
+		switch n.AttrKey {
+		case attrkey.SpanCount,
+			attrkey.SpanCountPerMin,
+			attrkey.SpanErrorCount,
+			attrkey.SpanErrorPct,
+			attrkey.SpanErrorRate:
+			return true
+		}
+	case "sum", "avg", "min", "max", "p50", "p75", "p90", "p99":
+		return true
+	}
+	return false
 }
 
 func (n Name) String() string {
