@@ -126,7 +126,7 @@ func (f *SpanFilter) spanqlWhere(q *ch.SelectQuery) *ch.SelectQuery {
 
 func NewSpanIndexQuery(app *bunapp.App) *ch.SelectQuery {
 	return app.CH.NewSelect().
-		TableExpr("? AS s", app.DistTable("spans_index_buffer"))
+		TableExpr("? AS s", app.DistTable("spans_index"))
 }
 
 func buildSpanIndexQuery(

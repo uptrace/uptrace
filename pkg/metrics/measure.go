@@ -11,7 +11,7 @@ import (
 )
 
 type Measure struct {
-	ch.CHModel `ch:"measure_minutes_stub,insert:measure_minutes_buffer,alias:m"`
+	ch.CHModel `ch:"measure_minutes_stub,insert:measure_minutes,alias:m"`
 
 	ProjectID   uint32
 	Metric      string     `ch:"metric,lc"`
@@ -48,7 +48,7 @@ func (m AttrMap) Merge(other AttrMap) {
 func InsertMeasures(ctx context.Context, app *bunapp.App, measures []*Measure) error {
 	_, err := app.CH.NewInsert().
 		Model(&measures).
-		ModelTableExpr("?", app.DistTable("measure_minutes_buffer")).
+		ModelTableExpr("?", app.DistTable("measure_minutes")).
 		Exec(ctx)
 	return err
 }
@@ -56,7 +56,7 @@ func InsertMeasures(ctx context.Context, app *bunapp.App, measures []*Measure) e
 func measureTableForWhere(app *bunapp.App, f *org.TimeFilter) ch.Ident {
 	switch org.TablePeriod(f) {
 	case time.Minute:
-		return app.DistTable("measure_minutes_buffer")
+		return app.DistTable("measure_minutes")
 	case time.Hour:
 		return app.DistTable("measure_hours")
 	}
@@ -69,7 +69,7 @@ func measureTableForGroup(
 	tablePeriod, groupingPeriod := org.TableGroupingPeriod(f)
 	switch tablePeriod {
 	case time.Minute:
-		return app.DistTable("measure_minutes_buffer"), groupingPeriod
+		return app.DistTable("measure_minutes"), groupingPeriod
 	case time.Hour:
 		return app.DistTable("measure_hours"), groupingPeriod
 	}

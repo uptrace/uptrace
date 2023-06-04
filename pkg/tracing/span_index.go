@@ -9,7 +9,7 @@ import (
 )
 
 type SpanIndex struct {
-	ch.CHModel `ch:"table:spans_index_buffer,alias:s"`
+	ch.CHModel `ch:"table:spans_index,alias:s"`
 
 	*Span
 

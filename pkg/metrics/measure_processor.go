@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"github.com/zyedidia/generic/cache"
 	"reflect"
 	"runtime"
 	"sync"
@@ -53,8 +54,12 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 		logger: app.Logger,
 
 		metricCache: cache.New[MetricKey, time.Time](conf.Metrics.CumToDeltaSize),
+<<<<<<< HEAD
 
 		dashSyncer: NewDashSyncer(app),
+=======
+		dashSyncer:  NewDashSyncer(app),
+>>>>>>> sync-leonyu879
 	}
 
 	if len(conf.Metrics.DropAttrs) > 0 {
@@ -382,6 +387,7 @@ func (p *MeasureProcessor) upsertMetric(ctx *measureContext, measure *Measure) {
 	p.metricCacheMu.RLock()
 	cachedAt, found := p.metricCache.Get(key)
 	p.metricCacheMu.RUnlock()
+<<<<<<< HEAD
 
 	if found && time.Since(cachedAt) < 15*time.Minute {
 		return
@@ -393,6 +399,13 @@ func (p *MeasureProcessor) upsertMetric(ctx *measureContext, measure *Measure) {
 	if cachedAt, found := p.metricCache.Get(key); found && time.Since(cachedAt) < 15*time.Minute {
 		return
 	}
+=======
+	if found && time.Since(cachedAt) < 15*time.Minute {
+		return
+	}
+	p.metricCacheMu.Lock()
+	defer p.metricCacheMu.Unlock()
+>>>>>>> sync-leonyu879
 	p.metricCache.Put(key, time.Now())
 
 	ctx.metrics = append(ctx.metrics, Metric{
@@ -402,6 +415,7 @@ func (p *MeasureProcessor) upsertMetric(ctx *measureContext, measure *Measure) {
 		Unit:        measure.Unit,
 		Instrument:  measure.Instrument,
 		AttrKeys:    measure.StringKeys,
+<<<<<<< HEAD
 	})
 }
 
@@ -417,6 +431,8 @@ func (p *MeasureProcessor) upsertMetrics(ctx *measureContext, metrics []Metric) 
 		Returning("updated_at").
 		Exec(ctx); err != nil {
 		return err
+=======
+>>>>>>> sync-leonyu879
 	}
 
 	seen := make(map[uint32]bool)
