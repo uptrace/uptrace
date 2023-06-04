@@ -76,9 +76,10 @@
             :query="part.query"
             :error="part.error"
             :disabled="part.disabled || disabled"
+            deletable
             class="mr-2 mb-1"
-            @click:edit="partEditor.startEditing(i, part)"
-            @click:delete="uql.removePart(i)"
+            @click:edit="partEditor.startEditing(part)"
+            @click:delete="uql.removePart(part)"
           />
         </template>
         <v-btn v-if="!partEditor.editing" depressed small class="py-4" @click="partEditor.add">

@@ -11,6 +11,7 @@ type SavedView struct {
 
 	ID uint64 `json:"id" bun:",pk,autoincrement"`
 
+	UserID    uint64 `json:"userId"`
 	ProjectID uint32 `json:"projectId"`
 
 	Name   string         `json:"name"`

@@ -42,7 +42,7 @@ export default defineComponent({
     },
     where: {
       type: String,
-      required: true,
+      default: undefined,
     },
     eventsMode: {
       type: Boolean,
@@ -70,11 +70,11 @@ export default defineComponent({
       return [
         {
           title: 'Monitor number of spans',
-          route: spansRoute('per_min($spans)'),
+          route: spansRoute('per_min(count($spans))'),
         },
         {
           title: 'Monitor number of failed spans',
-          route: spansRoute('per_min($spans{span.status_code="error"})'),
+          route: spansRoute('per_min(count($spans{span.status_code="error"}))'),
         },
         {
           title: 'Monitor error rate',
@@ -106,7 +106,7 @@ export default defineComponent({
           name: props.name,
           metric: props.metric,
           alias: 'spans',
-          query: `${query} | ${props.where}`,
+          query: joinQuery(query, props.where),
         },
       }
     }
@@ -118,9 +118,13 @@ export default defineComponent({
           name: props.name,
           metric: 'uptrace.tracing.events',
           alias: 'events',
-          query: `${query} | ${props.where}`,
+          query: joinQuery(query, props.where),
         },
       }
+    }
+
+    function joinQuery(...parts: string[]) {
+      return parts.filter((part) => part).join(' | ')
     }
 
     return {
