@@ -60,14 +60,9 @@ func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 	baseq := app.CH.NewSelect().
 		ColumnExpr("project_id, trace_id, id, parent_id, time, data").
 		Model(&data).
-<<<<<<< HEAD
-		ModelTableExpr("?", app.DistTable("spans_data_buffer")).
-		Where("trace_id = ?", span.TraceID)
-=======
 		ModelTableExpr("?", app.DistTable("spans_data")).
 		Where("trace_id = ?", span.TraceID).
 		Limit(1)
->>>>>>> sync-leonyu879
 
 	q := baseq.Clone().Limit(1)
 	if span.ProjectID != 0 {

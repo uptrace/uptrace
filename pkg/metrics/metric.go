@@ -96,19 +96,12 @@ func SelectMetricByName(
 	return metric, nil
 }
 
-<<<<<<< HEAD
-func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) error {
-	if m.CreatedAt.IsZero() {
-		m.CreatedAt = time.Now()
-	}
-=======
 func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) (inserted bool, _ error) {
 	if m.CreatedAt.IsZero() {
 		m.CreatedAt = time.Now()
 	}
 	m.UpdatedAt = time.Now()
 
->>>>>>> sync-leonyu879
 	if _, err := app.PG.NewInsert().
 		Model(m).
 		On("CONFLICT (project_id, name) DO UPDATE").
@@ -116,12 +109,8 @@ func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) (inserted boo
 		Set("unit = EXCLUDED.unit").
 		Set("instrument = EXCLUDED.instrument").
 		Set("attr_keys = EXCLUDED.attr_keys").
-<<<<<<< HEAD
-		Set("updated_at = EXCLUDED.updated_at").
-=======
 		Set("updated_at = now()").
 		Returning("id, created_at, updated_at").
->>>>>>> sync-leonyu879
 		Exec(ctx); err != nil {
 		return err
 	}

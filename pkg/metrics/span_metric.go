@@ -56,11 +56,7 @@ func createSpanMetricMeta(ctx context.Context, app *bunapp.App, metric *bunconf.
 			attrKeys[i], _ = splitNameAlias(attr)
 		}
 
-<<<<<<< HEAD
-		if err := UpsertMetric(ctx, app, &Metric{
-=======
 		if _, err := UpsertMetric(ctx, app, &Metric{
->>>>>>> sync-leonyu879
 			ProjectID:   project.ID,
 			Name:        metric.Name,
 			Description: metric.Description,
