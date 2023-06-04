@@ -36,7 +36,7 @@ func NewSSOHandler(app *bunapp.App, router *bunrouter.Group) *SSOHandler {
 
 	for _, oidcConf := range conf.Auth.OIDC {
 		if oidcConf.RedirectURL == "" {
-			oidcConf.RedirectURL = conf.SiteURL(fmt.Sprintf("/api/v1/sso/%s/callback", oidcConf.ID))
+			oidcConf.RedirectURL = conf.SitePath(fmt.Sprintf("/api/v1/sso/%s/callback", oidcConf.ID))
 		}
 
 		handler, err := NewSSOMethodHandler(app, oidcConf)
@@ -142,7 +142,7 @@ func (h *SSOMethodHandler) Callback(w http.ResponseWriter, req bunrouter.Request
 		return err
 	}
 
-	token, err := encodeUserToken(h.Config().SecretKey, user.Email, tokenTTL)
+	token, err := encodeUserToken(h.Config().SecretKey, user.Username, tokenTTL)
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (h *SSOMethodHandler) Callback(w http.ResponseWriter, req bunrouter.Request
 
 func (h *SSOMethodHandler) exchange(
 	w http.ResponseWriter, req bunrouter.Request,
-) (*User, error) {
+) (*bunconf.User, error) {
 	ctx := req.Context()
 
 	existingState, _ := req.Cookie(stateCookieName)
@@ -197,45 +197,29 @@ func (h *SSOMethodHandler) exchange(
 		return nil, fmt.Errorf("oidc: failed to read claims: %w", err)
 	}
 
-	emailKey := "email"
-	if len(h.conf.EmailClaim) > 0 {
-		emailKey = h.conf.EmailClaim
+	claim := "preferred_username"
+	if len(h.conf.Claim) > 0 {
+		claim = h.conf.Claim
 	}
 
-	var email string
-	emailValue := (*claims)[emailKey]
+	var username string
+	usernameClaim := (*claims)[claim]
 
-	switch emailValue := emailValue.(type) {
+	switch usernameClaim := usernameClaim.(type) {
 	case string:
-		email = emailValue
+		username = usernameClaim
 	case nil:
-		return nil, fmt.Errorf("oidc: email claim is unset: %s", emailKey)
+		return nil, fmt.Errorf("oidc: claim is unset: %s", claim)
 	default:
-		return nil, fmt.Errorf("oidc: email claim must be a string: %s", emailKey)
+		return nil, fmt.Errorf("oidc: claim must be a string: %s", claim)
 	}
 
-	if email == "" {
-		return nil, fmt.Errorf("oidc: email claim is empty: %s", emailKey)
+	if len(username) == 0 {
+		return nil, fmt.Errorf("oidc: claim is empty: %s", claim)
 	}
 
-	var name string
-	if len(h.conf.NameClaim) > 0 {
-		name, _ = (*claims)[h.conf.NameClaim].(string)
-	}
-	if name == "" {
-		for _, key := range []string{"name", "preferred_username"} {
-			found, _ := (*claims)[key].(string)
-			if found != "" {
-				name = found
-				break
-			}
-		}
-	}
-
-	return &User{
-		Name:          name,
-		Email:         email,
-		NotifyByEmail: true,
+	return &bunconf.User{
+		Username: username,
 	}, nil
 }
 

@@ -40,6 +40,10 @@ func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) erro
 func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
+	if len(h.Config().Auth.Users) == 0 {
+		return httperror.InternalServerError("Configure some users before continuing")
+	}
+
 	var in struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`

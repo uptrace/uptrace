@@ -18,7 +18,7 @@
           </v-toolbar>
 
           <template v-if="sso.methods.length">
-            <v-card flat class="pa-8">
+            <v-card flat class="px-14 py-8">
               <v-btn
                 v-for="sso in sso.methods"
                 :key="sso.id"
@@ -44,11 +44,7 @@
             <v-card flat class="pa-8">
               <v-alert v-if="error" type="error">{{ error }}</v-alert>
 
-              <p>
-                The default login is <code>uptrace@localhost</code> with pass <code>uptrace</code>.
-              </p>
-
-              <!-- Basic Login (email/password) -->
+              <!-- Basic Login username/password) -->
               <v-text-field
                 v-model="email"
                 prepend-inner-icon="mdi-account"

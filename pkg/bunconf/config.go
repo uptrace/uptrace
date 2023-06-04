@@ -320,9 +320,16 @@ type Config struct {
 		AuthType mail.SMTPAuthType `yaml:"auth_type"`
 		Username string            `yaml:"username"`
 		Password string            `yaml:"password"`
-
-		From string `yaml:"from"`
+		From     string            `yaml:"from"`
 	} `yaml:"smtp_mailer"`
+
+	Auth struct {
+		Users      []User                `yaml:"users" json:"users"`
+		Cloudflare []*CloudflareProvider `yaml:"cloudflare" json:"cloudflare"`
+		OIDC       []*OIDCProvider       `yaml:"oidc" json:"oidc"`
+	} `yaml:"auth" json:"auth"`
+
+	Projects []Project `yaml:"projects"`
 
 	UptraceGo struct {
 		DSN string     `yaml:"dsn"`
@@ -388,6 +395,34 @@ func (l *Listen) init() error {
 
 type CHTableOverride struct {
 	TTL string `yaml:"ttl"`
+}
+
+type User struct {
+	Username string `yaml:"username" json:"username"`
+	Password string `yaml:"password" json:"-"`
+}
+
+type CloudflareProvider struct {
+	TeamURL  string `yaml:"team_url" json:"team_url"`
+	Audience string `yaml:"audience" json:"audience"`
+}
+
+type OIDCProvider struct {
+	ID           string   `yaml:"id" json:"id"`
+	DisplayName  string   `yaml:"display_name" json:"display_name"`
+	IssuerURL    string   `yaml:"issuer_url" json:"issuer_url"`
+	ClientID     string   `yaml:"client_id" json:"client_id"`
+	ClientSecret string   `yaml:"client_secret" json:"client_secret"`
+	RedirectURL  string   `yaml:"redirect_url" json:"redirect_url"`
+	Scopes       []string `yaml:"scopes" json:"scopes"`
+	Claim        string   `yaml:"claim" json:"claim"`
+}
+
+type Project struct {
+	ID          uint32   `yaml:"id" json:"id"`
+	Name        string   `yaml:"name" json:"name"`
+	Token       string   `yaml:"token" json:"token"`
+	PinnedAttrs []string `yaml:"pinned_attrs" json:"pinnedAttrs"`
 }
 
 func (c *Config) GRPCEndpoint() string {

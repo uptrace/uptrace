@@ -2,12 +2,14 @@ package org
 
 import (
 	"context"
+	"crypto/subtle"
 	"database/sql"
 	"net/http"
 	"time"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"go.opentelemetry.io/otel/trace"
 
@@ -150,4 +152,18 @@ func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*Project, error
 	}
 
 	return project, nil
+}
+
+//------------------------------------------------------------------------------
+
+func findUserByPassword(app *bunapp.App, username string, password string) *bunconf.User {
+	users := app.Config().Auth.Users
+	for i := range users {
+		user := &users[i]
+		if subtle.ConstantTimeCompare([]byte(user.Username), []byte(username)) == 1 &&
+			subtle.ConstantTimeCompare([]byte(user.Password), []byte(password)) == 1 {
+			return user
+		}
+	}
+	return nil
 }
