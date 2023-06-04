@@ -112,9 +112,9 @@ func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) (inserted boo
 		Set("updated_at = now()").
 		Returning("id, created_at, updated_at").
 		Exec(ctx); err != nil {
-		return err
+		return false, err
 	}
-	return nil
+	return inserted, nil
 }
 
 //------------------------------------------------------------------------------

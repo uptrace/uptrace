@@ -462,7 +462,7 @@ func (h *QueryHandler) selectMetricHeatmap(
 		}
 	}
 
-	var bfloat16Col []bfloat16.Map
+	var bfloat16Col []map[bfloat16.T]uint64
 	var timeCol []time.Time
 
 	if err := q.ScanColumns(ctx, &bfloat16Col, &timeCol); err != nil {

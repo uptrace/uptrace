@@ -9,7 +9,7 @@ require (
 	github.com/codemodus/kace v0.5.1
 	github.com/gogo/protobuf v1.3.2
 	github.com/klauspost/compress v1.16.5
-	github.com/mileusna/useragent v1.3.2
+	github.com/mileusna/useragent v1.3.3
 	github.com/mostynb/go-grpc-compression v1.1.18
 	github.com/rs/cors v1.9.0
 	github.com/segmentio/encoding v0.3.6
@@ -64,6 +64,7 @@ require (
 )
 
 require (
+	cloud.google.com/go/compute v1.19.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
@@ -97,7 +98,7 @@ require (
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
@@ -132,16 +133,16 @@ require (
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20230526203410-71b5a4ffd15e // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230526203410-71b5a4ffd15e // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20230530153820-e85fd2cbaebc // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	mellium.im/sasl v0.3.1 // indirect
 )
 
 require (
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.2 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/uptrace/bun v1.1.14
 	github.com/uptrace/bun/extra/bundebug v1.1.14
 	github.com/uptrace/bun/extra/bunotel v1.1.14
-	google.golang.org/genproto v0.0.0-20230526203410-71b5a4ffd15e // indirect
+	google.golang.org/genproto v0.0.0-20230530153820-e85fd2cbaebc // indirect
 )

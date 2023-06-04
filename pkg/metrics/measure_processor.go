@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zyedidia/generic/cache"
-
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
