@@ -1,7 +1,7 @@
 name: build-and-test
 on:
   push:
-    branches: [v1.4.0.alpha]
+    branches: [master]
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
   pull_request:
@@ -147,7 +147,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-package]
     if:
-      github.ref_name == 'v1.4.0.alpha' && github.repository == 'leonyu879/uptrace'
+      (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) &&
+      github.repository == 'datacosmos1/uptrace'
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -190,13 +191,13 @@ jobs:
         if: steps.check.outputs.passed == 'true'
         run: |
           make docker-uptrace
-          docker tag uptrace:latest leonyu879/uptrace-dev:$GITHUB_SHA
-          docker tag uptrace:latest leonyu879/uptrace-dev:latest
+          docker tag uptrace:latest datacosmos1/uptrace-dev:$GITHUB_SHA
+          docker tag uptrace:latest datacosmos1/uptrace-dev:latest
       - name: Validate Docker Image
         if: steps.check.outputs.passed == 'true'
         run: |
-          docker run leonyu879/uptrace-dev:$GITHUB_SHA version
-          docker run leonyu879/uptrace-dev:latest version
+          docker run datacosmos1/uptrace-dev:$GITHUB_SHA version
+          docker run datacosmos1/uptrace-dev:latest version
       - name: Login to Docker Hub
         uses: docker/login-action@v1
         with:
@@ -205,13 +206,13 @@ jobs:
       - name: Push Docker Image
         if: steps.check.outputs.passed == 'true'
         run: |
-          docker push leonyu879/uptrace-dev:$GITHUB_SHA
-          docker push leonyu879/uptrace-dev:latest
+          docker push datacosmos1/uptrace-dev:$GITHUB_SHA
+          docker push datacosmos1/uptrace-dev:latest
 
   publish-stable:
     runs-on: ubuntu-latest
     needs: [build-package]
-    if: (startsWith(github.ref, 'refs/tags/v')) && github.repository == 'leonyu879/uptrace'
+    if: (startsWith(github.ref, 'refs/tags/v')) && github.repository == 'datacosmos1/uptrace'
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -258,13 +259,13 @@ jobs:
         if: steps.check.outputs.passed == 'true'
         run: |
           make docker-uptrace
-          docker tag uptrace:latest leonyu879/uptrace:$DOCKER_TAG
-          docker tag uptrace:latest leonyu879/uptrace:latest
+          docker tag uptrace:latest datacosmos1/uptrace:$DOCKER_TAG
+          docker tag uptrace:latest datacosmos1/uptrace:latest
       - name: Validate Docker Image
         if: steps.check.outputs.passed == 'true'
         run: |
-          docker run leonyu879/uptrace:$DOCKER_TAG version
-          docker run leonyu879/uptrace:latest version
+          docker run datacosmos1/uptrace:$DOCKER_TAG version
+          docker run datacosmos1/uptrace:latest version
       - name: Login to Docker Hub
         uses: docker/login-action@v1
         with:
@@ -273,14 +274,14 @@ jobs:
       - name: Push Docker Image
         if: steps.check.outputs.passed == 'true'
         run: |
-          docker push leonyu879/uptrace:$DOCKER_TAG
-          docker push leonyu879/uptrace:latest
+          docker push datacosmos1/uptrace:$DOCKER_TAG
+          docker push datacosmos1/uptrace:latest
       - name: Create Github Release
         if: steps.check.outputs.passed == 'true'
         run: |
           cp bin/* dist/
           cd bin && shasum -a 256 * > checksums.txt && cd ../
-          ghr -b '[CHANGELOG](https://github.com/leonyu879/uptrace/blob/${{ env.GITHUB_REF_NAME }}/CHANGELOG.md)' -t $GITHUB_TOKEN -u leonyu879 -r uptrace --replace $RELEASE_TAG dist/
+          ghr -b '[CHANGELOG](https://github.com/datacosmos1/uptrace/blob/${{ env.GITHUB_REF_NAME }}/CHANGELOG.md)' -t $GITHUB_TOKEN -u datacosmos1 -r uptrace --replace $RELEASE_TAG dist/
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ steps.github_tag.outputs.tag }}
