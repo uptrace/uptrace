@@ -21,6 +21,12 @@ import { addAllSystem, System } from '@/tracing/system/use-systems'
 // Utilities
 import { isSpanSystem, isEventSystem, isLogSystem, SystemName, AttrKey } from '@/models/otel'
 
+interface Group {
+  name: string
+  system: SystemName
+  count: number
+}
+
 export default defineComponent({
   name: 'SystemGroupPicker',
 
@@ -33,7 +39,7 @@ export default defineComponent({
       type: Array as PropType<System[]>,
       required: true,
     },
-    system: {
+    value: {
       type: Array as PropType<string[]>,
       required: true,
     },
@@ -61,9 +67,9 @@ export default defineComponent({
     })
 
     const groups = computed(() => {
-      const groups = []
+      const groups: Group[] = []
 
-      if (spanSystems.value.length) {
+      if (spanSystems.value.length > 1) {
         groups.push({
           name: 'Spans',
           system: SystemName.SpansAll,
@@ -71,7 +77,7 @@ export default defineComponent({
         })
       }
 
-      if (logSystems.value.length) {
+      if (logSystems.value.length > 1) {
         groups.push({
           name: 'Logs',
           system: SystemName.LogAll,
@@ -79,7 +85,7 @@ export default defineComponent({
         })
       }
 
-      if (eventSystems.value.length) {
+      if (eventSystems.value.length > 1) {
         groups.push({
           name: 'Events',
           system: SystemName.EventsAll,
@@ -91,14 +97,14 @@ export default defineComponent({
     })
 
     const activeGroupSystem = computed(() => {
-      if (!props.system.length) {
+      if (!props.value.length) {
         if (groups.value.length) {
           return groups.value[0].system
         }
         return undefined
       }
 
-      const system = props.system[0]
+      const system = props.value[0]
       if (isLogSystem(system)) {
         return SystemName.LogAll
       }
@@ -110,8 +116,9 @@ export default defineComponent({
 
     const systemItems = computed(() => {
       if (props.loading) {
-        return undefined
+        return []
       }
+
       switch (activeGroupSystem.value) {
         case SystemName.SpansAll:
           return spanSystems.value
@@ -120,27 +127,16 @@ export default defineComponent({
         case SystemName.LogAll:
           return logSystems.value
         default:
-          return undefined
+          return []
       }
     })
 
     watch(
-      () => props.systems,
-      () => {
-        if (systemItems.value) {
-          ctx.emit('update:systems', systemItems.value)
-        }
+      systemItems,
+      (systemItems) => {
+        ctx.emit('update:systems', systemItems)
       },
-      { immediate: true },
-    )
-
-    watch(
-      () => props.system,
-      (system) => {
-        if (system.length && systemItems.value) {
-          ctx.emit('update:systems', systemItems.value)
-        }
-      },
+      { flush: 'sync' },
     )
 
     const { where } = useQueryStore()

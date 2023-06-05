@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -395,7 +396,27 @@ func AppendFilter(filter tql.Filter, dur time.Duration) []byte {
 	b = append(b, filter.Op...)
 	b = append(b, ' ')
 
-	b = chschema.AppendString(b, filter.RHS.String())
+	switch value := filter.RHS.(type) {
+	case *tql.Number:
+		switch value.Kind {
+		case tql.NumberDuration:
+			dur, err := time.ParseDuration(value.Text)
+			if err != nil {
+				panic(err)
+			}
+			return strconv.AppendInt(b, int64(dur), 10)
+		case tql.NumberBytes:
+			n, err := bununit.ParseBytes(value.Text)
+			if err != nil {
+				panic(err)
+			}
+			return strconv.AppendInt(b, n, 10)
+		default:
+			return append(b, value.Text...)
+		}
+	default:
+		b = chschema.AppendString(b, value.String())
+	}
 
 	return b
 }

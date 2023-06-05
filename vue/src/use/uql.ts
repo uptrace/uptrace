@@ -94,11 +94,13 @@ export function useUql(queryValue = '') {
     query.value = editor.toString()
   }
 
-  function syncQueryParams(paramName = 'query') {
+  function syncQueryParams(paramName = 'query', defaultQuery = '') {
     useRouteQuery().sync({
-      fromQuery(params) {
-        if (paramName in params) {
-          query.value = params[paramName] ?? ''
+      fromQuery(queryParams) {
+        if (paramName in queryParams) {
+          query.value = queryParams[paramName] ?? ''
+        } else {
+          query.value = defaultQuery
         }
       },
       toQuery() {

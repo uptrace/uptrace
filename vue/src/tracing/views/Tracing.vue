@@ -16,8 +16,8 @@
             <v-col cols="auto">
               <SystemGroupPicker
                 :loading="systems.loading"
+                :value="systems.activeSystems"
                 :systems="systems.items"
-                :system="systems.activeSystems"
                 @update:systems="systemItems = $event"
               />
             </v-col>
@@ -72,8 +72,8 @@ import { pick } from 'lodash-es'
 import { defineComponent, shallowRef, computed, watch, proxyRefs, PropType } from 'vue'
 
 // Composables
-import { useRoute } from '@/use/router'
 import { useTitle } from '@vueuse/core'
+import { useRoute, useRouteQuery } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { useUser } from '@/org/use-users'
 import { useSystems, System } from '@/tracing/system/use-systems'
@@ -117,7 +117,6 @@ export default defineComponent({
     const user = useUser()
 
     const uql = useUql()
-    uql.syncQueryParams()
     useProvideQueryStore(uql)
 
     const systems = useSystems(() => {
@@ -136,6 +135,21 @@ export default defineComponent({
         ...uql.axiosParams(),
         system: systems.activeSystems,
       }
+    })
+
+    useRouteQuery().sync({
+      fromQuery(queryParams) {
+        if ('query' in queryParams) {
+          uql.query = queryParams.query ?? ''
+        } else {
+          resetQuery(true)
+        }
+      },
+      toQuery() {
+        return {
+          query: uql.query,
+        }
+      },
     })
 
     watch(

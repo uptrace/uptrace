@@ -53,7 +53,7 @@
 
 <script lang="ts">
 import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
-import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, watchEffect, PropType } from 'vue'
 
 // Composables
 import { System } from '@/tracing/system/use-systems'
@@ -111,17 +111,16 @@ export default defineComponent({
       return fuzzyFilter(internalSystems.value, searchInput.value, { key: 'system' })
     })
 
-    watch(
-      () => props.systems,
+    watchEffect(
       () => {
-        if (props.value.length) {
+        if (props.loading || props.value.length) {
           return
         }
-        if (internalSystems.value.length) {
-          ctx.emit('input', internalSystems.value[0].system)
+        if (props.systems.length) {
+          ctx.emit('input', props.systems[0].system)
         }
       },
-      { immediate: true },
+      { flush: 'post' },
     )
 
     function comma(item: System, index: number): string {

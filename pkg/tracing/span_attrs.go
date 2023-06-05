@@ -558,7 +558,6 @@ func initEventFromHostSpan(dest *Span, event *SpanEvent, hostSpan *Span) {
 			dest.Attrs[k] = v
 		}
 	}
-	dest.Duration = hostSpan.Duration
 	dest.StatusCode = hostSpan.StatusCode
 }
 

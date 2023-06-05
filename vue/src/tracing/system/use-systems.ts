@@ -75,13 +75,8 @@ export function useSystems(params: () => Record<string, any>) {
 
   function syncQueryParams() {
     useRouteQuery().sync({
-      fromQuery(params) {
-        const system = params.system
-        if (system) {
-          activeSystems.value = system
-        } else {
-          activeSystems.value = []
-        }
+      fromQuery(queryParams) {
+        activeSystems.value = queryParams.system ?? []
       },
       toQuery() {
         if (activeSystems.value.length) {

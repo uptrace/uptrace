@@ -30,7 +30,7 @@
           <v-spacer />
 
           <v-col v-if="user.isAuth && $route.params.projectId" cols="auto">
-            <Search />
+            <AppSearch />
           </v-col>
           <v-col cols="auto">
             <v-btn v-if="user.isAuth && $route.params.projectId" :to="helpRoute" icon>
@@ -139,7 +139,7 @@ import { useUser } from '@/org/use-users'
 // Components
 import UptraceLogoSmall from '@/components/UptraceLogoSmall.vue'
 import ProjectPicker from '@/components/ProjectPicker.vue'
-import Search from '@/components/Search.vue'
+import AppSearch from '@/components/AppSearch.vue'
 import GlobalSnackbar from '@/components/GlobalSnackbar.vue'
 import GlobalConfirm from '@/components/GlobalConfirm.vue'
 
@@ -148,7 +148,7 @@ export default defineComponent({
   components: {
     UptraceLogoSmall,
     ProjectPicker,
-    Search,
+    AppSearch,
     GlobalSnackbar,
     GlobalConfirm,
   },

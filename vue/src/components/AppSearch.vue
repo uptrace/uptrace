@@ -7,7 +7,7 @@
     flat
     solo
     background-color="grey lighten-4"
-    style="min-width: 300px; width: 300px"
+    style="min-width: 400px; width: 400px"
     @keyup.enter="jumpToTrace"
   />
 </template>

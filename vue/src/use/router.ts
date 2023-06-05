@@ -42,12 +42,16 @@ export const useRouteQuery = defineStore(() => {
   const lastFreshRoute = shallowRef<Route>()
 
   const onRouteChangedHooks = shallowRef<OnRouteChangedHook[]>([])
-  const items = shallowRef<QueryItem[]>([])
+  const syncHooks = shallowRef<QueryItem[]>([])
 
   const query = computed((): Query | undefined => {
+    if (!syncHooks.value.length) {
+      return undefined
+    }
+
     let query: Query = {}
 
-    for (let item of items.value) {
+    for (let item of syncHooks.value) {
       if (!item.toQuery) {
         continue
       }
@@ -93,16 +97,16 @@ export const useRouteQuery = defineStore(() => {
 
   function sync(item: QueryItem) {
     //TODO: vue3
-    items.value.push(item)
+    syncHooks.value.push(item)
     // eslint-disable-next-line no-self-assign
-    items.value = items.value.slice()
+    syncHooks.value = syncHooks.value.slice()
 
     function remove() {
-      const idx = items.value.findIndex((v) => v === item)
+      const idx = syncHooks.value.findIndex((v) => v === item)
       if (idx >= 0) {
-        items.value.splice(idx, 1)
+        syncHooks.value.splice(idx, 1)
         // eslint-disable-next-line no-self-assign
-        items.value = items.value.slice()
+        syncHooks.value = syncHooks.value.slice()
       } else {
         // eslint-disable-next-line no-console
         console.error("can't find the hook")
@@ -156,7 +160,7 @@ export const useRouteQuery = defineStore(() => {
         return
       }
 
-      for (let item of items.value) {
+      for (let item of syncHooks.value) {
         if (item.fromQuery) {
           item.fromQuery(route.query)
         }
