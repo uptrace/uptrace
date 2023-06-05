@@ -1,11 +1,10 @@
-import { shallowRef, computed, watch, proxyRefs, ComputedRef } from 'vue'
+import { shallowRef, computed, proxyRefs, ComputedRef } from 'vue'
 
 // Composables
 import { useRoute } from '@/use/router'
 import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
 import { useAxios } from '@/use/axios'
 import { useOrder } from '@/use/order'
-import { usePager } from '@/use/pager'
 import { Facet } from '@/use/faceted-search'
 
 // Utilities
@@ -15,7 +14,7 @@ import { Unit } from '@/util/fmt'
 import { MetricAlias } from '@/metrics/types'
 
 interface BaseAlert {
-  id: string
+  id: number
   projectId: number
 
   name: string
@@ -84,7 +83,6 @@ export function useAlerts(axiosParams: ComputedRef<Record<string, any>>) {
   const route = useRoute()
   const order = useOrder({ column: 'updated_at', desc: true })
   order.syncQueryParams()
-  const pager = usePager()
 
   const { status, loading, data, reload } = useWatchAxios(
     () => {
@@ -93,7 +91,6 @@ export function useAlerts(axiosParams: ComputedRef<Record<string, any>>) {
         url: `/api/v1/projects/${projectId}/alerts`,
         params: {
           ...order.axiosParams,
-          ...pager.axiosParams(),
           ...axiosParams.value,
         },
       }
@@ -110,32 +107,15 @@ export function useAlerts(axiosParams: ComputedRef<Record<string, any>>) {
     return data.value?.facets ?? []
   })
 
-  const resolvedCount = computed((): number => {
-    return data.value?.resolvedCount ?? 0
-  })
-
-  const unresolvedCount = computed((): number => {
-    return data.value?.unresolvedCount ?? 0
-  })
-
-  watch(data, (data) => {
-    if (data) {
-      pager.numItem = data.count
-    }
-  })
-
   return proxyRefs({
-    order,
-    pager,
-
     status,
     loading,
+    reload,
+
+    order,
+
     items: alerts,
     facets,
-    resolvedCount,
-    unresolvedCount,
-
-    reload,
   })
 }
 
@@ -170,9 +150,7 @@ export function useAlertManager() {
   }
 
   function toggleAlerts(alerts: Alert[], state: AlertState) {
-    const alertIds = alerts.map((alert) => {
-      return alert.id
-    })
+    const alertIds = alerts.map((alert) => alert.id)
 
     const { projectId } = route.value.params
     const url = `/api/v1/projects/${projectId}/alerts/${state}`
@@ -185,6 +163,14 @@ export function useAlertManager() {
     return request({ method: 'PUT', url })
   }
 
+  function del(alerts: Alert[]) {
+    const alertIds = alerts.map((alert) => alert.id)
+
+    const { projectId } = route.value.params
+    const url = `/api/v1/projects/${projectId}/alerts`
+    return request({ method: 'DELETE', url, data: { alertIds } })
+  }
+
   return proxyRefs({
     pending,
 
@@ -192,22 +178,34 @@ export function useAlertManager() {
     close,
     open,
     closeAll,
+    delete: del,
   })
 }
 
 export type UseAlertSelection = ReturnType<typeof useAlertSelection>
 
-export function useAlertSelection(alerts: ComputedRef<Alert[]>) {
-  const alertIds = shallowRef<string[]>([])
-
-  const hasOpen = computed((): boolean => {
-    return alerts.value.some((alert: Alert) => alert.state !== AlertState.Closed)
-  })
+export function useAlertSelection(
+  alerts: ComputedRef<Alert[]>,
+  alertsOnPage: ComputedRef<Alert[]>,
+) {
+  const selectedAlertIds = shallowRef<number[]>([])
 
   const activeAlerts = computed((): Alert[] => {
     return alerts.value.filter((alert: Alert) => {
-      return alertIds.value.indexOf(alert.id) !== -1
+      return selectedAlertIds.value.includes(alert.id)
     })
+  })
+
+  const selectedAlertsOnPage = computed((): Alert[] => {
+    return alertsOnPage.value.filter((alert: Alert) => selectedAlertIds.value.includes(alert.id))
+  })
+
+  const isFullPageSelected = computed(() => {
+    return alertsOnPage.value.every((alert) => selectedAlertIds.value.includes(alert.id))
+  })
+
+  const isAllSelected = computed((): boolean => {
+    return alerts.value.every((alert) => selectedAlertIds.value.includes(alert.id))
   })
 
   const closedAlerts = computed((): Alert[] => {
@@ -222,28 +220,62 @@ export function useAlertSelection(alerts: ComputedRef<Alert[]>) {
     })
   })
 
+  function toggle(alert: Alert) {
+    const index = selectedAlertIds.value.findIndex((alertId) => alertId === alert.id)
+    if (index >= 0) {
+      selectedAlertIds.value.splice(index, 1)
+    } else {
+      selectedAlertIds.value.push(alert.id)
+    }
+    selectedAlertIds.value = selectedAlertIds.value.slice()
+  }
+
   function toggleAll() {
-    if (alertIds.value.length != 0) {
-      alertIds.value = []
+    if (isAllSelected.value) {
+      selectedAlertIds.value = []
       return
     }
 
-    alertIds.value = alerts.value.map((alert: Alert) => {
+    selectedAlertIds.value = alerts.value.map((alert: Alert) => {
       return alert.id
     })
   }
 
+  function togglePage() {
+    if (!selectedAlertsOnPage.value.length) {
+      selectedAlertIds.value = [
+        ...selectedAlertIds.value,
+        ...alertsOnPage.value.map((alert) => alert.id),
+      ]
+      return
+    }
+
+    selectedAlertsOnPage.value.map((alert) => {
+      const index = selectedAlertIds.value.findIndex((alertId) => alertId === alert.id)
+      if (index >= 0) {
+        selectedAlertIds.value.splice(index, 1)
+      }
+    })
+    selectedAlertIds.value = selectedAlertIds.value.slice()
+  }
+
   function reset() {
-    alertIds.value = []
+    selectedAlertIds.value = []
   }
 
   return proxyRefs({
-    alertIds,
-    hasOpen,
-    closedAlerts,
-    openAlerts,
     alerts: activeAlerts,
+    alertsOnPage: selectedAlertsOnPage,
+    isFullPageSelected,
+    isAllSelected,
 
+    allAlerts: alerts,
+    openAlerts,
+    closedAlerts,
+    alertIds: selectedAlertIds,
+
+    toggle,
+    togglePage,
     toggleAll,
     reset,
   })

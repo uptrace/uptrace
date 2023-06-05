@@ -32,8 +32,8 @@
         @click:alert="$emit('click:alert', alert)"
         @click:chip="$emit('click:chip', $event)"
       >
-        <template #action>
-          <slot name="action" :alert="alert" />
+        <template #prepend-column>
+          <slot name="prepend-column" :alert="alert" />
         </template>
       </AlertsTableRow>
     </tbody>

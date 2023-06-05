@@ -31,7 +31,7 @@ func initRouter(ctx context.Context, app *bunapp.App) {
 			g.GET("/alerts/:alert_id", alertHandler.Show)
 			g.PUT("/alerts/closed", alertHandler.Close)
 			g.PUT("/alerts/open", alertHandler.Open)
-			g.PUT("/alerts/close-all", alertHandler.CloseAll)
+			g.DELETE("/alerts", alertHandler.Delete)
 		}))
 
 	api.

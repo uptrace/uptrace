@@ -1,21 +1,17 @@
 <template>
   <div class="d-flex">
     <v-simple-checkbox
-      :value="selection.alerts.length > 0"
+      :value="selection.isFullPageSelected"
+      :indeterminate="selection.alertsOnPage.length > 0 && !selection.isFullPageSelected"
       :ripple="false"
-      @click="selection.toggleAll"
+      @click="selection.togglePage"
     ></v-simple-checkbox>
 
-    <v-btn
-      v-if="selection.hasOpen && !selection.alerts.length"
-      :loading="alertMan.pending"
-      depressed
-      small
-      class="ml-3"
-      @click="closeAllAlerts"
-    >
-      Close all
+    <v-btn depressed small class="ml-3" @click="selection.toggleAll">
+      <span> {{ selection.isAllSelected ? 'Deselect all' : 'Select all' }}</span>
+      <span v-if="selection.alerts.length">({{ selection.alerts.length }})</span>
     </v-btn>
+
     <v-btn
       v-if="selection.openAlerts.length"
       :loading="alertMan.pending"
@@ -35,6 +31,16 @@
       @click="openAlerts"
     >
       Open ({{ selection.closedAlerts.length }})
+    </v-btn>
+    <v-btn
+      v-if="selection.alerts.length"
+      :loading="alertMan.pending"
+      depressed
+      small
+      class="ml-3"
+      @click="deleteAlerts"
+    >
+      Delete ({{ selection.alerts.length }})
     </v-btn>
   </div>
 </template>
@@ -60,25 +66,25 @@ export default defineComponent({
     const confirm = useConfirm()
     const alertMan = useAlertManager()
 
-    const closeAlerts = function () {
-      alertMan.close(props.selection.openAlerts).then(() => {
-        props.selection.reset()
-        ctx.emit('change')
-      })
-    }
-
-    const openAlerts = function () {
+    function openAlerts() {
       alertMan.open(props.selection.closedAlerts).then(() => {
         props.selection.reset()
         ctx.emit('change')
       })
     }
 
-    const closeAllAlerts = function () {
+    function closeAlerts() {
+      alertMan.close(props.selection.openAlerts).then(() => {
+        props.selection.reset()
+        ctx.emit('change')
+      })
+    }
+
+    function deleteAlerts() {
       confirm
-        .open('Close all', 'Do you really want to close all alerts?')
+        .open('Delete', 'Do you really want to delete selected alerts?')
         .then(() => {
-          alertMan.closeAll().then(() => {
+          alertMan.delete(props.selection.alerts).then(() => {
             props.selection.reset()
             ctx.emit('change')
           })
@@ -88,9 +94,10 @@ export default defineComponent({
 
     return {
       alertMan,
+
       closeAlerts,
       openAlerts,
-      closeAllAlerts,
+      deleteAlerts,
     }
   },
 })

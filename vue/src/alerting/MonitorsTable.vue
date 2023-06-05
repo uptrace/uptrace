@@ -43,9 +43,9 @@ export default defineComponent({
       headers.push({ text: 'Monitor Name', value: 'name', sortable: true, align: 'start' })
       headers.push({ text: 'Type', value: 'type', sortable: true, align: 'start' })
       headers.push({ text: 'State', value: 'state', sortable: true, align: 'center' })
-      headers.push({ text: 'Actions', value: 'actions', sortable: false, align: 'center' })
       headers.push({ text: 'Alerts', value: 'alertCount', sortable: true, align: 'center' })
       headers.push({ text: 'Last activity at', value: 'updatedAt', sortable: true, align: 'start' })
+      headers.push({ text: 'Actions', value: 'actions', sortable: false, align: 'end' })
       return headers
     })
 

@@ -10,7 +10,26 @@
     <td class="text-center">
       <MonitorStateAvatar :state="monitor.state" />
     </td>
-    <td class="text-center text-no-wrap">
+    <td class="text-center">
+      <v-chip v-if="monitor.alertOpenCount" :to="routeForOpenAlerts" label color="red lighten-5">
+        <span class="font-weight-medium">{{ monitor.alertOpenCount }}</span>
+        <span class="ml-1"> open</span>
+      </v-chip>
+      <v-chip
+        v-if="monitor.alertClosedCount"
+        :to="routeForClosedAlerts"
+        label
+        color="green lighten-5"
+        class="ml-2"
+      >
+        <span class="font-weight-medium">{{ monitor.alertClosedCount }}</span>
+        <span class="ml-1"> closed</span>
+      </v-chip>
+    </td>
+    <td>
+      <XDate v-if="monitor.updatedAt" :date="monitor.updatedAt" format="relative" />
+    </td>
+    <td class="text-right text-no-wrap">
       <v-btn
         v-if="monitor.state != MonitorState.Paused"
         icon
@@ -23,45 +42,29 @@
         <v-icon>mdi-play</v-icon>
       </v-btn>
 
-      <v-btn :to="monitorRouteFor(monitor)" icon title="Edit monitor" @click.stop
+      <v-btn :to="routeForMonitor(monitor)" icon title="Edit monitor" @click.stop
         ><v-icon>mdi-pencil-outline</v-icon></v-btn
       >
       <v-btn :loading="monitorMan.pending" icon title="Delete monitor" @click.stop="deleteMonitor"
         ><v-icon>mdi-delete-outline</v-icon></v-btn
       >
     </td>
-    <td class="text-center">
-      <router-link
-        v-if="monitor.alertCount"
-        :to="{
-          name: 'AlertList',
-          query: {
-            q: 'monitor:' + monitor.id,
-            state: null,
-          },
-        }"
-        class="link"
-        >{{ monitor.alertCount }} alerts</router-link
-      >
-    </td>
-    <td>
-      <XDate v-if="monitor.updatedAt" :date="monitor.updatedAt" format="relative" />
-    </td>
   </tr>
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue'
+import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { useConfirm } from '@/use/confirm'
 import {
   useMonitorManager,
-  monitorRouteFor,
+  routeForMonitor,
   Monitor,
   MonitorType,
   MonitorState,
 } from '@/alerting/use-monitors'
+import { AlertState } from '@/alerting/use-alerts'
 
 // Components
 import MonitorTypeIcon from '@/alerting/MonitorTypeIcon.vue'
@@ -81,6 +84,24 @@ export default defineComponent({
   setup(props, ctx) {
     const confirm = useConfirm()
     const monitorMan = useMonitorManager()
+
+    const routeForOpenAlerts = computed(() => {
+      return routeForAlerts(AlertState.Open)
+    })
+
+    const routeForClosedAlerts = computed(() => {
+      return routeForAlerts(AlertState.Closed)
+    })
+
+    function routeForAlerts(state: AlertState) {
+      return {
+        name: 'AlertList',
+        query: {
+          q: 'monitor:' + props.monitor.id,
+          'attrs.alert.state': state,
+        },
+      }
+    }
 
     function activateMonitor() {
       monitorMan.activate(props.monitor).then(() => {
@@ -105,7 +126,10 @@ export default defineComponent({
     return {
       MonitorType,
       MonitorState,
-      monitorRouteFor,
+
+      routeForMonitor,
+      routeForOpenAlerts,
+      routeForClosedAlerts,
 
       monitorMan,
       activateMonitor,

@@ -3,11 +3,10 @@ package alerting
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
@@ -55,6 +54,28 @@ func (h *AlertHandler) Show(w http.ResponseWriter, req bunrouter.Request) error 
 	})
 }
 
+func (h *AlertHandler) Delete(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+	project := org.ProjectFromContext(ctx)
+
+	var in struct {
+		AlertIDs []uint64 `json:"alertIds"`
+	}
+	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
+		return err
+	}
+
+	if _, err := h.PG.NewDelete().
+		Model((*org.BaseAlert)(nil)).
+		Where("id IN (?)", bun.In(in.AlertIDs)).
+		Where("project_id = ?", project.ID).
+		Exec(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (h *AlertHandler) Close(w http.ResponseWriter, req bunrouter.Request) error {
 	return h.updateAlertsState(w, req, org.AlertClosed)
 }
@@ -71,7 +92,7 @@ func (h *AlertHandler) updateAlertsState(
 	project := org.ProjectFromContext(ctx)
 
 	var in struct {
-		AlertIDs []string `json:"alertIds"`
+		AlertIDs []uint64 `json:"alertIds"`
 	}
 	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
 		return err
@@ -80,16 +101,11 @@ func (h *AlertHandler) updateAlertsState(
 	if len(in.AlertIDs) == 0 {
 		return errors.New("at least one alert is required")
 	}
-	if len(in.AlertIDs) > 100 {
-		return fmt.Errorf("got %d alerts, wanted <= 100", len(in.AlertIDs))
+	if len(in.AlertIDs) > 1000 {
+		in.AlertIDs = in.AlertIDs[:1000]
 	}
 
 	for _, alertID := range in.AlertIDs {
-		alertID, err := strconv.ParseUint(alertID, 10, 64)
-		if err != nil {
-			return err
-		}
-
 		if err := h.updateAlertState(ctx, user, project.ID, alertID, state); err != nil {
 			return err
 		}
@@ -121,22 +137,6 @@ func (h *AlertHandler) updateAlertState(
 		state,
 		user.ID,
 	); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (h *AlertHandler) CloseAll(w http.ResponseWriter, req bunrouter.Request) error {
-	ctx := req.Context()
-	project := org.ProjectFromContext(ctx)
-
-	if _, err := h.PG.NewUpdate().
-		Model((*org.BaseAlert)(nil)).
-		Set("state = ?", org.AlertClosed).
-		Where("project_id = ?", project.ID).
-		Where("state = ?", org.AlertOpen).
-		Exec(ctx); err != nil {
 		return err
 	}
 

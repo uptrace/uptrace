@@ -77,7 +77,7 @@ export default defineComponent({
 
   props: {
     alertId: {
-      type: String,
+      type: Number,
       required: true,
     },
     fluid: {

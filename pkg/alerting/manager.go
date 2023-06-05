@@ -191,7 +191,7 @@ func (m *Manager) selectMetricMap(
 		if err != nil {
 			return nil, err
 		}
-		metricMap[ma.Alias] = metric
+		metricMap["$"+ma.Alias] = metric
 	}
 	return metricMap, nil
 }

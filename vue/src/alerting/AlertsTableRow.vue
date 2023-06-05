@@ -1,8 +1,6 @@
 <template>
   <tr class="cursor-pointer" @click="$emit('click:alert', alert)">
-    <td class="pr-0">
-      <slot name="action" :alert="alert" />
-    </td>
+    <slot name="prepend-column" :alert="alert" />
     <td class="target">
       <div class="mb-1 font-weight-medium">
         <v-icon :color="stateColor" class="mr-1">{{

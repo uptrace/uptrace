@@ -38,7 +38,7 @@ type Alert interface {
 type BaseAlert struct {
 	bun.BaseModel `bun:"alerts,alias:a"`
 
-	ID        uint64 `json:"id,string" bun:",pk,autoincrement"`
+	ID        uint64 `json:"id" bun:",pk,autoincrement"`
 	ProjectID uint32 `json:"projectId"`
 
 	Name      string     `json:"name"`

@@ -19,11 +19,7 @@
             <tbody>
               <tr>
                 <td>
-                  <AlertSelection
-                    v-if="alerts.items.length"
-                    :selection="selection"
-                    @change="alerts.reload()"
-                  />
+                  <AlertSelection :selection="selection" @change="alerts.reload()" />
                 </td>
                 <td class="d-flex align-center justify-end">
                   <AlertOrderPicker
@@ -44,18 +40,20 @@
             @click:alert="showAlert($event)"
             @click:chip="facetedSearch.select"
           >
-            <template #action="{ alert }">
-              <v-checkbox
-                v-model="selection.alertIds"
-                :value="alert.id"
-                multiple
-                :ripple="false"
-                @click.stop
-              ></v-checkbox>
+            <template #prepend-column="{ alert }">
+              <td class="pr-0" @click.stop="selection.toggle(alert)">
+                <v-checkbox
+                  v-model="selection.alertIds"
+                  :value="alert.id"
+                  multiple
+                  :ripple="false"
+                  @click.stop.prevent
+                ></v-checkbox>
+              </td>
             </template>
           </AlertsTable>
 
-          <XPagination :pager="alerts.pager" class="mt-4" />
+          <XPagination :pager="pager" class="mt-4" />
         </v-col>
       </v-row>
     </v-container>
@@ -74,12 +72,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed } from 'vue'
+import { defineComponent, shallowRef, computed, watch } from 'vue'
 
 // Composables
 import { useTitle } from '@vueuse/core'
 import { useRouteQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
+import { usePager } from '@/use/pager'
 import { useFacetedSearch } from '@/use/faceted-search'
 import { useAlerts, useAlertSelection, Alert } from '@/alerting/use-alerts'
 
@@ -106,10 +105,11 @@ export default defineComponent({
     useTitle('Alerts')
 
     const dialog = shallowRef(false)
-    const activeAlertId = shallowRef<string>()
+    const activeAlertId = shallowRef<number>()
 
     const { forceReloadParams } = useForceReload()
 
+    const pager = usePager()
     const facetedSearch = useFacetedSearch()
     const alerts = useAlerts(
       computed(() => {
@@ -121,19 +121,31 @@ export default defineComponent({
         return params
       }),
     )
+    const pageAlerts = computed(() => {
+      return alerts.items.slice(pager.pos.start, pager.pos.end)
+    })
+
     const selection = useAlertSelection(
       computed(() => {
         return alerts.items
       }),
+      pageAlerts,
     )
 
     useRouteQuery().sync({
       fromQuery(queryParams) {
         if (Object.keys(queryParams).length === 0) {
-          facetedSearch.selected['state'] = ['open']
+          facetedSearch.selected['alert.state'] = ['open']
         }
       },
     })
+
+    watch(
+      () => alerts.items.length,
+      (numItem) => {
+        pager.numItem = numItem
+      },
+    )
 
     function showAlert(alert: Alert) {
       activeAlertId.value = alert.id
@@ -148,6 +160,9 @@ export default defineComponent({
       facetedSearch,
       alerts,
       selection,
+
+      pager,
+      pageAlerts,
     }
   },
 })

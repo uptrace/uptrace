@@ -477,7 +477,7 @@ func genSampleTrace() {
 
 	tracer := otel.Tracer("github.com/uptrace/uptrace")
 
-	ctx, main := tracer.Start(ctx, "sample-trace")
+	ctx, main := tracer.Start(ctx, "sample-trace-by-uptrace")
 	defer main.End()
 
 	_, child1 := tracer.Start(ctx, "child1-of-main")

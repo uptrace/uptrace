@@ -314,7 +314,7 @@ export function useErrorMonitor() {
   })
 }
 
-export function monitorRouteFor(monitor: Monitor) {
+export function routeForMonitor(monitor: Monitor) {
   return {
     name: monitor.type === MonitorType.Metric ? 'MonitorMetricShow' : 'MonitorErrorShow',
     params: { monitorId: monitor.id },

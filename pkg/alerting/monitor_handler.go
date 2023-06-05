@@ -74,6 +74,12 @@ func NewMonitorHandler(app *bunapp.App) *MonitorHandler {
 	}
 }
 
+type MonitorOut struct {
+	org.BaseMonitor  `bun:",extend"`
+	AlertOpenCount   int `json:"alertOpenCount" bun:",scanonly"`
+	AlertClosedCount int `json:"alertClosedCount" bun:",scanonly"`
+}
+
 func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
@@ -82,10 +88,10 @@ func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	var baseMonitors []*org.BaseMonitor
+	var monitors []*MonitorOut
 
 	if err := h.PG.NewSelect().
-		Model(&baseMonitors).
+		Model(&monitors).
 		Apply(f.whereClause).
 		OrderExpr("created_at DESC").
 		Limit(f.Pager.GetLimit()).
@@ -94,23 +100,13 @@ func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	monitors := make([]org.Monitor, len(baseMonitors))
-
-	for i, baseMonitor := range baseMonitors {
-		monitor, err := org.DecodeMonitor(baseMonitor)
-		if err != nil {
-			return err
-		}
-		monitors[i] = monitor
-	}
-
 	states, err := SelectMonitorStatesCount(ctx, f)
 	if err != nil {
 		return err
 	}
 
-	if err := CountMonitorAlerts(ctx, h.App, baseMonitors); err != nil {
-		h.App.Zap(ctx).Error("CountMonitorAlerts failed", zap.Error(err))
+	if err := h.countMonitorAlerts(ctx, monitors); err != nil {
+		h.Zap(ctx).Error("countMonitorAlerts failed", zap.Error(err))
 	}
 
 	return httputil.JSON(w, bunrouter.H{
@@ -119,21 +115,22 @@ func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 	})
 }
 
-func CountMonitorAlerts(ctx context.Context, app *bunapp.App, monitors []*org.BaseMonitor) error {
+func (h *MonitorHandler) countMonitorAlerts(
+	ctx context.Context, monitors []*MonitorOut,
+) error {
 	var group syncutil.Group
 
 	for _, monitor := range monitors {
 		monitor := monitor
 		group.Go(func() error {
-			count, err := app.PG.NewSelect().
+			if err := h.PG.NewSelect().
+				ColumnExpr("count(*) filter (where state = ?)", org.AlertOpen).
+				ColumnExpr("count(*) filter (where state = ?)", org.AlertClosed).
 				Model((*org.BaseAlert)(nil)).
 				Where("monitor_id = ?", monitor.ID).
-				Count(ctx)
-			if err != nil {
+				Scan(ctx, &monitor.AlertOpenCount, &monitor.AlertClosedCount); err != nil {
 				return err
 			}
-
-			monitor.AlertCount = count
 			return nil
 		})
 	}
