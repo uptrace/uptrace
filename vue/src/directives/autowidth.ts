@@ -86,11 +86,23 @@ function findInput(el: HTMLElement): MyHTMLInputElement {
 
 function checkWidth(el: MyHTMLInputElement, binding: DirectiveBinding) {
   const mirror = el.mirror
-  const defaults = { maxWidth: 'none', minWidth: 'none', comfortZone: 0 }
-  const options = Object.assign({}, defaults, binding.value)
 
-  el.style.maxWidth = options.maxWidth
-  el.style.minWidth = options.minWidth
+  let { minWidth, maxWidth, comfortZone } = binding.value
+  if (minWidth) {
+    if (typeof minWidth === 'number') {
+      el.style.minWidth = minWidth + 'px'
+    } else {
+      el.style.minWidth = minWidth
+    }
+  }
+  if (maxWidth) {
+    if (typeof maxWidth === 'number') {
+      el.style.maxWidth = maxWidth + 'px'
+    } else {
+      el.style.maxWidth = maxWidth
+    }
+  }
+  comfortZone ??= 0
 
   let val = el.value
 
@@ -104,7 +116,10 @@ function checkWidth(el: MyHTMLInputElement, binding: DirectiveBinding) {
 
   mirror.appendChild(document.createTextNode(val))
 
-  let newWidth = mirror.scrollWidth + options.comfortZone + 2
+  let newWidth = mirror.scrollWidth + comfortZone + 2
+  if (typeof maxWidth === 'number' && newWidth > maxWidth) {
+    newWidth = maxWidth
+  }
 
   if (newWidth != el.scrollWidth) {
     el.style.width = `${newWidth}px`
