@@ -275,7 +275,7 @@ func NewChartGridColumnTpl(col *ChartGridColumn) *ChartGridColumnTpl {
 	tpl.Columns = col.Params.ColumnMap
 	tpl.Styles = col.Params.TimeseriesMap
 	tpl.Legend = col.Params.Legend
-	if tpl.Legend.Type == "" {
+	if tpl.Legend != nil && tpl.Legend.Type == "" {
 		tpl.Legend = nil
 	}
 
