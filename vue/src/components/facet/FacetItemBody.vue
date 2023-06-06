@@ -5,13 +5,11 @@
     </div>
 
     <v-list v-else dense class="py-0">
-      <v-list-item v-for="item in pagedItems" :key="item.value" @click="resetItem(item)">
+      <v-list-item v-for="item in pagedItems" :key="item.value" @click="toggleOne(item.value)">
         <v-list-item-action class="my-0 mr-4">
           <v-checkbox
-            :input-value="values.indexOf(item.value) >= 0"
-            dense
-            @click.stop
-            @change="selectItem(item, $event)"
+            :input-value="values.includes(item.value)"
+            @click.stop="toggle(item.value)"
           ></v-checkbox>
         </v-list-item-action>
         <v-list-item-content class="text-truncate">
@@ -35,7 +33,7 @@ import { usePager } from '@/use/pager'
 import { Item } from '@/components/facet/types'
 
 export default defineComponent({
-  name: 'SpanFacetBody',
+  name: 'FacetItemBody',
 
   props: {
     value: {
@@ -72,30 +70,26 @@ export default defineComponent({
       { immediate: true },
     )
 
-    function selectItem(item: Item, selected: boolean) {
-      if (selected) {
-        values.value.push(item.value)
-      } else {
-        const index = values.value.indexOf(item.value)
-        if (index >= 0) {
-          values.value.splice(index, 1)
-        }
-      }
-      ctx.emit('input', values.value)
-    }
-
-    function resetItem(item: Item) {
-      const index = values.value.indexOf(item.value)
+    function toggle(itemValue: string) {
+      const selected = values.value.slice()
+      const index = selected.indexOf(itemValue)
       if (index >= 0) {
-        values.value.splice(index, 1)
+        selected.splice(index, 1)
       } else {
-        values.value = [item.value]
+        selected.push(itemValue)
       }
-      ctx.emit('input', values.value)
-      ctx.emit('click:close')
+      ctx.emit('input', selected)
     }
 
-    return { pager, values, pagedItems, selectItem, resetItem }
+    function toggleOne(itemValue: string) {
+      let selected = [itemValue]
+      if (values.value.length === 1 && values.value.includes(itemValue)) {
+        selected = []
+      }
+      ctx.emit('input', selected)
+    }
+
+    return { pager, values, pagedItems, toggle, toggleOne }
   },
 })
 </script>

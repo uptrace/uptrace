@@ -64,13 +64,28 @@ export function useFacetedSearch() {
   function toggle(item: FacetItem) {
     let value = selected.value[item.key]
 
-    if (value && value.includes(item.value)) {
-      selected.value = omit(selected.value, item.key)
-      return
+    if (value) {
+      const idx = value.indexOf(item.value)
+      if (idx >= 0) {
+        value.splice(idx, 1)
+      } else {
+        value.push(item.value)
+      }
+    } else {
+      value = [item.value]
     }
 
-    if (value) {
-      value.push(item.value)
+    selected.value = {
+      ...selected.value,
+      [item.key]: value,
+    }
+  }
+
+  function toggleOne(item: FacetItem) {
+    let value = selected.value[item.key]
+
+    if (value && value.length === 1 && value.includes(item.value)) {
+      value = []
     } else {
       value = [item.value]
     }
@@ -130,6 +145,7 @@ export function useFacetedSearch() {
     select,
     reset,
     toggle,
+    toggleOne,
     resetAll,
   })
 }

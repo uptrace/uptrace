@@ -1,6 +1,6 @@
 <template>
   <v-autocomplete
-    ref="autocomplete"
+    v-autowidth="{ minWidth: 60 }"
     :value="value"
     :items="filteredSystems"
     item-value="system"
@@ -16,22 +16,15 @@
     dense
     outlined
     background-color="light-blue lighten-5"
-    style="width: 300px"
+    class="v-select--fit"
     @click:clear="$emit('input', systems.length ? [systems[0].system] : [])"
   >
     <template #item="{ item, attrs }">
-      <v-list-item
-        v-bind="attrs"
-        @click="
-          $emit('input', [item.system])
-          autocomplete.blur()
-        "
-      >
+      <v-list-item v-bind="attrs" @click="toggleOne(item.system)">
         <v-list-item-action class="my-0 mr-4">
           <v-checkbox
-            :input-value="value.indexOf(item.system) >= 0"
-            dense
-            @click.stop="toggleSystem(item.system)"
+            :input-value="value.includes(item.system)"
+            @click.stop="toggle(item.system)"
           ></v-checkbox>
         </v-list-item-action>
         <v-list-item-content>
@@ -43,8 +36,8 @@
       </v-list-item>
     </template>
     <template #selection="{ index, item }">
-      <div v-if="index === 3" class="v-select__selection">, {{ value.length - 3 }} more</div>
-      <div v-else-if="index < 3" class="v-select__selection text-truncate">
+      <div v-if="index === 2" class="v-select__selection">, {{ value.length - 2 }} more</div>
+      <div v-else-if="index < 2" class="v-select__selection text-truncate">
         {{ comma(item, index) }}
       </div>
     </template>
@@ -130,7 +123,7 @@ export default defineComponent({
       return item.system
     }
 
-    function toggleSystem(system: string) {
+    function toggle(system: string) {
       let activeSystems = props.value.slice()
       const index = activeSystems.indexOf(system)
 
@@ -153,12 +146,18 @@ export default defineComponent({
       ctx.emit('input', activeSystems)
     }
 
+    function toggleOne(system: string) {
+      const value = props.value.length === 1 && props.value.includes(system) ? [] : [system]
+      ctx.emit('input', value)
+    }
+
     return {
       autocomplete,
       searchInput,
       filteredSystems,
       comma,
-      toggleSystem,
+      toggle,
+      toggleOne,
     }
   },
 })

@@ -18,18 +18,11 @@
     class="v-select--fit"
   >
     <template #item="{ item, attrs }">
-      <v-list-item
-        v-bind="attrs"
-        @click="
-          activeValue = [item.value]
-          autocomplete.blur()
-        "
-      >
+      <v-list-item v-bind="attrs" @click="toggleOne(item.value)">
         <v-list-item-action class="my-0 mr-4">
           <v-checkbox
-            :input-value="activeValue.indexOf(item.value) >= 0"
-            dense
-            @click.stop="toggleValue(item.value)"
+            :input-value="activeValue.includes(item.value)"
+            @click.stop="toggle(item.value)"
           ></v-checkbox>
         </v-list-item-action>
         <v-list-item-content>
@@ -168,7 +161,7 @@ export default defineComponent({
       return value
     }
 
-    function toggleValue(value: string) {
+    function toggle(value: string) {
       const values = activeValue.value.slice()
 
       const index = values.indexOf(value)
@@ -181,12 +174,21 @@ export default defineComponent({
       activeValue.value = values
     }
 
+    function toggleOne(itemValue: string) {
+      let values: string[] = [itemValue]
+      if (activeValue.value.length === 1 && activeValue.value.includes(itemValue)) {
+        values = []
+      }
+      activeValue.value = values
+    }
+
     return {
       autocomplete,
       activeValue,
       attrValues,
       withComma,
-      toggleValue,
+      toggle,
+      toggleOne,
     }
   },
 })

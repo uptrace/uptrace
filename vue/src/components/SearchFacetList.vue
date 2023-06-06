@@ -18,10 +18,13 @@
       :key="item.value"
       :value="item.value"
       dense
-      @click="facetedSearch.toggle(item)"
+      @click="facetedSearch.toggleOne(item)"
     >
       <v-list-item-action class="my-0 mr-4">
-        <v-checkbox :input-value="facetedSearch.isSelected(item)" dense></v-checkbox>
+        <v-checkbox
+          :input-value="facetedSearch.isSelected(item)"
+          @click.stop="facetedSearch.toggle(item)"
+        ></v-checkbox>
       </v-list-item-action>
       <v-list-item-content>
         <v-list-item-title>{{ item.value }}</v-list-item-title>

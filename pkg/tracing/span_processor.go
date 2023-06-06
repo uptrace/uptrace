@@ -166,10 +166,9 @@ func (s *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
 		index := &indexedSpans[len(indexedSpans)-1]
 		initSpanIndex(index, span)
 
-		dataSpans = append(dataSpans, SpanData{})
-		initSpanData(&dataSpans[len(dataSpans)-1], span)
-
 		if span.EventName != "" {
+			dataSpans = append(dataSpans, SpanData{})
+			initSpanData(&dataSpans[len(dataSpans)-1], span)
 			continue
 		}
 
@@ -213,6 +212,9 @@ func (s *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
 		index.EventErrorCount = uint8(errorCount)
 		index.EventLogCount = uint8(logCount)
 		span.Events = nil
+
+		dataSpans = append(dataSpans, SpanData{})
+		initSpanData(&dataSpans[len(dataSpans)-1], span)
 	}
 
 	if _, err := s.CH.NewInsert().

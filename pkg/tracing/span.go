@@ -91,7 +91,7 @@ func (s *Span) IsError() bool {
 
 func (s *Span) Event() *SpanEvent {
 	return &SpanEvent{
-		Name:  s.EventName,
+		Name:  s.DisplayName,
 		Time:  s.Time,
 		Attrs: s.Attrs,
 
@@ -241,14 +241,15 @@ func newFakeRoot(sample *Span) *Span {
 		TraceID: sample.TraceID,
 
 		ProjectID: sample.ProjectID,
-		Type:      "service",
-		System:    "service:" + SystemUnknown,
+		Type:      SpanTypeFuncs,
+		System:    SpanTypeFuncs + ":" + SystemUnknown,
 		Kind:      SpanKindInternal,
 
-		Name:       "The span is missing. Make sure to configure the upstream service to report to Uptrace, end spans on all conditions, and shut down OpenTelemetry when the app exits.",
-		Time:       sample.Time,
-		StatusCode: StatusCodeUnset,
-		Attrs:      make(AttrMap),
+		Name:        "unknown",
+		DisplayName: "The span is missing. Make sure to configure the upstream service to report to Uptrace, end spans on all conditions, and shut down OpenTelemetry when the app exits.",
+		Time:        sample.Time,
+		StatusCode:  StatusCodeUnset,
+		Attrs:       make(AttrMap),
 	}
 	return span
 }

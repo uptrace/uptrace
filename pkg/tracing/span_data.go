@@ -63,10 +63,11 @@ func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 		ModelTableExpr("?", app.DistTable("spans_data_buffer")).
 		Where("trace_id = ?", span.TraceID)
 
-	q := baseq.Clone().Limit(1)
 	if span.ProjectID != 0 {
-		q = q.Where("project_id = ?", span.ProjectID)
+		baseq = baseq.Where("project_id = ?", span.ProjectID)
 	}
+
+	q := baseq.Clone().Limit(1)
 	if span.ID != 0 {
 		q = q.Where("id = ?", span.ID)
 	}
@@ -85,7 +86,7 @@ func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 	var events []*SpanData
 
 	if err := baseq.Clone().
-		Where("type IN ?", ch.In(EventTypes)).
+		Where("type IN ?", ch.In(LogAndEventTypes)).
 		Where("parent_id = ?", span.ID).
 		OrderExpr("time ASC").
 		Limit(100).
