@@ -44,9 +44,11 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/cespare/xxhash v1.1.0
 	github.com/coreos/go-oidc/v3 v3.6.0
+	github.com/go-logfmt/logfmt v0.5.1
 	github.com/go-logr/zapr v1.2.4
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/grafana/tempo v1.5.0
 	github.com/prometheus/alertmanager v0.25.0
 	github.com/slack-go/slack v0.12.2
 	github.com/uptrace/bun/dialect/pgdialect v1.1.14

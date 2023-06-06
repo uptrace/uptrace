@@ -248,7 +248,7 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 		if err != nil {
 			return err
 		}
-		subq = tqlColumn(subq, col, groupingPeriod)
+		subq = TQLColumn(subq, col, groupingPeriod)
 	}
 
 	item := make(map[string]interface{})

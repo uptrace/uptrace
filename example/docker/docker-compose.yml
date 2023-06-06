@@ -36,7 +36,7 @@ services:
       - '5432:5432'
 
   uptrace:
-    image: 'uptrace/uptrace:1.4.8'
+    image: 'uptrace/uptrace:1.5.0-beta.1'
     #image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:
@@ -69,6 +69,17 @@ services:
     image: timberio/vector:0.28.X-alpine
     volumes:
       - ./vector.toml:/etc/vector/vector.toml:ro
+
+  grafana:
+    image: grafana/grafana:9.5.3
+    restart: on-failure
+    volumes:
+      - ../../config/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ../../config/grafana/custom.ini:/etc/grafana/grafana.ini
+    ports:
+      - '3000:3000'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
 
 volumes:
   ch_data7:

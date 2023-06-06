@@ -144,6 +144,17 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
     command: start-dev
 
+  grafana:
+    image: grafana/grafana:9.5.3
+    restart: on-failure
+    volumes:
+      - ./config/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./config/grafana/custom.ini:/etc/grafana/grafana.ini
+    ports:
+      - '3000:3000'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
 volumes:
   ch1_data:
   ch2_data:

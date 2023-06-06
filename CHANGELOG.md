@@ -18,6 +18,8 @@ columns.
 - Metric dashboard templates can now automatically create monitors.
 - Added ability to receive metrics and logs from
   [AWS CloudWatch](https://uptrace.dev/get/ingest/aws-cloudwatch.html).
+- Uptrace can be used as a [Tempo data source](https://uptrace.dev/get/grafana.html) in Grafana.
+  Grafana TraceQL is NOT supported, but Search is fully supported.
 
 #### Improvements
 

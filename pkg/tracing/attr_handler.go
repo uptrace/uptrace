@@ -129,7 +129,7 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 	}
 
 	q, _ := buildSpanIndexQuery(h.App, f, 0)
-	q = tqlColumn(q, colName, 0).Group(f.AttrKey).
+	q = TQLColumn(q, colName, 0).Group(f.AttrKey).
 		ColumnExpr("count() AS count")
 	if !strings.HasPrefix(f.AttrKey, ".") {
 		q = q.Where("has(s.all_keys, ?)", f.AttrKey)

@@ -94,6 +94,11 @@ var (
 	indexedAttrSet = listToSet(indexedAttrs)
 )
 
+func IsIndexedAttr(key string) bool {
+	_, ok := indexedAttrSet[key]
+	return ok
+}
+
 func attrKeysAndValues(m AttrMap) ([]string, []string) {
 	keys := make([]string, 0, len(m))
 	values := make([]string, 0, len(m))
@@ -101,7 +106,7 @@ func attrKeysAndValues(m AttrMap) ([]string, []string) {
 		if strings.HasPrefix(k, "_") {
 			continue
 		}
-		if _, ok := indexedAttrSet[k]; ok {
+		if IsIndexedAttr(k) {
 			continue
 		}
 		keys = append(keys, k)

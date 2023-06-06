@@ -153,7 +153,7 @@ func compileUQL(
 			for _, name := range ast.Names {
 				colName := name.String()
 
-				q = tqlColumn(q, name, dur)
+				q = TQLColumn(q, name, dur)
 				columnMap.Set(colName, &ColumnInfo{
 					Name:    colName,
 					Unit:    unitFromName(name),
@@ -185,7 +185,7 @@ func compileUQL(
 					continue
 				}
 
-				q = tqlColumn(q, col.Name, dur)
+				q = TQLColumn(q, col.Name, dur)
 				columnMap.Set(colName, &ColumnInfo{
 					Name:  colName,
 					Unit:  unitFromName(col.Name),
@@ -210,7 +210,7 @@ func compileUQL(
 			colName := name.String()
 
 			if _, ok := columnMap.Get(colName); !ok {
-				q = tqlColumn(q, name, dur)
+				q = TQLColumn(q, name, dur)
 			}
 		}
 	}
@@ -238,7 +238,7 @@ func isAggAttr(attrKey string) bool {
 	}
 }
 
-func tqlColumn(q *ch.SelectQuery, name tql.Name, dur time.Duration) *ch.SelectQuery {
+func TQLColumn(q *ch.SelectQuery, name tql.Name, dur time.Duration) *ch.SelectQuery {
 	var b []byte
 	b = AppendCHColumn(b, name, dur)
 	b = append(b, " AS "...)
@@ -246,6 +246,10 @@ func tqlColumn(q *ch.SelectQuery, name tql.Name, dur time.Duration) *ch.SelectQu
 	b = name.AppendString(b)
 	b = append(b, '"')
 	return q.ColumnExpr(string(b))
+}
+
+func CHColumn(name tql.Name, dur time.Duration) ch.Safe {
+	return chschema.Safe(AppendCHColumn(nil, name, dur))
 }
 
 func AppendCHColumn(b []byte, name tql.Name, dur time.Duration) []byte {
@@ -308,7 +312,7 @@ func AppendCHAttrExpr(b []byte, key string) []byte {
 		return chschema.AppendIdent(b, key)
 	}
 
-	if _, ok := indexedAttrSet[key]; ok {
+	if IsIndexedAttr(key) {
 		key = strings.ReplaceAll(key, ".", "_")
 		b = append(b, "s."...)
 		return chschema.AppendIdent(b, key)
