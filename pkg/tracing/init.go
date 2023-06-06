@@ -123,4 +123,10 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			g.GET("/traces/:trace_id", traceHandler.ShowTrace)
 			g.GET("/traces/:trace_id/:span_id", traceHandler.ShowSpan)
 		})
+
+	api.WithGroup("/cloudwatch", func(g *bunrouter.Group) {
+		handler := NewKinesisHandler(app, sp)
+
+		g.POST("/logs", handler.Logs)
+	})
 }
