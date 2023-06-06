@@ -2,32 +2,34 @@
   <div>
     <v-row v-if="groups.length" dense align="center">
       <v-col cols="7" lg="8" xl="9">
-        <v-slide-group
-          v-if="systemFilterItems.length > 1"
-          v-model="systemFilter"
-          multiple
-          center-active
-          show-arrows
-        >
-          <v-slide-item
-            v-for="(item, i) in systemFilterItems"
-            :key="item.system"
-            v-slot="{ active, toggle }"
-            :value="item.system"
+        <slot name="actions">
+          <v-slide-group
+            v-if="systemFilterItems.length > 1"
+            v-model="systemFilter"
+            multiple
+            center-active
+            show-arrows
           >
-            <v-btn
-              :input-value="active"
-              active-class="light-blue white--text"
-              small
-              depressed
-              rounded
-              :class="{ 'ml-1': i > 0 }"
-              @click="toggle"
+            <v-slide-item
+              v-for="(item, i) in systemFilterItems"
+              :key="item.system"
+              v-slot="{ active, toggle }"
+              :value="item.system"
             >
-              {{ item.system }} ({{ item.numGroup }})
-            </v-btn>
-          </v-slide-item>
-        </v-slide-group>
+              <v-btn
+                :input-value="active"
+                active-class="light-blue white--text"
+                small
+                depressed
+                rounded
+                :class="{ 'ml-1': i > 0 }"
+                @click="toggle"
+              >
+                {{ item.system }} ({{ item.numGroup }})
+              </v-btn>
+            </v-slide-item>
+          </v-slide-group>
+        </slot>
       </v-col>
 
       <v-spacer />

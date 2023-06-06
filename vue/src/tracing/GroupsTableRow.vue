@@ -1,5 +1,5 @@
 <template>
-  <tr class="cursor-pointer" @click="expand(!isExpanded)">
+  <tr :class="{ 'cursor-pointer': !hideActions }" @click="!hideActions && expand(!isExpanded)">
     <td v-if="headerValues.includes('_name')" class="word-break-all">
       {{ group[AttrKey.displayName] }}
     </td>
@@ -26,7 +26,7 @@
         <XNum :value="group[col.name]" :name="col.name" :unit="col.unit" />
       </div>
     </td>
-    <td class="text-right text-no-wrap">
+    <td v-if="!hideActions" class="text-right text-no-wrap">
       <NewMonitorMenu
         :name="group._name"
         :axios-params="axiosParams"
@@ -128,6 +128,10 @@ export default defineComponent({
     group: {
       type: Object as PropType<Group>,
       required: true,
+    },
+    hideActions: {
+      type: Boolean,
+      default: false,
     },
     isExpanded: {
       type: Boolean,

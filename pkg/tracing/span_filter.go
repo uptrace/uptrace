@@ -423,6 +423,7 @@ func AppendFilter(filter tql.Filter, dur time.Duration) []byte {
 
 func appendFilter(b []byte, filter tql.Filter, bb []byte) []byte {
 	if len(b) > 0 {
+		b = append(b, ' ')
 		b = append(b, filter.BoolOp...)
 		b = append(b, ' ')
 	}

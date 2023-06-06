@@ -83,11 +83,11 @@
 
           <v-tabs-items v-model="activeTab">
             <v-tab-item value="attrs" class="pa-4">
-              <AttrsTable
+              <SpanAttrs
                 :date-range="dateRange"
+                :attrs="span.attrs"
                 :system="span.system"
                 :group-id="span.groupId"
-                :attrs="span.attrs"
               />
             </v-tab-item>
 
@@ -123,12 +123,12 @@ import { defineComponent, ref, computed, PropType } from 'vue'
 // Composables
 import { useRoute } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { createUqlEditor } from '@/use/uql'
+import { createUqlEditor, useQueryStore } from '@/use/uql'
 
 // Components
 import NewMonitorMenu from '@/tracing/NewMonitorMenu.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
-import AttrsTable from '@/tracing/AttrsTable.vue'
+import SpanAttrs from '@/tracing/SpanAttrs.vue'
 import EventPanels from '@/tracing/EventPanels.vue'
 
 // Utilities
@@ -139,7 +139,7 @@ export default defineComponent({
   name: 'SpanCard',
   components: {
     NewMonitorMenu,
-    AttrsTable,
+    SpanAttrs,
     EventPanels,
     LoadPctileChart,
   },
@@ -161,6 +161,7 @@ export default defineComponent({
 
   setup(props) {
     const route = useRoute()
+    const { where } = useQueryStore()
     const activeTab = ref('attrs')
 
     const isEvent = computed((): boolean => {
@@ -172,6 +173,7 @@ export default defineComponent({
         ...props.dateRange.axiosParams(),
         system: props.span.system,
         group_id: props.span.groupId,
+        query: where.value,
       }
     })
 

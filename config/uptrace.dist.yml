@@ -92,7 +92,7 @@ metrics_from_spans:
       - span.status_code
     annotations:
       - span.name
-    where: span.is_event = 0
+    where: .event_name = ''
 
   - name: uptrace.tracing.events
     description: Events count (excluding spans)

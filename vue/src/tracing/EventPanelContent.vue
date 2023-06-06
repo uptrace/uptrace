@@ -35,11 +35,11 @@
 
     <v-row>
       <v-col>
-        <AttrsTable
+        <SpanAttrs
           :date-range="dateRange"
+          :attrs="event.attrs"
           :system="event.system"
           :group-id="event.groupId"
-          :attrs="event.attrs"
         />
       </v-col>
     </v-row>
@@ -58,7 +58,7 @@ import { createUqlEditor } from '@/use/uql'
 // Components
 import PctileChart from '@/components/PctileChart.vue'
 import NewMonitorMenu from '@/tracing/NewMonitorMenu.vue'
-import AttrsTable from '@/tracing/AttrsTable.vue'
+import SpanAttrs from '@/tracing/SpanAttrs.vue'
 
 // Utilities
 import { AttrKey } from '@/models/otel'
@@ -66,7 +66,7 @@ import { SpanEvent } from '@/models/span'
 
 export default defineComponent({
   name: 'EventPanelContent',
-  components: { PctileChart, NewMonitorMenu, AttrsTable },
+  components: { PctileChart, NewMonitorMenu, SpanAttrs },
 
   props: {
     dateRange: {

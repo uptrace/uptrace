@@ -25,6 +25,7 @@
         :column-map="columnMap"
         :group="item"
         :events-mode="isEventSystemGroup(item)"
+        :hide-actions="hideActions"
         :is-expanded="isExpanded"
         :expand="expand"
         @click:metrics="$emit('click:metrics', $event)"
@@ -123,6 +124,10 @@ export default defineComponent({
       default: false,
     },
     showSystem: {
+      type: Boolean,
+      default: false,
+    },
+    hideActions: {
       type: Boolean,
       default: false,
     },
