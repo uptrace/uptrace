@@ -6,9 +6,6 @@
           These settings allow to configure personal email notifications for the project. They don't
           impact other users and projects.
         </p>
-
-        You can also fully disable all email notifications on your
-        <router-link :to="{ name: 'UserProfile' }">profile</router-link> page.
       </v-col>
     </v-row>
 
