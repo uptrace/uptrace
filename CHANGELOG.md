@@ -31,6 +31,7 @@ columns.
 - Uptrace config now has sensible defaults so you can start with an empty YAML config file and add
   changes as you go.
 - Added `uptrace config dump` to view the current Uptrace config in YAML format.
+- Added a Docker image for linux/arm64 in addition to linux/amd64.
 
 #### Fixes
 

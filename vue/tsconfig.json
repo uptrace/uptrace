@@ -11,7 +11,7 @@
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
     "baseUrl": ".",
-    "types": ["webpack-env", "mocha", "chai"],
+    "types": ["node", "webpack-env", "mocha", "chai"],
     "paths": {
       "@/*": ["src/*"]
     },
