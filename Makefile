@@ -6,7 +6,8 @@ GO_BUILD_TAGS=""
 
 .PHONY: uptrace-vue
 uptrace-vue:
-	cd vue && pnpm install && pnpm build
+	pnpm --dir=vue install
+	pnpm --dir=vue build
 
 .PHONY: gomoddownload
 gomoddownload:
@@ -22,7 +23,7 @@ go_mod_tidy:
 
 .PHONY: uptrace
 uptrace:
-	GO111MODULE=on CGO_ENABLED=0 go build -trimpath -o ./bin/uptrace_$(GOOS)_$(GOARCH)$(EXTENSION) \
+	CGO_ENABLED=0 go build -trimpath -o ./bin/uptrace_$(GOOS)_$(GOARCH)$(EXTENSION) \
 		$(BUILD_INFO) -tags $(GO_BUILD_TAGS) ./cmd/uptrace
 
 .PHONY: uptrace-all-sys
@@ -50,9 +51,12 @@ uptrace-windows_amd64:
 
 .PHONY: docker-uptrace
 docker-uptrace:
-	cp ./bin/uptrace_linux_amd64 ./cmd/uptrace/uptrace
-	docker build -t uptrace ./cmd/uptrace/
-	rm ./cmd/uptrace/uptrace
+	docker buildx build --file cmd/uptrace/Dockerfile \
+	  --push --platform linux/arm64,linux/amd64 \
+	  --tag uptrace/$(DOCKER_IMAGE):$(DOCKER_TAG) .
+	docker pull uptrace/$(DOCKER_IMAGE):$(DOCKER_TAG)
+	docker tag uptrace/$(DOCKER_IMAGE):$(DOCKER_TAG) uptrace/$(DOCKER_IMAGE):latest
+	docker push uptrace/$(DOCKER_IMAGE):latest
 
 .PHONY: deb-rpm-package
 %-package: ARCH ?= amd64

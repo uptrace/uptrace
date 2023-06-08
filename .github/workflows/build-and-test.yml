@@ -49,11 +49,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '14'
+          node-version: '18'
       - name: Setup pnpm
         uses: pnpm/action-setup@v2.1.0
         with:
-          version: 6.x.x
+          version: '8.x.x'
       - name: Compile Vue
         run: make uptrace-vue
       - name: Upload Vue Dist
@@ -145,28 +145,17 @@ jobs:
 
   publish-dev:
     runs-on: ubuntu-latest
-    needs: [build-package]
+    needs: [cross-compile]
     if:
       (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')) &&
       github.repository == 'uptrace/uptrace'
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
-      - name: Setup Go
-        uses: actions/setup-go@v2.1.4
-        with:
-          go-version: '1.20'
-      - name: Setup Go Environment
-        run: |
-          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-          mkdir bin/
-      - name: Cache Tools
-        id: tool-cache
-        uses: actions/cache@v2
-        with:
-          path: /home/runner/go/bin
-          key: v1-tools-${{ runner.os }}-${{ hashFiles('./pkg/internal/tools/go.mod') }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v1
       - name: Download Binaries
         uses: actions/download-artifact@v2
         with:
@@ -174,40 +163,15 @@ jobs:
           path: ./bin/
       - name: Add Permissions to binaries
         run: chmod -R +x ./bin
-      - name: Download Packages
-        uses: actions/download-artifact@v2
-        with:
-          name: uptrace-packages
-          path: ./dist/
-      - name: Add Permissions to packages
-        run: chmod -R +x ./dist
-      - name: Verify Distribution Files Exist
-        id: check
-        run: ./.github/workflows/scripts/verify-dist-files-exist.sh
-      - name: Set Release Tag
-        id: github_tag
-        run: ./.github/workflows/scripts/set_release_tag.sh
-      - name: Build Docker Image
-        if: steps.check.outputs.passed == 'true'
-        run: |
-          make docker-uptrace
-          docker tag uptrace:latest uptrace/uptrace-dev:$GITHUB_SHA
-          docker tag uptrace:latest uptrace/uptrace-dev:latest
-      - name: Validate Docker Image
-        if: steps.check.outputs.passed == 'true'
-        run: |
-          docker run uptrace/uptrace-dev:$GITHUB_SHA version
-          docker run uptrace/uptrace-dev:latest version
-      - name: Login to Docker Hub
+      - name: Set docker tag
+        run: echo "DOCKER_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
+      - name: Login to Docker hub
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Push Docker Image
-        if: steps.check.outputs.passed == 'true'
-        run: |
-          docker push uptrace/uptrace-dev:$GITHUB_SHA
-          docker push uptrace/uptrace-dev:latest
+      - name: Build and push Docker image
+        run: DOCKER_IMAGE=uptrace-dev make docker-uptrace
 
   publish-stable:
     runs-on: ubuntu-latest
@@ -216,21 +180,10 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
-      - name: Setup Go
-        uses: actions/setup-go@v2.1.4
-        with:
-          go-version: '1.20'
-      - name: Setup Go Environment
-        run: |
-          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-          mkdir bin/
-      - name: Cache Tools
-        id: tool-cache
-        uses: actions/cache@v2
-        with:
-          path: /home/runner/go/bin
-          key: v1-tools-${{ runner.os }}-${{ hashFiles('./pkg/internal/tools/go.mod') }}
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v1
       - name: Download Binaries
         uses: actions/download-artifact@v2
         with:
@@ -255,27 +208,13 @@ jobs:
         run: echo "DOCKER_TAG=${RELEASE_TAG:1}" >> $GITHUB_ENV
         env:
           RELEASE_TAG: ${{ steps.github_tag.outputs.tag }}
-      - name: Build Docker Image
-        if: steps.check.outputs.passed == 'true'
-        run: |
-          make docker-uptrace
-          docker tag uptrace:latest uptrace/uptrace:$DOCKER_TAG
-          docker tag uptrace:latest uptrace/uptrace:latest
-      - name: Validate Docker Image
-        if: steps.check.outputs.passed == 'true'
-        run: |
-          docker run uptrace/uptrace:$DOCKER_TAG version
-          docker run uptrace/uptrace:latest version
       - name: Login to Docker Hub
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Push Docker Image
-        if: steps.check.outputs.passed == 'true'
-        run: |
-          docker push uptrace/uptrace:$DOCKER_TAG
-          docker push uptrace/uptrace:latest
+      - name: Build and push Docker image
+        run: DOCKER_IMAGE=uptrace make docker-uptrace
       - name: Create Github Release
         if: steps.check.outputs.passed == 'true'
         run: |
