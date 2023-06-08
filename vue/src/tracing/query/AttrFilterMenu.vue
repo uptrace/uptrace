@@ -7,47 +7,49 @@
       </v-btn>
     </template>
 
-    <XList
+    <SearchableList
       :loading="suggestions.loading"
       :items="suggestions.filteredItems"
       :num-item="suggestions.items.length"
       :search-input.sync="suggestions.searchInput"
       return-object
-      @input="addFilter($event.text, '=')"
+      @input="addFilter($event.value, '=')"
     >
       <template #item="{ item }">
         <v-list-item-content>
           <v-list-item-title>
-            {{ truncate(item.text, { length: 60 }) }}
+            {{ truncateMiddle(item.value, 60) }}
           </v-list-item-title>
         </v-list-item-content>
 
-        <v-list-item-action class="my-0" @click.stop="addFilter(item.text, '!=')">
+        <v-list-item-action class="my-0" @click.stop="addFilter(item.value, '!=')">
           <v-btn icon>
             <v-icon small>mdi-not-equal</v-icon>
           </v-btn>
         </v-list-item-action>
       </template>
-    </XList>
+    </SearchableList>
   </v-menu>
 </template>
 
 <script lang="ts">
-import { truncate } from 'lodash-es'
 import { defineComponent, shallowRef, PropType } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'
 import { AxiosParams } from '@/use/axios'
 import { UseUql } from '@/use/uql'
-import { useSuggestions } from '@/use/suggestions'
+import { useDataSource } from '@/use/datasource'
 
 // Components
-import XList from '@/components/XList.vue'
+import SearchableList from '@/components/SearchableList.vue'
+
+// Utilities
+import { truncateMiddle } from '@/util/string'
 
 export default defineComponent({
   name: 'AttrFilterMenu',
-  components: { XList },
+  components: { SearchableList },
 
   props: {
     uql: {
@@ -76,17 +78,17 @@ export default defineComponent({
     const { route } = useRouter()
     const menu = shallowRef(false)
 
-    const suggestions = useSuggestions(() => {
+    const suggestions = useDataSource(() => {
       if (!menu.value) {
         return null
       }
 
       const { projectId } = route.value.params
       return {
-        url: `/api/v1/tracing/${projectId}/suggestions/values`,
+        url: `/api/v1/tracing/${projectId}/attr-values`,
         params: {
           ...props.axiosParams,
-          column: props.attrKey,
+          attr_key: props.attrKey,
         },
       }
     })
@@ -100,7 +102,7 @@ export default defineComponent({
       ctx.emit('change')
     }
 
-    return { menu, suggestions, addFilter, truncate }
+    return { menu, suggestions, addFilter, truncateMiddle }
   },
 })
 </script>
