@@ -53,10 +53,8 @@ uptrace-windows_amd64:
 docker-uptrace:
 	docker buildx build --file cmd/uptrace/Dockerfile \
 	  --push --platform linux/arm64,linux/amd64 \
-	  --tag uptrace/$(DOCKER_IMAGE):$(DOCKER_TAG) .
-	docker pull uptrace/$(DOCKER_IMAGE):$(DOCKER_TAG)
-	docker tag uptrace/$(DOCKER_IMAGE):$(DOCKER_TAG) uptrace/$(DOCKER_IMAGE):latest
-	docker push uptrace/$(DOCKER_IMAGE):latest
+	  --tag uptrace/$(DOCKER_IMAGE):$(DOCKER_TAG) \
+	  --tag uptrace/$(DOCKER_IMAGE):latest .
 
 .PHONY: deb-rpm-package
 %-package: ARCH ?= amd64
