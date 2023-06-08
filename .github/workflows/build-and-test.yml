@@ -184,6 +184,21 @@ jobs:
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v1
+      - name: Setup Go
+        uses: actions/setup-go@v2.1.4
+        with:
+          go-version: '1.20'
+      - name: Setup Go Environment
+        run: |
+          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          mkdir bin/
+      - name: Cache Tools
+        id: tool-cache
+        uses: actions/cache@v2
+        with:
+          path: /home/runner/go/bin
+          key: v1-tools-${{ runner.os }}-${{ hashFiles('./pkg/internal/tools/go.mod') }}
       - name: Download Binaries
         uses: actions/download-artifact@v2
         with:
