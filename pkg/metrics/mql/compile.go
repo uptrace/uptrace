@@ -130,7 +130,7 @@ func (c *compiler) panickySelector(expr ast.Expr) Expr {
 
 func (c *compiler) name(name *ast.Name) *TimeseriesExpr {
 	ts := &TimeseriesExpr{
-		Name:    name,
+		Expr:    name,
 		Metric:  name.Name,
 		Filters: name.Filters,
 	}
@@ -148,6 +148,7 @@ func (c *compiler) funcCall(fn *ast.FuncCall) Expr {
 		if !ok {
 			panic(fmt.Errorf("%q can be only applied to a timeseries", fn.Func))
 		}
+		expr.Expr = fn
 
 		if expr.AggFunc == "" {
 			expr.AggFunc = fn.Func

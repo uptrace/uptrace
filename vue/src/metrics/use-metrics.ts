@@ -186,7 +186,7 @@ export function defaultMetricQuery(instrument: Instrument, alias: string) {
     case Instrument.Counter:
       return `per_min(${alias})`
     case Instrument.Histogram:
-      return `p50(${alias}) | p90(${alias}) | per_min(count(${alias}))`
+      return `avg(${alias}) | per_min(count(${alias}))`
     case Instrument.Summary:
       return `avg(${alias})`
     default:

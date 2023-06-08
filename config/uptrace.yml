@@ -126,7 +126,7 @@ metrics_from_spans:
       - host.name
       - .status_code
     annotations:
-      - .name
+      - display.name
     where: .event_name = ''
 
   - name: uptrace.tracing.events
@@ -140,7 +140,7 @@ metrics_from_spans:
       - .name
       - host.name
     annotations:
-      - .event_name
+      - display.name
     where: .is_event = 1
 
 ##

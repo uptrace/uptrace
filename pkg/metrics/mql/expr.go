@@ -38,7 +38,7 @@ var (
 )
 
 type TimeseriesExpr struct {
-	*ast.Name
+	ast.Expr
 
 	Metric     string
 	AggFunc    string

@@ -181,8 +181,7 @@ type UniqExpr struct {
 }
 
 func (uq *UniqExpr) AppendString(b []byte) []byte {
-	b = append(b, "uniq"...)
-	b = append(b, '(')
+	b = append(b, "uniq("...)
 	for i, attr := range uq.Attrs {
 		if i > 0 {
 			b = append(b, ", "...)

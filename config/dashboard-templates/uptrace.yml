@@ -8,7 +8,7 @@ table:
   query:
     - group by service.name
     - per_min(count($spans)) as spans_per_min
-    - count($spans{span.status_code='error'}) / count($spans) as error_rate
+    - count($spans{.status_code='error'}) / count($spans) as error_rate
     - p50($spans) as p50
     - p90($spans) as p90
     - p99($spans) as p99
@@ -21,14 +21,14 @@ grid:
     metrics:
       - uptrace.tracing.spans as $spans
     query:
-      - per_min(count($spans)) as spans group by span.status_code
+      - per_min(count($spans)) as spans group by .status_code
     chart: stacked-bar
 
   - name: Error rate
     metrics:
       - uptrace.tracing.spans as $spans
     query:
-      - count($spans{span.status_code='error'}) / count($spans) as error_rate
+      - count($spans{.status_code='error'}) / count($spans) as error_rate
     columns:
       error_rate: { unit: utilization }
 
@@ -68,7 +68,7 @@ grid:
     metrics:
       - uptrace.tracing.spans as $spans
     query:
-      - group by span.group_id
+      - group by .group_id
       - p50($spans)
 
   - name: Top errors
@@ -77,9 +77,9 @@ grid:
     metrics:
       - uptrace.tracing.events as $events
     query:
-      - group by span.group_id
-      - per_min(count($events))
-      - where span.is_error = 1
+      - group by .group_id
+      - per_min($events)
+      - where .is_error = 1
 
 ---
 schema: v1
@@ -92,7 +92,7 @@ table:
   query:
     - group by host.name
     - per_min(count($spans)) as spans_per_min
-    - count($spans{span.status_code='error'}) / count($spans) as error_rate
+    - count($spans{.status_code='error'}) / count($spans) as error_rate
     - p50($spans) as p50
     - p90($spans) as p90
     - p99($spans) as p99
@@ -105,14 +105,14 @@ grid:
     metrics:
       - uptrace.tracing.spans as $spans
     query:
-      - per_min(count($spans)) as spans group by span.status_code
+      - per_min(count($spans)) as spans group by .status_code
     chart: stacked-bar
 
   - name: Error rate
     metrics:
       - uptrace.tracing.spans as $spans
     query:
-      - count($spans{span.status_code='error'}) / count($spans) as error_rate
+      - count($spans{.status_code='error'}) / count($spans) as error_rate
     columns:
       error_rate: { unit: utilization }
 

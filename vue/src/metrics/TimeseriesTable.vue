@@ -21,8 +21,8 @@
         <template #default="{ rowId, metrics, value, time }">
           <template v-for="attrKey in grouping">
             <td v-if="attrKey === AttrKey.spanGroupId" :key="attrKey">
-              <router-link :to="spanListRouteFor(item)">{{
-                item[AttrKey.displayName]
+              <router-link :to="routeForSpanList(item[AttrKey.spanGroupdId])">{{
+                item[AttrKey.displayName] || item[AttrKey.spanGroupId]
               }}</router-link>
             </td>
             <td v-else :key="attrKey">{{ item[attrKey] }}</td>
@@ -116,9 +116,8 @@ export default defineComponent({
       return headers
     })
 
-    function spanListRouteFor(item: TableItem) {
+    function routeForSpanList(groupId: string) {
       const query = exploreAttr(AttrKey.spanGroupId)
-      const groupId = item[AttrKey.spanGroupId]
       return {
         name: 'SpanList',
         query: {
@@ -127,7 +126,7 @@ export default defineComponent({
       }
     }
 
-    return { AttrKey, grouping, aggColumns, headers, spanListRouteFor }
+    return { AttrKey, grouping, aggColumns, headers, routeForSpanList }
   },
 })
 </script>
