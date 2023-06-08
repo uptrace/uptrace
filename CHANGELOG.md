@@ -13,8 +13,8 @@ columns.
   for spans and events/logs at the the same time. You can also use `display.name` attribute to
   [override](https://uptrace.dev/get/grouping.html) default span/event/log names.
 - Ported Timeseries tab from [Uptrace Cloud](https://uptrace.dev/cloud) version.
-- Allow to explore attribute values, for example, you click on the `enduser.name` attribute to see a
-  list of affected users.
+- Allow to explore attribute values, for example, you can click on the `enduser.name` attribute to
+  see the list of affected users.
 - Metric dashboard templates can now automatically create monitors.
 - Added ability to receive metrics and logs from
   [AWS CloudWatch](https://uptrace.dev/get/ingest/aws-cloudwatch.html).
