@@ -62,6 +62,13 @@
             </v-list-item-title>
             <v-list-item-subtitle>{{ subtitle(item) }}</v-list-item-subtitle>
           </v-list-item-content>
+          <v-list-item-avatar
+            v-if="item.user"
+            :title="`Saved by ${item.user.name}`"
+            class="align-self-center"
+          >
+            <v-img :src="item.user.avatar"></v-img>
+          </v-list-item-avatar>
         </v-list-item>
       </template>
     </v-list>

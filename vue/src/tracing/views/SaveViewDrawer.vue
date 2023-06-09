@@ -40,7 +40,7 @@
                 :disabled="!isValid"
                 type="submit"
                 small
-                class="primary"
+                class="primary ml-2"
                 >Save</v-btn
               >
             </v-col>

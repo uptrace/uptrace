@@ -4,10 +4,12 @@ import { computed, proxyRefs } from 'vue'
 import { useRoute } from '@/use/router'
 import { useAxios } from '@/use/axios'
 import { useWatchAxios, AxiosParamsSource } from '@/use/watch-axios'
+import { User } from '@/org/use-users'
 
 export interface SavedView {
   id: number
 
+  userId: number
   projectId: number
 
   name: string
@@ -15,6 +17,8 @@ export interface SavedView {
   params: Record<string, any>
   query: Record<string, any>
   pinned: boolean
+
+  user?: User
 }
 
 export type UseSavedViews = ReturnType<typeof useSavedViews>
