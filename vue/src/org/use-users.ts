@@ -10,7 +10,7 @@ import { useWatchAxios } from '@/use/watch-axios'
 import { Project } from '@/org/use-projects'
 
 export interface User {
-  username: string
+  name: string
   email: string
   avatar: string
 }
