@@ -36,20 +36,38 @@ type Name struct {
 }
 
 func (n Name) IsNum() bool {
-	switch n.FuncName {
-	case "":
-		switch n.AttrKey {
-		case attrkey.SpanCount,
-			attrkey.SpanCountPerMin,
-			attrkey.SpanErrorCount,
-			attrkey.SpanErrorPct,
-			attrkey.SpanErrorRate:
-			return true
-		}
+	if n.FuncName != "" {
+		return IsNumFunc(n.FuncName)
+	}
+	switch n.AttrKey {
+	case attrkey.SpanID,
+		attrkey.SpanParentID,
+		attrkey.SpanGroupID,
+		attrkey.SpanDuration,
+
+		attrkey.SpanLinkCount,
+		attrkey.SpanEventCount,
+		attrkey.SpanEventErrorCount,
+		attrkey.SpanEventLogCount,
+
+		attrkey.SpanCount,
+		attrkey.SpanCountPerMin,
+		attrkey.SpanErrorCount,
+		attrkey.SpanErrorPct,
+		attrkey.SpanErrorRate:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsNumFunc(name string) bool {
+	switch name {
 	case "sum", "avg", "min", "max", "p50", "p75", "p90", "p99":
 		return true
+	default:
+		return false
 	}
-	return false
 }
 
 func (n Name) String() string {

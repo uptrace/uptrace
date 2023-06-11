@@ -5,7 +5,7 @@
         <v-banner>
           <v-icon slot="icon" color="error" size="36">mdi-alert-circle</v-icon>
           <div class="subtitle-1 text--secondary">
-            {{ groups.errorMessage }}<br />
+            <p>{{ groups.errorMessage }}</p>
             This is a bug. Please report in on
             <a href="https://github.com/uptrace/uptrace" target="_blank">GitHub</a> including the
             error message and the query.

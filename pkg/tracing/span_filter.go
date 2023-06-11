@@ -282,7 +282,7 @@ func AppendCHColumn(b []byte, name tql.Name, dur time.Duration) []byte {
 			b = append(b, '(')
 		}
 
-		isNum := name.IsNum()
+		isNum := tql.IsNumFunc(name.FuncName)
 		if isNum {
 			b = append(b, "toFloat64OrDefault("...)
 		}
@@ -394,7 +394,18 @@ func AppendFilter(filter tql.Filter, dur time.Duration) []byte {
 		return b
 	}
 
+	var convToNum bool
+	if _, ok := filter.RHS.(*tql.Number); ok {
+		convToNum = !filter.LHS.IsNum()
+	}
+
+	if convToNum {
+		b = append(b, "toFloat64OrDefault("...)
+	}
 	b = AppendCHColumn(b, filter.LHS, dur)
+	if convToNum {
+		b = append(b, ')')
+	}
 
 	b = append(b, ' ')
 	b = append(b, filter.Op...)
@@ -402,21 +413,29 @@ func AppendFilter(filter tql.Filter, dur time.Duration) []byte {
 
 	switch value := filter.RHS.(type) {
 	case *tql.Number:
+		if convToNum {
+			b = append(b, "toFloat64OrDefault("...)
+		}
+
 		switch value.Kind {
 		case tql.NumberDuration:
 			dur, err := time.ParseDuration(value.Text)
 			if err != nil {
 				panic(err)
 			}
-			return strconv.AppendInt(b, int64(dur), 10)
+			b = strconv.AppendInt(b, int64(dur), 10)
 		case tql.NumberBytes:
 			n, err := bununit.ParseBytes(value.Text)
 			if err != nil {
 				panic(err)
 			}
-			return strconv.AppendInt(b, n, 10)
+			b = strconv.AppendInt(b, n, 10)
 		default:
-			return append(b, value.Text...)
+			b = append(b, value.Text...)
+		}
+
+		if convToNum {
+			b = append(b, ')')
 		}
 	default:
 		b = chschema.AppendString(b, value.String())

@@ -192,9 +192,9 @@ export default defineComponent({
 
     const systemFilter = shallowRef<string[]>([])
     const systemFilterItems = computed((): SystemFilter[] => {
-      const filters = buildSystemFilters(props.groups)
-      if (filters.length <= 5) {
-        return filters
+      const items = buildSystemFilters(props.groups)
+      if (items.length <= 5) {
+        return items
       }
       return buildTypeFilters(props.groups)
     })

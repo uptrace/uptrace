@@ -3,7 +3,7 @@ import Vue from 'vue'
 import { PropType } from 'vue'
 
 // Utilities
-import { percents } from '@/util/fmt/num'
+import { utilization } from '@/util/fmt/num'
 import { createFormatter, Unit } from '@/util/fmt'
 import { formatTemplate } from '@/util/string'
 
@@ -37,13 +37,13 @@ export default Vue.component('XPct', {
       ...data.attrs,
       title: formatTemplate(props.title, fmt(props.a), fmt(props.b)),
     }
-    return h('span', data, percents(pct(props.a, props.b)))
+    return h('span', data, utilization(div(props.a, props.b)))
   },
 })
 
-function pct(a: number, b: number): number {
-  if (a === 0 || b === 0) {
-    return 0
+function div(a: number, b: number): number {
+  if (b === 0) {
+    return 1
   }
 
   const pct = a / b
