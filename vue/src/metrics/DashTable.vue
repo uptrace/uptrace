@@ -14,14 +14,6 @@
 
     <v-row v-if="tableQuery.status.hasData()">
       <v-col>
-        <DashGroupingToggle
-          v-if="attrKeysDs.items.length"
-          :uql="uql"
-          :columns="tableQuery.columns"
-          :attr-keys="attrKeysDs.items"
-          class="mb-2"
-        />
-
         <v-sheet outlined rounded="lg" class="pa-2 px-4">
           <MetricsQueryBuilder
             :date-range="dateRange"
@@ -91,6 +83,14 @@
           </v-toolbar>
 
           <v-card-text>
+            <GroupingToggle
+              v-if="attrKeysDs.items.length"
+              v-model="grouping"
+              :loading="tableQuery.loading || attrKeysDs.loading"
+              :items="attrKeysDs.items"
+              class="mb-4"
+            />
+
             <TimeseriesTable
               :loading="tableQuery.loading"
               :items="tableQuery.items"
@@ -146,14 +146,14 @@ import { UseDateRange } from '@/use/date-range'
 import { useTitle } from '@vueuse/core'
 import { useRoute } from '@/use/router'
 import { useDataSource } from '@/use/datasource'
-import { useUql } from '@/use/uql'
+import { useUql, createUqlEditor } from '@/use/uql'
 import { useActiveMetrics } from '@/metrics/use-metrics'
 import { useTableQuery, TableItem } from '@/metrics/use-query'
 import { useDashGauges } from '@/metrics/gauge/use-dash-gauges'
 
 // Components
 import MetricsQueryBuilder from '@/metrics/query/MetricsQueryBuilder.vue'
-import DashGroupingToggle from '@/metrics/query/DashGroupingToggle.vue'
+import GroupingToggle from '@/metrics/query/GroupingToggle.vue'
 import TimeseriesTable from '@/metrics/TimeseriesTable.vue'
 import DashTableForm from '@/metrics/DashTableForm.vue'
 import DashGrid from '@/metrics/DashGrid.vue'
@@ -172,7 +172,7 @@ export default defineComponent({
   name: 'DashTable',
   components: {
     MetricsQueryBuilder,
-    DashGroupingToggle,
+    GroupingToggle,
     TimeseriesTable,
     DashTableForm,
     DashGrid,
@@ -213,21 +213,6 @@ export default defineComponent({
 
     const activeMetrics = useActiveMetrics(computed(() => props.dashboard.tableMetrics))
 
-    const attrKeysDs = useDataSource(() => {
-      if (!props.dashboard.tableMetrics.length) {
-        return undefined
-      }
-
-      const { projectId } = route.value.params
-      return {
-        url: `/api/v1/metrics/${projectId}/attr-keys`,
-        params: {
-          ...props.dateRange.axiosParams(),
-          metric: props.dashboard.tableMetrics.map((m) => m.name),
-        },
-      }
-    })
-
     const tableQuery = useTableQuery(
       () => {
         if (!props.dashboard.tableQuery || !props.dashboard.tableMetrics.length) {
@@ -263,6 +248,43 @@ export default defineComponent({
       { immediate: true },
     )
 
+    const attrKeysDs = useDataSource(() => {
+      if (!props.dashboard.tableMetrics.length) {
+        return undefined
+      }
+
+      const { projectId } = route.value.params
+      return {
+        url: `/api/v1/metrics/${projectId}/attr-keys`,
+        params: {
+          ...props.dateRange.axiosParams(),
+          metric: props.dashboard.tableMetrics.map((m) => m.name),
+        },
+      }
+    })
+
+    const grouping = computed({
+      get() {
+        return tableQuery.columns.filter((col) => col.isGroup).map((column) => column.name)
+      },
+      set(grouping: string[]) {
+        const editor = createUqlEditor()
+
+        for (let colName of grouping) {
+          editor.groupBy(colName)
+        }
+
+        for (let part of uql.parts) {
+          if (/^group by/i.test(part.query)) {
+            continue
+          }
+          editor.add(part.query)
+        }
+
+        uql.commitEdits(editor)
+      },
+    })
+
     const tableItem = useTableItem(props)
     function gridQueryFor(tableItem: TableItem): string {
       const ss = []
@@ -287,8 +309,10 @@ export default defineComponent({
 
       uql,
       activeMetrics,
-      attrKeysDs,
       tableQuery,
+
+      attrKeysDs,
+      grouping,
 
       tableItem,
       gridQueryFor,

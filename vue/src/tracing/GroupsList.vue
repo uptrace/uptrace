@@ -44,6 +44,7 @@
           flat
           background-color="grey lighten-4"
           hide-details="auto"
+          @input="$emit('update:plotted-columns', $event)"
         ></v-select>
       </v-col>
     </v-row>

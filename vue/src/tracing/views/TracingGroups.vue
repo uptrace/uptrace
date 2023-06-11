@@ -47,6 +47,7 @@
               :events-mode="systems.isEvent"
               :show-system="showSystem"
               :axios-params="groups.axiosParams"
+              @update:plotted-columns="plottedColumns = $event"
               @update:num-group="numGroup = $event"
             />
           </v-container>
@@ -132,18 +133,18 @@ export default defineComponent({
       })
     })
     useRouteQuery().sync({
-      fromQuery(params) {
-        if (Array.isArray(params.columns)) {
-          plottedColumns.value = params.columns
-        } else if (params.columns) {
-          plottedColumns.value = [params.columns]
-        } else if (params.column) {
-          plottedColumns.value = [params.column]
+      fromQuery(queryParams) {
+        if (Array.isArray(queryParams.column)) {
+          plottedColumns.value = queryParams.column
+        } else if (queryParams.column) {
+          plottedColumns.value = [queryParams.column]
+        } else {
+          plottedColumns.value = undefined
         }
       },
       toQuery() {
         return {
-          columns: plottedColumns.value,
+          column: plottedColumns.value,
         }
       },
     })

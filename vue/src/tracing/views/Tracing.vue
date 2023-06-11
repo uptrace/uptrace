@@ -51,7 +51,7 @@
             :systems="systems"
             :axios-params="axiosParams"
             :agg-disabled="['SpanGroupList'].indexOf($route.name) === -1"
-            @click:reset="resetQuery"
+            @click:reset="resetQuery(true)"
           />
         </UptraceQuery>
 

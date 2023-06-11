@@ -143,7 +143,7 @@ export default defineComponent({
       if (replace) {
         editor.resetGroupBy(column.value.value)
       } else {
-        editor.addGroupBy(column.value.value)
+        editor.groupBy(column.value.value)
       }
       props.uql.commitEdits(editor)
 

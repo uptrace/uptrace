@@ -247,7 +247,7 @@ export class UqlEditor {
     }
   }
 
-  addGroupBy(column: string) {
+  groupBy(column: string) {
     return this.add(`group by ${column}`)
   }
 
