@@ -351,6 +351,10 @@ type SpanMetric struct {
 	Where       string   `yaml:"where"`
 }
 
+func (m *SpanMetric) ViewName() string {
+	return "metrics_" + strings.ReplaceAll(m.Name, ".", "_") + "_mv"
+}
+
 type Listen struct {
 	Addr string     `yaml:"addr"`
 	TLS  *TLSServer `yaml:"tls"`

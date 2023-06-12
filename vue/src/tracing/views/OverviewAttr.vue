@@ -27,7 +27,6 @@
 </template>
 
 <script lang="ts">
-import { omit } from 'lodash-es'
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
@@ -83,6 +82,7 @@ export default defineComponent({
         query: query.value,
       }
     })
+    groups.order.syncQueryParams()
 
     const plottedColumns = computed(() => {
       return groups.plottableColumns
@@ -94,16 +94,7 @@ export default defineComponent({
       return {
         name: 'SpanGroupList',
         query: {
-          ...omit(route.value.query, 'columns'),
-          query: query.value,
-        },
-      }
-    })
-
-    const spanListRoute = computed(() => {
-      return {
-        name: 'SpanList',
-        query: {
+          ...groups.order.queryParams(),
           system: props.systems,
           query: query.value,
         },
@@ -117,7 +108,6 @@ export default defineComponent({
       groups,
       plottedColumns,
       groupListRoute,
-      spanListRoute,
     }
   },
 })

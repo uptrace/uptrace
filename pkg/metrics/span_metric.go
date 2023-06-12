@@ -72,7 +72,7 @@ func createSpanMetricMeta(ctx context.Context, app *bunapp.App, metric *bunconf.
 
 func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMetric) error {
 	conf := app.Config()
-	viewName := "metrics_" + strings.ReplaceAll(metric.Name, ".", "_") + "_mv"
+	viewName := metric.ViewName()
 
 	if _, err := app.CH.NewDropView().
 		IfExists().
