@@ -38,15 +38,6 @@
         </template>
       </NewMonitorMenu>
 
-      <v-btn
-        v-if="metrics.items.length"
-        icon
-        title="View metrics"
-        @click.stop="$emit('click:metrics', { ...group, metrics: metrics.items })"
-      >
-        <v-icon>mdi-chart-line</v-icon>
-      </v-btn>
-
       <v-btn icon title="Filter spans for this group" :to="itemListRoute" @click.native.stop>
         <v-icon>mdi-filter-variant</v-icon>
       </v-btn>
@@ -68,7 +59,6 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useRoute } from '@/use/router'
 import { createUqlEditor, joinQuery, useQueryStore } from '@/use/uql'
-import { useMetrics } from '@/metrics/use-metrics'
 import { useGroupTimeseries, Group, ColumnInfo } from '@/tracing/use-explore-spans'
 
 // Components
@@ -203,18 +193,6 @@ export default defineComponent({
       }
     })
 
-    const metrics = useMetrics(() => {
-      if (props.groupingColumns.some((colName) => colName.startsWith('span.'))) {
-        return undefined
-      }
-      if (!props.group._query) {
-        return undefined
-      }
-      return {
-        query: props.group._query,
-      }
-    }, 500)
-
     function systemsForGroup(): string[] {
       const system = props.group[AttrKey.spanSystem]
       if (system) {
@@ -231,8 +209,6 @@ export default defineComponent({
 
       systemRoute,
       itemListRoute,
-
-      metrics,
 
       systemsForGroup,
       truncate,

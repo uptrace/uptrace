@@ -2,7 +2,7 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
-## v1.5.0
+## v1.5.0 - June 13 2023
 
 This release is backwards compatible with v1.4.x, but contains a ClickHouse mutation to add new
 columns.

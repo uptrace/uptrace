@@ -28,11 +28,6 @@
               >. A list of OpenTelemetry instrumentations.
             </li>
             <li>
-              <a href="https://uptrace.dev/opentelemetry/collector-config.html" target="_blank"
-                >Collector Configurator</a
-              >. A single page application to help you configure OpenTelemetry Collector.
-            </li>
-            <li>
               <a href="https://uptrace.dev/opentelemetry/attributes.html" target="_blank"
                 >Semantic Attributes</a
               >. A conventional list of semantic attributes recommended by OpenTelemetry.
