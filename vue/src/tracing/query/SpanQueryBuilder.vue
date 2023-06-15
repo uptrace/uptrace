@@ -1,7 +1,7 @@
 <template>
-  <div v-frag>
+  <div class="d-flex">
     <SearchFilterMenu :systems="systems" :uql="uql" />
-    <DurationFilterMenu :uql="uql" />
+    <DurationFilterMenu v-if="!systems.isEvent" :uql="uql" />
     <AttrFilterMenu
       :uql="uql"
       :axios-params="axiosParams"

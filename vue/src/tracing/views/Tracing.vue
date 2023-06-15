@@ -33,8 +33,8 @@
             <v-col cols="auto">
               <v-tabs :key="$route.fullPath" background-color="transparent">
                 <v-tab :to="routes.groupList" exact-path>Groups</v-tab>
-                <v-tab :to="routes.itemList" exact-path>Spans</v-tab>
-                <v-tab :to="{ name: 'SpanTimeseries' }" exact-path>Timeseries</v-tab>
+                <v-tab :to="routes.spanList" exact-path>Spans</v-tab>
+                <v-tab :to="routes.timeseries" exact-path>Timeseries</v-tab>
               </v-tabs>
             </v-col>
             <v-col cols="auto" class="ml-16 align-self-center">
@@ -188,14 +188,18 @@ function useRoutes() {
   const route = useRoute()
 
   const groupList = computed(() => {
-    return routeTo('SpanGroupList')
+    return routeFor('SpanGroupList')
   })
 
-  const itemList = computed(() => {
-    return routeTo('SpanList')
+  const spanList = computed(() => {
+    return routeFor('SpanList')
   })
 
-  function routeTo(routeName: string) {
+  const timeseries = computed(() => {
+    return routeFor('SpanTimeseries')
+  })
+
+  function routeFor(routeName: string) {
     return {
       name: routeName,
       query: pick(route.value.query, ['system', 'query', 'time_gte', 'time_dur']),
@@ -204,7 +208,8 @@ function useRoutes() {
 
   return proxyRefs({
     groupList,
-    itemList,
+    spanList,
+    timeseries,
   })
 }
 </script>
