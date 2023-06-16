@@ -135,7 +135,7 @@ export default defineComponent({
             if (!v) {
               return 'Alias is required'
             }
-            if (!/^[a-z][a-z0-9_]*$/i.test(v)) {
+            if (!/^[a-z0-9_]*$/i.test(v)) {
               return 'Only letters and numbers are allowed'
             }
 
