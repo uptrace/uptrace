@@ -9,8 +9,8 @@
       label="Status"
     />
     <v-btn text class="v-btn--filter" @click="drawer = true">
-      Filters
-      <v-icon color="green">mdi-new-box</v-icon>
+      <v-icon small class="mr-1">mdi-page-layout-sidebar-left</v-icon>
+      <span>Filters</span>
     </v-btn>
 
     <v-divider vertical class="mx-2" />

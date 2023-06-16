@@ -312,7 +312,8 @@ func (p *MeasureProcessor) convertHistogramPoint(
 	measure.Count = point.Count - prevPoint.Count
 
 	counts := makeDeltaCounts(point.BucketCounts, prevPoint.BucketCounts)
-	measure.Histogram = newBFloat16Histogram(point.Bounds, counts)
+	avg := measure.Sum / float64(measure.Count)
+	measure.Histogram, measure.Min, measure.Max = newBFloat16Histogram(point.Bounds, counts, avg)
 
 	return true
 }

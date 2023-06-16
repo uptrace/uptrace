@@ -231,7 +231,7 @@ func (p *otlpProcessor) otlpGauge(
 	data *metricspb.Metric_Gauge,
 ) {
 	for _, dp := range data.Gauge.DataPoints {
-		if dp.Flags&uint32(metricspb.DataPointFlags_FLAG_NO_RECORDED_VALUE) != 0 {
+		if dp.Flags&uint32(metricspb.DataPointFlags_DATA_POINT_FLAGS_NO_RECORDED_VALUE_MASK) != 0 {
 			continue
 		}
 
@@ -257,7 +257,7 @@ func (p *otlpProcessor) otlpSum(
 ) {
 	isDelta := data.Sum.AggregationTemporality == deltaAggTemp
 	for _, dp := range data.Sum.DataPoints {
-		if dp.Flags&uint32(metricspb.DataPointFlags_FLAG_NO_RECORDED_VALUE) != 0 {
+		if dp.Flags&uint32(metricspb.DataPointFlags_DATA_POINT_FLAGS_NO_RECORDED_VALUE_MASK) != 0 {
 			continue
 		}
 
@@ -305,7 +305,7 @@ func (p *otlpProcessor) otlpHistogram(
 ) {
 	isDelta := data.Histogram.AggregationTemporality == deltaAggTemp
 	for _, dp := range data.Histogram.DataPoints {
-		if dp.Flags&uint32(metricspb.DataPointFlags_FLAG_NO_RECORDED_VALUE) != 0 {
+		if dp.Flags&uint32(metricspb.DataPointFlags_DATA_POINT_FLAGS_NO_RECORDED_VALUE_MASK) != 0 {
 			continue
 		}
 
@@ -313,7 +313,19 @@ func (p *otlpProcessor) otlpHistogram(
 		if isDelta {
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
-			dest.Histogram = newBFloat16Histogram(dp.ExplicitBounds, dp.BucketCounts)
+
+			if dest.Count > 0 {
+				avg := dest.Sum / float64(dest.Count)
+				dest.Histogram, dest.Min, dest.Max = newBFloat16Histogram(
+					dp.ExplicitBounds, dp.BucketCounts, avg)
+
+				if dp.Min != nil {
+					dest.Min = dp.GetMin()
+				}
+				if dp.Max != nil {
+					dest.Max = dp.GetMax()
+				}
+			}
 		} else {
 			dest.StartTimeUnixNano = dp.StartTimeUnixNano
 			dest.CumPoint = &HistogramPoint{
@@ -334,7 +346,7 @@ func (p *otlpProcessor) otlpExpHistogram(
 ) {
 	isDelta := data.ExponentialHistogram.AggregationTemporality == deltaAggTemp
 	for _, dp := range data.ExponentialHistogram.DataPoints {
-		if dp.Flags&uint32(metricspb.DataPointFlags_FLAG_NO_RECORDED_VALUE) != 0 {
+		if dp.Flags&uint32(metricspb.DataPointFlags_DATA_POINT_FLAGS_NO_RECORDED_VALUE_MASK) != 0 {
 			continue
 		}
 
@@ -386,7 +398,7 @@ func (p *otlpProcessor) otlpSummary(
 	data *metricspb.Metric_Summary,
 ) {
 	for _, dp := range data.Summary.DataPoints {
-		if dp.Flags&uint32(metricspb.DataPointFlags_FLAG_NO_RECORDED_VALUE) != 0 {
+		if dp.Flags&uint32(metricspb.DataPointFlags_DATA_POINT_FLAGS_NO_RECORDED_VALUE_MASK) != 0 {
 			continue
 		}
 
@@ -474,22 +486,40 @@ func toFloat64(value any) float64 {
 //------------------------------------------------------------------------------
 
 type quickBFloat16Histogram struct {
-	m map[bfloat16.T]uint64
+	m   map[bfloat16.T]uint64
+	min float64
+	max float64
 }
 
-func (h *quickBFloat16Histogram) Add(mean float64, count uint64) {
+func (h *quickBFloat16Histogram) add(mean float64, count uint64) {
 	h.m[bfloat16.From(mean)] += count
+	if mean < h.min {
+		h.min = mean
+	}
+	if mean > h.max {
+		h.max = mean
+	}
 }
 
 func newBFloat16Histogram(
-	bounds []float64, counts []uint64,
-) map[bfloat16.T]uint64 {
-	h := quickBFloat16Histogram{
-		m: make(map[bfloat16.T]uint64, len(counts)),
+	bounds []float64, counts []uint64, avg float64,
+) (map[bfloat16.T]uint64, float64, float64) {
+	if len(bounds) == 0 {
+		return nil, 0, 0
+	}
+	if len(counts)-1 != len(bounds) {
+		return nil, 0, 0
 	}
 
-	if c0 := counts[0]; c0 > 0 {
-		h.Add(bounds[0], c0)
+	h := quickBFloat16Histogram{
+		m:   make(map[bfloat16.T]uint64, len(counts)+1),
+		min: avg,
+		max: avg,
+	}
+
+	if firstCount := counts[0]; firstCount > 0 {
+		mean := bounds[0]
+		h.add(mean, firstCount)
 	}
 	counts = counts[1:]
 
@@ -497,18 +527,19 @@ func newBFloat16Histogram(
 	for i, count := range counts[:len(counts)-1] {
 		upper := bounds[i+1]
 		if count > 0 {
-			h.Add((upper+prev)/2, count)
+			mean := (upper + prev) / 2
+			h.add(mean, count)
 		}
 		prev = upper
 	}
 
 	if lastCount := counts[len(counts)-1]; lastCount > 0 {
-		max := math.Nextafter(bounds[len(bounds)-1], math.MaxFloat64)
-		h.Add(max, lastCount)
+		mean := math.Nextafter(bounds[len(bounds)-1], math.MaxFloat64)
+		h.add(mean, lastCount)
 	}
 
-	if len(h.m) > 0 {
-		return h.m
+	if len(h.m) == 0 {
+		h.m = nil
 	}
-	return nil
+	return h.m, h.min, h.max
 }
