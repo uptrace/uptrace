@@ -1,0 +1,2 @@
+ALTER TABLE ?DB.spans_data ?ON_CLUSTER
+DROP INDEX IF EXISTS trace_id_idx;
