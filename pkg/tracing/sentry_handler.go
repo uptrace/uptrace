@@ -86,54 +86,9 @@ func (h *SentryHandler) processEvent(
 		span.Attrs[attrkey.LogMessage] = event.Message
 	}
 
-	exceptions, err := h.decodeExceptions(event.Exception)
-	if err != nil {
-		return err
-	}
-
-	if len(exceptions) > 0 {
-		if span.EventName == "" {
-			span.EventName = otelEventException
-		}
-		exc := &exceptions[0]
-		if exc.Type != "" {
-			span.Attrs[attrkey.ExceptionType] = exc.Type
-		}
-		if exc.Value != "" {
-			span.Attrs[attrkey.ExceptionMessage] = exc.Value
-		}
-		if exc.Stacktrace != nil {
-			if stacktrace := exc.Stacktrace.String(); stacktrace != "" {
-				span.Attrs[attrkey.ExceptionStacktrace] = stacktrace
-			}
-		}
-	}
-
 	h.sp.AddSpan(ctx, span)
 
 	return nil
-}
-
-func (h *SentryHandler) decodeExceptions(b []byte) ([]SentryException, error) {
-	if len(b) <= 2 {
-		return nil, nil
-	}
-
-	if b[0] == '{' && b[len(b)-1] == '}' {
-		var in struct {
-			Values []SentryException `json:"values"`
-		}
-		if err := json.Unmarshal(b, &in); err != nil {
-			return nil, err
-		}
-		return in.Values, nil
-	}
-
-	var exceptions []SentryException
-	if err := json.Unmarshal(b, &exceptions); err != nil {
-		return nil, err
-	}
-	return exceptions, nil
 }
 
 func (h *SentryHandler) spanFromEvent(span *Span, event *SentryEvent) error {
@@ -236,12 +191,62 @@ func (h *SentryHandler) spanFromEvent(span *Span, event *SentryEvent) error {
 		// ignore
 	}
 
-	for i := range event.Breadcrumbs {
-		bc := &event.Breadcrumbs[i]
+	breadcrumbs, err := h.decodeBreadcrumbs(event.Breadcrumbs)
+	if err != nil {
+		return err
+	}
+
+	for i := range breadcrumbs {
+		bc := &breadcrumbs[i]
 		span.Events = append(span.Events, h.newSpanFromBreadcrumb(bc))
 	}
 
+	exceptions, err := h.decodeExceptions(event.Exception)
+	if err != nil {
+		return err
+	}
+
+	if len(exceptions) > 0 {
+		if span.EventName == "" {
+			span.EventName = otelEventException
+		}
+		exc := &exceptions[0]
+		if exc.Type != "" {
+			span.Attrs[attrkey.ExceptionType] = exc.Type
+		}
+		if exc.Value != "" {
+			span.Attrs[attrkey.ExceptionMessage] = exc.Value
+		}
+		if exc.Stacktrace != nil {
+			if stacktrace := exc.Stacktrace.String(); stacktrace != "" {
+				span.Attrs[attrkey.ExceptionStacktrace] = stacktrace
+			}
+		}
+	}
+
 	return nil
+}
+
+func (h *SentryHandler) decodeBreadcrumbs(b []byte) ([]SentryBreadcrumb, error) {
+	if len(b) <= 2 {
+		return nil, nil
+	}
+
+	if b[0] == '{' && b[len(b)-1] == '}' {
+		var in struct {
+			Values []SentryBreadcrumb `json:"values"`
+		}
+		if err := json.Unmarshal(b, &in); err != nil {
+			return nil, err
+		}
+		return in.Values, nil
+	}
+
+	var exceptions []SentryBreadcrumb
+	if err := json.Unmarshal(b, &exceptions); err != nil {
+		return nil, err
+	}
+	return exceptions, nil
 }
 
 func (h *SentryHandler) newSpanFromBreadcrumb(bc *SentryBreadcrumb) *SpanEvent {
@@ -267,6 +272,28 @@ func (h *SentryHandler) newSpanFromBreadcrumb(bc *SentryBreadcrumb) *SpanEvent {
 		event.Name = bc.Message
 	}
 	return event
+}
+
+func (h *SentryHandler) decodeExceptions(b []byte) ([]SentryException, error) {
+	if len(b) <= 2 {
+		return nil, nil
+	}
+
+	if b[0] == '{' && b[len(b)-1] == '}' {
+		var in struct {
+			Values []SentryException `json:"values"`
+		}
+		if err := json.Unmarshal(b, &in); err != nil {
+			return nil, err
+		}
+		return in.Values, nil
+	}
+
+	var exceptions []SentryException
+	if err := json.Unmarshal(b, &exceptions); err != nil {
+		return nil, err
+	}
+	return exceptions, nil
 }
 
 func (h *SentryHandler) Envelope(w http.ResponseWriter, req bunrouter.Request) error {
@@ -447,7 +474,7 @@ func (h *SentryHandler) sentryKey(req bunrouter.Request) (string, error) {
 	}
 
 	var sentryKey string
-        
+
 	auth = strings.TrimPrefix(auth, "Sentry ")
 	for _, kv := range strings.Split(auth, ",") {
 		kv = strings.Trim(kv, " ")
@@ -480,7 +507,7 @@ type SentryItemHeader struct {
 }
 
 type SentryEvent struct {
-	Breadcrumbs []SentryBreadcrumb        `json:"breadcrumbs"`
+	Breadcrumbs json.RawMessage           `json:"breadcrumbs"`
 	Contexts    map[string]map[string]any `json:"contexts"`
 	Dist        string                    `json:"dist"`
 	Environment string                    `json:"environment"`

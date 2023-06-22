@@ -19,7 +19,7 @@
             <v-tabs optional class="ml-lg-10 ml-xl-16">
               <template v-if="user.isAuth && $route.params.projectId">
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
-                <v-tab :to="{ name: 'SpanGroupList' }">Tracing</v-tab>
+                <v-tab :to="{ name: 'SpanGroupList' }">Traces & Logs</v-tab>
                 <v-tab :to="{ name: 'MetricsDashList' }">Metrics</v-tab>
                 <v-tab :to="{ name: 'Alerting' }">Alerts</v-tab>
               </template>
