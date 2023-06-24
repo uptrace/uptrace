@@ -21,10 +21,9 @@ requires PostgreSQL database to store metadata such as metric names and alerts.
 - Pre-built metrics dashboards.
 - Multiple users/projects via YAML config.
 - Single sign-on (SSO) using OpenID Connect: Keycloak, Cloudflare, Google Cloud, and others.
-- Ingesting logs using [Vector](https://uptrace.dev/get/ingest/vector.html) and
-  [FluentBit](https://uptrace.dev/get/ingest/fluent-bit.html).
-- Ingesting errors and spans using [Sentry SDK](https://uptrace.dev/get/ingest/sentry.html)
-  integration.
+- [OpenTelemetry](https://uptrace.dev/get/ingest/opentelemetry.html),
+  [Vector](https://uptrace.dev/get/ingest/vector.html), and
+  [FluentBit](https://uptrace.dev/get/ingest/fluent-bit.html) support.
 
 **Why Uptrace?**
 
