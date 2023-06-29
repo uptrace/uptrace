@@ -48,6 +48,10 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 		Where("s.time >= ?", f.TimeGTE).
 		Where("s.time < ?", f.TimeLT)
 
+	if f.GroupID != 0 {
+		q = q.Where("s.group_id = ?", f.GroupID)
+	}
+
 	return q.WhereGroup(" AND ", func(q *ch.SelectQuery) *ch.SelectQuery {
 		for _, system := range f.System {
 			switch system {
@@ -68,12 +72,6 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 		}
 		return q
 	})
-
-	if f.GroupID != 0 {
-		q = q.Where("s.group_id = ?", f.GroupID)
-	}
-
-	return q
 }
 
 func (f *SystemFilter) isEventSystem() bool {
