@@ -5,9 +5,9 @@ Languages: **English** | [简体中文](README.zh.md)
 [![build workflow](https://github.com/uptrace/uptrace/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/uptrace/uptrace/actions)
 [![Chat](https://img.shields.io/badge/-telegram-red?color=white&logo=telegram&logoColor=black)](https://t.me/uptrace)
 
-Uptrace is an open-source APM tool that supports distributed tracing, metrics, and logs. You can use
-it to monitor applications and set up automatic alerts to receive notifications via email, Slack,
-Telegram, and more.
+Uptrace is an [open source APM](https://uptrace.dev/get/open-source-apm.html) that supports
+distributed tracing, metrics, and logs. You can use it to monitor applications and set up automatic
+alerts to receive notifications via email, Slack, Telegram, and more.
 
 Uptrace uses OpenTelelemetry to collect data and ClickHouse database to store it. Uptrace also
 requires PostgreSQL database to store metadata such as metric names and alerts.
@@ -24,18 +24,28 @@ requires PostgreSQL database to store metadata such as metric names and alerts.
 - Single sign-on (SSO) using OpenID Connect: [Keycloak](https://uptrace.dev/get/auth-keycloak.html),
   [Cloudflare](https://uptrace.dev/get/auth-cloudflare.html),
   [Google Cloud](https://uptrace.dev/get/auth-google.html), and others.
-- Integrations with [OpenTelemetry](https://uptrace.dev/get/ingest/opentelemetry.html),
+- Ingestion using [OpenTelemetry](https://uptrace.dev/get/ingest/opentelemetry.html),
   [Vector](https://uptrace.dev/get/ingest/vector.html),
   [FluentBit](https://uptrace.dev/get/ingest/fluent-bit.html),
   [CloudWatch](https://uptrace.dev/get/ingest/aws-cloudwatch.html), and more.
 - Efficient ingestion: more than 10K spans / second on a single core.
-- Excellent on-disk compression, for example, 1KB span can be compressed down to ~40 bytes.
+- Excellent on-disk compression: 1KB span can be compressed down to ~40 bytes.
 
-![Uptrace Home](./example/docker/images/home.png)
+**System overview**
 
-![Facetted filters](./example/docker/images/facets.png)
+![System overview](./example/docker/images/home.png)
 
-![Prometheus-like metrics](./example/docker/images/metrics.png)
+**Faceted filters**
+
+![Faceted filters](./example/docker/images/facets.png)
+
+**Metrics**
+
+![Metrics](./example/docker/images/metrics.png)
+
+**Alerts**
+
+![Alerts](./example/docker/images/alerts.png)
 
 ## Quickstart
 
