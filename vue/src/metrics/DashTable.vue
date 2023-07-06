@@ -82,25 +82,35 @@
             </v-dialog>
           </v-toolbar>
 
-          <v-card-text>
-            <GroupingToggle
-              v-if="attrKeysDs.items.length"
-              v-model="grouping"
-              :loading="tableQuery.loading || attrKeysDs.loading"
-              :items="attrKeysDs.items"
-              class="mb-4"
-            />
+          <v-container fluid>
+            <v-row v-if="tableQuery.items.length" align="center" justify="space-between">
+              <v-col cols="auto">
+                <GroupingToggle
+                  v-if="attrKeysDs.items.length"
+                  v-model="grouping"
+                  :loading="tableQuery.loading || attrKeysDs.loading"
+                  :items="attrKeysDs.items"
+                />
+              </v-col>
+              <v-col cols="auto" class="text--secondary">
+                Click on a row to view the Grid filtered by <code>group by</code> attributes.
+              </v-col>
+            </v-row>
 
-            <TimeseriesTable
-              :loading="tableQuery.loading"
-              :items="tableQuery.items"
-              :columns="tableQuery.columns"
-              :order="tableQuery.order"
-              :axios-params="tableQuery.axiosParams"
-              v-on="tableItem.listeners"
-            >
-            </TimeseriesTable>
-          </v-card-text>
+            <v-row>
+              <v-col>
+                <TimeseriesTable
+                  :loading="tableQuery.loading"
+                  :items="tableQuery.items"
+                  :columns="tableQuery.columns"
+                  :order="tableQuery.order"
+                  :axios-params="tableQuery.axiosParams"
+                  v-on="tableItem.listeners"
+                >
+                </TimeseriesTable>
+              </v-col>
+            </v-row>
+          </v-container>
         </v-card>
       </v-col>
     </v-row>

@@ -48,20 +48,24 @@
               </v-tabs>
             </v-col>
             <v-col cols="auto" class="px-6">
-              <v-tooltip bottom max-width="800">
+              <v-menu open-on-hover offset-y>
                 <template #activator="{ on, attrs }">
                   <v-icon v-bind="attrs" v-on="on">mdi-help</v-icon>
                 </template>
 
-                <div class="pt-2">
-                  <p>Uptrace supports 2 types of dashboards:</p>
+                <v-card max-width="700" class="pa-4 grey--text text--darken-3">
+                  <p>
+                    Uptrace uses 2 different types of dashboards together to visualize metrics data:
+                  </p>
 
                   <ul class="mb-4">
-                    <li>A <strong>grid</strong>-based dashboard is a classical grid of charts.</li>
+                    <li class="mb-1">
+                      A <strong>grid</strong>-based dashboard is a classic grid of charts.
+                    </li>
                     <li>
-                      A <strong>table</strong>-based dashboard is a table of items where each item
-                      leads to a separate grid-based dashboard for the item, for example, a table of
-                      hostnames with some metrics for each hostname.
+                      A <strong>table</strong>-based dashboard is a table where each row leads to a
+                      separate grid-based dashboard, for example, a table of host names with a
+                      separate grid for each host name.
                     </li>
                   </ul>
 
@@ -69,8 +73,22 @@
                     In other words, table-based dashboards allow to parameterize grid-based
                     dashboards with attributes from the table.
                   </p>
-                </div>
-              </v-tooltip>
+
+                  <p>
+                    For example, Uptrace Cloud uses a table-based dashboard to monitor the number of
+                    sampled and dropped spans for each project.
+                  </p>
+
+                  <v-btn
+                    color="primary"
+                    href="https://uptrace.dev/get/querying-metrics.html#dashboards"
+                    target="_blank"
+                  >
+                    Open documentation
+                    <v-icon right>mdi-open-in-new</v-icon>
+                  </v-btn>
+                </v-card>
+              </v-menu>
             </v-col>
           </v-row>
         </v-container>
