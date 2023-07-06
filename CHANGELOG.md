@@ -2,6 +2,12 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
+## v1.5.2 - July 6 2023
+
+- When authenticating via email and password, Uptrace ignores users in the PostgreSQL database and
+  only allows users in the YAML config. This is needed when you want to disable email:password
+  authentication completely.
+
 ## v1.5.0 - June 16 2023
 
 This release is backwards compatible with v1.4.x, but contains a ClickHouse mutation to add new

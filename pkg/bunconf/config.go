@@ -72,14 +72,6 @@ func defaultConfig() *Config {
 			},
 		},
 	}
-	conf.Auth.Users = []User{
-		{
-			Name:          "John Doe",
-			Email:         "uptrace@localhost",
-			Password:      "uptrace",
-			NotifyByEmail: true,
-		},
-	}
 
 	conf.CHSchema.Compression = "ZSTD(3)"
 	conf.CHSchema.Spans.TTLDelete = "30 DAY"

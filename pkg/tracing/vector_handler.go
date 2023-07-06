@@ -62,10 +62,7 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 			ct, "application/json")
 	}
 
-	dec := json.NewDecoder(http.MaxBytesReader(w, req.Body, 10<<20))
-	dec.DisallowUnknownFields()
-	dec.DontMatchCaseInsensitiveStructFields()
-
+	dec := json.NewDecoder(req.Body)
 	for {
 		var m map[string]any
 

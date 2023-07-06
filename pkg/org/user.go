@@ -11,6 +11,7 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -29,6 +30,19 @@ type User struct {
 
 	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
 	UpdatedAt time.Time `json:"updatedAt" bun:",nullzero"`
+}
+
+func NewUserFromConfig(src *bunconf.User) (*User, error) {
+	dest := &User{
+		Email:         src.Email,
+		Name:          src.Name,
+		Avatar:        src.Avatar,
+		NotifyByEmail: src.NotifyByEmail,
+	}
+	if err := dest.SetPassword(src.Password); err != nil {
+		return nil, err
+	}
+	return dest, nil
 }
 
 func (u *User) Username() string {

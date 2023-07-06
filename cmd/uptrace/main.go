@@ -349,13 +349,9 @@ func loadInitialData(ctx context.Context, app *bunapp.App) error {
 
 	for i := range conf.Auth.Users {
 		src := &conf.Auth.Users[i]
-		dest := &org.User{
-			Email:         src.Email,
-			Name:          src.Name,
-			Avatar:        src.Avatar,
-			NotifyByEmail: src.NotifyByEmail,
-		}
-		if err := dest.SetPassword(src.Password); err != nil {
+
+		dest, err := org.NewUserFromConfig(src)
+		if err != nil {
 			return err
 		}
 

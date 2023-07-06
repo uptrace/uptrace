@@ -1,6 +1,7 @@
 package org
 
 import (
+	"database/sql"
 	"net/http"
 	"time"
 
@@ -38,8 +39,6 @@ func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) erro
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error {
-	ctx := req.Context()
-
 	var in struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -48,7 +47,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	user, err := SelectUserByEmail(ctx, h.App, in.Email)
+	user, err := h.userByEmail(in.Email)
 	if err != nil {
 		return err
 	}
@@ -69,6 +68,17 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 	http.SetCookie(w, cookie)
 
 	return nil
+}
+
+func (h *UserHandler) userByEmail(email string) (*User, error) {
+	conf := h.Config()
+	for i := range conf.Auth.Users {
+		user := &conf.Auth.Users[i]
+		if user.Email == email {
+			return NewUserFromConfig(user)
+		}
+	}
+	return nil, sql.ErrNoRows
 }
 
 func (h *UserHandler) Logout(w http.ResponseWriter, req bunrouter.Request) error {

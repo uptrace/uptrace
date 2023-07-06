@@ -42,19 +42,30 @@
 
           <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pb-0">
             <v-tabs background-color="transparent">
-              <v-tab :to="{ name: 'SystemOverview' }">Systems</v-tab>
+              <v-tab :to="{ name: 'SystemOverview', query: pick($route.query, 'system', 'query') }"
+                >Systems</v-tab
+              >
               <v-tab
                 v-for="system in chosenSystems"
                 :key="system"
-                :to="{ name: 'SystemGroupList', params: { system: system } }"
+                :to="{
+                  name: 'SystemGroupList',
+                  params: { system },
+                  query: pick($route.query, 'system', 'query'),
+                }"
+                >{{ system }}</v-tab
               >
-                {{ system }}
-              </v-tab>
-              <v-tab :to="{ name: 'SlowestGroups' }">Slowest groups</v-tab>
+              <v-tab :to="{ name: 'SlowestGroups', query: pick($route.query, 'system', 'query') }"
+                >Slowest</v-tab
+              >
               <v-tab
                 v-for="attr in project.pinnedAttrs"
                 :key="attr"
-                :to="{ name: 'AttrOverview', params: { attr } }"
+                :to="{
+                  name: 'AttrOverview',
+                  params: { attr },
+                  query: pick($route.query, 'system', 'query'),
+                }"
                 >{{ attr }}</v-tab
               >
             </v-tabs>
@@ -78,6 +89,7 @@
 </template>
 
 <script lang="ts">
+import { pick } from 'lodash-es'
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
@@ -164,6 +176,7 @@ export default defineComponent({
       axiosParams,
 
       chosenSystems,
+      pick,
     }
   },
 })

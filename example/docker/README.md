@@ -46,4 +46,4 @@ See [Alerting and Notifications](https://uptrace.dev/get/alerting.html) for more
 
 This example also comes with a pre-configured OpenTelemetry Collector to monitor
 [host metrics](https://uptrace.dev/opentelemetry/collector-host-metrics.html) and
-[PostgreSQL](https://uptrace.dev/opentelemetry/postgresql-monitoring.html).
+[PostgreSQL](https://uptrace.dev/get/monitor/opentelemetry-postgresql.html).
