@@ -14,25 +14,22 @@ requires PostgreSQL database to store metadata such as metric names and alerts.
 
 **Features**:
 
-- Spans/logs grouping.
-- SQL-like query language to aggregate spans.
-- Promql-like language to aggregate and monitor metrics.
-- Email/Slack/WebHook/AlertManager notifications.
+- Single UI for traces, metrics, and logs.
+- SQL-like query language to [aggregate spans](https://uptrace.dev/get/querying-spans.html).
+- Promql-like language to [aggregate metrics](https://uptrace.dev/get/querying-metrics.html).
+- Built-in [alerts](https://uptrace.dev/get/alerting.html) with notifications via Email, Slack,
+  WebHook, and AlertManager.
 - Pre-built metrics dashboards.
 - Multiple users/projects via YAML config.
-- Single sign-on (SSO) using OpenID Connect: Keycloak, Cloudflare, Google Cloud, and others.
-- [OpenTelemetry](https://uptrace.dev/get/ingest/opentelemetry.html),
-  [Vector](https://uptrace.dev/get/ingest/vector.html), and
-  [FluentBit](https://uptrace.dev/get/ingest/fluent-bit.html) support.
-
-**Why Uptrace?**
-
-- Single UI for traces, metrics, and logs.
+- Single sign-on (SSO) using OpenID Connect: [Keycloak](https://uptrace.dev/get/auth-keycloak.html),
+  [Cloudflare](https://uptrace.dev/get/auth-cloudflare.html),
+  [Google Cloud](https://uptrace.dev/get/auth-google.html), and others.
+- Integrations with [OpenTelemetry](https://uptrace.dev/get/ingest/opentelemetry.html),
+  [Vector](https://uptrace.dev/get/ingest/vector.html),
+  [FluentBit](https://uptrace.dev/get/ingest/fluent-bit.html),
+  [CloudWatch](https://uptrace.dev/get/ingest/aws-cloudwatch.html), and more.
 - Efficient ingestion: more than 10K spans / second on a single core.
-- Excellent on-disk compression with ZSTD, for example, 1KB span can be compressed down to <40
-  bytes.
-- S3 storage support with ability to automatically upload cold data to S3-like storage or HDD.
-- Automatic alerts with notifications via email, Slack, Telegram, and more.
+- Excellent on-disk compression, for example, 1KB span can be compressed down to ~40 bytes.
 
 ![Uptrace Home](./example/docker/images/home.png)
 
@@ -42,12 +39,11 @@ requires PostgreSQL database to store metadata such as metric names and alerts.
 
 ## Quickstart
 
-In just few minutes, you can decide if you need Uptrace by running a
-[docker-compose example](example/docker). You can also play with the public
-[Uptrace Cloud demo](https://app.uptrace.dev/play) (no login required).
+In just few minutes, you can try Uptrace by running a [docker-compose example](example/docker). You
+can also play with the public [Uptrace Cloud demo](https://app.uptrace.dev/play) (no login
+required).
 
-Then follow the [getting started guide](https://uptrace.dev/get/get-started.html) to install Uptrace
-by downloading a Go binary or a DEB/RPM package.
+Then follow the [getting started](https://uptrace.dev/get/get-started.html) guide.
 
 ## Help
 
