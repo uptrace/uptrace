@@ -4,6 +4,7 @@
 
 [![build workflow](https://github.com/uptrace/uptrace/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/uptrace/uptrace/actions)
 [![Chat](https://img.shields.io/badge/-telegram-red?color=white&logo=telegram&logoColor=black)](https://t.me/uptrace)
+[![Slack](https://img.shields.io/badge/slack-uptrace.svg?logo=slack)](https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw)
 
 Uptrace 是一种开源的 APM 工具，支持分布式跟踪、指标和日志。您使用它可以监控应用程序并设置自动报警，
 可以通过电子邮件、Slack、Telegram 等方式接收通知。
@@ -29,11 +30,21 @@ Uptrace 使用 OpenTelemetry 收集数据并使用 ClickHouse 数据库存储数
 - 支持 S3 存储，能够自动将冷数据上传到 S3 或 HDD 等进行存储。
 - 通过电子邮件、Slack、Telegram 等方式自动发出报警信息。
 
-![Uptrace Home](./example/docker/images/home.png)
+**System overview**
 
-![Facetted filters](./example/docker/images/facets.png)
+![System overview](./example/docker/images/home.png)
 
-![Prometheus-like metrics](./example/docker/images/metrics.png)
+**Faceted filters**
+
+![Faceted filters](./example/docker/images/facets.png)
+
+**Metrics**
+
+![Metrics](./example/docker/images/metrics.png)
+
+**Alerts**
+
+![Alerts](./example/docker/images/alerts.png)
 
 ## 快速开始
 
@@ -45,8 +56,9 @@ DEB/RPM 包安装 Uptrace，额外仅需要安装 ClickHouse 数据库。
 
 ## 帮助
 
-可以通过 [Telegram](https://t.me/uptrace) 或 GitHub
-[start a discussion](https://github.com/uptrace/uptrace/discussions) 寻求帮助。
+可以通过 [Telegram](https://t.me/uptrace),
+[Slack](https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw) 或
+GitHub [start a discussion](https://github.com/uptrace/uptrace/discussions) 寻求帮助。
 
 ## 常见问题
 
