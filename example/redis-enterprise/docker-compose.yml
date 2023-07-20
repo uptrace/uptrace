@@ -2,7 +2,7 @@ version: '3'
 
 services:
   clickhouse:
-    image: clickhouse/clickhouse-server:22.7
+    image: clickhouse/clickhouse-server:23.4
     restart: on-failure
     environment:
       CLICKHOUSE_DB: uptrace
@@ -20,8 +20,8 @@ services:
       - 'host.docker.internal:host-gateway'
 
   uptrace:
-    #image: 'uptrace/uptrace:latest'
-    image: 'uptrace/uptrace-dev:latest'
+    image: 'uptrace/uptrace:1.5.2'
+    #image: 'uptrace/uptrace-dev:latest'
     volumes:
       - uptrace_data:/var/lib/uptrace
       - ./uptrace.yml:/etc/uptrace/uptrace.yml
@@ -36,7 +36,7 @@ services:
         condition: service_healthy
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.59.0
+    image: otel/opentelemetry-collector-contrib:0.70.0
     restart: on-failure
     volumes:
       - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml

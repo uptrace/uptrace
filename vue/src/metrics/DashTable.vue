@@ -92,7 +92,7 @@
                   :items="attrKeysDs.items"
                 />
               </v-col>
-              <v-col cols="auto" class="text--secondary">
+              <v-col v-if="attrKeysDs.items.length < 5" cols="auto" class="text--secondary">
                 Click on a row to view the Grid filtered by <code>group by</code> attributes.
               </v-col>
             </v-row>

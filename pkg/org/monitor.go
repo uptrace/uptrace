@@ -71,7 +71,9 @@ type MetricMonitor struct {
 
 func NewMetricMonitor() *MetricMonitor {
 	return &MetricMonitor{
-		BaseMonitor: new(BaseMonitor),
+		BaseMonitor: &BaseMonitor{
+			Type: MonitorMetric,
+		},
 	}
 }
 
@@ -132,7 +134,9 @@ type ErrorMonitor struct {
 
 func NewErrorMonitor() *ErrorMonitor {
 	return &ErrorMonitor{
-		BaseMonitor: new(BaseMonitor),
+		BaseMonitor: &BaseMonitor{
+			Type: MonitorError,
+		},
 	}
 }
 

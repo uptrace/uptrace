@@ -237,6 +237,9 @@ func (p *otlpProcessor) otlpGauge(
 
 		dest := p.nextMeasure(scope, metric, InstrumentGauge, dp.Attributes, dp.TimeUnixNano)
 		switch num := dp.Value.(type) {
+		case nil:
+			dest.Gauge = 0
+			p.enqueue(dest)
 		case *metricspb.NumberDataPoint_AsInt:
 			dest.Gauge = float64(num.AsInt)
 			p.enqueue(dest)
