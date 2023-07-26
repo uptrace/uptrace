@@ -24,15 +24,25 @@
         <div>{{ span.attrs[AttrKey.serviceName] }}</div>
       </v-col>
 
-      <v-col v-if="span.kind" cols="auto">
+      <v-col cols="auto">
         <div class="grey--text font-weight-regular">Kind</div>
         <div>{{ span.kind }}</div>
       </v-col>
 
-      <v-col v-if="span.statusCode" cols="auto">
+      <v-col v-if="!isEvent" cols="auto">
         <div class="grey--text font-weight-regular">Status</div>
-        <div :class="{ 'error--text': span.statusCode === 'error' }">
-          {{ span.statusCode }}
+        <div>
+          <v-tooltip v-if="span.statusMessage" max-width="600" bottom>
+            <template #activator="{ on, attrs }">
+              <div :class="{ 'error--text': span.statusCode === 'error' }" v-bind="attrs" v-on="on">
+                {{ span.statusCode }}
+              </div>
+            </template>
+            <div>{{ span.statusMessage }}</div>
+          </v-tooltip>
+          <div v-else :class="{ 'error--text': span.statusCode === 'error' }">
+            {{ span.statusCode }}
+          </div>
         </div>
       </v-col>
 
