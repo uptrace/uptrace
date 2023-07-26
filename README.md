@@ -22,9 +22,9 @@ requires PostgreSQL database to store metadata such as metric names and alerts.
   WebHook, and AlertManager.
 - Pre-built metrics dashboards.
 - Multiple users/projects via YAML config.
-- Single sign-on (SSO) using OpenID Connect: [Keycloak](https://uptrace.dev/get/auth-keycloak.html),
-  [Cloudflare](https://uptrace.dev/get/auth-cloudflare.html),
-  [Google Cloud](https://uptrace.dev/get/auth-google.html), and others.
+- Single sign-on (SSO) using OpenID Connect: [Keycloak](https://uptrace.dev/get/sso/keycloak.html),
+  [Google Cloud](https://uptrace.dev/get/sso/google.html), and
+  [Cloudflare](https://uptrace.dev/get/sso/cloudflare.html).
 - Ingestion using [OpenTelemetry](https://uptrace.dev/get/ingest/opentelemetry.html),
   [Vector](https://uptrace.dev/get/ingest/vector.html),
   [FluentBit](https://uptrace.dev/get/ingest/fluent-bit.html),

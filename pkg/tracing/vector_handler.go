@@ -15,7 +15,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -97,21 +96,29 @@ func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, params A
 		span.Attrs[attrkey.LogMessage] = msg
 	}
 
-	span.Time = time.Now()
-	for _, key := range []string{"timestamp", "datetime", "time", "date"} {
-		value, _ := params[key].(string)
-		if value == "" {
-			continue
-		}
+	if spanName, _ := params["span_name"].(string); spanName != "" {
+		span.Name = spanName
+		span.EventName = ""
+		delete(params, "span_name")
+		delete(params, "span_event_name")
 
-		tm := anyconv.Time(value)
-		if tm.IsZero() {
-			continue
+		if dur, ok := params["span_duration"].(float64); ok {
+			span.Duration = time.Duration(dur)
+			delete(params, "span_duration")
 		}
+	}
 
-		span.Time = tm
-		delete(params, key)
-		break
+	if kind, ok := params["span_kind"].(string); ok {
+		span.Kind = kind
+		delete(params, "span_kind")
+	}
+	if code, ok := params["span_status_code"].(string); ok {
+		span.StatusCode = code
+		delete(params, "span_status_code")
+	}
+	if msg, ok := params["span_status_message"].(string); ok {
+		span.StatusMessage = msg
+		delete(params, "span_status_message")
 	}
 
 	populateSpanFromParams(span, params)

@@ -21,6 +21,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"github.com/uptrace/uptrace/pkg/sqlparser"
+	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
 	"github.com/uptrace/uptrace/pkg/tracing/norm"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/utf8util"
@@ -34,7 +35,7 @@ func initSpanOrEvent(ctx *spanContext, app *bunapp.App, span *Span) {
 		return
 	}
 
-	initSpanAttrs(ctx, span)
+	processAttrs(ctx, span)
 
 	if span.EventName != "" {
 		assignEventSystemAndGroupID(ctx, project, span)
@@ -56,7 +57,7 @@ func initSpanOrEvent(ctx *spanContext, app *bunapp.App, span *Span) {
 	span.System = utf8util.TruncSmall(span.System)
 }
 
-func initSpanAttrs(ctx *spanContext, span *Span) {
+func processAttrs(ctx *spanContext, span *Span) {
 	normAttrs(span.Attrs, span.Attrs)
 
 	if msg, _ := span.Attrs[attrkey.LogMessage].(string); msg != "" {
@@ -67,13 +68,25 @@ func initSpanAttrs(ctx *spanContext, span *Span) {
 	}
 
 	if span.TraceID.IsZero() {
-		assignTraceID(span)
+		// Standalone span.
+		span.TraceID = uuid.Rand()
+		span.ID = 0
+		span.ParentID = 0
+		span.Standalone = true
 	}
-	if span.EventName == otelEventLog {
-		if !span.Standalone && span.ParentID == 0 {
-			span.ParentID = rand.Uint64()
+	if !span.Standalone {
+		if span.ID == 0 {
+			span.ID = rand.Uint64()
 		}
-		ensureLogSeverity(span.Attrs)
+	}
+	if span.Time.IsZero() {
+		span.Time = time.Now()
+	}
+
+	if span.EventName == otelEventLog {
+		if _, ok := span.Attrs[attrkey.LogSeverity]; !ok {
+			span.Attrs[attrkey.LogSeverity] = bunotel.InfoSeverity
+		}
 	}
 }
 
@@ -144,34 +157,25 @@ func popLogMessageParam(params AttrMap) string {
 func populateSpanFromParams(span *Span, params AttrMap) {
 	attrs := span.Attrs
 	flattenAttrValues(params)
+	normAttrs(span.Attrs, params)
 
-	if eventName, _ := params["span_event_name"].(string); eventName == "span" {
-		span.EventName = ""
-		delete(params, "span_event_name")
+	if span.Time.IsZero() {
+		for _, key := range []string{"timestamp", "datetime", "time"} {
+			value, _ := params[key].(string)
+			if value == "" {
+				continue
+			}
 
-		if name, ok := params["span_name"].(string); ok {
-			span.Name = name
-			delete(params, "span_name")
-		}
-		if name, ok := params["span_kind"].(string); ok {
-			span.Kind = name
-			delete(params, "span_kind")
-		}
-		if dur, ok := params["span_duration"].(float64); ok {
-			span.Duration = time.Duration(dur)
-			delete(params, "span_duration")
-		}
-		if status, ok := params["span_status_code"].(string); ok {
-			span.StatusCode = status
-			delete(params, "span_status_code")
-		}
-		if msg, ok := params["span_status_message"].(string); ok {
-			span.StatusMessage = msg
-			delete(params, "span_status_message")
+			tm := anyconv.Time(value)
+			if tm.IsZero() {
+				continue
+			}
+
+			span.Time = tm
+			delete(params, key)
+			break
 		}
 	}
-
-	normAttrs(span.Attrs, params)
 
 	if span.TraceID.IsZero() {
 		for _, key := range []string{"trace_id", "traceid"} {
@@ -346,27 +350,6 @@ loop:
 			}
 		}
 	}
-}
-
-func assignTraceID(span *Span) {
-	// Standalone span.
-	span.TraceID = uuid.Rand()
-	span.ID = 0
-	span.ParentID = 0
-	span.Standalone = true
-}
-
-func ensureLogSeverity(attrs AttrMap) {
-	if found, ok := attrs[attrkey.LogSeverity].(string); ok {
-		if normalized := norm.LogSeverity(found); normalized != "" {
-			if normalized != found {
-				attrs[attrkey.LogSeverity] = normalized
-			}
-			return
-		}
-	}
-
-	attrs[attrkey.LogSeverity] = bunotel.InfoSeverity
 }
 
 func messageHashAndParams(
@@ -567,7 +550,7 @@ func initEvent(ctx *spanContext, app *bunapp.App, span *Span) {
 		return
 	}
 
-	initSpanAttrs(ctx, span)
+	processAttrs(ctx, span)
 	assignEventSystemAndGroupID(ctx, project, span)
 }
 
