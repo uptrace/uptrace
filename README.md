@@ -29,7 +29,7 @@ requires PostgreSQL database to store metadata such as metric names and alerts.
   [Vector](https://uptrace.dev/get/ingest/vector.html),
   [FluentBit](https://uptrace.dev/get/ingest/fluent-bit.html),
   [CloudWatch](https://uptrace.dev/get/ingest/aws-cloudwatch.html), and more.
-- Efficient ingestion: more than 10K spans / second on a single core.
+- Efficient processing: more than 10K spans / second on a single core.
 - Excellent on-disk compression: 1KB span can be compressed down to ~40 bytes.
 
 **System overview**
