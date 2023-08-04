@@ -151,11 +151,12 @@ ch_schema:
   # Compression codec, for example, LZ4, ZSTD(3), or Default.
   compression: ZSTD(3)
 
-  # Whether to use Replicated* engines.
-  replicated: false
-
   # Cluster name for Distributed tables and ON CLUSTER clause.
   #cluster: uptrace1
+
+  # Whether to use ClickHouse replication.
+  # Cluster name is required when replication is enabled.
+  #replicated: true
 
   spans:
     # Delete spans data after 30 days.

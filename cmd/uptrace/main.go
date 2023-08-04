@@ -256,14 +256,10 @@ var serveCommand = &cli.Command{
 
 func initPostgres(ctx context.Context, app *bunapp.App) error {
 	if err := app.PG.Ping(); err != nil {
-		app.Logger.Error("PostgreSQL Ping failed (edit `pg` YAML option)",
-			zap.Error(err))
-		return err
+		return fmt.Errorf("PostgreSQL Ping failed: %w", err)
 	}
 
 	if err := runPGMigrations(ctx, app); err != nil {
-		app.Logger.Error("SQL migrations failed",
-			zap.Error(err))
 		return err
 	}
 
@@ -282,7 +278,7 @@ func runPGMigrations(ctx context.Context, app *bunapp.App) error {
 		return err
 	}
 	if len(missing) > 0 {
-		panic("PostgreSQL schema schema changed\n" +
+		return fmt.Errorf("PostgreSQL database schema was changed; " +
 			"run `uptrace pg reset` to reset the database (all data will be lost)")
 	}
 
@@ -301,15 +297,17 @@ func runPGMigrations(ctx context.Context, app *bunapp.App) error {
 
 func initClickhouse(ctx context.Context, app *bunapp.App) error {
 	if err := app.CH.Ping(ctx); err != nil {
-		app.Logger.Error("ClickHouse Ping failed (edit `ch` YAML option)",
-			zap.Error(err))
-		return err
+		return fmt.Errorf("ClickHouse Ping failed: %w", err)
 	}
 
 	if err := runCHMigrations(ctx, app); err != nil {
-		app.Logger.Error("ClickHouse migrations failed",
-			zap.Error(err))
 		return err
+	}
+
+	if chSchema := app.Config().CHSchema; chSchema.Cluster != "" {
+		if err := validateCHCluster(ctx, app); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -327,7 +325,7 @@ func runCHMigrations(ctx context.Context, app *bunapp.App) error {
 		return err
 	}
 	if len(missing) > 0 {
-		panic("ClickHouse database schema was changed\n" +
+		return fmt.Errorf("ClickHouse database schema was changed; " +
 			"run `uptrace ch reset` to reset the database (all data will be lost)")
 	}
 
@@ -341,6 +339,40 @@ func runCHMigrations(ctx context.Context, app *bunapp.App) error {
 	}
 
 	app.Logger.Info("migrated ClickHouse database", zap.String("migrations", group.String()))
+	return nil
+}
+
+func validateCHCluster(ctx context.Context, app *bunapp.App) error {
+	conf := app.Config()
+
+	n, err := app.CH.NewSelect().
+		TableExpr("system.clusters").
+		Where("cluster = ?", conf.CHSchema.Cluster).
+		Count(ctx)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return fmt.Errorf("can't find %q cluster in system.clusters (try to reset database)",
+			conf.CHSchema.Cluster)
+	}
+
+	if !conf.CHSchema.Replicated {
+		return nil
+	}
+
+	n, err = app.CH.NewSelect().
+		TableExpr("system.replicas").
+		Where("database = ?", conf.CH.Database).
+		Count(ctx)
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return fmt.Errorf("can't find %q replicas in system.replicas (try to reset database)",
+			conf.CH.Database)
+	}
+
 	return nil
 }
 

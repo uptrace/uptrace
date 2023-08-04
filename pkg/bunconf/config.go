@@ -1,6 +1,7 @@
 package bunconf
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -141,10 +142,8 @@ func cleanAttrName(attrKey string) string {
 }
 
 func validateConfig(conf *Config) error {
-	if conf.CHSchema.Cluster != "" {
-		if !conf.CHSchema.Replicated {
-			conf.CHSchema.Replicated = true
-		}
+	if conf.CHSchema.Replicated && conf.CHSchema.Cluster == "" {
+		return errors.New("ch_schema.cluster can't be empty when replicated=true")
 	}
 
 	if err := validateUsers(conf.Auth.Users); err != nil {

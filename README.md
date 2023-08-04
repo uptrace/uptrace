@@ -7,11 +7,17 @@ Languages: **English** | [简体中文](README.zh.md)
 [![Slack](https://img.shields.io/badge/slack-uptrace.svg?logo=slack)](https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw)
 
 Uptrace is an [open source APM](https://uptrace.dev/get/open-source-apm.html) that supports
-distributed tracing, metrics, and logs. You can use it to monitor applications and set up automatic
-alerts to receive notifications via email, Slack, Telegram, and more.
+distributed tracing, metrics, and logs. You can use it to monitor applications and troubleshoot
+issues.
 
-Uptrace uses OpenTelelemetry to collect data and ClickHouse database to store it. Uptrace also
-requires PostgreSQL database to store metadata such as metric names and alerts.
+Uptrace comes with an intuitive query builder, rich dashboards, alerting rules, notifications, and
+integrations for most languages and frameworks.
+
+Uptrace can process billions of spans and metrics on a single server and allows you to monitor your
+applications at 10x lower cost.
+
+Uptrace uses OpenTelelemetry framework to collect data and ClickHouse database to store it. Uptrace
+also requires PostgreSQL database to store metadata such as metric names and alerts.
 
 **Features**:
 
@@ -50,9 +56,9 @@ requires PostgreSQL database to store metadata such as metric names and alerts.
 
 ## Quickstart
 
-In just few minutes, you can try Uptrace by running a [docker-compose example](example/docker). You
-can also play with the public [Uptrace Cloud demo](https://app.uptrace.dev/play) (no login
-required).
+In just a few minutes, you can try Uptrace by visiting the
+[cloud demo](https://app.uptrace.dev/play) (no login required) or running it locally with
+[Docker](https://github.com/uptrace/uptrace/tree/master/example/docker).
 
 Then follow the [getting started](https://uptrace.dev/get/get-started.html) guide.
 
