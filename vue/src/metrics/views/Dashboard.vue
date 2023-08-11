@@ -26,7 +26,7 @@
           </v-col>
           <v-spacer />
           <v-col cols="auto">
-            <DateRangePicker :date-range="dateRange" :range-days="90" sync-query-params />
+            <DateRangePicker :date-range="dateRange" :range-days="90" />
           </v-col>
         </v-row>
 
@@ -168,6 +168,8 @@ export default defineComponent({
 
   setup() {
     useTitle('Metrics')
+    props.dateRange.syncQueryParams()
+
     const { router } = useRouter()
 
     const dashboards = useDashboards()

@@ -50,11 +50,8 @@ services:
   otelcol:
     image: otel/opentelemetry-collector-contrib:0.70.0
     restart: on-failure
-    user: '0:0' # required for logs
     volumes:
       - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/log:/var/log:ro
     ports:
       - '4317:4317'
       - '4318:4318'

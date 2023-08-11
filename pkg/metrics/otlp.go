@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -16,15 +15,12 @@ import (
 	"github.com/uptrace/uptrace/pkg/bununit"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	metricspb "go.opentelemetry.io/proto/otlp/metrics/v1"
 	"go.uber.org/zap"
 	"golang.org/x/exp/maps"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -55,9 +51,9 @@ var _ collectormetricspb.MetricsServiceServer = (*MetricsServiceServer)(nil)
 func (s *MetricsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	dsn := req.Header.Get("uptrace-dsn")
-	if dsn == "" {
-		return errors.New("uptrace-dsn header is empty or missing")
+	dsn, err := org.DSNFromRequest(req)
+	if err != nil {
+		return err
 	}
 
 	project, err := org.SelectProjectByDSN(ctx, s.App, dsn)
@@ -132,22 +128,12 @@ func (s *MetricsServiceServer) Export(
 		return nil, status.Error(codes.Canceled, "Client cancelled, abandoning.")
 	}
 
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, errors.New("metadata is empty")
+	dsn, err := org.DSNFromMetadata(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	dsn := md.Get("uptrace-dsn")
-	if len(dsn) == 0 {
-		return nil, errors.New("uptrace-dsn header is required")
-	}
-
-	span := trace.SpanFromContext(ctx)
-	if span.IsRecording() {
-		span.SetAttributes(attribute.String("dsn", dsn[0]))
-	}
-
-	project, err := org.SelectProjectByDSN(ctx, s.App, dsn[0])
+	project, err := org.SelectProjectByDSN(ctx, s.App, dsn)
 	if err != nil {
 		return nil, err
 	}

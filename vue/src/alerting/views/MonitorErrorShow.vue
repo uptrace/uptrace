@@ -3,7 +3,7 @@
     <PageToolbar>
       <v-breadcrumbs large :items="breadcrumbs" divider=">"></v-breadcrumbs>
       <v-spacer />
-      <DateRangePicker :date-range="dateRange" :range-days="1" sync-query-params />
+      <DateRangePicker :date-range="dateRange" :range-days="1" />
     </PageToolbar>
 
     <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="py-4">
@@ -89,7 +89,10 @@ export default defineComponent({
   setup() {
     useTitle('Metrics Monitor')
     const { router } = useRouter()
+
     const dateRange = useDateRange()
+    dateRange.syncQueryParams()
+
     const project = useProject()
 
     const breadcrumbs = computed(() => {

@@ -1,6 +1,6 @@
 module github.com/uptrace/uptrace
 
-go 1.20
+go 1.21
 
 replace github.com/segmentio/encoding => github.com/vmihailenco/encoding v0.3.4-0.20220121071420-f96fbbb25975
 

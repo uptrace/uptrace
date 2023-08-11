@@ -62,9 +62,9 @@ type ZipkinAnnotation struct {
 func (h *ZipkinHandler) PostSpans(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	dsn := dsnFromRequest(req)
-	if dsn == "" {
-		return errors.New("uptrace-dsn header is empty or missing")
+	dsn, err := org.DSNFromRequest(req)
+	if err != nil {
+		return err
 	}
 
 	project, err := org.SelectProjectByDSN(ctx, h.App, dsn)

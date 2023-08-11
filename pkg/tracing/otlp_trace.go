@@ -2,7 +2,6 @@ package tracing
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -18,7 +17,6 @@ import (
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"golang.org/x/exp/maps"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -45,9 +43,9 @@ func NewTraceServiceServer(app *bunapp.App, sp *SpanProcessor) *TraceServiceServ
 func (s *TraceServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	dsn := req.Header.Get("uptrace-dsn")
-	if dsn == "" {
-		return errors.New("uptrace-dsn header is required")
+	dsn, err := org.DSNFromRequest(req)
+	if err != nil {
+		return err
 	}
 
 	span := trace.SpanFromContext(ctx)
@@ -125,22 +123,12 @@ func (s *TraceServiceServer) Export(
 		return nil, status.Error(codes.Canceled, "Client cancelled, abandoning.")
 	}
 
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, errors.New("metadata is empty")
+	dsn, err := org.DSNFromMetadata(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	dsn := md.Get("uptrace-dsn")
-	if len(dsn) == 0 {
-		return nil, errors.New("uptrace-dsn header is required")
-	}
-
-	span := trace.SpanFromContext(ctx)
-	if span.IsRecording() {
-		span.SetAttributes(attribute.String("dsn", dsn[0]))
-	}
-
-	project, err := org.SelectProjectByDSN(ctx, s.App, dsn[0])
+	project, err := org.SelectProjectByDSN(ctx, s.App, dsn)
 	if err != nil {
 		return nil, err
 	}

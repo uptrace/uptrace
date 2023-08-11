@@ -2,7 +2,6 @@ package tracing
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -37,9 +36,9 @@ func NewVectorHandler(app *bunapp.App, sp *SpanProcessor) *VectorHandler {
 func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	dsn := dsnFromRequest(req)
-	if dsn == "" {
-		return errors.New("uptrace-dsn header is empty or missing")
+	dsn, err := org.DSNFromRequest(req)
+	if err != nil {
+		return err
 	}
 
 	project, err := org.SelectProjectByDSN(ctx, h.App, dsn)

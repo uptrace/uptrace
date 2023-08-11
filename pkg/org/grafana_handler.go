@@ -1,7 +1,6 @@
 package org
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/uptrace/bunrouter"
@@ -29,12 +28,12 @@ func (h *BaseGrafanaHandler) CheckProjectAccess(next bunrouter.HandlerFunc) bunr
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
 
-		dsn := h.uptraceDSN(req)
-		if dsn == "" {
+		dsn, err := DSNFromRequest(req, "x-scope-orgid")
+		if err != nil {
 			if projectID := req.Params().ByName("project_id"); projectID != "" {
 				return userAndProject(w, req)
 			}
-			return errors.New("either uptrace-dsn or x-scope-orgid header is required")
+			return err
 		}
 
 		project, err := SelectProjectByDSN(ctx, h.App, dsn)
@@ -46,17 +45,4 @@ func (h *BaseGrafanaHandler) CheckProjectAccess(next bunrouter.HandlerFunc) bunr
 
 		return next(w, req.WithContext(ctx))
 	}
-}
-
-func (h *BaseGrafanaHandler) uptraceDSN(req bunrouter.Request) string {
-	if s := req.Header.Get("uptrace-dsn"); s != "" {
-		return s
-	}
-	if s := req.Header.Get("x-scope-orgid"); s != "" {
-		return s
-	}
-	if s := req.URL.Query().Get("uptrace-dsn"); s != "" {
-		return s
-	}
-	return ""
 }

@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"os/exec"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/segmentio/encoding/json"
-	"github.com/uptrace/bunrouter"
 )
 
 func asString(v any) string {
@@ -47,23 +45,6 @@ func quantileLevel(fn string) float64 {
 		panic(err)
 	}
 	return float64(n) / 100
-}
-
-func dsnFromRequest(req bunrouter.Request) string {
-	if dsn := req.Header.Get("uptrace-dsn"); dsn != "" {
-		return dsn
-	}
-
-	if auth := req.Header.Get("Authorization"); auth != "" {
-		const bearer = "Bearer "
-		return strings.TrimPrefix(auth, bearer)
-	}
-
-	if dsn := req.URL.Query().Get("dsn"); dsn != "" {
-		return dsn
-	}
-
-	return ""
 }
 
 //------------------------------------------------------------------------------

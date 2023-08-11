@@ -31,7 +31,7 @@
 
         <v-spacer />
 
-        <DateRangePicker :date-range="dateRange" sync-query-params />
+        <DateRangePicker :date-range="dateRange" />
       </PageToolbar>
 
       <div class="border-bottom">
@@ -123,6 +123,7 @@ export default defineComponent({
 
   setup(props) {
     useTitle('Overview')
+    props.dateRange.syncQueryParams()
 
     const project = useProject()
 

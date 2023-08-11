@@ -2,7 +2,6 @@ package tracing
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -14,14 +13,11 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
 	"golang.org/x/exp/maps"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -47,9 +43,9 @@ func NewLogsServiceServer(app *bunapp.App, sp *SpanProcessor) *LogsServiceServer
 func (s *LogsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	dsn := req.Header.Get("uptrace-dsn")
-	if dsn == "" {
-		return errors.New("uptrace-dsn header is empty or missing")
+	dsn, err := org.DSNFromRequest(req)
+	if err != nil {
+		return err
 	}
 
 	project, err := org.SelectProjectByDSN(ctx, s.App, dsn)
@@ -122,22 +118,12 @@ func (s *LogsServiceServer) Export(
 		return nil, status.Error(codes.Canceled, "Client cancelled, abandoning.")
 	}
 
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, errors.New("metadata is empty")
+	dsn, err := org.DSNFromMetadata(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	dsn := md.Get("uptrace-dsn")
-	if len(dsn) == 0 {
-		return nil, errors.New("uptrace-dsn header is required")
-	}
-
-	span := trace.SpanFromContext(ctx)
-	if span.IsRecording() {
-		span.SetAttributes(attribute.String("dsn", dsn[0]))
-	}
-
-	project, err := org.SelectProjectByDSN(ctx, s.App, dsn[0])
+	project, err := org.SelectProjectByDSN(ctx, s.App, dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +178,7 @@ func (s *LogsServiceServer) convLog(resource AttrMap, lr *logspb.LogRecord) *Spa
 
 	span.EventName = otelEventLog
 	span.Kind = InternalSpanKind
-	span.Time = time.Unix(0, int64(lr.TimeUnixNano))
+	span.Time = time.Unix(0, int64(minNonZero(lr.TimeUnixNano, lr.ObservedTimeUnixNano)))
 
 	span.Attrs = make(AttrMap, len(resource)+len(lr.Attributes)+1)
 	span.Attrs.Merge(resource)
@@ -214,6 +200,16 @@ func (s *LogsServiceServer) convLog(resource AttrMap, lr *logspb.LogRecord) *Spa
 	}
 
 	return span
+}
+
+func minNonZero(u1, u2 uint64) uint64 {
+	if u1 != 0 && u2 != 0 {
+		return min(u1, u2)
+	}
+	if u1 != 0 {
+		return u1
+	}
+	return u2
 }
 
 func (s *LogsServiceServer) processLogRecordBody(span *Span, bodyValue any) {

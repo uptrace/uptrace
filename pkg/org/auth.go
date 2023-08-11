@@ -3,13 +3,16 @@ package org
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/grpc/metadata"
 
 	"go.uber.org/zap"
 )
@@ -150,4 +153,59 @@ func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*Project, error
 	}
 
 	return project, nil
+}
+
+func DSNFromRequest(req bunrouter.Request, extraHeaders ...string) (string, error) {
+	if dsn := dsnFromRequest(req, extraHeaders); dsn != "" {
+		return dsn, nil
+	}
+	return "", errors.New("uptrace-dsn header is empty or missing")
+}
+
+func dsnFromRequest(req bunrouter.Request, extraHeaders []string) string {
+	if dsn := req.Header.Get("uptrace-dsn"); dsn != "" {
+		return dsn
+	}
+	if dsn := req.Header.Get("uptrace-dns"); dsn != "" {
+		return dsn
+	}
+
+	if auth := req.Header.Get("Authorization"); auth != "" {
+		const bearer = "Bearer "
+		return strings.TrimPrefix(auth, bearer)
+	}
+
+	for _, headerKey := range extraHeaders {
+		if dsn := req.Header.Get(headerKey); dsn != "" {
+			return dsn
+		}
+	}
+
+	if dsn := req.URL.Query().Get("dsn"); dsn != "" {
+		return dsn
+	}
+
+	return ""
+}
+
+func DSNFromMetadata(ctx context.Context) (string, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", errors.New("metadata is empty")
+	}
+
+	if dsn := dsnFromMetadata(md); dsn != "" {
+		return dsn, nil
+	}
+	return "", errors.New("uptrace-dsn header is empty or missing")
+}
+
+func dsnFromMetadata(md metadata.MD) string {
+	if dsn := md.Get("uptrace-dsn"); len(dsn) > 0 {
+		return dsn[0]
+	}
+	if dsn := md.Get("uptrace-dns"); len(dsn) > 0 {
+		return dsn[0]
+	}
+	return ""
 }

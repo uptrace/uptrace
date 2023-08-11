@@ -25,7 +25,7 @@
             <v-spacer />
 
             <v-col cols="auto">
-              <DateRangePicker :date-range="dateRange" sync-query-params />
+              <DateRangePicker :date-range="dateRange" />
             </v-col>
           </v-row>
 
@@ -112,6 +112,7 @@ export default defineComponent({
 
   setup(props) {
     useTitle('Explore spans')
+    props.dateRange.syncQueryParams()
 
     const route = useRoute()
     const user = useUser()
