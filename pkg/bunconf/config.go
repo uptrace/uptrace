@@ -196,15 +196,13 @@ func (conf *Config) initSite() error {
 	}
 	conf.Site.URL = siteURL
 
-	conf.Site.Host, conf.Site.Port, err = net.SplitHostPort(conf.Site.URL.Host)
+	conf.Site.Host, _, err = net.SplitHostPort(conf.Site.URL.Host)
 	if err != nil {
-		return err
+		conf.Site.Host = conf.Site.URL.Host
 	}
 
-	if conf.Site.Path != "" {
-		conf.Site.URL.Path = conf.Site.Path
-	} else {
-		conf.Site.URL.Path = "/"
+	if !strings.HasSuffix(conf.Site.URL.Path, "/") {
+		conf.Site.URL.Path += "/"
 	}
 
 	return nil
@@ -284,11 +282,9 @@ type Config struct {
 
 	Site struct {
 		Addr string `yaml:"addr"`
-		Path string `yaml:"path"` // DEPRECATED
 
 		URL  *url.URL `yaml:"-"`
 		Host string   `yaml:"-"`
-		Port string   `yaml:"-"`
 	} `yaml:"site"`
 
 	Spans struct {
