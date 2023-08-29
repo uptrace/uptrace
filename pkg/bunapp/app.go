@@ -474,6 +474,15 @@ func (app *App) SiteURL(path string, args ...any) string {
 	return app.conf.SiteURL(path, args...)
 }
 
+func (app *App) WithGlobalLock(ctx context.Context, fn func() error) error {
+	return app.PG.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		if _, err := tx.ExecContext(ctx, "SELECT pg_advisory_xact_lock(?)", 0); err != nil {
+			return err
+		}
+		return fn()
+	})
+}
+
 //------------------------------------------------------------------------------
 
 type localStorage struct {

@@ -259,7 +259,9 @@ func initPostgres(ctx context.Context, app *bunapp.App) error {
 		return fmt.Errorf("PostgreSQL Ping failed: %w", err)
 	}
 
-	if err := runPGMigrations(ctx, app); err != nil {
+	if err := app.WithGlobalLock(ctx, func() error {
+		return runPGMigrations(ctx, app)
+	}); err != nil {
 		return err
 	}
 
@@ -300,7 +302,9 @@ func initClickhouse(ctx context.Context, app *bunapp.App) error {
 		return fmt.Errorf("ClickHouse Ping failed: %w", err)
 	}
 
-	if err := runCHMigrations(ctx, app); err != nil {
+	if err := app.WithGlobalLock(ctx, func() error {
+		return runCHMigrations(ctx, app)
+	}); err != nil {
 		return err
 	}
 

@@ -137,7 +137,7 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 						}
 					}
 
-					if err := migrator.TruncateTable(ctx); err != nil {
+					if err := migrator.Reset(ctx); err != nil {
 						return err
 					}
 
@@ -264,21 +264,23 @@ func NewCHCommand(migrations *chmigrate.Migrations) *cli.Command {
 }
 
 func NewCHMigrator(app *bunapp.App, migrations *chmigrate.Migrations) *chmigrate.Migrator {
-	chSchema := app.Config().CHSchema
+	conf := app.Config()
+	chSchema := conf.CHSchema
 
 	args := make(map[string]any)
+	var options []chmigrate.MigratorOption
+
 	args["CLUSTER"] = ch.Safe(chSchema.Cluster)
 	args["CODEC"] = ch.Safe(defaultValue(chSchema.Compression, "Default"))
 
 	if chSchema.Replicated {
 		args["REPLICATED"] = ch.Safe("Replicated")
+		args["ON_CLUSTER"] = ch.Safe("ON CLUSTER " + chSchema.Cluster)
+		options = append(options,
+			chmigrate.WithReplicated(chSchema.Replicated),
+			chmigrate.WithOnCluster(chSchema.Cluster))
 	} else {
 		args["REPLICATED"] = ch.Safe("")
-	}
-
-	if chSchema.Replicated {
-		args["ON_CLUSTER"] = ch.Safe("ON CLUSTER " + chSchema.Cluster)
-	} else {
 		args["ON_CLUSTER"] = ch.Safe("")
 	}
 
@@ -293,7 +295,7 @@ func NewCHMigrator(app *bunapp.App, migrations *chmigrate.Migrations) *chmigrate
 		fmter = fmter.WithNamedArg(k, v)
 	}
 
-	return chmigrate.NewMigrator(app.CH.WithFormatter(fmter), migrations)
+	return chmigrate.NewMigrator(app.CH.WithFormatter(fmter), migrations, options...)
 }
 
 func defaultValue(s1, s2 string) string {
