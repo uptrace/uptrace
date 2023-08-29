@@ -166,7 +166,7 @@ export default defineComponent({
     },
   },
 
-  setup() {
+  setup(props) {
     useTitle('Metrics')
     props.dateRange.syncQueryParams()
 

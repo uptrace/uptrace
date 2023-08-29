@@ -54,7 +54,6 @@
         <GroupsTable
           :date-range="dateRange"
           :systems="systems"
-          :query="query"
           :loading="loading"
           :groups="pagedGroups"
           :columns="columns"
@@ -135,10 +134,6 @@ export default defineComponent({
     systems: {
       type: Array as PropType<string[]>,
       required: true,
-    },
-    query: {
-      type: String,
-      default: '',
     },
     loading: {
       type: Boolean,

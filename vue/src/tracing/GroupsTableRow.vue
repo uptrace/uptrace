@@ -135,7 +135,7 @@ export default defineComponent({
 
   setup(props) {
     const route = useRoute()
-    const { where } = useQueryStore()
+    const { query, where } = useQueryStore()
 
     const timeseries = useGroupTimeseries(() => {
       if (!props.plottedColumns.length) {
@@ -167,8 +167,8 @@ export default defineComponent({
     })
 
     const itemListRoute = computed(() => {
-      const editor = props.query
-        ? createUqlEditor(props.query)
+      const editor = query.value
+        ? createUqlEditor(query.value)
         : createUqlEditor().exploreAttr(AttrKey.spanGroupId, props.eventsMode)
       editor.add(props.group._query)
 
@@ -177,19 +177,19 @@ export default defineComponent({
         editor.where(colName, '=', value)
       }
 
-      const query: Record<string, any> = {
+      const queryParams: Record<string, any> = {
         ...route.value.query,
         query: editor.toString(),
       }
 
       const system = props.group[AttrKey.spanSystem]
       if (system) {
-        query.system = system
+        queryParams.system = system
       }
 
       return {
         name: 'SpanList',
-        query,
+        query: queryParams,
       }
     })
 

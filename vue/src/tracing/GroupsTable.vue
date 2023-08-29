@@ -15,7 +15,6 @@
     <template #item="{ item, isExpanded, expand }">
       <GroupsTableRow
         :systems="systems"
-        :query="query"
         :grouping-columns="groupingColumns"
         :plain-columns="plainColumns"
         :plottable-columns="plottableColumns"

@@ -2,7 +2,6 @@
   <GroupsList
     :date-range="dateRange"
     :systems="[system]"
-    :query="query"
     :loading="groups.loading"
     :groups="groups.items"
     :columns="groups.columns"
