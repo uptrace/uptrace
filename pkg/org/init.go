@@ -68,4 +68,11 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 			g.POST("", handler.Add)
 			g.DELETE("", handler.Remove)
 		})
+
+	api.Use(middleware.UserAndProject).
+		WithGroup("/projects/:project_id", func(g *bunrouter.Group) {
+			handler := NewAchievementHandler(app)
+
+			g.GET("/achievements", handler.List)
+		})
 }

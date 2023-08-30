@@ -43,7 +43,7 @@
       </v-card>
     </v-container>
 
-    <PageToolbar>
+    <PageToolbar id="dsn">
       <v-toolbar-title>Project DSN</v-toolbar-title>
     </PageToolbar>
 

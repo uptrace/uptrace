@@ -1,6 +1,6 @@
 <template>
   <div>
-    <HelpCard v-if="systems.hasNoData" :date-range="dateRange" :loading="systems.loading" />
+    <HelpCard v-if="systems.hasNoData" :loading="systems.loading" show-reload />
 
     <template v-else>
       <div class="border-bottom">

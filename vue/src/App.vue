@@ -1,7 +1,9 @@
 <template>
   <v-app>
+    <AppBar v-if="user.isAuth && project.data" :user="user.current" :project="project.data" />
+
     <v-app-bar app absolute flat color="white" class="v-bar--underline">
-      <v-container fluid class="pa-0 fill-height">
+      <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pa-0 fill-height">
         <v-row align="center" class="flex-nowrap">
           <v-col cols="auto">
             <div class="mt-2">
@@ -13,14 +15,12 @@
             <ProjectPicker />
           </v-col>
 
-          <v-spacer v-if="$vuetify.breakpoint.mdAndDown" />
-
           <v-col cols="auto">
             <v-tabs optional class="ml-lg-10 ml-xl-16">
               <template v-if="user.isAuth && $route.params.projectId">
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
                 <v-tab :to="{ name: 'SpanGroupList' }">Traces & Logs</v-tab>
-                <v-tab :to="{ name: 'MetricsDashList' }">Metrics</v-tab>
+                <v-tab :to="{ name: 'MetricsDashList' }">Dashboards</v-tab>
                 <v-tab :to="{ name: 'Alerting' }">Alerts</v-tab>
               </template>
               <v-tab v-if="!user.isAuth" :to="{ name: 'Login' }">Login</v-tab>
@@ -33,10 +33,6 @@
             <AppSearch />
           </v-col>
           <v-col cols="auto">
-            <v-btn v-if="user.isAuth && $route.params.projectId" :to="helpRoute" icon>
-              <v-icon>mdi-help-circle</v-icon>
-            </v-btn>
-
             <v-menu v-if="user.isAuth" bottom offset-y>
               <template #activator="{ attrs, on }">
                 <v-btn elevation="0" color="transparent" class="pl-1 pr-0" v-bind="attrs" v-on="on">
@@ -128,15 +124,17 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed } from 'vue'
+import { defineComponent } from 'vue'
 
 // Composables
-import { useRoute, useRouteQuery } from '@/use/router'
+import { useRouteQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 import { useDateRange } from '@/use/date-range'
 import { useUser } from '@/org/use-users'
+import { useProject } from '@/org/use-projects'
 
 // Components
+import AppBar from '@/components/AppBar.vue'
 import UptraceLogoSmall from '@/components/UptraceLogoSmall.vue'
 import ProjectPicker from '@/components/ProjectPicker.vue'
 import AppSearch from '@/components/AppSearch.vue'
@@ -146,6 +144,7 @@ import GlobalConfirm from '@/components/GlobalConfirm.vue'
 export default defineComponent({
   name: 'App',
   components: {
+    AppBar,
     UptraceLogoSmall,
     ProjectPicker,
     AppSearch,
@@ -158,25 +157,13 @@ export default defineComponent({
     useForceReload()
 
     const dateRange = useDateRange()
-    const route = useRoute()
     const user = useUser()
-
-    const helpRoute = computed(() => {
-      if (route.value.name && route.value.name.startsWith('Metrics')) {
-        return {
-          name: 'MetricsHelp',
-        }
-      }
-      return {
-        name: 'TracingHelp',
-        params: { projectId: route.value.params.projectId },
-      }
-    })
+    const project = useProject()
 
     return {
       dateRange,
       user,
-      helpRoute,
+      project,
     }
   },
 })

@@ -27,6 +27,7 @@ import OverviewSlowestGroups from '@/tracing/views/OverviewSlowestGroups.vue'
 import OverviewGroups from '@/tracing/views/OverviewGroups.vue'
 
 import TracingHelp from '@/tracing/views/Help.vue'
+import TracingCheatsheet from '@/tracing/views/Cheatsheet.vue'
 import Tracing from '@/tracing/views/Tracing.vue'
 import TracingGroups from '@/tracing/views/TracingGroups.vue'
 import TracingSpans from '@/tracing/views/TracingSpans.vue'
@@ -40,6 +41,7 @@ import MetricsLayout from '@/metrics/views/Layout.vue'
 import MetricsDash from '@/metrics/views/Dashboard.vue'
 import MetricsExplore from '@/metrics/views/Explore.vue'
 import MetricsHelp from '@/metrics/views/Help.vue'
+import MetricsCheatsheet from '@/metrics/views/Cheatsheet.vue'
 
 import Login from '@/views/Login.vue'
 
@@ -70,11 +72,6 @@ const routes: RouteConfig[] = [
     path: '/login',
     name: 'Login',
     component: Login,
-  },
-  {
-    name: 'TracingHelp',
-    path: '/help/:projectId(\\d+)',
-    component: TracingHelp,
   },
   {
     name: 'ProjectCreate',
@@ -209,6 +206,16 @@ const routes: RouteConfig[] = [
   },
 
   {
+    name: 'TracingHelp',
+    path: '/spans/:projectId(\\d+)/help',
+    component: TracingHelp,
+  },
+  {
+    path: '/spans/:projectId(\\d+)/cheatsheet',
+    name: 'TracingCheatsheet',
+    component: TracingCheatsheet,
+  },
+  {
     path: '/spans/:projectId(\\d+)',
     component: Tracing,
     children: [
@@ -282,6 +289,11 @@ const routes: RouteConfig[] = [
     component: MetricsHelp,
   },
   {
+    path: '/metrics/:projectId(\\d+)/cheatsheet',
+    name: 'MetricsCheatsheet',
+    component: MetricsCheatsheet,
+  },
+  {
     path: '/metrics',
     beforeEnter: redirectToProject('MetricsDashList'),
   },
@@ -293,6 +305,17 @@ const router = new VueRouter({
   mode: 'history',
   base: process.env.BASE_URL,
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    }
+    if (to.hash) {
+      return {
+        selector: to.hash,
+      }
+    }
+    return savedPosition
+  },
 })
 
 function redirectToProject(routeName: string): NavigationGuard {

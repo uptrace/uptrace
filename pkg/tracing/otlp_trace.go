@@ -169,5 +169,10 @@ func (s *TraceServiceServer) process(
 		}
 	}
 
+	org.CreateAchievementOnce(ctx, s.App, &org.Achievement{
+		ProjectID: project.ID,
+		Name:      org.AchievConfigureTracing,
+	})
+
 	return &collectortrace.ExportTraceServiceResponse{}, nil
 }

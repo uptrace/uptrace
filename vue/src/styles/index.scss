@@ -11,32 +11,24 @@ code {
 .container--fixed-sm {
   & .container {
     max-width: 800px;
-    padding-left: 0;
-    padding-right: 0;
   }
 }
 
 .container--fixed-md {
   & .container {
     max-width: 900px;
-    padding-left: 0;
-    padding-right: 0;
   }
 }
 
 .container--fixed-lg {
   & .container {
     max-width: 1000px;
-    padding-left: 0;
-    padding-right: 0;
   }
 }
 
 .container--fixed-x-lg {
   & .container {
     max-width: 1200px;
-    padding-left: 0;
-    padding-right: 0;
   }
 }
 

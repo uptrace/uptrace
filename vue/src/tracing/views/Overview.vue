@@ -1,7 +1,7 @@
 <template>
   <div>
     <template v-if="systems.hasNoData">
-      <HelpCard :date-range="dateRange" :loading="systems.loading" />
+      <HelpCard :loading="systems.loading" show-reload />
     </template>
 
     <template v-else>

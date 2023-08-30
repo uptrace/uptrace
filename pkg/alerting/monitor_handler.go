@@ -274,6 +274,11 @@ func (h *MonitorHandler) CreateMetricMonitor(w http.ResponseWriter, req bunroute
 		return err
 	}
 
+	org.CreateAchievementOnce(ctx, h.App, &org.Achievement{
+		ProjectID: project.ID,
+		Name:      org.AchievCreateMetricMonitor,
+	})
+
 	return httputil.JSON(w, bunrouter.H{
 		"monitor": monitor,
 	})

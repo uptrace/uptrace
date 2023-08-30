@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/uptrace/bunrouter"
@@ -73,7 +74,7 @@ func (s *MetricsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.R
 			return err
 		}
 
-		resp, err := s.export(ctx, metricsReq, project)
+		resp, err := s.process(ctx, metricsReq, project)
 		if err != nil {
 			return err
 		}
@@ -99,7 +100,7 @@ func (s *MetricsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.R
 			return err
 		}
 
-		resp, err := s.export(ctx, metricsReq, project)
+		resp, err := s.process(ctx, metricsReq, project)
 		if err != nil {
 			return err
 		}
@@ -138,10 +139,10 @@ func (s *MetricsServiceServer) Export(
 		return nil, err
 	}
 
-	return s.export(ctx, req, project)
+	return s.process(ctx, req, project)
 }
 
-func (s *MetricsServiceServer) export(
+func (s *MetricsServiceServer) process(
 	ctx context.Context,
 	req *collectormetricspb.ExportMetricsServiceRequest,
 	project *org.Project,
@@ -154,6 +155,7 @@ func (s *MetricsServiceServer) export(
 		ctx:     ctx,
 		project: project,
 	}
+	defer p.close()
 
 	for _, rms := range req.ResourceMetrics {
 		resource := make(AttrMap, len(rms.Resource.Attributes))
@@ -171,6 +173,14 @@ func (s *MetricsServiceServer) export(
 				})
 			} else {
 				scope = resource
+			}
+
+			if sm.Scope.Name != "" {
+				if strings.Contains(sm.Scope.Name, "otelcol") {
+					p.hasCollectorMetrics = true
+				} else {
+					p.hasAppMetrics = true
+				}
 			}
 
 			for _, metric := range sm.Metrics {
@@ -209,6 +219,24 @@ type otlpProcessor struct {
 	project *org.Project
 
 	metricIDMap map[MetricKey]struct{}
+
+	hasCollectorMetrics bool
+	hasAppMetrics       bool
+}
+
+func (p *otlpProcessor) close() {
+	if p.hasCollectorMetrics {
+		org.CreateAchievementOnce(p.ctx, p.App, &org.Achievement{
+			ProjectID: p.project.ID,
+			Name:      org.AchievInstallCollector,
+		})
+	}
+	if p.hasAppMetrics {
+		org.CreateAchievementOnce(p.ctx, p.App, &org.Achievement{
+			ProjectID: p.project.ID,
+			Name:      org.AchievConfigureMetrics,
+		})
+	}
 }
 
 func (p *otlpProcessor) otlpGauge(
@@ -413,14 +441,14 @@ func (p *otlpProcessor) otlpSummary(
 }
 
 func (p *otlpProcessor) nextMeasure(
-	scope AttrMap,
+	scopeAttrs AttrMap,
 	metric *metricspb.Metric,
 	instrument Instrument,
 	labels []*commonpb.KeyValue,
 	unixNano uint64,
 ) *Measure {
-	attrs := make(AttrMap, len(scope)+len(labels))
-	maps.Copy(attrs, scope)
+	attrs := make(AttrMap, len(scopeAttrs)+len(labels))
+	maps.Copy(attrs, scopeAttrs)
 	otlpconv.ForEachKeyValue(labels, func(key string, value any) {
 		attrs[key] = fmt.Sprint(value)
 	})

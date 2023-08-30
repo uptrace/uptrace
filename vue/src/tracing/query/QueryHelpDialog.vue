@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="dialog" max-width="1200" @keydown.esc="dialog = false">
+  <v-dialog v-model="dialog" :max-width="1280" @keydown.esc="dialog = false">
     <template #activator="{ on, attrs }">
       <v-btn text class="v-btn--filter" v-bind="attrs" v-on="on">
         <v-icon left>mdi-help-circle-outline</v-icon>
@@ -9,9 +9,9 @@
 
     <v-card>
       <v-toolbar flat color="blue lighten-5">
-        <v-toolbar-title>Uptrace Metrics Cheat Sheet</v-toolbar-title>
+        <v-toolbar-title>Spans Querying Cheat Sheet</v-toolbar-title>
         <v-btn
-          href="https://uptrace.dev/get/querying-metrics.html"
+          href="https://uptrace.dev/get/querying-spans.html"
           target="_blank"
           class="ml-6 primary"
         >
@@ -24,7 +24,7 @@
         </v-toolbar-items>
       </v-toolbar>
 
-      <v-container fluid class="pa-6">
+      <v-container fluid>
         <v-row>
           <v-col>
             <CheatsheetCard />
@@ -38,7 +38,7 @@
             <v-btn
               text
               color="primary"
-              href="https://uptrace.dev/get/querying-metrics.html"
+              href="https://uptrace.dev/get/querying-spans.html"
               target="_blank"
             >
               <span>Read more</span>
@@ -55,7 +55,7 @@
 import { defineComponent, shallowRef } from 'vue'
 
 // Components
-import CheatsheetCard from '@/metrics/CheatsheetCard.vue'
+import CheatsheetCard from '@/tracing/CheatsheetCard.vue'
 
 export default defineComponent({
   name: 'QueryHelpDialog',

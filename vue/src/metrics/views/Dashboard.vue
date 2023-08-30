@@ -45,50 +45,8 @@
                 <v-tab href="#table">Table</v-tab>
                 <v-tab href="#grid">Grid</v-tab>
                 <v-tab href="#yaml">YAML</v-tab>
+                <v-tab href="#help">Help</v-tab>
               </v-tabs>
-            </v-col>
-            <v-col cols="auto" class="px-6">
-              <v-menu open-on-hover offset-y>
-                <template #activator="{ on, attrs }">
-                  <v-icon v-bind="attrs" v-on="on">mdi-help</v-icon>
-                </template>
-
-                <v-card max-width="700" class="pa-4 grey--text text--darken-3">
-                  <p>
-                    Uptrace uses 2 different types of dashboards together to visualize metrics data:
-                  </p>
-
-                  <ul class="mb-4">
-                    <li class="mb-1">
-                      A <strong>grid</strong>-based dashboard is a classic grid of charts.
-                    </li>
-                    <li>
-                      A <strong>table</strong>-based dashboard is a table where each row leads to a
-                      separate grid-based dashboard, for example, a table of host names with a
-                      separate grid for each host name.
-                    </li>
-                  </ul>
-
-                  <p>
-                    In other words, table-based dashboards allow to parameterize grid-based
-                    dashboards with attributes from the table.
-                  </p>
-
-                  <p>
-                    For example, Uptrace Cloud uses a table-based dashboard to monitor the number of
-                    sampled and dropped spans for each project.
-                  </p>
-
-                  <v-btn
-                    color="primary"
-                    href="https://uptrace.dev/get/querying-metrics.html#dashboards"
-                    target="_blank"
-                  >
-                    Open documentation
-                    <v-icon right>mdi-open-in-new</v-icon>
-                  </v-btn>
-                </v-card>
-              </v-menu>
             </v-col>
           </v-row>
         </v-container>
@@ -119,6 +77,7 @@
         <v-tab-item value="yaml">
           <DashYaml :yaml-url="dashboard.yamlUrl" @change="dashboard.reload" />
         </v-tab-item>
+        <v-tab-item value="help"><DashHelp /></v-tab-item>
       </v-tabs-items>
     </template>
   </div>
@@ -142,6 +101,7 @@ import DashNewForm from '@/metrics/DashNewForm.vue'
 import DashGrid from '@/metrics/DashGrid.vue'
 import DashTable from '@/metrics/DashTable.vue'
 import DashYaml from '@/metrics/DashYaml.vue'
+import DashHelp from '@/metrics/DashHelp.vue'
 
 // Types
 import { Dashboard, DashKind } from '@/metrics/types'
@@ -157,6 +117,7 @@ export default defineComponent({
     DashGrid,
     DashTable,
     DashYaml,
+    DashHelp,
   },
 
   props: {

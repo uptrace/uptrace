@@ -1,6 +1,6 @@
 <template>
   <div>
-    <HelpCard v-if="metrics.noData" :loading="metrics.loading" />
+    <HelpCard v-if="metrics.noData" :loading="metrics.loading" show-reload />
 
     <template v-else>
       <div class="border">

@@ -20,7 +20,7 @@
     <GroupByMenu :uql="uql" :axios-params="axiosParams" :disabled="aggDisabled" />
 
     <v-divider vertical class="mx-2" />
-    <SpanQueryHelpDialog />
+    <QueryHelpDialog />
     <v-btn text class="v-btn--filter" @click="$emit('click:reset')">Reset</v-btn>
     <v-btn text class="v-btn--filter" @click="uql.rawMode = true">Edit</v-btn>
 
@@ -60,7 +60,7 @@ import AttrFilterMenu from '@/tracing/query/AttrFilterMenu.vue'
 import WhereFilterMenu from '@/tracing/query/WhereFilterMenu.vue'
 import AggByMenu from '@/tracing/query/AggByMenu.vue'
 import GroupByMenu from '@/tracing/query/GroupByMenu.vue'
-import SpanQueryHelpDialog from '@/tracing/query/SpanQueryHelpDialog.vue'
+import QueryHelpDialog from '@/tracing/query/QueryHelpDialog.vue'
 import FacetList from '@/components/facet/FacetList.vue'
 
 // Utilities
@@ -75,7 +75,7 @@ export default defineComponent({
     WhereFilterMenu,
     AggByMenu,
     GroupByMenu,
-    SpanQueryHelpDialog,
+    QueryHelpDialog,
     FacetList,
   },
 

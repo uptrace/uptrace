@@ -1,8 +1,12 @@
 <template>
   <v-hover v-slot="{ hover }">
     <v-card :flat="!hover" :color="hover ? 'white' : 'transparent'" class="mx-auto">
-      <v-card-text class="text-center">
-        <a :href="to" :title="`${name} integration`" target="_blank">
+      <v-card-text class="text-center py-1">
+        <router-link v-if="to" :to="to">
+          <v-img :src="icon" max-width="80" aspect-ratio="1" contain :alt="name" class="mx-auto" />
+          <div class="mt-2 text-subtitle-1 text-no-wrap">{{ name }}</div>
+        </router-link>
+        <a v-else :href="href" :title="`${name} integration`" target="_blank">
           <v-img :src="icon" max-width="80" aspect-ratio="1" contain :alt="name" class="mx-auto" />
           <div class="mt-2 text-subtitle-1 text-no-wrap">{{ name }}</div>
         </a>
@@ -15,7 +19,7 @@
 import { defineComponent } from 'vue'
 
 export default defineComponent({
-  name: 'Devicon',
+  name: 'DevIcon',
 
   props: {
     name: {
@@ -26,9 +30,13 @@ export default defineComponent({
       type: String,
       required: true,
     },
-    to: {
+    href: {
       type: String,
-      required: true,
+      default: '',
+    },
+    to: {
+      type: Object,
+      default: undefined,
     },
   },
 })

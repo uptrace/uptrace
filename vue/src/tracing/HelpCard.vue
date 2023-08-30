@@ -5,15 +5,15 @@
 
       <v-spacer />
 
-      <DateRangePicker v-if="dateRange" :date-range="dateRange" />
+      <ForceReloadBtn v-if="showReload" />
     </PageToolbar>
 
     <v-container class="mb-6 px-4 py-6">
       <v-row>
         <v-col class="text-subtitle-1">
           <p>
-            To start sending data to Uptrace, you need to install OpenTelemetry distro for Uptrace
-            and configure it using the provided DSN (connection string).
+            To start sending data to Uptrace, you need to configure OpenTelemetry SDK. Use the
+            following <strong>DSN</strong> to configure OpenTelemetry for your programming language:
           </p>
 
           <p>
@@ -21,11 +21,11 @@
             <strong>OTLP/gRPC</strong> port:
           </p>
 
-          <PrismCode :code="`UPTRACE_DSN=${project.grpc.dsn}`" class="mb-4" />
+          <PrismCode :code="`export UPTRACE_DSN=&quot;${project.grpc.dsn}&quot;`" class="mb-4" />
 
           <p>For Ruby, Node.JS, and PHP, use <strong>OTLP/HTTP</strong> port:</p>
 
-          <PrismCode :code="`UPTRACE_DSN=${project.http.dsn}`" class="mb-4" />
+          <PrismCode :code="`export UPTRACE_DSN=&quot;${project.http.dsn}&quot;`" class="mb-4" />
         </v-col>
       </v-row>
 
@@ -37,25 +37,27 @@
     </v-container>
 
     <PageToolbar :loading="loading">
-      <v-toolbar-title>Quickstart</v-toolbar-title>
-    </PageToolbar>
-
-    <v-container class="mb-6 px-4 py-6">
-      <SoftwareIcons :show-frameworks="true" />
-    </v-container>
-
-    <PageToolbar :loading="loading">
       <v-toolbar-title>Already using OpenTelemetry Collector?</v-toolbar-title>
     </PageToolbar>
 
     <v-container class="mb-6 px-4 py-6">
       <v-row>
         <v-col class="text-subtitle-1">
-          Uptrace natively supports OpenTelemetry Protocol (OTLP) in case you are already using
-          OpenTelemetry Collector. Use the following OTLP exporter
-          <a href="https://uptrace.dev/opentelemetry/collector.html#configuration" target="_blank"
-            >config</a
-          >:
+          <p>
+            In case you are already using OpenTelemetry
+            <a href="https://uptrace.dev/opentelemetry/collector.html" target="_blank">Collector</a
+            >, you can send data to Uptrace using
+            <a
+              href="https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlpexporter"
+              target="_blank"
+              >otlpexporter</a
+            >.
+          </p>
+
+          <v-alert type="info" prominent border="left" outlined class="mb-0">
+            Don't forget to add the Uptrace exporter to <code>service.pipelines</code> section,
+            because unused exporters are silently ignored.
+          </v-alert>
         </v-col>
       </v-row>
 
@@ -64,87 +66,52 @@
           <CollectorTabs :http="project.http" :grpc="project.grpc" />
         </v-col>
       </v-row>
-
-      <v-row>
-        <v-col>
-          <v-alert type="info" prominent border="left" outlined>
-            Don't forget to add Uptrace exporter to <code>service.pipelines</code> section. Such
-            unused exporters are silently ignored.
-          </v-alert>
-        </v-col>
-      </v-row>
     </v-container>
 
     <PageToolbar :loading="loading">
-      <v-toolbar-title>Vector Logs</v-toolbar-title>
+      <v-toolbar-title>Quickstart</v-toolbar-title>
     </PageToolbar>
 
     <v-container class="mb-6 px-4 py-6">
-      <v-row>
-        <v-col class="text-subtitle-1">
-          To configure Vector <strong>0.23.0+</strong> to send logs to Uptrace, use the HTTP sink
-          and pass your project DSN via HTTP headers. For example, to collect syslog messages you
-          can create the following Vector config:
-        </v-col>
-      </v-row>
-
-      <v-row>
-        <v-col>
-          <PrismCode language="toml" :code="vectorConfig" />
-        </v-col>
-      </v-row>
-
-      <v-row>
-        <v-col class="text-subtitle-1">
-          See
-          <a href="https://uptrace.dev/opentelemetry/structured-logging.html" target="_blank"
-            >documentation</a
-          >
-          for more details.
+      <v-row align="end">
+        <v-col
+          v-for="item in frameworks"
+          :key="item.name"
+          cols="6"
+          sm="3"
+          lg="2"
+          class="flex-grow-1"
+        >
+          <DevIcon v-bind="item" />
         </v-col>
       </v-row>
     </v-container>
 
-    <PageToolbar :loading="loading">
-      <v-toolbar-title>Zipkin API</v-toolbar-title>
-    </PageToolbar>
-
-    <v-container class="mb-6 px-4 py-6">
-      <v-row>
-        <v-col class="text-subtitle-1">
-          Uptrace also supports Zipkin JSON API at <code>/api/v2/spans</code>:
-        </v-col>
-      </v-row>
-
-      <v-row>
-        <v-col>
-          <PrismCode language="bash" :code="zipkinCurl" />
-        </v-col>
-      </v-row>
-    </v-container>
+    <HelpLinks />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, PropType } from 'vue'
+import { defineComponent, computed } from 'vue'
 
 // Composables
-import { UseDateRange } from '@/use/date-range'
 import { useProject } from '@/org/use-projects'
 
 // Components
-import DateRangePicker from '@/components/date/DateRangePicker.vue'
+import ForceReloadBtn from '@/components/date/ForceReloadBtn.vue'
 import CollectorTabs from '@/components/CollectorTabs.vue'
 import DistroIcons from '@/components/DistroIcons.vue'
-import SoftwareIcons from '@/components/SoftwareIcons.vue'
+import DevIcon from '@/components/DevIcon.vue'
+import HelpLinks from '@/components/HelpLinks.vue'
 
 export default defineComponent({
   name: 'HelpCard',
   components: {
-    DateRangePicker,
+    ForceReloadBtn,
     CollectorTabs,
     DistroIcons,
-    SoftwareIcons,
+    DevIcon,
+    HelpLinks,
   },
 
   props: {
@@ -152,43 +119,80 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
-    dateRange: {
-      type: Object as PropType<UseDateRange>,
-      default: undefined,
+    showReload: {
+      type: Boolean,
+      default: false,
     },
   },
 
   setup() {
     const project = useProject()
 
-    const vectorConfig = computed(() => {
-      return `
-[sources.in]
-type = "file"
-include = ["/var/log/syslog"]
-
-[sinks.uptrace]
-type = "http"
-method = "post"
-inputs = ["in"]
-encoding.codec = "json"
-framing.method = "newline_delimited"
-compression = "gzip"
-uri = "${project.http.endpoint}/api/v1/vector/logs"
-request.headers.uptrace-dsn = "${project.http.dsn}"
-      `.trim()
+    const frameworks = computed(() => {
+      return [
+        {
+          name: 'net/http',
+          icon: '/devicon/net-http.svg',
+          href: instrumentationLink('opentelemetry-go-net-http.html'),
+        },
+        {
+          name: 'Gin',
+          icon: '/devicon/gin.svg',
+          href: instrumentationLink('opentelemetry-gin.html'),
+        },
+        {
+          name: 'Beego',
+          icon: '/devicon/beego.svg',
+          href: instrumentationLink('opentelemetry-beego.html'),
+        },
+        {
+          name: 'Django',
+          icon: '/devicon/django.svg',
+          href: instrumentationLink('opentelemetry-django.html'),
+        },
+        {
+          name: 'Flask',
+          icon: '/devicon/flask.svg',
+          href: instrumentationLink('opentelemetry-flask.html'),
+        },
+        {
+          name: 'FastAPI',
+          icon: '/devicon/fastapi-original.svg',
+          href: instrumentationLink('opentelemetry-fastapi.html'),
+        },
+        {
+          name: 'SQLAlchemy',
+          icon: '/devicon/sqlalchemy-original.svg',
+          href: instrumentationLink('opentelemetry-sqlalchemy.html'),
+        },
+        {
+          name: 'Rails',
+          icon: '/devicon/rails.svg',
+          href: instrumentationLink('opentelemetry-rails.html'),
+        },
+        {
+          name: 'Express',
+          icon: '/devicon/express.svg',
+          href: instrumentationLink('opentelemetry-express.html'),
+        },
+        {
+          name: 'Spring Boot',
+          icon: '/devicon/spring-original.svg',
+          href: instrumentationLink('opentelemetry-spring-boot.html'),
+        },
+        {
+          name: 'Phoenix',
+          icon: '/devicon/phoenix-original.svg',
+          href: instrumentationLink('opentelemetry-phoenix.html'),
+        },
+      ]
     })
 
-    const zipkinCurl = computed(() => {
-      return `
-curl -X POST '${project.http.endpoint}/api/v2/spans' \\
-  -H 'Content-Type: application/json' \\
-  -H 'uptrace-dsn: ${project.http.dsn}' \\
-  -d @spans.json
-      `.trim()
-    })
+    function instrumentationLink(file: string): string {
+      return `https://uptrace.dev/get/instrument/${file}`
+    }
 
-    return { project, vectorConfig, zipkinCurl }
+    return { project, frameworks }
   },
 })
 </script>
