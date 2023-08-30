@@ -12,7 +12,7 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - ch_data8:/var/lib/clickhouse
+      - ch_data9:/var/lib/clickhouse
     ports:
       - '8123:8123'
       - '9000:9000'
@@ -31,12 +31,12 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - 'pg_data5:/var/lib/postgresql/data/pgdata'
+      - 'pg_data6:/var/lib/postgresql/data/pgdata'
     ports:
       - '5432:5432'
 
   uptrace:
-    image: 'uptrace/uptrace:1.5.2'
+    image: 'uptrace/uptrace:1.5.4'
     #image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:
@@ -79,5 +79,5 @@ services:
       - 'host.docker.internal:host-gateway'
 
 volumes:
-  ch_data8:
-  pg_data5:
+  ch_data9:
+  pg_data6:
