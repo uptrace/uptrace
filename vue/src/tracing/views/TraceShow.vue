@@ -11,7 +11,7 @@
     </template>
 
     <div v-else>
-      <PageToolbar :loading="trace.loading" :fluid="$vuetify.breakpoint.mdAndDown">
+      <PageToolbar :loading="trace.loading" :fluid="$vuetify.breakpoint.lgAndDown">
         <v-breadcrumbs :items="meta.breadcrumbs" divider=">" large>
           <template #item="{ item }">
             <v-breadcrumbs-item :to="item.to" :exact="item.exact">
@@ -30,14 +30,14 @@
         />
       </PageToolbar>
 
-      <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="py-4">
-        <v-row v-if="trace.root" class="px-4 text-body-2">
+      <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="py-4">
+        <v-row v-if="trace.root" class="px-2 text-body-2">
           <v-col class="word-break-all">
             {{ trace.root.displayName }}
           </v-col>
         </v-row>
 
-        <v-row v-if="trace.root" align="end" class="px-4 text-subtitle-2 text-center">
+        <v-row v-if="trace.root" align="end" class="px-2 text-subtitle-2 text-center">
           <v-col v-if="trace.root.kind" cols="auto">
             <div class="grey--text font-weight-regular">Kind</div>
             <div>{{ trace.root.kind }}</div>

@@ -73,6 +73,13 @@
           </v-sheet>
         </v-menu>
       </div>
+
+      <v-spacer />
+
+      <v-btn href="https://app.uptrace.dev/join" small class="primary">
+        <v-icon left>mdi-cloud</v-icon>
+        <span>Uptrace Cloud</span>
+      </v-btn>
     </v-container>
   </v-system-bar>
 </template>
