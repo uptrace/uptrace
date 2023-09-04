@@ -312,8 +312,9 @@ type Config struct {
 	} `yaml:"smtp_mailer"`
 
 	UptraceGo struct {
-		DSN string     `yaml:"dsn"`
-		TLS *TLSClient `yaml:"tls"`
+		Disabled bool       `json:"disabled"`
+		DSN      string     `yaml:"dsn"`
+		TLS      *TLSClient `yaml:"tls"`
 	} `yaml:"uptrace_go"`
 
 	Logging struct {
