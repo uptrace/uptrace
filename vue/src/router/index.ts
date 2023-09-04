@@ -3,6 +3,7 @@ import VueRouter, { RouteConfig, NavigationGuard } from 'vue-router'
 
 // Composables
 import { useUser } from '@/org/use-users'
+import { useProject } from '@/org/use-projects'
 
 import NotFoundPage from '@/org/views/NotFoundPage.vue'
 import ProjectSettings from '@/org/views/ProjectSettings.vue'
@@ -51,21 +52,7 @@ const routes: RouteConfig[] = [
   {
     name: 'Home',
     path: '/',
-    beforeEnter: async (_to, _from, next) => {
-      const user = useUser()
-      await user.getOrLoad()
-
-      const first = user.projects[0]
-      if (first) {
-        next({
-          name: 'Overview',
-          params: { projectId: String(first.id) },
-        })
-        return
-      }
-
-      next({ name: 'ProjectCreate' })
-    },
+    beforeEnter: redirectToProject('Overview'),
   },
 
   {
@@ -322,6 +309,15 @@ function redirectToProject(routeName: string): NavigationGuard {
   return async (_to, _from, next) => {
     const user = useUser()
     await user.getOrLoad()
+
+    const project = useProject()
+
+    for (let p of user.projects) {
+      if (p.id === project.lastProjectId) {
+        next({ name: routeName, params: { projectId: String(p.id) } })
+        return
+      }
+    }
 
     const first = user.projects[0]
     if (first) {
