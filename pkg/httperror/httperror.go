@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/segmentio/encoding/json"
+	"github.com/uptrace/go-clickhouse/ch"
 )
 
 var ErrRequestTimeout = New(http.StatusRequestTimeout,
@@ -107,6 +108,11 @@ func From(err error) Error {
 		return BadRequest("json_unmarshal", err.Error())
 	case *strconv.NumError:
 		return BadRequest("strconv_num", err.Error())
+	case *ch.Error:
+		if err.Code == 159 {
+			return InternalServerError("clickhouse: query execution was interrupted due to timeout")
+		}
+		
 	}
 
 	msg := err.Error()
