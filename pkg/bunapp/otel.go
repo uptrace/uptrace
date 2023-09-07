@@ -10,6 +10,10 @@ func configureOpentelemetry(app *App) error {
 	conf := app.Config()
 	project := &conf.Projects[0]
 
+	if conf.UptraceGo.Disabled {
+		return nil
+	}
+
 	var options []uptrace.Option
 
 	options = append(options, uptrace.WithServiceName(app.conf.Service))
