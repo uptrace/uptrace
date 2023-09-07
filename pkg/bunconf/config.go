@@ -301,7 +301,7 @@ type Config struct {
 	} `yaml:"metrics"`
 
 	SMTPMailer struct {
-		Enabled  bool              `json:"enabled"`
+		Enabled  bool              `yaml:"enabled"`
 		Host     string            `yaml:"host"`
 		Port     int               `yaml:"port"`
 		AuthType mail.SMTPAuthType `yaml:"auth_type"`
@@ -312,7 +312,7 @@ type Config struct {
 	} `yaml:"smtp_mailer"`
 
 	UptraceGo struct {
-		Disabled bool       `json:"disabled"`
+		Disabled bool       `yaml:"disabled"`
 		DSN      string     `yaml:"dsn"`
 		TLS      *TLSClient `yaml:"tls"`
 	} `yaml:"uptrace_go"`
