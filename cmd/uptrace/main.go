@@ -158,6 +158,9 @@ var serveCommand = &cli.Command{
 		{
 			handleStaticFiles(app, uptrace.DistFS())
 			handler := app.HTTPHandler()
+			if conf.Site.URL.Path != "/" {
+				handler = httputil.NewSubpathHandler(handler, conf.Site.URL.Path)
+			}
 			handler = gzhttp.GzipHandler(handler)
 			handler = httputil.DecompressHandler{Next: handler}
 			handler = httputil.NewTraceparentHandler(handler)
