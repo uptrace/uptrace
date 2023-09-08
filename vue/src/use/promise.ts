@@ -148,6 +148,8 @@ export function usePromise(fn: AsyncFunc, cfg: Config = {}) {
         case 400:
         case 403:
           snackbar.notifyError(errorMessage.value)
+        case 500:
+          snackbar.notifyErrorWithDetails(errorMessage.value, 'ClickHouseTimeoutPage')
       }
     })
   }
