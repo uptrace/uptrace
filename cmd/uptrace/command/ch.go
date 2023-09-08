@@ -282,7 +282,8 @@ func NewCHMigrator(app *bunapp.App, migrations *chmigrate.Migrations) *chmigrate
 
 		options = append(options,
 			chmigrate.WithReplicated(chSchema.Replicated),
-			chmigrate.WithOnCluster(chSchema.Cluster))
+			chmigrate.WithOnCluster(chSchema.Cluster),
+			chmigrate.WithDistributed(true))
 	} else {
 		args["REPLICATED"] = ch.Safe("")
 		args["ON_CLUSTER"] = ch.Safe("")
