@@ -16,7 +16,7 @@ export interface TimeseriesGroup extends Record<string, any> {
 }
 
 export function useTimeseries(reqSource: AxiosRequestSource) {
-  const { status, loading, data, reload } = useWatchAxios(() => {
+  const { status, loading, data, error, errorCode, reload } = useWatchAxios(() => {
     return reqSource()
   })
 
@@ -75,6 +75,8 @@ export function useTimeseries(reqSource: AxiosRequestSource) {
   return proxyRefs({
     status,
     loading,
+    error,
+    errorCode,
     reload,
 
     groups,

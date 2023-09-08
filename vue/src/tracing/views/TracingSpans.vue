@@ -18,7 +18,9 @@
           <v-col>
             <LoadPctileChart :axios-params="axiosParams" class="pa-4" />
 
+            <ClickHouseTimeoutError v-if="spans.errorCode === 'clickhouse_timeout'" />
             <SpansTable
+              v-else
               :loading="spans.loading"
               :spans="spans.items"
               :order="spans.order"
@@ -47,6 +49,7 @@ import { UseUql } from '@/use/uql'
 import { useSpans } from '@/tracing/use-spans'
 
 // Components
+import ClickHouseTimeoutError from '@/tracing/ClickHouseTimeoutError.vue'
 import SpansTable from '@/tracing/SpansTable.vue'
 import { SpanChip } from '@/tracing/SpanChips.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
@@ -56,7 +59,7 @@ import { isGroupSystem, AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'TracingSpans',
-  components: { SpansTable, LoadPctileChart },
+  components: { ClickHouseTimeoutError, SpansTable, LoadPctileChart },
 
   props: {
     dateRange: {

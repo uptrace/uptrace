@@ -33,7 +33,9 @@
           </v-toolbar>
 
           <v-container fluid>
+            <ClickHouseTimeoutError v-if="groups.errorCode === 'clickhouse_timeout'" />
             <GroupsList
+              v-else
               :date-range="dateRange"
               :systems="systems.activeSystems"
               :uql="uql"
@@ -68,6 +70,7 @@ import { UseUql } from '@/use/uql'
 import { useGroups } from '@/tracing/use-explore-spans'
 
 // Components
+import ClickHouseTimeoutError from '@/tracing/ClickHouseTimeoutError.vue'
 import GroupsList from '@/tracing/GroupsList.vue'
 
 // Utilities
@@ -75,7 +78,7 @@ import { isGroupSystem } from '@/models/otel'
 
 export default defineComponent({
   name: 'TracingGroups',
-  components: { GroupsList },
+  components: { ClickHouseTimeoutError, GroupsList },
 
   props: {
     dateRange: {

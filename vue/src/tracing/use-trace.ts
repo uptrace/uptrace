@@ -24,7 +24,7 @@ export function useTrace() {
   const coloredSystems = ref<ColoredSystem[]>([])
   const { isVisible, isExpanded, toggleTree, showTree } = useHiddenSpans()
 
-  const { loading, data, error } = useWatchAxios(() => {
+  const { loading, data, error, errorCode } = useWatchAxios(() => {
     const { projectId, traceId } = route.value.params
     return {
       url: `/api/v1/tracing/${projectId}/traces/${traceId}`,
@@ -134,6 +134,7 @@ export function useTrace() {
 
     loading,
     error,
+    errorCode,
 
     coloredSystems,
     root,

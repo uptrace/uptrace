@@ -1,6 +1,14 @@
 <template>
   <div v-frag>
-    <template v-if="trace.error">
+    <template v-if="trace.errorCode === 'clickhouse_timeout'">
+      <div class="d-flex justify-center align-center" style="height: calc(100vh - 285px)">
+        <v-container :fluid="$vuetify.breakpoint.mdAndDown">
+          <ClickHouseTimeoutError />
+        </v-container>
+      </div>
+    </template>
+
+    <template v-else-if="trace.error">
       <TraceError v-if="trace.error" :error="trace.error" />
     </template>
 
@@ -111,6 +119,7 @@ import { useTrace, UseTrace } from '@/tracing/use-trace'
 import { createUqlEditor } from '@/use/uql'
 
 // Components
+import ClickHouseTimeoutError from '@/tracing/ClickHouseTimeoutError.vue'
 import FixedDateRangePicker from '@/components/date/FixedDateRangePicker.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 import SpanSystemBarChart from '@/components/SpanSystemBarChart.vue'
@@ -123,6 +132,7 @@ import { AttrKey, SystemName } from '@/models/otel'
 export default defineComponent({
   name: 'TraceShow',
   components: {
+    ClickHouseTimeoutError,
     FixedDateRangePicker,
     LoadPctileChart,
     SpanSystemBarChart,

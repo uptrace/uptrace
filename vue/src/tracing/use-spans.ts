@@ -20,7 +20,7 @@ export function useSpans(reqSource: AxiosRequestSource, cfg: SpansConfig = {}) {
   const pager = usePager(cfg.pager)
   const order = useOrder(cfg.order)
 
-  const { loading, data } = useWatchAxios(() => {
+  const { loading, data, error, errorCode } = useWatchAxios(() => {
     const req = reqSource()
     if (!req) {
       return req
@@ -56,6 +56,8 @@ export function useSpans(reqSource: AxiosRequestSource, cfg: SpansConfig = {}) {
 
     loading,
     items: spans,
+    error,
+    errorCode,
     queryInfo,
   })
 }

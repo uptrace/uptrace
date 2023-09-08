@@ -12,7 +12,7 @@
           </v-toolbar>
 
           <v-container fluid class="py-4">
-            <template v-if="!timeseries.status.isResolved()">
+            <template v-if="!timeseries.status.isResolved() && !timeseries.errorCode">
               <v-row v-for="i in 2" :key="i">
                 <v-col cols="6">
                   <v-skeleton-loader type="image" />
@@ -22,6 +22,8 @@
                 </v-col>
               </v-row>
             </template>
+
+            <ClickHouseTimeoutError v-else-if="timeseries.errorCode === 'clickhouse_timeout'" />
 
             <template v-else>
               <v-row dense>
@@ -78,6 +80,7 @@ import { UseUql } from '@/use/uql'
 import { useTimeseries, TimeseriesGroup } from '@/tracing/use-timeseries'
 
 // Components
+import ClickHouseTimeoutError from '@/tracing/ClickHouseTimeoutError.vue'
 import TimeseriesMetric from '@/tracing/TimeseriesMetric.vue'
 import TimeseriesGroupsTable from '@/tracing/TimeseriesGroupsTable.vue'
 
@@ -87,7 +90,11 @@ import { EventBus } from '@/models/eventbus'
 
 export default defineComponent({
   name: 'TracingTimeseries',
-  components: { TimeseriesMetric, TimeseriesGroupsTable },
+  components: {
+    ClickHouseTimeoutError,
+    TimeseriesMetric,
+    TimeseriesGroupsTable,
+  },
 
   props: {
     dateRange: {
