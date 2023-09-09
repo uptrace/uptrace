@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -25,8 +27,9 @@ type MetricFilter struct {
 
 	ProjectID uint32
 
-	Instrument Instrument
-	AttrKey    []string
+	Instrument  Instrument
+	AttrKey     []string
+	SearchInput string
 
 	Query string
 }
@@ -135,6 +138,10 @@ func selectMetricsFromCH(
 	}
 	if len(f.AttrKey) > 0 {
 		q = q.Where("hasAll(string_keys, ?)", chschema.Array(f.AttrKey))
+	}
+	if f.SearchInput != "" {
+		values := strings.Split(f.SearchInput, "|")
+		q = q.Where("multiSearchAnyCaseInsensitiveUTF8(metric, ?) != 0", ch.Array(values))
 	}
 
 	if f.Query != "" {

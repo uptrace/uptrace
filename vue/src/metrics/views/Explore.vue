@@ -14,7 +14,8 @@
 
             <v-text-field
               v-model="metricStats.searchInput"
-              label="Quick search over metric names"
+              label="Quick search: option1|option2"
+              prepend-inner-icon="mdi-magnify"
               clearable
               outlined
               dense

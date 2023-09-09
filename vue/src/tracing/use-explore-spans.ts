@@ -55,10 +55,7 @@ export function useGroups(axiosParamsSource: AxiosParamsSource, conf: ExploreCon
     const params: Record<string, any> = {
       ...axiosParams.value,
       ...order.axiosParams,
-    }
-
-    if (debouncedSearchInput.value) {
-      params.query = `${params.query} | where ${AttrKey.displayName} contains '${debouncedSearchInput.value}'`
+      search: debouncedSearchInput.value,
     }
 
     const { projectId } = route.value.params

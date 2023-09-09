@@ -27,7 +27,8 @@ type SpanFilter struct {
 	urlstruct.Pager
 	SystemFilter
 
-	Query string
+	Query  string
+	Search string
 
 	// For stats explorer.
 	Column []string
@@ -134,6 +135,12 @@ func buildSpanIndexQuery(
 	app *bunapp.App, f *SpanFilter, dur time.Duration,
 ) (*ch.SelectQuery, *orderedmap.OrderedMap[string, *ColumnInfo]) {
 	q := NewSpanIndexQuery(app).Apply(f.whereClause)
+
+	if f.Search != "" {
+		values := strings.Split(f.Search, "|")
+		q = q.Where("multiSearchAnyCaseInsensitiveUTF8(s.display_name, ?) != 0", ch.Array(values))
+	}
+
 	return compileUQL(q, f.parts, dur)
 }
 
