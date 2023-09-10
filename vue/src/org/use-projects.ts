@@ -1,5 +1,7 @@
-import { computed, proxyRefs } from 'vue'
+import { computed, proxyRefs, watch } from 'vue'
 
+// Composables
+import { useStorage } from '@/use/local-storage'
 import { useRouter } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
 
@@ -19,6 +21,7 @@ export interface ConnDetails {
 
 export function useProject() {
   const { route } = useRouter()
+  const { item: lastProjectId } = useStorage('useProject:lastProjectId', 0)
 
   const { data } = useWatchAxios(() => {
     const { projectId } = route.value.params
@@ -53,5 +56,17 @@ export function useProject() {
     return project.value?.pinnedAttrs ?? []
   })
 
-  return proxyRefs({ data: project, grpc, http, pinnedAttrs })
+  watch(project, (project) => {
+    if (project) {
+      lastProjectId.value = project.id
+    }
+  })
+
+  return proxyRefs({
+    data: project,
+    grpc,
+    http,
+    pinnedAttrs,
+    lastProjectId,
+  })
 }
