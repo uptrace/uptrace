@@ -108,6 +108,11 @@ func unitFromName(name tql.Name) string {
 }
 
 func (f *SpanFilter) spanqlWhere(q *ch.SelectQuery) *ch.SelectQuery {
+	if f.Search != "" {
+		values := strings.Split(f.Search, "|")
+		q = q.Where("multiSearchAnyCaseInsensitiveUTF8(s.display_name, ?) != 0", ch.Array(values))
+	}
+
 	for _, part := range f.parts {
 		if part.Disabled || part.Error != "" {
 			continue
@@ -121,6 +126,7 @@ func (f *SpanFilter) spanqlWhere(q *ch.SelectQuery) *ch.SelectQuery {
 			}
 		}
 	}
+
 	return q
 }
 
@@ -135,12 +141,6 @@ func buildSpanIndexQuery(
 	app *bunapp.App, f *SpanFilter, dur time.Duration,
 ) (*ch.SelectQuery, *orderedmap.OrderedMap[string, *ColumnInfo]) {
 	q := NewSpanIndexQuery(app).Apply(f.whereClause)
-
-	if f.Search != "" {
-		values := strings.Split(f.Search, "|")
-		q = q.Where("multiSearchAnyCaseInsensitiveUTF8(s.display_name, ?) != 0", ch.Array(values))
-	}
-
 	return compileUQL(q, f.parts, dur)
 }
 
