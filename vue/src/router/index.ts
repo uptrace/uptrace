@@ -5,7 +5,6 @@ import VueRouter, { RouteConfig, NavigationGuard } from 'vue-router'
 import { useUser } from '@/org/use-users'
 
 import NotFoundPage from '@/org/views/NotFoundPage.vue'
-import ClickHouseTimeoutPage from '@/org/views/ClickHouseTimeoutPage.vue'
 import ProjectSettings from '@/org/views/ProjectSettings.vue'
 
 import Alerting from '@/alerting/views/Alerting.vue'
@@ -299,11 +298,6 @@ const routes: RouteConfig[] = [
     beforeEnter: redirectToProject('MetricsDashList'),
   },
 
-  {
-    path: '/timeout',
-    name: 'ClickHouseTimeoutPage',
-    component: ClickHouseTimeoutPage,
-  },
   { path: '*', component: NotFoundPage },
 ]
 
