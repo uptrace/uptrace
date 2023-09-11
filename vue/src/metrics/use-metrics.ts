@@ -1,5 +1,5 @@
-import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
 import { shallowRef, computed, watch, proxyRefs, ShallowRef } from 'vue'
+import { refDebounced } from '@vueuse/core'
 
 // Composables
 import { useRoute } from '@/use/router'
@@ -81,15 +81,14 @@ export function useMetricStats(axiosParamsSource: AxiosParamsSource) {
   const route = useRoute()
 
   const searchInput = shallowRef('')
+  const debouncedSearchInput = refDebounced(searchInput, 600)
   const hasMore = shallowRef(false)
 
   const { status, loading, data, reload } = useWatchAxios(() => {
     const params = axiosParamsSource()
+
     if (params) {
-      params.search_input = searchInput.value
-      if (!hasMore.value) {
-        params.$ignore_search_input = true
-      }
+      params.search_input = debouncedSearchInput.value
     }
 
     const { projectId } = route.value.params
@@ -99,23 +98,8 @@ export function useMetricStats(axiosParamsSource: AxiosParamsSource) {
     }
   })
 
-  const metrics = computed((): MetricStats[] => {
+  const metrics = computed((): Metric[] => {
     return data.value?.metrics ?? []
-  })
-
-  const filteredMetrics = computed((): MetricStats[] => {
-    let filtered = metrics.value.slice()
-
-    if (!searchInput.value) {
-      return filtered
-    }
-
-    if (!hasMore.value) {
-      // @ts-ignore
-      filtered = fuzzyFilter(filtered, searchInput.value, { key: 'name' })
-    }
-
-    return filtered
   })
 
   watch(
@@ -131,7 +115,7 @@ export function useMetricStats(axiosParamsSource: AxiosParamsSource) {
     reload,
 
     searchInput,
-    items: filteredMetrics,
+    items: metrics,
     hasMore,
   })
 }
