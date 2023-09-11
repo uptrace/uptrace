@@ -48,7 +48,8 @@
 
             <v-text-field
               v-model="tableQuery.searchInput"
-              placeholder="Quick search"
+              placeholder="Quick search: option1|option2"
+              prepend-inner-icon="mdi-magnify"
               clearable
               outlined
               dense

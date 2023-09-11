@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/go-clickhouse/ch/chschema"
 	"github.com/uptrace/go-clickhouse/chmigrate"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/urfave/cli/v2"
@@ -275,10 +276,14 @@ func NewCHMigrator(app *bunapp.App, migrations *chmigrate.Migrations) *chmigrate
 
 	if chSchema.Replicated {
 		args["REPLICATED"] = ch.Safe("Replicated")
-		args["ON_CLUSTER"] = ch.Safe("ON CLUSTER " + chSchema.Cluster)
+
+		cluster := chschema.FormatQuery("?", ch.Ident(chSchema.Cluster))
+		args["ON_CLUSTER"] = ch.Safe("ON CLUSTER " + cluster)
+
 		options = append(options,
 			chmigrate.WithReplicated(chSchema.Replicated),
-			chmigrate.WithOnCluster(chSchema.Cluster))
+			chmigrate.WithOnCluster(chSchema.Cluster),
+			chmigrate.WithDistributed(true))
 	} else {
 		args["REPLICATED"] = ch.Safe("")
 		args["ON_CLUSTER"] = ch.Safe("")

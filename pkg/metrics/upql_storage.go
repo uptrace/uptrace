@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/segmentio/encoding/json"
@@ -98,8 +99,9 @@ func (s *CHStorage) SelectTimeseries(f *mql.TimeseriesFilter) ([]mql.Timeseries,
 		GroupExpr("metric")
 
 	if s.conf.Search != "" {
-		q = q.Where("arrayExists(x -> positionCaseInsensitiveUTF8(x, ?) != 0, string_values)",
-			s.conf.Search)
+		values := strings.Split(s.conf.Search, "|")
+		q = q.Where("arrayExists(x -> multiSearchAnyCaseInsensitiveUTF8(x, ?) != 0, string_values)",
+			ch.Array(values))
 	}
 
 	subq, err := s.subquery(q, metric, f)

@@ -230,17 +230,6 @@ export function useTableQuery(
     return orderBy(items.value, (item) => item[col] ?? '', order.desc ? 'desc' : 'asc')
   })
 
-  const filteredItems = computed(() => {
-    const items = sortedItems.value
-    if (!searchInput.value) {
-      return items
-    }
-    const needle = searchInput.value.toLowerCase()
-    return items.filter((item) => {
-      return Object.values(item._attrs).some((value) => value.toLowerCase().includes(needle))
-    })
-  })
-
   const columns = computed((): ColumnInfo[] => {
     return data.value?.columns ?? []
   })
@@ -327,7 +316,7 @@ export function useTableQuery(
     order,
     axiosParams: lastAxiosParams,
 
-    items: filteredItems,
+    items: sortedItems,
     searchInput,
     hasMore,
 

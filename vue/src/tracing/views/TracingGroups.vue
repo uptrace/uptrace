@@ -24,6 +24,18 @@
               <span>Groups</span>
             </v-toolbar-title>
 
+            <v-text-field
+              v-model="groups.searchInput"
+              placeholder="Quick search: option1|option2"
+              prepend-inner-icon="mdi-magnify"
+              clearable
+              outlined
+              dense
+              hide-details="auto"
+              class="ml-8"
+              style="max-width: 300px"
+            />
+
             <v-spacer />
 
             <div class="text-body-2 blue-grey--text text--darken-3">

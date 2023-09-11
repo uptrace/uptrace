@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -86,5 +87,25 @@ func NewTraceparentHandler(next http.Handler) *TraceparentHandler {
 
 func (h *TraceparentHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	h.props.Inject(req.Context(), propagation.HeaderCarrier(w.Header()))
+	h.next.ServeHTTP(w, req)
+}
+
+//------------------------------------------------------------------------------
+
+type SubpathHandler struct {
+	next    http.Handler
+	subpath string
+}
+
+func NewSubpathHandler(next http.Handler, subpath string) *SubpathHandler {
+	return &SubpathHandler{
+		next:    next,
+		subpath: strings.TrimSuffix(subpath, "/"),
+	}
+}
+
+func (h *SubpathHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	req.URL.RawPath = strings.TrimPrefix(req.URL.RawPath, h.subpath)
+	req.URL.Path = strings.TrimPrefix(req.URL.Path, h.subpath)
 	h.next.ServeHTTP(w, req)
 }

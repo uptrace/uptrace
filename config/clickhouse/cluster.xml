@@ -4,17 +4,17 @@
   <default_replica_name>{replica}</default_replica_name>
 
   <macros>
-    <cluster>cluster1</cluster>
+    <cluster>uptrace-cluster1</cluster>
     <shard from_env="SHARD" />
     <replica from_env="REPLICA" />
   </macros>
 
   <distributed_ddl>
-    <path>/clickhouse/cluster1/task_queue/ddl</path>
+    <path>/clickhouse/uptrace-cluster1/task_queue/ddl</path>
   </distributed_ddl>
 
   <remote_servers>
-    <uptrace1>
+    <uptrace-cluster1>
       <shard>
         <replica>
           <host>clickhouse-1</host>
@@ -35,7 +35,7 @@
           <port>9000</port>
         </replica>
       </shard>
-    </uptrace1>
+    </uptrace-cluster1>
   </remote_servers>
 
   <zookeeper>
