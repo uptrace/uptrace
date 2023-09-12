@@ -86,7 +86,6 @@ export function useMetricStats(axiosParamsSource: AxiosParamsSource) {
 
   const { status, loading, data, reload } = useWatchAxios(() => {
     const params = axiosParamsSource()
-
     if (params) {
       params.search_input = debouncedSearchInput.value
     }
@@ -98,7 +97,7 @@ export function useMetricStats(axiosParamsSource: AxiosParamsSource) {
     }
   })
 
-  const metrics = computed((): Metric[] => {
+  const metrics = computed((): MetricStats[] => {
     return data.value?.metrics ?? []
   })
 
