@@ -7,7 +7,7 @@ import { redirectToLogin } from '@/org/use-users'
 axiosRetry(axios, { retries: 2, retryDelay: axiosRetry.exponentialDelay })
 
 axios.interceptors.request.use((config) => {
-  config.baseURL = process.env.VUE_APP_BASE_URL
+  config.baseURL = process.env.NODE_ENV === 'production' ? '/UPTRACE_PLACEHOLDER/' : '/'
   config.withCredentials = true
   return config
 })
