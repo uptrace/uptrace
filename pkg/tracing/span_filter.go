@@ -107,12 +107,15 @@ func unitFromName(name tql.Name) string {
 	}
 }
 
-func (f *SpanFilter) spanqlWhere(q *ch.SelectQuery) *ch.SelectQuery {
+func (f *SpanFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 	if f.Search != "" {
 		values := strings.Split(f.Search, "|")
 		q = q.Where("multiSearchAnyCaseInsensitiveUTF8(s.display_name, ?) != 0", ch.Array(values))
 	}
+	return f.SystemFilter.whereClause(q)
+}
 
+func (f *SpanFilter) spanqlWhere(q *ch.SelectQuery) *ch.SelectQuery {
 	for _, part := range f.parts {
 		if part.Disabled || part.Error != "" {
 			continue
