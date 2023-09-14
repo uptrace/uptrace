@@ -236,7 +236,11 @@ func (app *App) Zap(ctx context.Context) otelzap.LoggerWithCtx {
 
 func (app *App) initRouter() {
 	app.router = app.newRouter()
-	app.routerGroup = app.router.NewGroup(app.conf.Site.URL.Path)
+	if app.conf.Site.URL.Path != "/" {
+		app.routerGroup = app.router.NewGroup(app.conf.Site.URL.Path)
+	} else {
+		app.routerGroup = app.router.NewGroup("")
+	}
 
 	if app.Debugging() {
 		adapter := bunrouter.HTTPHandlerFunc
