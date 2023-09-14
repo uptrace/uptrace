@@ -53,6 +53,7 @@ export default defineComponent({
               projectId: String(span.projectId),
               traceId: span.traceId,
             },
+            query: route.value.query,
           })
         }
       },
