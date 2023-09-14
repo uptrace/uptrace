@@ -111,8 +111,9 @@ type App struct {
 
 	Logger *otelzap.Logger
 
-	router   *bunrouter.Router
-	apiGroup *bunrouter.Group
+	router      *bunrouter.Router
+	routerGroup *bunrouter.Group
+	apiGroup    *bunrouter.Group
 
 	grpcServer *grpc.Server
 
@@ -235,7 +236,24 @@ func (app *App) Zap(ctx context.Context) otelzap.LoggerWithCtx {
 
 func (app *App) initRouter() {
 	app.router = app.newRouter()
-	app.apiGroup = app.router.NewGroup("/api/v1")
+	app.routerGroup = app.router.NewGroup(app.conf.Site.URL.Path)
+
+	if app.Debugging() {
+		adapter := bunrouter.HTTPHandlerFunc
+
+		app.routerGroup.GET("/debug/pprof/", adapter(pprof.Index))
+		app.routerGroup.GET("/debug/pprof/cmdline", adapter(pprof.Cmdline))
+		app.routerGroup.GET("/debug/pprof/profile", adapter(pprof.Profile))
+		app.routerGroup.GET("/debug/pprof/symbol", adapter(pprof.Symbol))
+		app.routerGroup.GET(
+			"/debug/pprof/:name", func(w http.ResponseWriter, req bunrouter.Request) error {
+				h := pprof.Handler(req.Param("name"))
+				h.ServeHTTP(w, req.Request)
+				return nil
+			})
+	}
+
+	app.apiGroup = app.routerGroup.NewGroup("/api/v1")
 }
 
 func (app *App) newRouter(opts ...bunrouter.Option) *bunrouter.Router {
@@ -254,21 +272,6 @@ func (app *App) newRouter(opts ...bunrouter.Option) *bunrouter.Router {
 	)
 
 	router := bunrouter.New(opts...)
-
-	if app.Debugging() {
-		adapter := bunrouter.HTTPHandlerFunc
-
-		router.GET("/debug/pprof/", adapter(pprof.Index))
-		router.GET("/debug/pprof/cmdline", adapter(pprof.Cmdline))
-		router.GET("/debug/pprof/profile", adapter(pprof.Profile))
-		router.GET("/debug/pprof/symbol", adapter(pprof.Symbol))
-		router.GET("/debug/pprof/:name", func(w http.ResponseWriter, req bunrouter.Request) error {
-			h := pprof.Handler(req.Param("name"))
-			h.ServeHTTP(w, req.Request)
-			return nil
-		})
-	}
-
 	return router
 }
 
@@ -295,6 +298,10 @@ func (app *App) httpErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFu
 
 func (app *App) Router() *bunrouter.Router {
 	return app.router
+}
+
+func (app *App) RouterGroup() *bunrouter.Group {
+	return app.routerGroup
 }
 
 func (app *App) APIGroup() *bunrouter.Group {

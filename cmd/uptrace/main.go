@@ -31,12 +31,12 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp/chmigrations"
 	"github.com/uptrace/uptrace/pkg/bunapp/pgmigrations"
 	"github.com/uptrace/uptrace/pkg/grafana"
+	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/run"
 	"github.com/vmihailenco/taskq/extra/oteltaskq/v4"
 	"golang.org/x/net/http2"
 
-	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/urfave/cli/v2"
@@ -158,9 +158,6 @@ var serveCommand = &cli.Command{
 		{
 			handleStaticFiles(app, uptrace.DistFS())
 			handler := app.HTTPHandler()
-			if conf.Site.URL.Path != "/" {
-				handler = httputil.NewSubpathHandler(handler, conf.Site.URL.Path)
-			}
 			handler = gzhttp.GzipHandler(handler)
 			handler = httputil.DecompressHandler{Next: handler}
 			handler = httputil.NewTraceparentHandler(handler)
@@ -470,13 +467,12 @@ func createProject(ctx context.Context, app *bunapp.App, project *org.Project) e
 
 func handleStaticFiles(app *bunapp.App, fsys fs.FS) {
 	conf := app.Config()
-	router := app.Router()
 
 	fsys = newVueFS(fsys, conf.Site.URL.Path)
 	httpFS := http.FS(fsys)
 	fileServer := http.FileServer(httpFS)
 
-	router.GET("/*path", func(w http.ResponseWriter, req bunrouter.Request) error {
+	app.RouterGroup().GET("/*path", func(w http.ResponseWriter, req bunrouter.Request) error {
 		if _, err := httpFS.Open(req.URL.Path); err == nil {
 			fileServer.ServeHTTP(w, req.Request)
 			return nil
@@ -533,17 +529,23 @@ func newVueFS(fsys fs.FS, publicPath string) *vueFS {
 	return &vueFS{
 		fs:         fsys,
 		publicPath: publicPath,
+		prefix:     strings.TrimPrefix(publicPath, "/"),
 	}
 }
 
 type vueFS struct {
 	fs         fs.FS
 	publicPath string
+	prefix     string
 }
 
 var _ fs.FS = (*vueFS)(nil)
 
 func (v *vueFS) Open(name string) (fs.File, error) {
+	if v.prefix != "" {
+		name = strings.TrimPrefix(name, v.prefix)
+	}
+
 	switch filepath.Ext(name) {
 	case "", ".html", ".js", ".css":
 	default:

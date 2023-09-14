@@ -25,6 +25,11 @@ Vue.component('GroupsList', GroupsList)
 Vue.component('DashGaugeCard', DashGaugeCard)
 
 Vue.mixin({
+  data() {
+    return {
+      publicPath: process.env.BASE_URL,
+    }
+  },
   computed: {
     console: () => console,
   },

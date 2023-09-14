@@ -148,113 +148,120 @@ export default defineComponent({
     const project = useProject()
 
     const receivers = computed(() => {
-      return [
+      const items = [
         {
           name: 'AWS',
-          icon: '/devicon/amazonwebservices-original.svg',
+          icon: 'devicon/amazonwebservices-original.svg',
           href: 'https://uptrace.dev/get/ingest/aws-cloudwatch.html',
         },
         {
           name: 'PostgreSQL',
-          icon: '/devicon/postgresql-original.svg',
+          icon: 'devicon/postgresql-original.svg',
           href: monitorLink('postgresql'),
         },
         {
           name: 'MySQL',
-          icon: '/devicon/mysql-original.svg',
+          icon: 'devicon/mysql-original.svg',
           href: monitorLink('mysql'),
         },
         {
           name: 'SQLServer',
-          icon: '/devicon/microsoftsqlserver-original.svg',
+          icon: 'devicon/microsoftsqlserver-original.svg',
           href: receiverLink('pulsar'),
         },
         {
           name: 'Riak',
-          icon: '/devicon/riak.svg',
+          icon: 'devicon/riak.svg',
           href: receiverLink('riak'),
         },
         {
           name: 'Redis',
-          icon: '/devicon/redis-original.svg',
+          icon: 'devicon/redis-original.svg',
           href: monitorLink('redis'),
         },
         {
           name: 'MongoDB',
-          icon: '/devicon/mongodb-original.svg',
+          icon: 'devicon/mongodb-original.svg',
           href: receiverLink('mongodb'),
         },
         {
           name: 'Apache',
-          icon: '/devicon/apache-original.svg',
+          icon: 'devicon/apache-original.svg',
           href: receiverLink('apache'),
         },
         {
           name: 'Nginx',
-          icon: '/devicon/nginx-original.svg',
+          icon: 'devicon/nginx-original.svg',
           href: receiverLink('nginx'),
         },
         {
           name: 'Kafka',
-          icon: '/devicon/apachekafka-original.svg',
+          icon: 'devicon/apachekafka-original.svg',
           href: receiverLink('kafkametrics'),
         },
         {
           name: 'Docker',
-          icon: '/devicon/docker-original.svg',
+          icon: 'devicon/docker-original.svg',
           href: monitorLink('docker'),
         },
         {
           name: 'Kubernetes',
-          icon: '/devicon/kubernetes-plain.svg',
+          icon: 'devicon/kubernetes-plain.svg',
           href: monitorLink('kubernetes'),
         },
         {
           name: 'Zookeeper',
-          icon: '/devicon/devicon-original.svg',
+          icon: 'devicon/devicon-original.svg',
           href: receiverLink('zookeeper'),
         },
         {
           name: 'Memcached',
-          icon: '/devicon/devicon-original.svg',
+          icon: 'devicon/devicon-original.svg',
           href: receiverLink('memcached'),
         },
         {
           name: 'Foundry',
-          icon: '/devicon/cloud-foundry.svg',
+          icon: 'devicon/cloud-foundry.svg',
           href: receiverLink('cloudfoundry'),
         },
         {
           name: 'CouchDB',
-          icon: '/devicon/couchdb-original.svg',
+          icon: 'devicon/couchdb-original.svg',
           href: receiverLink('couchdb'),
         },
         {
           name: 'Elastic',
-          icon: '/devicon/elastic-search.svg',
+          icon: 'devicon/elastic-search.svg',
           href: receiverLink('elasticsearch'),
         },
         {
           name: 'IIS',
-          icon: '/devicon/iis.svg',
+          icon: 'devicon/iis.svg',
           href: receiverLink('iis'),
         },
         {
           name: 'InfluxDB',
-          icon: '/devicon/influxdb.svg',
+          icon: 'devicon/influxdb.svg',
           href: receiverLink('influxdb'),
         },
         {
           name: 'RabbitMQ',
-          icon: '/devicon/rabbitmq.svg',
+          icon: 'devicon/rabbitmq.svg',
           href: receiverLink('rabbitmq'),
         },
         {
           name: 'Pulsar',
-          icon: '/devicon/pulsar.svg',
+          icon: 'devicon/pulsar.svg',
           href: receiverLink('pulsar'),
         },
       ]
+
+      const publicPath = process.env.BASE_URL
+      for (let item of items) {
+        item.icon = publicPath + item.icon
+      }
+
+      return items
     })
 
     function receiverLink(receiver: string): string {

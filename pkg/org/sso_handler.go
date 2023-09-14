@@ -48,7 +48,7 @@ func NewSSOHandler(app *bunapp.App, router *bunrouter.Group) *SSOHandler {
 		methods = append(methods, &SSOMethod{
 			ID:          oidcConf.ID,
 			DisplayName: oidcConf.DisplayName,
-			RedirectURL: fmt.Sprintf("/api/v1/sso/%s/start", oidcConf.ID),
+			RedirectURL: conf.SiteURL(fmt.Sprintf("/api/v1/sso/%s/start", oidcConf.ID)),
 		})
 
 		router.GET(fmt.Sprintf("/%s/start", oidcConf.ID), handler.Start)
@@ -153,7 +153,7 @@ func (h *SSOMethodHandler) Callback(w http.ResponseWriter, req bunrouter.Request
 	cookie.MaxAge = int(tokenTTL.Seconds())
 	http.SetCookie(w, cookie)
 
-	http.Redirect(w, req.Request, "/", http.StatusFound)
+	http.Redirect(w, req.Request, h.SiteURL("/"), http.StatusFound)
 	return nil
 }
 

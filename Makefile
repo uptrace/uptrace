@@ -7,7 +7,7 @@ GO_BUILD_TAGS=""
 .PHONY: uptrace-vue
 uptrace-vue:
 	pnpm --dir=vue install
-	pnpm --dir=vue build
+	(cd vue && pnpm vue-cli-service build --mode=production)
 
 .PHONY: gomoddownload
 gomoddownload:

@@ -129,63 +129,70 @@ export default defineComponent({
     const project = useProject()
 
     const frameworks = computed(() => {
-      return [
+      const items = [
         {
           name: 'net/http',
-          icon: '/devicon/net-http.svg',
+          icon: 'devicon/net-http.svg',
           href: instrumentationLink('opentelemetry-go-net-http.html'),
         },
         {
           name: 'Gin',
-          icon: '/devicon/gin.svg',
+          icon: 'devicon/gin.svg',
           href: instrumentationLink('opentelemetry-gin.html'),
         },
         {
           name: 'Beego',
-          icon: '/devicon/beego.svg',
+          icon: 'devicon/beego.svg',
           href: instrumentationLink('opentelemetry-beego.html'),
         },
         {
           name: 'Django',
-          icon: '/devicon/django.svg',
+          icon: 'devicon/django.svg',
           href: instrumentationLink('opentelemetry-django.html'),
         },
         {
           name: 'Flask',
-          icon: '/devicon/flask.svg',
+          icon: 'devicon/flask.svg',
           href: instrumentationLink('opentelemetry-flask.html'),
         },
         {
           name: 'FastAPI',
-          icon: '/devicon/fastapi-original.svg',
+          icon: 'devicon/fastapi-original.svg',
           href: instrumentationLink('opentelemetry-fastapi.html'),
         },
         {
           name: 'SQLAlchemy',
-          icon: '/devicon/sqlalchemy-original.svg',
+          icon: 'devicon/sqlalchemy-original.svg',
           href: instrumentationLink('opentelemetry-sqlalchemy.html'),
         },
         {
           name: 'Rails',
-          icon: '/devicon/rails.svg',
+          icon: 'devicon/rails.svg',
           href: instrumentationLink('opentelemetry-rails.html'),
         },
         {
           name: 'Express',
-          icon: '/devicon/express.svg',
+          icon: 'devicon/express.svg',
           href: instrumentationLink('opentelemetry-express.html'),
         },
         {
           name: 'Spring Boot',
-          icon: '/devicon/spring-original.svg',
+          icon: 'devicon/spring-original.svg',
           href: instrumentationLink('opentelemetry-spring-boot.html'),
         },
         {
           name: 'Phoenix',
-          icon: '/devicon/phoenix-original.svg',
+          icon: 'devicon/phoenix-original.svg',
           href: instrumentationLink('opentelemetry-phoenix.html'),
         },
       ]
+
+      const publicPath = process.env.BASE_URL
+      for (let item of items) {
+        item.icon = publicPath + item.icon
+      }
+
+      return items
     })
 
     function instrumentationLink(file: string): string {

@@ -18,58 +18,65 @@ export default defineComponent({
 
   setup() {
     const distros = computed(() => {
-      return [
+      const items = [
         {
           name: 'Go',
-          icon: '/devicon/go-original.svg',
+          icon: 'devicon/go-original.svg',
           href: link('go'),
         },
         {
           name: 'Python',
-          icon: '/devicon/python-original.svg',
+          icon: 'devicon/python-original.svg',
           href: link('python'),
         },
         {
           name: 'Ruby',
-          icon: '/devicon/ruby-original.svg',
+          icon: 'devicon/ruby-original.svg',
           href: link('ruby'),
         },
         {
           name: 'Node.js',
-          icon: '/devicon/nodejs-original.svg',
+          icon: 'devicon/nodejs-original.svg',
           href: link('js-node'),
         },
         {
           name: '.NET',
-          icon: '/devicon/dot-net-original.svg',
+          icon: 'devicon/dot-net-original.svg',
           href: link('dotnet'),
         },
         {
           name: 'Java',
-          icon: '/devicon/java-original.svg',
+          icon: 'devicon/java-original.svg',
           href: link('java'),
         },
         {
           name: 'Erlang',
-          icon: '/devicon/erlang-original.svg',
+          icon: 'devicon/erlang-original.svg',
           href: link('erlang-elixir'),
         },
         {
           name: 'Elixir',
-          icon: '/devicon/elixir-original.svg',
+          icon: 'devicon/elixir-original.svg',
           href: link('erlang-elixir'),
         },
         {
           name: 'Rust',
-          icon: '/devicon/rust-plain.svg',
+          icon: 'devicon/rust-plain.svg',
           href: link('rust'),
         },
         {
           name: 'PHP',
-          icon: '/devicon/php-original.svg',
+          icon: 'devicon/php-original.svg',
           href: link('php'),
         },
       ]
+
+      const publicPath = process.env.BASE_URL
+      for (let item of items) {
+        item.icon = publicPath + item.icon
+      }
+
+      return items
     })
 
     function link(lang: string): string {

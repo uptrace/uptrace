@@ -7,7 +7,7 @@
     v-on="$listeners"
   >
     <v-img
-      src="/uptrace/logo-small.svg"
+      :src="`${publicPath}uptrace/logo-small.svg`"
       :max-width="width"
       :width="width"
       transition="scale-transition"
