@@ -49,8 +49,8 @@ type ZipkinSpan struct {
 
 type ZipkinEndpoint struct {
 	ServiceName string `json:"serviceName"`
-	IPV4        string `json:"string"`
-	IPV6        string `json:"string"`
+	IPV4        string `json:"ipv4"`
+	IPV6        string `json:"ipv6"`
 	Port        int    `json:"port"`
 }
 
