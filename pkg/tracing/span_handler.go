@@ -49,12 +49,6 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 	q, _ := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
 	q = q.
 		ColumnExpr("id, trace_id").
-		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
-			if f.SortBy == "" {
-				return q
-			}
-			return q.OrderExpr(string(CHAttrExpr(f.SortBy)) + " " + f.SortDir())
-		}).
 		Limit(10).
 		Offset(f.Pager.GetOffset())
 
