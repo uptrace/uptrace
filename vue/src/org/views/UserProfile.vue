@@ -1,0 +1,78 @@
+<template>
+  <div v-if="user.isAuth" class="container--fixed-sm">
+    <div class="mb-10">
+      <PageToolbar>
+        <v-toolbar-title>{{ title }}</v-toolbar-title>
+      </PageToolbar>
+
+      <v-container>
+        <v-row>
+          <v-col cols="6">
+            <v-text-field
+              v-model="user.current.name"
+              disabled
+              label="Name"
+              filled
+              required
+              hide-details="auto"
+            />
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col cols="6">
+            <v-text-field
+              v-model="user.current.email"
+              disabled
+              label="Email"
+              filled
+              required
+              hide-details="auto"
+            />
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col>
+            <v-checkbox
+              v-model="user.current.notifyByEmail"
+              disabled
+              label="Allow to send alert notifications via email"
+              hide-details="auto"
+            />
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col>
+            You can change user settings in <code>uptrace.yml</code> config file. See
+            <a href="https://uptrace.dev/get/config.html" target="_blank">documentation</a> for
+            details.
+          </v-col>
+        </v-row>
+      </v-container>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+import { defineComponent } from 'vue'
+
+import { useTitle } from '@vueuse/core'
+import { useUser } from '@/org/use-users'
+
+export default defineComponent({
+  name: 'UserProfile',
+
+  setup() {
+    const title = 'Profile'
+    useTitle(title)
+
+    const user = useUser()
+
+    return {
+      title,
+      user,
+    }
+  },
+})
+</script>
+
+<style lang="scss" scoped></style>
