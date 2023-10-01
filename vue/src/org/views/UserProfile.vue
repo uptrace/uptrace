@@ -5,7 +5,16 @@
         <v-toolbar-title>{{ title }}</v-toolbar-title>
       </PageToolbar>
 
-      <v-container>
+      <v-container class="py-6">
+        <v-row>
+          <v-col>
+            You can change user settings in the <code>uptrace.yml</code> config file. See
+            <a href="https://uptrace.dev/get/config.html#managing-users" target="_blank"
+              >documentation</a
+            >
+            for details.
+          </v-col>
+        </v-row>
         <v-row>
           <v-col cols="6">
             <v-text-field
@@ -38,13 +47,6 @@
               label="Allow to send alert notifications via email"
               hide-details="auto"
             />
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col>
-            You can change user settings in <code>uptrace.yml</code> config file. See
-            <a href="https://uptrace.dev/get/config.html" target="_blank">documentation</a> for
-            details.
           </v-col>
         </v-row>
       </v-container>
