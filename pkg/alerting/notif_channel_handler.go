@@ -535,6 +535,9 @@ func NewAlertmanagerMessage(app *bunapp.App, alert org.Alert) models.PostableAle
 	}
 	if baseAlert.State == org.AlertClosed {
 		dest.EndsAt = strfmt.DateTime(baseAlert.Event.CreatedAt)
+	} else {
+		endsAt := baseAlert.CreatedAt.Add(30 * 24 * time.Hour)
+		dest.EndsAt = strfmt.DateTime(endsAt)
 	}
 
 	return models.PostableAlerts{dest}
