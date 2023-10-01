@@ -13,7 +13,7 @@ import (
 )
 
 type SpanData struct {
-	ch.CHModel `ch:"table:spans_data_buffer,alias:s"`
+	ch.CHModel `ch:"table:spans_data_stub,alias:s"`
 
 	Type      string `ch:",lc"`
 	ProjectID uint32
