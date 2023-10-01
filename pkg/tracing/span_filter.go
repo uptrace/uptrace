@@ -64,6 +64,9 @@ func (f *SpanFilter) UnmarshalValues(ctx context.Context, values url.Values) err
 	if err := f.Pager.UnmarshalValues(ctx, values); err != nil {
 		return err
 	}
+	if err := f.OrderByMixin.UnmarshalValues(ctx, values); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -144,6 +147,9 @@ func buildSpanIndexQuery(
 	app *bunapp.App, f *SpanFilter, dur time.Duration,
 ) (*ch.SelectQuery, *orderedmap.OrderedMap[string, *ColumnInfo]) {
 	q := NewSpanIndexQuery(app).Apply(f.whereClause)
+	if f.OrderByMixin.SortBy != "" {
+		q = q.Order(fmt.Sprintf("%s %s", f.OrderByMixin.SortBy, f.OrderByMixin.SortDir()))
+	}
 	return compileUQL(q, f.parts, dur)
 }
 
