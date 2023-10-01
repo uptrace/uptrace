@@ -113,7 +113,14 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 	}
 
 	q, columnMap := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
-	q = q.Limit(1000)
+	q = q.
+		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
+			if f.SortBy == "" {
+				return q
+			}
+			return q.Order(f.SortBy + " " + f.SortDir())
+		}).
+		Limit(1000)
 	groups := make([]map[string]any, 0)
 
 	if columnMap.Len() > 0 {
