@@ -12,6 +12,11 @@
         <v-list-item-title>Slack</v-list-item-title>
       </v-list-item>
 
+      <v-list-item @click="$emit('click:new', reactive(emptyTelegramNotifChannel()))">
+        <v-list-item-icon><v-icon>mdi-plus</v-icon></v-list-item-icon>
+        <v-list-item-title>Telegram</v-list-item-title>
+      </v-list-item>
+
       <v-list-item @click="$emit('click:new', reactive(emptyWebhookNotifChannel()))">
         <v-list-item-icon><v-icon>mdi-plus</v-icon></v-list-item-icon>
         <v-list-item-title>WebHook</v-list-item-title>
@@ -31,6 +36,7 @@ import { defineComponent, shallowRef, reactive } from 'vue'
 // Composables
 import {
   emptySlackNotifChannel,
+  emptyTelegramNotifChannel,
   emptyWebhookNotifChannel,
   emptyAlertmanagerNotifChannel,
 } from '@/alerting/use-notif-channels'
@@ -43,6 +49,7 @@ export default defineComponent({
     return {
       menu,
       emptySlackNotifChannel,
+      emptyTelegramNotifChannel,
       emptyWebhookNotifChannel,
       emptyAlertmanagerNotifChannel,
       reactive,

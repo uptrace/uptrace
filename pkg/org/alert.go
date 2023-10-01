@@ -32,7 +32,6 @@ const (
 type Alert interface {
 	Base() *BaseAlert
 	URL() string
-	Summary() string
 }
 
 type BaseAlert struct {

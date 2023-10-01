@@ -3,6 +3,7 @@ package alerting
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -60,6 +61,44 @@ func (a *MetricAlert) Summary() string {
 	default:
 		return ""
 	}
+}
+
+func (a *MetricAlert) LongSummary(sep string) string {
+	bounds := a.Params.Bounds
+	unit := a.Params.Monitor.ColumnUnit
+	min := formatNull(bounds.Min, unit)
+	max := formatNull(bounds.Max, unit)
+
+	var msg []string
+
+	msg = append(msg, fmt.Sprintf(
+		"You specified that value should be between %s and %s.",
+		min, max,
+	))
+
+	var symbol string
+	switch a.Params.Firing {
+	case -1:
+		symbol = "smaller"
+	case 1:
+		symbol = "greater"
+	}
+
+	currentValue := bununit.Format(a.Params.Outlier, unit)
+	currentValueVerbose := bununit.FormatFloat(a.Params.Outlier)
+	msg = append(msg, fmt.Sprintf(
+		"The actual value of %s (%s) has been %s than this range.",
+		currentValue, currentValueVerbose, symbol,
+	))
+
+	return strings.Join(msg, sep)
+}
+
+func formatNull(v bunutil.NullFloat64, unit string) string {
+	if !v.Valid {
+		return "∞"
+	}
+	return bununit.Format(v.Float64, unit)
 }
 
 type MetricAlertParams struct {

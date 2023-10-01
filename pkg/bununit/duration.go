@@ -2,6 +2,8 @@ package bununit
 
 import (
 	"math"
+	"strings"
+	"time"
 )
 
 func FormatMicroseconds(n float64) string {
@@ -35,4 +37,15 @@ func FormatMicroseconds(n float64) string {
 		return format(n, 1) + "s"
 	}
 	return format(n, 0) + "s"
+}
+
+func ShortDuration(d time.Duration) string {
+	s := d.String()
+	if strings.HasSuffix(s, "m0s") {
+		s = s[:len(s)-2]
+	}
+	if strings.HasSuffix(s, "h0m") {
+		s = s[:len(s)-2]
+	}
+	return s
 }

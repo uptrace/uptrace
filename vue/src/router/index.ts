@@ -18,6 +18,7 @@ import MonitorErrorShow from '@/alerting/views/MonitorErrorShow.vue'
 import MonitorErrorNew from '@/alerting/views/MonitorErrorNew.vue'
 import ChannelList from '@/alerting/views/ChannelList.vue'
 import ChannelShowSlack from '@/alerting/views/ChannelShowSlack.vue'
+import ChannelShowTelegram from '@/alerting/views/ChannelShowTelegram.vue'
 import ChannelShowWebhook from '@/alerting/views/ChannelShowWebhook.vue'
 import ChannelShowAlertmanager from '@/alerting/views/ChannelShowAlertmanager.vue'
 import EmailNotifications from '@/alerting/views/EmailNotifications.vue'
@@ -133,6 +134,11 @@ const routes: RouteConfig[] = [
     name: 'NotifChannelShowSlack',
     path: '/alerting/:projectId(\\d+)/channels/slack/:channelId(\\d+)',
     component: ChannelShowSlack,
+  },
+  {
+    name: 'NotifChannelShowTelegram',
+    path: '/alerting/:projectId(\\d+)/channels/telegram/:channelId(\\d+)',
+    component: ChannelShowTelegram,
   },
   {
     name: 'NotifChannelShowWebhook',

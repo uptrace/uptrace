@@ -164,6 +164,10 @@ func validateConfig(conf *Config) error {
 		return err
 	}
 
+	if conf.Telegram.BotToken == "" {
+		return errors.New("telegram.bot_token can't be empty")
+	}
+
 	if conf.Spans.BatchSize == 0 {
 		conf.Spans.BatchSize = ScaleWithCPU(1000, 32000)
 	}
@@ -326,6 +330,10 @@ type Config struct {
 
 	Path    string `yaml:"-"`
 	Service string `yaml:"-"`
+
+	Telegram struct {
+		BotToken string `yaml:"bot_token"`
+	} `yaml:"telegram"`
 }
 
 type SpanMetric struct {

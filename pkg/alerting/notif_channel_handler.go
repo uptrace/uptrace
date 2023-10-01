@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"time"
 
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/segmentio/encoding/json"
 
 	"github.com/go-openapi/strfmt"
@@ -411,6 +412,117 @@ func (h *NotifChannelHandler) sendWebhookTestMsg(
 
 //------------------------------------------------------------------------------
 
+func (h *NotifChannelHandler) TelegramShow(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	channel, err := TelegramNotifChannelFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"channel": channel,
+	})
+}
+
+type TelegramNotifChannelIn struct {
+	Name   string `json:"name"`
+	Params struct {
+		ChatID int64 `json:"chatId"`
+	} `json:"params"`
+}
+
+func (in *TelegramNotifChannelIn) Validate(channel *TelegramNotifChannel) error {
+	if in.Name == "" {
+		return errors.New("channel name can't be empty")
+	}
+	if in.Params.ChatID == 0 {
+		return errors.New("chat id can't be empty")
+	}
+
+	channel.Name = in.Name
+	channel.Params.ChatID = in.Params.ChatID
+
+	return nil
+}
+
+func (h *NotifChannelHandler) TelegramCreate(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+	project := org.ProjectFromContext(ctx)
+
+	channel := &TelegramNotifChannel{
+		BaseNotifChannel: &BaseNotifChannel{
+			ProjectID: project.ID,
+			Type:      NotifChannelTelegram,
+		},
+	}
+
+	in := new(TelegramNotifChannelIn)
+	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
+		return err
+	}
+
+	if err := in.Validate(channel); err != nil {
+		return httperror.Wrap(err)
+	}
+	if err := h.sendTelegramTestMsg(channel); err != nil {
+		return httperror.Wrap(err)
+	}
+
+	if err := InsertNotifChannel(ctx, h.App, channel); err != nil {
+		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"channel": channel,
+	})
+}
+
+func (h *NotifChannelHandler) sendTelegramTestMsg(channel *TelegramNotifChannel) error {
+	bot, err := channel.TelegramBot(h.App)
+	if err != nil {
+		return err
+	}
+
+	msg := tgbotapi.NewMessage(channel.Params.ChatID, "Test message from Uptrace")
+	if _, err := bot.Send(msg); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *NotifChannelHandler) TelegramUpdate(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	channel, err := TelegramNotifChannelFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	in := new(TelegramNotifChannelIn)
+	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
+		return err
+	}
+
+	if err := in.Validate(channel); err != nil {
+		return httperror.Wrap(err)
+	}
+	if err := h.sendTelegramTestMsg(channel); err != nil {
+		return httperror.Wrap(err)
+	}
+
+	if err := UpdateNotifChannel(ctx, h.App, channel); err != nil {
+		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"channel": channel,
+	})
+}
+
+//------------------------------------------------------------------------------
+
 func (h *NotifChannelHandler) EmailShow(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 	user := org.UserFromContext(ctx)
@@ -523,7 +635,7 @@ func NewAlertmanagerMessage(app *bunapp.App, alert org.Alert) models.PostableAle
 	labels["alerturl"] = app.SiteURL(baseAlert.URL())
 
 	annotations := models.LabelSet{
-		"summary": alert.Summary(),
+		// "summary": alert.Summary(),
 	}
 
 	dest := &models.PostableAlert{

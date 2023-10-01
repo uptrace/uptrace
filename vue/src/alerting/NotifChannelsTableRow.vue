@@ -100,6 +100,8 @@ export default defineComponent({
       switch (channel.type) {
         case NotifChannelType.Slack:
           return { name: 'NotifChannelShowSlack', params: { channelId: channel.id } }
+        case NotifChannelType.Telegram:
+          return { name: 'NotifChannelShowTelegram', params: { channelId: channel.id } }
         case NotifChannelType.Webhook:
           return { name: 'NotifChannelShowWebhook', params: { channelId: channel.id } }
         case NotifChannelType.Alertmanager:

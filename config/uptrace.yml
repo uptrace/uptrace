@@ -265,3 +265,6 @@ secret_key: 102c1a557c314fc28198acd017960843
 
 # Enable to log HTTP requests and database queries.
 debug: false
+
+telegram:
+  bot_token: 6680476821:AAFUwcSHOxaL63HjHC4CWJC45HKiteIT3Ug
