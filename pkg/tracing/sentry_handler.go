@@ -417,8 +417,8 @@ func (h *SentryHandler) processTransaction(
 		dest.ParentID = parentSpanID
 
 		dest.Name = src.Op
-		dest.Time = src.StartTime
-		dest.Duration = src.EndTime.Sub(src.StartTime)
+		dest.Time = src.StartTime.Time
+		dest.Duration = src.EndTime.Sub(src.StartTime.Time)
 
 		forEachKV(src.Data, "", func(k string, v any) {
 			dest.Attrs[k] = v
@@ -684,8 +684,8 @@ type SentrySpan struct {
 	Description  string            `json:"description"`
 	Status       uint8             `json:"status"`
 	Tags         map[string]string `json:"tags"`
-	StartTime    time.Time         `json:"start_timestamp"`
-	EndTime      time.Time         `json:"timestamp"`
+	StartTime    SentryTime        `json:"start_timestamp"`
+	EndTime      SentryTime        `json:"timestamp"`
 	Data         map[string]any    `json:"data"`
 }
 
