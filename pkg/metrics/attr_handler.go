@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -148,57 +149,45 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 }
 
 func (h *AttrHandler) selectAttrKeys(ctx context.Context, f *AttrFilter) ([]string, error) {
-	tableName := measureTableForWhere(h.App, &f.TimeFilter)
+	var metrics []*Metric
 
-	keys := make([]string, 0)
-
-	if len(f.Metric) <= 1 {
-		q := h.CH.NewSelect().
-			ColumnExpr("DISTINCT arrayJoin(string_keys) AS key").
-			TableExpr("?", tableName).
-			Where("project_id = ?", f.ProjectID).
-			Where("time >= ?", f.TimeGTE).
-			Where("time < ?", f.TimeLT).
-			OrderExpr("key ASC").
-			Limit(1000)
-
-		if len(f.Metric) == 1 {
-			q = q.Where("metric = ?", f.Metric[0])
-		}
-
-		if err := q.ScanColumns(ctx, &keys); err != nil {
-			return nil, err
-		}
-		return keys, nil
-	}
-
-	subq := h.CH.NewSelect().
-		TableExpr("?", tableName).
+	if err := h.PG.NewSelect().
+		Model(&metrics).
+		Column("attr_keys").
 		Where("project_id = ?", f.ProjectID).
-		Where("time >= ?", f.TimeGTE).
-		Where("time < ?", f.TimeLT).
-		Where("metric IN ?", ch.In(f.Metric))
-
-	var numMetric int
-	if err := subq.Clone().ColumnExpr("uniq(metric)").Scan(ctx, &numMetric); err != nil {
+		Where("name IN (?)", bun.In(f.Metric)).
+		Scan(ctx); err != nil {
 		return nil, err
 	}
 
-	subq = subq.ColumnExpr("DISTINCT metric").
-		ColumnExpr("arrayJoin(string_keys) AS key")
+	var keys []string
 
-	if err := h.CH.NewSelect().
-		ColumnExpr("key").
-		TableExpr("(?)", subq).
-		GroupExpr("key").
-		Having("count() = ?", numMetric).
-		OrderExpr("key").
-		Limit(1000).
-		ScanColumns(ctx, &keys); err != nil {
-		return nil, err
+	for _, metric := range metrics {
+		if keys == nil {
+			keys = metric.AttrKeys
+			continue
+		}
+		keys = intersect(keys, metric.AttrKeys)
 	}
 
 	return keys, nil
+}
+
+func intersect[T comparable](a []T, b []T) []T {
+	set := make([]T, 0)
+	hash := make(map[T]struct{})
+
+	for _, v := range a {
+		hash[v] = struct{}{}
+	}
+
+	for _, v := range b {
+		if _, ok := hash[v]; ok {
+			set = append(set, v)
+		}
+	}
+
+	return set
 }
 
 func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) error {

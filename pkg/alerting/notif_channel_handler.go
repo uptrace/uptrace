@@ -368,7 +368,11 @@ func (h *NotifChannelHandler) sendWebhookTestMsg(
 	case NotifChannelWebhook:
 		msg = NewWebhookMessage(h.App, alert, channel.Params.Payload)
 	case NotifChannelAlertmanager:
-		msg = NewAlertmanagerMessage(h.App, alert)
+		var err error
+		msg, err = NewAlertmanagerMessage(h.App, project, alert)
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unsupported webhook type: %q", channel.Type)
 	}
@@ -624,7 +628,7 @@ func NewWebhookMessage(app *bunapp.App, alert org.Alert, payload any) *WebhookMe
 
 //------------------------------------------------------------------------------
 
-func NewAlertmanagerMessage(app *bunapp.App, alert org.Alert) models.PostableAlerts {
+func NewAlertmanagerMessage(app *bunapp.App, project *org.Project, alert org.Alert) (models.PostableAlerts, error) {
 	baseAlert := alert.Base()
 
 	labels := make(models.LabelSet, len(baseAlert.Attrs)+1)
@@ -634,22 +638,34 @@ func NewAlertmanagerMessage(app *bunapp.App, alert org.Alert) models.PostableAle
 	labels["alertname"] = baseAlert.Name
 	labels["alerturl"] = app.SiteURL(baseAlert.URL())
 
-	annotations := models.LabelSet{
-		// "summary": alert.Summary(),
+	var summary string
+	switch alert := alert.(type) {
+	case *ErrorAlert:
+		summary = telegramErrorFormatter.Format(project, alert)
+	case *MetricAlert:
+		summary = telegramMetricFormatter.Format(project, alert)
+	default:
+		return nil, fmt.Errorf("unknown alert type: %T", alert)
 	}
 
 	dest := &models.PostableAlert{
 		Alert: models.Alert{
 			Labels: labels,
 		},
-		Annotations: annotations,
-		StartsAt:    strfmt.DateTime(baseAlert.CreatedAt),
+		Annotations: models.LabelSet{
+			"summary": summary,
+		},
+		StartsAt: strfmt.DateTime(baseAlert.CreatedAt),
 	}
 	if baseAlert.State == org.AlertClosed {
 		dest.EndsAt = strfmt.DateTime(baseAlert.Event.CreatedAt)
+	} else {
+		// TODO: AlertManagers wants us to resend the notification from time to time.
+		endsAt := baseAlert.CreatedAt.Add(30 * 24 * time.Hour)
+		dest.EndsAt = strfmt.DateTime(endsAt)
 	}
 
-	return models.PostableAlerts{dest}
+	return models.PostableAlerts{dest}, nil
 }
 
 func cleanLabelName(s string) string {

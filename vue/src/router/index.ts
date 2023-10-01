@@ -46,6 +46,7 @@ import MetricsHelp from '@/metrics/views/Help.vue'
 import MetricsCheatsheet from '@/metrics/views/Cheatsheet.vue'
 
 import Login from '@/views/Login.vue'
+import UserProfile from '@/org/views/UserProfile.vue'
 
 Vue.use(VueRouter)
 
@@ -60,6 +61,11 @@ const routes: RouteConfig[] = [
     path: '/login',
     name: 'Login',
     component: Login,
+  },
+  {
+    path: '/profile',
+    name: 'UserProfile',
+    component: UserProfile,
   },
   {
     name: 'ProjectCreate',

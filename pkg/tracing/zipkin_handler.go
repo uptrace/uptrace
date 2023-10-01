@@ -10,8 +10,6 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/attrkey"
@@ -70,10 +68,6 @@ func (h *ZipkinHandler) PostSpans(w http.ResponseWriter, req bunrouter.Request) 
 	project, err := org.SelectProjectByDSN(ctx, h.App, dsn)
 	if err != nil {
 		return err
-	}
-
-	if span := trace.SpanFromContext(ctx); span.IsRecording() {
-		span.SetAttributes(attribute.Int64("project", int64(project.ID)))
 	}
 
 	var zipkinSpans []ZipkinSpan

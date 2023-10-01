@@ -73,9 +73,9 @@ SETTINGS ttl_only_drop_parts = 1,
 --migration:split
 
 CREATE TABLE ?DB.spans_index_buffer ?ON_CLUSTER AS ?DB.spans_index
-ENGINE = Buffer(currentDatabase(), spans_index, 5, 10, 30, 10000, 1000000, 10000000, 100000000)
+ENGINE = Buffer(currentDatabase(), spans_index, 3, 5, 10, 10000, 1000000, 10000000, 100000000)
 
 --migration:split
 
 CREATE TABLE ?DB.spans_data_buffer ?ON_CLUSTER AS ?DB.spans_data
-ENGINE = Buffer(currentDatabase(), spans_data, 5, 10, 30, 10000, 1000000, 10000000, 100000000)
+ENGINE = Buffer(currentDatabase(), spans_data, 3, 5, 10, 10000, 1000000, 10000000, 100000000)

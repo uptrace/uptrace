@@ -23,6 +23,11 @@
                 <v-tab :to="{ name: 'MetricsDashList' }">Dashboards</v-tab>
                 <v-tab :to="{ name: 'Alerting' }">Alerts</v-tab>
               </template>
+              <template v-else-if="user.isAuth">
+                <template v-if="user.isAuth">
+                  <v-tab :to="{ name: 'UserProfile' }">Profile</v-tab>
+                </template>
+              </template>
               <v-tab v-if="!user.isAuth" :to="{ name: 'Login' }">Login</v-tab>
             </v-tabs>
           </v-col>
@@ -53,6 +58,9 @@
                       {{ user.current.email }}
                     </v-list-item-subtitle>
                   </v-list-item-content>
+                </v-list-item>
+                <v-list-item :to="{ name: 'UserProfile' }">
+                  <v-list-item-title>Profile</v-list-item-title>
                 </v-list-item>
 
                 <v-divider></v-divider>

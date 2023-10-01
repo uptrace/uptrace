@@ -8,9 +8,11 @@
       <v-card v-if="project.data" flat>
         <v-card-text class="text-subtitle-1">
           <p>
-            You can change project settings in <code>uptrace.yml</code> config file. See
-            <a href="https://uptrace.dev/get/config.html" target="_blank">documentation</a> for
-            details.
+            You can change project settings in the <code>uptrace.yml</code> config file. See
+            <a href="https://uptrace.dev/get/config.html#managing-projects" target="_blank"
+              >documentation</a
+            >
+            for details.
           </p>
 
           <v-form>

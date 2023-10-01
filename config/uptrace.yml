@@ -192,6 +192,7 @@ listen:
 site:
   # Overrides public URL for Vue-powered UI.
   #addr: 'https://uptrace.mydomain.com/prefix'
+  addr: "http://local.uptrace.com/"
 
 ##
 ## Spans processing options.

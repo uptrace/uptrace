@@ -54,7 +54,11 @@ func notifyByWebhookChannel(
 	case NotifChannelWebhook:
 		msg = NewWebhookMessage(app, alert, channel.Params.Payload)
 	case NotifChannelAlertmanager:
-		msg = NewAlertmanagerMessage(app, alert)
+		var err error
+		msg, err = NewAlertmanagerMessage(app, project, alert)
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unsupported webhook type: %s", channel.Type)
 	}
