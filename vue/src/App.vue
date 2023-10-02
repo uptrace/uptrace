@@ -23,12 +23,8 @@
                 <v-tab :to="{ name: 'MetricsDashList' }">Dashboards</v-tab>
                 <v-tab :to="{ name: 'Alerting' }">Alerts</v-tab>
               </template>
-              <template v-else-if="user.isAuth">
-                <template v-if="user.isAuth">
-                  <v-tab :to="{ name: 'UserProfile' }">Profile</v-tab>
-                </template>
-              </template>
-              <v-tab v-if="!user.isAuth" :to="{ name: 'Login' }">Login</v-tab>
+              <v-tab v-else-if="user.isAuth" :to="{ name: 'UserProfile' }">Profile</v-tab>
+              <v-tab v-else :to="{ name: 'Login' }">Login</v-tab>
             </v-tabs>
           </v-col>
 
