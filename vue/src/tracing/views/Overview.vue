@@ -30,8 +30,7 @@
         </v-toolbar-items>
 
         <v-spacer />
-
-        <DateRangePicker :date-range="dateRange" />
+        <DateRangePicker :date-range="dateRange" :range-days="90" />
       </PageToolbar>
 
       <div class="border-bottom">
