@@ -33,7 +33,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useRoute } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { createUqlEditor, useQueryStore } from '@/use/uql'
+import { createUqlEditor, useQueryStore, provideQueryStore } from '@/use/uql'
 import { useGroups } from '@/tracing/use-explore-spans'
 
 // Components
@@ -49,10 +49,6 @@ export default defineComponent({
   props: {
     dateRange: {
       type: Object as PropType<UseDateRange>,
-      required: true,
-    },
-    axiosParams: {
-      type: Object,
       required: true,
     },
   },
@@ -75,10 +71,11 @@ export default defineComponent({
         .add(where.value)
         .toString()
     })
+    provideQueryStore({ query, where })
 
     const groups = useGroups(() => {
       return {
-        ...props.axiosParams,
+        ...props.dateRange.axiosParams(),
         system: system.value,
         query: query.value,
       }

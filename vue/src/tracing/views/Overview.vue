@@ -75,11 +75,7 @@
       <v-container :fluid="$vuetify.breakpoint.lgAndDown">
         <v-row>
           <v-col>
-            <router-view
-              :date-range="dateRange"
-              :systems="systems.activeSystems"
-              :axios-params="axiosParams"
-            />
+            <router-view :date-range="dateRange" :systems="systems" />
           </v-col>
         </v-row>
       </v-container>
@@ -94,7 +90,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useTitle } from '@vueuse/core'
 import { UseDateRange } from '@/use/date-range'
-import { useUql, useProvideQueryStore } from '@/use/uql'
+import { useUql, useQueryStore, provideQueryStore } from '@/use/uql'
 import { useProject } from '@/org/use-projects'
 import { useSystems, addAllSystem } from '@/tracing/system/use-systems'
 
@@ -128,7 +124,7 @@ export default defineComponent({
 
     const uql = useUql()
     uql.syncQueryParams()
-    useProvideQueryStore(uql)
+    provideQueryStore(useQueryStore(uql))
 
     const systems = useSystems(() => {
       return {
@@ -142,14 +138,6 @@ export default defineComponent({
       const items = systems.items.filter((item) => isSpanSystem(item.system))
       addAllSystem(items, SystemName.SpansAll)
       return items
-    })
-
-    const axiosParams = computed(() => {
-      return {
-        ...props.dateRange.axiosParams(),
-        ...uql.axiosParams(),
-        ...systems.axiosParams(),
-      }
     })
 
     const chosenSystems = computed((): string[] => {
@@ -173,7 +161,6 @@ export default defineComponent({
       project,
       systems,
       spanSystems,
-      axiosParams,
 
       chosenSystems,
       pick,

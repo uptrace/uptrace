@@ -9,7 +9,7 @@
     <v-container fluid>
       <GroupsList
         :date-range="dateRange"
-        :systems="systems"
+        :systems="systems.activeSystems"
         :loading="groups.loading"
         :groups="groups.items"
         :columns="groups.columns"
@@ -29,8 +29,9 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
-import { createUqlEditor, useQueryStore } from '@/use/uql'
+import { createUqlEditor, useQueryStore, provideQueryStore } from '@/use/uql'
 import { useGroups } from '@/tracing/use-explore-spans'
+import { UseSystems } from '@/tracing/system/use-systems'
 
 // Components
 import GroupsList from '@/tracing/GroupsList.vue'
@@ -48,11 +49,7 @@ export default defineComponent({
       required: true,
     },
     systems: {
-      type: Array as PropType<string[]>,
-      required: true,
-    },
-    axiosParams: {
-      type: Object,
+      type: Object as PropType<UseSystems>,
       required: true,
     },
   },
@@ -63,11 +60,13 @@ export default defineComponent({
     const query = computed(() => {
       return createUqlEditor().exploreAttr(AttrKey.spanGroupId).add(where.value).toString()
     })
+    provideQueryStore({ query, where })
 
     const groups = useGroups(
       () => {
         return {
-          ...props.axiosParams,
+          ...props.dateRange.axiosParams(),
+          ...props.systems.axiosParams(),
           query: query.value,
         }
       },

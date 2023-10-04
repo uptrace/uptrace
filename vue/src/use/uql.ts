@@ -1,6 +1,4 @@
-import { shallowRef, reactive, computed, watch, proxyRefs } from 'vue'
-import { createInjectionState } from '@vueuse/core'
-
+import { shallowRef, reactive, computed, watch, proxyRefs, provide, inject } from 'vue'
 // Composables
 import { useRouteQuery } from '@/use/router'
 
@@ -288,15 +286,19 @@ function split(s: string, sep: string): string[] {
 
 //------------------------------------------------------------------------------
 
-const [useProvideQueryStore, useQueryStoreOrUndefined] = createInjectionState(createQueryStore)
+const injectionKey = Symbol('query-store')
 
-export { useProvideQueryStore }
-
-export function useQueryStore() {
-  return useQueryStoreOrUndefined() ?? createQueryStore()
+export function injectQueryStore() {
+  return inject(injectionKey, undefined) ?? useQueryStore()
 }
 
-function createQueryStore(uql: UseUql | undefined = undefined) {
+export function provideQueryStore(store: QueryStore) {
+  provide(injectionKey, store)
+}
+
+export type QueryStore = ReturnType<typeof useQueryStore>
+
+export function useQueryStore(uql: UseUql | undefined = undefined) {
   const query = shallowRef('')
   const where = shallowRef('')
 
