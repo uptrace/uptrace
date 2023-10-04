@@ -178,6 +178,14 @@ func (m *Manager) monitor(ctx context.Context, monitor *org.MetricMonitor, timeL
 		}
 	}
 
+	if _, err := m.app.PG.NewUpdate().
+		Model(monitor).
+		Set("updated_at = now()").
+		Where("id = ?", monitor.ID).
+		Exec(ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
 
