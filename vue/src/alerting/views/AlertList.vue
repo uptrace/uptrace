@@ -46,7 +46,6 @@
                   v-model="selection.alertIds"
                   :value="alert.id"
                   multiple
-                  :ripple="false"
                   @click.stop.prevent
                 ></v-checkbox>
               </td>
