@@ -116,11 +116,11 @@ type ChartColumnParams struct {
 }
 
 type TimeseriesStyle struct {
-	Color      string `json:"color" yaml:"color"`
-	Opacity    int32  `json:"opacity" yaml:"opacity"`
-	LineWidth  int32  `json:"lineWidth" yaml:"line_width"`
-	Symbol     string `json:"symbol" yaml:"symbol"`
-	SymbolSize int32  `json:"symbolSize" yaml:"symbol_size"`
+	Color      string  `json:"color" yaml:"color"`
+	Opacity    int32   `json:"opacity" yaml:"opacity"`
+	LineWidth  float32 `json:"lineWidth" yaml:"line_width"`
+	Symbol     string  `json:"symbol" yaml:"symbol"`
+	SymbolSize int32   `json:"symbolSize" yaml:"symbol_size"`
 }
 
 type ChartKind string
