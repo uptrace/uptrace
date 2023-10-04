@@ -1,5 +1,5 @@
 <template>
-  <tr class="cursor-pointer" @click="$router.push(monitorRouteFor(monitor))">
+  <tr class="cursor-pointer" @click="$router.push(routeForMonitor(monitor))">
     <td>
       {{ monitor.name }}
     </td>
