@@ -62,6 +62,10 @@ export default defineComponent({
       type: Number,
       default: HOUR,
     },
+    rangeDays: {
+      type: Number,
+      default: 3,
+    },
     syncQueryParams: {
       type: Boolean,
       default: false,
@@ -70,7 +74,7 @@ export default defineComponent({
 
   setup(props) {
     const periods = computed(() => {
-      return periodsForDays(30)
+      return periodsForDays(props.rangeDays)
     })
 
     if (props.syncQueryParams) {

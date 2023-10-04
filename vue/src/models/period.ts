@@ -22,7 +22,7 @@ export function periodsForDays(days: number): Period[] {
     })
   }
 
-  for (let n of [3, 7, 10, 14, 30]) {
+  for (let n of [3, 7, 10, 14, 30, 90]) {
     if (n <= days) {
       periods.push({ text: `${n} days`, milliseconds: n * DAY })
     }
