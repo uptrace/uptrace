@@ -72,7 +72,7 @@ export default defineComponent({
         .add(where.value)
         .toString()
     })
-    provideQueryStore({ query, where })
+    provideQueryStore({ query: computed(() => ''), where })
 
     const groups = useGroups(() => {
       return {

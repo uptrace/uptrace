@@ -58,7 +58,7 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { useRoute } from '@/use/router'
-import { createUqlEditor, joinQuery, useQueryStore } from '@/use/uql'
+import { createUqlEditor, joinQuery, injectQueryStore } from '@/use/uql'
 import { useGroupTimeseries, Group, ColumnInfo } from '@/tracing/use-explore-spans'
 
 // Components
@@ -135,7 +135,7 @@ export default defineComponent({
 
   setup(props) {
     const route = useRoute()
-    const { query, where } = useQueryStore()
+    const { query, where } = injectQueryStore()
 
     const timeseries = useGroupTimeseries(() => {
       if (!props.plottedColumns.length) {

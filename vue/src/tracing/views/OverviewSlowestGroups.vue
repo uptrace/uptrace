@@ -60,7 +60,7 @@ export default defineComponent({
     const query = computed(() => {
       return createUqlEditor().exploreAttr(AttrKey.spanGroupId).add(where.value).toString()
     })
-    provideQueryStore({ query, where })
+    provideQueryStore({ query: computed(() => ''), where })
 
     const groups = useGroups(
       () => {
