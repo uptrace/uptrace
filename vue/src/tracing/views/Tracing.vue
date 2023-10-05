@@ -77,7 +77,7 @@ import { useRoute, useRouteQuery } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { useUser } from '@/org/use-users'
 import { useSystems, System } from '@/tracing/system/use-systems'
-import { useUql, createUqlEditor, useProvideQueryStore } from '@/use/uql'
+import { useUql, createUqlEditor, provideQueryStore, useQueryStore } from '@/use/uql'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
@@ -118,7 +118,7 @@ export default defineComponent({
     const user = useUser()
 
     const uql = useUql()
-    useProvideQueryStore(uql)
+    provideQueryStore(useQueryStore(uql))
 
     const systems = useSystems(() => {
       return {
