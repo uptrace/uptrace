@@ -39,3 +39,7 @@ DROP TABLE IF EXISTS alert_events CASCADE;
 --bun:split
 
 DROP TABLE IF EXISTS taskq_jobs CASCADE;
+
+--bun:split
+
+DROP TABLE IF EXISTS annotations CASCADE;

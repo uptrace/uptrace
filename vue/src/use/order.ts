@@ -50,7 +50,7 @@ export function useOrder(conf: Partial<Order> = {}) {
       fromQuery(params) {
         if (params.sort_by) {
           column.value = params.sort_by
-          desc.value = params.sort_desc === '1'
+          desc.value = params.sort_desc === true
         }
       },
       toQuery() {
@@ -63,10 +63,24 @@ export function useOrder(conf: Partial<Order> = {}) {
     if (column.value) {
       return {
         sort_by: column.value,
-        sort_desc: desc.value ? '1' : '0',
+        sort_desc: desc.value ? true : false,
       }
     }
     return {}
+  }
+
+  function parseQueryParams(params: Record<string, any>) {
+    if (!Object.keys(params)) {
+      return
+    }
+
+    const sortBy = params['sort_by']
+    if (!sortBy) {
+      return
+    }
+
+    column.value = sortBy
+    desc.value = true
   }
 
   function change(order: Order): boolean {
@@ -123,6 +137,7 @@ export function useOrder(conf: Partial<Order> = {}) {
 
     syncQueryParams,
     queryParams,
+    parseQueryParams,
     change,
     reset,
     toggle,

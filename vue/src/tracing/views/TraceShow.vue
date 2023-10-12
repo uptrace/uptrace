@@ -78,7 +78,7 @@
           <v-col>
             <v-card outlined rounded="lg">
               <v-card-text>
-                <LoadPctileChart :axios-params="axiosParams" />
+                <LoadPctileChart :axios-params="axiosParams" :annotations="annotations.items" />
               </v-card-text>
             </v-card>
           </v-col>
@@ -109,6 +109,7 @@ import { useTitle } from '@vueuse/core'
 import { useDateRange, UseDateRange } from '@/use/date-range'
 import { useTrace, UseTrace } from '@/tracing/use-trace'
 import { createUqlEditor } from '@/use/uql'
+import { useAnnotations } from '@/org/use-annotations'
 
 // Components
 import FixedDateRangePicker from '@/components/date/FixedDateRangePicker.vue'
@@ -134,6 +135,12 @@ export default defineComponent({
     useTitle('View trace')
     const dateRange = useDateRange()
     const trace = useTrace()
+
+    const annotations = useAnnotations(() => {
+      return {
+        ...dateRange.axiosParams(),
+      }
+    })
 
     const axiosParams = computed(() => {
       if (!trace.root) {
@@ -198,6 +205,7 @@ export default defineComponent({
     return {
       dateRange,
       trace,
+      annotations,
       meta: useMeta(dateRange, trace),
 
       axiosParams,

@@ -7,6 +7,7 @@
       :height="chart.height"
       :option="chart.option"
       :group="chartGroup"
+      :annotations="annotations"
     />
   </div>
 </template>
@@ -18,6 +19,7 @@ import colors from 'vuetify/lib/util/colors'
 
 // Components
 import EChart, { EChartProps } from '@/components/EChart.vue'
+import { Annotation } from '@/org/use-annotations'
 
 // Utilities
 import { baseChartConfig, addChartTooltip, createTooltipFormatter } from '@/util/chart'
@@ -51,6 +53,10 @@ export default defineComponent({
     data: {
       type: Object as PropType<ChartData | undefined>,
       default: undefined,
+    },
+    annotations: {
+      type: Array as PropType<Annotation[]>,
+      default: () => [],
     },
   },
 
