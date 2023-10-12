@@ -11,6 +11,7 @@
               <v-tab :to="{ name: 'MonitorList' }">Monitors</v-tab>
               <v-tab :to="{ name: 'NotifChannelList' }">Channels</v-tab>
               <v-tab :to="{ name: 'NotifChannelEmail' }">Email notifications</v-tab>
+              <v-tab :to="{ name: 'AnnotationList' }">Annotations</v-tab>
 
               <v-btn
                 small

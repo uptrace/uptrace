@@ -1,5 +1,10 @@
 <template>
-  <PctileChart v-bind="$attrs" :loading="percentiles.loading" :data="percentiles.data" />
+  <PctileChart
+    v-bind="$attrs"
+    :loading="percentiles.loading"
+    :data="percentiles.data"
+    :annotations="annotations"
+  />
 </template>
 
 <script lang="ts">
@@ -8,6 +13,7 @@ import { defineComponent, PropType } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { usePercentiles } from '@/use/percentiles'
+import { Annotation } from '@/org/use-annotations'
 
 // Components
 import PctileChart from '@/components/PctileChart.vue'
@@ -20,6 +26,10 @@ export default defineComponent({
     axiosParams: {
       type: Object as PropType<Record<string, any>>,
       required: true,
+    },
+    annotations: {
+      type: Array as PropType<Annotation[]>,
+      default: () => [],
     },
   },
 

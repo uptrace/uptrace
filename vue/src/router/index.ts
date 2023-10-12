@@ -21,6 +21,8 @@ import ChannelShowSlack from '@/alerting/views/ChannelShowSlack.vue'
 import ChannelShowWebhook from '@/alerting/views/ChannelShowWebhook.vue'
 import ChannelShowAlertmanager from '@/alerting/views/ChannelShowAlertmanager.vue'
 import EmailNotifications from '@/alerting/views/EmailNotifications.vue'
+import AnnotationList from '@/alerting/views/AnnotationList.vue'
+import AnnotationShow from '@/alerting/views/AnnotationShow.vue'
 
 import Overview from '@/tracing/views/Overview.vue'
 import OverviewAttr from '@/tracing/views/OverviewAttr.vue'
@@ -111,6 +113,18 @@ const routes: RouteConfig[] = [
         path: 'email',
         components: { alerting: EmailNotifications },
       },
+
+      {
+        name: 'NotifChannelEmail',
+        path: 'email',
+        components: { alerting: EmailNotifications },
+      },
+
+      {
+        name: 'AnnotationList',
+        path: 'annotations',
+        components: { alerting: AnnotationList },
+      },
     ],
   },
 
@@ -158,6 +172,12 @@ const routes: RouteConfig[] = [
   {
     path: '/alerts',
     beforeEnter: redirectToProject('AlertList'),
+  },
+
+  {
+    name: 'AnnotationShow',
+    path: '/alerting/:projectId(\\d+)/annotations/:annotationId(\\d+)',
+    component: AnnotationShow,
   },
 
   {

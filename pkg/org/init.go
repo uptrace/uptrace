@@ -75,4 +75,20 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 
 			g.GET("/achievements", handler.List)
 		})
+
+	{
+		handler := NewAnnotationHandler(app)
+		api.POST("/annotations", handler.CreatePublic)
+
+		api.Use(middleware.UserAndProject).
+			WithGroup("/projects/:project_id/annotations", func(g *bunrouter.Group) {
+				g.GET("", handler.List)
+				g.POST("", handler.Create)
+
+				g = g.Use(handler.AnnotationMiddleware)
+				g.GET("/:annotation_id", handler.Show)
+				g.PUT("/:annotation_id", handler.Update)
+				g.DELETE("/:annotation_id", handler.Delete)
+			})
+	}
 }

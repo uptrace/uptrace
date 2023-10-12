@@ -12,6 +12,7 @@
   "dependencies": {
     "@mdi/font": "^7.0.96",
     "@sentry/vue": "^7.47.0",
+    "@types/markdown-it": "^13.0.2",
     "@vueuse/core": "9.4.0",
     "axios": "0.27.2",
     "axios-retry": "3.3.1",
@@ -59,6 +60,7 @@
     "eslint": "8.26.0",
     "eslint-plugin-prettier": "4.2.1",
     "eslint-plugin-vue": "9.6.0",
+    "markdown-it": "^13.0.2",
     "prettier": "2.7.1",
     "regenerator-runtime": "0.13.10",
     "sass": "1.32.8",
