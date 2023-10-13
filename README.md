@@ -68,45 +68,6 @@ Have questions? Get help via [Telegram](https://t.me/uptrace),
 [Slack](https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw), or
 [start a discussion](https://github.com/uptrace/uptrace/discussions) on GitHub.
 
-## FAQ
-
-**What is the license?**
-
-The Business Source [License](LICENSE) is identical to Apache 2.0 with the only exception being that
-you can't use the code to create a cloud service or, in other words, resell the product to others.
-
-BSL is adopted by MariaDB, Sentry, CockroachDB, Couchbase and many others. In most cases, it is a
-more permissive license than, for example, AGPL or double licensing (MIT + ee), because it allows
-you to make private changes to the code.
-
-In three years, the code also becomes available under Apache 2.0 license. You can learn more about
-BSL [here](https://mariadb.com/bsl-faq-adopting/).
-
-**Can I use Uptrace to monitor commercial or production-grade applications?**
-
-Yes, you can use Uptrace to monitor **your** applications and provide employees access to the
-Uptrace app without any limitations.
-
-**Why BSL license**?
-
-The Uptrace team picked BSL license with the intention to allow users monitor their applications,
-but to forbid other companies creating a [cloud service](https://uptrace.dev/cloud) using the code.
-
-**Are you open-source?**
-
-Technically, the BSL license is classified as source-available, but we continue to use the term
-open-source on the basis that the source code is open.
-
-Existing SEO practices don't leave us much choice and our competitors do more or less the same.
-
-**Is the database schema stable?**
-
-Yes, but we are still making changes to the database schema and plan to switch to
-[ClickHouse dynamic subcolumns](https://github.com/ClickHouse/ClickHouse/pull/23932) when that
-feature is
-[stable](https://github.com/ClickHouse/ClickHouse/issues?q=is%3Aissue+is%3Aopen+label%3Acomp-type-object)
-enough.
-
 ## Contributing
 
 See [Contributing to Uptrace](https://uptrace.dev/get/contributing.html).
