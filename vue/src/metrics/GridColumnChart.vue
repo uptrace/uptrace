@@ -3,6 +3,7 @@
     <v-row no-gutters justify="space-around">
       <v-col :cols="legend.placement === LegendPlacement.Bottom ? 12 : ''">
         <MetricChart
+          :annotations="annotations"
           :loading="loading"
           :resolved="resolved"
           :timeseries="activeTimeseries"
@@ -54,6 +55,9 @@
 
 <script lang="ts">
 import { defineComponent, shallowRef, computed, PropType } from 'vue'
+
+// Composables
+import { injectAnnotations } from '@/org/use-annotations'
 
 // Components
 import MetricChart from '@/metrics/MetricChart.vue'
@@ -163,6 +167,8 @@ export default defineComponent({
     return {
       LegendType,
       LegendPlacement,
+
+      annotations: injectAnnotations(),
 
       showDuplicateLegend,
       chartHeight,

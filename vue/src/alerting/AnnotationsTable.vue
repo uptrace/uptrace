@@ -32,13 +32,13 @@ export default defineComponent({
   components: { AnnotationsTableRow },
 
   props: {
-    loading: {
-      type: Boolean,
-      default: false,
-    },
     annotations: {
       type: Array as PropType<Annotation[]>,
       required: true,
+    },
+    loading: {
+      type: Boolean,
+      default: false,
     },
     order: {
       type: Object as PropType<UseOrder>,

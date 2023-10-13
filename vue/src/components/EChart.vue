@@ -84,6 +84,10 @@ export default defineComponent({
   components: { AnnotationAttrs },
 
   props: {
+    annotations: {
+      type: Array as PropType<Annotation[]>,
+      default: () => [],
+    },
     loading: {
       type: Boolean,
       default: false,
@@ -107,10 +111,6 @@ export default defineComponent({
     group: {
       type: [String, Symbol] as PropType<GroupName>,
       default: undefined,
-    },
-    annotations: {
-      type: Array as PropType<Annotation[]>,
-      default: () => [],
     },
   },
 
@@ -177,6 +177,8 @@ export default defineComponent({
     }, 50)
 
     onMounted(() => {
+      init()
+
       watch(
         config,
         (config) => {
@@ -188,20 +190,8 @@ export default defineComponent({
       )
 
       watch(
-        () => props.option,
-        (option) => {
-          if (option) {
-            init()
-            setOption(option)
-          }
-        },
-        { immediate: true },
-      )
-
-      watch(
         () => props.loading,
         (loading) => {
-          init()
           if (loading) {
             echart.showLoading()
           } else {

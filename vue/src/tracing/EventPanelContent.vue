@@ -29,7 +29,11 @@
 
     <v-row v-if="event.groupId">
       <v-col>
-        <PctileChart :loading="percentiles.loading" :data="percentiles.data" />
+        <PctileChart
+          :annotations="annotations"
+          :loading="percentiles.loading"
+          :data="percentiles.data"
+        />
       </v-col>
     </v-row>
 
@@ -54,6 +58,7 @@ import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { usePercentiles } from '@/use/percentiles'
 import { createUqlEditor } from '@/use/uql'
+import { Annotation } from '@/org/use-annotations'
 
 // Components
 import PctileChart from '@/components/PctileChart.vue'
@@ -72,6 +77,10 @@ export default defineComponent({
     dateRange: {
       type: Object as PropType<UseDateRange>,
       required: true,
+    },
+    annotations: {
+      type: Array as PropType<Annotation[]>,
+      default: () => [],
     },
     event: {
       type: Object as PropType<SpanEvent>,

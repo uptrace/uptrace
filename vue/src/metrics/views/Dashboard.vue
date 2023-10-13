@@ -90,6 +90,7 @@ import { defineComponent, shallowRef, watch, PropType } from 'vue'
 import { useTitle } from '@vueuse/core'
 import { useRouter, useRouteQuery } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
+import { useAnnotations } from '@/org/use-annotations'
 import { useDashboards, useDashboard } from '@/metrics/use-dashboards'
 
 // Components
@@ -130,6 +131,12 @@ export default defineComponent({
   setup(props) {
     useTitle('Metrics')
     props.dateRange.syncQueryParams()
+
+    useAnnotations(() => {
+      return {
+        ...props.dateRange.axiosParams(),
+      }
+    })
 
     const { router } = useRouter()
 

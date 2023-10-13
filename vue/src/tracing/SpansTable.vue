@@ -38,7 +38,7 @@
 
       <tbody>
         <template v-for="(span, index) in spans">
-          <tr :key="`a-${index}`" class="cursor-pointer" @click="dialog.showSpan(span)">
+          <tr :key="`a-${index}`" class="cursor-pointer" @click="showSpan(span)">
             <td class="word-break-all">
               {{ span.displayName }}
             </td>
@@ -63,21 +63,23 @@
       </tbody>
     </v-simple-table>
 
-    <v-dialog v-model="dialog.isActive" max-width="1280">
+    <v-dialog v-model="dialog" max-width="1280">
       <v-sheet>
-        <SpanCardDateRange v-if="dialog.activeSpan" :span="dialog.activeSpan" />
+        <SpanCardDateRange v-if="activeSpan" :span="activeSpan" />
       </v-sheet>
     </v-dialog>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, nextTick, proxyRefs, PropType } from 'vue'
+import { defineComponent, shallowRef, nextTick, watch, PropType } from 'vue'
 
 // Composables
+import { useDateRange, UseDateRange } from '@/use/date-range'
 import { useRoute, useRouteQuery } from '@/use/router'
 import { UsePager } from '@/use/pager'
 import { UseOrder } from '@/use/order'
+import { useAnnotations } from '@/org/use-annotations'
 
 // Components
 import ThOrder from '@/components/ThOrder.vue'
@@ -97,6 +99,10 @@ export default defineComponent({
   },
 
   props: {
+    dateRange: {
+      type: Object as PropType<UseDateRange>,
+      required: true,
+    },
     loading: {
       type: Boolean,
       required: true,
@@ -129,11 +135,6 @@ export default defineComponent({
 
   setup(props) {
     const route = useRoute()
-    const dialog = useDialog()
-
-    useRouteQuery().onRouteChanged(() => {
-      dialog.close()
-    })
 
     function systemRoute(span: Span) {
       return {
@@ -150,37 +151,46 @@ export default defineComponent({
       })
     }
 
+    // Dialog
+    //-------
+
+    const internalDateRange = useDateRange()
+    useAnnotations(() => {
+      return {
+        ...internalDateRange.axiosParams(),
+      }
+    })
+
+    const dialog = shallowRef(false)
+    const activeSpan = shallowRef<Span>()
+
+    useRouteQuery().onRouteChanged(() => {
+      dialog.value = false
+    })
+
+    watch(dialog, (dialog) => {
+      if (dialog) {
+        internalDateRange.syncWith(props.dateRange)
+      }
+    })
+
+    function showSpan(span: Span) {
+      activeSpan.value = span
+      dialog.value = true
+    }
+
     return {
       AttrKey,
       dialog,
+      activeSpan,
 
       systemRoute,
       onSortBy,
+
+      showSpan,
     }
   },
 })
-
-function useDialog() {
-  const dialog = shallowRef(false)
-  const activeSpan = shallowRef<Span>()
-
-  function showSpan(span: Span) {
-    activeSpan.value = span
-    dialog.value = true
-  }
-
-  function close() {
-    dialog.value = false
-  }
-
-  return proxyRefs({
-    isActive: dialog,
-    activeSpan,
-
-    showSpan,
-    close,
-  })
-}
 </script>
 
 <style lang="scss" scoped></style>

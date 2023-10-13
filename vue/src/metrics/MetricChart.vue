@@ -20,6 +20,7 @@
     <EChart
       v-else
       v-model="echart"
+      :annotations="annotations"
       :loading="loading"
       :height="chart.height"
       :option="chart.option"
@@ -35,9 +36,12 @@ import { defineComponent, shallowRef, computed, onMounted, PropType } from 'vue'
 // Components
 import EChart, { EChartProps } from '@/components/EChart.vue'
 
-// Utilities
+// Composables
 import { ChartKind, StyledTimeseries } from '@/metrics/types'
 import { EventBus } from '@/models/eventbus'
+import { Annotation } from '@/org/use-annotations'
+
+// Utilities
 import { createFormatter, Unit, Formatter } from '@/util/fmt'
 import {
   baseChartConfig,
@@ -53,6 +57,10 @@ export default defineComponent({
   components: { EChart },
 
   props: {
+    annotations: {
+      type: Array as PropType<Annotation[]>,
+      default: () => [],
+    },
     loading: {
       type: Boolean,
       default: false,

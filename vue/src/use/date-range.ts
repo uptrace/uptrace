@@ -188,6 +188,12 @@ export function useDateRange(conf: Config = {}) {
     changeLT(dt)
   }
 
+  function syncWith(other: UseDateRange) {
+    lt.value = other.lt
+    duration.value = other.duration
+    isNow.value = other.isNow
+  }
+
   //------------------------------------------------------------------------------
 
   function changeGTE(dt: Date) {
@@ -355,6 +361,7 @@ export function useDateRange(conf: Config = {}) {
     changeDuration,
     contains,
     changeAround,
+    syncWith,
 
     changeGTE,
     changeLT,

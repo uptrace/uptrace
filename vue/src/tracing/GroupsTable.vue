@@ -35,6 +35,7 @@
       <tr class="v-data-table__expanded v-data-table__expanded__content">
         <td :colspan="headers.length" class="pt-2 pb-4">
           <SpansList
+            :date-range="dateRange"
             :axios-params="axiosParams"
             :where="item._query"
             :events-mode="isEventSystemGroup(item)"

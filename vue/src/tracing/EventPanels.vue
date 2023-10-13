@@ -8,7 +8,7 @@
         </span>
       </v-expansion-panel-header>
       <v-expansion-panel-content v-if="hasAttrs(event)">
-        <EventPanelContent :date-range="dateRange" :event="event" />
+        <EventPanelContent :annotations="annotations" :date-range="dateRange" :event="event" />
       </v-expansion-panel-content>
     </v-expansion-panel>
   </v-expansion-panels>
@@ -19,6 +19,7 @@ import { defineComponent, shallowRef, watch, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
+import { Annotation } from '@/org/use-annotations'
 
 // Components
 import EventPanelContent from '@/tracing/EventPanelContent.vue'
@@ -32,6 +33,10 @@ export default defineComponent({
   components: { EventPanelContent },
 
   props: {
+    annotations: {
+      type: Array as PropType<Annotation[]>,
+      default: () => [],
+    },
     dateRange: {
       type: Object as PropType<UseDateRange>,
       required: true,
