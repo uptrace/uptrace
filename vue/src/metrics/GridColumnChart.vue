@@ -3,7 +3,6 @@
     <v-row no-gutters justify="space-around">
       <v-col :cols="legend.placement === LegendPlacement.Bottom ? 12 : ''">
         <MetricChart
-          :annotations="annotations"
           :loading="loading"
           :resolved="resolved"
           :timeseries="activeTimeseries"
@@ -11,6 +10,7 @@
           :chart-kind="chartKind"
           :height="chartHeight"
           :event-bus="eventBus"
+          :annotations="annotations"
         />
       </v-col>
       <v-col

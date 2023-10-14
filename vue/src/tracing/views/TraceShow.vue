@@ -78,7 +78,7 @@
           <v-col>
             <v-card outlined rounded="lg">
               <v-card-text>
-                <LoadPctileChart :annotations="annotations.items" :axios-params="axiosParams" />
+                <LoadPctileChart :axios-params="axiosParams" :annotations="annotations.items" />
               </v-card-text>
             </v-card>
           </v-col>
@@ -92,7 +92,7 @@
 
         <v-row>
           <v-col>
-            <TraceTabs :annotations="annotations.items" :date-range="dateRange" :trace="trace" />
+            <TraceTabs :date-range="dateRange" :trace="trace" :annotations="annotations.items" />
           </v-col>
         </v-row>
       </v-container>

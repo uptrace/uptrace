@@ -8,7 +8,7 @@
         </span>
       </v-expansion-panel-header>
       <v-expansion-panel-content v-if="hasAttrs(event)">
-        <EventPanelContent :annotations="annotations" :date-range="dateRange" :event="event" />
+        <EventPanelContent :date-range="dateRange" :event="event" :annotations="annotations" />
       </v-expansion-panel-content>
     </v-expansion-panel>
   </v-expansion-panels>
@@ -33,10 +33,6 @@ export default defineComponent({
   components: { EventPanelContent },
 
   props: {
-    annotations: {
-      type: Array as PropType<Annotation[]>,
-      default: () => [],
-    },
     dateRange: {
       type: Object as PropType<UseDateRange>,
       required: true,
@@ -48,6 +44,10 @@ export default defineComponent({
     flat: {
       type: Boolean,
       default: false,
+    },
+    annotations: {
+      type: Array as PropType<Annotation[]>,
+      default: () => [],
     },
   },
 

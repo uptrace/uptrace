@@ -3,11 +3,11 @@
     <EChart
       v-for="chart in charts"
       :key="chart.name"
-      :annotations="annotations"
       :loading="loading"
       :height="chart.height"
       :option="chart.option"
       :group="chartGroup"
+      :annotations="annotations"
     />
   </div>
 </template>

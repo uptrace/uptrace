@@ -1,9 +1,9 @@
 <template>
   <PctileChart
     v-bind="$attrs"
-    :annotations="annotations"
     :loading="percentiles.loading"
     :data="percentiles.data"
+    :annotations="annotations"
   />
 </template>
 
@@ -23,13 +23,13 @@ export default defineComponent({
   components: { PctileChart },
 
   props: {
-    annotations: {
-      type: Array as PropType<Annotation[]>,
-      default: () => [],
-    },
     axiosParams: {
       type: Object as PropType<Record<string, any>>,
       required: true,
+    },
+    annotations: {
+      type: Array as PropType<Annotation[]>,
+      default: () => [],
     },
   },
 

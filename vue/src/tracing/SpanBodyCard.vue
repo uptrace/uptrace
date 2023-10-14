@@ -114,14 +114,14 @@
 
             <v-tab-item value="events">
               <EventPanels
-                :annotations="annotations"
                 :date-range="dateRange"
                 :events="span.events"
+                :annotations="annotations"
               />
             </v-tab-item>
 
             <v-tab-item value="pctile" class="pa-4">
-              <LoadPctileChart :annotations="annotations" :axios-params="axiosParams" />
+              <LoadPctileChart :axios-params="axiosParams" :annotations="annotations" />
             </v-tab-item>
           </v-tabs-items>
         </v-sheet>
@@ -151,7 +151,7 @@ import { AttrKey, isEventSystem } from '@/models/otel'
 import { spanName, Span } from '@/models/span'
 
 export default defineComponent({
-  name: 'SpanCard',
+  name: 'SpanBodyCard',
   components: {
     NewMonitorMenu,
     SpanAttrs,

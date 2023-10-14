@@ -17,8 +17,8 @@
         <v-row class="px-4 pb-4">
           <v-col>
             <LoadPctileChart
-              :annotations="annotations.items"
               :axios-params="axiosParams"
+              :annotations="annotations.items"
               class="pa-4"
             />
 

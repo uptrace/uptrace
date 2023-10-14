@@ -65,7 +65,13 @@
 
     <v-dialog v-model="dialog" max-width="1280">
       <v-sheet>
-        <SpanCardDateRange v-if="activeSpan" :span="activeSpan" />
+        <SpanCard
+          v-if="activeSpan"
+          :date-range="internalDateRange"
+          :span="activeSpan"
+          fluid
+          show-toolbar
+        />
       </v-sheet>
     </v-dialog>
   </div>
@@ -82,8 +88,8 @@ import { UseOrder } from '@/use/order'
 import { useAnnotations } from '@/org/use-annotations'
 
 // Components
+import SpanCard from '@/tracing/SpanCard.vue'
 import ThOrder from '@/components/ThOrder.vue'
-import SpanCardDateRange from '@/tracing/SpanCardDateRange.vue'
 import SpanChips from '@/tracing/SpanChips.vue'
 
 // Utilities
@@ -94,8 +100,8 @@ export default defineComponent({
   name: 'SpansTable',
   components: {
     ThOrder,
+    SpanCard,
     SpanChips,
-    SpanCardDateRange,
   },
 
   props: {
@@ -180,6 +186,7 @@ export default defineComponent({
     }
 
     return {
+      internalDateRange,
       AttrKey,
       dialog,
       activeSpan,

@@ -30,9 +30,9 @@
 
               <template v-else>
                 <AnnotationsTable
-                  :annotations="annotations.items"
                   :loading="annotations.loading"
                   :order="order"
+                  :annotations="annotations.items"
                   @change="annotations.reload()"
                 >
                 </AnnotationsTable>

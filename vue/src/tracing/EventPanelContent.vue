@@ -30,9 +30,9 @@
     <v-row v-if="event.groupId">
       <v-col>
         <PctileChart
-          :annotations="annotations"
           :loading="percentiles.loading"
           :data="percentiles.data"
+          :annotations="annotations"
         />
       </v-col>
     </v-row>
@@ -78,13 +78,13 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
-    annotations: {
-      type: Array as PropType<Annotation[]>,
-      default: () => [],
-    },
     event: {
       type: Object as PropType<SpanEvent>,
       required: true,
+    },
+    annotations: {
+      type: Array as PropType<Annotation[]>,
+      default: () => [],
     },
   },
 

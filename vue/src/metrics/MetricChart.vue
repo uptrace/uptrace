@@ -20,11 +20,11 @@
     <EChart
       v-else
       v-model="echart"
-      :annotations="annotations"
       :loading="loading"
       :height="chart.height"
       :option="chart.option"
       :group="group"
+      :annotations="annotations"
     />
   </div>
 </template>
@@ -57,10 +57,6 @@ export default defineComponent({
   components: { EChart },
 
   props: {
-    annotations: {
-      type: Array as PropType<Annotation[]>,
-      default: () => [],
-    },
     loading: {
       type: Boolean,
       default: false,
@@ -100,6 +96,10 @@ export default defineComponent({
     eventBus: {
       type: Object as PropType<EventBus>,
       default: undefined,
+    },
+    annotations: {
+      type: Array as PropType<Annotation[]>,
+      default: () => [],
     },
   },
 

@@ -12,7 +12,7 @@
         <TraceTimeline :trace="trace" :date-range="dateRange" />
       </v-tab-item>
       <v-tab-item v-for="(events, system) in trace.events" :key="system" :value="system">
-        <EventPanels :annotations="annotations" :date-range="dateRange" :events="events" />
+        <EventPanels :date-range="dateRange" :events="events" :annotations="annotations" />
       </v-tab-item>
     </v-tabs-items>
   </v-card>
@@ -38,10 +38,6 @@ export default defineComponent({
   },
 
   props: {
-    annotations: {
-      type: Array as PropType<Annotation[]>,
-      default: () => [],
-    },
     dateRange: {
       type: Object as PropType<UseDateRange>,
       required: true,
@@ -49,6 +45,10 @@ export default defineComponent({
     trace: {
       type: Object as PropType<UseTrace>,
       default: undefined,
+    },
+    annotations: {
+      type: Array as PropType<Annotation[]>,
+      default: () => [],
     },
   },
 
