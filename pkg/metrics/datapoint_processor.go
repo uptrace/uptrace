@@ -20,13 +20,13 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-type MeasureProcessor struct {
+type DatapointProcessor struct {
 	*bunapp.App
 
 	batchSize int
 	dropAttrs map[string]struct{}
 
-	queue chan *Measure
+	queue chan *Datapoint
 	gate  *syncutil.Gate
 
 	c2d    *CumToDeltaConv
@@ -38,15 +38,15 @@ type MeasureProcessor struct {
 	dashSyncer *DashSyncer
 }
 
-func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
+func NewDatapointProcessor(app *bunapp.App) *DatapointProcessor {
 	conf := app.Config()
 	maxprocs := runtime.GOMAXPROCS(0)
-	p := &MeasureProcessor{
+	p := &DatapointProcessor{
 		App: app,
 
 		batchSize: conf.Metrics.BatchSize,
 
-		queue: make(chan *Measure, conf.Metrics.BufferSize),
+		queue: make(chan *Datapoint, conf.Metrics.BufferSize),
 		gate:  syncutil.NewGate(maxprocs),
 
 		c2d:    NewCumToDeltaConv(conf.Metrics.CumToDeltaSize),
@@ -75,7 +75,7 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 	}()
 
 	queueLen, _ := bunotel.Meter.Int64ObservableGauge("uptrace.metrics.queue_length",
-		metric.WithUnit("{measures}"),
+		metric.WithUnit("{datapoints}"),
 	)
 
 	if _, err := bunotel.Meter.RegisterCallback(
@@ -91,52 +91,52 @@ func NewMeasureProcessor(app *bunapp.App) *MeasureProcessor {
 	return p
 }
 
-func (p *MeasureProcessor) AddMeasure(ctx context.Context, measure *Measure) {
+func (p *DatapointProcessor) AddDatapoint(ctx context.Context, datapoint *Datapoint) {
 	select {
-	case p.queue <- measure:
+	case p.queue <- datapoint:
 	default:
-		p.logger.Error("measure buffer is full (consider increasing metrics.buffer_size)",
+		p.logger.Error("datapoint buffer is full (consider increasing metrics.buffer_size)",
 			zap.Int("len", len(p.queue)))
-		measureCounter.Add(
+		datapointCounter.Add(
 			ctx,
 			1,
 			metric.WithAttributes(
-				bunotel.ProjectIDAttr(measure.ProjectID),
+				bunotel.ProjectIDAttr(datapoint.ProjectID),
 				attribute.String("type", "dropped"),
 			),
 		)
 	}
 }
 
-func (p *MeasureProcessor) processLoop(ctx context.Context) {
+func (p *DatapointProcessor) processLoop(ctx context.Context) {
 	const timeout = 5 * time.Second
 
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
-	measures := make([]*Measure, 0, p.batchSize)
+	datapoints := make([]*Datapoint, 0, p.batchSize)
 
 loop:
 	for {
 		select {
-		case measure := <-p.queue:
-			measures = append(measures, measure)
+		case datapoint := <-p.queue:
+			datapoints = append(datapoints, datapoint)
 
-			if len(measures) < p.batchSize {
+			if len(datapoints) < p.batchSize {
 				break
 			}
 
-			p.processMeasures(ctx, measures)
-			measures = measures[:0]
+			p.processDatapoints(ctx, datapoints)
+			datapoints = datapoints[:0]
 
 			if !timer.Stop() {
 				<-timer.C
 			}
 			timer.Reset(timeout)
 		case <-timer.C:
-			if len(measures) > 0 {
-				p.processMeasures(ctx, measures)
-				measures = measures[:0]
+			if len(datapoints) > 0 {
+				p.processDatapoints(ctx, datapoints)
+				datapoints = datapoints[:0]
 			}
 			timer.Reset(timeout)
 		case <-p.Done():
@@ -144,55 +144,55 @@ loop:
 		}
 	}
 
-	if len(measures) > 0 {
-		p.processMeasures(ctx, measures)
+	if len(datapoints) > 0 {
+		p.processDatapoints(ctx, datapoints)
 	}
 }
 
-func (p *MeasureProcessor) processMeasures(ctx context.Context, src []*Measure) {
-	ctx, span := bunotel.Tracer.Start(ctx, "process-measures")
+func (p *DatapointProcessor) processDatapoints(ctx context.Context, src []*Datapoint) {
+	ctx, span := bunotel.Tracer.Start(ctx, "process-datapoints")
 
 	p.WaitGroup().Add(1)
 	p.gate.Start()
 
-	measures := make([]*Measure, len(src))
-	copy(measures, src)
+	datapoints := make([]*Datapoint, len(src))
+	copy(datapoints, src)
 
 	go func() {
 		defer span.End()
 		defer p.gate.Done()
 		defer p.WaitGroup().Done()
 
-		mctx := newMeasureContext(ctx)
-		p._processMeasures(mctx, measures)
+		mctx := newDatapointContext(ctx)
+		p._processDatapoints(mctx, datapoints)
 	}()
 }
 
-func (p *MeasureProcessor) _processMeasures(ctx *measureContext, measures []*Measure) {
-	for i := len(measures) - 1; i >= 0; i-- {
-		measure := measures[i]
+func (p *DatapointProcessor) _processDatapoints(ctx *datapointContext, datapoints []*Datapoint) {
+	for i := len(datapoints) - 1; i >= 0; i-- {
+		datapoint := datapoints[i]
 
-		if !p.processMeasure(ctx, measure) {
-			measures = append(measures[:i], measures[i+1:]...)
+		if !p.processDatapoint(ctx, datapoint) {
+			datapoints = append(datapoints[:i], datapoints[i+1:]...)
 			continue
 		}
 
-		measureCounter.Add(
+		datapointCounter.Add(
 			ctx,
 			1,
 			metric.WithAttributes(
-				bunotel.ProjectIDAttr(measure.ProjectID),
+				bunotel.ProjectIDAttr(datapoint.ProjectID),
 				attribute.String("type", "inserted"),
 			),
 		)
 
-		p.upsertMetric(ctx, measure)
-		measure.Time = measure.Time.Truncate(time.Minute)
+		p.upsertMetric(ctx, datapoint)
+		datapoint.Time = datapoint.Time.Truncate(time.Minute)
 	}
 
-	if len(measures) > 0 {
-		if err := InsertMeasures(ctx, p.App, measures); err != nil {
-			p.Zap(ctx).Error("InsertMeasures failed", zap.Error(err))
+	if len(datapoints) > 0 {
+		if err := InsertDatapoints(ctx, p.App, datapoints); err != nil {
+			p.Zap(ctx).Error("InsertDatapoints failed", zap.Error(err))
 		}
 	}
 
@@ -203,29 +203,29 @@ func (p *MeasureProcessor) _processMeasures(ctx *measureContext, measures []*Mea
 	}
 }
 
-func (p *MeasureProcessor) processMeasure(ctx *measureContext, measure *Measure) bool {
-	p.initMeasure(ctx, measure)
+func (p *DatapointProcessor) processDatapoint(ctx *datapointContext, datapoint *Datapoint) bool {
+	p.initDatapoint(ctx, datapoint)
 
-	switch point := measure.CumPoint.(type) {
+	switch point := datapoint.CumPoint.(type) {
 	case nil:
 		return true
 	case *NumberPoint:
-		if !p.convertNumberPoint(ctx, measure, point) {
+		if !p.convertNumberPoint(ctx, datapoint, point) {
 			return false
 		}
-		measure.CumPoint = nil
+		datapoint.CumPoint = nil
 		return true
 	case *HistogramPoint:
-		if !p.convertHistogramPoint(ctx, measure, point) {
+		if !p.convertHistogramPoint(ctx, datapoint, point) {
 			return false
 		}
-		measure.CumPoint = nil
+		datapoint.CumPoint = nil
 		return true
 	case *ExpHistogramPoint:
-		if !p.convertExpHistogramPoint(ctx, measure, point) {
+		if !p.convertExpHistogramPoint(ctx, datapoint, point) {
 			return false
 		}
-		measure.CumPoint = nil
+		datapoint.CumPoint = nil
 		return true
 	default:
 		p.Zap(ctx).Error("unknown cum point type",
@@ -234,13 +234,13 @@ func (p *MeasureProcessor) processMeasure(ctx *measureContext, measure *Measure)
 	}
 }
 
-func (p *MeasureProcessor) initMeasure(ctx *measureContext, measure *Measure) {
-	keys := make([]string, 0, len(measure.Attrs))
-	values := make([]string, 0, len(measure.Attrs))
+func (p *DatapointProcessor) initDatapoint(ctx *datapointContext, datapoint *Datapoint) {
+	keys := make([]string, 0, len(datapoint.Attrs))
+	values := make([]string, 0, len(datapoint.Attrs))
 
-	for key := range measure.Attrs {
+	for key := range datapoint.Attrs {
 		if _, ok := p.dropAttrs[key]; ok {
-			delete(measure.Attrs, key)
+			delete(datapoint.Attrs, key)
 			continue
 		}
 		keys = append(keys, key)
@@ -250,52 +250,52 @@ func (p *MeasureProcessor) initMeasure(ctx *measureContext, measure *Measure) {
 	digest := ctx.ResettedDigest()
 
 	for _, key := range keys {
-		value := measure.Attrs[key]
+		value := datapoint.Attrs[key]
 		values = append(values, value)
 
 		digest.WriteString(key)
 		digest.WriteString(value)
 	}
 
-	measure.AttrsHash = digest.Sum64()
-	measure.StringKeys = keys
-	measure.StringValues = values
+	datapoint.AttrsHash = digest.Sum64()
+	datapoint.StringKeys = keys
+	datapoint.StringValues = values
 }
 
-func (p *MeasureProcessor) convertNumberPoint(
-	ctx context.Context, measure *Measure, point *NumberPoint,
+func (p *DatapointProcessor) convertNumberPoint(
+	ctx context.Context, datapoint *Datapoint, point *NumberPoint,
 ) bool {
-	key := MeasureKey{
-		ProjectID:         measure.ProjectID,
-		Metric:            measure.Metric,
-		AttrsHash:         measure.AttrsHash,
-		StartTimeUnixNano: measure.StartTimeUnixNano,
+	key := DatapointKey{
+		ProjectID:         datapoint.ProjectID,
+		Metric:            datapoint.Metric,
+		AttrsHash:         datapoint.AttrsHash,
+		StartTimeUnixNano: datapoint.StartTimeUnixNano,
 	}
 
-	prevPoint, ok := p.c2d.SwapPoint(key, point, measure.Time).(*NumberPoint)
+	prevPoint, ok := p.c2d.SwapPoint(key, point, datapoint.Time).(*NumberPoint)
 	if !ok {
 		return false
 	}
 
 	if delta := point.Int - prevPoint.Int; delta > 0 {
-		measure.Sum = float64(delta)
+		datapoint.Sum = float64(delta)
 	} else if delta := point.Double - prevPoint.Double; delta > 0 {
-		measure.Sum = delta
+		datapoint.Sum = delta
 	}
 	return true
 }
 
-func (p *MeasureProcessor) convertHistogramPoint(
-	ctx context.Context, measure *Measure, point *HistogramPoint,
+func (p *DatapointProcessor) convertHistogramPoint(
+	ctx context.Context, datapoint *Datapoint, point *HistogramPoint,
 ) bool {
-	key := MeasureKey{
-		ProjectID:         measure.ProjectID,
-		Metric:            measure.Metric,
-		AttrsHash:         measure.AttrsHash,
-		StartTimeUnixNano: measure.StartTimeUnixNano,
+	key := DatapointKey{
+		ProjectID:         datapoint.ProjectID,
+		Metric:            datapoint.Metric,
+		AttrsHash:         datapoint.AttrsHash,
+		StartTimeUnixNano: datapoint.StartTimeUnixNano,
 	}
 
-	prevPoint, ok := p.c2d.SwapPoint(key, point, measure.Time).(*HistogramPoint)
+	prevPoint, ok := p.c2d.SwapPoint(key, point, datapoint.Time).(*HistogramPoint)
 	if !ok {
 		return false
 	}
@@ -308,12 +308,12 @@ func (p *MeasureProcessor) convertHistogramPoint(
 		return false
 	}
 
-	measure.Sum = point.Sum - prevPoint.Sum
-	measure.Count = point.Count - prevPoint.Count
+	datapoint.Sum = point.Sum - prevPoint.Sum
+	datapoint.Count = point.Count - prevPoint.Count
 
 	counts := makeDeltaCounts(point.BucketCounts, prevPoint.BucketCounts)
-	avg := measure.Sum / float64(measure.Count)
-	measure.Histogram, measure.Min, measure.Max = newBFloat16Histogram(point.Bounds, counts, avg)
+	avg := datapoint.Sum / float64(datapoint.Count)
+	datapoint.Histogram, datapoint.Min, datapoint.Max = newBFloat16Histogram(point.Bounds, counts, avg)
 
 	return true
 }
@@ -330,17 +330,17 @@ func makeDeltaCounts(counts, prevCounts []uint64) []uint64 {
 	return prevCounts
 }
 
-func (p *MeasureProcessor) convertExpHistogramPoint(
-	ctx context.Context, measure *Measure, point *ExpHistogramPoint,
+func (p *DatapointProcessor) convertExpHistogramPoint(
+	ctx context.Context, datapoint *Datapoint, point *ExpHistogramPoint,
 ) bool {
-	key := MeasureKey{
-		ProjectID:         measure.ProjectID,
-		Metric:            measure.Metric,
-		AttrsHash:         measure.AttrsHash,
-		StartTimeUnixNano: measure.StartTimeUnixNano,
+	key := DatapointKey{
+		ProjectID:         datapoint.ProjectID,
+		Metric:            datapoint.Metric,
+		AttrsHash:         datapoint.AttrsHash,
+		StartTimeUnixNano: datapoint.StartTimeUnixNano,
 	}
 
-	prevPoint, ok := p.c2d.SwapPoint(key, point, measure.Time).(*ExpHistogramPoint)
+	prevPoint, ok := p.c2d.SwapPoint(key, point, datapoint.Time).(*ExpHistogramPoint)
 	if !ok {
 		return false
 	}
@@ -349,11 +349,11 @@ func (p *MeasureProcessor) convertExpHistogramPoint(
 		return false
 	}
 
-	measure.Sum = point.Sum - prevPoint.Sum
-	measure.Count = point.Count - prevPoint.Count
+	datapoint.Sum = point.Sum - prevPoint.Sum
+	datapoint.Count = point.Count - prevPoint.Count
 
 	var hist map[bfloat16.T]uint64
-	measure.Histogram = hist
+	datapoint.Histogram = hist
 
 	for mean, count := range point.Histogram {
 		prevCount := prevPoint.Histogram[mean]
@@ -374,10 +374,10 @@ type MetricKey struct {
 	Metric    string
 }
 
-func (p *MeasureProcessor) upsertMetric(ctx *measureContext, measure *Measure) {
+func (p *DatapointProcessor) upsertMetric(ctx *datapointContext, datapoint *Datapoint) {
 	key := MetricKey{
-		ProjectID: measure.ProjectID,
-		Metric:    measure.Metric,
+		ProjectID: datapoint.ProjectID,
+		Metric:    datapoint.Metric,
 	}
 
 	p.metricCacheMu.RLock()
@@ -397,16 +397,16 @@ func (p *MeasureProcessor) upsertMetric(ctx *measureContext, measure *Measure) {
 	p.metricCache.Put(key, time.Now())
 
 	ctx.metrics = append(ctx.metrics, Metric{
-		ProjectID:   measure.ProjectID,
-		Name:        measure.Metric,
-		Description: measure.Description,
-		Unit:        measure.Unit,
-		Instrument:  measure.Instrument,
-		AttrKeys:    measure.StringKeys,
+		ProjectID:   datapoint.ProjectID,
+		Name:        datapoint.Metric,
+		Description: datapoint.Description,
+		Unit:        datapoint.Unit,
+		Instrument:  datapoint.Instrument,
+		AttrKeys:    datapoint.StringKeys,
 	})
 }
 
-func (p *MeasureProcessor) upsertMetrics(ctx *measureContext, metrics []Metric) error {
+func (p *DatapointProcessor) upsertMetrics(ctx *datapointContext, metrics []Metric) error {
 	if _, err := p.PG.NewInsert().
 		Model(&metrics).
 		On("CONFLICT (project_id, name) DO UPDATE").
@@ -441,21 +441,21 @@ func (p *MeasureProcessor) upsertMetrics(ctx *measureContext, metrics []Metric) 
 
 //------------------------------------------------------------------------------
 
-type measureContext struct {
+type datapointContext struct {
 	context.Context
 
 	digest  *xxhash.Digest
 	metrics []Metric
 }
 
-func newMeasureContext(ctx context.Context) *measureContext {
-	return &measureContext{
+func newDatapointContext(ctx context.Context) *datapointContext {
+	return &datapointContext{
 		Context: ctx,
 		digest:  xxhash.New(),
 	}
 }
 
-func (c *measureContext) ResettedDigest() *xxhash.Digest {
+func (c *datapointContext) ResettedDigest() *xxhash.Digest {
 	c.digest.Reset()
 	return c.digest
 }

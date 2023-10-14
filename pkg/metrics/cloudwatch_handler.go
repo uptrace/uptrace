@@ -19,10 +19,10 @@ import (
 type KinesisHandler struct {
 	*bunapp.App
 
-	mp *MeasureProcessor
+	mp *DatapointProcessor
 }
 
-func NewKinesisHandler(app *bunapp.App, mp *MeasureProcessor) *KinesisHandler {
+func NewKinesisHandler(app *bunapp.App, mp *DatapointProcessor) *KinesisHandler {
 	return &KinesisHandler{
 		App: app,
 		mp:  mp,
@@ -38,7 +38,7 @@ type KinesisEventRecord struct {
 	Data []byte `json:"data"`
 }
 
-type CloudwatchMeasure struct {
+type CloudwatchDatapoint struct {
 	MetricStreamName string            `json:"metric_stream_name"`
 	AccountID        string            `json:"account_id"`
 	Region           string            `json:"region"`
@@ -89,11 +89,11 @@ func (h *KinesisHandler) Metrics(w http.ResponseWriter, req bunrouter.Request) e
 		project: project,
 	}
 
-	var src CloudwatchMeasure
+	var src CloudwatchDatapoint
 	for _, record := range event.Records {
 		data := record.Data
 		for len(data) > 2 {
-			src = CloudwatchMeasure{}
+			src = CloudwatchDatapoint{}
 
 			var err error
 			data, err = json.Parse(data, &src, json.ZeroCopy)
@@ -104,9 +104,9 @@ func (h *KinesisHandler) Metrics(w http.ResponseWriter, req bunrouter.Request) e
 				return err
 			}
 
-			dest := new(Measure)
+			dest := new(Datapoint)
 
-			if err := h.initMeasureFromAWS(project, dest, &src); err != nil {
+			if err := h.initDatapointFromAWS(project, dest, &src); err != nil {
 				return err
 			}
 
@@ -120,10 +120,10 @@ func (h *KinesisHandler) Metrics(w http.ResponseWriter, req bunrouter.Request) e
 	})
 }
 
-func (h *KinesisHandler) initMeasureFromAWS(
+func (h *KinesisHandler) initDatapointFromAWS(
 	project *org.Project,
-	dest *Measure,
-	src *CloudwatchMeasure,
+	dest *Datapoint,
+	src *CloudwatchDatapoint,
 ) error {
 	attrs := make(AttrMap, len(src.Dimensions)+4)
 	for key, value := range src.Dimensions {

@@ -11,6 +11,7 @@ CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
   kind LowCardinality(String) Codec(?CODEC),
   name LowCardinality(String) Codec(?CODEC),
   event_name String Codec(?CODEC),
+  display_name String Codec(?CODEC),
 
   time DateTime Codec(Delta, ?CODEC),
   duration Int64 Codec(T64, ?CODEC),
@@ -25,13 +26,34 @@ CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
   event_log_count UInt8 Codec(?CODEC),
 
   all_keys Array(LowCardinality(String)) Codec(?CODEC),
-  attr_keys Array(LowCardinality(String)) Codec(?CODEC),
-  attr_values Array(String) Codec(?CODEC),
+  string_keys Array(LowCardinality(String)) Codec(?CODEC),
+  string_values Array(String) Codec(?CODEC),
+
+  telemetry_sdk_name LowCardinality(String) Codec(?CODEC),
+  telemetry_sdk_language LowCardinality(String) Codec(?CODEC),
+  telemetry_sdk_version LowCardinality(String) Codec(?CODEC),
+  telemetry_auto_version LowCardinality(String) Codec(?CODEC),
+
+  otel_library_name LowCardinality(String) Codec(?CODEC),
+  otel_library_version LowCardinality(String) Codec(?CODEC),
 
   deployment_environment LowCardinality(String) Codec(?CODEC),
 
   service_name LowCardinality(String) Codec(?CODEC),
+  service_version LowCardinality(String) Codec(?CODEC),
   host_name LowCardinality(String) Codec(?CODEC),
+
+  client_address LowCardinality(String) Codec(?CODEC),
+  client_socket_address LowCardinality(String) Codec(?CODEC),
+  client_socket_port Int32 Codec(?CODEC),
+
+  url_scheme LowCardinality(String) Codec(?CODEC),
+  url_full String Codec(?CODEC),
+  url_path LowCardinality(String) Codec(?CODEC),
+
+  http_request_method LowCardinality(String) Codec(?CODEC),
+  http_response_status_code UInt16 Codec(?CODEC),
+  http_route LowCardinality(String) Codec(?CODEC),
 
   db_system LowCardinality(String) Codec(?CODEC),
   db_statement String Codec(?CODEC),
@@ -59,8 +81,8 @@ CREATE TABLE ?DB.spans_data ?ON_CLUSTER (
   trace_id UUID Codec(?CODEC),
   id UInt64 Codec(T64, ?CODEC),
   parent_id UInt64 Codec(?CODEC),
-  time DateTime64(9) Codec(Delta, ?CODEC),
-  data String Codec(?CODEC)
+  time DateTime64(6) Codec(Delta, ?CODEC),
+  data String Codec(ZSTD(6))
 )
 ENGINE = ?(REPLICATED)MergeTree()
 ORDER BY (trace_id, id)
@@ -79,3 +101,90 @@ ENGINE = Buffer(currentDatabase(), spans_index, 3, 5, 10, 10000, 1000000, 100000
 
 CREATE TABLE ?DB.spans_data_buffer ?ON_CLUSTER AS ?DB.spans_data
 ENGINE = Buffer(currentDatabase(), spans_data, 3, 5, 10, 10000, 1000000, 10000000, 100000000)
+
+--migration:split
+
+CREATE TABLE ?DB.datapoint_minutes ?ON_CLUSTER (
+  project_id UInt32 Codec(DoubleDelta, ?CODEC),
+  metric LowCardinality(String) Codec(?CODEC),
+  time DateTime Codec(DoubleDelta, ?CODEC),
+  attrs_hash UInt64 Codec(Delta, ?CODEC),
+
+  instrument LowCardinality(String) Codec(?CODEC),
+  min SimpleAggregateFunction(min, Float64) Codec(?CODEC),
+  max SimpleAggregateFunction(max, Float64) Codec(?CODEC),
+  sum SimpleAggregateFunction(sum, Float64) Codec(?CODEC),
+  count SimpleAggregateFunction(sum, UInt64) Codec(T64, ?CODEC),
+
+  gauge SimpleAggregateFunction(anyLast, Float64) Codec(?CODEC),
+  histogram AggregateFunction(quantilesBFloat16(0.5), Float32) Codec(?CODEC),
+
+  string_keys Array(LowCardinality(String)) Codec(?CODEC),
+  string_values Array(LowCardinality(String)) Codec(?CODEC),
+  annotations SimpleAggregateFunction(max, String) Codec(?CODEC)
+)
+ENGINE = ?(REPLICATED)AggregatingMergeTree
+PARTITION BY toDate(time)
+ORDER BY (project_id, metric, time, attrs_hash)
+TTL toDate(time) + INTERVAL ?METRICS_TTL DELETE
+SETTINGS ttl_only_drop_parts = 1,
+         storage_policy = ?METRICS_STORAGE
+
+--migration:split
+
+CREATE TABLE ?DB.datapoint_minutes_buffer ?ON_CLUSTER AS ?DB.datapoint_minutes
+ENGINE = Buffer(?DB, datapoint_minutes, 3, 5, 10, 10000, 1000000, 10000000, 100000000)
+
+--migration:split
+
+CREATE TABLE ?DB.datapoint_hours ?ON_CLUSTER (
+  project_id UInt32 Codec(DoubleDelta, ?CODEC),
+  metric LowCardinality(String) Codec(?CODEC),
+  time DateTime Codec(DoubleDelta, ?CODEC),
+  attrs_hash UInt64 Codec(Delta, ?CODEC),
+
+  instrument LowCardinality(String) Codec(?CODEC),
+  min SimpleAggregateFunction(min, Float64) Codec(?CODEC),
+  max SimpleAggregateFunction(max, Float64) Codec(?CODEC),
+  sum SimpleAggregateFunction(sum, Float64) Codec(?CODEC),
+  count SimpleAggregateFunction(sum, UInt64) Codec(T64, ?CODEC),
+
+  gauge SimpleAggregateFunction(anyLast, Float64) Codec(?CODEC),
+  histogram AggregateFunction(quantilesBFloat16(0.5), Float32) Codec(?CODEC),
+
+  string_keys Array(LowCardinality(String)) Codec(?CODEC),
+  string_values Array(LowCardinality(String)) Codec(?CODEC),
+  annotations SimpleAggregateFunction(max, String) Codec(?CODEC)
+)
+ENGINE = ?(REPLICATED)AggregatingMergeTree
+PARTITION BY toDate(time)
+ORDER BY (project_id, metric, time, attrs_hash)
+TTL toDate(time) + INTERVAL ?METRICS_TTL DELETE
+SETTINGS ttl_only_drop_parts = 1,
+         storage_policy = ?METRICS_STORAGE
+
+--migration:split
+
+CREATE MATERIALIZED VIEW ?DB.datapoint_hours_mv ?ON_CLUSTER
+TO ?DB.datapoint_hours
+AS SELECT
+  project_id,
+  metric,
+  toStartOfHour(time) AS time,
+  attrs_hash,
+
+  anyLast(instrument) AS instrument,
+  min(min) AS min,
+  max(max) AS max,
+  sum(sum) AS sum,
+  sum(count) AS count,
+
+  anyLast(gauge) AS value,
+  quantilesBFloat16MergeState(0.5)(histogram) AS histogram,
+
+  any(string_keys) AS string_keys,
+  any(string_values) AS string_values,
+  max(annotations) AS annotations
+FROM ?DB.datapoint_minutes
+GROUP BY project_id, metric, toStartOfHour(time), attrs_hash
+SETTINGS prefer_column_name_to_alias = 1

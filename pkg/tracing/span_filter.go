@@ -93,7 +93,7 @@ func unitFromName(name tql.Name) string {
 	var unit string
 
 	switch name.AttrKey {
-	case attrkey.SpanErrorPct, attrkey.SpanErrorRate:
+	case attrkey.SpanErrorRate:
 		unit = bununit.Utilization
 	case attrkey.SpanDuration:
 		unit = bununit.Nanoseconds
@@ -243,7 +243,6 @@ func isAggAttr(attrKey string) bool {
 	case attrkey.SpanCount,
 		attrkey.SpanCountPerMin,
 		attrkey.SpanErrorCount,
-		attrkey.SpanErrorPct,
 		attrkey.SpanErrorRate:
 		return true
 	default:
@@ -283,7 +282,7 @@ func AppendCHColumn(b []byte, name tql.Name, dur time.Duration) []byte {
 		return chschema.AppendQuery(b, "sum(s.count) / ?", dur.Minutes())
 	case attrkey.SpanErrorCount:
 		return chschema.AppendQuery(b, "sumIf(s.count, s.status_code = 'error')", dur.Minutes())
-	case attrkey.SpanErrorPct, attrkey.SpanErrorRate:
+	case attrkey.SpanErrorRate:
 		return chschema.AppendQuery(
 			b, "sumIf(s.count, s.status_code = 'error') / sum(s.count)", dur.Minutes())
 	case attrkey.SpanIsEvent:
@@ -331,7 +330,7 @@ func AppendCHAttrExpr(b []byte, key string) []byte {
 		return chschema.AppendIdent(b, key)
 	}
 
-	return chschema.AppendQuery(b, "s.attr_values[indexOf(s.attr_keys, ?)]", key)
+	return chschema.AppendQuery(b, "s.string_values[indexOf(s.string_keys, ?)]", key)
 }
 
 func AppendWhereHaving(ast *tql.Where, dur time.Duration) ([]byte, []byte) {

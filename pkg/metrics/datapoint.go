@@ -10,8 +10,8 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
-type Measure struct {
-	ch.CHModel `ch:"measure_minutes_stub,insert:measure_minutes_buffer,alias:m"`
+type Datapoint struct {
+	ch.CHModel `ch:"datapoint_minutes_stub,alias:m"`
 
 	ProjectID   uint32
 	Metric      string     `ch:"metric,lc"`
@@ -45,33 +45,33 @@ func (m AttrMap) Merge(other AttrMap) {
 	}
 }
 
-func InsertMeasures(ctx context.Context, app *bunapp.App, measures []*Measure) error {
+func InsertDatapoints(ctx context.Context, app *bunapp.App, datapoints []*Datapoint) error {
 	_, err := app.CH.NewInsert().
-		Model(&measures).
-		ModelTableExpr("?", app.DistTable("measure_minutes_buffer")).
+		Model(&datapoints).
+		ModelTableExpr("?", app.DistTable("datapoint_minutes_buffer")).
 		Exec(ctx)
 	return err
 }
 
-func measureTableForWhere(app *bunapp.App, f *org.TimeFilter) ch.Ident {
+func datapointTableForWhere(app *bunapp.App, f *org.TimeFilter) ch.Ident {
 	switch org.TablePeriod(f) {
 	case time.Minute:
-		return app.DistTable("measure_minutes_buffer")
+		return app.DistTable("datapoint_minutes")
 	case time.Hour:
-		return app.DistTable("measure_hours")
+		return app.DistTable("datapoint_hours")
 	}
 	panic("not reached")
 }
 
-func measureTableForGroup(
+func datapointTableForGroup(
 	app *bunapp.App, f *org.TimeFilter, groupingPeriodFn func(time.Time, time.Time) time.Duration,
 ) (ch.Ident, time.Duration) {
 	tablePeriod, groupingPeriod := org.TableGroupingPeriod(f)
 	switch tablePeriod {
 	case time.Minute:
-		return app.DistTable("measure_minutes_buffer"), groupingPeriod
+		return app.DistTable("datapoint_minutes"), groupingPeriod
 	case time.Hour:
-		return app.DistTable("measure_hours"), groupingPeriod
+		return app.DistTable("datapoint_hours"), groupingPeriod
 	}
 	panic("not reached")
 }

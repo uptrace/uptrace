@@ -53,7 +53,6 @@ func (n Name) IsNum() bool {
 		attrkey.SpanCount,
 		attrkey.SpanCountPerMin,
 		attrkey.SpanErrorCount,
-		attrkey.SpanErrorPct,
 		attrkey.SpanErrorRate:
 		return true
 	default:

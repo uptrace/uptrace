@@ -2,6 +2,38 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
+## v1.6.0
+
+This release is backwards incompatible with v1.5. You need to reset the ClickHouse database schema
+to upgrade:
+
+```shell
+uptrace ch reset
+```
+
+The license is changed from BSL to AGPL v3.0.
+
+#### Features
+
+- Added [annotations](https://uptrace.dev/get/annotations.html) support.
+
+#### Improvements
+
+- Added more metrics dashboards for HTTP checks and Kubernetes.
+- Indexed more semantic attributes in ClickHouse.
+
+#### Changes
+
+- Upgraded to
+  [v1.21](https://github.com/open-telemetry/opentelemetry-specification/blob/main/schemas/1.21.0)
+  OpenTelemetry semantic conventions which introduced some breaking changes to attribute names. Most
+  notably:
+
+  - `http.method` is renamed to `http.request.method`.
+  - `http.status_code` is renamed to `http.response.status_code`.
+
+  Uptrace will automatically rename attributes, but you may need to update your favorite queries.
+
 ## v1.5.2 - July 6 2023
 
 - When authenticating via email and password, Uptrace ignores users in the PostgreSQL database and

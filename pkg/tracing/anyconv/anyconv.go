@@ -37,6 +37,22 @@ func Time(v any) time.Time {
 	}
 }
 
+func Int64(v any) int64 {
+	switch v := v.(type) {
+	case int64:
+		return v
+	case json.Number:
+		n, _ := v.Int64()
+		return n
+	case int:
+		return int64(v)
+	case int32:
+		return int64(v)
+	default:
+		return 0
+	}
+}
+
 func Uint64(v any) uint64 {
 	switch v := v.(type) {
 	case int:

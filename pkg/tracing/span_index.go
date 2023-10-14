@@ -13,55 +13,97 @@ type SpanIndex struct {
 
 	*Span
 
-	Count           float32 `ch:"count"`
-	LinkCount       uint8   `ch:"link_count"`
-	EventCount      uint8   `ch:"event_count"`
-	EventErrorCount uint8   `ch:"event_error_count"`
-	EventLogCount   uint8   `ch:"event_log_count"`
+	Count           float32
+	LinkCount       uint8
+	EventCount      uint8
+	EventErrorCount uint8
+	EventLogCount   uint8
 
-	AllKeys    []string `ch:"all_keys,lc"`
-	AttrKeys   []string `ch:"attr_keys,lc"`
-	AttrValues []string `ch:"attr_values,lc"`
+	AllKeys      []string `ch:"type:Array(LowCardinality(String))"`
+	StringKeys   []string `ch:"type:Array(LowCardinality(String))"`
+	StringValues []string
 
-	DeploymentEnvironment string `ch:"deployment_environment,lc"`
+	TelemetrySDKName     string `ch:",lc"`
+	TelemetrySDKLanguage string `ch:",lc"`
+	TelemetrySDKVersion  string `ch:",lc"`
+	TelemetryAutoVersion string `ch:",lc"`
 
-	ServiceName string `ch:"service_name,lc"`
-	HostName    string `ch:"host_name,lc"`
+	OtelLibraryName    string `ch:",lc"`
+	OtelLibraryVersion string `ch:",lc"`
 
-	DBSystem    string `ch:"db_system,lc"`
-	DBStatement string `ch:"db_statement"`
-	DBOperation string `ch:"db_operation,lc"`
-	DBSqlTable  string `ch:"db_sql_table,lc"`
+	DeploymentEnvironment string `ch:",lc"`
 
-	LogSeverity string `ch:"log_severity,lc"`
-	LogMessage  string `ch:"log_message"`
+	ServiceName    string `ch:",lc"`
+	ServiceVersion string `ch:",lc"`
+	HostName       string `ch:",lc"`
 
-	ExceptionType    string `ch:"exception_type,lc"`
-	ExceptionMessage string `ch:"exception_message"`
+	ClientAddress       string `ch:",lc"`
+	ClientSocketAddress string `ch:",lc"`
+	ClientSocketPort    int32
+
+	URLScheme string `attr:"url.scheme" ch:",lc"`
+	URLFull   string `attr:"url.full"`
+	URLPath   string `attr:"url.path" ch:",lc"`
+
+	HTTPRequestMethod      string `ch:",lc"`
+	HTTPResponseStatusCode uint16
+	HTTPRoute              string `ch:",lc"`
+
+	DBSystem    string `ch:",lc"`
+	DBStatement string
+	DBOperation string `ch:",lc"`
+	DBSqlTable  string `ch:",lc"`
+
+	LogSeverity string `ch:",lc"`
+	LogMessage  string
+
+	ExceptionType    string `ch:",lc"`
+	ExceptionMessage string
 }
 
 func initSpanIndex(index *SpanIndex, span *Span) {
 	index.Span = span
 	index.Count = 1
 
+	index.TelemetrySDKName = span.Attrs.Text(attrkey.TelemetrySDKName)
+	index.TelemetrySDKLanguage = span.Attrs.Text(attrkey.TelemetrySDKLanguage)
+	index.TelemetrySDKVersion = span.Attrs.Text(attrkey.TelemetrySDKVersion)
+	index.TelemetryAutoVersion = span.Attrs.Text(attrkey.TelemetryAutoVersion)
+
+	index.OtelLibraryName = span.Attrs.Text(attrkey.OtelLibraryName)
+	index.OtelLibraryVersion = span.Attrs.Text(attrkey.OtelLibraryVersion)
+
 	index.DeploymentEnvironment, _ = span.Attrs[attrkey.DeploymentEnvironment].(string)
 
 	index.ServiceName = span.Attrs.ServiceName()
+	index.ServiceName = span.Attrs.Text(attrkey.ServiceVersion)
 	index.HostName = span.Attrs.HostName()
 
-	index.DBSystem, _ = span.Attrs[attrkey.DBSystem].(string)
-	index.DBStatement, _ = span.Attrs[attrkey.DBStatement].(string)
-	index.DBOperation, _ = span.Attrs[attrkey.DBOperation].(string)
-	index.DBSqlTable, _ = span.Attrs[attrkey.DBSqlTable].(string)
+	index.ClientAddress = span.Attrs.Text(attrkey.ClientAddress)
+	index.ClientSocketAddress = span.Attrs.Text(attrkey.ClientSocketAddress)
+	index.ClientSocketPort = int32(span.Attrs.Int64(attrkey.ClientSocketPort))
 
-	index.LogSeverity, _ = span.Attrs[attrkey.LogSeverity].(string)
-	index.LogMessage, _ = span.Attrs[attrkey.LogMessage].(string)
+	index.URLScheme = span.Attrs.Text(attrkey.URLScheme)
+	index.URLFull = span.Attrs.Text(attrkey.URLFull)
+	index.URLPath = span.Attrs.Text(attrkey.URLPath)
 
-	index.ExceptionType, _ = span.Attrs[attrkey.ExceptionType].(string)
-	index.ExceptionMessage, _ = span.Attrs[attrkey.ExceptionMessage].(string)
+	index.HTTPRequestMethod = span.Attrs.Text(attrkey.HTTPRequestMethod)
+	index.HTTPResponseStatusCode = uint16(span.Attrs.Uint64(attrkey.HTTPResponseStatusCode))
+	index.HTTPRoute = span.Attrs.Text(attrkey.HTTPRoute)
+
+	index.DBSystem = span.Attrs.Text(attrkey.DBSystem)
+	index.DBStatement = span.Attrs.Text(attrkey.DBStatement)
+	index.DBOperation = span.Attrs.Text(attrkey.DBOperation)
+	index.DBSqlTable = span.Attrs.Text(attrkey.DBSqlTable)
+
+	index.LogSeverity = span.Attrs.Text(attrkey.LogSeverity)
+	index.LogMessage = span.Attrs.Text(attrkey.LogMessage)
+
+	index.ExceptionType = span.Attrs.Text(attrkey.ExceptionType)
+	index.ExceptionMessage = span.Attrs.Text(attrkey.ExceptionMessage)
 
 	index.AllKeys = mapKeys(span.Attrs)
-	index.AttrKeys, index.AttrValues = attrKeysAndValues(span.Attrs)
+	index.StringKeys, index.StringValues = attrKeysAndValues(span.Attrs)
 }
 
 func mapKeys(m AttrMap) []string {
@@ -76,9 +118,31 @@ var (
 	indexedAttrs = []string{
 		attrkey.DisplayName,
 
+		attrkey.TelemetrySDKName,
+		attrkey.TelemetrySDKLanguage,
+		attrkey.TelemetrySDKVersion,
+		attrkey.TelemetryAutoVersion,
+
+		attrkey.OtelLibraryName,
+		attrkey.OtelLibraryVersion,
+
 		attrkey.DeploymentEnvironment,
+
 		attrkey.ServiceName,
+		attrkey.ServiceVersion,
 		attrkey.HostName,
+
+		attrkey.ClientAddress,
+		attrkey.ClientSocketAddress,
+		attrkey.ClientSocketPort,
+
+		attrkey.URLScheme,
+		attrkey.URLFull,
+		attrkey.URLPath,
+
+		attrkey.HTTPRequestMethod,
+		attrkey.HTTPResponseStatusCode,
+		attrkey.HTTPRoute,
 
 		attrkey.DBSystem,
 		attrkey.DBStatement,

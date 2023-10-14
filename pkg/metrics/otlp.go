@@ -37,10 +37,10 @@ type MetricsServiceServer struct {
 
 	*bunapp.App
 
-	mp *MeasureProcessor
+	mp *DatapointProcessor
 }
 
-func NewMetricsServiceServer(app *bunapp.App, mp *MeasureProcessor) *MetricsServiceServer {
+func NewMetricsServiceServer(app *bunapp.App, mp *DatapointProcessor) *MetricsServiceServer {
 	return &MetricsServiceServer{
 		App: app,
 		mp:  mp,
@@ -213,7 +213,7 @@ func (s *MetricsServiceServer) process(
 type otlpProcessor struct {
 	*bunapp.App
 
-	mp *MeasureProcessor
+	mp *DatapointProcessor
 
 	ctx     context.Context
 	project *org.Project
@@ -249,7 +249,7 @@ func (p *otlpProcessor) otlpGauge(
 			continue
 		}
 
-		dest := p.nextMeasure(scope, metric, InstrumentGauge, dp.Attributes, dp.TimeUnixNano)
+		dest := p.nextDatapoint(scope, metric, InstrumentGauge, dp.Attributes, dp.TimeUnixNano)
 		switch num := dp.Value.(type) {
 		case nil:
 			dest.Gauge = 0
@@ -278,7 +278,7 @@ func (p *otlpProcessor) otlpSum(
 			continue
 		}
 
-		dest := p.nextMeasure(scope, metric, "", dp.Attributes, dp.TimeUnixNano)
+		dest := p.nextDatapoint(scope, metric, "", dp.Attributes, dp.TimeUnixNano)
 
 		if !data.Sum.IsMonotonic {
 			dest.Instrument = InstrumentAdditive
@@ -326,7 +326,7 @@ func (p *otlpProcessor) otlpHistogram(
 			continue
 		}
 
-		dest := p.nextMeasure(scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
+		dest := p.nextDatapoint(scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
 		if isDelta {
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
@@ -377,7 +377,7 @@ func (p *otlpProcessor) otlpExpHistogram(
 		buildBFloat16Hist(hist, base, int(dp.Positive.Offset), dp.Positive.BucketCounts, +1)
 		buildBFloat16Hist(hist, base, int(dp.Negative.Offset), dp.Negative.BucketCounts, -1)
 
-		dest := p.nextMeasure(scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
+		dest := p.nextDatapoint(scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
 		if isDelta {
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
@@ -430,7 +430,7 @@ func (p *otlpProcessor) otlpSummary(
 			}
 		}
 
-		dest := p.nextMeasure(scope, metric, InstrumentSummary, dp.Attributes, dp.TimeUnixNano)
+		dest := p.nextDatapoint(scope, metric, InstrumentSummary, dp.Attributes, dp.TimeUnixNano)
 		dest.Min = min
 		dest.Max = max
 		dest.Sum = dp.Sum
@@ -440,20 +440,20 @@ func (p *otlpProcessor) otlpSummary(
 	}
 }
 
-func (p *otlpProcessor) nextMeasure(
+func (p *otlpProcessor) nextDatapoint(
 	scopeAttrs AttrMap,
 	metric *metricspb.Metric,
 	instrument Instrument,
 	labels []*commonpb.KeyValue,
 	unixNano uint64,
-) *Measure {
+) *Datapoint {
 	attrs := make(AttrMap, len(scopeAttrs)+len(labels))
 	maps.Copy(attrs, scopeAttrs)
 	otlpconv.ForEachKeyValue(labels, func(key string, value any) {
 		attrs[key] = fmt.Sprint(value)
 	})
 
-	out := new(Measure)
+	out := new(Datapoint)
 
 	out.ProjectID = p.project.ID
 	out.Metric = attrkey.Clean(metric.Name)
@@ -466,25 +466,25 @@ func (p *otlpProcessor) nextMeasure(
 	return out
 }
 
-func (p *otlpProcessor) enqueue(measure *Measure) {
-	if measure.ProjectID == 0 {
+func (p *otlpProcessor) enqueue(datapoint *Datapoint) {
+	if datapoint.ProjectID == 0 {
 		p.Zap(p.ctx).Error("project id is empty")
 		return
 	}
-	if measure.Metric == "" {
+	if datapoint.Metric == "" {
 		p.Zap(p.ctx).Error("metric name is empty")
 		return
 	}
-	if measure.Instrument == "" {
+	if datapoint.Instrument == "" {
 		p.Zap(p.ctx).Error("instrument is empty")
 		return
 	}
-	if measure.Time.IsZero() {
+	if datapoint.Time.IsZero() {
 		p.Zap(p.ctx).Error("time is empty")
 		return
 	}
 
-	p.mp.AddMeasure(p.ctx, measure)
+	p.mp.AddDatapoint(p.ctx, datapoint)
 }
 
 //------------------------------------------------------------------------------

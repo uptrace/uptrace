@@ -67,7 +67,7 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	tableName, groupingPeriod := measureTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
+	tableName, groupingPeriod := datapointTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
 	engine := mql.NewEngine(NewCHStorage(ctx, h.CH, &CHStorageConfig{
 		ProjectID:  f.Project.ID,
 		TimeFilter: f.TimeFilter,
@@ -333,7 +333,7 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 func (h *QueryHandler) selectTimeseries(
 	ctx context.Context, f *QueryFilter, metricMap map[string]*Metric,
 ) ([]mql.Timeseries, []time.Time, []string) {
-	tableName, groupingPeriod := measureTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
+	tableName, groupingPeriod := datapointTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
 	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
 		ProjectID:  f.Project.ID,
 		TimeFilter: f.TimeFilter,
@@ -374,7 +374,7 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	tableName, groupingPeriod := measureTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
+	tableName, groupingPeriod := datapointTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
 	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
 		ProjectID:  f.Project.ID,
 		TimeFilter: f.TimeFilter,
@@ -426,7 +426,7 @@ func (h *QueryHandler) Heatmap(w http.ResponseWriter, req bunrouter.Request) err
 func (h *QueryHandler) selectMetricHeatmap(
 	ctx context.Context, f *QueryFilter,
 ) (*histutil.Heatmap, error) {
-	tableName, groupingPeriod := measureTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
+	tableName, groupingPeriod := datapointTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
 
 	q := h.CH.NewSelect().
 		ColumnExpr("quantilesBFloat16MergeState(0.5, 0.9, 0.99)(histogram) AS value").

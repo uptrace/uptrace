@@ -97,7 +97,7 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 			Distinct().
 			ColumnExpr("metric").
 			ColumnExpr("arrayJoin(string_keys) AS value").
-			TableExpr("?", h.DistTable("measure_hours")).
+			TableExpr("?", h.DistTable("datapoint_hours")).
 			Where("project_id = ?", f.ProjectID).
 			Where("time >= ?", time.Now().Add(-24*time.Hour))
 
@@ -153,7 +153,7 @@ func (h *AttrHandler) selectAttrKeys(ctx context.Context, f *AttrFilter) ([]stri
 
 	if err := h.PG.NewSelect().
 		Model(&metrics).
-		Column("attr_keys").
+		Column("string_keys").
 		Where("project_id = ?", f.ProjectID).
 		Where("name IN (?)", bun.In(f.Metric)).
 		Scan(ctx); err != nil {
@@ -225,7 +225,7 @@ func (h *AttrHandler) selectAttrValues(
 ) (any, bool, error) {
 	const limit = 1000
 
-	tableName := measureTableForWhere(h.App, &f.TimeFilter)
+	tableName := datapointTableForWhere(h.App, &f.TimeFilter)
 
 	items := make([]AttrValueItem, 0)
 

@@ -20,7 +20,7 @@ type SpanData struct {
 	TraceID   uuid.UUID
 	ID        uint64
 	ParentID  uint64
-	Time      time.Time `ch:"type:DateTime64(9)"`
+	Time      time.Time `ch:"type:DateTime64(6)"`
 	Data      []byte
 }
 

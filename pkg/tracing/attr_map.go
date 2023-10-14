@@ -82,15 +82,7 @@ func (m AttrMap) Text(key string) string {
 }
 
 func (m AttrMap) Int64(key string) int64 {
-	switch v := m[key].(type) {
-	case int64:
-		return v
-	case json.Number:
-		n, _ := v.Int64()
-		return n
-	default:
-		return 0
-	}
+	return anyconv.Int64(key)
 }
 
 func (m AttrMap) Uint64(key string) uint64 {

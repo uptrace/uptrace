@@ -147,16 +147,16 @@ func (h *SentryHandler) spanFromEvent(span *Span, event *SentryEvent) error {
 
 	if req := event.Request; req != nil {
 		if req.URL != "" {
-			span.Attrs[attrkey.HTTPUrl] = req.URL
+			span.Attrs[attrkey.URLFull] = req.URL
 		}
 		if req.Method != "" {
-			span.Attrs[attrkey.HTTPMethod] = req.Method
+			span.Attrs[attrkey.HTTPRequestMethod] = req.Method
 		}
 		if req.Data != "" {
 			span.Attrs["http.data"] = req.Data
 		}
 		if req.QueryString != "" {
-			span.Attrs["http.query_string"] = req.QueryString
+			span.Attrs[attrkey.URLQuery] = req.QueryString
 		}
 		if req.Cookies != "" {
 			span.Attrs["http.cookies"] = req.Cookies

@@ -22,7 +22,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"github.com/uptrace/uptrace/pkg/sqlparser"
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
-	"github.com/uptrace/uptrace/pkg/tracing/norm"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/utf8util"
 	"github.com/uptrace/uptrace/pkg/uuid"
@@ -58,12 +57,12 @@ func initSpanOrEvent(ctx *spanContext, app *bunapp.App, span *Span) {
 }
 
 func processAttrs(ctx *spanContext, span *Span) {
-	normAttrs(span.Attrs, span.Attrs)
+	normAttrs(span.Attrs)
 
 	if msg, _ := span.Attrs[attrkey.LogMessage].(string); msg != "" {
 		parseLogMessage(ctx, span, msg)
 	}
-	if s, _ := span.Attrs[attrkey.HTTPUserAgent].(string); s != "" {
+	if s, _ := span.Attrs[attrkey.UserAgentOriginal].(string); s != "" {
 		initHTTPUserAgent(span.Attrs, s)
 	}
 
@@ -94,25 +93,25 @@ func initHTTPUserAgent(attrs AttrMap, str string) {
 	agent := ua.Parse(str)
 
 	if agent.Name != "" {
-		attrs[attrkey.HTTPUserAgentName] = agent.Name
+		attrs[attrkey.UserAgentName] = agent.Name
 	}
 	if agent.Version != "" {
-		attrs[attrkey.HTTPUserAgentVersion] = agent.Version
+		attrs[attrkey.UserAgentVersion] = agent.Version
 	}
 
 	if agent.OS != "" {
-		attrs[attrkey.HTTPUserAgentOS] = agent.OS
+		attrs[attrkey.UserAgentOSName] = agent.OS
 	}
 	if agent.OSVersion != "" {
-		attrs[attrkey.HTTPUserAgentOSVersion] = agent.OSVersion
+		attrs[attrkey.UserAgentOSVersion] = agent.OSVersion
 	}
 
 	if agent.Device != "" {
-		attrs[attrkey.HTTPUserAgentDevice] = agent.Device
+		attrs[attrkey.UserAgentDevice] = agent.Device
 	}
 
 	if agent.Bot {
-		attrs[attrkey.HTTPUserAgentBot] = 1
+		attrs[attrkey.UserAgentIsBot] = 1
 	}
 }
 
@@ -157,7 +156,6 @@ func popLogMessageParam(params AttrMap) string {
 func populateSpanFromParams(span *Span, params AttrMap) {
 	attrs := span.Attrs
 	flattenAttrValues(params)
-	normAttrs(span.Attrs, params)
 
 	if span.Time.IsZero() {
 		for _, key := range []string{"timestamp", "datetime", "time"} {
@@ -222,103 +220,31 @@ func populateSpanFromParams(span *Span, params AttrMap) {
 	}
 }
 
-func normAttrs(attrs, params AttrMap) {
-	if _, ok := attrs[attrkey.ServiceName]; !ok {
-		for _, key := range []string{
-			attrkey.ServiceName,
-			"service_name",
-			"service",
-		} {
-			value, _ := params[key].(string)
-			if value == "" {
-				continue
-			}
-			attrs[attrkey.ServiceName] = value
-			delete(params, key)
-			break
+type AttrName struct {
+	Canonical string
+	Alts      []string
+}
+
+var attrNames = []AttrName{
+	{Canonical: attrkey.ServiceName, Alts: []string{"service_name", "service", "component"}},
+	{Canonical: attrkey.HTTPRequestMethod, Alts: []string{"http.method"}},
+	{Canonical: attrkey.HTTPResponseStatusCode, Alts: []string{"http.status_code"}},
+	{Canonical: attrkey.DBSystem, Alts: []string{"db.type"}},
+	{
+		Canonical: attrkey.LogSeverity,
+		Alts:      []string{"log_severity", "severity", "log.level", "error_severity", "level"},
+	},
+}
+
+func normAttrs(attrs AttrMap) {
+	for _, name := range attrNames {
+		if _, ok := attrs[name.Canonical]; ok {
+			continue
 		}
-	}
 
-	if _, ok := attrs[attrkey.HTTPRoute]; !ok {
-		for _, key := range []string{
-			attrkey.HTTPRoute,
-			"http_route",
-		} {
-			value, _ := params[key].(string)
-			if value == "" {
-				continue
-			}
-			attrs[attrkey.HTTPRoute] = value
-			delete(params, key)
-			break
-		}
-	}
-
-	if _, ok := attrs[attrkey.DBSystem]; !ok {
-		for _, key := range []string{
-			attrkey.DBSystem,
-			"db_system",
-			"db.type",
-		} {
-			value, _ := params[key].(string)
-			if value == "" {
-				continue
-			}
-			attrs[attrkey.DBSystem] = value
-			delete(params, key)
-			break
-		}
-	}
-
-	if _, ok := attrs[attrkey.DBName]; !ok {
-		for _, key := range []string{
-			attrkey.DBName,
-			"db_name",
-			"dbname",
-		} {
-			value, _ := params[key].(string)
-			if value == "" {
-				continue
-			}
-			attrs[attrkey.DBSystem] = value
-			delete(params, key)
-			break
-		}
-	}
-
-	if _, ok := attrs[attrkey.DBStatement]; !ok {
-		for _, key := range []string{
-			attrkey.DBStatement,
-			"db_statement",
-			"statement",
-		} {
-			value, _ := params[key].(string)
-			if value == "" {
-				continue
-			}
-			attrs[attrkey.DBStatement] = value
-			delete(params, key)
-			break
-		}
-	}
-
-	if _, ok := attrs[attrkey.LogSeverity]; !ok {
-		for _, key := range []string{
-			attrkey.LogSeverity,
-			"log_severity",
-			"severity",
-			"error_severity",
-			"log.level",
-			"level",
-		} {
-			severity, _ := params[key].(string)
-			if severity == "" {
-				continue
-			}
-
-			if severity := norm.LogSeverity(severity); severity != "" {
-				attrs[attrkey.LogSeverity] = severity
-				delete(params, key)
+		for _, key := range name.Alts {
+			if val, ok := attrs[key]; ok {
+				attrs[name.Canonical] = val
 				break
 			}
 		}
@@ -466,11 +392,13 @@ func assignSpanSystemAndGroupID(ctx *spanContext, project *org.Project, span *Sp
 		return
 	}
 
-	if span.Attrs.Has(attrkey.HTTPRoute) || span.Attrs.Has(attrkey.HTTPTarget) {
+	if span.Attrs.Has(attrkey.HTTPRoute) ||
+		span.Attrs.Has(attrkey.HTTPRequestMethod) ||
+		span.Attrs.Has(attrkey.HTTPResponseStatusCode) {
 		span.Type = SpanTypeHTTP
 		span.System = SpanTypeHTTP + ":" + span.Attrs.ServiceNameOrUnknown()
 		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
-			hashSpan(project, digest, span, attrkey.HTTPMethod, attrkey.HTTPRoute)
+			hashSpan(project, digest, span, attrkey.HTTPRequestMethod, attrkey.HTTPRoute)
 		})
 		return
 	}
@@ -575,7 +503,7 @@ func assignEventSystemAndGroupID(ctx *spanContext, project *org.Project, span *S
 				attrkey.RPCSystem,
 				attrkey.RPCService,
 				attrkey.RPCMethod,
-				attrkey.MessageType,
+				attrkey.MessagingMessageType,
 			)
 		})
 		span.DisplayName = eventMessageDisplayName(span)

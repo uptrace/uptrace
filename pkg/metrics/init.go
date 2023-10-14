@@ -29,13 +29,13 @@ const (
 
 var jsonMarshaler = &jsonpb.Marshaler{}
 
-var measureCounter, _ = bunotel.Meter.Int64Counter(
-	"uptrace.projects.measures",
-	metric.WithDescription("Number of processed measures"),
+var datapointCounter, _ = bunotel.Meter.Int64Counter(
+	"uptrace.projects.datapoints",
+	metric.WithDescription("Number of processed datapoints"),
 )
 
 func Init(ctx context.Context, app *bunapp.App) {
-	mp := NewMeasureProcessor(app)
+	mp := NewDatapointProcessor(app)
 
 	initTasks(ctx, app)
 	initOTLP(ctx, app, mp)
@@ -45,7 +45,7 @@ func Init(ctx context.Context, app *bunapp.App) {
 	}
 }
 
-func initOTLP(ctx context.Context, app *bunapp.App, mp *MeasureProcessor) {
+func initOTLP(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
 	metricsService := NewMetricsServiceServer(app, mp)
 	collectormetricspb.RegisterMetricsServiceServer(app.GRPCServer(), metricsService)
 
@@ -53,7 +53,7 @@ func initOTLP(ctx context.Context, app *bunapp.App, mp *MeasureProcessor) {
 	router.POST("/v1/metrics", metricsService.ExportHTTP)
 }
 
-func initRoutes(ctx context.Context, app *bunapp.App, mp *MeasureProcessor) {
+func initRoutes(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
 	middleware := NewMiddleware(app)
 	api := app.APIGroup()
 

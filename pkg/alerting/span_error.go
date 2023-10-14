@@ -136,7 +136,7 @@ func alertAttrs(span *tracing.Span) map[string]string {
 
 	switch span.Type {
 	case tracing.SpanTypeHTTP:
-		addSpanAttrs(attrs, span, attrkey.HTTPMethod)
+		addSpanAttrs(attrs, span, attrkey.HTTPRequestMethod)
 	case tracing.SpanTypeDB:
 		addSpanAttrs(attrs, span,
 			attrkey.DBSystem,

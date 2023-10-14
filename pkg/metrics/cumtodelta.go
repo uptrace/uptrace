@@ -8,15 +8,15 @@ import (
 	"github.com/zyedidia/generic/cache"
 )
 
-type MeasureKey struct {
+type DatapointKey struct {
 	ProjectID         uint32
 	Metric            string
 	AttrsHash         uint64
 	StartTimeUnixNano uint64
 }
 
-type MeasureValue struct {
-	Key   MeasureKey
+type DatapointValue struct {
+	Key   DatapointKey
 	Point any
 	Time  time.Time
 }
@@ -25,12 +25,12 @@ type CumToDeltaConv struct {
 	cap int
 
 	mu    sync.Mutex
-	cache *cache.Cache[MeasureKey, *MeasureValue]
+	cache *cache.Cache[DatapointKey, *DatapointValue]
 }
 
 func NewCumToDeltaConv(n int) *CumToDeltaConv {
 	c := &CumToDeltaConv{
-		cache: cache.New[MeasureKey, *MeasureValue](n),
+		cache: cache.New[DatapointKey, *DatapointValue](n),
 	}
 	return c
 }
@@ -42,7 +42,7 @@ func (c *CumToDeltaConv) Len() int {
 	return c.cache.Size()
 }
 
-func (c *CumToDeltaConv) SwapPoint(key MeasureKey, point any, time time.Time) any {
+func (c *CumToDeltaConv) SwapPoint(key DatapointKey, point any, time time.Time) any {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -57,7 +57,7 @@ func (c *CumToDeltaConv) SwapPoint(key MeasureKey, point any, time time.Time) an
 		return prevPoint
 	}
 
-	c.cache.Put(key, &MeasureValue{
+	c.cache.Put(key, &DatapointValue{
 		Point: point,
 		Time:  time,
 	})
