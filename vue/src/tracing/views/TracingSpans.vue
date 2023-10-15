@@ -16,9 +16,14 @@
 
         <v-row class="px-4 pb-4">
           <v-col>
-            <LoadPctileChart :axios-params="axiosParams" class="pa-4" />
+            <LoadPctileChart
+              :axios-params="axiosParams"
+              :annotations="annotations.items"
+              class="pa-4"
+            />
 
             <SpansTable
+              :date-range="dateRange"
               :loading="spans.loading"
               :spans="spans.items"
               :order="spans.order"
@@ -40,6 +45,7 @@
 import { defineComponent, computed, watch, PropType } from 'vue'
 
 // Composables
+import { useAnnotations } from '@/org/use-annotations'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/tracing/system/use-systems'
@@ -80,6 +86,12 @@ export default defineComponent({
   setup(props) {
     props.dateRange.roundUp()
     const { route } = useRouter()
+
+    const annotations = useAnnotations(() => {
+      return {
+        ...props.dateRange.axiosParams(),
+      }
+    })
 
     const spans = useSpans(() => {
       const { projectId } = route.value.params
@@ -127,6 +139,8 @@ export default defineComponent({
     }
 
     return {
+      annotations,
+
       spans,
       showSystem,
 

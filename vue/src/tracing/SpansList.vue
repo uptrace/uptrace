@@ -1,6 +1,7 @@
 <template>
   <div>
     <SpansTable
+      :date-range="dateRange"
       :loading="spans.loading"
       :spans="spans.items"
       :order="spans.order"
@@ -18,6 +19,7 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
+import { UseDateRange } from '@/use/date-range'
 import { useRouter } from '@/use/router'
 import { useSpans } from '@/tracing/use-spans'
 import { UseUql } from '@/use/uql'
@@ -34,6 +36,10 @@ export default defineComponent({
   components: { SpansTable },
 
   props: {
+    dateRange: {
+      type: Object as PropType<UseDateRange>,
+      required: true,
+    },
     eventsMode: {
       type: Boolean,
       required: true,

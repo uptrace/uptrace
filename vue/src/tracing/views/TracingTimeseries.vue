@@ -46,6 +46,7 @@
               <v-row dense>
                 <v-col>
                   <TimeseriesGroupsTable
+                    :date-range="dateRange"
                     :uql="uql"
                     :axios-params="axiosParams"
                     :order="order"

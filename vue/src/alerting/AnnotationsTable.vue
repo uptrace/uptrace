@@ -36,12 +36,12 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
-    annotations: {
-      type: Array as PropType<Annotation[]>,
-      required: true,
-    },
     order: {
       type: Object as PropType<UseOrder>,
+      required: true,
+    },
+    annotations: {
+      type: Array as PropType<Annotation[]>,
       required: true,
     },
   },

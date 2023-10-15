@@ -31,8 +31,8 @@
               <template v-else>
                 <AnnotationsTable
                   :loading="annotations.loading"
-                  :annotations="annotations.items"
                   :order="order"
+                  :annotations="annotations.items"
                   @change="annotations.reload()"
                 >
                 </AnnotationsTable>

@@ -88,6 +88,7 @@ import { pick } from 'lodash-es'
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
+import { useAnnotations } from '@/org/use-annotations'
 import { useTitle } from '@vueuse/core'
 import { UseDateRange } from '@/use/date-range'
 import { useUql, useQueryStore, provideQueryStore } from '@/use/uql'
@@ -125,6 +126,12 @@ export default defineComponent({
     const uql = useUql()
     uql.syncQueryParams()
     provideQueryStore(useQueryStore(uql))
+
+    useAnnotations(() => {
+      return {
+        ...props.dateRange.axiosParams(),
+      }
+    })
 
     const systems = useSystems(() => {
       return {

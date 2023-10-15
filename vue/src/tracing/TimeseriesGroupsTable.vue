@@ -62,7 +62,12 @@
     <template #expanded-item="{ headers, item }">
       <tr class="v-data-table__expanded v-data-table__expanded__content">
         <td :colspan="headers.length" class="pa-4">
-          <SpansList :events-mode="eventsMode" :axios-params="axiosParams" :where="item._query" />
+          <SpansList
+            :date-range="dateRange"
+            :events-mode="eventsMode"
+            :axios-params="axiosParams"
+            :where="item._query"
+          />
         </td>
       </tr>
     </template>
@@ -74,6 +79,7 @@ import { truncate } from 'lodash-es'
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
+import { UseDateRange } from '@/use/date-range'
 import { UseOrder } from '@/use/order'
 import { UseUql } from '@/use/uql'
 import { TimeseriesGroup, ColumnInfo } from '@/tracing/use-timeseries'
@@ -89,6 +95,10 @@ export default defineComponent({
   components: { SpansList },
 
   props: {
+    dateRange: {
+      type: Object as PropType<UseDateRange>,
+      required: true,
+    },
     uql: {
       type: Object as PropType<UseUql>,
       default: undefined,

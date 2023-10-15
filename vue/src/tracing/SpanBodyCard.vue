@@ -113,11 +113,15 @@
             </v-tab-item>
 
             <v-tab-item value="events">
-              <EventPanels :date-range="dateRange" :events="span.events" />
+              <EventPanels
+                :date-range="dateRange"
+                :events="span.events"
+                :annotations="annotations"
+              />
             </v-tab-item>
 
             <v-tab-item value="pctile" class="pa-4">
-              <LoadPctileChart :axios-params="axiosParams" />
+              <LoadPctileChart :axios-params="axiosParams" :annotations="annotations" />
             </v-tab-item>
           </v-tabs-items>
         </v-sheet>
@@ -134,6 +138,7 @@ import { defineComponent, ref, computed, PropType } from 'vue'
 import { useRoute } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { createUqlEditor, useQueryStore } from '@/use/uql'
+import { injectAnnotations } from '@/org/use-annotations'
 
 // Components
 import NewMonitorMenu from '@/tracing/NewMonitorMenu.vue'
@@ -146,7 +151,7 @@ import { AttrKey, isEventSystem } from '@/models/otel'
 import { spanName, Span } from '@/models/span'
 
 export default defineComponent({
-  name: 'SpanCard',
+  name: 'SpanBodyCard',
   components: {
     NewMonitorMenu,
     SpanAttrs,
@@ -243,6 +248,8 @@ export default defineComponent({
       AttrKey,
       activeTab,
       isEvent,
+
+      annotations: injectAnnotations(),
 
       axiosParams,
 

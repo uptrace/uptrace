@@ -92,7 +92,7 @@
 
         <v-row>
           <v-col>
-            <TraceTabs :date-range="dateRange" :trace="trace" />
+            <TraceTabs :date-range="dateRange" :trace="trace" :annotations="annotations.items" />
           </v-col>
         </v-row>
       </v-container>

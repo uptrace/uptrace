@@ -49,7 +49,7 @@
 <script lang="ts">
 import markdownit from 'markdown-it'
 import { cloneDeep, debounce } from 'lodash-es'
-import * as echarts from 'echarts'
+import { init as initChart, ECharts } from 'echarts'
 import colors from 'vuetify/lib/util/colors'
 import {
   defineComponent,
@@ -76,7 +76,7 @@ type GroupName = string | symbol
 export interface EChartProps {
   width?: number | string
   height: number | string
-  option: echarts.EChartsOption
+  option: EChartsOption
 }
 
 export default defineComponent({
@@ -89,7 +89,7 @@ export default defineComponent({
       default: false,
     },
     value: {
-      type: Object as PropType<echarts.ECharts>,
+      type: Object as PropType<ECharts>,
       default: undefined,
     },
     width: {
@@ -115,7 +115,7 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
-    let echart: echarts.ECharts
+    let echart: ECharts
     const container = shallowRef<HTMLElement>()
 
     const config = computed(() => {
@@ -135,7 +135,7 @@ export default defineComponent({
       }
 
       const div = container.value!.getElementsByClassName('echart')[0] as HTMLDivElement
-      echart = echarts.init(div)
+      echart = initChart(div)
 
       ctx.emit('input', echart)
 
@@ -147,7 +147,7 @@ export default defineComponent({
     }
 
     const popover = usePopover()
-    function initAnnotations(echart: echarts.ECharts) {
+    function initAnnotations(echart: ECharts) {
       const dom = echart.getDom()
       echart.on('click', function (params: any) {
         const annId = parseInt(params.seriesId, 10)
@@ -168,7 +168,7 @@ export default defineComponent({
       })
     }
 
-    const setOption = debounce((option: echarts.EChartsOption) => {
+    const setOption = debounce((option: EChartsOption) => {
       if (echart.isDisposed()) {
         return
       }
@@ -177,6 +177,8 @@ export default defineComponent({
     }, 50)
 
     onMounted(() => {
+      init()
+
       watch(
         config,
         (config) => {
@@ -188,20 +190,8 @@ export default defineComponent({
       )
 
       watch(
-        () => props.option,
-        (option) => {
-          if (option) {
-            init()
-            setOption(option)
-          }
-        },
-        { immediate: true },
-      )
-
-      watch(
         () => props.loading,
         (loading) => {
-          init()
           if (loading) {
             echart.showLoading()
           } else {
@@ -233,9 +223,9 @@ export default defineComponent({
 
 //------------------------------------------------------------------------------
 
-const groupMap: Record<GroupName, echarts.ECharts[]> = {}
+const groupMap: Record<GroupName, ECharts[]> = {}
 
-function register(groupName: GroupName, echart: echarts.ECharts): void {
+function register(groupName: GroupName, echart: ECharts): void {
   let group = groupMap[groupName as string]
   if (!group) {
     group = []
@@ -245,7 +235,7 @@ function register(groupName: GroupName, echart: echarts.ECharts): void {
   connect(echart, group)
 }
 
-function unregister(groupName: GroupName, echart: echarts.ECharts): void {
+function unregister(groupName: GroupName, echart: ECharts): void {
   const group = groupMap[groupName as string]
   if (!group) {
     return
@@ -257,7 +247,7 @@ function unregister(groupName: GroupName, echart: echarts.ECharts): void {
   }
 }
 
-export function connect(echart: echarts.ECharts, group: echarts.ECharts[]) {
+export function connect(echart: ECharts, group: ECharts[]) {
   echart.on('updateAxisPointer', function (params: any) {
     const payload = (echart as any).makeActionFromEvent(params)
 

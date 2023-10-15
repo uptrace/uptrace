@@ -10,6 +10,7 @@
           :chart-kind="chartKind"
           :height="chartHeight"
           :event-bus="eventBus"
+          :annotations="annotations"
         />
       </v-col>
       <v-col
@@ -54,6 +55,9 @@
 
 <script lang="ts">
 import { defineComponent, shallowRef, computed, PropType } from 'vue'
+
+// Composables
+import { injectAnnotations } from '@/org/use-annotations'
 
 // Components
 import MetricChart from '@/metrics/MetricChart.vue'
@@ -163,6 +167,8 @@ export default defineComponent({
     return {
       LegendType,
       LegendPlacement,
+
+      annotations: injectAnnotations(),
 
       showDuplicateLegend,
       chartHeight,

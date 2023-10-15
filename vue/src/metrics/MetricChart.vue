@@ -24,6 +24,7 @@
       :height="chart.height"
       :option="chart.option"
       :group="group"
+      :annotations="annotations"
     />
   </div>
 </template>
@@ -35,9 +36,12 @@ import { defineComponent, shallowRef, computed, onMounted, PropType } from 'vue'
 // Components
 import EChart, { EChartProps } from '@/components/EChart.vue'
 
-// Utilities
+// Composables
 import { ChartKind, StyledTimeseries } from '@/metrics/types'
 import { EventBus } from '@/models/eventbus'
+import { Annotation } from '@/org/use-annotations'
+
+// Utilities
 import { createFormatter, Unit, Formatter } from '@/util/fmt'
 import {
   baseChartConfig,
@@ -92,6 +96,10 @@ export default defineComponent({
     eventBus: {
       type: Object as PropType<EventBus>,
       default: undefined,
+    },
+    annotations: {
+      type: Array as PropType<Annotation[]>,
+      default: () => [],
     },
   },
 
