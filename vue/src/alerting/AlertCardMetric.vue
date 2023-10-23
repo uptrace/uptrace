@@ -2,19 +2,14 @@
   <div>
     <v-row class="px-2 text-subtitle-1">
       <v-col>
-        <UptraceQueryChip
-          v-for="(part, i) in queryParts"
-          :key="i"
-          :query="part.query"
-          class="mr-2 mb-1"
-        />
+        <UqlCardReadonly :query="query" />
       </v-col>
     </v-row>
 
     <v-row align="end" class="px-2 text-subtitle-2 text-center">
       <v-col cols="auto">
-        <div class="grey--text font-weight-regular">State</div>
-        <div>{{ alert.state }}</div>
+        <div class="grey--text font-weight-regular">Status</div>
+        <div>{{ alert.status }}</div>
       </v-col>
 
       <v-col cols="auto">
@@ -24,12 +19,7 @@
 
       <v-col cols="auto">
         <div class="grey--text font-weight-regular">Time</div>
-        <XDate :date="alert.updatedAt" />
-      </v-col>
-
-      <v-col v-if="alert.createdAt !== alert.updatedAt" cols="auto">
-        <div class="grey--text font-weight-regular">First seen</div>
-        <XDate :date="alert.createdAt" />
+        <DateValue :value="alert.time" />
       </v-col>
 
       <v-col cols="auto">
@@ -40,10 +30,21 @@
           exact
           >View monitor</v-btn
         >
-        <v-btn v-if="spansRoute" :to="spansRoute" depressed small class="ml-2"
+        <v-btn v-if="routeForSpans" :to="routeForSpans" depressed small class="ml-2"
           >Matching spans</v-btn
         >
         <slot v-if="$slots['append-action']" name="append-action" />
+      </v-col>
+    </v-row>
+
+    <v-row>
+      <v-col>
+        You specified that value should be between <strong>{{ minValue }}</strong> and
+        <strong>{{ maxValue }}</strong
+        >. The actual value of <strong>{{ currentValue }}</strong> ({{ currentValueVerbose }}) has
+        been {{ params.firing === -1 ? 'smaller' : 'greater' }} than this range for at least
+        <strong>{{ duration }}</strong
+        >.
       </v-col>
     </v-row>
 
@@ -58,6 +59,7 @@
             :height="300"
             :min-allowed-value="alert.params.bounds.min"
             :max-allowed-value="alert.params.bounds.max"
+            :mark-point="markPoint"
             show-legend
           />
         </v-card>
@@ -68,27 +70,30 @@
 
 <script lang="ts">
 import colors from 'vuetify/lib/util/colors'
+import { formatDuration } from 'date-fns'
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
-import { parseParts } from '@/use/uql'
+import { joinQuery } from '@/use/uql'
 import { UseDateRange } from '@/use/date-range'
 import { useTimeseries, useStyledTimeseries } from '@/metrics/use-query'
-import { MetricAlert, AlertState } from '@/alerting/use-alerts'
+import { MetricAlert, AlertStatus } from '@/alerting/use-alerts'
 
 // Components
-import UptraceQueryChip from '@/components/UptraceQueryChip.vue'
+import UqlCardReadonly from '@/components/UqlCardReadonly.vue'
 import MetricChart from '@/metrics/MetricChart.vue'
 import MetricMonitorTrigger from '@/alerting/MetricMonitorTrigger.vue'
 
 // Utils
 import { MetricColumn } from '@/metrics/types'
 import { SystemName, AttrKey } from '@/models/otel'
+import { fmt, numVerbose } from '@/util/fmt'
+import { MINUTE, HOUR } from '@/util/fmt/date'
 
 export default defineComponent({
   name: 'MetricAlertCard',
   components: {
-    UptraceQueryChip,
+    UqlCardReadonly,
     MetricChart,
     MetricMonitorTrigger,
   },
@@ -105,8 +110,35 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
+    const params = computed(() => {
+      return props.alert.params
+    })
     const monitor = computed(() => {
       return props.alert.params.monitor
+    })
+    const minValue = computed(() => {
+      if (params.value.bounds.min === null) {
+        return '-Inf'
+      }
+      return fmt(params.value.bounds.min, monitor.value.columnUnit)
+    })
+    const maxValue = computed(() => {
+      if (params.value.bounds.max === null) {
+        return '+Inf'
+      }
+      return fmt(params.value.bounds.max, monitor.value.columnUnit)
+    })
+    const currentValue = computed(() => {
+      return fmt(params.value.currentValue, monitor.value.columnUnit)
+    })
+    const currentValueVerbose = computed(() => {
+      return numVerbose(params.value.currentValue)
+    })
+    const duration = computed(() => {
+      const dur = params.value.numPointFiring * MINUTE
+      const hours = Math.trunc(dur / HOUR)
+      const minutes = Math.trunc((dur - hours * HOUR) / MINUTE)
+      return formatDuration({ hours, minutes })
     })
 
     const columnMap = computed((): Record<string, MetricColumn> => {
@@ -132,16 +164,15 @@ export default defineComponent({
       computed(() => ({})),
     )
 
-    const queryParts = computed(() => {
+    const query = computed(() => {
       const tables = []
       for (let metric of monitor.value.metrics) {
         tables.push(`${metric.name} as $${metric.alias}`)
       }
-
-      return parseParts(`${monitor.value.query} | from ${tables.join(', ')}`)
+      return joinQuery([monitor.value.query, `from ${tables.join(', ')}`])
     })
 
-    const spansRoute = computed(() => {
+    const routeForSpans = computed(() => {
       const where = monitor.value.query.split(' | ').filter((part) => part.startsWith('where '))
       if (!where.length) {
         return undefined
@@ -161,13 +192,30 @@ export default defineComponent({
       }
     })
 
-    return {
-      AlertState,
+    const markPoint = computed(() => {
+      return {
+        name: 'outlier',
+        value: props.alert.params.currentValue,
+        unit: monitor.value.columnUnit,
+        time: props.alert.time,
+      }
+    })
 
-      queryParts,
+    return {
+      AlertStatus,
+
+      params,
+      minValue,
+      maxValue,
+      currentValue,
+      currentValueVerbose,
+      duration,
+
+      query,
       timeseries,
       styledTimeseries,
-      spansRoute,
+      routeForSpans,
+      markPoint,
     }
   },
 })

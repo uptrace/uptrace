@@ -85,7 +85,7 @@ export const useAchievements = function (project: ComputedRef<Project | undefine
   const { data, reload } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/projects/${projectId}/achievements`,
+      url: `/internal/v1/projects/${projectId}/achievements`,
       params: forceReloadParams.value,
     }
   })

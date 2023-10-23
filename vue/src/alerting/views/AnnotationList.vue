@@ -70,7 +70,7 @@ import { defineComponent, shallowRef } from 'vue'
 
 // Composables
 import { useTitle } from '@vueuse/core'
-import { useRouteQuery } from '@/use/router'
+import { useSyncQueryParams } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 import { useOrder } from '@/use/order'
 import { useAnnotations, emptyAnnotation } from '@/org/use-annotations'
@@ -101,10 +101,12 @@ export default defineComponent({
       }
     })
 
-    useRouteQuery().sync({
+    useSyncQueryParams({
       fromQuery(queryParams) {
-        order.column = queryParams['sort_by'] ?? 'createdAt'
-        order.desc = queryParams['sort_desc'] ?? true
+        queryParams.setDefault('sort_by', 'createdAt')
+        queryParams.setDefault('sort_desc', true)
+
+        order.parseQueryParams(queryParams)
       },
       toQuery() {
         return {

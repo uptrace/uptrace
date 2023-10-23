@@ -58,7 +58,7 @@ export function useNotifChannels(axiosParamsSource: AxiosParamsSource) {
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId } = route.value.params
     const req = {
-      url: `/api/v1/projects/${projectId}/notification-channels`,
+      url: `/internal/v1/projects/${projectId}/notification-channels`,
       params: axiosParamsSource(),
     }
     return req
@@ -179,19 +179,19 @@ export function useNotifChannelManager() {
 
   function pause(channelId: number) {
     const { projectId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/notification-channels/${channelId}/paused`
+    const url = `/internal/v1/projects/${projectId}/notification-channels/${channelId}/paused`
     return request({ method: 'PUT', url })
   }
 
   function unpause(channelId: number) {
     const { projectId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/notification-channels/${channelId}/unpaused`
+    const url = `/internal/v1/projects/${projectId}/notification-channels/${channelId}/unpaused`
     return request({ method: 'PUT', url })
   }
 
   function del(channelId: number) {
     const { projectId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/notification-channels/${channelId}`
+    const url = `/internal/v1/projects/${projectId}/notification-channels/${channelId}`
     return request({ method: 'DELETE', url })
   }
 
@@ -199,7 +199,7 @@ export function useNotifChannelManager() {
 
   function slackCreate(channel: SlackNotifChannel) {
     const { projectId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/notification-channels/slack`
+    const url = `/internal/v1/projects/${projectId}/notification-channels/slack`
     return request({ method: 'POST', url, data: channel }).then((resp) => {
       return resp.data.channel as SlackNotifChannel
     })
@@ -207,7 +207,7 @@ export function useNotifChannelManager() {
 
   function slackUpdate(channel: SlackNotifChannel) {
     const { projectId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/notification-channels/slack/${channel.id}`
+    const url = `/internal/v1/projects/${projectId}/notification-channels/slack/${channel.id}`
     return request({ method: 'PUT', url, data: channel }).then((resp) => {
       return resp.data.channel as SlackNotifChannel
     })
@@ -217,7 +217,7 @@ export function useNotifChannelManager() {
 
   function webhookCreate(channel: WebhookNotifChannel) {
     const { projectId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/notification-channels/webhook`
+    const url = `/internal/v1/projects/${projectId}/notification-channels/webhook`
     return request({ method: 'POST', url, data: channel }).then((resp) => {
       return resp.data.channel as WebhookNotifChannel
     })
@@ -225,7 +225,7 @@ export function useNotifChannelManager() {
 
   function webhookUpdate(channel: WebhookNotifChannel) {
     const { projectId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/notification-channels/webhook/${channel.id}`
+    const url = `/internal/v1/projects/${projectId}/notification-channels/webhook/${channel.id}`
     return request({ method: 'PUT', url, data: channel }).then((resp) => {
       return resp.data.channel as WebhookNotifChannel
     })
@@ -241,7 +241,7 @@ export function useNotifChannelManager() {
     }
 
     const { projectId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/notification-channels/email`
+    const url = `/internal/v1/projects/${projectId}/notification-channels/email`
     return request({ method: 'PUT', url, data })
   }
 
@@ -277,7 +277,7 @@ export function useEmailChannel() {
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/projects/${projectId}/notification-channels/email`,
+      url: `/internal/v1/projects/${projectId}/notification-channels/email`,
     }
   })
 

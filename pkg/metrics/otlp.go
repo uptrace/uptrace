@@ -13,7 +13,7 @@ import (
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bununit"
+	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
@@ -458,7 +458,7 @@ func (p *otlpProcessor) nextDatapoint(
 	out.ProjectID = p.project.ID
 	out.Metric = attrkey.Clean(metric.Name)
 	out.Description = metric.Description
-	out.Unit = bununit.FromString(metric.Unit)
+	out.Unit = bunconv.NormUnit(metric.Unit)
 	out.Instrument = instrument
 	out.Attrs = attrs
 	out.Time = time.Unix(0, int64(unixNano))

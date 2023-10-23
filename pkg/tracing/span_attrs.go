@@ -244,6 +244,7 @@ func normAttrs(attrs AttrMap) {
 
 		for _, key := range name.Alts {
 			if val, ok := attrs[key]; ok {
+				delete(attrs, key)
 				attrs[name.Canonical] = val
 				break
 			}

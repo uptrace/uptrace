@@ -18,15 +18,16 @@ interface BaseAlert {
   projectId: number
 
   name: string
-  type: AlertType
-  state: AlertState
+  status: AlertStatus
+  attrs: Record<string, string>
 
   trackableId: string
   trackableModel: string
 
-  attrs: Record<string, string>
+  type: AlertType
   params: unknown
 
+  time: string
   createdAt: string
   updatedAt: string
 }
@@ -36,7 +37,7 @@ export enum AlertType {
   Metric = 'metric',
 }
 
-export enum AlertState {
+export enum AlertStatus {
   Open = 'open',
   Closed = 'closed',
 }
@@ -57,8 +58,16 @@ export interface MetricAlert extends BaseAlert {
 
 export interface MetricAlertParams {
   firing: number
-  outlier: number
-  minutes: number
+  initialValue: number
+  currentValue: number
+  normalValue: number
+
+  numPointFiring: number
+
+  bounds: {
+    min: number | null
+    max: number | null
+  }
 
   monitor: {
     metrics: MetricAlias[]
@@ -81,14 +90,13 @@ export type UseAlerts = ReturnType<typeof useAlerts>
 
 export function useAlerts(axiosParams: ComputedRef<Record<string, any>>) {
   const route = useRoute()
-  const order = useOrder({ column: 'updated_at', desc: true })
-  order.syncQueryParams()
+  const order = useOrder()
 
   const { status, loading, data, reload } = useWatchAxios(
     () => {
       const projectId = route.value.params.projectId
       const req = {
-        url: `/api/v1/projects/${projectId}/alerts`,
+        url: `/internal/v1/projects/${projectId}/alerts`,
         params: {
           ...order.axiosParams,
           ...axiosParams.value,
@@ -135,31 +143,31 @@ export function useAlertManager() {
   const { loading: pending, request } = useAxios()
 
   function toggle(alert: Alert) {
-    if (alert.state === AlertState.Closed) {
+    if (alert.status === AlertStatus.Closed) {
       return open([alert])
     }
     return close([alert])
   }
 
   function close(alerts: Alert[]) {
-    return toggleAlerts(alerts, AlertState.Closed)
+    return toggleAlerts(alerts, AlertStatus.Closed)
   }
 
   function open(alerts: Alert[]) {
-    return toggleAlerts(alerts, AlertState.Open)
+    return toggleAlerts(alerts, AlertStatus.Open)
   }
 
-  function toggleAlerts(alerts: Alert[], state: AlertState) {
+  function toggleAlerts(alerts: Alert[], status: AlertStatus) {
     const alertIds = alerts.map((alert) => alert.id)
 
     const { projectId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/alerts/${state}`
+    const url = `/internal/v1/projects/${projectId}/alerts/${status}`
     return request({ method: 'PUT', url, data: { alertIds } })
   }
 
   function closeAll() {
     const { projectId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/alerts/close-all`
+    const url = `/internal/v1/projects/${projectId}/alerts/close-all`
     return request({ method: 'PUT', url })
   }
 
@@ -167,7 +175,7 @@ export function useAlertManager() {
     const alertIds = alerts.map((alert) => alert.id)
 
     const { projectId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/alerts`
+    const url = `/internal/v1/projects/${projectId}/alerts`
     return request({ method: 'DELETE', url, data: { alertIds } })
   }
 
@@ -210,13 +218,13 @@ export function useAlertSelection(
 
   const closedAlerts = computed((): Alert[] => {
     return activeAlerts.value.filter((alert: Alert) => {
-      return alert.state === AlertState.Closed
+      return alert.status === AlertStatus.Closed
     })
   })
 
   const openAlerts = computed((): Alert[] => {
     return activeAlerts.value.filter((alert: Alert) => {
-      return alert.state !== AlertState.Closed
+      return alert.status !== AlertStatus.Closed
     })
   })
 

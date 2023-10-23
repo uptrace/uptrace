@@ -44,13 +44,13 @@ export type UseSystemStats = ReturnType<typeof useSystemStats>
 export function useSystemStats(params: () => Record<string, any>) {
   const { route } = useRouter()
   const pager = usePager({ perPage: 15 })
-  const order = useOrder({ column: 'system', desc: false })
+  const order = useOrder()
   const filters = ref([])
 
   const { loading, data } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/tracing/${projectId}/systems-stats`,
+      url: `/internal/v1/tracing/${projectId}/systems-stats`,
       params: params(),
     }
   })

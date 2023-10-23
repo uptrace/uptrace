@@ -1,6 +1,7 @@
 import { shallowRef, reactive, computed, watch, proxyRefs, provide, inject } from 'vue'
+
 // Composables
-import { useRouteQuery } from '@/use/router'
+import { Values } from '@/use/router'
 
 // Utilities
 import { AttrKey } from '@/models/otel'
@@ -84,29 +85,22 @@ export function useUql(queryValue = '') {
     }
   }
 
+  function queryParams(paramName = 'query') {
+    return {
+      [paramName]: query.value,
+    }
+  }
+
+  function parseQueryParams(queryParams: Values, paramName = 'query') {
+    query.value = queryParams.string(paramName)
+  }
+
   function createEditor() {
-    return new UqlEditor(query.value)
+    return new QueryEditor(query.value)
   }
 
-  function commitEdits(editor: UqlEditor) {
+  function commitEdits(editor: QueryEditor) {
     query.value = editor.toString()
-  }
-
-  function syncQueryParams(paramName = 'query', defaultQuery = '') {
-    useRouteQuery().sync({
-      fromQuery(queryParams) {
-        if (paramName in queryParams) {
-          query.value = queryParams[paramName] ?? ''
-        } else {
-          query.value = defaultQuery
-        }
-      },
-      toQuery() {
-        return {
-          [paramName]: query.value,
-        }
-      },
-    })
   }
 
   return proxyRefs({
@@ -120,8 +114,10 @@ export function useUql(queryValue = '') {
     cleanup,
 
     setQueryInfo,
-    syncQueryParams,
     axiosParams,
+
+    queryParams,
+    parseQueryParams,
 
     createEditor,
     commitEdits,
@@ -132,7 +128,7 @@ export function parseParts(query: any): QueryPart[] {
   if (typeof query !== 'string' || !query) {
     return []
   }
-  return split(query, QUERY_PART_SEP).map((part) => {
+  return splitQuery(query).map((part) => {
     return createQueryPart(part)
   })
 }
@@ -153,6 +149,13 @@ export function formatParts(parts: QueryPart[]): string {
     .join(QUERY_PART_SEP)
 }
 
+export function splitQuery(query: string): string[] {
+  return query
+    .split(QUERY_PART_SEP)
+    .map((part) => part.trim())
+    .filter((part) => part.length)
+}
+
 export function joinQuery(...parts: any[]): string {
   return parts
     .filter((part) => {
@@ -166,11 +169,11 @@ export function joinQuery(...parts: any[]): string {
 
 //------------------------------------------------------------------------------
 
-export function createUqlEditor(query = '') {
-  return new UqlEditor(query)
+export function createQueryEditor(query = '') {
+  return new QueryEditor(query)
 }
 
-export class UqlEditor {
+export class QueryEditor {
   parts: QueryPart[]
 
   constructor(s: any = '') {
@@ -275,13 +278,6 @@ export function exploreAttr(column: string, isEventSystem = false) {
         `{p50,p90,p99}(${AttrKey.spanDuration})`,
       ]
   return ss.join(QUERY_PART_SEP)
-}
-
-function split(s: string, sep: string): string[] {
-  return s
-    .split(sep)
-    .map((s) => s.trim())
-    .filter((s) => s.length)
 }
 
 //------------------------------------------------------------------------------

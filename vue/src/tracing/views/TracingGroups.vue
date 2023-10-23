@@ -1,22 +1,6 @@
 <template>
   <div>
-    <v-row v-if="groups.errorCode === 'invalid_query'">
-      <v-col>
-        <v-banner>
-          <v-icon slot="icon" color="error" size="36">mdi-alert-circle</v-icon>
-          <div class="subtitle-1 text--secondary">
-            <p>{{ groups.errorMessage }}</p>
-            This is a bug. Please report in on
-            <a href="https://github.com/uptrace/uptrace" target="_blank">GitHub</a> including the
-            error message and the query.
-          </div>
-        </v-banner>
-
-        <PrismCode v-if="groups.backendQuery" :code="groups.backendQuery" language="sql" />
-      </v-col>
-    </v-row>
-
-    <v-row v-else>
+    <v-row>
       <v-col>
         <v-card rounded="lg" outlined class="mb-4">
           <v-toolbar flat color="light-blue lighten-5">
@@ -40,28 +24,32 @@
 
             <div class="text-body-2 blue-grey--text text--darken-3">
               <span v-if="groups.hasMore">more than </span>
-              <strong><XNum :value="numGroup" verbose /></strong> groups
+              <strong><NumValue :value="numGroup" verbose /></strong> groups
             </div>
           </v-toolbar>
 
           <v-container fluid>
-            <GroupsList
-              :date-range="dateRange"
-              :systems="systems.activeSystems"
-              :uql="uql"
-              :loading="groups.loading"
-              :groups="groups.items"
-              :columns="groups.columns"
-              :plottable-columns="groups.plottableColumns"
-              :plotted-columns="plottedColumns"
-              show-plotted-column-items
-              :order="groups.order"
-              :events-mode="systems.isEvent"
-              :show-system="showSystem"
-              :axios-params="groups.axiosParams"
-              @update:plotted-columns="plottedColumns = $event"
-              @update:num-group="numGroup = $event"
-            />
+            <v-row>
+              <v-col>
+                <ApiErrorCard v-if="groups.error" :error="groups.error" />
+                <PagedGroupsCard
+                  v-else
+                  :date-range="dateRange"
+                  :systems="systems.activeSystems"
+                  :uql="uql"
+                  :loading="groups.loading"
+                  :groups="groups.items"
+                  :columns="groups.columns"
+                  :plottable-columns="groups.plottableColumns"
+                  :plotted-columns="plottedColumns"
+                  show-plotted-column-items
+                  :order="groups.order"
+                  :axios-params="groups.axiosParams"
+                  @update:plotted-columns="plottedColumns = $event"
+                  @update:num-group="numGroup = $event"
+                />
+              </v-col>
+            </v-row>
           </v-container>
         </v-card>
       </v-col>
@@ -70,24 +58,25 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed, watch, watchEffect, PropType } from 'vue'
+import { defineComponent, shallowRef, watch, watchEffect, onMounted, PropType } from 'vue'
 
 // Composables
-import { useRouteQuery } from '@/use/router'
+import { useSyncQueryParams } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/tracing/system/use-systems'
-import { UseUql } from '@/use/uql'
+import { createQueryEditor, UseUql } from '@/use/uql'
 import { useGroups } from '@/tracing/use-explore-spans'
 
 // Components
-import GroupsList from '@/tracing/GroupsList.vue'
+import ApiErrorCard from '@/components/ApiErrorCard.vue'
+import PagedGroupsCard from '@/tracing/PagedGroupsCard.vue'
 
 // Utilities
-import { isGroupSystem } from '@/models/otel'
+import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'TracingGroups',
-  components: { GroupsList },
+  components: { ApiErrorCard, PagedGroupsCard },
 
   props: {
     dateRange: {
@@ -114,19 +103,7 @@ export default defineComponent({
     const groups = useGroups(() => {
       return props.axiosParams
     })
-    groups.order.syncQueryParams()
     const numGroup = shallowRef(0)
-
-    const showSystem = computed(() => {
-      const systems = props.systems.activeSystems
-      if (systems.length > 1) {
-        return true
-      }
-      if (systems.length === 1) {
-        return isGroupSystem(systems[0])
-      }
-      return false
-    })
 
     const plottedColumns = shallowRef<string[]>()
     watchEffect(() => {
@@ -144,20 +121,56 @@ export default defineComponent({
         return groups.plottableColumns.findIndex((item) => item.name === colName) >= 0
       })
     })
-    useRouteQuery().sync({
+
+    onMounted(() => {
+      watch(
+        () => props.systems.activeSystems,
+        (activeSystems) => {
+          if (!activeSystems.length) {
+            return
+          }
+          if (props.uql.query) {
+            return
+          }
+          props.uql.query = createQueryEditor()
+            .exploreAttr(AttrKey.spanGroupId, props.systems.isEvent)
+            .toString()
+        },
+        { immediate: true },
+      )
+    })
+
+    useSyncQueryParams({
       fromQuery(queryParams) {
-        if (Array.isArray(queryParams.column)) {
-          plottedColumns.value = queryParams.column
-        } else if (queryParams.column) {
-          plottedColumns.value = [queryParams.column]
+        props.dateRange.parseQueryParams(queryParams)
+        props.systems.parseQueryParams(queryParams)
+        groups.order.parseQueryParams(queryParams)
+
+        if (!queryParams.has('query') && props.systems.activeSystems.length) {
+          queryParams.set(
+            'query',
+            createQueryEditor().exploreAttr(AttrKey.spanGroupId, props.systems.isEvent).toString(),
+          )
+        }
+        props.uql.parseQueryParams(queryParams)
+
+        if (queryParams.has('column')) {
+          plottedColumns.value = queryParams.array('column')
         } else {
-          plottedColumns.value = undefined
+          plottedColumns.value = undefined // accompanied with watchEffect
         }
       },
       toQuery() {
-        return {
-          column: plottedColumns.value,
+        const queryParams: Record<string, any> = {
+          ...props.dateRange.queryParams(),
+          ...props.systems.queryParams(),
+          ...props.uql.queryParams(),
+          ...groups.order.queryParams(),
         }
+        if (plottedColumns.value) {
+          queryParams.column = plottedColumns.value.length ? plottedColumns.value : null
+        }
+        return queryParams
       },
     })
 
@@ -174,7 +187,6 @@ export default defineComponent({
       groups,
 
       numGroup,
-      showSystem,
       plottedColumns,
     }
   },

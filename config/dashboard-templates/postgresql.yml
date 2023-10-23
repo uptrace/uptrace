@@ -53,52 +53,53 @@ table:
     db_size: { unit: bytes }
 
 grid:
-  - name: Number of backends (connections)
-    metrics:
-      - postgresql.backends as $backends
-    query:
-      - $backends
+  columns:
+    - name: Number of backends (connections)
+      metrics:
+        - postgresql.backends as $backends
+      query:
+        - $backends
 
-  - name: Number of blocks read
-    metrics:
-      - postgresql.blocks_read as $blocks_read
-    query:
-      - per_min($blocks_read) as blocks_read group by source
-    chart: stacked-bar
+    - name: Number of blocks read
+      metrics:
+        - postgresql.blocks_read as $blocks_read
+      query:
+        - per_min($blocks_read) as blocks_read group by source
+      chart: stacked-bar
 
-  - name: Database disk usage
-    metrics:
-      - postgresql.db_size as $db_size
-    query:
-      - $db_size
-    columns:
-      db_size: { unit: bytes }
+    - name: Database disk usage
+      metrics:
+        - postgresql.db_size as $db_size
+      query:
+        - $db_size
+      columns:
+        db_size: { unit: bytes }
 
-  - name: Number of rows in the database
-    metrics:
-      - postgresql.rows as $rows
-    query:
-      - $rows group by state
-    chart: stacked-bar
+    - name: Number of rows in the database
+      metrics:
+        - postgresql.rows as $rows
+      query:
+        - $rows group by state
+      chart: stacked-bar
 
-  - name: Number of commits
-    metrics:
-      - postgresql.commits as $commits
-    query:
-      - $commits
+    - name: Number of commits
+      metrics:
+        - postgresql.commits as $commits
+      query:
+        - $commits
 
-  - name: Number of rollbacks
-    metrics:
-      - postgresql.rollbacks as $rollbacks
-    query:
-      - $rollbacks
+    - name: Number of rollbacks
+      metrics:
+        - postgresql.rollbacks as $rollbacks
+      query:
+        - $rollbacks
 
-  - name: Number of db row operations
-    metrics:
-      - postgresql.operations as $ops
-    query:
-      - per_min($ops) as ops group by operation
-    chart: stacked-bar
+    - name: Number of db row operations
+      metrics:
+        - postgresql.operations as $ops
+      query:
+        - per_min($ops) as ops group by operation
+      chart: stacked-bar
 
 ---
 schema: v1
@@ -120,38 +121,39 @@ table:
     - per_min($ops) as ops
 
 grid:
-  - name: Disk space used by the table
-    metrics:
-      - postgresql.table.size as $size
-    query:
-      - $size
+  columns:
+    - name: Disk space used by the table
+      metrics:
+        - postgresql.table.size as $size
+      query:
+        - $size
 
-  - name: Number of rows in the table
-    metrics:
-      - postgresql.rows as $rows
-    query:
-      - $rows group by state
-    chart: stacked-bar
+    - name: Number of rows in the table
+      metrics:
+        - postgresql.rows as $rows
+      query:
+        - $rows group by state
+      chart: stacked-bar
 
-  - name: Number of db row operations
-    metrics:
-      - postgresql.operations as $ops
-    query:
-      - per_min($ops) as ops group by operation
-    chart: stacked-bar
+    - name: Number of db row operations
+      metrics:
+        - postgresql.operations as $ops
+      query:
+        - per_min($ops) as ops group by operation
+      chart: stacked-bar
 
-  - name: Number of blocks read
-    metrics:
-      - postgresql.blocks_read as $blocks_read
-    query:
-      - per_min($blocks_read) as blocks_read group by source
-    chart: stacked-bar
+    - name: Number of blocks read
+      metrics:
+        - postgresql.blocks_read as $blocks_read
+      query:
+        - per_min($blocks_read) as blocks_read group by source
+      chart: stacked-bar
 
-  - name: Number of times the table has been manually vacuumed
-    metrics:
-      - postgresql.table.vacuum.count as $vacuum_count
-    query:
-      - $vacuum_count
+    - name: Number of times the table has been manually vacuumed
+      metrics:
+        - postgresql.table.vacuum.count as $vacuum_count
+      query:
+        - $vacuum_count
 
 ---
 schema: v1
@@ -167,21 +169,22 @@ table:
     - group by postgresql.database.name
     - group by postgresql.table.name
     - group by postgresql.index.name
-    - per_min($index_scans)
     - $index_size
+    - per_min($index_scans)
 
 grid:
-  - name: Number of index scans
-    metrics:
-      - postgresql.index.scans as $index_scans
-    query:
-      - per_min($index_scans)
+  columns:
+    - name: Number of index scans
+      metrics:
+        - postgresql.index.scans as $index_scans
+      query:
+        - per_min($index_scans)
 
-  - name: Index size
-    metrics:
-      - postgresql.index.size as $index_size
-    query:
-      - $index_size
+    - name: Index size
+      metrics:
+        - postgresql.index.size as $index_size
+      query:
+        - $index_size
 
 ---
 schema: v1
@@ -202,37 +205,38 @@ table:
     - per_min($bgwriter_dur)
 
 grid:
-  - name: Number of buffers allocated
-    metrics:
-      - postgresql.bgwriter.buffers.allocated as $buf_allocated
-    query:
-      - per_min($buf_allocated)
+  columns:
+    - name: Number of buffers allocated
+      metrics:
+        - postgresql.bgwriter.buffers.allocated as $buf_allocated
+      query:
+        - per_min($buf_allocated)
 
-  - name: Number of buffers written
-    metrics:
-      - postgresql.bgwriter.buffers.writes as $buf_writes
-    query:
-      - per_min($buf_writes) group by source
-    chart: stacked-bar
+    - name: Number of buffers written
+      metrics:
+        - postgresql.bgwriter.buffers.writes as $buf_writes
+      query:
+        - per_min($buf_writes) group by source
+      chart: stacked-bar
 
-  - name: Number of checkpoints performed
-    metrics:
-      - postgresql.bgwriter.checkpoint.count as $checkpoint_count
-    query:
-      - per_min($checkpoint_count) group by type
-    chart: stacked-bar
+    - name: Number of checkpoints performed
+      metrics:
+        - postgresql.bgwriter.checkpoint.count as $checkpoint_count
+      query:
+        - per_min($checkpoint_count) group by type
+      chart: stacked-bar
 
-  - name: Total time spent writing and syncing files to disk by checkpoints
-    metrics:
-      - postgresql.bgwriter.duration as $bgwriter_dur
-    query:
-      - per_min($bgwriter_dur) group by type
-    chart: stacked-bar
+    - name: Total time spent writing and syncing files to disk by checkpoints
+      metrics:
+        - postgresql.bgwriter.duration as $bgwriter_dur
+      query:
+        - per_min($bgwriter_dur) group by type
+      chart: stacked-bar
 
-  - name:
-      Number of times the background writer stopped a cleaning scan because it had written too many
-      buffers
-    metrics:
-      - postgresql.bgwriter.maxwritten as $bgwriter_maxwritten
-    query:
-      - per_min($bgwriter_maxwritten)
+    - name:
+        Number of times the background writer stopped a cleaning scan because it had written too
+        many buffers
+      metrics:
+        - postgresql.bgwriter.maxwritten as $bgwriter_maxwritten
+      query:
+        - per_min($bgwriter_maxwritten)

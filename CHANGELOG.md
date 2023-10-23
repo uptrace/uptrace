@@ -4,25 +4,38 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 ## v1.6.0
 
-This release is backwards incompatible with v1.5. You need to reset the ClickHouse database schema
-to upgrade:
+This release is backwards incompatible with v1.5. You need to reset the database schema to upgrade:
 
 ```shell
 uptrace ch reset
+uptrace pg reset
 ```
 
-The license is changed from BSL to AGPL v3.0.
+The license is changed from BSL to AGPL v3.0 which is a license approved by Open Software
+Foundation.
 
 #### Features
+
+- Added service graphs. Service Graphs provide a visual representation of service interactions,
+  dependencies, and performance metrics. Service graphs are built by analyzing span relationships
+  and require specific span attributes.
 
 - Added [annotations](https://uptrace.dev/get/annotations.html) support.
 
 #### Improvements
 
+- Added support for `per_min(sum(attr_key))` expressions in tracing query language.
+- Added support for simple expressions like `sum(.duration) / .count` which is the same as
+  `avg(.duration)`.
+- Improved templates for emails and Slack notifications.
 - Added more metrics dashboards for HTTP checks and Kubernetes.
-- Indexed more semantic attributes in ClickHouse.
+- Added more indexed semantic attributes in ClickHouse.
+- Spans to metrics conversion requires a fresh ClickHouse version that supports
+  `allow_experimental_analyzer = 1`.
 
 #### Changes
+
+- Changed the default spans TTL to 7 days, metrics TTL to 30 days.
 
 - Upgraded to
   [v1.21](https://github.com/open-telemetry/opentelemetry-specification/blob/main/schemas/1.21.0)

@@ -24,10 +24,10 @@ export function useTrace() {
   const coloredSystems = ref<ColoredSystem[]>([])
   const { isVisible, isExpanded, toggleTree, showTree } = useHiddenSpans()
 
-  const { loading, data, error } = useWatchAxios(() => {
+  const { status, loading, error, data } = useWatchAxios(() => {
     const { projectId, traceId } = route.value.params
     return {
-      url: `/api/v1/tracing/${projectId}/traces/${traceId}`,
+      url: `/internal/v1/tracing/${projectId}/traces/${traceId}`,
       params: {
         ...forceReloadParams.value,
       },
@@ -44,6 +44,10 @@ export function useTrace() {
 
   const root = computed((): TraceSpan | undefined => {
     return data.value?.root
+  })
+
+  const hasMore = computed((): boolean => {
+    return data.value?.hasMore ?? false
   })
 
   const spans = computed((): TraceSpan[] => {
@@ -132,11 +136,14 @@ export function useTrace() {
     activeSpanId,
     activeSpan,
 
+    status,
     loading,
     error,
 
     coloredSystems,
     root,
+    hasMore,
+
     spans,
     id,
     trace,

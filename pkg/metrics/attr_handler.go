@@ -91,20 +91,18 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 	}
 
 	if len(f.Metric) == 0 {
-		items := make([]*AttrKeyItem, 0)
+		items := make([]AttrKeyItem, 0)
 
-		subq := h.CH.NewSelect().
-			Distinct().
-			ColumnExpr("metric").
-			ColumnExpr("arrayJoin(string_keys) AS value").
-			TableExpr("?", h.DistTable("datapoint_hours")).
-			Where("project_id = ?", f.ProjectID).
-			Where("time >= ?", time.Now().Add(-24*time.Hour))
+		subq := h.PG.NewSelect().
+			Model((*Metric)(nil)).
+			ColumnExpr("name AS metric").
+			ColumnExpr("UNNEST(attr_keys) AS value").
+			Where("project_id = ?", f.ProjectID)
 
-		if err := h.CH.NewSelect().
+		if err := h.PG.NewSelect().
 			ColumnExpr("value").
-			ColumnExpr("count() AS count").
-			TableExpr("(?)", subq).
+			ColumnExpr("count(DISTINCT metric) AS count").
+			TableExpr("(?) AS items", subq).
 			GroupExpr("value").
 			OrderExpr("count DESC").
 			Limit(10000).
@@ -149,45 +147,18 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 }
 
 func (h *AttrHandler) selectAttrKeys(ctx context.Context, f *AttrFilter) ([]string, error) {
-	var metrics []*Metric
+	var keys []string
 
 	if err := h.PG.NewSelect().
-		Model(&metrics).
-		Column("string_keys").
+		Model((*Metric)(nil)).
+		ColumnExpr("UNNEST(array_intersect_agg(attr_keys))").
 		Where("project_id = ?", f.ProjectID).
 		Where("name IN (?)", bun.In(f.Metric)).
-		Scan(ctx); err != nil {
+		Scan(ctx, &keys); err != nil {
 		return nil, err
 	}
 
-	var keys []string
-
-	for _, metric := range metrics {
-		if keys == nil {
-			keys = metric.AttrKeys
-			continue
-		}
-		keys = intersect(keys, metric.AttrKeys)
-	}
-
 	return keys, nil
-}
-
-func intersect[T comparable](a []T, b []T) []T {
-	set := make([]T, 0)
-	hash := make(map[T]struct{})
-
-	for _, v := range a {
-		hash[v] = struct{}{}
-	}
-
-	for _, v := range b {
-		if _, ok := hash[v]; ok {
-			set = append(set, v)
-		}
-	}
-
-	return set
 }
 
 func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) error {

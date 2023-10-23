@@ -48,7 +48,7 @@
                 :time="item.stats.time"
                 class="mr-2"
               />
-              <XNum :value="item.rate" :unit="Unit.Rate" title="{0} per minute" />
+              <NumValue :value="item.rate" :unit="Unit.Rate" title="{0} per minute" />
             </div>
           </td>
           <td class="text-subtitle-2">
@@ -59,7 +59,7 @@
                 :time="item.stats.time"
                 class="mr-2"
               />
-              <XPct :a="item.errorCount" :b="item.count" />
+              <PctValue :a="item.errorCount" :b="item.count" />
             </div>
           </td>
           <td class="text-subtitle-2">
@@ -70,7 +70,7 @@
                 :time="item.stats.time"
                 class="mr-2"
               />
-              <XDuration :duration="item.durationP50" />
+              <DurationValue :value="item.durationP50" />
             </div>
           </td>
           <td class="text-subtitle-2">
@@ -81,11 +81,11 @@
                 :time="item.stats.time"
                 class="mr-2"
               />
-              <XDuration :duration="item.durationP99" />
+              <DurationValue :value="item.durationP99" />
             </div>
           </td>
           <td class="text-subtitle-2 text-right">
-            <XDuration v-if="'durationMax' in item" :duration="item.durationMax" />
+            <DurationValue v-if="'durationMax' in item" :value="item.durationMax" />
           </td>
           <td v-if="hasAction" class="text-center">
             <slot name="action" :item="item" />

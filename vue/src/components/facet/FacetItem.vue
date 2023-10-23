@@ -153,7 +153,7 @@ export default defineComponent({
       }
       const { projectId } = route.value.params
       return {
-        url: `/api/v1/${props.component}/${projectId}/attr-values`,
+        url: `/internal/v1/${props.component}/${projectId}/attr-values`,
         params: {
           ...props.axiosParams,
           attr_key: props.attr,

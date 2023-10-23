@@ -28,16 +28,16 @@ export function createFormatter(unit: string | Formatter): Formatter {
     case Unit.Nanoseconds:
       return duration
     case Unit.Microseconds:
-      return (val: any, ...args: any[]) => {
-        return duration(adjustNumber(val, 1e3), ...args)
+      return (val: any) => {
+        return duration(adjustNumber(val, 1e3))
       }
     case Unit.Milliseconds:
       return (val: any, ...args: any[]) => {
-        return duration(adjustNumber(val, 1e6), ...args)
+        return duration(adjustNumber(val, 1e6))
       }
     case Unit.Seconds:
       return (val: any, ...args: any[]) => {
-        return duration(adjustNumber(val, 1e9), ...args)
+        return duration(adjustNumber(val, 1e9))
       }
     case Unit.Bytes:
       return bytes
@@ -56,16 +56,16 @@ export function createShortFormatter(unit = ''): Formatter {
     case Unit.Nanoseconds:
       return durationShort
     case Unit.Microseconds:
-      return (val: any, ...args: any[]) => {
-        return durationShort(adjustNumber(val, 1e3), ...args)
+      return (val: any) => {
+        return durationShort(adjustNumber(val, 1e3))
       }
     case Unit.Milliseconds:
-      return (val: any, ...args: any[]) => {
-        return durationShort(adjustNumber(val, 1e6), ...args)
+      return (val: any) => {
+        return durationShort(adjustNumber(val, 1e6))
       }
     case Unit.Seconds:
-      return (val: any, ...args: any[]) => {
-        return durationShort(adjustNumber(val, 1e9), ...args)
+      return (val: any) => {
+        return durationShort(adjustNumber(val, 1e9))
       }
     case Unit.Bytes:
       return bytesShort

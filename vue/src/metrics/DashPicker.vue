@@ -121,8 +121,8 @@ export default defineComponent({
     }
 
     function redirectTo(dash: Dashboard) {
-      router.push({
-        name: 'MetricsDashShow',
+      router.replace({
+        name: 'DashboardShow',
         params: { dashId: String(dash.id) },
       })
     }

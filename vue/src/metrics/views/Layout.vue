@@ -8,7 +8,7 @@
           <v-row align="end" no-gutters>
             <v-col>
               <v-tabs :key="$route.fullPath" background-color="transparent">
-                <v-tab :to="{ name: 'MetricsDashList' }" exact-path>Dashboards</v-tab>
+                <v-tab :to="{ name: 'DashboardList' }" exact-path>Dashboards</v-tab>
                 <v-tab :to="{ name: 'MetricsExplore' }" exact-path>Metrics</v-tab>
               </v-tabs>
             </v-col>

@@ -172,37 +172,44 @@ func (b *DashBuilder) Build(tpl *DashboardTpl) error {
 		UpdatedAt: now,
 	}
 
+	if err := b.initDash(tpl); err != nil {
+		return fmt.Errorf("invalid dashboard: %w", err)
+	}
+
+	for index, gauge := range tpl.Table.Gauges {
+		if err := b.gauge(index, gauge, DashTable); err != nil {
+			return fmt.Errorf("invalid table gauge: %w", err)
+		}
+	}
+
+	for index, gauge := range tpl.Grid.Gauges {
+		if err := b.gauge(index, gauge, DashGrid); err != nil {
+			return fmt.Errorf("invalid grid gauge: %w", err)
+		}
+	}
+
+	for _, tpl := range tpl.Grid.Columns {
+		if err := b.gridColumn(tpl); err != nil {
+			return fmt.Errorf("invalid grid column: %w", err)
+		}
+	}
+
+	for _, tpl := range tpl.Monitors {
+		if err := b.monitor(tpl); err != nil {
+			return fmt.Errorf("invalid monitor: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (b *DashBuilder) initDash(tpl *DashboardTpl) error {
 	if err := b.dash.FromTemplate(tpl); err != nil {
 		return err
 	}
 	if err := b.dash.Validate(); err != nil {
 		return err
 	}
-
-	for index, gauge := range tpl.Table.Gauges {
-		if err := b.gauge(index, gauge, DashTable); err != nil {
-			return err
-		}
-	}
-
-	for index, gauge := range tpl.GridGauges {
-		if err := b.gauge(index, gauge, DashGrid); err != nil {
-			return err
-		}
-	}
-
-	for _, tpl := range tpl.Grid {
-		if err := b.gridColumn(tpl); err != nil {
-			return err
-		}
-	}
-
-	for _, tpl := range tpl.Monitors {
-		if err := b.monitor(tpl); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -307,22 +314,13 @@ func (b *DashBuilder) monitor(tpl *MonitorTpl) error {
 
 	monitor.Params.Metrics = metrics
 	monitor.Params.Query = mql.JoinQuery(tpl.Query)
+	monitor.Params.Column = tpl.Column
+	monitor.Params.ColumnUnit = tpl.ColumnUnit
 
-	for colName, col := range tpl.Columns {
-		monitor.Params.Column = colName
-		monitor.Params.ColumnUnit = col.Unit
-		break
-	}
+	monitor.Params.CheckNumPoint = tpl.CheckNumPoint
 
-	monitor.Params.ForDuration = tpl.ForDuration
-	monitor.Params.ForDurationUnit = org.MonitorUnitMinutes
-
-	monitor.Params.MinValue = tpl.MinValue
-	monitor.Params.MaxValue = tpl.MaxValue
-
-	if monitor.Params.ForDuration == 0 {
-		monitor.Params.ForDuration = 5
-	}
+	monitor.Params.MinValue = tpl.MinAllowedValue
+	monitor.Params.MaxValue = tpl.MaxAllowedValue
 
 	if err := monitor.Validate(); err != nil {
 		return err

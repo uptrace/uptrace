@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/uptrace/uptrace/pkg/bununit"
+	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"golang.org/x/exp/slices"
 )
@@ -105,13 +105,13 @@ func (n *Number) ConvertValue(unit string) (float64, error) {
 		if err != nil {
 			return 0, err
 		}
-		return bununit.ConvertValue(float64(dur), bununit.Nanoseconds, unit)
+		return bunconv.ConvertValue(float64(dur), bunconv.UnitNanoseconds, unit)
 	case NumberBytes:
-		bytes, err := bununit.ParseBytes(n.Text)
+		bytes, err := bunconv.ParseBytes(n.Text)
 		if err != nil {
 			return 0, err
 		}
-		return bununit.ConvertValue(float64(bytes), bununit.Bytes, unit)
+		return bunconv.ConvertValue(float64(bytes), bunconv.UnitBytes, unit)
 	default:
 		f, err := strconv.ParseFloat(n.Text, 64)
 		if err != nil {
@@ -130,7 +130,7 @@ func (n *Number) Float64() float64 {
 		}
 		return float64(dur)
 	case NumberBytes:
-		bytes, err := bununit.ParseBytes(n.Text)
+		bytes, err := bunconv.ParseBytes(n.Text)
 		if err != nil {
 			panic(err)
 		}

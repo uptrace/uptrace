@@ -18,7 +18,7 @@ export function useTraceSearch() {
   })
 
   function find(traceId: string) {
-    request({ url: `/api/v1/traces/search`, params: { trace_id: traceId } })
+    request({ url: `/internal/v1/traces/search`, params: { trace_id: traceId } })
   }
 
   return proxyRefs({ loading, span, find })

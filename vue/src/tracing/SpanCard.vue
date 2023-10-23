@@ -20,7 +20,7 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
-import { createUqlEditor } from '@/use/uql'
+import { createQueryEditor } from '@/use/uql'
 
 // Components
 import FixedDateRangePicker from '@/components/date/FixedDateRangePicker.vue'
@@ -82,7 +82,7 @@ export default defineComponent({
           query: {
             ...props.dateRange.queryParams(),
             system: props.span.system,
-            query: createUqlEditor()
+            query: createQueryEditor()
               .exploreAttr(AttrKey.spanGroupId, isEvent.value)
               .where(AttrKey.spanGroupId, '=', props.span.groupId)
               .toString(),

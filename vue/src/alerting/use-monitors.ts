@@ -45,8 +45,8 @@ export interface MetricMonitorParams {
   column: string
   columnUnit: string
 
-  forDuration: number
-  forDurationUnit: MonitorDuration
+  checkNumPoint: number
+  timeOffset: number
 
   minValue: number | string | null
   maxValue: number | string | null
@@ -98,8 +98,8 @@ export function emptyMetricMonitor(): EmptyMetricMonitor {
       column: '',
       columnUnit: '',
 
-      forDuration: 5,
-      forDurationUnit: MonitorDuration.Minutes,
+      checkNumPoint: 5,
+      timeOffset: 0,
 
       minValue: null,
       maxValue: null,
@@ -141,7 +141,7 @@ export function useMonitors() {
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/projects/${projectId}/monitors`,
+      url: `/internal/v1/projects/${projectId}/monitors`,
       params: {
         ...forceReloadParams.value,
         ...pager.axiosParams,
@@ -191,7 +191,7 @@ export function useMonitorManager() {
 
   function createMetricMonitor(monitor: Partial<MetricMonitor>) {
     const { projectId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/monitors/metric`
+    const url = `/internal/v1/projects/${projectId}/monitors/metric`
 
     return request({ method: 'POST', url, data: monitor }).then((resp) => {
       return resp.data.monitor as MetricMonitor
@@ -200,7 +200,7 @@ export function useMonitorManager() {
 
   function updateMetricMonitor(monitor: MetricMonitor) {
     const { id, projectId } = monitor
-    const url = `/api/v1/projects/${projectId}/monitors/${id}/metric`
+    const url = `/internal/v1/projects/${projectId}/monitors/${id}/metric`
 
     return request({ method: 'PUT', url, data: monitor }).then((resp) => {
       return resp.data.monitor as MetricMonitor
@@ -209,7 +209,7 @@ export function useMonitorManager() {
 
   function createErrorMonitor(monitor: Partial<ErrorMonitor>) {
     const { projectId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/monitors/error`
+    const url = `/internal/v1/projects/${projectId}/monitors/error`
 
     return request({ method: 'POST', url, data: monitor }).then((resp) => {
       return resp.data.monitor as ErrorMonitor
@@ -218,7 +218,7 @@ export function useMonitorManager() {
 
   function updateErrorMonitor(monitor: ErrorMonitor) {
     const { id, projectId } = monitor
-    const url = `/api/v1/projects/${projectId}/monitors/${id}/error`
+    const url = `/internal/v1/projects/${projectId}/monitors/${id}/error`
 
     return request({ method: 'PUT', url, data: monitor }).then((resp) => {
       return resp.data.monitor as ErrorMonitor
@@ -237,7 +237,7 @@ export function useMonitorManager() {
 
   function updateState(monitor: BaseMonitor) {
     const { id, projectId, state } = monitor
-    const url = `/api/v1/projects/${projectId}/monitors/${id}/${state}`
+    const url = `/internal/v1/projects/${projectId}/monitors/${id}/${state}`
 
     return request({ method: 'PUT', url, data: monitor }).then((resp) => {
       return resp.data.monitor as Monitor
@@ -246,7 +246,7 @@ export function useMonitorManager() {
 
   function del(monitor: BaseMonitor) {
     const { id, projectId } = monitor
-    const url = `/api/v1/projects/${projectId}/monitors/${id}`
+    const url = `/internal/v1/projects/${projectId}/monitors/${id}`
 
     return request({ method: 'DELETE', url })
   }
@@ -272,7 +272,7 @@ export function useMetricMonitor() {
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId, monitorId } = route.value.params
     return {
-      url: `/api/v1/projects/${projectId}/monitors/${monitorId}`,
+      url: `/internal/v1/projects/${projectId}/monitors/${monitorId}`,
     }
   })
 
@@ -296,7 +296,7 @@ export function useErrorMonitor() {
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId, monitorId } = route.value.params
     return {
-      url: `/api/v1/projects/${projectId}/monitors/${monitorId}`,
+      url: `/internal/v1/projects/${projectId}/monitors/${monitorId}`,
     }
   })
 

@@ -17,7 +17,7 @@ import { defineComponent, shallowRef } from 'vue'
 
 // Composables
 import { useRouter } from '@/use/router'
-import { createUqlEditor } from '@/use/uql'
+import { createQueryEditor } from '@/use/uql'
 
 // Utilities
 import { SystemName, AttrKey } from '@/models/otel'
@@ -39,7 +39,7 @@ export default defineComponent({
           params: { traceId: traceId.value },
         })
       } else {
-        const query = createUqlEditor()
+        const query = createQueryEditor()
           .exploreAttr(AttrKey.spanGroupId)
           .where(`{${AttrKey.spanName},${AttrKey.spanEventName}}`, 'contains', traceId.value)
           .toString()

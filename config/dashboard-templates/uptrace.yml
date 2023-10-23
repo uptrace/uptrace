@@ -17,69 +17,70 @@ table:
     error_rate: { unit: utilization }
 
 grid:
-  - name: Number of spans
-    metrics:
-      - uptrace.tracing.spans as $spans
-    query:
-      - per_min(count($spans)) as spans group by .status_code
-    chart: stacked-bar
+  columns:
+    - name: Number of spans
+      metrics:
+        - uptrace.tracing.spans as $spans
+      query:
+        - per_min(count($spans)) as spans group by .status_code
+      chart: stacked-bar
 
-  - name: Error rate
-    metrics:
-      - uptrace.tracing.spans as $spans
-    query:
-      - count($spans{.status_code='error'}) / count($spans) as error_rate
-    columns:
-      error_rate: { unit: utilization }
+    - name: Error rate
+      metrics:
+        - uptrace.tracing.spans as $spans
+      query:
+        - count($spans{.status_code='error'}) / count($spans) as error_rate
+      columns:
+        error_rate: { unit: utilization }
 
-  - name: P50 span duration
-    metrics:
-      - uptrace.tracing.spans as $spans
-    query:
-      - p50($spans)
+    - name: P50 span duration
+      metrics:
+        - uptrace.tracing.spans as $spans
+      query:
+        - p50($spans)
 
-  - name: P75 span duration
-    metrics:
-      - uptrace.tracing.spans as $spans
-    query:
-      - p75($spans)
+    - name: P75 span duration
+      metrics:
+        - uptrace.tracing.spans as $spans
+      query:
+        - p75($spans)
 
-  - name: P90 span duration
-    metrics:
-      - uptrace.tracing.spans as $spans
-    query:
-      - p90($spans)
+    - name: P90 span duration
+      metrics:
+        - uptrace.tracing.spans as $spans
+      query:
+        - p90($spans)
 
-  - name: Max span duration
-    metrics:
-      - uptrace.tracing.spans as $spans
-    query:
-      - max($spans)
+    - name: Max span duration
+      metrics:
+        - uptrace.tracing.spans as $spans
+      query:
+        - max($spans)
 
-  - name: Span duration heatmap
-    type: heatmap
-    size: large
-    metric: uptrace.tracing.spans
-    unit: microseconds
+    - name: Span duration heatmap
+      type: heatmap
+      size: large
+      metric: uptrace.tracing.spans
+      unit: microseconds
 
-  - name: Slowest groups
-    type: table
-    size: large
-    metrics:
-      - uptrace.tracing.spans as $spans
-    query:
-      - group by .group_id
-      - p50($spans)
+    - name: Slowest groups
+      type: table
+      size: large
+      metrics:
+        - uptrace.tracing.spans as $spans
+      query:
+        - group by .group_id
+        - p50($spans)
 
-  - name: Top errors
-    type: table
-    size: large
-    metrics:
-      - uptrace.tracing.events as $events
-    query:
-      - group by .group_id
-      - per_min($events)
-      - where .is_error = 1
+    - name: Top errors
+      type: table
+      size: large
+      metrics:
+        - uptrace.tracing.events as $events
+      query:
+        - group by .group_id
+        - per_min($events)
+        - where .is_error = 1
 
 ---
 schema: v1
@@ -101,50 +102,51 @@ table:
     error_rate: { unit: utilization }
 
 grid:
-  - name: Number of spans
-    metrics:
-      - uptrace.tracing.spans as $spans
-    query:
-      - per_min(count($spans)) as spans group by .status_code
-    chart: stacked-bar
+  columns:
+    - name: Number of spans
+      metrics:
+        - uptrace.tracing.spans as $spans
+      query:
+        - per_min(count($spans)) as spans group by .status_code
+      chart: stacked-bar
 
-  - name: Error rate
-    metrics:
-      - uptrace.tracing.spans as $spans
-    query:
-      - count($spans{.status_code='error'}) / count($spans) as error_rate
-    columns:
-      error_rate: { unit: utilization }
+    - name: Error rate
+      metrics:
+        - uptrace.tracing.spans as $spans
+      query:
+        - count($spans{.status_code='error'}) / count($spans) as error_rate
+      columns:
+        error_rate: { unit: utilization }
 
-  - name: P50 span duration
-    metrics:
-      - uptrace.tracing.spans as $spans
-    query:
-      - p50($spans)
+    - name: P50 span duration
+      metrics:
+        - uptrace.tracing.spans as $spans
+      query:
+        - p50($spans)
 
-  - name: P75 span duration
-    metrics:
-      - uptrace.tracing.spans as $spans
-    query:
-      - p75($spans)
+    - name: P75 span duration
+      metrics:
+        - uptrace.tracing.spans as $spans
+      query:
+        - p75($spans)
 
-  - name: P90 span duration
-    metrics:
-      - uptrace.tracing.spans as $spans
-    query:
-      - p90($spans)
+    - name: P90 span duration
+      metrics:
+        - uptrace.tracing.spans as $spans
+      query:
+        - p90($spans)
 
-  - name: Max span duration
-    metrics:
-      - uptrace.tracing.spans as $spans
-    query:
-      - max($spans)
+    - name: Max span duration
+      metrics:
+        - uptrace.tracing.spans as $spans
+      query:
+        - max($spans)
 
-  - name: Span duration heatmap
-    type: heatmap
-    size: large
-    metric: uptrace.tracing.spans
-    unit: microseconds
+    - name: Span duration heatmap
+      type: heatmap
+      size: large
+      metric: uptrace.tracing.spans
+      unit: microseconds
 
 ---
 schema: v1
@@ -176,17 +178,18 @@ table:
     - per_min($measures) as measures_per_min
 
 grid:
-  - name: Number of processed spans
-    metrics:
-      - uptrace.projects.spans as $spans
-    query:
-      - per_min($spans) group by type
+  columns:
+    - name: Number of processed spans
+      metrics:
+        - uptrace.projects.spans as $spans
+      query:
+        - per_min($spans) group by type
 
-  - name: Number of processed measures
-    metrics:
-      - uptrace.projects.measures as $measures
-    query:
-      - per_min($measures) group by type
+    - name: Number of processed measures
+      metrics:
+        - uptrace.projects.measures as $measures
+      query:
+        - per_min($measures) group by type
 
 ---
 schema: v1
@@ -206,14 +209,15 @@ table:
     - per_min($measures{type=dropped}) as measures_dropped
 
 grid:
-  - name: Number of processed spans
-    metrics:
-      - uptrace.projects.spans as $spans
-    query:
-      - per_min($spans) group by type
+  columns:
+    - name: Number of processed spans
+      metrics:
+        - uptrace.projects.spans as $spans
+      query:
+        - per_min($spans) group by type
 
-  - name: Number of processed measures
-    metrics:
-      - uptrace.projects.measures as $measures
-    query:
-      - per_min($measures) group by type
+    - name: Number of processed measures
+      metrics:
+        - uptrace.projects.measures as $measures
+      query:
+        - per_min($measures) group by type

@@ -75,7 +75,7 @@ import { defineComponent, shallowRef, computed, watch } from 'vue'
 
 // Composables
 import { useTitle } from '@vueuse/core'
-import { useRouteQuery } from '@/use/router'
+import { useSyncQueryParams } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 import { usePager } from '@/use/pager'
 import { useFacetedSearch } from '@/use/faceted-search'
@@ -131,10 +131,22 @@ export default defineComponent({
       pageAlerts,
     )
 
-    useRouteQuery().sync({
+    useSyncQueryParams({
       fromQuery(queryParams) {
-        if (Object.keys(queryParams).length === 0) {
-          facetedSearch.selected['alert.state'] = ['open']
+        if (queryParams.empty()) {
+          queryParams.setDefault('attrs.alert.status', 'open')
+        }
+
+        queryParams.setDefault('sort_by', 'updated_at')
+        queryParams.setDefault('sort_desc', true)
+
+        alerts.order.parseQueryParams(queryParams)
+        facetedSearch.parseQueryParams(queryParams)
+      },
+      toQuery() {
+        return {
+          ...alerts.order.queryParams(),
+          ...facetedSearch.queryParams(),
         }
       },
     })

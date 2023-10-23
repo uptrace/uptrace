@@ -29,12 +29,12 @@
           <v-list-item-title>{{ item.value }}</v-list-item-title>
         </v-list-item-content>
         <v-list-item-action class="my-0">
-          <v-list-item-action-text><XNum :value="item.count" /></v-list-item-action-text>
+          <v-list-item-action-text><NumValue :value="item.count" /></v-list-item-action-text>
         </v-list-item-action>
       </v-list-item>
     </template>
     <template #selection="{ index, item }">
-      <div v-if="index === 2" class="v-select__selection">, {{ value.length - 2 }} more</div>
+      <div v-if="index === 2" class="v-select__selection">, {{ activeValue.length - 2 }} more</div>
       <div v-else-if="index < 2" class="v-select__selection">
         {{ withComma(item, index) }}
       </div>
@@ -106,7 +106,7 @@ export default defineComponent({
     const attrValues = useDataSource(() => {
       const { projectId } = route.value.params
       return {
-        url: `/api/v1/tracing/${projectId}/attr-values?attr_key=${props.attrKey}`,
+        url: `/internal/v1/tracing/${projectId}/attr-values?attr_key=${props.attrKey}`,
         params: {
           ...props.dateRange.axiosParams(),
           ...props.uql.axiosParams(),
@@ -145,7 +145,8 @@ export default defineComponent({
         if (values.length === 1) {
           query = `where ${props.attrKey} = ${quote(values[0])}`
         } else {
-          query = `where ${props.attrKey} in (${values.join(', ')})`
+          const str = values.map((value) => quote(value)).join(', ')
+          query = `where ${props.attrKey} in (${str})`
         }
 
         editor.replaceOrPush(re, query)

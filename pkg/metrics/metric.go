@@ -29,7 +29,7 @@ type Metric struct {
 	UpdatedAt time.Time `json:"updatedAt" bun:",nullzero"`
 
 	// Payload
-	NumTimeseries uint64 `json:"numTimeseries" bun:"-"`
+	NumTimeseries uint64 `json:"numTimeseries" bun:",scanonly"`
 }
 
 func SelectMetricMap(

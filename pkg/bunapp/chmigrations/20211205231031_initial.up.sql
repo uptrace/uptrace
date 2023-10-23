@@ -27,7 +27,7 @@ CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
 
   all_keys Array(LowCardinality(String)) Codec(?CODEC),
   string_keys Array(LowCardinality(String)) Codec(?CODEC),
-  string_values Array(String) Codec(?CODEC),
+  string_values Array(String) Codec(ZSTD(6)),
 
   telemetry_sdk_name LowCardinality(String) Codec(?CODEC),
   telemetry_sdk_language LowCardinality(String) Codec(?CODEC),
@@ -115,7 +115,6 @@ CREATE TABLE ?DB.datapoint_minutes ?ON_CLUSTER (
   max SimpleAggregateFunction(max, Float64) Codec(?CODEC),
   sum SimpleAggregateFunction(sum, Float64) Codec(?CODEC),
   count SimpleAggregateFunction(sum, UInt64) Codec(T64, ?CODEC),
-
   gauge SimpleAggregateFunction(anyLast, Float64) Codec(?CODEC),
   histogram AggregateFunction(quantilesBFloat16(0.5), Float32) Codec(?CODEC),
 
@@ -148,7 +147,6 @@ CREATE TABLE ?DB.datapoint_hours ?ON_CLUSTER (
   max SimpleAggregateFunction(max, Float64) Codec(?CODEC),
   sum SimpleAggregateFunction(sum, Float64) Codec(?CODEC),
   count SimpleAggregateFunction(sum, UInt64) Codec(T64, ?CODEC),
-
   gauge SimpleAggregateFunction(anyLast, Float64) Codec(?CODEC),
   histogram AggregateFunction(quantilesBFloat16(0.5), Float32) Codec(?CODEC),
 
@@ -178,13 +176,11 @@ AS SELECT
   max(max) AS max,
   sum(sum) AS sum,
   sum(count) AS count,
-
   anyLast(gauge) AS value,
   quantilesBFloat16MergeState(0.5)(histogram) AS histogram,
 
   any(string_keys) AS string_keys,
   any(string_values) AS string_values,
   max(annotations) AS annotations
-FROM ?DB.datapoint_minutes
-GROUP BY project_id, metric, toStartOfHour(time), attrs_hash
-SETTINGS prefer_column_name_to_alias = 1
+FROM ?DB.datapoint_minutes AS m
+GROUP BY m.project_id, m.metric, toStartOfHour(m.time), m.attrs_hash

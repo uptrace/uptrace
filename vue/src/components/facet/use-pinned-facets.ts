@@ -4,7 +4,7 @@ import { proxyRefs } from 'vue'
 import { useAxios } from '@/use/axios'
 
 export function usePinnedFacetManager() {
-  const url = `/api/v1/pinned-facets`
+  const url = `/internal/v1/pinned-facets`
   const { loading: pending, request } = useAxios()
 
   function add(attr: string) {

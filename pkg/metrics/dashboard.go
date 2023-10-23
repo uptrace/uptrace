@@ -11,6 +11,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
+	"github.com/uptrace/uptrace/pkg/unixtime"
 )
 
 type DashKind string
@@ -30,7 +31,9 @@ type Dashboard struct {
 	Name   string `json:"name"`
 	Pinned bool   `json:"pinned"`
 
-	GridQuery string `json:"gridQuery" bun:",nullzero"`
+	MinInterval unixtime.Millis `json:"minInterval"`
+	TimeOffset  unixtime.Millis `json:"timeOffset"`
+	GridQuery   string          `json:"gridQuery" bun:",nullzero"`
 
 	TableMetrics   []mql.MetricAlias        `json:"tableMetrics" bun:",type:jsonb,nullzero"`
 	TableQuery     string                   `json:"tableQuery" bun:",nullzero"`
@@ -56,6 +59,7 @@ func (d *Dashboard) FromTemplate(tpl *DashboardTpl) error {
 
 	d.TemplateID = tpl.ID
 	d.Name = tpl.Name
+	d.TimeOffset = tpl.TimeOffset
 	d.TableMetrics = metrics
 	d.TableQuery = mql.JoinQuery(tpl.Table.Query)
 	d.TableColumnMap = tpl.Table.Columns
@@ -85,7 +89,7 @@ func (d *Dashboard) validate() error {
 	}
 
 	if d.TableQuery != "" {
-		query, err := mql.ParseError(d.TableQuery)
+		query, err := mql.ParseQueryError(d.TableQuery)
 		if err != nil {
 			return fmt.Errorf("can't parse query: %w", err)
 		}

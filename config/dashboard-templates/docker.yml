@@ -18,77 +18,86 @@ table:
     - $mem_percent
     - $mem_usage
     - $swap
-    - per_min($rx_bytes)
-    - per_min($tx_bytes)
+    - per_sec($rx_bytes)
+    - per_sec($tx_bytes)
+  columns:
+    cpu_percent: { unit: percents }
+    mem_percent: { unit: percents }
 
 grid:
-  - name: Percentage of CPU used
-    metrics:
-      - container.cpu.percent as $cpu_percent
-    query:
-      - $cpu_percent
+  columns:
+    - name: Percentage of CPU used
+      metrics:
+        - container.cpu.percent as $cpu_percent
+      query:
+        - $cpu_percent
+      columns:
+        cpu_percent: { unit: percents }
 
-  - name: Percentage of memory used
-    metrics:
-      - container.memory.percent as $mem_percent
-    query:
-      - $mem_percent
+    - name: Percentage of memory used
+      metrics:
+        - container.memory.percent as $mem_percent
+      query:
+        - $mem_percent
+      columns:
+        mem_percent: { unit: percents }
 
-  - name: Memory usage (excludes the total cache)
-    metrics:
-      - container.memory.usage.total as $mem_usage
-    query:
-      - $mem_usage
+    - name: Memory usage (excludes the total cache)
+      metrics:
+        - container.memory.usage.total as $mem_usage
+      query:
+        - $mem_usage
 
-  - name: Memory used by the processes of this control group
-    description:
-      Memory used by the processes of this control group that can be associated precisely with a
-      block on a block device
-    metrics:
-      - container.memory.cache as $mem_cache
-    query:
-      - $mem_cache
+    - name: Memory used by the processes of this control group
+      description:
+        Memory used by the processes of this control group that can be associated precisely with a
+        block on a block device
+      metrics:
+        - container.memory.cache as $mem_cache
+      query:
+        - $mem_cache
 
-  - name: RSS memory
-    description:
-      'Memory that doesn’t correspond to anything on disk: stacks, heaps, and anonymous memory maps'
-    metrics:
-      - container.memory.rss as $rss
-    query:
-      - $rss
+    - name: RSS memory
+      description:
+        'Memory that doesn’t correspond to anything on disk: stacks, heaps, and anonymous memory
+        maps'
+      metrics:
+        - container.memory.rss as $rss
+      query:
+        - $rss
 
-  - name: Number of bytes of anonymous transparent hugepages
-    metrics:
-      - container.memory.rss_huge as $rss_huge
-    query:
-      - $rss_huge
+    - name: Number of bytes of anonymous transparent hugepages
+      metrics:
+        - container.memory.rss_huge as $rss_huge
+      query:
+        - $rss_huge
 
-  - name: Bytes that are waiting to get written back to the disk
-    metrics:
-      - container.memory.dirty as $mem_dirty
-    query:
-      - $mem_dirty
+    - name: Bytes that are waiting to get written back to the disk
+      metrics:
+        - container.memory.dirty as $mem_dirty
+      query:
+        - $mem_dirty
 
-  - name: Bytes of file/anon cache that are queued for syncing to disk
-    metrics:
-      - container.memory.writeback as $writeback
-    query:
-      - $writeback
+    - name: Bytes of file/anon cache that are queued for syncing to disk
+      metrics:
+        - container.memory.writeback as $writeback
+      query:
+        - $writeback
 
-  - name: Swap memory
-    metrics:
-      - container.memory.swap as $swap
-    query:
-      - $swap
+    - name: Swap memory
+      metrics:
+        - container.memory.swap as $swap
+      query:
+        - $swap
 
-  - name: Bytes received
-    metrics:
-      - container.network.io.usage.rx_bytes as $rx_bytes
-    query:
-      - per_min($rx_bytes)
+    - name: Network bytes/sec received
+      metrics:
+        - container.network.io.usage.rx_bytes as $rx_bytes
+      query:
+        - per_sec($rx_bytes)
 
-  - name: Bytes sent
-    metrics:
-      - container.network.io.usage.tx_bytes as $tx_bytes
-    query:
-      - per_min($tx_bytes)
+    - name: Network bytes/sec sent
+      metrics:
+        - container.network.io.usage.tx_bytes as $tx_bytes
+      query:
+        - per_sec($tx_bytes)

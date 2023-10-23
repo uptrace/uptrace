@@ -23,7 +23,7 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
-import { createUqlEditor, useQueryStore } from '@/use/uql'
+import { createQueryEditor, useQueryStore } from '@/use/uql'
 
 // Utilities
 import { isEventSystem, AttrKey } from '@/models/otel'
@@ -66,7 +66,7 @@ export default defineComponent({
         {
           text: `Group by ${props.attrKey}`,
           attrs: createLink('SpanGroupList', {
-            query: createUqlEditor()
+            query: createQueryEditor()
               .exploreAttr(props.attrKey, isEventSystem(props.system))
               .add(where.value)
               .where(AttrKey.spanGroupId, '=', props.groupId)
@@ -80,7 +80,7 @@ export default defineComponent({
         items.push({
           text: `${props.attrKey} = ${quotedValue}`,
           attrs: createLink(undefined, {
-            query: createUqlEditor()
+            query: createQueryEditor()
               .add(query.value)
               .where(props.attrKey, '=', props.attrValue)
               .toString(),
@@ -90,7 +90,7 @@ export default defineComponent({
         items.push({
           text: `Groups with ${props.attrKey} = ${quotedValue}`,
           attrs: createLink('SpanGroupList', {
-            query: createUqlEditor()
+            query: createQueryEditor()
               .exploreAttr(AttrKey.spanGroupId, isEventSystem(props.system))
               .where(props.attrKey, '=', props.attrValue)
               .toString(),

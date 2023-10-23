@@ -144,7 +144,7 @@ export default defineComponent({
         password: password.value,
       }
 
-      const url = `/api/v1/users/login`
+      const url = `/internal/v1/users/login`
       return request({ method: 'POST', url, data })
     }
 

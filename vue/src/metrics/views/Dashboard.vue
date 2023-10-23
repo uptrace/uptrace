@@ -29,66 +29,46 @@
             <DateRangePicker :date-range="dateRange" :range-days="90" />
           </v-col>
         </v-row>
-
-        <v-row v-if="!dashboard.status.hasData()">
-          <v-col v-for="i in 6" :key="i" cols="12" md="6">
-            <v-skeleton-loader type="card" height="300px"></v-skeleton-loader>
-          </v-col>
-        </v-row>
       </v-container>
 
       <div class="border">
         <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="py-0">
           <v-row align="center" no-gutters>
-            <v-col cols="auto">
-              <v-tabs v-model="activeTab">
-                <v-tab href="#table">Table</v-tab>
-                <v-tab href="#grid">Grid</v-tab>
-                <v-tab href="#yaml">YAML</v-tab>
-                <v-tab href="#help">Help</v-tab>
+            <v-col v-if="$route.params.dashId" cols="auto">
+              <v-tabs>
+                <v-tab :to="{ name: 'DashboardTable' }" exact-path>Table</v-tab>
+                <v-tab :to="{ name: 'DashboardGrid' }" exact-path>Grid</v-tab>
+                <v-tab :to="{ name: 'DashboardYaml' }" exact-path>YAML</v-tab>
+                <v-tab :to="{ name: 'DashboardHelp' }" exact-path>Help</v-tab>
               </v-tabs>
             </v-col>
           </v-row>
         </v-container>
       </div>
 
-      <v-tabs-items v-if="dashboard.data" v-model="activeTab">
-        <v-tab-item :value="DashKind.Table">
-          <DashTable
-            :date-range="dateRange"
-            :dashboard="dashboard.data"
-            :grid="dashboard.grid"
-            editable
-            @change="dashboard.reload"
-          >
-          </DashTable>
-        </v-tab-item>
-        <v-tab-item :value="DashKind.Grid">
-          <DashGrid
-            :date-range="dateRange"
-            :dashboard="dashboard.data"
-            :grid="dashboard.grid"
-            :grid-query="dashboard.data.gridQuery"
-            editable
-            @change="dashboard.reload"
-          >
-          </DashGrid>
-        </v-tab-item>
-        <v-tab-item value="yaml">
-          <DashYaml :yaml-url="dashboard.yamlUrl" @change="dashboard.reload" />
-        </v-tab-item>
-        <v-tab-item value="help"><DashHelp /></v-tab-item>
-      </v-tabs-items>
+      <router-view
+        v-if="dashboard.data"
+        name="tab"
+        :date-range="dateRange"
+        :dashboard="dashboard.data"
+        :grid="dashboard.grid"
+        :grid-query="dashboard.data.gridQuery"
+        editable
+        @change="dashboard.reload"
+      />
+      <v-container v-else :fluid="$vuetify.breakpoint.lgAndDown">
+        <v-skeleton-loader type="card,table"></v-skeleton-loader>
+      </v-container>
     </template>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, watch, PropType } from 'vue'
+import { defineComponent, computed, watch, PropType } from 'vue'
 
 // Composables
 import { useTitle } from '@vueuse/core'
-import { useRouter, useRouteQuery } from '@/use/router'
+import { useRouterOnly, useRoute } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { useAnnotations } from '@/org/use-annotations'
 import { useDashboards, useDashboard } from '@/metrics/use-dashboards'
@@ -99,10 +79,6 @@ import DashPicker from '@/metrics/DashPicker.vue'
 import DashMenu from '@/metrics/DashMenu.vue'
 import DashPinBtn from '@/metrics/DashPinBtn.vue'
 import DashNewForm from '@/metrics/DashNewForm.vue'
-import DashGrid from '@/metrics/DashGrid.vue'
-import DashTable from '@/metrics/DashTable.vue'
-import DashYaml from '@/metrics/DashYaml.vue'
-import DashHelp from '@/metrics/DashHelp.vue'
 
 // Types
 import { Dashboard, DashKind } from '@/metrics/types'
@@ -115,10 +91,6 @@ export default defineComponent({
     DashMenu,
     DashPinBtn,
     DashNewForm,
-    DashGrid,
-    DashTable,
-    DashYaml,
-    DashHelp,
   },
 
   props: {
@@ -129,8 +101,8 @@ export default defineComponent({
   },
 
   setup(props) {
-    useTitle('Metrics')
-    props.dateRange.syncQueryParams()
+    const router = useRouterOnly()
+    const route = useRoute()
 
     useAnnotations(() => {
       return {
@@ -138,61 +110,43 @@ export default defineComponent({
       }
     })
 
-    const { router } = useRouter()
-
     const dashboards = useDashboards()
     const dashboard = useDashboard()
+    useTitle(computed(() => `${dashboard.data?.name ?? 'Dashboard'} | Dashboard`))
 
-    const activeTab = shallowRef(DashKind.Table)
     watch(
-      () => dashboard.data?.id,
-      () => {
-        const dash = dashboard.data
-        if (!dash) {
+      () => dashboard.data,
+      (data) => {
+        if (!dashboard.data) {
           return
         }
-        switch (activeTab.value) {
-          case DashKind.Table:
-            if (!dash.tableMetrics.length || !dash.tableQuery) {
-              if (dashboard.grid.length) {
-                activeTab.value = DashKind.Grid
-              }
-            }
-            return
-          case DashKind.Grid:
-            if (!dashboard.grid.length) {
-              if (dash.tableMetrics.length || dash.tableQuery) {
-                activeTab.value = DashKind.Table
-              }
-            }
-            return
+        if (route.value.name !== 'DashboardShow') {
+          return
         }
+
+        if (dashboard.data.tableMetrics.length && dashboard.data.tableQuery) {
+          router.push({ name: 'DashboardTable' })
+          return
+        }
+
+        if (dashboard.grid.length) {
+          router.push({ name: 'DashboardGrid' })
+          return
+        }
+
+        router.push({ name: 'DashboardTable' })
       },
     )
 
-    useRouteQuery().sync({
-      fromQuery(params) {
-        if (params.tab) {
-          activeTab.value = params.tab
-        }
-      },
-      toQuery() {
-        if (activeTab.value) {
-          return { tab: activeTab.value }
-        }
-        return {}
-      },
-    })
-
     function onCreateDash(dash: Dashboard) {
       dashboards.reload().then(() => {
-        router.replace({ name: 'MetricsDashShow', params: { dashId: String(dash.id) } })
+        router.replace({ name: 'DashboardShow', params: { dashId: String(dash.id) } })
       })
     }
 
     function onCloneDash(dash: Dashboard) {
       dashboards.reload().then(() => {
-        router.replace({ name: 'MetricsDashShow', params: { dashId: String(dash.id) } })
+        router.replace({ name: 'DashboardShow', params: { dashId: String(dash.id) } })
       })
     }
 
@@ -203,7 +157,6 @@ export default defineComponent({
 
     return {
       DashKind,
-      activeTab,
 
       dashboards,
       dashboard,

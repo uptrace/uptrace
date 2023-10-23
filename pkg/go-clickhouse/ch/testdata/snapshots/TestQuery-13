@@ -1,0 +1,1 @@
+CREATE MATERIALIZED VIEW IF NOT EXISTS "view_name" TO "dest_table" AS SELECT "col1", col1 AS alias FROM src_table AS alias WHERE (foo = bar) GROUP BY "group1", group2, group3 ORDER BY order2, order3

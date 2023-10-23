@@ -159,13 +159,13 @@ ch_schema:
   #replicated: true
 
   spans:
-    # Delete spans data after 30 days.
-    ttl_delete: 30 DAY
+    # Delete spans data after 7 days.
+    ttl_delete: 7 DAY
     storage_policy: 'default'
 
   metrics:
     # Delete metrics data after 90 days.
-    ttl_delete: 90 DAY
+    ttl_delete: 30 DAY
     storage_policy: 'default'
 
 ##
@@ -245,7 +245,7 @@ uptrace_go:
   #disabled: true
 
   # Defaults to the first projects.
-  #dsn: http://project1_secret_token@localhost:14317/1
+  dsn: http://project1_secret_token@localhost:4317/1
 
   #tls:
   #  cert_file: config/tls/uptrace.crt

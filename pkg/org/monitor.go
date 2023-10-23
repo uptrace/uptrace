@@ -11,6 +11,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/madalarm"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
+	"github.com/uptrace/uptrace/pkg/unixtime"
 )
 
 type Monitor interface {
@@ -60,8 +61,11 @@ type BaseMonitor struct {
 	AlertCount int      `json:"alertCount" bun:"-"`
 }
 
-func (m *BaseMonitor) Base() *BaseMonitor {
-	return m
+func (m *BaseMonitor) Validate() error {
+	if m.Name == "" {
+		return errors.New("name can't be empty")
+	}
+	return nil
 }
 
 type MetricMonitor struct {
@@ -72,17 +76,11 @@ type MetricMonitor struct {
 func NewMetricMonitor() *MetricMonitor {
 	return &MetricMonitor{
 		BaseMonitor: &BaseMonitor{
-			Type: MonitorMetric,
+			Type:  MonitorMetric,
+			State: MonitorActive,
 		},
 	}
 }
-
-type MonitorUnit string
-
-const (
-	MonitorUnitMinutes = "minutes"
-	MonitorUnitHours   = "hours"
-)
 
 type MetricMonitorParams struct {
 	Metrics    []mql.MetricAlias `json:"metrics"`
@@ -90,8 +88,8 @@ type MetricMonitorParams struct {
 	Column     string            `json:"column"`
 	ColumnUnit string            `json:"columnUnit"`
 
-	ForDuration     int32       `json:"forDuration"`
-	ForDurationUnit MonitorUnit `json:"forDurationUnit"`
+	CheckNumPoint int             `json:"checkNumPoint"`
+	TimeOffset    unixtime.Millis `json:"timeOffset"`
 
 	MinValue bunutil.NullFloat64 `json:"minValue"`
 	MaxValue bunutil.NullFloat64 `json:"maxValue"`
@@ -102,7 +100,24 @@ func (m *MetricMonitor) Base() *BaseMonitor {
 }
 
 func (m *MetricMonitor) Validate() error {
-	// TODO
+	if err := m.BaseMonitor.Validate(); err != nil {
+		return err
+	}
+
+	if len(m.Params.Metrics) == 0 {
+		return errors.New("at least one metric is required")
+	}
+	if m.Params.Query == "" {
+		return errors.New("query can't be empty")
+	}
+	if m.Params.Column == "" {
+		return errors.New("column can't be empty")
+	}
+
+	if m.Params.CheckNumPoint == 0 {
+		m.Params.CheckNumPoint = 5
+	}
+
 	return nil
 }
 
@@ -112,7 +127,7 @@ func (m *MetricMonitor) MadalarmOptions() ([]madalarm.Option, error) {
 	}
 
 	var options []madalarm.Option
-	options = append(options, madalarm.WithDuration(int(m.Params.ForDuration)))
+	options = append(options, madalarm.WithDuration(m.Params.CheckNumPoint))
 	if m.Params.MinValue.Valid {
 		options = append(options, madalarm.WithMinValue(m.Params.MinValue.Float64))
 	}
@@ -123,10 +138,6 @@ func (m *MetricMonitor) MadalarmOptions() ([]madalarm.Option, error) {
 	return options, nil
 }
 
-func (m *MetricMonitor) ForDuration() time.Duration {
-	return time.Duration(m.Params.ForDuration) * time.Minute
-}
-
 type ErrorMonitor struct {
 	*BaseMonitor `bun:",inherit"`
 	Params       ErrorMonitorParams `json:"params"`
@@ -135,7 +146,8 @@ type ErrorMonitor struct {
 func NewErrorMonitor() *ErrorMonitor {
 	return &ErrorMonitor{
 		BaseMonitor: &BaseMonitor{
-			Type: MonitorError,
+			Type:  MonitorError,
+			State: MonitorActive,
 		},
 	}
 }
@@ -151,7 +163,12 @@ func (m *ErrorMonitor) Base() *BaseMonitor {
 }
 
 func (m *ErrorMonitor) Validate() error {
-	// TODO
+	if err := m.BaseMonitor.Validate(); err != nil {
+		return err
+	}
+	if m.Params.Matchers == nil {
+		m.Params.Matchers = make([]AttrMatcher, 0)
+	}
 	return nil
 }
 

@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/bunlex"
-	"github.com/uptrace/uptrace/pkg/bununit"
 )
 
 type TokenID int8
@@ -148,7 +148,7 @@ func (l *lexer) number() *Token {
 	if _, err := time.ParseDuration(s); err == nil {
 		return l.token(DURATION_TOKEN, s, start)
 	}
-	if _, err := bununit.ParseBytes(s); err == nil {
+	if _, err := bunconv.ParseBytes(s); err == nil {
 		return l.token(BYTES_TOKEN, s, start)
 	}
 	if _, err := strconv.ParseFloat(s, 64); err == nil {

@@ -34,7 +34,7 @@
     <template #expanded-item="{ headers, item }">
       <tr class="v-data-table__expanded v-data-table__expanded__content">
         <td :colspan="headers.length" class="pt-2 pb-4">
-          <SpansList
+          <PagedSpansCardLazy
             :date-range="dateRange"
             :axios-params="axiosParams"
             :where="item._query"
@@ -65,7 +65,7 @@ import { Group, ColumnInfo } from '@/tracing/use-explore-spans'
 
 // Components
 import GroupsTableRow from '@/tracing/GroupsTableRow.vue'
-import SpansList from '@/tracing/SpansList.vue'
+import PagedSpansCardLazy from '@/tracing/PagedSpansCardLazy.vue'
 
 // Utilities
 import { isEventSystem, AttrKey } from '@/models/otel'
@@ -75,7 +75,7 @@ export default defineComponent({
   name: 'GroupsTable',
   components: {
     GroupsTableRow,
-    SpansList,
+    PagedSpansCardLazy,
   },
 
   props: {
@@ -114,10 +114,6 @@ export default defineComponent({
     order: {
       type: Object as PropType<UseOrder>,
       required: true,
-    },
-    eventsMode: {
-      type: Boolean,
-      default: false,
     },
     dense: {
       type: Boolean,
@@ -263,7 +259,7 @@ export default defineComponent({
       if (system) {
         return isEventSystem(system)
       }
-      return props.eventsMode
+      return isEventSystem(...props.systems)
     }
 
     return {

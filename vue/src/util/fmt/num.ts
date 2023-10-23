@@ -1,81 +1,90 @@
 import numbro from 'numbro'
 
-import { fixedMantissa, trimMantissa } from './util'
+import { trimMantissa, mantissa } from './util'
 
 export function num(n: number | undefined): string {
+  if (n === null) {
+    return 'null'
+  }
   if (typeof n !== 'number' || n === 0) {
     return '0'
   }
-  if (Math.abs(n) < 0.00001) {
-    return trimMantissa(n, 7)
+
+  let abs = Math.abs(n)
+
+  if (abs < 1000) {
+    return trimMantissa(n, mantissa(n))
   }
-  if (Math.abs(n) < 0.0001) {
-    return trimMantissa(n, 6)
+
+  for (let suffix of ['k', 'mln', 'bln', 'tln']) {
+    n /= 1000
+    abs /= 1000
+    if (abs < 10) {
+      return trimMantissa(n, 2) + suffix
+    }
+    if (abs < 100) {
+      return trimMantissa(n, 1) + suffix
+    }
+    if (abs < 1000) {
+      return trimMantissa(n, 0) + suffix
+    }
   }
-  if (Math.abs(n) < 0.001) {
-    return trimMantissa(n, 5)
-  }
-  if (Math.abs(n) < 0.01) {
-    return trimMantissa(n, 4)
-  }
-  if (Math.abs(n) < 1) {
-    return trimMantissa(n, 2)
-  }
-  if (Math.abs(n) < 1000) {
-    return trimMantissa(n, 1)
-  }
-  n /= 1000
-  if (Math.abs(n) < 100) {
-    return fixedMantissa(n, 1) + 'k'
-  }
-  if (Math.abs(n) < 1000) {
-    return fixedMantissa(n, 0) + 'k'
-  }
-  n /= 1000
-  if (Math.abs(n) < 1000) {
-    return fixedMantissa(n, 1) + 'm'
-  }
-  n /= 1000
-  return fixedMantissa(n, 1) + 'b'
+
+  return trimMantissa(n, 0) + 'tln'
 }
 
 export function numShort(n: number | undefined, opts = {}): string {
+  if (n === null) {
+    return 'null'
+  }
   if (typeof n !== 'number' || n === 0) {
     return '0'
   }
-  if (Math.abs(n) < 0.01) {
-    return trimMantissa(n, 3, opts)
+
+  let abs = Math.abs(n)
+
+  if (abs < 0.001) {
+    return round(n, mantissa(n)).toExponential()
   }
-  if (Math.abs(n) < 0.1) {
-    return trimMantissa(n, 2, opts)
+  if (abs < 1000) {
+    return trimMantissa(n, mantissa(n))
   }
-  if (Math.abs(n) < 100) {
-    return trimMantissa(n, 1, opts)
+
+  for (let suffix of ['k', 'mn', 'bn', 'tn']) {
+    n /= 1000
+    abs /= 1000
+    if (abs < 100) {
+      return trimMantissa(n, 1) + suffix
+    }
+    if (abs < 1000) {
+      return trimMantissa(n, 0) + suffix
+    }
   }
-  if (Math.abs(n) < 1000) {
-    return trimMantissa(n, 0, opts)
+
+  return trimMantissa(n, 0) + 'tn'
+}
+
+export function numVerbose(n: any = {}): string {
+  if (n === null) {
+    return 'null'
   }
-  n /= 1000
-  if (Math.abs(n) < 100) {
-    return trimMantissa(n, 1, opts) + 'k'
+  if (typeof n !== 'number' || n === 0) {
+    return '0'
   }
-  if (Math.abs(n) < 1000) {
-    return trimMantissa(n, 0, opts) + 'k'
-  }
-  n /= 1000
-  if (Math.abs(n) < 100) {
-    return trimMantissa(n, 1, opts) + 'm'
-  }
-  if (Math.abs(n) < 1000) {
-    return trimMantissa(n, 0, opts) + 'm'
-  }
-  n /= 1000
-  return trimMantissa(n, 1, opts) + 'b'
+
+  return numbro(n).format({
+    thousandSeparated: n >= 1e6,
+    mantissa: mantissa(n),
+    trimMantissa: true,
+  })
 }
 
 //------------------------------------------------------------------------------
 
 export function percents(n: any): string {
+  if (n === null) {
+    return 'null'
+  }
   if (typeof n !== 'number' || Math.abs(n) < 0.0001) {
     return '0%'
   }
@@ -87,6 +96,9 @@ export function percents(n: any): string {
 }
 
 export function utilization(n: any): string {
+  if (n === null) {
+    return 'null'
+  }
   if (typeof n !== 'number' || Math.abs(n) < 0.0001) {
     return '0%'
   }
@@ -112,26 +124,29 @@ function percentsMantissa(n: number): number {
 //------------------------------------------------------------------------------
 
 export function bytes(n: number | undefined): string {
+  if (n === null) {
+    return 'null'
+  }
   if (typeof n !== 'number' || n === 0) {
     return '0'
   }
 
-  if (Math.abs(n) < 10) {
-    return trimMantissa(n, 2)
-  }
-  if (Math.abs(n) < 1024) {
-    return trimMantissa(n, 1)
+  let abs = Math.abs(n)
+  if (abs < 10000) {
+    return trimMantissa(n, 0) + 'by'
   }
 
-  for (let unit of ['KB', 'MB', 'GB', 'TB', 'PB']) {
-    n /= 1024
-
-    if (Math.abs(n) < 10) {
-      return trimMantissa(n, 1) + unit
+  for (let suffix of ['KB', 'MB', 'GB', 'TB', 'PB']) {
+    n /= 1000
+    abs /= 1000
+    if (abs < 10) {
+      return trimMantissa(n, 2) + suffix
     }
-    n = Math.round(n) // round before compare
-    if (Math.abs(n) < 1000) {
-      return trimMantissa(n, 0) + unit
+    if (abs < 100) {
+      return trimMantissa(n, 1) + suffix
+    }
+    if (abs < 1000) {
+      return trimMantissa(n, 0) + suffix
     }
   }
 
@@ -139,15 +154,33 @@ export function bytes(n: number | undefined): string {
 }
 
 export function bytesShort(n: number | undefined, opts = {}): string {
+  if (n === null) {
+    return 'null'
+  }
   if (typeof n !== 'number' || n === 0) {
     return '0'
   }
-  const s = numbro(n).format({
-    output: 'byte',
-    base: 'binary',
-    mantissa: 0,
-    ...opts,
-  })
-  // KiB -> KB.
-  return s.replace('i', '')
+
+  let abs = Math.abs(n)
+  if (abs < 100) {
+    return trimMantissa(n, 0) + 'by'
+  }
+
+  for (let suffix of ['KB', 'MB', 'GB', 'TB', 'PB']) {
+    n /= 1000
+    abs /= 1000
+    if (abs < 100) {
+      return trimMantissa(n, 1) + suffix
+    }
+    if (abs < 1000) {
+      return trimMantissa(n, 0) + suffix
+    }
+  }
+
+  return trimMantissa(n, 0) + 'PB'
+}
+
+function round(n: number, mantissa: number): number {
+  const mul = Math.pow(10, mantissa)
+  return Math.round((n + Number.EPSILON) * mul) / mul
 }

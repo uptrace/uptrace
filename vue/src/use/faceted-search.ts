@@ -1,8 +1,8 @@
-import { omit } from 'lodash-es'
 import { shallowRef, computed, proxyRefs } from 'vue'
+import { refDebounced } from '@/use/ref-debounced'
 
 // Composables
-import { useRouteQuery } from '@/use/router'
+import { Values } from '@/use/router'
 
 export interface Facet {
   key: string
@@ -20,41 +20,15 @@ export type UseFacetedSearch = ReturnType<typeof useFacetedSearch>
 export function useFacetedSearch() {
   const queryPrefix = 'attrs.'
 
-  const q = shallowRef('')
+  const searchInput = shallowRef('')
+  const debouncedSearchInput = refDebounced(searchInput, 600)
   const selected = shallowRef<Record<string, string[]>>({})
 
   const selectedLength = computed((): number => {
     return Object.keys(selected.value).length
   })
 
-  const axiosParams = computed((): Record<string, any> => {
-    const params: Record<string, any> = {}
-    if (q.value) {
-      params.q = q.value
-    }
-    for (let key in selected.value) {
-      params[`attrs[${key}]`] = selected.value[key]
-    }
-    return params
-  })
-
   function select(item: FacetItem) {
-    selected.value = {
-      ...selected.value,
-      [item.key]: [item.value],
-    }
-  }
-
-  function reset(item: FacetItem) {
-    const value = selected.value[item.key]
-
-    if (value && value.includes(item.value)) {
-      if (value.length === 1) {
-        selected.value = omit(selected.value, item.key)
-        return
-      }
-    }
-
     selected.value = {
       ...selected.value,
       [item.key]: [item.value],
@@ -105,57 +79,54 @@ export function useFacetedSearch() {
     selected.value = {}
   }
 
-  useRouteQuery().sync({
-    fromQuery(query) {
-      if ('q' in query) {
-        q.value = query.q
-      }
+  function axiosParams() {
+    const params: Record<string, any> = {}
+    if (debouncedSearchInput.value) {
+      params.q = debouncedSearchInput.value
+    }
+    for (let key in selected.value) {
+      params[`attrs[${key}]`] = selected.value[key]
+    }
+    return params
+  }
 
-      selected.value = {}
+  function queryParams() {
+    const queryParams: Record<string, any> = {
+      q: debouncedSearchInput.value,
+    }
+    for (let key in selected.value) {
+      queryParams[queryPrefix + key] = selected.value[key]
+    }
+    return queryParams
+  }
 
-      for (let key in query) {
-        if (!key.startsWith(queryPrefix)) {
-          continue
-        }
-        const value = toArray(query[key])
-        if (value && value.length) {
-          selected.value[key.slice(queryPrefix.length)] = value
-        }
-      }
-    },
+  function parseQueryParams(queryParams: Values) {
+    searchInput.value = queryParams.string('q')
+    debouncedSearchInput.flush()
 
-    toQuery() {
-      const query: Record<string, any> = {
-        q: q.value,
+    selected.value = {}
+    queryParams.forEach((key, value) => {
+      if (!key.startsWith(queryPrefix)) {
+        return
       }
-      for (let key in selected.value) {
-        query[queryPrefix + key] = selected.value[key]
-      }
-      return query
-    },
-  })
+      key = key.slice(queryPrefix.length)
+      selected.value[key] = value
+    })
+  }
 
   return proxyRefs({
-    q,
+    searchInput,
     selected,
     selectedLength,
-    axiosParams,
 
     isSelected,
     select,
-    reset,
     toggle,
     toggleOne,
     resetAll,
-  })
-}
 
-function toArray(v: any): string[] {
-  if (Array.isArray(v)) {
-    return v
-  }
-  if (typeof v === 'string') {
-    return [v]
-  }
-  return []
+    axiosParams,
+    queryParams,
+    parseQueryParams,
+  })
 }

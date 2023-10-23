@@ -25,7 +25,6 @@ export function useAxios(cfg: AxiosConfig = {}) {
     promised,
     result,
     error,
-    errorCode,
     errorMessage,
     cancel,
   } = usePromise((req: AxiosRequestConfig | null | undefined) => {
@@ -85,7 +84,6 @@ export function useAxios(cfg: AxiosConfig = {}) {
     result,
     data,
     error,
-    errorCode,
     errorMessage,
 
     request,

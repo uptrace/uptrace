@@ -12,7 +12,7 @@ import (
 )
 
 func scheduleNotifyOnErrorAlert(
-	ctx context.Context, app *bunapp.App, alert *ErrorAlert, event *org.AlertEvent,
+	ctx context.Context, app *bunapp.App, alert *ErrorAlert,
 ) error {
 	span := &tracing.Span{
 		ProjectID: alert.ProjectID,
@@ -32,11 +32,11 @@ func scheduleNotifyOnErrorAlert(
 		return nil
 	}
 
-	if err := scheduleNotifyByEmailOnErrorAlert(ctx, app, alert, event, monitors); err != nil {
+	if err := scheduleNotifyByEmailOnErrorAlert(ctx, app, alert, monitors); err != nil {
 		app.Zap(ctx).Error("scheduleNotifyByEmailOnErrorAlert failed", zap.Error(err))
 	}
 
-	if err := scheduleNotifyByChannelsOnErrorAlert(ctx, app, alert, event, monitors); err != nil {
+	if err := scheduleNotifyByChannelsOnErrorAlert(ctx, app, alert, monitors); err != nil {
 		app.Zap(ctx).Error("scheduleNotifyByChannelsOnErrorAlert failed", zap.Error(err))
 	}
 
@@ -88,7 +88,6 @@ func scheduleNotifyByEmailOnErrorAlert(
 	ctx context.Context,
 	app *bunapp.App,
 	alert *ErrorAlert,
-	event *org.AlertEvent,
 	monitors []*org.ErrorMonitor,
 ) error {
 	var recipients []string
@@ -120,7 +119,7 @@ func scheduleNotifyByEmailOnErrorAlert(
 	}
 
 	if len(recipients) > 0 {
-		job := NotifyByEmailTask.NewJob(event.ID, recipients)
+		job := NotifyByEmailTask.NewJob(alert.EventID, recipients)
 		if err := app.MainQueue.AddJob(ctx, job); err != nil {
 			return err
 		}
@@ -133,7 +132,6 @@ func scheduleNotifyByChannelsOnErrorAlert(
 	ctx context.Context,
 	app *bunapp.App,
 	alert *ErrorAlert,
-	event *org.AlertEvent,
 	monitors []*org.ErrorMonitor,
 ) error {
 	monitorIDs := make([]uint64, len(monitors))
@@ -165,12 +163,12 @@ func scheduleNotifyByChannelsOnErrorAlert(
 	for _, channel := range channels {
 		switch channel.Type {
 		case NotifChannelSlack:
-			job := NotifyBySlackTask.NewJob(event.ID, channel.ID)
+			job := NotifyBySlackTask.NewJob(alert.EventID, channel.ID)
 			if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
 				firstErr = err
 			}
 		case NotifChannelWebhook, NotifChannelAlertmanager:
-			job := NotifyByWebhookTask.NewJob(event.ID, channel.ID)
+			job := NotifyByWebhookTask.NewJob(alert.EventID, channel.ID)
 			if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
 				firstErr = err
 			}
@@ -185,7 +183,7 @@ func scheduleNotifyByChannelsOnErrorAlert(
 //------------------------------------------------------------------------------
 
 func scheduleNotifyOnMetricAlert(
-	ctx context.Context, app *bunapp.App, alert *MetricAlert, event *org.AlertEvent,
+	ctx context.Context, app *bunapp.App, alert *MetricAlert,
 ) error {
 	monitor, err := org.SelectBaseMonitor(ctx, app, alert.MonitorID)
 	if err != nil {
@@ -205,7 +203,7 @@ func scheduleNotifyOnMetricAlert(
 	}
 
 	if len(recipients) > 0 {
-		job := NotifyByEmailTask.NewJob(event.ID, recipients)
+		job := NotifyByEmailTask.NewJob(alert.EventID, recipients)
 		if err := app.MainQueue.AddJob(ctx, job); err != nil {
 			return err
 		}
@@ -233,12 +231,12 @@ func scheduleNotifyOnMetricAlert(
 	for _, channel := range channels {
 		switch channel.Type {
 		case NotifChannelSlack:
-			job := NotifyBySlackTask.NewJob(event.ID, channel.ID)
+			job := NotifyBySlackTask.NewJob(alert.EventID, channel.ID)
 			if err := app.MainQueue.AddJob(ctx, job); err != nil {
 				return err
 			}
 		case NotifChannelWebhook, NotifChannelAlertmanager:
-			job := NotifyByWebhookTask.NewJob(event.ID, channel.ID)
+			job := NotifyByWebhookTask.NewJob(alert.EventID, channel.ID)
 			if err := app.MainQueue.AddJob(ctx, job); err != nil {
 				return err
 			}

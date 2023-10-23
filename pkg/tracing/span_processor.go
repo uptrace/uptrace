@@ -219,7 +219,6 @@ func (s *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
 
 	if _, err := s.CH.NewInsert().
 		Model(&dataSpans).
-		ModelTableExpr("?", s.DistTable("spans_data_buffer")).
 		Exec(ctx); err != nil {
 		s.Zap(ctx).Error("ch.Insert failed",
 			zap.Error(err),
@@ -228,7 +227,6 @@ func (s *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
 
 	if _, err := s.CH.NewInsert().
 		Model(&indexedSpans).
-		ModelTableExpr("?", s.DistTable("spans_index_buffer")).
 		Exec(ctx); err != nil {
 		s.Zap(ctx).Error("ch.Insert failed",
 			zap.Error(err),

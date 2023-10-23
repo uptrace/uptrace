@@ -31,7 +31,7 @@
           <v-list-item-title :class="{ 'pl-4': item.indent }">{{ item.system }}</v-list-item-title>
         </v-list-item-content>
         <v-list-item-action class="my-0">
-          <v-list-item-action-text><XNum :value="item.groupCount" /></v-list-item-action-text>
+          <v-list-item-action-text><NumValue :value="item.groupCount" /></v-list-item-action-text>
         </v-list-item-action>
       </v-list-item>
     </template>
@@ -50,6 +50,9 @@ import { defineComponent, shallowRef, computed, watchEffect, PropType } from 'vu
 
 // Composables
 import { System } from '@/tracing/system/use-systems'
+
+// Utilities
+import { splitTypeSystem, SystemName } from '@/models/otel'
 
 export default defineComponent({
   name: 'SystemPicker',
@@ -124,6 +127,8 @@ export default defineComponent({
     }
 
     function toggle(system: string) {
+      const allSystems = [SystemName.All, SystemName.SpansAll, SystemName.EventsAll] as string[]
+
       let activeSystems = props.value.slice()
       const index = activeSystems.indexOf(system)
 
@@ -133,16 +138,22 @@ export default defineComponent({
         return
       }
 
-      if (system.endsWith(':all')) {
+      if (allSystems.includes(system)) {
         ctx.emit('input', [system])
         return
       }
 
-      if (activeSystems.length) {
-        activeSystems = activeSystems.filter((system) => !system.endsWith(':all'))
-      }
-      activeSystems.push(system)
+      activeSystems = activeSystems.filter((system) => !allSystems.includes(system))
 
+      if (system.endsWith(':all')) {
+        const [type] = splitTypeSystem(system)
+        activeSystems = activeSystems.filter((system) => !system.startsWith(type + ':'))
+      } else if (activeSystems.length) {
+        const [type] = splitTypeSystem(system)
+        activeSystems = activeSystems.filter((system) => system !== type + ':all')
+      }
+
+      activeSystems.push(system)
       ctx.emit('input', activeSystems)
     }
 

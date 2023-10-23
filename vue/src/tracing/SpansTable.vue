@@ -54,9 +54,9 @@
                 @click:chip="$emit('click:chip', $event)"
               />
             </td>
-            <td class="text-no-wrap"><XDate :date="span.time" format="relative" /></td>
+            <td class="text-no-wrap"><DateValue :value="span.time" format="relative" /></td>
             <td v-if="!eventsMode" class="text-right">
-              <XDuration :duration="span.duration" fixed />
+              <DurationValue :value="span.duration" fixed />
             </td>
           </tr>
         </template>
@@ -82,7 +82,7 @@ import { defineComponent, shallowRef, nextTick, watch, PropType } from 'vue'
 
 // Composables
 import { useDateRange, UseDateRange } from '@/use/date-range'
-import { useRoute, useRouteQuery } from '@/use/router'
+import { useRoute } from '@/use/router'
 import { UsePager } from '@/use/pager'
 import { UseOrder } from '@/use/order'
 import { useAnnotations } from '@/org/use-annotations'
@@ -170,7 +170,7 @@ export default defineComponent({
     const dialog = shallowRef(false)
     const activeSpan = shallowRef<Span>()
 
-    useRouteQuery().onRouteChanged(() => {
+    watch(route, () => {
       dialog.value = false
     })
 

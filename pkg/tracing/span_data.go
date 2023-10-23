@@ -13,7 +13,7 @@ import (
 )
 
 type SpanData struct {
-	ch.CHModel `ch:"table:spans_data_stub,alias:s"`
+	ch.CHModel `ch:"table:spans_data_buffer,insert:spans_data_buffer,alias:s"`
 
 	Type      string `ch:",lc"`
 	ProjectID uint32
@@ -60,7 +60,6 @@ func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 	baseq := app.CH.NewSelect().
 		ColumnExpr("project_id, trace_id, id, parent_id, time, data").
 		Model(&data).
-		ModelTableExpr("?", app.DistTable("spans_data_buffer")).
 		Where("trace_id = ?", span.TraceID)
 
 	if span.ProjectID != 0 {
@@ -105,19 +104,22 @@ func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 	return nil
 }
 
-func SelectTraceSpans(ctx context.Context, app *bunapp.App, traceID uuid.UUID) ([]*Span, error) {
+func SelectTraceSpans(
+	ctx context.Context, app *bunapp.App, traceID uuid.UUID,
+) ([]*Span, bool, error) {
+	const limit = 10000
+
 	var data []SpanData
 
 	if err := app.CH.NewSelect().
 		ColumnExpr("project_id, trace_id, id, parent_id, time, data").
 		Model(&data).
-		ModelTableExpr("?", app.DistTable("spans_data_buffer")).
 		Column("data").
 		Where("trace_id = ?", traceID).
 		OrderExpr("time ASC").
-		Limit(10000).
+		Limit(limit).
 		Scan(ctx); err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	spans := make([]*Span, len(data))
@@ -126,11 +128,11 @@ func SelectTraceSpans(ctx context.Context, app *bunapp.App, traceID uuid.UUID) (
 		span := new(Span)
 		spans[i] = span
 		if err := data[i].Decode(span); err != nil {
-			return nil, err
+			return nil, false, err
 		}
 	}
 
-	return spans, nil
+	return spans, len(spans) == limit, nil
 }
 
 func marshalSpanData(span *Span) []byte {

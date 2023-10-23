@@ -67,7 +67,7 @@ func (f *QueryFilter) UnmarshalValues(ctx context.Context, values url.Values) (e
 		return fmt.Errorf("got %d metrics and %d aliases", len(f.Metric), len(f.Alias))
 	}
 
-	f.parsedQuery = mql.Parse(f.Query)
+	f.parsedQuery = mql.ParseQuery(f.Query)
 	f.allParts = f.parsedQuery.Parts
 
 	return nil

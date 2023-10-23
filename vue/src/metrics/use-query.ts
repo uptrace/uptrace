@@ -37,10 +37,10 @@ interface TimeseriesConfig {
 export function useTimeseries(axiosParamsSource: AxiosParamsSource, conf: TimeseriesConfig = {}) {
   const route = useRoute()
 
-  const { status, loading, data, reload } = useWatchAxios(() => {
+  const { status, loading, error, data, reload } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/metrics/${projectId}/timeseries`,
+      url: `/internal/v1/metrics/${projectId}/timeseries`,
       params: axiosParamsSource(),
       cache: conf.cache ?? false,
     }
@@ -50,7 +50,7 @@ export function useTimeseries(axiosParamsSource: AxiosParamsSource, conf: Timese
     return data.value?.query
   })
 
-  const error = computed(() => {
+  const queryError = computed(() => {
     const parts = query.value?.parts ?? []
     for (let part of parts) {
       if (part.error) {
@@ -85,10 +85,11 @@ export function useTimeseries(axiosParamsSource: AxiosParamsSource, conf: Timese
   return proxyRefs({
     status,
     loading,
+    error,
     reload,
 
     query,
-    error,
+    queryError,
     items: timeseries,
     time,
     columns,
@@ -208,7 +209,7 @@ export function useTableQuery(
 
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/metrics/${projectId}/table`,
+      url: `/internal/v1/metrics/${projectId}/table`,
       params,
     }
   })
@@ -290,14 +291,6 @@ export function useTableQuery(
   )
 
   watch(
-    hasMore,
-    (hasMore) => {
-      order.ignoreAxiosParamsEnabled = !hasMore
-    },
-    { immediate: true },
-  )
-
-  watch(
     (): Order | undefined => data.value?.order,
     (orderValue) => {
       if (orderValue) {
@@ -345,7 +338,7 @@ export function useHeatmapQuery(axiosParamsSource: AxiosParamsSource) {
 
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/metrics/${projectId}/heatmap`,
+      url: `/internal/v1/metrics/${projectId}/heatmap`,
       params: axiosParams.value,
     }
   })

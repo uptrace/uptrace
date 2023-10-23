@@ -32,163 +32,120 @@ table:
     - sum($cpu_surplus_credits_charged)
 
 grid:
-  # Instance metrics
+  columns:
+    # Instance metrics
 
-  - name: Percentage of allocated compute units that are currently in use
-    metrics:
-      - amazonaws.com.aws.ec2.cpu_utilization as $cpu_utilization
-    query:
-      - avg($cpu_utilization) as cpu_utilization
+    - name: Percentage of allocated compute units that are currently in use
+      metrics:
+        - amazonaws.com.aws.ec2.cpu_utilization as $cpu_utilization
+      query:
+        - avg($cpu_utilization) as cpu_utilization
 
-  - name: Percentage of allocated compute capacity that is currently in use on the Dedicated Host
-    metrics:
-      - amazonaws.com.aws.ec2.dedicated_host_cpu_utilization as $dedicated_host_cpu_utilization
-    query:
-      - avg($dedicated_host_cpu_utilization) as dedicated_host_cpu_utilization
+    - name: Percentage of allocated compute capacity that is currently in use on the Dedicated Host
+      metrics:
+        - amazonaws.com.aws.ec2.dedicated_host_cpu_utilization as $dedicated_host_cpu_utilization
+      query:
+        - avg($dedicated_host_cpu_utilization) as dedicated_host_cpu_utilization
 
-  - name: Completed read operations from all instance store volumes
-    metrics:
-      - amazonaws.com.aws.ec2.disk_read_ops as $disk_read_ops
-    query:
-      - sum($disk_read_ops) as disk_read_ops
+    - name: Completed read operations from all instance store volumes
+      metrics:
+        - amazonaws.com.aws.ec2.disk_read_ops as $disk_read_ops
+      query:
+        - sum($disk_read_ops) as disk_read_ops
 
-  - name: Completed write operations from all instance store volumes
-    metrics:
-      - amazonaws.com.aws.ec2.disk_write_ops as $disk_write_ops
-    query:
-      - sum($disk_write_ops) as disk_write_ops
+    - name: Completed write operations from all instance store volumes
+      metrics:
+        - amazonaws.com.aws.ec2.disk_write_ops as $disk_write_ops
+      query:
+        - sum($disk_write_ops) as disk_write_ops
 
-  - name: Bytes read from all instance store volumes
-    metrics:
-      - amazonaws.com.aws.ec2.disk_read_bytes as $disk_read_bytes
-    query:
-      - sum($disk_read_bytes) as disk_read_bytes
+    - name: Bytes read from all instance store volumes
+      metrics:
+        - amazonaws.com.aws.ec2.disk_read_bytes as $disk_read_bytes
+      query:
+        - sum($disk_read_bytes) as disk_read_bytes
 
-  - name: Bytes written to all instance store volumes
-    metrics:
-      - amazonaws.com.aws.ec2.disk_write_bytes as $disk_write_bytes
-    query:
-      - sum($disk_write_bytes) as disk_write_bytes
+    - name: Bytes written to all instance store volumes
+      metrics:
+        - amazonaws.com.aws.ec2.disk_write_bytes as $disk_write_bytes
+      query:
+        - sum($disk_write_bytes) as disk_write_bytes
 
-  - name: Number of bytes received on all network interfaces
-    metrics:
-      - amazonaws.com.aws.ec2.network_in as $network_in
-    query:
-      - sum($network_in) as network_in
+    - name: Number of bytes received on all network interfaces
+      metrics:
+        - amazonaws.com.aws.ec2.network_in as $network_in
+      query:
+        - sum($network_in) as network_in
 
-  - name: Number of bytes sent out on all network interfaces
-    metrics:
-      - amazonaws.com.aws.ec2.network_out as $network_out
-    query:
-      - sum($network_out) as network_out
+    - name: Number of bytes sent out on all network interfaces
+      metrics:
+        - amazonaws.com.aws.ec2.network_out as $network_out
+      query:
+        - sum($network_out) as network_out
 
-  - name: Number of packets received on all network interfaces
-    metrics:
-      - amazonaws.com.aws.ec2.network_packets_in as $network_packets_in
-    query:
-      - sum($network_packets_in) as network_packets_in
+    - name: Number of packets received on all network interfaces
+      metrics:
+        - amazonaws.com.aws.ec2.network_packets_in as $network_packets_in
+      query:
+        - sum($network_packets_in) as network_packets_in
 
-  - name: Number of packets sent out on all network interfaces
-    metrics:
-      - amazonaws.com.aws.ec2.network_packets_out as $network_packets_out
-    query:
-      - sum($network_packets_out) as network_packets_out
+    - name: Number of packets sent out on all network interfaces
+      metrics:
+        - amazonaws.com.aws.ec2.network_packets_out as $network_packets_out
+      query:
+        - sum($network_packets_out) as network_packets_out
 
-  # Amazon EBS metrics for Nitro-based instances
+    # CPU credit metrics
 
-  - name: Completed read operations from all Amazon EBS volumes
-    metrics:
-      - amazonaws.com.aws.ec2.ebs_read_ops as $ebs_read_ops
-    query:
-      - sum($ebs_read_ops) as ebs_read_ops
+    - name: Number of CPU credits spent by the instance for CPU utilization
+      metrics:
+        - amazonaws.com.aws.ec2.cpu_credit_usage as $cpu_credit_usage
+      query:
+        - sum($cpu_credit_usage) as cpu_credit_usage
 
-  - name: Completed write operations to all EBS volumes
-    metrics:
-      - amazonaws.com.aws.ec2.ebs_write_ops as $ebs_write_ops
-    query:
-      - sum($ebs_write_ops) as ebs_write_ops
+    - name: Number of earned CPU credits that an instance
+      metrics:
+        - amazonaws.com.aws.ec2.cpu_credit_balance as $cpu_credit_balance
+      query:
+        - sum($cpu_credit_balance) as cpu_credit_balance
 
-  - name: Bytes read from all EBS volumes
-    metrics:
-      - amazonaws.com.aws.ec2.ebs_read_bytes as $ebs_read_bytes
-    query:
-      - sum($ebs_read_bytes) as ebs_read_bytes
+    - name: Number of surplus credits that have been spent by an unlimited instance
+      metrics:
+        - amazonaws.com.aws.ec2.cpu_surplus_credit_balance as $cpu_surplus_credit_balance
+      query:
+        - sum($cpu_surplus_credit_balance) as cpu_surplus_credit_balance
 
-  - name: Bytes written to all EBS volumes
-    metrics:
-      - amazonaws.com.aws.ec2.ebs_write_bytes as $ebs_write_bytes
-    query:
-      - sum($ebs_write_bytes) as ebs_write_bytes
+    - name: Number of spent surplus credits that are not paid down by earned CPU credits
+      metrics:
+        - amazonaws.com.aws.ec2.cpu_surplus_credits_charged as $cpu_surplus_credits_charged
+      query:
+        - sum($cpu_surplus_credits_charged) as cpu_surplus_credits_charged
 
-  - name: Bytes written to all EBS volumes
-    metrics:
-      - amazonaws.com.aws.ec2.ebs_write_bytes as $ebs_write_bytes
-    query:
-      - sum($ebs_write_bytes) as ebs_write_bytes
+    # Status check metrics
 
-  - name: Percentage of I/O credits remaining in the burst bucket
-    metrics:
-      - amazonaws.com.aws.ec2.ebsio_balance as $ebsio_balance
-    query:
-      - last(avg($ebsio_balance)) as ebsio_balance
+    - name: Status of instance and system status check
+      metrics:
+        - amazonaws.com.aws.ec2.status_check_failed as $status_check_failed
+      query:
+        - last(avg($status_check_failed)) as status_check_failed
 
-  - name: Percentage of throughput credits remaining in the burst bucket
-    metrics:
-      - amazonaws.com.aws.ec2.ebs_byte_balance as $ebs_byte_balance
-    query:
-      - last(avg($ebs_byte_balance)) as ebs_byte_balance
+    - name: Status of system status check
+      metrics:
+        - amazonaws.com.aws.ec2.status_check_failed_system as $status_check_failed_system
+      query:
+        - last(avg($status_check_failed_system)) as status_check_failed_system
 
-  # CPU credit metrics
+    - name: Status of instance status check
+      metrics:
+        - amazonaws.com.aws.ec2.status_check_failed_instance as $status_check_failed_instance
+      query:
+        - last(avg($status_check_failed_instance)) as status_check_failed_instance
 
-  - name: Number of CPU credits spent by the instance for CPU utilization
-    metrics:
-      - amazonaws.com.aws.ec2.cpu_credit_usage as $cpu_credit_usage
-    query:
-      - sum($cpu_credit_usage) as cpu_credit_usage
-
-  - name: Number of earned CPU credits that an instance
-    metrics:
-      - amazonaws.com.aws.ec2.cpu_credit_balance as $cpu_credit_balance
-    query:
-      - sum($cpu_credit_balance) as cpu_credit_balance
-
-  - name: Number of surplus credits that have been spent by an unlimited instance
-    metrics:
-      - amazonaws.com.aws.ec2.cpu_surplus_credit_balance as $cpu_surplus_credit_balance
-    query:
-      - sum($cpu_surplus_credit_balance) as cpu_surplus_credit_balance
-
-  - name: Number of spent surplus credits that are not paid down by earned CPU credits
-    metrics:
-      - amazonaws.com.aws.ec2.cpu_surplus_credits_charged as $cpu_surplus_credits_charged
-    query:
-      - sum($cpu_surplus_credits_charged) as cpu_surplus_credits_charged
-
-  # Status check metrics
-
-  - name: Status of instance and system status check
-    metrics:
-      - amazonaws.com.aws.ec2.status_check_failed as $status_check_failed
-    query:
-      - last(avg($status_check_failed)) as status_check_failed
-
-  - name: Status of system status check
-    metrics:
-      - amazonaws.com.aws.ec2.status_check_failed_system as $status_check_failed_system
-    query:
-      - last(avg($status_check_failed_system)) as status_check_failed_system
-
-  - name: Status of instance status check
-    metrics:
-      - amazonaws.com.aws.ec2.status_check_failed_instance as $status_check_failed_instance
-    query:
-      - last(avg($status_check_failed_instance)) as status_check_failed_instance
-
-  - name: Number of times the Metadata was accessed without a token
-    metrics:
-      - amazonaws.com.aws.ec2.metadata_no_token as $metadata_no_token
-    query:
-      - last(avg($metadata_no_token)) as metadata_no_token
+    - name: Number of times the Metadata was accessed without a token
+      metrics:
+        - amazonaws.com.aws.ec2.metadata_no_token as $metadata_no_token
+      query:
+        - last(avg($metadata_no_token)) as metadata_no_token
 
 ---
 # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using_cloudwatch_ebs.html
@@ -216,90 +173,274 @@ table:
     write_ops: { unit: '{op/sec}' }
 
 grid:
-  - name: Number of read bytes
-    metrics:
-      - amazonaws.com.aws.ebs.volume_read_bytes as $read_bytes
-    query:
-      - sum($read_bytes) as read_bytes
+  columns:
+    - name: Number of read bytes
+      metrics:
+        - amazonaws.com.aws.ebs.volume_read_bytes as $read_bytes
+      query:
+        - sum($read_bytes) as read_bytes
 
-  - name: Average read size
-    metrics:
-      - amazonaws.com.aws.ebs.volume_read_bytes as $read_bytes
-    query:
-      - avg($read_bytes) as read_size
+    - name: Average read size
+      metrics:
+        - amazonaws.com.aws.ebs.volume_read_bytes as $read_bytes
+        - amazonaws.com.aws.ebs.volume_read_ops as $read_ops
+      query:
+        - sum($read_bytes) / sum($read_ops) as read_size
 
-  - name: Number of written bytes
-    metrics:
-      - amazonaws.com.aws.ebs.volume_write_bytes as $write_bytes
-    query:
-      - sum($write_bytes) as write_bytes
+    - name: Number of written bytes
+      metrics:
+        - amazonaws.com.aws.ebs.volume_write_bytes as $write_bytes
+      query:
+        - sum($write_bytes) as write_bytes
 
-  - name: Average write size
-    metrics:
-      - amazonaws.com.aws.ebs.volume_write_bytes as $write_bytes
-    query:
-      - avg($write_bytes) as write_size
+    - name: Average write size
+      metrics:
+        - amazonaws.com.aws.ebs.volume_write_bytes as $write_bytes
+        - amazonaws.com.aws.ebs.volume_write_ops as $write_ops
+      query:
+        - sum($write_bytes) / sum($write_ops) as write_size
 
-  - name: Number of read ops
-    metrics:
-      - amazonaws.com.aws.ebs.volume_read_ops as $read_ops
-    query:
-      - sum($read_ops) / _seconds as read_ops
-    columns:
-      read_ops: { unit: '{op/sec}' }
+    - name: Number of read ops
+      metrics:
+        - amazonaws.com.aws.ebs.volume_read_ops as $read_ops
+      query:
+        - sum($read_ops) / _seconds as read_ops
+      columns:
+        read_ops: { unit: '{op/sec}' }
 
-  - name: Number of write ops
-    metrics:
-      - amazonaws.com.aws.ebs.volume_write_ops as $write_ops
-    query:
-      - sum($write_ops) / _seconds as write_ops
-    columns:
-      write_ops: { unit: '{op/sec}' }
+    - name: Number of write ops
+      metrics:
+        - amazonaws.com.aws.ebs.volume_write_ops as $write_ops
+      query:
+        - sum($write_ops) / _seconds as write_ops
+      columns:
+        write_ops: { unit: '{op/sec}' }
 
-  - name: Average read latency
-    metrics:
-      - amazonaws.com.aws.ebs.volume_total_read_time as $total_read_time
-    query:
-      - avg($total_read_time) as read_latency
-    columns:
-      read_latency: { unit: seconds }
+    - name: Average read latency
+      metrics:
+        - amazonaws.com.aws.ebs.volume_total_read_time as $total_read_time
+      query:
+        - avg($total_read_time) as read_latency
+      columns:
+        read_latency: { unit: seconds }
 
-  - name: Average write latency
-    metrics:
-      - amazonaws.com.aws.ebs.volume_total_write_time as $total_write_time
-    query:
-      - avg($total_write_time) as write_latency
-    columns:
-      write_latency: { unit: seconds }
+    - name: Average write latency
+      metrics:
+        - amazonaws.com.aws.ebs.volume_total_write_time as $total_write_time
+      query:
+        - avg($total_write_time) as write_latency
+      columns:
+        write_latency: { unit: seconds }
 
-  - name: Percentage of time spent idle
-    metrics:
-      - amazonaws.com.aws.ebs.volume_idle_time as $idle_time
-    query:
-      - avg($idle_time) / _seconds as idle_time
-    columns:
-      idle_time: { unit: utilization }
+    - name: Percentage of time spent idle
+      metrics:
+        - amazonaws.com.aws.ebs.volume_idle_time as $idle_time
+      query:
+        - avg($idle_time) / _seconds as idle_time
+      columns:
+        idle_time: { unit: utilization }
 
-  - name: Number of read and write operation requests waiting to be completed
-    metrics:
-      - amazonaws.com.aws.ebs.volume_queue_length as $queue_length
-    query:
-      - avg($queue_length) as queue_length
+    - name: Number of read and write operation requests waiting to be completed
+      metrics:
+        - amazonaws.com.aws.ebs.volume_queue_length as $queue_length
+      query:
+        - avg($queue_length) as queue_length
 
-  - name: Percentage of I/O operations per second (IOPS) delivered of the total IOPS provisioned
-    metrics:
-      - amazonaws.com.aws.ebs.volume_throughput_percentage as $throughput_percentage
-    query:
-      - last(avg($throughput_percentage)) as throughput_percentage
+    - name: Percentage of IOPS delivered of the total IOPS provisioned
+      metrics:
+        - amazonaws.com.aws.ebs.volume_throughput_percentage as $throughput_percentage
+      query:
+        - last(avg($throughput_percentage)) as throughput_percentage
 
-  - name: Amount of read and write operations (normalized to 256K) consumed
-    metrics:
-      - amazonaws.com.aws.ebs.volume_consumed_read_write_ops as $consumed_read_write_ops
-    query:
-      - sum($consumed_read_write_ops) as consumed_read_write_ops
+    - name: Amount of read and write operations (normalized to 256K) consumed
+      metrics:
+        - amazonaws.com.aws.ebs.volume_consumed_read_write_ops as $consumed_read_write_ops
+      query:
+        - sum($consumed_read_write_ops) as consumed_read_write_ops
 
-  - name: Percentage of I/O credits (for gp2) or throughput credits (for st1 and sc1) remaining
-    metrics:
-      - amazonaws.com.aws.ebs.burst_balance as $burst_balance
-    query:
-      - last(avg($burst_balance)) as burst_balance
+    - name: Percentage of I/O credits (for gp2) or throughput credits (for st1 and sc1) remaining
+      metrics:
+        - amazonaws.com.aws.ebs.burst_balance as $burst_balance
+      query:
+        - last(avg($burst_balance)) as burst_balance
+
+---
+# https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using_cloudwatch_ebs.html
+schema: v1
+id: uptrace.aws.ec2_ebs
+name: 'AWS EC2 EBS metrics'
+
+table:
+  metrics:
+    - amazonaws.com.aws.ec2.ebs_read_bytes as $read_bytes
+    - amazonaws.com.aws.ec2.ebs_write_bytes as $write_bytes
+    - amazonaws.com.aws.ec2.ebsio_balance as $ebsio_balance
+    - amazonaws.com.aws.ec2.ebs_byte_balance as $ebs_byte_balance
+  query:
+    - group by cloud.region
+    - group by instance_id
+    - last(sum($read_bytes)) / _seconds as read_bytes_per_sec
+    - last(sum($write_bytes)) / _seconds as write_bytes_per_sec
+    - last(avg($ebsio_balance)) as ebsio_balance
+    - last(avg($ebs_byte_balance)) as ebs_byte_balance
+  columns:
+    read_ops: { unit: '{op/sec}' }
+    write_ops: { unit: '{op/sec}' }
+
+grid:
+  columns:
+    - name: Number of read bytes
+      metrics:
+        - amazonaws.com.aws.ec2.ebs_read_bytes as $read_bytes
+      query:
+        - sum($read_bytes) as read_bytes
+
+    - name: Average read size
+      metrics:
+        - amazonaws.com.aws.ebs.volume_read_bytes as $read_bytes
+        - amazonaws.com.aws.ec2.ebs_read_ops as $read_ops
+      query:
+        - sum($read_bytes) / sum($read_ops) as read_size
+
+    - name: Number of written bytes
+      metrics:
+        - amazonaws.com.aws.ec2.ebs_write_bytes as $write_bytes
+      query:
+        - sum($write_bytes) as write_bytes
+
+    - name: Average write size
+      metrics:
+        - amazonaws.com.aws.ec2.ebs_write_bytes as $write_bytes
+        - amazonaws.com.aws.ec2.ebs_write_ops as $write_ops
+      query:
+        - sum($write_bytes) / sum($write_ops) as write_size
+
+    - name: Number of read ops
+      metrics:
+        - amazonaws.com.aws.ebs.volume_read_ops as $read_ops
+      query:
+        - sum($read_ops) / _seconds as read_ops
+      columns:
+        read_ops: { unit: '{op/sec}' }
+
+    - name: Number of write ops
+      metrics:
+        - amazonaws.com.aws.ebs.volume_write_ops as $write_ops
+      query:
+        - sum($write_ops) / _seconds as write_ops
+      columns:
+        write_ops: { unit: '{op/sec}' }
+
+    - name: Number of write ops
+      metrics:
+        - amazonaws.com.aws.ebs.volume_write_ops as $write_ops
+      query:
+        - sum($write_ops) / _seconds as write_ops
+      columns:
+        write_ops: { unit: '{op/sec}' }
+
+    - name: Percentage of I/O credits remaining in the burst bucket
+      metrics:
+        - amazonaws.com.aws.ec2.ebsio_balance as $ebsio_balance
+      query:
+        - avg($ebsio_balance) as ebsio_balance
+
+    - name: Percentage of throughput credits remaining in the burst bucket
+      metrics:
+        - amazonaws.com.aws.ec2.ebs_byte_balance as $ebs_byte_balance
+      query:
+        - avg($ebs_byte_balance) as ebs_byte_balance
+
+    - name: Percentage of I/O credits remaining in the burst bucket
+      metrics:
+        - amazonaws.com.aws.ec2.ebsio_balance as $ebsio_balance
+      query:
+        - avg($ebsio_balance) as ebsio_balance
+
+    - name: Percentage of throughput credits remaining in the burst bucket
+      metrics:
+        - amazonaws.com.aws.ec2.ebs_byte_balance as $ebs_byte_balance
+      query:
+        - avg($ebs_byte_balance) as ebs_byte_balance
+
+---
+# https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html
+schema: v1
+id: uptrace.aws.rds_instances
+name: 'AWS RDS instances'
+
+table:
+  metrics:
+    - amazonaws.com.aws.rds.cpu_utilization as $cpu_util
+    - amazonaws.com.aws.rds.burst_balance as $burst_balance
+    - amazonaws.com.aws.rds.database_connections as $db_conns
+    - amazonaws.com.aws.rds.disk_queue_depth as $queue_depth
+  query:
+    - group by cloud.region
+    - group by db_instance_identifier
+    - avg($cpu_util) as cpu_util
+    - avg($burst_balance) as burst_balance
+    - avg($db_conns) as db_conns
+    - avg($queue_depth) as queue_depth
+
+grid:
+  columns:
+    - name: Percentage of CPU utilization
+      metrics:
+        - amazonaws.com.aws.rds.cpu_utilization as $cpu_util
+      query:
+        - avg($cpu_util) as cpu_util
+
+    - name: Percent of gp2 burst-bucket I/O credits available
+      metrics:
+        - amazonaws.com.aws.rds.burst_balance as $burst_balance
+      query:
+        - avg($burst_balance) as burst_balance
+
+    - name: Number of client network connections
+      metrics:
+        - amazonaws.com.aws.rds.database_connections as $db_conns
+      query:
+        - avg($db_conns) as db_conns
+
+    - name: Number of outstanding I/Os waiting to access the disk
+      metrics:
+        - amazonaws.com.aws.rds.disk_queue_depth as $queue_depth
+      query:
+        - avg($queue_depth) as queue_depth
+
+    - name: Number of earned CPU credits
+      metrics:
+        - amazonaws.com.aws.rds.cpu_credit_balance as $cpu_credit_balance
+      query:
+        - avg($cpu_credit_balance) as cpu_credit_balance
+
+    - name: Number of spent CPU credits
+      metrics:
+        - amazonaws.com.aws.rds.cpu_credit_usage as $cpu_credit_usage
+      query:
+        - avg($cpu_credit_usage) as cpu_credit_usage
+
+    - name: Number of surplus credits
+      metrics:
+        - amazonaws.com.aws.rds.cpu_surplus_credit_balance as $cpu_surplus_credit_balance
+      query:
+        - avg($cpu_surplus_credit_balance) as cpu_surplus_credit_balance
+
+    - name: Number of spent surplus credits
+      metrics:
+        - amazonaws.com.aws.rds.cpu_surplus_credits_charged as $cpu_surplus_credits_charged
+      query:
+        - avg($cpu_surplus_credits_charged) as cpu_surplus_credits_charged
+
+    - name: Percentage of throughput credits remaining in the burst bucket
+      metrics:
+        - amazonaws.com.aws.rds.ebs_byte_balance as $ebs_byte_balance
+      query:
+        - avg($ebs_byte_balance) as ebs_byte_balance
+
+    - name: Percentage of I/O credits remaining in the burst bucket
+      metrics:
+        - amazonaws.com.aws.rds.ebsio_balance as $ebsio_balance
+      query:
+        - avg($ebsio_balance) as ebsio_balance

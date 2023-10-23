@@ -109,9 +109,14 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 	}
 	f.AttrKey = attrkey.Clean(f.AttrKey)
 
-	colName, err := tql.ParseName(f.AttrKey)
+	col, err := tql.ParseColumn(f.AttrKey)
 	if err != nil {
 		return err
+	}
+
+	attr, ok := col.Value.(tql.Attr)
+	if !ok {
+		return fmt.Errorf("expected an attr, got %T", col.Value)
 	}
 
 	for _, part := range f.parts {
@@ -122,20 +127,23 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 
 		for i := len(ast.Filters) - 1; i >= 0; i-- {
 			filter := &ast.Filters[i]
-			if filter.LHS == colName {
+			if tql.String(filter.LHS) == attr.Name {
 				ast.Filters = append(ast.Filters[:i], ast.Filters[i+1:]...)
 			}
 		}
 	}
 
 	q, _ := buildSpanIndexQuery(h.App, f, 0)
-	q = TQLColumn(q, colName, 0).Group(f.AttrKey).
+	chExpr := appendCHAttr(nil, attr)
+
+	q = q.ColumnExpr("? AS value", chExpr).
+		GroupExpr("value").
 		ColumnExpr("count() AS count")
 	if !strings.HasPrefix(f.AttrKey, ".") {
-		q = q.Where("has(s.all_keys, ?)", f.AttrKey)
+		q = q.Where("has(s.all_keys, ?)", attr.Name)
 	}
 	if f.SearchInput != "" {
-		q = q.Where("? like ?", CHAttrExpr(f.AttrKey), "%"+f.SearchInput+"%")
+		q = q.Where("? like ?", chExpr, "%"+f.SearchInput+"%")
 	}
 
 	var rows []map[string]interface{}
@@ -148,7 +156,7 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 
 	for i, item := range rows {
 		items[i] = &AttrValueItem{
-			Value: asString(item[f.AttrKey]),
+			Value: asString(item["value"]),
 			Count: item["count"].(uint64),
 		}
 	}

@@ -61,7 +61,7 @@ func NewCHSchemaCommand() *cli.Command {
 						if storage == "" {
 							storage = chSchema.Spans.StoragePolicy
 						}
-					case "measure_minutes", "measure_hours":
+					case "datapoint_minutes", "datapoint_hours":
 						ttlDelete = chSchema.Metrics.TTLDelete
 						if storage == "" {
 							storage = chSchema.Metrics.StoragePolicy

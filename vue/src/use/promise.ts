@@ -10,19 +10,20 @@ import { sentence } from '@/util/string'
 
 type AsyncFunc = (...args: any[]) => Promise<any>
 
-export enum StatusValue {
-  Unset = 'unset',
-  Initing = 'initing',
-  Resolved = 'resolved',
-  Rejected = 'rejected',
-  Reloading = 'reloading',
+export interface ApiError {
+  code: string
+  message: string
+
+  statusCode: number
+  traceId: string
+  data: Record<string, any>
 }
 
-export function usePromise(fn: AsyncFunc, cfg: Config = {}) {
+export function usePromise(fn: AsyncFunc, conf: Config = {}) {
   const snackbar = useSnackbar()
 
   const result = shallowRef<any>()
-  const error = shallowRef<any>()
+  const rawError = shallowRef<any>()
   const status = shallowRef<Status>(Status.Unset)
 
   const pending = computed((): boolean => {
@@ -71,7 +72,7 @@ export function usePromise(fn: AsyncFunc, cfg: Config = {}) {
 
   let resolve = (res: any): void => {
     result.value = res
-    error.value = undefined
+    rawError.value = undefined
     status.value = Status.Resolved
   }
 
@@ -83,13 +84,13 @@ export function usePromise(fn: AsyncFunc, cfg: Config = {}) {
 
     if (err === undefined) {
       result.value = undefined
-      error.value = undefined
+      rawError.value = undefined
       status.value = Status.Unset
       return
     }
 
     result.value = undefined
-    error.value = err
+    rawError.value = err
     status.value = Status.Rejected
   }
 
@@ -97,8 +98,8 @@ export function usePromise(fn: AsyncFunc, cfg: Config = {}) {
     id++
   }
 
-  if (cfg.debounce) {
-    const debounced = debounce(promised, cfg.debounce)
+  if (conf.debounce) {
+    const debounced = debounce(promised, conf.debounce)
 
     const oldCancel = cancel
     cancel = () => {
@@ -124,30 +125,39 @@ export function usePromise(fn: AsyncFunc, cfg: Config = {}) {
     }
   }
 
-  const errorCode = computed((): string => {
-    return error.value?.response?.data?.code ?? ''
+  const error = computed((): ApiError | undefined => {
+    const err = rawError.value
+    if (!err) {
+      return undefined
+    }
+    const data = err.response?.data ?? {}
+    return {
+      code: data?.code ?? '',
+      message: errorMessage.value,
+
+      statusCode: data?.statusCode ?? 0,
+      traceId: data?.traceId ?? '',
+      data,
+    }
   })
 
   const errorMessage = computed((): string => {
-    const msg = error.value?.response?.data?.message
-    if (msg) {
-      return msg
+    const err = rawError.value
+    if (!err) {
+      return ''
     }
-    if (error.value) {
-      return asString(error.value)
-    }
-    return ''
+    return sentence(err.response?.data?.error?.message ?? asString(err))
   })
 
-  if (!cfg.ignoreErrors) {
+  if (!conf.ignoreErrors) {
     watch(error, (error) => {
-      if (!error || !errorMessage.value) {
+      if (!error) {
         return
       }
-      switch (error.response?.status) {
+      switch (error.statusCode) {
         case 400:
         case 403:
-          snackbar.notifyError(errorMessage.value)
+          snackbar.notifyError(error.message)
       }
     })
   }
@@ -158,12 +168,20 @@ export function usePromise(fn: AsyncFunc, cfg: Config = {}) {
 
     promised,
     result,
+    rawError,
     error,
-    errorCode,
     errorMessage,
 
     cancel,
   }
+}
+
+export enum StatusValue {
+  Unset = 'unset',
+  Initing = 'initing',
+  Resolved = 'resolved',
+  Rejected = 'rejected',
+  Reloading = 'reloading',
 }
 
 class Status {
@@ -230,10 +248,10 @@ function asString(s: string | Error | undefined): string {
     return ''
   }
   if (typeof s === 'string') {
-    return sentence(s)
+    return s
   }
   if (s.message) {
-    return sentence(s.message)
+    return s.message
   }
   return ''
 }

@@ -48,12 +48,12 @@
 
       <v-col cols="auto">
         <div class="grey--text font-weight-regular">Time</div>
-        <XDate v-if="span.time" :date="span.time" format="full" />
+        <DateValue v-if="span.time" :value="span.time" format="full" />
       </v-col>
 
       <v-col v-if="span.duration > 0" cols="auto">
         <div class="grey--text font-weight-regular">Duration</div>
-        <XDuration :duration="span.duration" fixed />
+        <DurationValue :value="span.duration" fixed />
       </v-col>
 
       <v-col cols="auto">
@@ -137,7 +137,7 @@ import { defineComponent, ref, computed, PropType } from 'vue'
 // Composables
 import { useRoute } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { createUqlEditor, useQueryStore } from '@/use/uql'
+import { createQueryEditor, useQueryStore } from '@/use/uql'
 import { injectAnnotations } from '@/org/use-annotations'
 
 // Components
@@ -236,7 +236,7 @@ export default defineComponent({
         query: {
           ...props.dateRange.queryParams(),
           system: props.span.system,
-          query: createUqlEditor()
+          query: createQueryEditor()
             .exploreAttr(AttrKey.spanGroupId, isEvent.value)
             .where(AttrKey.spanGroupId, '=', props.span.groupId)
             .toString(),

@@ -76,7 +76,7 @@
 
       <v-spacer />
 
-      <v-btn href="https://app.uptrace.dev/join" small class="primary">
+      <v-btn href="https://app.uptrace.dev/join" target="_blank" small class="primary">
         <v-icon left>mdi-cloud</v-icon>
         <span>Uptrace Cloud</span>
       </v-btn>

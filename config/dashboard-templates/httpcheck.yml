@@ -1,0 +1,63 @@
+# https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/httpcheckreceiver/metadata.yaml
+
+schema: v1
+id: uptrace.httpcheck.endpoints
+name: 'HTTP Check endpoints'
+#force_update: true
+
+table:
+  metrics:
+    - httpcheck.status as $status
+    - httpcheck.duration as $duration
+  query:
+    - group by url.full
+    - min($status{http.response.status_class="2xx"})
+    - $duration
+
+grid:
+  gauges:
+    - name: Status
+      description: HTTP check status
+      metrics:
+        - httpcheck.status as $status
+      query:
+        - $status{http.response.status_class="2xx"}
+      value_mappings:
+        - op: gte
+          value: 1
+          text: UP
+          color: green
+        - op: eq
+          value: 0
+          text: DOWN
+          color: red
+        - op: any
+          text: UNKNOWN
+          color: gray
+
+  columns:
+    - name: HTTP check result
+      metrics:
+        - httpcheck.status as $status
+      query:
+        - $status
+        - group by http.response.status_code
+
+    - name: HTTP check duration
+      metrics:
+        - httpcheck.duration as $duration
+      query:
+        - $duration
+
+monitors:
+  - name: HTTP check is down
+    metrics:
+      - httpcheck.status as $status
+    query:
+      - group by url.full
+      - group by host.name
+      - $status{http.response.status_class="2xx"} as status_2xx
+    column: status_2xx
+    min_allowed_value: 1
+    max_allowed_value: 1
+    check_num_point: 3

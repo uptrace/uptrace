@@ -11,7 +11,15 @@
             <v-spacer />
           </v-toolbar>
 
-          <v-container fluid class="py-4">
+          <v-container v-if="timeseries.error">
+            <v-row>
+              <v-col>
+                <ApiErrorCard :error="timeseries.error" />
+              </v-col>
+            </v-row>
+          </v-container>
+
+          <v-container v-else fluid class="py-4">
             <template v-if="!timeseries.status.isResolved()">
               <v-row v-for="i in 2" :key="i">
                 <v-col cols="6">
@@ -71,7 +79,7 @@
 import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 
 // Composables
-import { useRoute } from '@/use/router'
+import { useRoute, useSyncQueryParams } from '@/use/router'
 import { useOrder } from '@/use/order'
 import { UseDateRange } from '@/use/date-range'
 import { UseSystems } from '@/tracing/system/use-systems'
@@ -79,6 +87,7 @@ import { UseUql } from '@/use/uql'
 import { useTimeseries, TimeseriesGroup } from '@/tracing/use-timeseries'
 
 // Components
+import ApiErrorCard from '@/components/ApiErrorCard.vue'
 import TimeseriesMetric from '@/tracing/TimeseriesMetric.vue'
 import TimeseriesGroupsTable from '@/tracing/TimeseriesGroupsTable.vue'
 
@@ -88,7 +97,7 @@ import { EventBus } from '@/models/eventbus'
 
 export default defineComponent({
   name: 'TracingTimeseries',
-  components: { TimeseriesMetric, TimeseriesGroupsTable },
+  components: { ApiErrorCard, TimeseriesMetric, TimeseriesGroupsTable },
 
   props: {
     dateRange: {
@@ -113,14 +122,12 @@ export default defineComponent({
     const route = useRoute()
     const eventBus = new EventBus()
     const pageGroups = shallowRef<TimeseriesGroup[]>([])
-
-    const order = useOrder({ desc: true })
-    order.syncQueryParams()
+    const order = useOrder()
 
     const timeseries = useTimeseries(() => {
       const { projectId } = route.value.params
       return {
-        url: `/api/v1/tracing/${projectId}/timeseries`,
+        url: `/internal/v1/tracing/${projectId}/timeseries`,
         params: props.axiosParams,
       }
     })
@@ -131,6 +138,23 @@ export default defineComponent({
 
     const selectedGroups = computed(() => {
       return pageGroups.value.filter((group) => group._selected || group._hovered)
+    })
+
+    useSyncQueryParams({
+      fromQuery(queryParams) {
+        props.dateRange.parseQueryParams(queryParams)
+        props.systems.parseQueryParams(queryParams)
+        props.uql.parseQueryParams(queryParams)
+        order.parseQueryParams(queryParams)
+      },
+      toQuery() {
+        return {
+          ...props.dateRange.queryParams(),
+          ...props.systems.queryParams(),
+          ...props.uql.queryParams(),
+          ...order.queryParams(),
+        }
+      },
     })
 
     watch(

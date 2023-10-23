@@ -9,7 +9,7 @@ import (
 	"github.com/uptrace/uptrace"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
-	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/unixtime"
 	"gopkg.in/yaml.v3"
 )
 
@@ -67,10 +67,10 @@ func yamlUnmarshalDashboardTpl(dec *yaml.Decoder, tpl *DashboardTpl) error {
 		return err
 	}
 
-	tpl.Grid = make([]GridColumnTpl, len(tpl.GridNodes))
-	for i := range tpl.GridNodes {
+	tpl.Grid.Columns = make([]GridColumnTpl, len(tpl.Grid.ColumnNodes))
+	for i := range tpl.Grid.ColumnNodes {
 		var err error
-		tpl.Grid[i], err = yamlDecodeGridColumnTpl(&tpl.GridNodes[i])
+		tpl.Grid.Columns[i], err = yamlDecodeGridColumnTpl(&tpl.Grid.ColumnNodes[i])
 		if err != nil {
 			return err
 		}
@@ -115,8 +115,10 @@ func yamlDecodeGridColumnTpl(node *yaml.Node) (any, error) {
 
 type DashboardTpl struct {
 	Schema string `yaml:"schema"`
-	ID     string `yaml:"id"`
-	Name   string `yaml:"name"`
+
+	ID         string          `yaml:"id"`
+	Name       string          `yaml:"name"`
+	TimeOffset unixtime.Millis `yaml:"time_offset,omitempty"`
 
 	Table struct {
 		Gauges  []*DashGaugeTpl          `yaml:"gauges,omitempty"`
@@ -125,9 +127,11 @@ type DashboardTpl struct {
 		Columns map[string]*MetricColumn `yaml:"columns,omitempty"`
 	} `yaml:"table"`
 
-	GridGauges []*DashGaugeTpl `yaml:"grid_gauges,omitempty"`
-	GridNodes  []yaml.Node     `yaml:"grid"`
-	Grid       []GridColumnTpl `yaml:"-"`
+	Grid struct {
+		Gauges      []*DashGaugeTpl `yaml:"gauges,omitempty"`
+		ColumnNodes []yaml.Node     `yaml:"columns"`
+		Columns     []GridColumnTpl `yaml:"-"`
+	} `yaml:"grid"`
 
 	Monitors []*MonitorTpl `yaml:"monitors,omitempty"`
 }
@@ -139,6 +143,7 @@ func NewDashboardTpl(
 	tpl.Schema = "v1"
 	tpl.ID = dash.TemplateID
 	tpl.Name = dash.Name
+	tpl.TimeOffset = dash.TimeOffset
 
 	if tpl.ID == "" {
 		tpl.ID = fmt.Sprintf("project_%d.dashboard_%d", dash.ProjectID, dash.ID)
@@ -151,7 +156,7 @@ func NewDashboardTpl(
 	tpl.Table.Query = mql.SplitQuery(dash.TableQuery)
 	tpl.Table.Columns = dash.TableColumnMap
 
-	tpl.GridNodes = make([]yaml.Node, len(grid))
+	tpl.Grid.ColumnNodes = make([]yaml.Node, len(grid))
 	for i, col := range grid {
 		var colTpl any
 		switch col := col.(type) {
@@ -165,7 +170,7 @@ func NewDashboardTpl(
 			return nil, fmt.Errorf("unsupported grid column type: %T", col)
 		}
 
-		node := &tpl.GridNodes[i]
+		node := &tpl.Grid.ColumnNodes[i]
 		if err := node.Encode(colTpl); err != nil {
 			return nil, err
 		}
@@ -179,9 +184,9 @@ func NewDashboardTpl(
 	}
 
 	if len(gridGauges) > 0 {
-		tpl.GridGauges = make([]*DashGaugeTpl, len(gridGauges))
+		tpl.Grid.Gauges = make([]*DashGaugeTpl, len(gridGauges))
 		for i, gauge := range gridGauges {
-			tpl.GridGauges[i] = NewDashGaugeTpl(gauge)
+			tpl.Grid.Gauges[i] = NewDashGaugeTpl(gauge)
 		}
 	}
 
@@ -197,7 +202,8 @@ type DashGaugeTpl struct {
 	Query   []string                 `yaml:"query"`
 	Columns map[string]*MetricColumn `yaml:"columns,omitempty"`
 
-	GridQueryTemplate string `yaml:"grid_query_template,omitempty"`
+	GridQueryTemplate string         `yaml:"grid_query_template,omitempty"`
+	ValueMappings     []ValueMapping `yaml:"value_mappings,omitempty"`
 }
 
 func NewDashGaugeTpl(gauge *DashGauge) *DashGaugeTpl {
@@ -216,6 +222,7 @@ func NewDashGaugeTpl(gauge *DashGauge) *DashGaugeTpl {
 	tpl.Columns = gauge.ColumnMap
 
 	tpl.GridQueryTemplate = gauge.GridQueryTemplate
+	tpl.ValueMappings = gauge.ValueMappings
 
 	return tpl
 }
@@ -325,14 +332,14 @@ func NewHeatmapGridColumnTpl(col *HeatmapGridColumn) *HeatmapGridColumnTpl {
 }
 
 type MonitorTpl struct {
-	Name    string                   `yaml:"name"`
-	Metrics []string                 `yaml:"metrics"`
-	Query   []string                 `yaml:"query"`
-	Columns map[string]*MetricColumn `yaml:"columns,omitempty"`
+	Name       string   `yaml:"name"`
+	Metrics    []string `yaml:"metrics"`
+	Query      []string `yaml:"query"`
+	Column     string   `yaml:"column"`
+	ColumnUnit string   `yaml:"column_unit"`
 
-	ForDuration     int32           `yaml:"for_duration"`
-	ForDurationUnit org.MonitorUnit `yaml:"for_duration_unit"`
+	CheckNumPoint int `yaml:"check_num_point"`
 
-	MinValue bunutil.NullFloat64 `yaml:"min_value"`
-	MaxValue bunutil.NullFloat64 `yaml:"max_value"`
+	MinAllowedValue bunutil.NullFloat64 `yaml:"min_allowed_value"`
+	MaxAllowedValue bunutil.NullFloat64 `yaml:"max_allowed_value"`
 }

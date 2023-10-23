@@ -75,7 +75,7 @@
       <v-container :fluid="$vuetify.breakpoint.lgAndDown">
         <v-row>
           <v-col>
-            <router-view :date-range="dateRange" :systems="systems" />
+            <router-view :date-range="dateRange" :systems="systems" :uql="uql" />
           </v-col>
         </v-row>
       </v-container>
@@ -119,12 +119,10 @@ export default defineComponent({
 
   setup(props) {
     useTitle('Overview')
-    props.dateRange.syncQueryParams()
 
     const project = useProject()
 
     const uql = useUql()
-    uql.syncQueryParams()
     provideQueryStore(useQueryStore(uql))
 
     useAnnotations(() => {
@@ -139,7 +137,6 @@ export default defineComponent({
         ...uql.axiosParams(),
       }
     })
-    systems.syncQueryParams()
 
     const spanSystems = computed(() => {
       const items = systems.items.filter((item) => isSpanSystem(item.system))

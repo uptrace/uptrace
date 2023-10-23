@@ -9,7 +9,9 @@
     <v-container fluid>
       <v-row>
         <v-col>
-          <GroupsList
+          <ApiErrorCard v-if="groups.error" :error="groups.error" />
+          <PagedGroupsCard
+            v-else
             :date-range="dateRange"
             :systems="[system]"
             :loading="groups.loading"
@@ -18,7 +20,6 @@
             :plottable-columns="groups.plottableColumns"
             :plotted-columns="[AttrKey.spanCountPerMin]"
             :order="groups.order"
-            :events-mode="eventsMode"
             :axios-params="groups.axiosParams"
           />
         </v-col>
@@ -31,24 +32,34 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
-import { useRoute } from '@/use/router'
+import { useRoute, useSyncQueryParams } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { createUqlEditor, useQueryStore, provideQueryStore } from '@/use/uql'
+import { createQueryEditor, useQueryStore, provideQueryStore, UseUql } from '@/use/uql'
+import { UseSystems } from '@/tracing/system/use-systems'
 import { useGroups } from '@/tracing/use-explore-spans'
 
 // Components
-import GroupsList from '@/tracing/GroupsList.vue'
+import ApiErrorCard from '@/components/ApiErrorCard.vue'
+import PagedGroupsCard from '@/tracing/PagedGroupsCard.vue'
 
 // Utilities
 import { AttrKey, isEventSystem } from '@/models/otel'
 
 export default defineComponent({
   name: 'OverviewGroups',
-  components: { GroupsList },
+  components: { ApiErrorCard, PagedGroupsCard },
 
   props: {
     dateRange: {
       type: Object as PropType<UseDateRange>,
+      required: true,
+    },
+    systems: {
+      type: Object as PropType<UseSystems>,
+      required: true,
+    },
+    uql: {
+      type: Object as PropType<UseUql>,
       required: true,
     },
   },
@@ -66,7 +77,7 @@ export default defineComponent({
     })
 
     const query = computed(() => {
-      return createUqlEditor()
+      return createQueryEditor()
         .exploreAttr(AttrKey.spanGroupId, eventsMode.value)
         .add(where.value)
         .toString()
@@ -80,7 +91,6 @@ export default defineComponent({
         query: query.value,
       }
     })
-    groups.order.syncQueryParams()
 
     const groupListRoute = computed(() => {
       return {
@@ -91,6 +101,26 @@ export default defineComponent({
           query: query.value,
         },
       }
+    })
+
+    useSyncQueryParams({
+      fromQuery(queryParams) {
+        queryParams.setDefault('sort_by', `per_min(${AttrKey.spanCount})`)
+        queryParams.setDefault('sort_desc', true)
+
+        props.dateRange.parseQueryParams(queryParams)
+        props.systems.parseQueryParams(queryParams)
+        props.uql.parseQueryParams(queryParams)
+        groups.order.parseQueryParams(queryParams)
+      },
+      toQuery() {
+        return {
+          ...props.dateRange.queryParams(),
+          ...props.systems.queryParams(),
+          ...props.uql.queryParams(),
+          ...groups.order.queryParams(),
+        }
+      },
     })
 
     return {

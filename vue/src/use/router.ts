@@ -1,9 +1,9 @@
-import { omit, cloneDeep, debounce } from 'lodash-es'
+import querystring from 'querystring'
+import { omit, debounce } from 'lodash-es'
 import { Route } from 'vue-router'
-import { shallowRef, computed, watch, onBeforeMount, onBeforeUnmount } from 'vue'
+import { computed, watch, onMounted, onBeforeUnmount } from 'vue'
 
 import router from '@/router'
-import { defineStore } from '@/use/store'
 
 export function useRouter() {
   const route = computed((): Route => {
@@ -26,183 +26,98 @@ export function useRoute() {
 
 //------------------------------------------------------------------------------
 
-export type Query = Record<string, any>
-
-interface QueryItem {
-  toQuery?(): Query | undefined
-  fromQuery?(query: Query): void
+interface QueryHook {
+  toQuery(): Record<string, any> | undefined
+  fromQuery(query: Values): void
 }
 
-type OnRouteChangedHook = (route: Route) => void
+let useSyncQueryParamsCount = 0
 
-export const useRouteQuery = defineStore(() => {
+export function useSyncQueryParams(hook: QueryHook) {
   const { router, route } = useRouter()
 
-  let isFreshRoute = false
-  const lastFreshRoute = shallowRef<Route>()
-
-  const onRouteChangedHooks = shallowRef<OnRouteChangedHook[]>([])
-  const syncHooks = shallowRef<QueryItem[]>([])
-
-  const query = computed((): Query | undefined => {
-    if (!syncHooks.value.length) {
-      return undefined
+  onMounted(() => {
+    useSyncQueryParamsCount++
+    if (useSyncQueryParamsCount > 1) {
+      console?.warn('useSyncQueryParams can not be called more than once on a page')
     }
-
-    let query: Query = {}
-
-    for (let item of syncHooks.value) {
-      if (!item.toQuery) {
-        continue
-      }
-
-      const q = item.toQuery()
-      if (!q) {
-        return undefined
-      }
-      Object.assign(query, cloneDeep(q))
-    }
-
-    return query
+  })
+  onBeforeUnmount(() => {
+    useSyncQueryParamsCount--
   })
 
-  let ignoreNext: Route | undefined
+  // Whether to push a new entry into the history stack or replace an existing one.
+  let usePushRoute = false
 
-  const updateQueryDebounced = debounce((route: Route, query: Query | undefined): void => {
-    if (query === undefined) {
-      return
-    }
+  const usePushRouteDebounced = debounce(() => {
+    usePushRoute = true
+  }, 2000)
 
-    for (let k in query) {
-      if (query[k] === undefined) {
+  let ignoreNextRoute: Route | undefined
+
+  const updateQueryDebounced = debounce(
+    (route: Route, query: Record<string, any> | undefined): void => {
+      if (query === undefined) {
         return
       }
-    }
-
-    const savedRoute = ignoreNext
-    function onError() {
-      ignoreNext = savedRoute
-    }
-
-    ignoreNext = omit(route, 'matched') as Route
-    ignoreNext.query = query
-
-    if (isFreshRoute) {
-      isFreshRoute = false
-      router.replace({ query, hash: route.hash }).catch(onError)
-    } else {
-      router.push({ query, hash: route.hash }).catch(onError)
-    }
-  }, 100)
-
-  function sync(item: QueryItem) {
-    //TODO: vue3
-    syncHooks.value.push(item)
-    // eslint-disable-next-line no-self-assign
-    syncHooks.value = syncHooks.value.slice()
-
-    function remove() {
-      const idx = syncHooks.value.findIndex((v) => v === item)
-      if (idx >= 0) {
-        syncHooks.value.splice(idx, 1)
-        // eslint-disable-next-line no-self-assign
-        syncHooks.value = syncHooks.value.slice()
-      } else {
-        // eslint-disable-next-line no-console
-        console.error("can't find the hook")
-      }
-    }
-
-    onBeforeUnmount(remove)
-
-    if (item.fromQuery) {
-      onBeforeMount(() => {
-        if (lastFreshRoute.value) {
-          item.fromQuery!(lastFreshRoute.value.query)
+      for (let key in query) {
+        if (query[key] === undefined) {
+          return
         }
-      })
-    }
+      }
 
-    return remove
-  }
+      if (queryEqual(query, route.query)) {
+        // Nothing to do.
+        usePushRouteDebounced()
+        return
+      }
 
-  function onRouteChanged(hook: OnRouteChangedHook) {
-    onRouteChangedHooks.value.push(hook)
-    // eslint-disable-next-line no-self-assign
-    onRouteChangedHooks.value = onRouteChangedHooks.value.slice()
+      const savedRoute = ignoreNextRoute
+      function onError() {
+        ignoreNextRoute = savedRoute
+      }
 
-    onBeforeUnmount(() => {
-      const idx = onRouteChangedHooks.value.findIndex((v) => v === hook)
-      if (idx >= 0) {
-        onRouteChangedHooks.value.splice(idx, 1)
-        // eslint-disable-next-line no-self-assign
-        onRouteChangedHooks.value = onRouteChangedHooks.value.slice()
+      ignoreNextRoute = omit(route, 'matched') as Route
+      ignoreNextRoute.query = query
+
+      if (usePushRoute) {
+        router.push({ query, hash: route.hash }).catch(onError)
       } else {
-        // eslint-disable-next-line no-console
-        console.error("can't find the hook")
+        router.replace({ query, hash: route.hash }).catch(onError)
       }
-    })
+      usePushRouteDebounced()
+    },
+    50,
+  )
 
-    onBeforeMount(() => {
-      if (lastFreshRoute.value) {
-        hook(lastFreshRoute.value)
-      }
-    })
-  }
-
+  // Parse query params whenever the route is changed.
   watch(
     route,
     (route) => {
       if (!route.matched.length) {
         return
       }
-      if (ignoreNext && routeEqual(route, ignoreNext)) {
+      if (ignoreNextRoute && routeEqual(route, ignoreNextRoute)) {
         return
       }
 
-      for (let item of syncHooks.value) {
-        if (item.fromQuery) {
-          item.fromQuery(route.query)
-        }
-      }
+      hook.fromQuery(new Values(route.query))
+      usePushRoute = false
 
-      for (let hook of onRouteChangedHooks.value) {
-        hook(route)
-      }
-
-      lastFreshRoute.value = route
-    },
-    { immediate: true, flush: 'sync' },
-  )
-
-  watch(
-    route,
-    (route) => {
-      if (!route.matched.length) {
-        return
-      }
-      if (ignoreNext && routeEqual(route, ignoreNext)) {
-        return
-      }
-
-      isFreshRoute = true
-      updateQueryDebounced(route, query.value)
-    },
-    { flush: 'post' },
-  )
-
-  watch(
-    query,
-    (query, oldQuery) => {
-      if (!queryEqual(query, oldQuery)) {
-        updateQueryDebounced(route.value, query)
-      }
+      updateQueryDebounced(route, hook.toQuery())
     },
     { immediate: true, flush: 'post' },
   )
 
-  return { lastRoute: lastFreshRoute, onRouteChanged, sync }
-})
+  // Update query params in the current route whenever query is changed.
+  watch(
+    () => hook.toQuery(),
+    (query) => {
+      updateQueryDebounced(route.value, query)
+    },
+    { immediate: true, flush: 'post' },
+  )
+}
 
 function routeEqual(r1: Route, r2: Route): boolean {
   return r1.path === r2.path && paramsEqual(r1.params, r2.params) && queryEqual(r1.query, r2.query)
@@ -211,11 +126,100 @@ function routeEqual(r1: Route, r2: Route): boolean {
 function paramsEqual(p1: Record<string, any>, p2: Record<string, any>): boolean {
   const k1 = Object.keys(p1).sort()
   const k2 = Object.keys(p2).sort()
+  // JSON omits undefined: {tab: undefined}.
   return JSON.stringify(p1, k1) === JSON.stringify(p2, k2)
 }
 
-function queryEqual(q1: Query | undefined, q2: Query | undefined): boolean {
-  const p1 = new URLSearchParams(q1)
-  const p2 = new URLSearchParams(q2)
-  return p1.toString() === p2.toString()
+function queryEqual(
+  q1: Record<string, any> | undefined,
+  q2: Record<string, any> | undefined,
+): boolean {
+  // handles int/string: 1 !== "1"
+  return querystring.stringify(q1) === querystring.stringify(q2)
+}
+
+//------------------------------------------------------------------------------
+
+export class Values {
+  kvs: Record<string, string[]>
+
+  constructor(kvs: Record<string, any>) {
+    this.kvs = normQueryParams(kvs)
+  }
+
+  setDefault(key: string, value: any) {
+    if (!this.has(key)) {
+      this.set(key, value)
+    }
+  }
+
+  set(key: string, value: any) {
+    this.kvs[key] = normQueryParam(value)
+  }
+
+  empty(): boolean {
+    return Object.keys(this.kvs).length === 0
+  }
+
+  has(key: string): boolean {
+    return key in this.kvs
+  }
+
+  string(key: string, defValue = ''): string {
+    const value = this.kvs[key]
+    if (value) {
+      return value[0]
+    }
+    return defValue
+  }
+
+  boolean(key: string, defValue = false): boolean {
+    return ['true', '1'].includes(this.string(key, normQueryValue(defValue)))
+  }
+
+  int(key: string, defValue = 0): number {
+    return parseInt(this.string(key), 10) || defValue
+  }
+
+  array(key: string, defValue = []): string[] {
+    return this.kvs[key] ?? defValue
+  }
+
+  forEach(fn: (key: string, value: string[]) => void) {
+    for (let key in this.kvs) {
+      fn(key, this.kvs[key])
+    }
+  }
+}
+
+function normQueryParams(src: Record<string, any>): Record<string, string[]> {
+  const dest: Record<string, string[]> = {}
+  for (let key in src) {
+    dest[key] = normQueryParam(src[key])
+  }
+  return dest
+}
+
+function normQueryParam(value: any): string[] {
+  if (Array.isArray(value)) {
+    return value.map((el) => normQueryValue(el))
+  }
+  return [normQueryValue(value)]
+}
+
+function normQueryValue(value: any): string {
+  if (value === null || value === undefined) {
+    return ''
+  }
+
+  switch (typeof value) {
+    case 'string':
+      return value
+    case 'number':
+      return String(value)
+    case 'boolean':
+      return String(value)
+  }
+
+  return String(value)
 }

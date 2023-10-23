@@ -16,7 +16,7 @@
               {{ popover.annotation.name }}
             </v-col>
             <v-col cols="auto" class="text-body-2 text--secondary">
-              <XDate :date="popover.annotation.createdAt" format="relative" />
+              <DateValue :value="popover.annotation.createdAt" format="relative" />
             </v-col>
             <v-col cols="auto">
               <v-btn

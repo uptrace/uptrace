@@ -121,16 +121,15 @@ func selectMetricsFromCH(
 
 	tableName := datapointTableForWhere(app, &f.TimeFilter)
 	q := app.CH.NewSelect().
-		ColumnExpr("metric AS name").
-		ColumnExpr("any(instrument) AS instrument").
-		ColumnExpr("any(string_keys) AS attr_keys").
-		ColumnExpr("uniqCombined64(attrs_hash) AS num_timeseries").
-		TableExpr("?", tableName).
-		Where("project_id = ?", f.ProjectID).
-		Where("time >= ?", f.TimeGTE).
-		Where("time < ?", f.TimeLT).
-		GroupExpr("metric").
-		OrderExpr("metric ASC").
+		ColumnExpr("m.metric AS name").
+		ColumnExpr("anyLast(m.instrument) AS instrument").
+		ColumnExpr("uniqCombined64(m.attrs_hash) AS num_timeseries").
+		TableExpr("? AS m", tableName).
+		Where("m.project_id = ?", f.ProjectID).
+		Where("m.time >= ?", f.TimeGTE).
+		Where("m.time < ?", f.TimeLT).
+		GroupExpr("m.metric").
+		OrderExpr("name ASC").
 		Limit(limit)
 
 	if f.Instrument != "" {
@@ -145,7 +144,7 @@ func selectMetricsFromCH(
 	}
 
 	if f.Query != "" {
-		query := mql.Parse(f.Query)
+		query := mql.ParseQuery(f.Query)
 		for _, part := range query.Parts {
 			if part.Error.Wrapped != nil {
 				continue
@@ -175,19 +174,14 @@ func selectMetricsFromCH(
 		return metrics, false, nil
 	}
 
-	names := make([]string, len(metrics))
-	for i, metric := range metrics {
-		names[i] = metric.Name
-	}
-
 	if err := app.PG.NewSelect().
-		With("data", app.PG.NewValues(&metrics).WithOrder()).
-		ColumnExpr("m.id, m.unit, m.description").
+		With("data", app.PG.NewValues(&metrics).Column("name", "num_timeseries").WithOrder()).
+		ColumnExpr("m.*, data.num_timeseries").
 		Model(&metrics).
 		TableExpr("data").
 		Where("m.project_id = ?", f.ProjectID).
 		Where("m.name = data.name").
-		OrderExpr("data._order").
+		OrderExpr("data._order ASC").
 		Scan(ctx); err != nil {
 		return nil, false, err
 	}

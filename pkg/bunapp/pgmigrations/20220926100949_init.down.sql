@@ -6,6 +6,10 @@ DROP TABLE IF EXISTS projects CASCADE;
 
 --bun:split
 
+DROP TABLE IF EXISTS achievements CASCADE;
+
+--bun:split
+
 DROP TABLE IF EXISTS user_project_data CASCADE;
 
 --bun:split
@@ -43,3 +47,19 @@ DROP TABLE IF EXISTS taskq_jobs CASCADE;
 --bun:split
 
 DROP TABLE IF EXISTS annotations CASCADE;
+
+--bun:split
+
+DROP TABLE IF EXISTS dashboards CASCADE;
+
+--bun:split
+
+DROP TABLE IF EXISTS dash_grid_columns CASCADE;
+
+--bun:split
+
+DROP TABLE IF EXISTS dash_gauges CASCADE;
+
+--bun:split
+
+DROP TABLE IF EXISTS metrics CASCADE;

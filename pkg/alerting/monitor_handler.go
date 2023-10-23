@@ -124,10 +124,11 @@ func (h *MonitorHandler) countMonitorAlerts(
 		monitor := monitor
 		group.Go(func() error {
 			if err := h.PG.NewSelect().
-				ColumnExpr("count(*) filter (where state = ?)", org.AlertOpen).
-				ColumnExpr("count(*) filter (where state = ?)", org.AlertClosed).
+				ColumnExpr("count(*) filter (where event.status = ?)", org.AlertStatusOpen).
+				ColumnExpr("count(*) filter (where event.status = ?)", org.AlertStatusClosed).
 				Model((*org.BaseAlert)(nil)).
-				Where("monitor_id = ?", monitor.ID).
+				Join("JOIN alert_events AS event ON event.id = a.event_id").
+				Where("a.monitor_id = ?", monitor.ID).
 				Scan(ctx, &monitor.AlertOpenCount, &monitor.AlertClosedCount); err != nil {
 				return err
 			}
@@ -198,27 +199,12 @@ type MetricMonitorIn struct {
 func (in *MetricMonitorIn) Validate(
 	ctx context.Context, app *bunapp.App, monitor *org.MetricMonitor,
 ) error {
-	if in.Name == "" {
-		return errors.New("name can't be empty")
-	}
+	monitor.Name = in.Name
+	monitor.NotifyEveryoneByEmail = in.NotifyEveryoneByEmail
+	monitor.Params = in.Params
 
-	if len(in.Params.Metrics) == 0 {
-		return errors.New("at least one metric is required")
-	}
-	if in.Params.Query == "" {
-		return errors.New("query can't be empty")
-	}
-	if in.Params.Column == "" {
-		return errors.New("column can't be empty")
-	}
-
-	if in.Params.ForDuration == 0 {
-		return errors.New("forDuration can't be zero")
-	}
-	switch in.Params.ForDurationUnit {
-	case org.MonitorUnitMinutes, org.MonitorUnitHours:
-	default:
-		return fmt.Errorf("unsupported duration unit: %q", in.Params.ForDurationUnit)
+	if err := monitor.Validate(); err != nil {
+		return err
 	}
 
 	for _, ma := range in.Params.Metrics {
@@ -229,16 +215,12 @@ func (in *MetricMonitorIn) Validate(
 		}
 	}
 
-	monitor.Name = in.Name
-	monitor.NotifyEveryoneByEmail = in.NotifyEveryoneByEmail
-	monitor.Params = in.Params
-
 	options, err := monitor.MadalarmOptions()
 	if err != nil {
 		return err
 	}
 
-	if _, err := madalarm.Check(make([]float64, 100), options...); err != nil {
+	if _, err := madalarm.Check([]float64{}, options...); err != nil {
 		return err
 	}
 

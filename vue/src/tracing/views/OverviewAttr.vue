@@ -9,7 +9,9 @@
     <v-container fluid>
       <v-row>
         <v-col>
-          <GroupsList
+          <ApiErrorCard v-if="groups.error" :error="groups.error" />
+          <PagedGroupsCard
+            v-else
             :date-range="dateRange"
             :systems="systems.activeSystems"
             :loading="groups.loading"
@@ -30,21 +32,22 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
+import { useRouter, useSyncQueryParams } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { createUqlEditor, useQueryStore, provideQueryStore } from '@/use/uql'
+import { createQueryEditor, useQueryStore, provideQueryStore, UseUql } from '@/use/uql'
 import { useGroups } from '@/tracing/use-explore-spans'
 import { UseSystems } from '@/tracing/system/use-systems'
 
 // Components
-import GroupsList from '@/tracing/GroupsList.vue'
+import ApiErrorCard from '@/components/ApiErrorCard.vue'
+import PagedGroupsCard from '@/tracing/PagedGroupsCard.vue'
 
 // Utilities
 import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'OverviewAttr',
-  components: { GroupsList },
+  components: { ApiErrorCard, PagedGroupsCard },
 
   props: {
     dateRange: {
@@ -53,6 +56,10 @@ export default defineComponent({
     },
     systems: {
       type: Object as PropType<UseSystems>,
+      required: true,
+    },
+    uql: {
+      type: Object as PropType<UseUql>,
       required: true,
     },
   },
@@ -66,7 +73,7 @@ export default defineComponent({
     })
 
     const query = computed(() => {
-      return createUqlEditor()
+      return createQueryEditor()
         .exploreAttr(attr.value)
         .add(`max(${AttrKey.spanDuration})`)
         .add(where.value)
@@ -81,7 +88,6 @@ export default defineComponent({
         query: query.value,
       }
     })
-    groups.order.syncQueryParams()
 
     const plottedColumns = computed(() => {
       return groups.plottableColumns
@@ -93,11 +99,28 @@ export default defineComponent({
       return {
         name: 'SpanGroupList',
         query: {
+          ...props.systems.queryParams(),
           ...groups.order.queryParams(),
-          system: props.systems.activeSystems,
           query: query.value,
         },
       }
+    })
+
+    useSyncQueryParams({
+      fromQuery(queryParams) {
+        props.dateRange.parseQueryParams(queryParams)
+        props.systems.parseQueryParams(queryParams)
+        props.uql.parseQueryParams(queryParams)
+        groups.order.parseQueryParams(queryParams)
+      },
+      toQuery() {
+        return {
+          ...props.dateRange.queryParams(),
+          ...props.systems.queryParams(),
+          ...props.uql.queryParams(),
+          ...groups.order.queryParams(),
+        }
+      },
     })
 
     return {

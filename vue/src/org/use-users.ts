@@ -49,7 +49,7 @@ export const useUser = defineStore(() => {
   getOrLoad()
 
   function reload() {
-    req = request({ url: '/api/v1/users/current' })
+    req = request({ url: '/internal/v1/users/current' })
     return req
   }
 
@@ -61,7 +61,7 @@ export const useUser = defineStore(() => {
   }
 
   function logout() {
-    return request({ method: 'POST', url: '/api/v1/users/logout' }).then(() => {
+    return request({ method: 'POST', url: '/internal/v1/users/logout' }).then(() => {
       reload().finally(() => {
         redirectToLogin()
       })
@@ -92,7 +92,7 @@ interface SsoMethod {
 
 export function useSso() {
   const { loading, data } = useWatchAxios(() => {
-    return { url: '/api/v1/sso/methods' }
+    return { url: '/internal/v1/sso/methods' }
   })
 
   const methods = computed((): SsoMethod[] => {

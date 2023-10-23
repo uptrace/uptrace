@@ -13,7 +13,11 @@
         <v-row align="end" class="mb-2 px-4 text-subtitle-2 text-center">
           <v-col cols="auto">
             <div class="grey--text font-weight-regular">Updated at</div>
-            <XDate v-if="monitor.data.updatedAt" :date="monitor.data.updatedAt" format="relative" />
+            <DateValue
+              v-if="monitor.data.updatedAt"
+              :value="monitor.data.updatedAt"
+              format="relative"
+            />
             <div v-else>None</div>
           </v-col>
           <v-col cols="auto">
@@ -68,7 +72,7 @@ import { defineComponent, computed, reactive } from 'vue'
 
 // Composables
 import { useTitle } from '@vueuse/core'
-import { useRouter } from '@/use/router'
+import { useRouterOnly, useSyncQueryParams } from '@/use/router'
 import { useDateRange } from '@/use/date-range'
 import { useProject } from '@/org/use-projects'
 import { useErrorMonitor, useMonitorManager, MonitorState } from '@/alerting/use-monitors'
@@ -88,11 +92,8 @@ export default defineComponent({
 
   setup() {
     useTitle('Metrics Monitor')
-    const { router } = useRouter()
-
+    const router = useRouterOnly()
     const dateRange = useDateRange()
-    dateRange.syncQueryParams()
-
     const project = useProject()
 
     const breadcrumbs = computed(() => {
@@ -121,6 +122,17 @@ export default defineComponent({
 
     const monitor = useErrorMonitor()
     const monitorMan = useMonitorManager()
+
+    useSyncQueryParams({
+      fromQuery(queryParams) {
+        dateRange.parseQueryParams(queryParams)
+      },
+      toQuery() {
+        return {
+          ...dateRange.queryParams(),
+        }
+      },
+    })
 
     function onSave() {
       redirectToMonitors()

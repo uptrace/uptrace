@@ -1,0 +1,163 @@
+schema: v1
+id: uptrace.hikaricp.pool
+name: 'DB: HikariCP pool'
+
+table:
+  gauges:
+    - name: Connections
+      description: Average number of connections on each app
+      metrics:
+        - hikaricp.connections as $connections
+      query:
+        - $connections
+    - name: Slowest query
+      description: Maximum query duration
+      metrics:
+        - hikaricp.connections.usage as $usage
+      query:
+        - max($usage)
+      columns:
+        max($usage):
+          unit: milliseconds
+
+  metrics:
+    - hikaricp.connections as $conns
+    - hikaricp.connections.usage as $usage
+    - hikaricp.connections.active as $active_conns
+  query:
+    - group by deployment.environment
+    - group by host.name
+    - group by application
+    - $conns
+    - per_min(count($usage)) as queries_per_min
+    - avg($usage) as query_dur
+    - $active_conns
+  columns:
+    query_dur:
+      unit: milliseconds
+
+grid:
+  gauges:
+    - name: Connections
+      description: Average number of connections on each app
+      metrics:
+        - hikaricp.connections as $connections
+      query:
+        - $connections
+
+    - name: Slowest query
+      description: Maximum query duration
+      metrics:
+        - hikaricp.connections.usage as $usage
+      query:
+        - max($usage)
+      columns:
+        max($usage):
+          unit: milliseconds
+
+  columns:
+    - name: Number of queries per minute
+      chart: area
+      metrics:
+        - hikaricp.connections.usage as $usage
+      query:
+        - per_min(count($usage))
+
+    - name: Avg query duration
+      type: chart
+      chart: area
+      metrics:
+        - hikaricp.connections.usage as $usage
+      query:
+        - avg($usage)
+      columns:
+        avg($usage):
+          unit: milliseconds
+
+    - name: Established connections
+      chart: stacked-area
+      metrics:
+        - hikaricp.connections as $connections
+      query:
+        - $connections
+
+    - name: Maximum duration of connection creation
+      chart: stacked-area
+      metrics:
+        - hikaricp.connections.creation.max as $max
+      query:
+        - $max
+      columns:
+        max:
+          unit: milliseconds
+
+    - name: Pending connections
+      chart: stacked-area
+      metrics:
+        - hikaricp.connections.pending as $pending
+      query:
+        - $pending
+
+    - name: Number of max connections
+      type: chart
+      chart: stacked-area
+      metrics:
+        - hikaricp.connections.max as $max
+      query:
+        - $max
+
+    - name: Idle (unused) connections
+      chart: stacked-area
+      metrics:
+        - hikaricp.connections.idle as $idle
+      query:
+        - $idle
+
+    - name: Active (in-use) connections
+      chart: stacked-area
+      metrics:
+        - hikaricp.connections.active as $active
+      query:
+        - $active
+
+    - name: Number of min connections
+      chart: stacked-area
+      metrics:
+        - hikaricp.connections.min as $min
+      query:
+        - $min
+
+    - name: Max connection usage duration
+      chart: stacked-area
+      metrics:
+        - hikaricp.connections.usage.max as $max
+      query:
+        - $max
+      columns:
+        max:
+          unit: milliseconds
+
+    - name: Max time taken to acquire database connection
+      chart: stacked-area
+      metrics:
+        - hikaricp.connections.acquire.max as $max
+      query:
+        - $max
+      columns:
+        max:
+          unit: milliseconds
+
+    - name: Сonnection usage duration
+      type: heatmap
+      metric: hikaricp.connections.usage
+      unit: milliseconds
+
+    - name: Time it took to create a new connection
+      type: heatmap
+      metric: hikaricp.connections.creation
+      unit: milliseconds
+
+    - name: Time taken to acquire database connection
+      type: heatmap
+      metric: hikaricp.connections.acquire
+      unit: milliseconds

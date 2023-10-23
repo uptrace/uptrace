@@ -1,6 +1,6 @@
 import { shallowRef, computed, watch, proxyRefs } from 'vue'
 
-import { useRouteQuery } from '@/use/router'
+import { Values } from '@/use/router'
 
 export interface Order {
   column: string
@@ -9,16 +9,12 @@ export interface Order {
 
 export type UseOrder = ReturnType<typeof useOrder>
 
-export function useOrder(conf: Partial<Order> = {}) {
-  conf.column = conf.column ?? ''
-  conf.desc = conf.desc ?? true
-
-  const column = shallowRef<string | undefined>(conf.column)
-  const desc = shallowRef(conf.desc)
+export function useOrder() {
+  const column = shallowRef<string>('')
+  const desc = shallowRef(true)
 
   const axiosParams = shallowRef({})
   let watchPaused = false
-  const ignoreAxiosParamsEnabled = shallowRef(false)
 
   const icon = computed(() => {
     return desc.value ? 'mdi-arrow-down' : 'mdi-arrow-up'
@@ -31,10 +27,6 @@ export function useOrder(conf: Partial<Order> = {}) {
         params.sort_by = column.value
         params.sort_desc = desc.value
       }
-      if (ignoreAxiosParamsEnabled.value) {
-        params.$ignore_sort_by = true
-        params.$ignore_sort_desc = true
-      }
       return params
     },
     (params) => {
@@ -45,42 +37,19 @@ export function useOrder(conf: Partial<Order> = {}) {
     { immediate: true, flush: 'sync' },
   )
 
-  function syncQueryParams() {
-    useRouteQuery().sync({
-      fromQuery(params) {
-        if (params.sort_by) {
-          column.value = params.sort_by
-          desc.value = params.sort_desc === true
-        }
-      },
-      toQuery() {
-        return queryParams()
-      },
-    })
-  }
-
   function queryParams() {
     if (column.value) {
       return {
         sort_by: column.value,
-        sort_desc: desc.value ? true : false,
+        sort_desc: desc.value,
       }
     }
     return {}
   }
 
-  function parseQueryParams(params: Record<string, any>) {
-    if (!Object.keys(params)) {
-      return
-    }
-
-    const sortBy = params['sort_by']
-    if (!sortBy) {
-      return
-    }
-
-    column.value = sortBy
-    desc.value = true
+  function parseQueryParams(queryParams: Values) {
+    column.value = queryParams.string('sort_by')
+    desc.value = queryParams.boolean('sort_desc', true)
   }
 
   function change(order: Order): boolean {
@@ -132,15 +101,14 @@ export function useOrder(conf: Partial<Order> = {}) {
     icon,
 
     axiosParams,
-    ignoreAxiosParamsEnabled,
     withPausedWatch,
 
-    syncQueryParams,
-    queryParams,
-    parseQueryParams,
     change,
     reset,
     toggle,
     thClass,
+
+    queryParams,
+    parseQueryParams,
   })
 }

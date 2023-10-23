@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/uptrace/uptrace/pkg/uuid"
@@ -33,18 +33,15 @@ func createErrorAlertHandler(
 
 	baseAlert := &org.BaseAlert{
 		ProjectID: projectID,
-		DedupHash: groupID,
 
-		Name:  span.DisplayName,
-		State: org.AlertOpen,
+		Name:      span.DisplayName,
+		DedupHash: groupID,
+		Attrs:     alertAttrs(span),
 
 		TrackableModel: org.ModelSpanGroup,
 		TrackableID:    groupID,
-		Attrs:          alertAttrs(span),
 
 		Type: org.AlertError,
-
-		CreatedAt: span.Time,
 	}
 
 	alert, err := selectErrorAlert(ctx, app, baseAlert)
@@ -53,10 +50,11 @@ func createErrorAlertHandler(
 	}
 
 	if alert == nil {
-		alert = &ErrorAlert{
-			BaseAlert: baseAlert,
-		}
-		alert.BaseAlert.Params.Any = &alert.Params
+		baseAlert.Event = new(org.AlertEvent)
+		alert = NewErrorAlertBase(baseAlert)
+
+		alert.Event.Status = org.AlertStatusOpen
+		alert.Event.Time = span.Time
 
 		alert.Params.TraceID = traceID
 		alert.Params.SpanID = spanID
@@ -65,60 +63,49 @@ func createErrorAlertHandler(
 		return createAlert(ctx, app, alert)
 	}
 
-	spanCount, spanCountTime, err := countAlertSpans(ctx, app, alert, span)
+	spanCount, err := countAlertSpans(ctx, app, alert, span)
 	if err != nil {
 		return err
 	}
 
 	spanCountThreshold := nextSpanCountThreshold(alert.Params.SpanCount)
-	triggered := spanCount >= spanCountThreshold || alert.State == org.AlertClosed
+	triggered := spanCount >= spanCountThreshold || alert.Event.Status == org.AlertStatusClosed
 
-	newParams := alert.Params.Clone()
-	newParams.SpanCount = spanCount
-	newParams.SpanCountTime = spanCountTime
-	if triggered {
-		newParams.TraceID = traceID
-		newParams.SpanID = spanID
-	}
+	alert.Params.TraceID = traceID
+	alert.Params.SpanID = spanID
+	alert.Params.SpanCount = spanCount
 
-	q := app.PG.NewUpdate().
-		Model(alert).
-		Set("params = ?", newParams).
-		Where("id = ?", alert.ID).
-		Where("state = ?", alert.State).
-		Where("params = ?", alert.Params).
-		Returning("state, params, updated_at")
-
-	if triggered {
-		q = q.Set("state = ?", org.AlertOpen).
-			Set("updated_at = ?", span.Time)
-	}
-
-	res, err := q.Exec(ctx)
-	if err != nil {
-		return err
-	}
-
-	n, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if n == 0 {
+	if !triggered {
+		// Update the alert so it is not deleted.
+		if _, err := app.PG.NewUpdate().
+			Model(alert.Event).
+			Set("params = ?", alert.Params).
+			Set("time = ?", span.Time).
+			Set("created_at = ?", span.Time).
+			Where("id = ?", alert.Event.ID).
+			Exec(ctx); err != nil {
+			return err
+		}
 		return nil
 	}
 
-	if triggered {
-		if err := createAlertEvent(ctx, app, alert, &org.AlertEvent{
-			ProjectID: alert.ProjectID,
-			AlertID:   alert.ID,
-			Name:      org.AlertEventRecurring,
-			Params:    bunutil.Params{Any: alert.Params},
-		}); err != nil {
+	return createAlertEvent(ctx, app, alert, func(tx bun.Tx) error {
+		event := alert.Event.Clone()
+		event.Name = org.AlertEventRecurring
+		event.Status = org.AlertStatusOpen
+		event.Time = span.Time
+		event.CreatedAt = span.Time
+
+		if err := org.InsertAlertEvent(ctx, tx, event); err != nil {
 			return err
 		}
-	}
 
-	return nil
+		if err := updateAlertEvent(ctx, tx, alert.Base(), event); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func alertAttrs(span *tracing.Span) map[string]string {
@@ -174,8 +161,8 @@ func addSpanAttrs(attrs map[string]string, span *tracing.Span, keys ...string) {
 
 func countAlertSpans(
 	ctx context.Context, app *bunapp.App, alert *ErrorAlert, span *tracing.Span,
-) (uint64, time.Time, error) {
-	timeGTE := alert.Params.SpanCountTime
+) (uint64, error) {
+	timeGTE := alert.CreatedAt
 	timeLT := time.Now().Add(-time.Minute).Truncate(time.Minute)
 
 	var spanCount uint64
@@ -189,14 +176,20 @@ func countAlertSpans(
 		Where("s.time >= ?", timeGTE).
 		Where("s.time < ?", timeLT).
 		Scan(ctx, &spanCount); err != nil {
-		return 0, time.Time{}, err
+		return 0, err
 	}
 
-	if !alert.Params.SpanCountTime.IsZero() {
-		spanCount += alert.Params.SpanCount
-	}
+	return spanCount, nil
+}
 
-	return spanCount, timeLT, nil
+func selectErrorAlert(
+	ctx context.Context, app *bunapp.App, alert *org.BaseAlert,
+) (*ErrorAlert, error) {
+	dest := NewErrorAlert()
+	if err := selectMatchingAlert(ctx, app, alert, dest); err != nil {
+		return nil, err
+	}
+	return dest, nil
 }
 
 func nextSpanCountThreshold(n uint64) uint64 {

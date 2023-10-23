@@ -7,12 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/codemodus/kace"
 	"github.com/segmentio/encoding/json"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 
 	"github.com/uptrace/bun"
+	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/pgquery"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
@@ -20,6 +20,11 @@ import (
 type OrderByMixin struct {
 	SortBy   string
 	SortDesc bool
+}
+
+func (f *OrderByMixin) Reset() {
+	f.SortBy = ""
+	f.SortDesc = true
 }
 
 var _ json.Marshaler = (*OrderByMixin)(nil)
@@ -37,11 +42,18 @@ func (f *OrderByMixin) UnmarshalValues(ctx context.Context, values url.Values) e
 	return nil
 }
 
+func (f *OrderByMixin) CHOrder(q *ch.SelectQuery) *ch.SelectQuery {
+	if f.SortBy == "" {
+		return q
+	}
+	return q.OrderExpr("? ?", ch.Name(f.SortBy), ch.Safe(f.SortDir()))
+}
+
 func (f *OrderByMixin) PGOrder(q *bun.SelectQuery) *bun.SelectQuery {
 	if f.SortBy == "" {
 		return q
 	}
-	return q.Order(kace.Snake(f.SortBy) + " " + f.SortDir() + " NULLS LAST")
+	return q.OrderExpr("? ? NULLS LAST", bun.Name(f.SortBy), bun.Safe(f.SortDir()))
 }
 
 func (f OrderByMixin) SortDir() string {

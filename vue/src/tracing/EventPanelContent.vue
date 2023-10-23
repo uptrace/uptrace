@@ -8,7 +8,7 @@
 
       <v-col cols="auto">
         <div class="grey--text font-weight-regular">Time</div>
-        <XDate :date="event.time" format="full" />
+        <DateValue :value="event.time" format="full" />
       </v-col>
 
       <v-col cols="auto">
@@ -57,7 +57,7 @@ import { defineComponent, PropType, computed } from 'vue'
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { usePercentiles } from '@/use/percentiles'
-import { createUqlEditor } from '@/use/uql'
+import { createQueryEditor } from '@/use/uql'
 import { Annotation } from '@/org/use-annotations'
 
 // Components
@@ -97,7 +97,7 @@ export default defineComponent({
       }
       const { projectId } = route.value.params
       return {
-        url: `/api/v1/tracing/${projectId}/percentiles`,
+        url: `/internal/v1/tracing/${projectId}/percentiles`,
         params: {
           ...props.dateRange.axiosParams(),
           system: props.event.system,
@@ -115,7 +115,7 @@ export default defineComponent({
         query: {
           ...props.dateRange.queryParams(),
           system: props.event.system,
-          query: createUqlEditor()
+          query: createQueryEditor()
             .exploreAttr(AttrKey.spanGroupId, true)
             .where(AttrKey.spanGroupId, '=', props.event.groupId)
             .toString(),

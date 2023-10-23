@@ -10,6 +10,8 @@ import (
 	"strconv"
 
 	"github.com/segmentio/encoding/json"
+	"github.com/uptrace/bun/driver/pgdriver"
+	"github.com/uptrace/go-clickhouse/ch"
 )
 
 var ErrRequestTimeout = New(http.StatusRequestTimeout,
@@ -93,6 +95,10 @@ func InternalServerError(msg string, args ...any) Error {
 	return New(http.StatusInternalServerError, "internal", msg, args...)
 }
 
+func Timeout(msg string, args ...any) Error {
+	return New(http.StatusGatewayTimeout, "timeout", msg, args...)
+}
+
 //------------------------------------------------------------------------------
 
 var errType = reflect.TypeOf(errors.New(""))
@@ -107,6 +113,13 @@ func From(err error) Error {
 		return BadRequest("json_unmarshal", err.Error())
 	case *strconv.NumError:
 		return BadRequest("strconv_num", err.Error())
+	case pgdriver.Error:
+		return internalError(err)
+	case *ch.Error:
+		if err.Timeout() {
+			return Timeout(err.Message)
+		}
+		return internalError(err)
 	}
 
 	msg := err.Error()

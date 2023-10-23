@@ -2,7 +2,7 @@ import { cloneDeep, orderBy } from 'lodash-es'
 import { shallowRef, computed, proxyRefs } from 'vue'
 
 // Composables
-import { useRoute, useRouteQuery } from '@/use/router'
+import { useRoute, Values } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
 
 // Utilities
@@ -34,7 +34,7 @@ export function useSystems(params: () => Record<string, any>) {
   const { loading, data } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/tracing/${projectId}/systems`,
+      url: `/internal/v1/tracing/${projectId}/systems`,
       params: params(),
     }
   })
@@ -73,17 +73,8 @@ export function useSystems(params: () => Record<string, any>) {
     return isEventSystem(...activeSystems.value)
   })
 
-  function syncQueryParams() {
-    useRouteQuery().sync({
-      fromQuery(queryParams) {
-        activeSystems.value = queryParams.system ?? []
-      },
-      toQuery() {
-        if (activeSystems.value.length) {
-          return { system: activeSystems.value }
-        }
-      },
-    })
+  function reset(): void {
+    activeSystems.value = []
   }
 
   function axiosParams() {
@@ -93,13 +84,11 @@ export function useSystems(params: () => Record<string, any>) {
   }
 
   function queryParams() {
-    return {
-      system: activeSystems.value,
-    }
+    return { system: activeSystems.value }
   }
 
-  function reset(): void {
-    activeSystems.value = []
+  function parseQueryParams(queryParams: Values) {
+    activeSystems.value = queryParams.array('system')
   }
 
   return proxyRefs({
@@ -111,10 +100,11 @@ export function useSystems(params: () => Record<string, any>) {
     activeSystems,
     isEvent,
 
-    axiosParams,
-    queryParams,
     reset,
-    syncQueryParams,
+    axiosParams,
+
+    queryParams,
+    parseQueryParams,
   })
 }
 

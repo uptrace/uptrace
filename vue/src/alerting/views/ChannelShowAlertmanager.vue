@@ -45,7 +45,7 @@ export default defineComponent({
     const channel = useAlertmanagerNotifChannel(() => {
       const { projectId, channelId } = route.value.params
       return {
-        url: `/api/v1/projects/${projectId}/notification-channels/webhook/${channelId}`,
+        url: `/internal/v1/projects/${projectId}/notification-channels/webhook/${channelId}`,
       }
     })
 

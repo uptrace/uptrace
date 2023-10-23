@@ -1,5 +1,12 @@
 <template>
-  <v-btn-toggle :value="activeGroupSystem" group color="blue accent-3">
+  <v-btn-toggle
+    :value="activeGroupSystem"
+    mandatory
+    group
+    :dense="$vuetify.breakpoint.mdAndDown"
+    borderless
+    color="blue accent-3"
+  >
     <v-btn
       v-for="group in groups"
       :key="group.system"
@@ -15,7 +22,7 @@
 import { defineComponent, computed, watch, PropType } from 'vue'
 
 // Composables
-import { createUqlEditor, useQueryStore } from '@/use/uql'
+import { createQueryEditor, useQueryStore } from '@/use/uql'
 import { addAllSystem, System } from '@/tracing/system/use-systems'
 
 // Utilities
@@ -136,7 +143,7 @@ export default defineComponent({
       (systemItems) => {
         ctx.emit('update:systems', systemItems)
       },
-      { flush: 'sync' },
+      { immediate: true, flush: 'sync' },
     )
 
     const { where } = useQueryStore()
@@ -145,7 +152,7 @@ export default defineComponent({
         name: 'SpanGroupList',
         query: {
           system,
-          query: createUqlEditor()
+          query: createQueryEditor()
             .exploreAttr(AttrKey.spanGroupId, isEventSystem(system))
             .add(where.value)
             .toString(),

@@ -16,7 +16,7 @@ func init() {
 		for i := range conf.MetricsFromSpans {
 			metric := &conf.MetricsFromSpans[i]
 			viewName := metric.ViewName()
-			if _, err := db.ExecContext(ctx, "DROP VIEW IF EXISTS ?", ch.Ident(viewName)); err != nil {
+			if _, err := db.ExecContext(ctx, "DROP VIEW IF EXISTS ?", ch.Name(viewName)); err != nil {
 				return err
 			}
 		}

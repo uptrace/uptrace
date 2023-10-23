@@ -30,25 +30,25 @@
           v-if="values.indexOf(LegendValue.Avg) >= 0"
           class="text-right text-caption font-weight-medium"
         >
-          <XNum :value="item.avg" :unit="item.unit" short />
+          <NumValue :value="item.avg" :unit="item.unit" short />
         </td>
         <td
           v-if="values.indexOf(LegendValue.Last) >= 0"
           class="text-right text-caption font-weight-medium"
         >
-          <XNum :value="item.last" :unit="item.unit" short />
+          <NumValue :value="item.last" :unit="item.unit" short />
         </td>
         <td
           v-if="values.indexOf(LegendValue.Min) >= 0"
           class="text-right text-caption font-weight-medium"
         >
-          <XNum :value="item.min" :unit="item.unit" short />
+          <NumValue :value="item.min" :unit="item.unit" short />
         </td>
         <td
           v-if="values.indexOf(LegendValue.Max) >= 0"
           class="text-right text-caption font-weight-medium"
         >
-          <XNum :value="item.max" :unit="item.unit" short />
+          <NumValue :value="item.max" :unit="item.unit" short />
         </td>
         <td v-if="showExpand">
           <v-btn v-if="isExpanded" icon title="Hide spans" @click.stop="expand(false)">

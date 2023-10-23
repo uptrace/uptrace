@@ -21,7 +21,7 @@ type User struct {
 	ID uint64 `json:"id" bun:",pk,autoincrement"`
 
 	Email    string `json:"email" bun:",nullzero"`
-	Password string `json:"-" bun:",nullzero"`
+	Password string `json:"-" bun:"-"`
 
 	Name   string `json:"name" bun:",nullzero"`
 	Avatar string `json:"avatar" bun:",nullzero"`
@@ -118,7 +118,6 @@ func GetOrCreateUser(ctx context.Context, app *bunapp.App, user *User) error {
 		Model(user).
 		On("CONFLICT (email) DO UPDATE").
 		Set("name = coalesce(EXCLUDED.name, u.name)").
-		Set("password = coalesce(EXCLUDED.password, u.password)").
 		Set("avatar = EXCLUDED.avatar").
 		Set("updated_at = now()").
 		Returning("*").

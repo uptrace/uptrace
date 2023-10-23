@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	facetKeyState = "alert.state"
-	facetKeyType  = "alert.type"
+	facetKeyStatus = "alert.status"
+	facetKeyType   = "alert.type"
 )
 
 type AlertHandler struct {
@@ -77,15 +77,15 @@ func (h *AlertHandler) Delete(w http.ResponseWriter, req bunrouter.Request) erro
 }
 
 func (h *AlertHandler) Close(w http.ResponseWriter, req bunrouter.Request) error {
-	return h.updateAlertsState(w, req, org.AlertClosed)
+	return h.updateAlertsStatus(w, req, org.AlertStatusClosed)
 }
 
 func (h *AlertHandler) Open(w http.ResponseWriter, req bunrouter.Request) error {
-	return h.updateAlertsState(w, req, org.AlertOpen)
+	return h.updateAlertsStatus(w, req, org.AlertStatusOpen)
 }
 
-func (h *AlertHandler) updateAlertsState(
-	w http.ResponseWriter, req bunrouter.Request, state org.AlertState,
+func (h *AlertHandler) updateAlertsStatus(
+	w http.ResponseWriter, req bunrouter.Request, status org.AlertStatus,
 ) error {
 	ctx := req.Context()
 	user := org.UserFromContext(ctx)
@@ -106,7 +106,7 @@ func (h *AlertHandler) updateAlertsState(
 	}
 
 	for _, alertID := range in.AlertIDs {
-		if err := h.updateAlertState(ctx, user, project.ID, alertID, state); err != nil {
+		if err := h.changeAlertStatus(ctx, user.ID, project.ID, alertID, status); err != nil {
 			return err
 		}
 	}
@@ -114,8 +114,8 @@ func (h *AlertHandler) updateAlertsState(
 	return httputil.JSON(w, bunrouter.H{})
 }
 
-func (h *AlertHandler) updateAlertState(
-	ctx context.Context, user *org.User, projectID uint32, alertID uint64, state org.AlertState,
+func (h *AlertHandler) changeAlertStatus(
+	ctx context.Context, userID uint64, projectID uint32, alertID uint64, status org.AlertStatus,
 ) error {
 	alert, err := SelectAlert(ctx, h.App, alertID)
 	if err != nil {
@@ -126,16 +126,16 @@ func (h *AlertHandler) updateAlertState(
 	if baseAlert.ProjectID != projectID {
 		return httperror.Forbidden("you don't have enough permissions to update this alert")
 	}
-	if baseAlert.State == state {
+	if baseAlert.Event.Status == status {
 		return nil
 	}
 
-	if err := updateAlertState(
+	if err := changeAlertStatus(
 		ctx,
 		h.App,
 		alert,
-		state,
-		user.ID,
+		status,
+		userID,
 	); err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func (h *AlertHandler) List(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	alerts, count, err := SelectAlerts(ctx, h.App, f)
+	alerts, count, err := h.selectAlerts(ctx, f)
 	if err != nil {
 		return err
 	}
@@ -168,6 +168,24 @@ func (h *AlertHandler) List(w http.ResponseWriter, req bunrouter.Request) error 
 	})
 }
 
+func (h *AlertHandler) selectAlerts(
+	ctx context.Context, f *AlertFilter,
+) ([]*org.BaseAlert, int, error) {
+	alerts := make([]*org.BaseAlert, 0)
+	count, err := h.PG.NewSelect().
+		Model(&alerts).
+		Relation("Event").
+		Where("event.id IS NOT NULL").
+		Apply(f.WhereClause).
+		Apply(f.PGOrder).
+		Limit(1000).
+		ScanAndCount(ctx)
+	if err != nil {
+		return nil, count, err
+	}
+	return alerts, count, nil
+}
+
 func selectAlertFacets(
 	ctx context.Context, app *bunapp.App, f *AlertFilter,
 ) ([]*org.Facet, error) {
@@ -178,7 +196,7 @@ func selectAlertFacets(
 
 	delete(facetMap, facetKeyType)
 
-	stateFacet, err := selectAlertStateFacet(ctx, app, f)
+	statusFacet, err := selectAlertStatusFacet(ctx, app, f)
 	if err != nil {
 		return nil, err
 	}
@@ -189,8 +207,8 @@ func selectAlertFacets(
 	}
 
 	var facets []*org.Facet
-	if len(stateFacet.Items) > 0 {
-		facets = append(facets, stateFacet)
+	if len(statusFacet.Items) > 0 {
+		facets = append(facets, statusFacet)
 	}
 	if len(typeFacet.Items) > 0 {
 		facets = append(facets, typeFacet)
@@ -222,7 +240,7 @@ func selectAlertFacetMap(
 
 		newFacetMap, err := selectAlertFacetsForAttr(ctx, app, f, attrKey)
 		if err != nil {
-			app.Zap(ctx).Error("_selectAlertFacetsForAttr failed", zap.Error(err))
+			app.Zap(ctx).Error("selectAlertFacetsForAttr failed", zap.Error(err))
 			continue
 		}
 
@@ -273,35 +291,44 @@ func selectAlertFacetsForAttr(
 	return org.BuildFacetMap(items), nil
 }
 
-func selectAlertStateFacet(
+func selectAlertStatusFacet(
 	ctx context.Context, app *bunapp.App, f *AlertFilter,
 ) (*org.Facet, error) {
 	f = f.Clone()
-	f.State = nil
+	f.Status = nil
 
 	var items []*org.FacetItem
 
 	if err := app.PG.NewSelect().
-		ColumnExpr("? AS key", facetKeyState).
-		ColumnExpr("state AS value").
-		ColumnExpr("count(*) AS count").
 		Model((*org.BaseAlert)(nil)).
+		Join("JOIN alert_events AS event ON event.id = a.event_id").
+		ColumnExpr("? AS key", facetKeyStatus).
+		ColumnExpr("event.status AS value").
+		ColumnExpr("count(*) AS count").
 		Apply(f.WhereClause).
-		GroupExpr("state").
+		GroupExpr("event.status").
 		OrderExpr("value ASC").
 		Scan(ctx, &items); err != nil {
 		return nil, err
 	}
 
+	if len(items) > 0 && !hasOpenStatus(items) {
+		items = append(items, &org.FacetItem{
+			Key:   facetKeyStatus,
+			Value: string(org.AlertStatusOpen),
+			Count: 0,
+		})
+	}
+
 	return &org.Facet{
-		Key:   facetKeyState,
+		Key:   facetKeyStatus,
 		Items: items,
 	}, nil
 }
 
-func hasOpenState(items []*org.FacetItem) bool {
+func hasOpenStatus(items []*org.FacetItem) bool {
 	for _, item := range items {
-		if item.Value == string(org.AlertOpen) {
+		if item.Value == string(org.AlertStatusOpen) {
 			return true
 		}
 	}
@@ -317,10 +344,11 @@ func selectAlertTypeFacet(
 	var items []*org.FacetItem
 
 	if err := app.PG.NewSelect().
+		Model((*org.BaseAlert)(nil)).
+		Join("JOIN alert_events AS event ON event.id = a.event_id").
 		ColumnExpr("? AS key", facetKeyType).
 		ColumnExpr("type AS value").
 		ColumnExpr("count(*) AS count").
-		Model((*org.BaseAlert)(nil)).
 		Apply(f.WhereClause).
 		GroupExpr("type").
 		OrderExpr("value ASC").

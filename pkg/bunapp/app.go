@@ -257,7 +257,7 @@ func (app *App) initRouter() {
 			})
 	}
 
-	app.apiGroup = app.routerGroup.NewGroup("/api/v1")
+	app.apiGroup = app.routerGroup.NewGroup("/internal/v1")
 }
 
 func (app *App) newRouter(opts ...bunrouter.Option) *bunrouter.Router {
@@ -286,15 +286,26 @@ func (app *App) httpErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFu
 			return nil
 		}
 
+		ctx := req.Context()
 		httpErr := httperror.From(err)
 		statusCode := httpErr.HTTPStatusCode()
 
-		if statusCode >= 400 {
-			trace.SpanFromContext(req.Context()).RecordError(err)
+		data := map[string]any{
+			"statusCode": statusCode,
+			"error":      httpErr,
+		}
+
+		if span := trace.SpanFromContext(ctx); span.IsRecording() {
+			if statusCode >= 400 {
+				trace.SpanFromContext(ctx).RecordError(err)
+			}
+
+			traceID := span.SpanContext().TraceID()
+			data["traceId"] = traceID
 		}
 
 		w.WriteHeader(statusCode)
-		_ = bunrouter.JSON(w, httpErr)
+		_ = bunrouter.JSON(w, data)
 
 		return err
 	}
@@ -401,7 +412,6 @@ func (app *App) newCH() *ch.DB {
 	if settings == nil {
 		settings = make(map[string]any)
 	}
-	settings["prefer_column_name_to_alias"] = 1
 	if seconds := int(chConf.MaxExecutionTime.Seconds()); seconds > 0 {
 		settings["max_execution_time"] = seconds
 	}
@@ -472,13 +482,6 @@ func (app *App) RegisterTask(name string, conf *taskq.TaskConfig) *taskq.Task {
 		conf.RetryLimit = 16
 	}
 	return taskq.RegisterTask(name, conf)
-}
-
-func (app *App) DistTable(tableName string) ch.Ident {
-	if app.conf.CHSchema.Cluster != "" {
-		return ch.Ident(tableName + "_dist")
-	}
-	return ch.Ident(tableName)
 }
 
 func (app *App) SiteURL(path string, args ...any) string {

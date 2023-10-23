@@ -41,10 +41,16 @@ import TraceFind from '@/tracing/views/TraceFind.vue'
 import SpanShow from '@/tracing/views/SpanShow.vue'
 
 import MetricsLayout from '@/metrics/views/Layout.vue'
-import MetricsDash from '@/metrics/views/Dashboard.vue'
 import MetricsExplore from '@/metrics/views/Explore.vue'
 import MetricsHelp from '@/metrics/views/Help.vue'
 import MetricsCheatsheet from '@/metrics/views/Cheatsheet.vue'
+
+import Dashboard from '@/metrics/views/Dashboard.vue'
+import DashboardLoading from '@/metrics/views/DashboardLoading.vue'
+import DashboardTable from '@/metrics/views/DashboardTable.vue'
+import DashboardGrid from '@/metrics/views/DashboardGrid.vue'
+import DashboardYaml from '@/metrics/views/DashboardYaml.vue'
+import DashboardHelp from '@/metrics/views/DashboardHelp.vue'
 
 import Login from '@/views/Login.vue'
 import UserProfile from '@/org/views/UserProfile.vue'
@@ -106,12 +112,6 @@ const routes: RouteConfig[] = [
         name: 'MonitorList',
         path: 'monitors',
         components: { alerting: MonitorList },
-      },
-
-      {
-        name: 'NotifChannelEmail',
-        path: 'email',
-        components: { alerting: EmailNotifications },
       },
 
       {
@@ -281,13 +281,39 @@ const routes: RouteConfig[] = [
     children: [
       {
         path: '',
-        name: 'MetricsDashList',
-        components: { metrics: MetricsDash },
+        name: 'DashboardList',
+        components: { metrics: Dashboard },
       },
       {
         path: ':dashId(\\d+)',
-        name: 'MetricsDashShow',
-        components: { metrics: MetricsDash },
+        components: { metrics: Dashboard },
+        children: [
+          {
+            path: '',
+            name: 'DashboardShow',
+            components: { tab: DashboardLoading },
+          },
+          {
+            path: 'table',
+            name: 'DashboardTable',
+            components: { tab: DashboardTable },
+          },
+          {
+            path: 'grid',
+            name: 'DashboardGrid',
+            components: { tab: DashboardGrid },
+          },
+          {
+            path: 'yaml',
+            name: 'DashboardYaml',
+            components: { tab: DashboardYaml },
+          },
+          {
+            path: 'help',
+            name: 'DashboardHelp',
+            components: { tab: DashboardHelp },
+          },
+        ],
       },
       {
         path: 'explore',
@@ -308,7 +334,7 @@ const routes: RouteConfig[] = [
   },
   {
     path: '/metrics',
-    beforeEnter: redirectToProject('MetricsDashList'),
+    beforeEnter: redirectToProject('DashboardList'),
   },
 
   { path: '*', component: NotFoundPage },

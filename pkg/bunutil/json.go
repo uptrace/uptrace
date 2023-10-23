@@ -31,9 +31,27 @@ func IsJSON(s string) (map[string]any, bool) {
 
 //------------------------------------------------------------------------------
 
-type NullFloat64 struct {
-	sql.NullFloat64
+type NullFloat64 sql.NullFloat64
+
+func Float64(f float64) NullFloat64 {
+	var v NullFloat64
+	v.Valid = true
+	v.Float64 = f
+	return v
 }
+
+func (f *NullFloat64) Scan(value any) error {
+	return (*sql.NullFloat64)(f).Scan(value)
+}
+
+func (f NullFloat64) Value() (driver.Value, error) {
+	if !f.Valid {
+		return nil, nil
+	}
+	return f.Float64, nil
+}
+
+var _ json.Marshaler = (*NullFloat64)(nil)
 
 func (f NullFloat64) MarshalJSON() ([]byte, error) {
 	if !f.Valid {
@@ -41,6 +59,8 @@ func (f NullFloat64) MarshalJSON() ([]byte, error) {
 	}
 	return json.Marshal(f.Float64)
 }
+
+var _ json.Unmarshaler = (*NullFloat64)(nil)
 
 func (f *NullFloat64) UnmarshalJSON(data []byte) error {
 	if bytes.Equal(data, []byte(`null`)) || bytes.Equal(data, []byte(`""`)) {

@@ -1,5 +1,5 @@
 <template>
-  <GroupsList
+  <PagedGroupsCard
     :date-range="dateRange"
     :systems="[system]"
     :loading="groups.loading"
@@ -9,7 +9,6 @@
     :plotted-columns="plottedColumns"
     :order="groups.order"
     :axios-params="groups.axiosParams"
-    :events-mode="eventsMode"
     show-plotted-column-items
     hide-actions
   >
@@ -36,14 +35,14 @@
         </v-slide-item>
       </v-slide-group>
     </template>
-  </GroupsList>
+  </PagedGroupsCard>
 </template>
 
 <script lang="ts">
 import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
-import { createUqlEditor } from '@/use/uql'
+import { createQueryEditor } from '@/use/uql'
 import { UseDateRange } from '@/use/date-range'
 import { useQueryStore } from '@/use/uql'
 import { useGroups } from '@/tracing/use-explore-spans'
@@ -126,7 +125,7 @@ export default defineComponent({
     const { where } = useQueryStore()
 
     const query = computed(() => {
-      const editor = createUqlEditor().add(`group by ${props.attrKey}`)
+      const editor = createQueryEditor().add(`group by ${props.attrKey}`)
 
       for (let item of queryPartItems.value) {
         if (activeQueryParts.value.includes(item.value)) {

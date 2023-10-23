@@ -44,7 +44,7 @@ export function useAnnotations(axiosParamsSource: AxiosParamsSource) {
   const { status, loading, data, reload } = useWatchAxios(() => {
     const projectId = route.value.params.projectId
     const req = {
-      url: `/api/v1/projects/${projectId}/annotations`,
+      url: `/internal/v1/projects/${projectId}/annotations`,
       params: {
         ...axiosParamsSource(),
         ...pager.axiosParams(),
@@ -83,7 +83,7 @@ export function useAnnotation() {
 
   const { loading, data, reload } = useWatchAxios(() => {
     const { projectId, annotationId } = route.value.params
-    const url = `/api/v1/projects/${projectId}/annotations/${annotationId}`
+    const url = `/internal/v1/projects/${projectId}/annotations/${annotationId}`
     return { url }
   })
 
@@ -101,19 +101,19 @@ export function useAnnotationManager() {
 
   function create(annotation: Partial<Annotation>) {
     const projectId = route.value.params.projectId
-    const url = `/api/v1/projects/${projectId}/annotations`
+    const url = `/internal/v1/projects/${projectId}/annotations`
     return request({ method: 'POST', url, data: annotation })
   }
 
   function update(annotation: Partial<Annotation>) {
     const projectId = route.value.params.projectId
-    const url = `/api/v1/projects/${projectId}/annotations/${annotation.id}`
+    const url = `/internal/v1/projects/${projectId}/annotations/${annotation.id}`
     return request({ method: 'PUT', url, data: annotation })
   }
 
   function del(annotation: Partial<Annotation>) {
     const projectId = route.value.params.projectId
-    const url = `/api/v1/projects/${projectId}/annotations/${annotation.id}`
+    const url = `/internal/v1/projects/${projectId}/annotations/${annotation.id}`
     return request({ method: 'DELETE', url })
   }
 

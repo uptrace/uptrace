@@ -16,7 +16,7 @@
           <v-list-item-title>{{ item.value }}</v-list-item-title>
         </v-list-item-content>
         <v-list-item-action v-if="item.count" class="my-0">
-          <v-list-item-action-text><XNum :value="item.count" /></v-list-item-action-text>
+          <v-list-item-action-text><NumValue :value="item.count" /></v-list-item-action-text>
         </v-list-item-action>
       </v-list-item>
     </v-list>

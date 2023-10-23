@@ -2,21 +2,21 @@ package metrics
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
-	"github.com/uptrace/uptrace/pkg/bununit"
-	"github.com/uptrace/uptrace/pkg/metrics/mql"
-	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
+	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 )
 
-const spanMetricDur = 1
+const spanMetricDur = time.Minute
 
 func initSpanMetrics(ctx context.Context, app *bunapp.App) error {
 	conf := app.Config()
@@ -60,7 +60,7 @@ func createSpanMetricMeta(ctx context.Context, app *bunapp.App, metric *bunconf.
 			ProjectID:   project.ID,
 			Name:        metric.Name,
 			Description: metric.Description,
-			Unit:        bununit.FromString(metric.Unit),
+			Unit:        bunconv.NormUnit(metric.Unit),
 			Instrument:  Instrument(metric.Instrument),
 			AttrKeys:    attrKeys,
 		}); err != nil {
@@ -91,13 +91,14 @@ func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMet
 		Materialized().
 		View(viewName).
 		OnCluster(conf.CHSchema.Cluster).
-		ToExpr("?DB.measure_minutes").
+		ToExpr("?DB.datapoint_minutes").
 		ColumnExpr("s.project_id").
 		ColumnExpr("? AS metric", metric.Name).
 		ColumnExpr("toStartOfMinute(s.time) AS time").
 		ColumnExpr("? AS instrument", metric.Instrument).
 		TableExpr("?DB.spans_index AS s").
-		GroupExpr("s.project_id, toStartOfMinute(s.time)")
+		GroupExpr("s.project_id, toStartOfMinute(s.time)").
+		Setting("allow_experimental_analyzer = 1")
 
 	if len(metric.Attrs) > 0 {
 		attrsExpr, aliases := compileSpanMetricAttrs(metric.Attrs)
@@ -114,12 +115,15 @@ func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMet
 	}
 
 	if metric.Where != "" {
-		whereExpr, err := compileSpanMetricWhere(metric.Where)
+		where, having, err := compileSpanMetricWhere(metric.Where)
 		if err != nil {
 			return err
 		}
-		if whereExpr != "" {
-			q = q.Where(string(whereExpr))
+		if where != "" {
+			q = q.Where(string(where))
+		}
+		if having != "" {
+			return errors.New("having not supported")
 		}
 	}
 
@@ -146,64 +150,28 @@ func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMet
 }
 
 func compileSpanMetricValue(value string) (ch.Safe, error) {
-	query := mql.Parse(value)
-	if len(query.Parts) != 1 {
-		return "", fmt.Errorf("can't parse metric value: %q", value)
+	parts, err := tql.ParseQueryError(value)
+	if err != nil {
+		return "", err
 	}
 
-	part := query.Parts[0]
-	sel, ok := part.AST.(*ast.Selector)
+	part := parts[0]
+	sel, ok := part.AST.(*tql.Selector)
 	if !ok {
-		return "", fmt.Errorf("unsupported metric value AST: %T", part.AST)
+		return "", fmt.Errorf("expected a column, got %T", part.AST)
 	}
 
-	var b []byte
-	b, err := appendSpanMetricExpr(b, sel.Expr.Expr)
+	if len(sel.Columns) != 1 {
+		return "", fmt.Errorf("expected 1 column, got %d", len(sel.Columns))
+	}
+	col := &sel.Columns[0]
+
+	b, err := tracing.AppendCHExpr(nil, col.Value, spanMetricDur)
 	if err != nil {
 		return "", err
 	}
 
 	return ch.Safe(b), nil
-}
-
-func appendSpanMetricExpr(b []byte, expr ast.Expr) (_ []byte, err error) {
-	switch expr := expr.(type) {
-	case *ast.Name:
-		b = tracing.AppendCHColumn(b, tql.Name{
-			FuncName: expr.Func,
-			AttrKey:  expr.Name,
-		}, spanMetricDur)
-		return b, nil
-	case *ast.Number:
-		b = append(b, expr.Text...)
-		return b, nil
-	case *ast.ParenExpr:
-		b = append(b, '(')
-		b, err = appendSpanMetricExpr(b, expr.Expr)
-		if err != nil {
-			return nil, err
-		}
-		b = append(b, ')')
-		return b, nil
-	case *ast.BinaryExpr:
-		b, err = appendSpanMetricExpr(b, expr.LHS)
-		if err != nil {
-			return nil, err
-		}
-
-		b = append(b, ' ')
-		b = append(b, expr.Op...)
-		b = append(b, ' ')
-
-		b, err = appendSpanMetricExpr(b, expr.RHS)
-		if err != nil {
-			return nil, err
-		}
-
-		return b, nil
-	default:
-		return nil, fmt.Errorf("unsupported span metric expr: %T", expr)
-	}
 }
 
 func compileSpanMetricAttrs(attrs []string) (ch.Safe, []string) {
@@ -218,7 +186,7 @@ func compileSpanMetricAttrs(attrs []string) (ch.Safe, []string) {
 		}
 
 		b = append(b, "toString("...)
-		b = tracing.AppendCHAttrExpr(b, attr)
+		b = tracing.AppendCHAttr(b, tql.Attr{Name: attr})
 		b = append(b, ")"...)
 	}
 	return ch.Safe(b), aliases
@@ -235,33 +203,37 @@ func compileSpanMetricAnnotations(attrs []string) ch.Safe {
 
 		b = chschema.AppendString(b, alias)
 		b = append(b, ", toString(any("...)
-		b = tracing.AppendCHAttrExpr(b, attr)
+		b = tracing.AppendCHAttr(b, tql.Attr{Name: attr})
 		b = append(b, "))"...)
 	}
 	return ch.Safe(b)
 }
 
-func compileSpanMetricWhere(query string) (ch.Safe, error) {
+func compileSpanMetricWhere(query string) (ch.Safe, ch.Safe, error) {
 	if !strings.HasPrefix(query, "where ") {
 		query = "where " + query
 	}
 
-	parts := tql.Parse(query)
+	parts, err := tql.ParseQueryError(query)
+	if err != nil {
+		return "", "", err
+	}
+
 	if len(parts) != 1 {
-		return "", fmt.Errorf("can't parse metric where: %q", query)
+		return "", "", fmt.Errorf("expected 1 part, got %d", len(parts))
 	}
 
 	part := parts[0]
 	ast, ok := part.AST.(*tql.Where)
 	if !ok {
-		return "", fmt.Errorf("can't parse metric where: %q", query)
+		return "", "", fmt.Errorf("expected a where clause, got %T", part.AST)
 	}
 
-	where, having := tracing.AppendWhereHaving(ast, spanMetricDur)
-	if len(having) > 0 {
-		return "", fmt.Errorf("can't filter by agg columns: %q", having)
+	where, having, err := tracing.AppendWhereHaving(ast, spanMetricDur)
+	if err != nil {
+		return "", "", err
 	}
-	return ch.Safe(where), nil
+	return ch.Safe(where), ch.Safe(having), nil
 }
 
 func splitNameAlias(s string) (string, string) {

@@ -2,7 +2,7 @@ import { min, addMilliseconds, subMilliseconds, differenceInMilliseconds } from 
 import { shallowRef, computed, proxyRefs, watch, onBeforeUnmount, getCurrentInstance } from 'vue'
 
 // Composables
-import { useRoute, useRouteQuery } from '@/use/router'
+import { useRoute, Values } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 
 // Utilities
@@ -236,20 +236,7 @@ export function useDateRange(conf: Config = {}) {
 
   //------------------------------------------------------------------------------
 
-  function syncQueryParams(conf: ParamsConfig = {}) {
-    useRouteQuery().sync({
-      fromQuery(params) {
-        parseQueryParams(params, conf)
-      },
-      toQuery() {
-        return queryParams(conf)
-      },
-    })
-  }
-
-  function queryParams(conf: ParamsConfig = {}) {
-    const prefix = conf.prefix ?? defaultPrefix
-
+  function queryParams(prefix = 'time_') {
     if (!isValid.value) {
       return {}
     }
@@ -260,33 +247,26 @@ export function useDateRange(conf: Config = {}) {
     }
   }
 
-  function parseQueryParams(params: Record<string, any>, conf: ParamsConfig = {}) {
-    if (!Object.keys(params)) {
-      return
-    }
-
-    const prefix = conf.prefix ?? defaultPrefix
-
-    const within = params[prefix + 'within']
-    if (typeof within === 'string') {
+  function parseQueryParams(queryParams: Values, prefix = 'time_') {
+    const within = queryParams.string(prefix + 'within')
+    if (within) {
       const dt = parseUTC(within)
       changeAround(dt, HOUR)
       return
     }
 
-    const dur = params[prefix + 'dur']
-    const gteParam = params[prefix + 'gte']
+    const dur = queryParams.int(prefix + 'dur') * SECOND
     if (!dur) {
+      // Preserve the current date range.
       return
     }
+    duration.value = dur
 
-    duration.value = parseInt(dur, 10) * SECOND
-
-    if (typeof gteParam === 'string') {
-      const gte = parseUTC(gteParam)
+    const gte = parseUTC(queryParams.string(prefix + 'gte'))
+    if (gte) {
       const lt = addMilliseconds(gte, duration.value)
       const ms = differenceInMilliseconds(lt, new Date())
-      if (Math.abs(ms) > UPDATE_NOW_TIMER_DELAY) {
+      if (Math.abs(ms) > 2 * UPDATE_NOW_TIMER_DELAY) {
         changeLT(lt)
         return
       }
@@ -371,12 +351,19 @@ export function useDateRange(conf: Config = {}) {
     hasNextPeriod,
     nextPeriod,
 
-    queryParams,
-    parseQueryParams,
-    syncQueryParams,
     roundUp,
+    toArray,
 
     axiosParams,
-    toArray,
+    queryParams,
+    parseQueryParams,
   })
+}
+
+export function useDateRangeFrom(other: UseDateRange | undefined) {
+  const dateRange = useDateRange()
+  if (other) {
+    dateRange.syncWith(other)
+  }
+  return dateRange
 }

@@ -1,7 +1,7 @@
 <template>
   <span>
     <span class="text-no-wrap">
-      <XDate :date="around" format="short" class="mr-2 text-subtitle-2" />
+      <DateValue :value="around" format="short" class="mr-2 text-subtitle-2" />
       <PeriodPickerMenu
         v-if="dateRange.duration"
         :value="dateRange.duration"

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/segmentio/encoding/json"
@@ -54,7 +53,11 @@ func notifyByWebhookChannel(
 	case NotifChannelWebhook:
 		msg = NewWebhookMessage(app, alert, channel.Params.Payload)
 	case NotifChannelAlertmanager:
-		msg = NewAlertmanagerMessage(app, alert)
+		var err error
+		msg, err = NewAlertmanagerMessage(app, project, alert)
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unsupported webhook type: %s", channel.Type)
 	}
@@ -66,8 +69,9 @@ func notifyByWebhookChannel(
 
 	req, err := http.NewRequest("POST", channel.Params.URL, &buf)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
+	req = req.WithContext(ctx)
 
 	req.Header.Set("User-Agent", "Uptrace/1.0")
 	req.Header.Set("Content-Type", "application/json")

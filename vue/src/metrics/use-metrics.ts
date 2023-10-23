@@ -26,7 +26,7 @@ export function useMetrics(
 
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/metrics/${projectId}`,
+      url: `/internal/v1/metrics/${projectId}`,
       params: {
         ...forceReloadParams.value,
         ...params,
@@ -92,7 +92,7 @@ export function useMetricStats(axiosParamsSource: AxiosParamsSource) {
 
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/metrics/${projectId}/stats`,
+      url: `/internal/v1/metrics/${projectId}/stats`,
       params,
     }
   })
@@ -131,7 +131,7 @@ export function useActiveMetrics(activeMetrics: ShallowRef<MetricAlias[]>) {
 
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/metrics/${projectId}/describe`,
+      url: `/internal/v1/metrics/${projectId}/describe`,
       params: {
         metric: activeMetrics.value.map((m) => m.name),
       },

@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -32,7 +33,8 @@ type DashGauge struct {
 	Query     string                   `json:"query"`
 	ColumnMap map[string]*MetricColumn `json:"columnMap" bun:",nullzero"`
 
-	GridQueryTemplate string `json:"gridQueryTemplate" bun:",nullzero"`
+	GridQueryTemplate string         `json:"gridQueryTemplate" bun:",nullzero"`
+	ValueMappings     []ValueMapping `json:"valueMappings" bun:",nullzero"`
 
 	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
 	UpdatedAt time.Time `json:"updatedAt" bun:",nullzero"`
@@ -52,25 +54,21 @@ func (g *DashGauge) FromTemplate(tpl *DashGaugeTpl) error {
 	g.Query = mql.JoinQuery(tpl.Query)
 	g.ColumnMap = tpl.Columns
 
+	g.GridQueryTemplate = tpl.GridQueryTemplate
+	g.ValueMappings = tpl.ValueMappings
+
 	return nil
 }
 
 func (g *DashGauge) Validate() error {
 	if g.Name == "" {
-		return fmt.Errorf("gauge name can't be empty")
+		return fmt.Errorf("name can't be empty")
 	}
-	if err := g.validate(); err != nil {
-		return fmt.Errorf("gauge %q is invalid: %w", g.Name, err)
-	}
-	return nil
-}
-
-func (g *DashGauge) validate() error {
 	if g.ProjectID == 0 {
 		return fmt.Errorf("project id can't be zero")
 	}
 	if g.DashKind == "" {
-		return fmt.Errorf("dashb kind can't be empty")
+		return fmt.Errorf("dash kind can't be empty")
 	}
 	if g.Description == "" {
 		return fmt.Errorf("description can't be empty")
@@ -79,8 +77,8 @@ func (g *DashGauge) validate() error {
 	if len(g.Metrics) == 0 {
 		return fmt.Errorf("at least one metric is required")
 	}
-	if len(g.Metrics) > 5 {
-		return errors.New("you can't use more than 5 metrics in a single gauge")
+	if len(g.Metrics) > 6 {
+		return errors.New("at most 6 metrics are allowed")
 	}
 	for _, metric := range g.Metrics {
 		if err := metric.Validate(); err != nil {
@@ -91,7 +89,7 @@ func (g *DashGauge) validate() error {
 	if g.Query == "" {
 		return fmt.Errorf("query can't be empty")
 	}
-	if _, err := mql.ParseError(g.Query); err != nil {
+	if _, err := mql.ParseQueryError(g.Query); err != nil {
 		return fmt.Errorf("can't parse query: %w", err)
 	}
 
@@ -100,8 +98,13 @@ func (g *DashGauge) validate() error {
 	}
 
 	if false {
-		if _, err := mql.ParseError(g.GridQueryTemplate); err != nil {
+		if _, err := mql.ParseQueryError(g.GridQueryTemplate); err != nil {
 			return fmt.Errorf("can't parse grid query template: %w", err)
+		}
+	}
+	for i := range g.ValueMappings {
+		if err := g.ValueMappings[i].Validate(); err != nil {
+			return fmt.Errorf("invalid value mapping: %w", err)
 		}
 	}
 
@@ -109,6 +112,37 @@ func (g *DashGauge) validate() error {
 		now := time.Now()
 		g.CreatedAt = now
 		g.UpdatedAt = now
+	}
+
+	return nil
+}
+
+type ValueMapping struct {
+	Op    MappingOp   `json:"op" yaml:"op"`
+	Value json.Number `json:"value" yaml:"value"`
+	Text  string      `json:"text" yaml:"text"`
+	Color string      `json:"color" yaml:"color"`
+}
+
+type MappingOp string
+
+const (
+	MappingAny   = "any"
+	MappingEqual = "eq"
+	MappingLT    = "lt"
+	MappingLTE   = "lte"
+	MappingGT    = "gt"
+	MappingGTE   = "gte"
+)
+
+func (m *ValueMapping) Validate() error {
+	switch m.Op {
+	case "":
+		return fmt.Errorf("mapping op can't be empty")
+	case MappingAny, MappingEqual, MappingLT, MappingLTE, MappingGT, MappingGTE:
+		// okay
+	default:
+		return fmt.Errorf("invalid mapping op: %q", m.Op)
 	}
 
 	return nil

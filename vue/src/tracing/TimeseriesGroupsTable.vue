@@ -47,7 +47,7 @@
           </span>
         </td>
         <td v-for="col in metricColumns" :key="col.name" class="text-right">
-          <XNum :value="item['_avg_' + col.name]" :unit="col.unit" />
+          <NumValue :value="item['_avg_' + col.name]" :unit="col.unit" />
         </td>
         <td>
           <v-btn v-if="isExpanded" icon title="Hide spans" @click.stop="expand(false)">
@@ -62,7 +62,7 @@
     <template #expanded-item="{ headers, item }">
       <tr class="v-data-table__expanded v-data-table__expanded__content">
         <td :colspan="headers.length" class="pa-4">
-          <SpansList
+          <PagedSpansCardLazy
             :date-range="dateRange"
             :events-mode="eventsMode"
             :axios-params="axiosParams"
@@ -85,14 +85,14 @@ import { UseUql } from '@/use/uql'
 import { TimeseriesGroup, ColumnInfo } from '@/tracing/use-timeseries'
 
 // Components
-import SpansList from '@/tracing/SpansList.vue'
+import PagedSpansCardLazy from '@/tracing/PagedSpansCardLazy.vue'
 
 // Utilities
 import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'TimeseriesGroupsTable',
-  components: { SpansList },
+  components: { PagedSpansCardLazy },
 
   props: {
     dateRange: {

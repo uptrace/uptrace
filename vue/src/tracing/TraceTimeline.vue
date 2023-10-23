@@ -42,10 +42,10 @@
             <td class="text-caption" style="position: relative">
               <span :style="span.labelStyle">
                 <span v-show="span.children && trace.isExpanded(span)">
-                  <XDuration :duration="span.durationSelf" />
+                  <DurationValue :value="span.durationSelf" />
                   <span class="mx-1">of</span>
                 </span>
-                <XDuration :duration="span.duration" />
+                <DurationValue :value="span.duration" />
               </span>
 
               <span

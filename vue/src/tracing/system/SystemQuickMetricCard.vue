@@ -17,7 +17,7 @@
 
         <div class="pt-4 text-h5 text-truncate">
           <slot :metric="metric">
-            <XNum :value="metric.rate" :unit="Unit.Rate" :title="`{0} ${metric.suffix}`" />
+            <NumValue :value="metric.rate" :unit="Unit.Rate" :title="`{0} ${metric.suffix}`" />
           </slot>
           <span v-if="metric.suffix" class="ml-2 text-subtitle-1 blue-grey--text text--lighten-3">{{
             metric.suffix

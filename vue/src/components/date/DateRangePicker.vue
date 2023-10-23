@@ -58,17 +58,13 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
-    defaultPeriod: {
-      type: Number,
-      default: HOUR,
-    },
     rangeDays: {
       type: Number,
       default: 3,
     },
-    syncQueryParams: {
-      type: Boolean,
-      default: false,
+    defaultPeriod: {
+      type: Number,
+      default: HOUR,
     },
   },
 
@@ -76,10 +72,6 @@ export default defineComponent({
     const periods = computed(() => {
       return periodsForDays(props.rangeDays)
     })
-
-    if (props.syncQueryParams) {
-      props.dateRange.syncQueryParams()
-    }
 
     onMounted(() => {
       watchEffect(() => {

@@ -28,7 +28,7 @@
 
           <p>
             You can check our
-            <router-link :to="{ name: 'MetricsDashList', params: { projectId: 1 } }" target="_blank"
+            <router-link :to="{ name: 'DashboardList', params: { projectId: 1 } }" target="_blank"
               >playground</router-link
             >
             to play with metrics and

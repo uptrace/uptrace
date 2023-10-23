@@ -39,7 +39,7 @@
                 :group="rowId"
                 class="mr-2"
               />
-              <XNum :value="item[col.name] || 0" :unit="col.unit" />
+              <NumValue :value="item[col.name] || 0" :unit="col.unit" />
             </div>
           </td>
         </template>

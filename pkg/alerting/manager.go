@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash"
+	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
-	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/madalarm"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
@@ -129,10 +129,13 @@ func (m *Manager) monitor(ctx context.Context, monitor *org.MetricMonitor, timeL
 		return err
 	}
 
-	if _, err := monitor.MadalarmOptions(); err != nil {
-		return org.UpdateMonitorState(
-			ctx, m.app, monitor.ID, monitor.State, org.MonitorFailed,
-		)
+	options, err := monitor.MadalarmOptions()
+	if err != nil {
+		return err
+	}
+
+	checker, err := madalarm.NewChecker(options...)
+	if err != nil {
 		return err
 	}
 
@@ -145,12 +148,12 @@ func (m *Manager) monitor(ctx context.Context, monitor *org.MetricMonitor, timeL
 		buf = ts.Attrs.Bytes(buf[:0])
 		attrsHash := xxhash.Sum64(buf)
 
-		alert, err := m.monitorTimeseries(ctx, monitor, ts, timeLT, attrsHash)
+		alert, err := m.checkTimeseries(ctx, monitor, checker, ts, attrsHash)
 		if err != nil {
 			return err
 		}
 
-		if alert != nil && alert.State != org.AlertClosed {
+		if alert != nil && alert.Event.Status != org.AlertStatusClosed {
 			firing = true
 		}
 	}
@@ -214,7 +217,7 @@ func (m *Manager) selectTimeseries(
 	storageConf := &metrics.CHStorageConfig{
 		ProjectID:      monitor.ProjectID,
 		MetricMap:      metricMap,
-		TableName:      m.app.DistTable("measure_minutes_buffer"),
+		TableName:      "datapoint_minutes",
 		GroupingPeriod: time.Minute,
 	}
 	storageConf.TimeFilter = org.TimeFilter{
@@ -225,7 +228,7 @@ func (m *Manager) selectTimeseries(
 	storage := metrics.NewCHStorage(ctx, m.app.CH, storageConf)
 	engine := mql.NewEngine(storage)
 
-	query := mql.Parse(monitor.Params.Query)
+	query := mql.ParseQuery(monitor.Params.Query)
 	result := engine.Run(query.Parts)
 
 	for _, part := range query.Parts {
@@ -237,11 +240,11 @@ func (m *Manager) selectTimeseries(
 	return result, nil
 }
 
-func (m *Manager) monitorTimeseries(
+func (m *Manager) checkTimeseries(
 	ctx context.Context,
 	monitor *org.MetricMonitor,
+	checker *madalarm.Checker,
 	ts *mql.Timeseries,
-	tm time.Time,
 	attrsHash uint64,
 ) (*MetricAlert, error) {
 	baseAlert := &org.BaseAlert{
@@ -252,31 +255,13 @@ func (m *Manager) monitorTimeseries(
 		AttrsHash: attrsHash,
 	}
 
-	alert, err := selectRecentMetricAlert(ctx, m.app, baseAlert)
+	alert, err := m.selectMetricAlert(ctx, baseAlert)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
 
-	var noDataCount int
-	for i := len(ts.Value) - 1; i >= 0; i-- {
-		n := ts.Value[i]
-		if !math.IsNaN(n) {
-			break
-		}
-		noDataCount++
-		if noDataCount >= noDataMinutesThreshold {
-			if alert != nil && alert.State == org.AlertOpen {
-				if err := closeAlert(ctx, m.app, alert); err != nil {
-					return nil, err
-				}
-			}
-			return alert, nil
-		}
-	}
-
-	options, err := monitor.MadalarmOptions()
-	if err != nil {
-		return nil, err
+	if alert != nil && alert.Event.Status == org.AlertStatusOpen {
+		return m.checkOpenAlert(ctx, monitor, checker, ts, alert)
 	}
 
 	var index int
@@ -287,65 +272,35 @@ func (m *Manager) monitorTimeseries(
 		index = i
 	}
 	input := ts.Value[index:]
-	timeCol := ts.Time[index:]
 
-	checkRes, err := madalarm.Check(input, options...)
+	checkRes, err := checker.Check(input, nil)
 	if err != nil {
 		return nil, err
 	}
-	recoverMinutesThreshold := int(monitor.Params.ForDuration) + 5
 
 	if checkRes.Firing == 0 {
-		if alert == nil {
-			return nil, nil
-		}
-
-		// Wait until the timeseries fully recovers.
-		values := lastN(checkRes.Input, recoverMinutesThreshold)
-		for i := len(values) - 1; i >= 0; i-- {
-			x := values[i]
-			if checkRes.IsOutlier(x) != 0 {
-				return alert, nil
-			}
-		}
-
-		if alert.State != org.AlertClosed {
-			if err := closeAlert(ctx, m.app, alert); err != nil {
-				return nil, err
-			}
-			return alert, nil
-		}
-
-		return alert, nil
+		return nil, nil
 	}
 
-	alertTime := timeCol[len(timeCol)-checkRes.FiringFor]
+	alertTime := ts.Time[len(ts.Time)-checkRes.FiringFor]
 
-	if alert != nil {
-		if alert.State == org.AlertOpen && time.Since(alert.UpdatedAt) < 3*time.Hour {
-			return alert, nil
-		}
-
+	if alert != nil && alertTime.Sub(alert.Event.CreatedAt) < 8*time.Hour {
+		// There is already a recent closed alert. Reuse it instead of creating one.
 		alert.Params.Update(checkRes)
-		alert.UpdatedAt = alertTime
-
-		if err := m.openMetricAlert(ctx, alert); err != nil {
+		if err := m.reopenAlert(ctx, alert, alertTime); err != nil {
 			return nil, err
 		}
 		return alert, nil
 	}
 
-	baseAlert.DedupHash = monitor.ID * baseAlert.AttrsHash * timeSlot(maxRecentAlertDuration)
 	baseAlert.Name = monitor.Name + ": " + ts.Name()
-	baseAlert.State = org.AlertOpen
-	baseAlert.CreatedAt = alertTime
-	baseAlert.UpdatedAt = alertTime
-
-	alert = &MetricAlert{
-		BaseAlert: baseAlert,
+	baseAlert.Event = &org.AlertEvent{
+		Status: org.AlertStatusOpen,
+		Time:   alertTime,
 	}
-	alert.BaseAlert.Params.Any = &alert.Params
+	baseAlert.CreatedAt = alertTime
 
+	alert = NewMetricAlertBase(baseAlert)
 	params := &alert.Params
 	params.Update(checkRes)
 
@@ -364,52 +319,99 @@ func (m *Manager) monitorTimeseries(
 	return alert, nil
 }
 
-func (m *Manager) openMetricAlert(
-	ctx context.Context, alert *MetricAlert,
+func (m *Manager) selectMetricAlert(
+	ctx context.Context, alert *org.BaseAlert,
+) (*MetricAlert, error) {
+	dest := NewMetricAlert()
+	if err := selectMatchingAlert(ctx, m.app, alert, dest); err != nil {
+		return nil, err
+	}
+	return dest, nil
+}
+
+func (m *Manager) checkOpenAlert(
+	ctx context.Context,
+	monitor *org.MetricMonitor,
+	checker *madalarm.Checker,
+	ts *mql.Timeseries,
+	alert *MetricAlert,
+) (*MetricAlert, error,
+) {
+	checkNumPoint := monitor.Params.CheckNumPoint
+	bounds := checker.Bounds()
+
+	checkRes, err := checker.Check(ts.Value, bounds)
+	if err != nil {
+		return nil, err
+	}
+
+	if checkRes.Firing == 0 && checkRes.FiringFor == 0 {
+		alert.Params.NormalValue = ts.Value[len(ts.Value)-checkNumPoint]
+		tm := ts.Time[len(ts.Time)-checkNumPoint]
+		if err := m.closeAlert(ctx, alert, tm); err != nil {
+			return nil, err
+		}
+		return alert, nil
+	}
+
+	tm := ts.Time[len(ts.Time)-1]
+	if checkRes.FiringFor == checkNumPoint && tm.Sub(alert.Event.CreatedAt) >= time.Hour {
+		// Remind only when the timeseries is fully firing.
+		// Otherwise, chances are we will remind about a timeseries that is about to recover.
+		alert.Params.CurrentValue = ts.Value[len(ts.Value)-1]
+		if err := m.remindAboutAlert(ctx, alert, tm); err != nil {
+			return nil, err
+		}
+	}
+	return alert, nil
+}
+
+func (m *Manager) remindAboutAlert(
+	ctx context.Context, alert *MetricAlert, alertTime time.Time,
 ) error {
-	res, err := m.app.PG.NewUpdate().
-		Model(alert).
-		Set("state = ?", org.AlertOpen).
-		Set("params = ?", alert.Params).
-		Set("updated_at = ?", alert.UpdatedAt).
-		Where("id = ?", alert.ID).
-		Where("state = ?", alert.State).
-		Returning("state").
-		Exec(ctx)
-	if err != nil {
-		return err
-	}
+	return createAlertEvent(ctx, m.app, alert, func(tx bun.Tx) error {
+		event := alert.Event.Clone()
+		event.Name = org.AlertEventRecurring
+		event.CreatedAt = alertTime
 
-	n, err := res.RowsAffected()
-	if err != nil {
-		return err
-	}
-	if n != 1 {
+		if err := org.InsertAlertEvent(ctx, tx, event); err != nil {
+			return err
+		}
+
+		if err := updateAlertEvent(ctx, tx, alert.Base(), event); err != nil {
+			return err
+		}
+
 		return nil
-	}
-
-	if err := createAlertEvent(ctx, m.app, alert, &org.AlertEvent{
-		ProjectID: alert.ProjectID,
-		AlertID:   alert.ID,
-		Name:      org.AlertEventStateChanged,
-		Params:    bunutil.Params{Any: alert.Params},
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
-func lastN[T any](s []T, n int) []T {
-	if n > len(s) {
-		n = len(s)
-	}
-	return s[len(s)-n:]
+func (m *Manager) closeAlert(
+	ctx context.Context, alert *MetricAlert, alertTime time.Time,
+) error {
+	// Keep the time as is.
+	alert.Event.CreatedAt = alertTime
+
+	return changeAlertStatus(
+		ctx,
+		m.app,
+		alert,
+		org.AlertStatusClosed,
+		0,
+	)
 }
 
-func timeSlot(period time.Duration) uint64 {
-	if period <= 0 {
-		return 0
-	}
-	return uint64(time.Now().UnixNano()) / uint64(period)
+func (m *Manager) reopenAlert(
+	ctx context.Context, alert *MetricAlert, alertTime time.Time,
+) error {
+	alert.Event.Time = alertTime
+	alert.Event.CreatedAt = alertTime
+
+	return changeAlertStatus(
+		ctx,
+		m.app,
+		alert,
+		org.AlertStatusOpen,
+		0,
+	)
 }

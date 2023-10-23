@@ -22,7 +22,7 @@ const (
 	SpanStatusMessage = ".status_message"
 
 	SpanCount       = ".count"
-	SpanCountPerMin = ".count_per_min"
+	SpanCountPerMin = "per_min(.count)"
 	SpanErrorCount  = ".error_count"
 	SpanErrorRate   = ".error_rate"
 

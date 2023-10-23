@@ -89,60 +89,61 @@ table:
     egress: { unit: bytes }
 
 grid:
-  - name: Redis used memory
-    metrics:
-      - redis_used_memory as $used_mem
-    query:
-      - $used_mem
-    columns:
-      used_mem: { unit: bytes }
+  columns:
+    - name: Redis used memory
+      metrics:
+        - redis_used_memory as $used_mem
+      query:
+        - $used_mem
+      columns:
+        used_mem: { unit: bytes }
 
-  - name: Available memory
-    metrics:
-      - node_available_memory_no_overbooking as $available_mem
-    query:
-      - $available_mem
-    columns:
-      available_mem: { unit: bytes }
+    - name: Available memory
+      metrics:
+        - node_available_memory_no_overbooking as $available_mem
+      query:
+        - $available_mem
+      columns:
+        available_mem: { unit: bytes }
 
-  # listener_total_req
-  # listener_egress_bytes
+    # listener_total_req
+    # listener_egress_bytes
 
-  - name: CPU usage
-    metrics:
-      - node_cpu_idle as $cpu_idle
-    query:
-      - 1 - $cpu_idle as cpu_usage
-    columns:
-      cpu_usage: { unit: utilization }
+    - name: CPU usage
+      metrics:
+        - node_cpu_idle as $cpu_idle
+      query:
+        - 1 - $cpu_idle as cpu_usage
+      columns:
+        cpu_usage: { unit: utilization }
 
-  - name: Number of connections
-    metrics:
-      - node_conns as $conns
-    query:
-      - $conns
+    - name: Number of connections
+      metrics:
+        - node_conns as $conns
+      query:
+        - $conns
 
-  - name: Number of requests
-    metrics:
-      - node_total_req as $req
-    query:
-      - $req
+    - name: Number of requests
+      metrics:
+        - node_total_req as $req
+      query:
+        - $req
 
-  - name: Ingress bytes
-    metrics:
-      - node_ingress_bytes as $ingress
-    query:
-      - $ingress
-    columns:
-      ingress: { unit: bytes }
+    - name: Ingress bytes
+      metrics:
+        - node_ingress_bytes as $ingress
+      query:
+        - $ingress
+      columns:
+        ingress: { unit: bytes }
 
-  - name: Egress bytes
-    metrics:
-      - node_egress_bytes as $egress
-    query:
-      - $egress
-    columns:
-      egress: { unit: bytes }
+    - name: Egress bytes
+      metrics:
+        - node_egress_bytes as $egress
+      query:
+        - $egress
+      columns:
+        egress: { unit: bytes }
 
 ---
 schema: v1
@@ -169,135 +170,136 @@ table:
     ingress: { unit: bytes }
     egress: { unit: bytes }
 
-grid_gauges:
-  - name: Used RAM
-    description: Memory used by db (in bigredis this includes flash)
-    metrics:
-      - bdb_used_memory as $mem_used
-    query:
-      - $mem_used
-    columns:
-      mem_used: { unit: bytes }
-
-  - name: RAM limit
-    description: Configured RAM limit for the database
-    metrics:
-      - bdb_memory_limit as $mem_limit
-    query:
-      - $mem_limit
-    columns:
-      mem_limit: { unit: bytes }
-
-  - name: Number of keys
-    description: Number of keys in DB
-    metrics:
-      - bdb_no_of_keys as $num_key
-    query:
-      - $num_key
-
-  - name: Requests rate
-    description: Rate of all requests on DB (ops/sec)
-    metrics:
-      - bdb_total_req as $req
-    query:
-      - $req
-    template: ${req}/sec
-
-  - name: Ingress
-    description: Incoming network traffic to DB
-    metrics:
-      - bdb_ingress_bytes as $ingress
-    query:
-      - $ingress
-    columns:
-      ingress: { unit: bytes }
-    template: ${ingress}/sec
-
-  - name: Egress
-    description: Outgoing network traffic to DB
-    metrics:
-      - bdb_egress_bytes as $egress
-    query:
-      - $egress
-    columns:
-      egress: { unit: bytes }
-    template: ${egress}/sec
-
-  - name: RAM Fragm.
-    description: RAM fragmentation ratio (RSS / allocated RAM)
-    metrics:
-      - bdb_mem_frag_ratio as $mem_frag
-    query:
-      - $mem_frag
-    columns:
-      mem_frag: { unit: utilization }
-
 grid:
-  - name: Used memory
-    metrics:
-      - bdb_used_memory as $mem_used
-    query:
-      - $mem_used
-    columns:
-      mem_used: { unit: bytes }
+  gauges:
+    - name: Used RAM
+      description: Memory used by db (in bigredis this includes flash)
+      metrics:
+        - bdb_used_memory as $mem_used
+      query:
+        - $mem_used
+      columns:
+        mem_used: { unit: bytes }
 
-  - name: Number of client connections
-    metrics:
-      - bdb_conns as $conns
-    query:
-      - $conns
+    - name: RAM limit
+      description: Configured RAM limit for the database
+      metrics:
+        - bdb_memory_limit as $mem_limit
+      query:
+        - $mem_limit
+      columns:
+        mem_limit: { unit: bytes }
 
-  - name: Number of requests
-    metrics:
-      - bdb_total_req as $req
-    query:
-      - $req
+    - name: Number of keys
+      description: Number of keys in DB
+      metrics:
+        - bdb_no_of_keys as $num_key
+      query:
+        - $num_key
 
-  - name: Average latency or read/write operations
-    metrics:
-      - bdb_avg_read_latency as $read_latency
-      - bdb_avg_write_latency as $write_latency
-    query:
-      - $read_latency
-      - $write_latency
+    - name: Requests rate
+      description: Rate of all requests on DB (ops/sec)
+      metrics:
+        - bdb_total_req as $req
+      query:
+        - $req
+      template: ${req}/sec
 
-  - name: Ingress bytes
-    metrics:
-      - bdb_ingress_bytes as $ingress
-    query:
-      - $ingress
-    columns:
-      ingress: { unit: bytes }
+    - name: Ingress
+      description: Incoming network traffic to DB
+      metrics:
+        - bdb_ingress_bytes as $ingress
+      query:
+        - $ingress
+      columns:
+        ingress: { unit: bytes }
+      template: ${ingress}/sec
 
-  - name: Egress bytes
-    metrics:
-      - bdb_egress_bytes as $egress
-    query:
-      - $egress
-    columns:
-      egress: { unit: bytes }
+    - name: Egress
+      description: Outgoing network traffic to DB
+      metrics:
+        - bdb_egress_bytes as $egress
+      query:
+        - $egress
+      columns:
+        egress: { unit: bytes }
+      template: ${egress}/sec
 
-  - name: Number of evicted keys
-    metrics:
-      - redis_evicted_keys as $evicted_keys
-    query:
-      - per_min(delta($evicted_keys)) as evicted_keys
+    - name: RAM Fragm.
+      description: RAM fragmentation ratio (RSS / allocated RAM)
+      metrics:
+        - bdb_mem_frag_ratio as $mem_frag
+      query:
+        - $mem_frag
+      columns:
+        mem_frag: { unit: utilization }
 
-  - name: RAM fragmentation ratio (RSS / allocated RAM)
-    metrics:
-      - bdb_mem_frag_ratio as $mem_frag
-    query:
-      - $mem_frag
-    columns:
-      mem_frag: { unit: utilization }
+  columns:
+    - name: Used memory
+      metrics:
+        - bdb_used_memory as $mem_used
+      query:
+        - $mem_used
+      columns:
+        mem_used: { unit: bytes }
 
-  - name: Redis lua scripting heap size
-    metrics:
-      - bdb_mem_size_lua as $lua_mem
-    query:
-      - $lua_mem
-    columns:
-      lua_mem: { unit: bytes }
+    - name: Number of client connections
+      metrics:
+        - bdb_conns as $conns
+      query:
+        - $conns
+
+    - name: Number of requests
+      metrics:
+        - bdb_total_req as $req
+      query:
+        - $req
+
+    - name: Average latency or read/write operations
+      metrics:
+        - bdb_avg_read_latency as $read_latency
+        - bdb_avg_write_latency as $write_latency
+      query:
+        - $read_latency
+        - $write_latency
+
+    - name: Ingress bytes
+      metrics:
+        - bdb_ingress_bytes as $ingress
+      query:
+        - $ingress
+      columns:
+        ingress: { unit: bytes }
+
+    - name: Egress bytes
+      metrics:
+        - bdb_egress_bytes as $egress
+      query:
+        - $egress
+      columns:
+        egress: { unit: bytes }
+
+    - name: Number of evicted keys
+      metrics:
+        - redis_evicted_keys as $evicted_keys
+      query:
+        - per_min(delta($evicted_keys)) as evicted_keys
+
+    - name: RAM fragmentation ratio (RSS / allocated RAM)
+      metrics:
+        - bdb_mem_frag_ratio as $mem_frag
+      query:
+        - $mem_frag
+      columns:
+        mem_frag: { unit: utilization }
+
+    - name: Redis lua scripting heap size
+      metrics:
+        - bdb_mem_size_lua as $lua_mem
+      query:
+        - $lua_mem
+      columns:
+        lua_mem: { unit: bytes }
 
 ---
 schema: v1
@@ -322,145 +324,146 @@ table:
     mem_used: { unit: bytes }
     mem_frag: { unit: utilization }
 
-grid_gauges:
-  - name: Used RAM
-    description: redis_used_memory	Memory used by shard (in bigredis this includes flash)
-    metrics:
-      - redis_used_memory as $mem_used
-    query:
-      - $mem_used
-    columns:
-      mem_used: { unit: bytes }
-
-  - name: RAM Fragm.
-    description: Memory fragmentation ratio
-    metrics:
-      - redis_mem_fragmentation_ratio as $fragmentation
-    query:
-      - $fragmentation
-    columns:
-      fragmentation: { unit: utilization }
-
-  - name: CPU usage
-    description: Shard process CPU usage
-    metrics:
-      - redis_process_cpu_usage_percent as $cpu_usage
-    query:
-      - $cpu_usage
-    template: ${cpu_usage}%
-
-  - name: Clients
-    description: Number of client connections to the specific shard
-    metrics:
-      - redis_connected_clients as $clients
-    query:
-      - $clients
-
-  - name: Slaves
-    description: Number of connected slaves
-    metrics:
-      - redis_connected_slaves as $slaves
-    query:
-      - $slaves
-
-  - name: DB Keys
-    description: Total key count in the DB
-    metrics:
-      - redis_db_keys as $db_keys
-    query:
-      - $db_keys
-
-  - name: Defrag
-    description: Automatic memory defragmentation current aggressiveness (% cpu)
-    metrics:
-      - redis_active_defrag_running as $defrag
-    query:
-      - $defrag
-
 grid:
-  - name: Used memory
-    metrics:
-      - redis_used_memory as $mem_used
-    query:
-      - $mem_used
-    columns:
-      mem_used: { unit: bytes }
+  gauges:
+    - name: Used RAM
+      description: redis_used_memory	Memory used by shard (in bigredis this includes flash)
+      metrics:
+        - redis_used_memory as $mem_used
+      query:
+        - $mem_used
+      columns:
+        mem_used: { unit: bytes }
 
-  - name: RSS memory
-    metrics:
-      - redis_used_memory_rss as $rss
-    query:
-      - $rss
-    columns:
-      rss: { unit: bytes }
+    - name: RAM Fragm.
+      description: Memory fragmentation ratio
+      metrics:
+        - redis_mem_fragmentation_ratio as $fragmentation
+      query:
+        - $fragmentation
+      columns:
+        fragmentation: { unit: utilization }
 
-  - name: Memory fragmentation ratio
-    metrics:
-      - redis_mem_fragmentation_ratio as $fragmentation
-    query:
-      - $fragmentation
-    columns:
-      fragmentation: { unit: utilization }
+    - name: CPU usage
+      description: Shard process CPU usage
+      metrics:
+        - redis_process_cpu_usage_percent as $cpu_usage
+      query:
+        - $cpu_usage
+      template: ${cpu_usage}%
 
-  - name: Shard process CPU usage
-    metrics:
-      - redis_process_cpu_usage_percent as $cpu_usage
-    query:
-      - $cpu_usage
+    - name: Clients
+      description: Number of client connections to the specific shard
+      metrics:
+        - redis_connected_clients as $clients
+      query:
+        - $clients
 
-  - name: Keyspace read hits and misses
-    metrics:
-      - redis_keyspace_read_hits as $hits
-      - redis_keyspace_read_misses as $misses
-    query:
-      - per_min(delta($hits)) as hits
-      - per_min(delta($misses)) as misses
-      - hits / (hits + misses) as hit_rate
-    columns:
-      hit_rate: { unit: utilization }
+    - name: Slaves
+      description: Number of connected slaves
+      metrics:
+        - redis_connected_slaves as $slaves
+      query:
+        - $slaves
 
-  - name: DB Keys
-    metrics:
-      - redis_db_keys as $db_keys
-    query:
-      - $db_keys
+    - name: DB Keys
+      description: Total key count in the DB
+      metrics:
+        - redis_db_keys as $db_keys
+      query:
+        - $db_keys
 
-  - name: DB evicted keys
-    metrics:
-      - redis_evicted_keys as $evicted_keys
-    query:
-      - per_min(delta($evicted_keys)) as evicted_keys
+    - name: Defrag
+      description: Automatic memory defragmentation current aggressiveness (% cpu)
+      metrics:
+        - redis_active_defrag_running as $defrag
+      query:
+        - $defrag
 
-  - name: DB expired keys
-    metrics:
-      - redis_expired_keys as $expired_keys
-    query:
-      - per_min(delta($expired_keys)) as expired_keys
+  columns:
+    - name: Used memory
+      metrics:
+        - redis_used_memory as $mem_used
+      query:
+        - $mem_used
+      columns:
+        mem_used: { unit: bytes }
 
-  - name: Number of keys that were trimmed in the current or last resharding process
-    metrics:
-      - redis_keys_trimmed as $trimmed_keys
-    query:
-      - $trimmed_keys
+    - name: RSS memory
+      metrics:
+        - redis_used_memory_rss as $rss
+      query:
+        - $rss
+      columns:
+        rss: { unit: bytes }
 
-  - name: Total number of processed commands
-    metrics:
-      - redis_total_commands_processed as $cmds
-    query:
-      - per_min(delta($cmds)) as cmds
+    - name: Memory fragmentation ratio
+      metrics:
+        - redis_mem_fragmentation_ratio as $fragmentation
+      query:
+        - $fragmentation
+      columns:
+        fragmentation: { unit: utilization }
 
-  - name: Number of bytes received by the shard
-    metrics:
-      - redis_total_net_input_bytes as $input
-    query:
-      - per_min(delta($input)) as input
-    columns:
-      input: { unit: bytes }
+    - name: Shard process CPU usage
+      metrics:
+        - redis_process_cpu_usage_percent as $cpu_usage
+      query:
+        - $cpu_usage
 
-  - name: Number of bytes sent by the shard
-    metrics:
-      - redis_total_net_output_bytes as $output
-    query:
-      - per_min(delta($output)) as output
-    columns:
-      output: { unit: bytes }
+    - name: Keyspace read hits and misses
+      metrics:
+        - redis_keyspace_read_hits as $hits
+        - redis_keyspace_read_misses as $misses
+      query:
+        - per_min(delta($hits)) as hits
+        - per_min(delta($misses)) as misses
+        - hits / (hits + misses) as hit_rate
+      columns:
+        hit_rate: { unit: utilization }
+
+    - name: DB Keys
+      metrics:
+        - redis_db_keys as $db_keys
+      query:
+        - $db_keys
+
+    - name: DB evicted keys
+      metrics:
+        - redis_evicted_keys as $evicted_keys
+      query:
+        - per_min(delta($evicted_keys)) as evicted_keys
+
+    - name: DB expired keys
+      metrics:
+        - redis_expired_keys as $expired_keys
+      query:
+        - per_min(delta($expired_keys)) as expired_keys
+
+    - name: Number of keys that were trimmed in the current or last resharding process
+      metrics:
+        - redis_keys_trimmed as $trimmed_keys
+      query:
+        - $trimmed_keys
+
+    - name: Total number of processed commands
+      metrics:
+        - redis_total_commands_processed as $cmds
+      query:
+        - per_min(delta($cmds)) as cmds
+
+    - name: Number of bytes received by the shard
+      metrics:
+        - redis_total_net_input_bytes as $input
+      query:
+        - per_min(delta($input)) as input
+      columns:
+        input: { unit: bytes }
+
+    - name: Number of bytes sent by the shard
+      metrics:
+        - redis_total_net_output_bytes as $output
+      query:
+        - per_min(delta($output)) as output
+      columns:
+        output: { unit: bytes }

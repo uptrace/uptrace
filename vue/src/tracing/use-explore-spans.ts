@@ -1,4 +1,3 @@
-import { format } from 'sql-formatter'
 import { shallowRef, computed, watch, proxyRefs } from 'vue'
 import { refDebounced } from '@vueuse/core'
 
@@ -7,9 +6,6 @@ import { useRoute } from '@/use/router'
 import { useOrder, Order } from '@/use/order'
 import { useWatchAxios, AxiosParamsSource } from '@/use/watch-axios'
 import { BackendQueryInfo } from '@/use/uql'
-
-// Utilities
-import { AttrKey } from '@/models/otel'
 
 export interface ColumnInfo {
   name: string
@@ -35,19 +31,13 @@ export function useGroups(axiosParamsSource: AxiosParamsSource, conf: ExploreCon
   const debouncedSearchInput = refDebounced(searchInput, 600)
   const route = useRoute()
   const hasMore = shallowRef(false)
-
-  const order = useOrder(
-    conf.order ?? {
-      column: AttrKey.spanCountPerMin,
-      desc: true,
-    },
-  )
+  const order = useOrder()
 
   const axiosParams = computed(() => {
     return axiosParamsSource()
   })
 
-  const { status, loading, data, error, errorCode, errorMessage } = useWatchAxios(() => {
+  const { status, loading, error, data } = useWatchAxios(() => {
     if (!axiosParams.value) {
       return axiosParams.value
     }
@@ -60,7 +50,7 @@ export function useGroups(axiosParamsSource: AxiosParamsSource, conf: ExploreCon
 
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/tracing/${projectId}/groups`,
+      url: `/internal/v1/tracing/${projectId}/groups`,
       params,
     }
   })
@@ -89,31 +79,10 @@ export function useGroups(axiosParamsSource: AxiosParamsSource, conf: ExploreCon
     return columns.value.filter((col) => !col.isGroup && col.isNum)
   })
 
-  const backendQuery = computed((): string => {
-    const query = error.value?.response?.data?.query ?? ''
-    if (!query) {
-      return query
-    }
-
-    try {
-      return format(query)
-    } catch (err) {
-      return query
-    }
-  })
-
   watch(
     () => data.value?.hasMore ?? false,
     (hasMoreValue) => {
       hasMore.value = hasMoreValue
-    },
-    { immediate: true },
-  )
-
-  watch(
-    hasMore,
-    (hasMore) => {
-      order.ignoreAxiosParamsEnabled = !hasMore
     },
     { immediate: true },
   )
@@ -132,6 +101,7 @@ export function useGroups(axiosParamsSource: AxiosParamsSource, conf: ExploreCon
   return proxyRefs({
     status,
     loading,
+    error,
 
     order,
     axiosParams: lastAxiosParams,
@@ -139,10 +109,6 @@ export function useGroups(axiosParamsSource: AxiosParamsSource, conf: ExploreCon
     searchInput,
     items: groups,
     hasMore,
-
-    errorCode,
-    errorMessage,
-    backendQuery,
 
     queryInfo,
     columns,
@@ -157,7 +123,7 @@ export function useGroupTimeseries(paramsSource: AxiosParamsSource) {
     () => {
       const { projectId } = route.value.params
       return {
-        url: `/api/v1/tracing/${projectId}/group-stats`,
+        url: `/internal/v1/tracing/${projectId}/group-stats`,
         params: paramsSource(),
         cache: true,
       }

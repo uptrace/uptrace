@@ -23,7 +23,7 @@
           :group="group._id"
           class="mr-2"
         />
-        <XNum :value="group[col.name]" :name="col.name" :unit="col.unit" />
+        <NumValue :value="group[col.name]" :name="col.name" :unit="col.unit" />
       </div>
     </td>
     <td v-if="!hideActions" class="text-right text-no-wrap">
@@ -58,7 +58,7 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { useRoute } from '@/use/router'
-import { createUqlEditor, joinQuery, injectQueryStore } from '@/use/uql'
+import { createQueryEditor, joinQuery, injectQueryStore } from '@/use/uql'
 import { useGroupTimeseries, Group, ColumnInfo } from '@/tracing/use-explore-spans'
 
 // Components
@@ -155,7 +155,7 @@ export default defineComponent({
     })
 
     const systemRoute = computed(() => {
-      const query = createUqlEditor().exploreAttr(AttrKey.spanGroupId).add(where.value).toString()
+      const query = createQueryEditor().exploreAttr(AttrKey.spanGroupId).add(where.value).toString()
       return {
         name: 'SpanGroupList',
         query: {
@@ -168,8 +168,8 @@ export default defineComponent({
 
     const itemListRoute = computed(() => {
       const editor = query.value
-        ? createUqlEditor(query.value)
-        : createUqlEditor().exploreAttr(AttrKey.spanGroupId, props.eventsMode)
+        ? createQueryEditor(query.value)
+        : createQueryEditor().exploreAttr(AttrKey.spanGroupId, props.eventsMode)
       editor.add(props.group._query)
 
       for (let colName of props.groupingColumns) {

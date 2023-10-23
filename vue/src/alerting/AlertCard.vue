@@ -27,7 +27,7 @@
                   class="ml-2"
                   @click="toggleAlert"
                 >
-                  {{ alert.data.state === AlertState.Open ? 'Close' : 'Reopen' }} alert
+                  {{ alert.data.status === AlertStatus.Open ? 'Close' : 'Reopen' }} alert
                 </v-btn>
               </template>
             </AlertCardSpan>
@@ -41,7 +41,7 @@
                   class="ml-2"
                   @click="toggleAlert"
                 >
-                  {{ alert.data.state === AlertState.Open ? 'Close' : 'Reopen' }} alert
+                  {{ alert.data.status === AlertStatus.Open ? 'Close' : 'Reopen' }} alert
                 </v-btn>
               </template>
             </AlertCardMetric>
@@ -61,7 +61,7 @@ import { useTitle } from '@vueuse/core'
 import { useRoute } from '@/use/router'
 import { useDateRange } from '@/use/date-range'
 import { useProject } from '@/org/use-projects'
-import { useAlert, useAlertManager, AlertType, AlertState } from '@/alerting/use-alerts'
+import { useAlert, useAlertManager, AlertType, AlertStatus } from '@/alerting/use-alerts'
 
 // Components
 import FixedDateRangePicker from '@/components/date/FixedDateRangePicker.vue'
@@ -94,7 +94,7 @@ export default defineComponent({
     const alert = useAlert(() => {
       const { projectId } = route.value.params
       return {
-        url: `/api/v1/projects/${projectId}/alerts/${props.alertId}`,
+        url: `/internal/v1/projects/${projectId}/alerts/${props.alertId}`,
       }
     })
     const alertMan = useAlertManager()
@@ -151,7 +151,7 @@ export default defineComponent({
 
     return {
       AlertType,
-      AlertState,
+      AlertStatus,
       AttrKey,
 
       dateRange,

@@ -10,7 +10,7 @@ import (
 	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
-	"github.com/uptrace/uptrace/pkg/bununit"
+	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
@@ -25,7 +25,7 @@ type CHStorageConfig struct {
 	MetricMap map[string]*Metric
 	Search    string
 
-	TableName      ch.Ident
+	TableName      ch.Name
 	TableMode      bool
 	GroupingPeriod time.Duration
 }
@@ -162,7 +162,7 @@ func (s *CHStorage) subquery(
 		for _, attrKey := range f.Grouping {
 			col := CHColumn(attrKey)
 			q = q.
-				ColumnExpr("? AS ?", col, ch.Ident(attrKey)).
+				ColumnExpr("? AS ?", col, ch.Name(attrKey)).
 				GroupExpr("?", col)
 		}
 	} else if f.GroupByAll {
@@ -494,7 +494,7 @@ func quantileColumn(q *ch.SelectQuery, quantile float64) *ch.SelectQuery {
 func metricUnit(metric *Metric, f *mql.TimeseriesFilter) string {
 	switch f.AggFunc {
 	case mql.AggCount, mql.AggUniq:
-		return bununit.None
+		return bunconv.UnitNone
 	default:
 		return metric.Unit
 	}

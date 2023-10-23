@@ -14,7 +14,7 @@
       >
       <div>{{ truncateMiddle(item.name, 40) }}</div>
       <div v-for="metric in values" :key="metric" class="ml-1 font-weight-medium">
-        <XNum :value="item[metric]" :unit="item.unit" short :title="`${metric}: {0}`" />
+        <NumValue :value="item[metric]" :unit="item.unit" short :title="`${metric}: {0}`" />
       </div>
     </div>
   </div>

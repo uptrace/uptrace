@@ -11,6 +11,7 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -62,7 +63,7 @@ func (h *TempoHandler) queryTrace(
 		return err
 	}
 
-	spans, err := tracing.SelectTraceSpans(ctx, h.App, traceID)
+	spans, _, err := tracing.SelectTraceSpans(ctx, h.App, traceID)
 	if err != nil {
 		return err
 	}
@@ -120,9 +121,10 @@ func (h *TempoHandler) TagValues(w http.ResponseWriter, req bunrouter.Request) e
 	ctx := req.Context()
 	tag := tempoAttrKey(req.Param("tag"))
 
+	chExpr := tracing.AppendCHAttr(nil, tql.Attr{Name: tag})
 	q := tracing.NewSpanIndexQuery(h.App).
 		Distinct().
-		ColumnExpr("toString(?) AS value", tracing.CHColumn(tql.Name{AttrKey: tag}, 0)).
+		ColumnExpr("toString(?) AS value", ch.Safe(chExpr)).
 		Where("time >= ?", time.Now().Add(-tempoDefaultPeriod)).
 		OrderExpr("value ASC").
 		Limit(1000)
@@ -211,7 +213,7 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 				value := string(d.Value())
 
 				var b []byte
-				b = tracing.AppendCHColumn(b, tql.Name{AttrKey: key}, 0)
+				b = tracing.AppendCHAttr(b, tql.Attr{Name: key})
 				b = append(b, " = "...)
 				b = chschema.AppendString(b, value)
 				q = q.Where(string(b))

@@ -9,6 +9,8 @@ export interface Dashboard {
   name: string
   pinned: boolean
 
+  minInterval: number
+  timeOffset: number
   gridQuery: string
 
   tableMetrics: MetricAlias[]

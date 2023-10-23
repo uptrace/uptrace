@@ -49,16 +49,17 @@ processors:
     timeout: 10s
 
 exporters:
-  logging:
-    logLevel: debug
   otlp/uptrace:
     endpoint: host.docker.internal:14317
     tls:
       insecure: true
     headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14317/1' }
+  debug:
 
 service:
   telemetry:
+    logs:
+    #      level: 'debug'
     metrics:
       address: ':8888'
   #   logs:
@@ -67,7 +68,7 @@ service:
     traces:
       receivers: [otlp, jaeger]
       processors: [batch]
-      exporters: [otlp/uptrace, logging]
+      exporters: [otlp/uptrace]
     metrics:
       receivers: [otlp]
       processors: [cumulativetodelta, batch]

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/cespare/xxhash/v2"
-	"github.com/uptrace/uptrace/pkg/bununit"
+	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"golang.org/x/exp/slices"
 )
@@ -297,7 +297,7 @@ func (e *Engine) join(
 			joinedValue[i] = op(v1, v2)
 		}
 		ts1.Value = joinedValue
-		ts1.Unit = bununit.None
+		ts1.Unit = bunconv.UnitNone
 	}
 
 	return joined, nil

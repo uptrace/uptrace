@@ -76,7 +76,7 @@ func (c *BaseGridColumn) Validate() error {
 	}
 
 	if false {
-		if _, err := mql.ParseError(c.GridQueryTemplate); err != nil {
+		if _, err := mql.ParseQueryError(c.GridQueryTemplate); err != nil {
 			return fmt.Errorf("can't parse grid query template: %w", err)
 		}
 	}
@@ -222,7 +222,7 @@ func (c *ChartGridColumn) validate() error {
 	if c.Params.Query == "" {
 		return fmt.Errorf("query can't be empty")
 	}
-	if _, err := mql.ParseError(c.Params.Query); err != nil {
+	if _, err := mql.ParseQueryError(c.Params.Query); err != nil {
 		return fmt.Errorf("can't parse query: %w", err)
 	}
 
@@ -292,7 +292,7 @@ func (c *TableGridColumn) Validate() error {
 	if c.Params.Query == "" {
 		return fmt.Errorf("query can't be empty")
 	}
-	if _, err := mql.ParseError(c.Params.Query); err != nil {
+	if _, err := mql.ParseQueryError(c.Params.Query); err != nil {
 		return fmt.Errorf("can't parse query: %w", err)
 	}
 
@@ -347,7 +347,7 @@ func (c *HeatmapGridColumn) Validate() error {
 	if c.Params.Metric == "" {
 		return errors.New("metric can't be empty")
 	}
-	if _, err := mql.ParseError(c.Params.Query); err != nil {
+	if _, err := mql.ParseQueryError(c.Params.Query); err != nil {
 		return fmt.Errorf("can't parse query: %w", err)
 	}
 

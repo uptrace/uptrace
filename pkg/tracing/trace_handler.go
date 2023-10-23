@@ -56,7 +56,7 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	spans, err := SelectTraceSpans(ctx, h.App, traceID)
+	spans, hasMore, err := SelectTraceSpans(ctx, h.App, traceID)
 	if err != nil {
 		return err
 	}
@@ -90,6 +90,7 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 		"trace":   traceInfo,
 		"root":    root,
 		"numSpan": numSpan,
+		"hasMore": hasMore,
 	})
 }
 

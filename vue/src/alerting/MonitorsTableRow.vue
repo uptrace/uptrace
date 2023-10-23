@@ -27,7 +27,7 @@
       </v-chip>
     </td>
     <td>
-      <XDate v-if="monitor.updatedAt" :date="monitor.updatedAt" format="relative" />
+      <DateValue v-if="monitor.updatedAt" :value="monitor.updatedAt" format="relative" />
     </td>
     <td class="text-right text-no-wrap">
       <v-btn
@@ -64,7 +64,7 @@ import {
   MonitorType,
   MonitorState,
 } from '@/alerting/use-monitors'
-import { AlertState } from '@/alerting/use-alerts'
+import { AlertStatus } from '@/alerting/use-alerts'
 
 // Components
 import MonitorTypeIcon from '@/alerting/MonitorTypeIcon.vue'
@@ -86,19 +86,19 @@ export default defineComponent({
     const monitorMan = useMonitorManager()
 
     const routeForOpenAlerts = computed(() => {
-      return routeForAlerts(AlertState.Open)
+      return routeForAlerts(AlertStatus.Open)
     })
 
     const routeForClosedAlerts = computed(() => {
-      return routeForAlerts(AlertState.Closed)
+      return routeForAlerts(AlertStatus.Closed)
     })
 
-    function routeForAlerts(state: AlertState) {
+    function routeForAlerts(status: AlertStatus) {
       return {
         name: 'AlertList',
         query: {
           q: 'monitor:' + props.monitor.id,
-          'attrs.alert.state': state,
+          'attrs.alert.status': status,
         },
       }
     }

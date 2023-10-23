@@ -27,7 +27,7 @@ export function useDashboards() {
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/metrics/${projectId}/dashboards`,
+      url: `/internal/v1/metrics/${projectId}/dashboards`,
       params: forceReloadParams.value,
     }
   })
@@ -70,7 +70,7 @@ export function useDashboard() {
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId, dashId } = route.value.params
     return {
-      url: `/api/v1/metrics/${projectId}/dashboards/${dashId}`,
+      url: `/internal/v1/metrics/${projectId}/dashboards/${dashId}`,
       params: forceReloadParams.value,
     }
   })
@@ -162,7 +162,7 @@ export function useYamlDashboard() {
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId, dashId } = route.value.params
     return {
-      url: `/api/v1/metrics/${projectId}/dashboards/${dashId}/yaml`,
+      url: `/internal/v1/metrics/${projectId}/dashboards/${dashId}/yaml`,
       params: forceReloadParams.value,
     }
   })
@@ -187,7 +187,7 @@ export function useDashManager() {
   const { loading: pending, request } = useAxios()
 
   function create(dash: Partial<Dashboard>) {
-    const url = `/api/v1/metrics/${dash.projectId}/dashboards`
+    const url = `/internal/v1/metrics/${dash.projectId}/dashboards`
 
     const data = {
       name: dash.name,
@@ -200,7 +200,7 @@ export function useDashManager() {
 
   function update(data: Partial<Dashboard>) {
     const { projectId, dashId } = route.value.params
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}`
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}`
 
     return request({ method: 'PUT', url, data }).then((resp) => {
       return resp.data.dashboard as Dashboard
@@ -209,7 +209,7 @@ export function useDashManager() {
 
   function updateTable(data: Partial<Dashboard>) {
     const { projectId, dashId } = route.value.params
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/table`
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/table`
 
     return request({ method: 'PUT', url, data }).then((resp) => {
       return resp.data.dashboard as Dashboard
@@ -218,13 +218,13 @@ export function useDashManager() {
 
   function updateYaml(data: string) {
     const { projectId, dashId } = route.value.params
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/yaml`
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/yaml`
 
     return request({ method: 'PUT', url, data })
   }
 
   function clone(dash: Dashboard) {
-    const url = `/api/v1/metrics/${dash.projectId}/dashboards/${dash.id}`
+    const url = `/internal/v1/metrics/${dash.projectId}/dashboards/${dash.id}`
 
     return request({ method: 'POST', url }).then((resp) => {
       return resp.data.dashboard as Dashboard
@@ -232,19 +232,19 @@ export function useDashManager() {
   }
 
   function pin(dash: Dashboard) {
-    const url = `/api/v1/metrics/${dash.projectId}/dashboards/${dash.id}/pinned`
+    const url = `/internal/v1/metrics/${dash.projectId}/dashboards/${dash.id}/pinned`
 
     return request({ method: 'PUT', url })
   }
 
   function unpin(dash: Dashboard) {
-    const url = `/api/v1/metrics/${dash.projectId}/dashboards/${dash.id}/unpinned`
+    const url = `/internal/v1/metrics/${dash.projectId}/dashboards/${dash.id}/unpinned`
 
     return request({ method: 'PUT', url })
   }
 
   function del(dash: Dashboard) {
-    const url = `/api/v1/metrics/${dash.projectId}/dashboards/${dash.id}`
+    const url = `/internal/v1/metrics/${dash.projectId}/dashboards/${dash.id}`
 
     return request({ method: 'DELETE', url }).then((resp) => {
       return resp.data.dashboard as Dashboard
@@ -279,7 +279,7 @@ export function useGridColumnManager() {
 
   function create(gridCol: Omit<GridColumn, 'id'>) {
     const { projectId, dashId } = route.value.params
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/grid`
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/grid`
 
     return request({ method: 'POST', url, data: gridCol }).then((resp) => {
       return resp.data.gridCol as GridColumn
@@ -288,7 +288,7 @@ export function useGridColumnManager() {
 
   function update(gridCol: GridColumn) {
     const { id, projectId, dashId } = gridCol
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/grid/${id}`
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/grid/${id}`
 
     return request({ method: 'PUT', url, data: gridCol }).then((resp) => {
       return resp.data.gridCol as GridColumn
@@ -297,7 +297,7 @@ export function useGridColumnManager() {
 
   function del(gridCol: GridColumn) {
     const { id, projectId, dashId } = gridCol
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/grid/${id}`
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/grid/${id}`
 
     return request({ method: 'DELETE', url, data: gridCol }).then((resp) => {
       return resp.data.gridCol as GridColumn
@@ -314,7 +314,7 @@ export function useGridColumnManager() {
 
   function updateOrder(grid: GridColumnPos[]) {
     const { projectId, dashId } = route.value.params
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/grid`
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/grid`
 
     return request({ method: 'PUT', url, data: grid })
   }

@@ -184,7 +184,7 @@ export default defineComponent({
 
         const { projectId } = route.value.params
         return {
-          url: `/api/v1/tracing/${projectId}/attr-keys?with_columns`,
+          url: `/internal/v1/tracing/${projectId}/attr-keys?with_columns`,
           params: props.axiosParams,
         }
       },
@@ -207,7 +207,7 @@ export default defineComponent({
 
         const { projectId } = route.value.params
         return {
-          url: `/api/v1/tracing/${projectId}/attr-values`,
+          url: `/internal/v1/tracing/${projectId}/attr-values`,
           params: {
             ...props.axiosParams,
             attr_key: form.column.value,

@@ -11,16 +11,15 @@ import { Span } from '@/models/span'
 
 interface SpansConfig {
   pager?: PagerConfig
-  order?: Order
 }
 
 export type UseSpans = ReturnType<typeof useSpans>
 
-export function useSpans(reqSource: AxiosRequestSource, cfg: SpansConfig = {}) {
-  const pager = usePager(cfg.pager)
-  const order = useOrder(cfg.order)
+export function useSpans(reqSource: AxiosRequestSource, conf: SpansConfig = {}) {
+  const pager = usePager(conf.pager)
+  const order = useOrder()
 
-  const { loading, data } = useWatchAxios(() => {
+  const { status, loading, error, data, reload } = useWatchAxios(() => {
     const req = reqSource()
     if (!req) {
       return req
@@ -42,19 +41,30 @@ export function useSpans(reqSource: AxiosRequestSource, cfg: SpansConfig = {}) {
     return data.value?.query
   })
 
+  watch(data, (data) => {
+    pager.numItem = data?.count ?? 0
+  })
+
   watch(
-    data,
-    (data) => {
-      pager.numItem = data?.count ?? 0
+    (): Order | undefined => data.value?.order,
+    (orderValue) => {
+      if (orderValue) {
+        order.withPausedWatch(() => {
+          order.change(orderValue)
+        })
+      }
     },
-    { immediate: true, flush: 'sync' },
   )
 
   return proxyRefs({
     pager,
     order,
 
+    status,
     loading,
+    error,
+    reload,
+
     items: spans,
     queryInfo,
   })

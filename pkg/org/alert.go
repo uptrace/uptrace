@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -22,17 +23,9 @@ const (
 	AlertMetric AlertType = "metric"
 )
 
-type AlertState string
-
-const (
-	AlertOpen   AlertState = "open"
-	AlertClosed AlertState = "closed"
-)
-
 type Alert interface {
 	Base() *BaseAlert
 	URL() string
-	Summary() string
 }
 
 type BaseAlert struct {
@@ -41,40 +34,64 @@ type BaseAlert struct {
 	ID        uint64 `json:"id" bun:",pk,autoincrement"`
 	ProjectID uint32 `json:"projectId"`
 
-	Name      string     `json:"name"`
-	State     AlertState `json:"state"`
-	DedupHash uint64     `json:"-"`
-
 	MonitorID      uint64         `json:"monitorId" bun:",nullzero"`
 	TrackableModel TrackableModel `json:"trackableModel" bun:",nullzero"`
 	TrackableID    uint64         `json:"trackableId,string" bun:",nullzero"`
 
+	Type    AlertType   `json:"type"`
+	EventID uint64      `json:"-" bun:",nullzero"`
+	Event   *AlertEvent `json:"-" bun:"rel:belongs-to,join:event_id=id"`
+
+	Name      string            `json:"name"`
+	DedupHash uint64            `json:"-"`
 	Attrs     map[string]string `json:"attrs"`
 	AttrsHash uint64            `json:"-"`
 
-	Type   AlertType      `json:"type"`
-	Params bunutil.Params `json:"params"`
-
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-
-	// Payload
-	Event *AlertEvent `json:"-" bun:"-"`
+	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
 }
 
-func (a *BaseAlert) Base() *BaseAlert {
-	return a
+func NewBaseAlert(alertType AlertType) *BaseAlert {
+	return &BaseAlert{
+		Type:  alertType,
+		Event: new(AlertEvent),
+	}
 }
 
 func (a *BaseAlert) URL() string {
 	return fmt.Sprintf("/alerting/%d/alerts/%d", a.ProjectID, a.ID)
 }
 
+var _ json.Marshaler = (*BaseAlert)(nil)
+
+func (a *BaseAlert) MarshalJSON() ([]byte, error) {
+	type StrippedBaseAlert BaseAlert
+
+	type AlertOut struct {
+		*StrippedBaseAlert
+
+		Status    AlertStatus    `json:"status"`
+		Params    bunutil.Params `json:"params"`
+		Time      time.Time      `json:"time"`
+		UpdatedAt time.Time      `json:"updatedAt"`
+	}
+
+	out := &AlertOut{
+		StrippedBaseAlert: (*StrippedBaseAlert)(a),
+	}
+	if a.Event != nil {
+		out.Status = a.Event.Status
+		out.Params = a.Event.Params
+		out.Time = a.Event.Time
+		out.UpdatedAt = a.Event.CreatedAt
+	}
+
+	return json.Marshal(out)
+}
+
 type ErrorAlertParams struct {
-	TraceID       uuid.UUID `json:"traceId"`
-	SpanID        uint64    `json:"spanId,string"`
-	SpanCount     uint64    `json:"spanCount"`
-	SpanCountTime time.Time `json:"spanCountTime,omitempty"`
+	TraceID   uuid.UUID `json:"traceId"`
+	SpanID    uint64    `json:"spanId,string"`
+	SpanCount uint64    `json:"spanCount"`
 }
 
 func (p *ErrorAlertParams) Clone() *ErrorAlertParams {
@@ -82,7 +99,7 @@ func (p *ErrorAlertParams) Clone() *ErrorAlertParams {
 	return &clone
 }
 
-func InsertAlert(ctx context.Context, app *bunapp.App, a *BaseAlert) (bool, error) {
+func InsertAlert(ctx context.Context, app *bunapp.App, db bun.IDB, a *BaseAlert) (bool, error) {
 	if a.ProjectID == 0 {
 		return false, errors.New("project id can't be zero")
 	}
@@ -91,12 +108,6 @@ func InsertAlert(ctx context.Context, app *bunapp.App, a *BaseAlert) (bool, erro
 	}
 	if a.Type == "" {
 		return false, errors.New("type can't be empty")
-	}
-	if a.CreatedAt.IsZero() {
-		return false, errors.New("created at time can't be zero")
-	}
-	if a.UpdatedAt.IsZero() {
-		a.UpdatedAt = a.CreatedAt
 	}
 
 	a.Name = utf8util.Trunc(a.Name, 1000)
@@ -108,7 +119,7 @@ func InsertAlert(ctx context.Context, app *bunapp.App, a *BaseAlert) (bool, erro
 		b.AddAttr(k, v)
 	}
 
-	res, err := app.PG.NewInsert().
+	res, err := db.NewInsert().
 		Model(a).
 		Value("tsv", "setweight(to_tsvector('english', ?), 'A') || "+
 			"setweight(to_tsvector('english', ?), 'B') || "+
@@ -124,7 +135,8 @@ func InsertAlert(ctx context.Context, app *bunapp.App, a *BaseAlert) (bool, erro
 	if err != nil {
 		return false, err
 	}
-	if n == 0 {
+
+	if n != 1 {
 		return false, nil
 	}
 	return true, nil

@@ -41,9 +41,8 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 	}
 	disableColumnsAndGroups(f.parts)
 
-	if isAggAttr(f.SortBy) {
-		f.SortBy = attrkey.SpanDuration
-		f.SortDesc = true
+	if f.SortBy != "" && isAggExpr(tql.Attr{Name: f.SortBy}) {
+		f.OrderByMixin.Reset()
 	}
 
 	q, _ := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
@@ -51,9 +50,13 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 		ColumnExpr("id, trace_id").
 		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if f.SortBy == "" {
-				return q
+				f.SortBy = attrkey.SpanTime
+				f.SortDesc = true
 			}
-			return q.OrderExpr(string(CHAttrExpr(f.SortBy)) + " " + f.SortDir())
+
+			chExpr := appendCHAttr(nil, tql.Attr{Name: f.SortBy})
+			order := string(chExpr) + " " + f.SortDir()
+			return q.OrderExpr(order)
 		}).
 		Limit(10).
 		Offset(f.Pager.GetOffset())
@@ -113,26 +116,28 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 	}
 
 	q, columnMap := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
-	q = q.
-		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
-			if f.SortBy == "" {
-				return q
-			}
-			return q.Order(f.SortBy + " " + f.SortDir())
-		}).
-		Limit(1000)
-	groups := make([]map[string]any, 0)
 
-	if columnMap.Len() > 0 {
-		if err := q.Scan(ctx, &groups); err != nil {
-			if cherr, ok := err.(*ch.Error); ok {
-				w.WriteHeader(http.StatusBadRequest)
-				return httputil.JSON(w, bunrouter.H{
-					"query":   q.String(),
-					"code":    "invalid_query",
-					"message": cherr.Error(),
-				})
+	if _, ok := columnMap.Load(f.SortBy); !ok {
+		f.OrderByMixin.Reset()
+
+		for pair := columnMap.Oldest(); pair != nil; pair = pair.Next() {
+			col := pair.Value
+			if !col.IsGroup {
+				f.SortBy = pair.Key
+				break
 			}
+		}
+
+		if f.SortBy == "" {
+			if pair := columnMap.Oldest(); pair != nil {
+				f.SortBy = pair.Key
+			}
+		}
+	}
+
+	groups := make([]map[string]any, 0)
+	if columnMap.Len() > 0 {
+		if err := q.Apply(f.CHOrder).Limit(1000).Scan(ctx, &groups); err != nil {
 			return err
 		}
 	}
@@ -156,6 +161,7 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 
 	return httputil.JSON(w, bunrouter.H{
 		"groups": groups,
+		"order":  f.OrderByMixin,
 		"query": map[string]any{
 			"parts": f.parts,
 		},
@@ -251,11 +257,15 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 		OrderExpr("time_ ASC")
 
 	for _, colName := range f.Column {
-		col, err := tql.ParseName(colName)
+		col, err := tql.ParseColumn(colName)
 		if err != nil {
 			return err
 		}
-		subq = TQLColumn(subq, col, groupingPeriod)
+		chExpr, err := appendCHColumn(nil, col, groupingPeriod)
+		if err != nil {
+			return err
+		}
+		subq = subq.ColumnExpr(string(chExpr))
 	}
 
 	item := make(map[string]interface{})
@@ -263,7 +273,7 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 	if err := h.CH.NewSelect().
 		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
 			for _, colName := range f.Column {
-				q = q.ColumnExpr("groupArray(?) AS ?", ch.Ident(colName), ch.Ident(colName))
+				q = q.ColumnExpr("groupArray(?) AS ?", ch.Name(colName), ch.Name(colName))
 			}
 			return q
 		}).
@@ -325,17 +335,17 @@ func (h *SpanHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) e
 		col := pair.Value
 
 		if col.IsGroup {
-			q = q.Column(colName).Group(colName).OrderExpr("? ASC", ch.Ident(colName))
+			q = q.Column(colName).Group(colName).OrderExpr("? ASC", ch.Name(colName))
 			grouping = append(grouping, colName)
 
 			if colName == attrkey.SpanGroupID {
 				q = q.ColumnExpr("any(?) AS ?",
-					ch.Ident(attrkey.DisplayName), ch.Ident(attrkey.DisplayName))
+					ch.Name(attrkey.DisplayName), ch.Name(attrkey.DisplayName))
 			}
 		} else if col.IsNum {
-			q = q.ColumnExpr("groupArray(?) AS ?", ch.Ident(colName), ch.Ident(colName))
+			q = q.ColumnExpr("groupArray(?) AS ?", ch.Name(colName), ch.Name(colName))
 		} else {
-			q = q.ColumnExpr("any(?) AS ?", ch.Ident(colName), ch.Ident(colName))
+			q = q.ColumnExpr("any(?) AS ?", ch.Name(colName), ch.Name(colName))
 		}
 	}
 

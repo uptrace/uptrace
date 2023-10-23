@@ -159,13 +159,13 @@ ch_schema:
   #replicated: true
 
   spans:
-    # Delete spans data after 30 days.
-    ttl_delete: 30 DAY
+    # Delete spans data after 7 days.
+    ttl_delete: 7 DAY
     storage_policy: 'default'
 
   metrics:
-    # Delete metrics data after 90 days.
-    ttl_delete: 90 DAY
+    # Delete metrics data after 30 days.
+    ttl_delete: 30 DAY
     storage_policy: 'default'
 
 ##

@@ -11,7 +11,7 @@
         <v-col v-if="metric.count || metric.rate" :key="metricName" cols="auto">
           <SystemQuickMetricCard :metric="metric">
             <template v-if="metricName === 'failures'" #default="{ metric }">
-              <XPct :a="metric.errorCount" :b="metric.count" />
+              <PctValue :a="metric.errorCount" :b="metric.count" />
             </template>
           </SystemQuickMetricCard>
         </v-col>

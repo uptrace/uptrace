@@ -1,16 +1,20 @@
 <template>
   <div v-frag>
-    <template v-if="trace.error">
-      <TraceError v-if="trace.error" :error="trace.error" />
-    </template>
-
-    <template v-else-if="!trace.root">
-      <v-container :fluid="$vuetify.breakpoint.mdAndDown">
+    <template v-if="trace.status.initing()">
+      <v-container :fluid="$vuetify.breakpoint.lgAndDown">
         <v-skeleton-loader type="article, image, table" />
       </v-container>
     </template>
 
-    <div v-else>
+    <v-container v-else-if="trace.error" fluid class="fill-height grey lighten-5">
+      <v-row>
+        <v-col>
+          <ApiErrorCard :error="trace.error" />
+        </v-col>
+      </v-row>
+    </v-container>
+
+    <template v-else>
       <PageToolbar :loading="trace.loading" :fluid="$vuetify.breakpoint.lgAndDown">
         <v-breadcrumbs :items="meta.breadcrumbs" divider=">" large>
           <template #item="{ item }">
@@ -31,6 +35,26 @@
       </PageToolbar>
 
       <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="py-4">
+        <v-row v-if="trace.hasMore" justify="center">
+          <v-col lg="9">
+            <v-alert type="warning" border="bottom" colored-border elevation="2">
+              <p>
+                This trace is truncated because it contains more than 10,000 spans and browsers
+                can't display that many spans.
+              </p>
+
+              <p>
+                <a href="https://uptrace.dev/get/enterprise.html#huge-traces" target="_blank"
+                  >Uptrace Enterprise Edition</a
+                >
+                supports huge traces with 100,000 spans and more by grouping and aggregating similar
+                spans together. You can still explore the individual spans by clicking on the
+                aggregated span groups.
+              </p>
+            </v-alert>
+          </v-col>
+        </v-row>
+
         <v-row v-if="trace.root" class="px-2 text-body-2">
           <v-col class="word-break-all">
             {{ trace.root.displayName }}
@@ -52,12 +76,12 @@
 
           <v-col cols="auto">
             <div class="grey--text font-weight-regular">Time</div>
-            <XDate :date="trace.root.time" format="full" />
+            <DateValue :value="trace.root.time" format="full" />
           </v-col>
 
           <v-col cols="auto">
             <div class="grey--text font-weight-regular">Duration</div>
-            <XDuration :duration="trace.root.duration" fixed />
+            <DurationValue :value="trace.root.duration" fixed />
           </v-col>
 
           <v-col cols="auto">
@@ -96,7 +120,7 @@
           </v-col>
         </v-row>
       </v-container>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -108,7 +132,7 @@ import { defineComponent, computed, watch, proxyRefs } from 'vue'
 import { useTitle } from '@vueuse/core'
 import { useDateRange, UseDateRange } from '@/use/date-range'
 import { useTrace, UseTrace } from '@/tracing/use-trace'
-import { createUqlEditor } from '@/use/uql'
+import { createQueryEditor } from '@/use/uql'
 import { useAnnotations } from '@/org/use-annotations'
 
 // Components
@@ -116,7 +140,6 @@ import FixedDateRangePicker from '@/components/date/FixedDateRangePicker.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 import SpanSystemBarChart from '@/components/SpanSystemBarChart.vue'
 import TraceTabs from '@/tracing/TraceTabs.vue'
-import TraceError from '@/tracing/TraceError.vue'
 
 // Utilities
 import { AttrKey, SystemName } from '@/models/otel'
@@ -128,7 +151,6 @@ export default defineComponent({
     LoadPctileChart,
     SpanSystemBarChart,
     TraceTabs,
-    TraceError,
   },
 
   setup() {
@@ -163,7 +185,7 @@ export default defineComponent({
         query: {
           ...dateRange.queryParams(),
           system: trace.root.system,
-          query: createUqlEditor()
+          query: createQueryEditor()
             .exploreAttr(AttrKey.spanGroupId)
             .where(AttrKey.spanGroupId, '=', trace.root.groupId)
             .toString(),
@@ -246,7 +268,7 @@ function useMeta(dateRange: UseDateRange, trace: UseTrace) {
           query: {
             ...dateRange.queryParams(),
             system: root.system,
-            query: createUqlEditor()
+            query: createQueryEditor()
               .exploreAttr(AttrKey.spanGroupId)
               .where(AttrKey.spanGroupId, '=', root.groupId)
               .toString(),

@@ -6,7 +6,7 @@
       <template v-if="alert.createdAt !== alert.updatedAt" slot="append-column">
         <v-col cols="auto">
           <div class="grey--text font-weight-regular">First seen</div>
-          <XDate :date="alert.createdAt" />
+          <DateValue :value="alert.createdAt" />
         </v-col>
       </template>
     </SpanBodyCard>
@@ -49,7 +49,7 @@ export default defineComponent({
       const { projectId } = route.value.params
       const { traceId, spanId } = props.alert.params
       return {
-        url: `/api/v1/tracing/${projectId}/traces/${traceId}/${spanId}`,
+        url: `/internal/v1/tracing/${projectId}/traces/${traceId}/${spanId}`,
         params: {
           ...props.dateRange.axiosParams(),
         },

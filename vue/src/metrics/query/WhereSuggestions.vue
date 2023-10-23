@@ -64,7 +64,7 @@ export default defineComponent({
       const { projectId } = route.value.params
       const metricId = props.metric.id
       return {
-        url: `/api/v1/metrics/${projectId}/${metricId}/where`,
+        url: `/internal/v1/metrics/${projectId}/${metricId}/where`,
         params: {
           ...props.axiosParams,
           alias: props.alias,

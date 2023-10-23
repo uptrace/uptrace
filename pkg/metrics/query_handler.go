@@ -90,6 +90,19 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 		)
 	}
 
+	if len(table) == 0 {
+		var firstErr error
+		for _, part := range f.allParts {
+			if part.Error.Wrapped != nil {
+				firstErr = part.Error.Wrapped
+				break
+			}
+		}
+		if firstErr != nil {
+			return firstErr
+		}
+	}
+
 	var hasMore bool
 	if len(table) > 1000 {
 		table = table[:1000]

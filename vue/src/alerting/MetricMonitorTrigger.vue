@@ -1,13 +1,13 @@
 <template>
   <span>
-    <XNum :value="alert.params.outlier" :unit="unit" />
+    <NumValue :value="alert.params.outlier" :unit="unit" />
     <template v-if="alert.params.firing === 1">
       <span class="mx-1">more than</span>
-      <XNum :value="alert.params.bounds.max" :unit="unit" />
+      <NumValue :value="alert.params.bounds.max" :unit="unit" />
     </template>
     <template v-else-if="alert.params.firing === -1">
       <span class="mx-1">less than</span>
-      <XNum :value="alert.params.bounds.min" :unit="unit" />
+      <NumValue :value="alert.params.bounds.min" :unit="unit" />
     </template>
   </span>
 </template>

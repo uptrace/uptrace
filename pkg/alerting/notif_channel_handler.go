@@ -1,11 +1,10 @@
 package alerting
 
 import (
-	"bytes"
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -298,7 +297,7 @@ func (h *NotifChannelHandler) WebhookCreate(w http.ResponseWriter, req bunrouter
 	if err := in.Validate(channel); err != nil {
 		return httperror.Wrap(err)
 	}
-	if err := h.sendWebhookTestMsg(project, channel); err != nil {
+	if err := h.sendWebhookTestMsg(ctx, project, channel); err != nil {
 		return httperror.Wrap(err)
 	}
 
@@ -328,7 +327,7 @@ func (h *NotifChannelHandler) WebhookUpdate(w http.ResponseWriter, req bunrouter
 	if err := in.Validate(channel); err != nil {
 		return httperror.Wrap(err)
 	}
-	if err := h.sendWebhookTestMsg(project, channel); err != nil {
+	if err := h.sendWebhookTestMsg(ctx, project, channel); err != nil {
 		return httperror.Wrap(err)
 	}
 
@@ -342,7 +341,7 @@ func (h *NotifChannelHandler) WebhookUpdate(w http.ResponseWriter, req bunrouter
 }
 
 func (h *NotifChannelHandler) sendWebhookTestMsg(
-	project *org.Project, channel *WebhookNotifChannel,
+	ctx context.Context, project *org.Project, channel *WebhookNotifChannel,
 ) error {
 	alert := &MetricAlert{
 		BaseAlert: &org.BaseAlert{
@@ -350,63 +349,18 @@ func (h *NotifChannelHandler) sendWebhookTestMsg(
 			ProjectID: project.ID,
 			Name:      "Test message",
 			Type:      org.AlertMetric,
-			State:     org.AlertOpen,
 			CreatedAt: time.Now(),
 
 			Event: &org.AlertEvent{
 				ID:        uint64(time.Now().UnixNano()),
 				Name:      org.AlertEventCreated,
+				Status:    org.AlertStatusOpen,
 				CreatedAt: time.Now(),
 			},
 		},
 	}
 
-	var msg any
-
-	switch channel.Type {
-	case NotifChannelWebhook:
-		msg = NewWebhookMessage(h.App, alert, channel.Params.Payload)
-	case NotifChannelAlertmanager:
-		msg = NewAlertmanagerMessage(h.App, alert)
-	default:
-		return fmt.Errorf("unsupported webhook type: %q", channel.Type)
-	}
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(msg); err != nil {
-		return err
-	}
-
-	resp, err := h.httpClient.Post(channel.Params.URL, "application/json", &buf)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, err := io.ReadAll(io.LimitReader(resp.Body, 10<<10))
-		if err != nil {
-			return err
-		}
-
-		var message string
-
-		var out struct {
-			Message string `json:"message"`
-		}
-		if err := json.Unmarshal(body, &out); err == nil {
-			message = out.Message
-		} else {
-			if len(body) > 100 {
-				body = body[:100]
-			}
-			message = string(body)
-		}
-
-		return fmt.Errorf("unexpected response from webhook: %s (%s)", resp.Status, message)
-	}
-
-	return nil
+	return notifyByWebhookChannel(ctx, h.App, project, alert, channel)
 }
 
 //------------------------------------------------------------------------------
@@ -481,12 +435,12 @@ type WebhookMessage struct {
 	CreatedAt time.Time          `json:"createdAt"`
 
 	Alert struct {
-		ID        uint64         `json:"id,string"`
-		URL       string         `json:"url"`
-		Name      string         `json:"name"`
-		Type      org.AlertType  `json:"type"`
-		State     org.AlertState `json:"state"`
-		CreatedAt time.Time      `json:"createdAt"`
+		ID        uint64          `json:"id,string"`
+		URL       string          `json:"url"`
+		Name      string          `json:"name"`
+		Type      org.AlertType   `json:"type"`
+		Status    org.AlertStatus `json:"status"`
+		CreatedAt time.Time       `json:"createdAt"`
 	} `json:"alert"`
 }
 
@@ -504,7 +458,7 @@ func NewWebhookMessage(app *bunapp.App, alert org.Alert, payload any) *WebhookMe
 	msg.Alert.URL = app.SiteURL(baseAlert.URL())
 	msg.Alert.Name = baseAlert.Name
 	msg.Alert.Type = baseAlert.Type
-	msg.Alert.State = baseAlert.State
+	msg.Alert.Status = baseAlert.Event.Status
 	msg.Alert.CreatedAt = baseAlert.CreatedAt
 
 	return msg
@@ -512,7 +466,9 @@ func NewWebhookMessage(app *bunapp.App, alert org.Alert, payload any) *WebhookMe
 
 //------------------------------------------------------------------------------
 
-func NewAlertmanagerMessage(app *bunapp.App, alert org.Alert) models.PostableAlerts {
+func NewAlertmanagerMessage(
+	app *bunapp.App, project *org.Project, alert org.Alert,
+) (models.PostableAlerts, error) {
 	baseAlert := alert.Base()
 
 	labels := make(models.LabelSet, len(baseAlert.Attrs)+1)
@@ -522,25 +478,33 @@ func NewAlertmanagerMessage(app *bunapp.App, alert org.Alert) models.PostableAle
 	labels["alertname"] = baseAlert.Name
 	labels["alerturl"] = app.SiteURL(baseAlert.URL())
 
-	annotations := models.LabelSet{
-		"summary": alert.Summary(),
+	var summary string
+	switch alert := alert.(type) {
+	case *ErrorAlert:
+		summary = telegramErrorFormatter.Format(project, alert)
+	case *MetricAlert:
+		summary = telegramMetricFormatter.Format(project, alert)
+	default:
+		return nil, fmt.Errorf("unknown alert type: %T", alert)
 	}
 
 	dest := &models.PostableAlert{
 		Alert: models.Alert{
 			Labels: labels,
 		},
-		Annotations: annotations,
-		StartsAt:    strfmt.DateTime(baseAlert.CreatedAt),
+		Annotations: models.LabelSet{
+			"summary": summary,
+		},
+		StartsAt: strfmt.DateTime(baseAlert.CreatedAt),
 	}
-	if baseAlert.State == org.AlertClosed {
+	if baseAlert.Event.Status == org.AlertStatusClosed {
 		dest.EndsAt = strfmt.DateTime(baseAlert.Event.CreatedAt)
 	} else {
 		endsAt := baseAlert.CreatedAt.Add(30 * 24 * time.Hour)
 		dest.EndsAt = strfmt.DateTime(endsAt)
 	}
 
-	return models.PostableAlerts{dest}
+	return models.PostableAlerts{dest}, nil
 }
 
 func cleanLabelName(s string) string {

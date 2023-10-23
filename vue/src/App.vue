@@ -20,7 +20,7 @@
               <template v-if="user.isAuth && $route.params.projectId">
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
                 <v-tab :to="{ name: 'SpanGroupList' }">Traces & Logs</v-tab>
-                <v-tab :to="{ name: 'MetricsDashList' }">Dashboards</v-tab>
+                <v-tab :to="{ name: 'DashboardList' }">Dashboards</v-tab>
                 <v-tab :to="{ name: 'Alerting' }">Alerts</v-tab>
               </template>
               <v-tab v-else-if="user.isAuth" :to="{ name: 'UserProfile' }">Profile</v-tab>
@@ -81,40 +81,21 @@
       <v-container fluid>
         <v-row justify="center" align="center">
           <v-col cols="auto">
-            <v-btn
-              href="https://uptrace.dev/get/enterprise.html"
-              target="_blank"
-              color="deep-orange darken-3"
-              small
-              dark
-            >
-              <v-icon left>mdi-shield-check</v-icon>
-              <span>Uptrace Enterprise</span>
-            </v-btn>
-          </v-col>
-
-          <v-col cols="auto">
             <v-btn href="https://uptrace.dev/get/" target="_blank" text rounded small>
               <v-icon small class="mr-1">mdi-help-circle-outline</v-icon>
-              <span>Docs</span>
+              <span>Documentation</span>
             </v-btn>
             <v-btn href="https://uptrace.dev/opentelemetry/" target="_blank" text rounded small>
               <v-icon small class="mr-1">mdi-open-source-initiative</v-icon>
               <span>OpenTelemetry</span>
             </v-btn>
-            <v-btn
-              href="https://uptrace.dev/opentelemetry/instrumentations/"
-              target="_blank"
-              text
-              rounded
-              small
-            >
+            <v-btn href="https://uptrace.dev/get/instrument/" target="_blank" text rounded small>
               <v-icon small class="mr-1">mdi-toy-brick-outline</v-icon>
               <span>Instrumentations</span>
             </v-btn>
             <v-btn href="https://t.me/uptrace" target="_blank" text rounded small>
               <v-icon small class="mr-1">mdi-message-outline</v-icon>
-              <span>Chat</span>
+              <span>Telegram</span>
             </v-btn>
             <v-btn href="https://github.com/uptrace/uptrace" target="_blank" text rounded small>
               <v-icon small class="mr-1">mdi-github</v-icon>
@@ -131,7 +112,6 @@
 import { defineComponent } from 'vue'
 
 // Composables
-import { useRouteQuery } from '@/use/router'
 import { useForceReload } from '@/use/force-reload'
 import { useDateRange } from '@/use/date-range'
 import { useUser } from '@/org/use-users'
@@ -157,7 +137,6 @@ export default defineComponent({
   },
 
   setup() {
-    useRouteQuery()
     useForceReload()
 
     const dateRange = useDateRange()

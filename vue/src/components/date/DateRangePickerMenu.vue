@@ -6,8 +6,8 @@
       </v-btn>
       <v-btn v-else-if="dateRange.isValid" text small class="px-1" v-bind="attrs" v-on="on">
         <v-icon small left>mdi-calendar-blank</v-icon>
-        <span><XDate :date="dateRange.gte" :format="format" /> - </span>
-        <XDate :date="dateRange.lt" :format="format" />
+        <span><DateValue :value="dateRange.gte" :format="format" /> - </span>
+        <DateValue :value="dateRange.lt" :format="format" />
       </v-btn>
     </template>
 

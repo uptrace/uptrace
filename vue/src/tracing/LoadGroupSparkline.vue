@@ -38,7 +38,7 @@ export default defineComponent({
       const { projectId } = route.value.params
       const query = props.where + ' | ' + props.axiosParams.query
       return {
-        url: `/api/v1/tracing/${projectId}/stats`,
+        url: `/internal/v1/tracing/${projectId}/stats`,
         params: {
           ...props.axiosParams,
           query,

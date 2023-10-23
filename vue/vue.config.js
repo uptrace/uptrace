@@ -7,7 +7,7 @@ module.exports = defineConfig({
     port: 19876,
     allowedHosts: 'all',
     proxy: {
-      '^/api': {
+      '^/internal': {
         target: 'http://localhost:14318',
         changeOrigin: true,
       },

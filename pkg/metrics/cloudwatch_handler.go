@@ -11,7 +11,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bununit"
+	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 )
@@ -146,7 +146,7 @@ func (h *KinesisHandler) initDatapointFromAWS(
 
 	dest.ProjectID = project.ID
 	dest.Metric = attrkey.AWSMetricName(src.Namespace, src.MetricName)
-	dest.Unit = bununit.FromString(src.Unit)
+	dest.Unit = bunconv.NormUnit(src.Unit)
 	dest.Attrs = attrs
 
 	dest.Time = time.Unix(0, src.Timestamp*int64(time.Millisecond))

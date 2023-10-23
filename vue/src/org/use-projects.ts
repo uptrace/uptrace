@@ -26,7 +26,7 @@ export function useProject() {
   const { data } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/projects/${projectId}`,
+      url: `/internal/v1/projects/${projectId}`,
     }
   })
 

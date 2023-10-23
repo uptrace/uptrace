@@ -1,25 +1,22 @@
 package tql
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
 
-type QueryPart struct {
-	Query    string `json:"query"`
-	Disabled bool   `json:"disabled"`
-	Error    string `json:"error"`
-
-	AST any `json:"-"`
-}
-
-func (p *QueryPart) SetError(s string, args ...any) {
-	if p.Error == "" {
-		p.Error = fmt.Sprintf(s, args...)
+func ParseQueryError(query string) ([]*QueryPart, error) {
+	parts := ParseQuery(query)
+	for _, part := range parts {
+		if part.Error.Wrapped != nil {
+			return nil, part.Error.Wrapped
+		}
 	}
+	return parts, nil
 }
 
-func Parse(s string) []*QueryPart {
+func ParseQuery(s string) []*QueryPart {
 	ss := splitQuery(s)
 	parts := make([]*QueryPart, len(ss))
 
@@ -29,7 +26,7 @@ func Parse(s string) []*QueryPart {
 
 		v, err := ParsePart(s)
 		if err != nil {
-			part.Error = err.Error()
+			part.Error.Wrapped = err
 			continue
 		}
 
@@ -39,23 +36,29 @@ func Parse(s string) []*QueryPart {
 	return parts
 }
 
-func ParseName(s string) (Name, error) {
+func ParseColumn(s string) (*Column, error) {
 	v, err := ParsePart(s)
 	if err != nil {
-		return Name{}, err
+		return nil, err
 	}
 
 	sel, ok := v.(*Selector)
 	if !ok {
-		return Name{}, fmt.Errorf("tql: got %T, wanted *Selector", v)
+		return nil, fmt.Errorf("tql: expected *Selector, got %T", v)
 	}
 
 	if len(sel.Columns) != 1 {
-		return Name{}, fmt.Errorf("tql: got %d columns, wanted 1", len(sel.Columns))
+		return nil, fmt.Errorf("tql: expected 1 column, got %d", len(sel.Columns))
 	}
+	return &sel.Columns[0], nil
+}
 
-	col := &sel.Columns[0]
-	return col.Name, nil
+type QueryPart struct {
+	Query    string    `json:"query"`
+	Error    JSONError `json:"error,omitempty"`
+	Disabled bool      `json:"disabled,omitempty"`
+
+	AST any `json:"-"`
 }
 
 func splitQuery(s string) []string {
@@ -69,4 +72,15 @@ func splitQuery(s string) []string {
 		}
 	}
 	return ss
+}
+
+type JSONError struct {
+	Wrapped error
+}
+
+func (e JSONError) MarshalJSON() ([]byte, error) {
+	if e.Wrapped == nil {
+		return []byte(`""`), nil
+	}
+	return json.Marshal(e.Wrapped.Error())
 }

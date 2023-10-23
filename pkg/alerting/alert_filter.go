@@ -18,10 +18,9 @@ type AlertFilter struct {
 
 	org.FacetFilter
 	org.OrderByMixin
-	urlstruct.Pager
 
-	State []string
-	Type  []string
+	Status []string
+	Type   []string
 
 	MonitorID uint64
 }
@@ -38,14 +37,8 @@ func DecodeAlertFilter(req bunrouter.Request, f *AlertFilter) error {
 		return err
 	}
 
-	f.State = f.Attrs[facetKeyState]
-	delete(f.Attrs, facetKeyState)
-
-	if len(f.State) == 0 {
-		// TODO: remove
-		f.State = f.Attrs["state"]
-		delete(f.Attrs, "state")
-	}
+	f.Status = f.Attrs[facetKeyStatus]
+	delete(f.Attrs, facetKeyStatus)
 
 	f.Type = f.Attrs[facetKeyType]
 	delete(f.Attrs, facetKeyType)
@@ -56,9 +49,6 @@ func DecodeAlertFilter(req bunrouter.Request, f *AlertFilter) error {
 var _ urlstruct.ValuesUnmarshaler = (*AlertFilter)(nil)
 
 func (f *AlertFilter) UnmarshalValues(ctx context.Context, values url.Values) error {
-	if err := f.Pager.UnmarshalValues(ctx, values); err != nil {
-		return err
-	}
 	if err := f.FacetFilter.UnmarshalValues(ctx, values); err != nil {
 		return err
 	}
@@ -66,6 +56,23 @@ func (f *AlertFilter) UnmarshalValues(ctx context.Context, values url.Values) er
 		return err
 	}
 	return nil
+}
+
+func (f *AlertFilter) PGOrder(q *bun.SelectQuery) *bun.SelectQuery {
+	if f.SortBy == "" {
+		return q
+	}
+
+	var sortBy string
+
+	switch f.SortBy {
+	case "created_at", "createdAt":
+		sortBy = "created_at"
+	default:
+		sortBy = "event.created_at"
+	}
+
+	return q.OrderExpr("? ? NULLS LAST", bun.Ident(sortBy), bun.Safe(f.SortDir()))
 }
 
 func extractParamsFromQuery(filter *AlertFilter) error {
@@ -100,14 +107,14 @@ func (f *AlertFilter) WhereClause(q *bun.SelectQuery) *bun.SelectQuery {
 	q = q.Where("a.project_id = ?", f.ProjectID).
 		Apply(f.FacetFilter.WhereClause)
 
-	if len(f.State) > 0 {
-		q = q.Where("a.state IN (?)", bun.In(f.State))
-	}
 	if len(f.Type) > 0 {
 		q = q.Where("a.type IN (?)", bun.In(f.Type))
 	}
 	if f.MonitorID != 0 {
 		q = q.Where("a.monitor_id = ?", f.MonitorID)
+	}
+	if len(f.Status) > 0 {
+		q = q.Where("a.state IN (?)", bun.In(f.Status))
 	}
 
 	return q

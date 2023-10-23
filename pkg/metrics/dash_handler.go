@@ -221,7 +221,7 @@ func (h *DashHandler) Show(w http.ResponseWriter, req bunrouter.Request) error {
 		"dashboard": dash,
 		"grid":      grid,
 		"yamlUrl": h.SiteURL(
-			fmt.Sprintf("/api/v1/metrics/%d/dashboards/%d/yaml", dash.ProjectID, dash.ID),
+			fmt.Sprintf("/internal/v1/metrics/%d/dashboards/%d/yaml", dash.ProjectID, dash.ID),
 		),
 	})
 }

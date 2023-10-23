@@ -73,11 +73,11 @@ import { defineComponent, shallowRef, computed, watch, proxyRefs, PropType } fro
 
 // Composables
 import { useTitle } from '@vueuse/core'
-import { useRoute, useRouteQuery } from '@/use/router'
+import { useRoute } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { useUser } from '@/org/use-users'
 import { useSystems, System } from '@/tracing/system/use-systems'
-import { useUql, createUqlEditor, provideQueryStore, useQueryStore } from '@/use/uql'
+import { useUql, createQueryEditor, provideQueryStore, useQueryStore } from '@/use/uql'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
@@ -112,7 +112,6 @@ export default defineComponent({
 
   setup(props) {
     useTitle('Explore spans')
-    props.dateRange.syncQueryParams()
 
     const route = useRoute()
     const user = useUser()
@@ -126,7 +125,6 @@ export default defineComponent({
         query: uql.whereQuery,
       }
     })
-    systems.syncQueryParams()
 
     const systemItems = shallowRef<System[]>([])
 
@@ -136,21 +134,6 @@ export default defineComponent({
         ...uql.axiosParams(),
         system: systems.activeSystems,
       }
-    })
-
-    useRouteQuery().sync({
-      fromQuery(queryParams) {
-        if ('query' in queryParams) {
-          uql.query = queryParams.query ?? ''
-        } else {
-          resetQuery(true)
-        }
-      },
-      toQuery() {
-        return {
-          query: uql.query,
-        }
-      },
     })
 
     watch(
@@ -164,7 +147,7 @@ export default defineComponent({
     )
 
     function resetQuery(clear = false) {
-      uql.query = createUqlEditor()
+      uql.query = createQueryEditor()
         .exploreAttr(AttrKey.spanGroupId, systems.isEvent)
         .add(clear ? '' : uql.whereQuery)
         .toString()

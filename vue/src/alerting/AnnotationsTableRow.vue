@@ -23,7 +23,7 @@
       >
     </td>
     <td class="text-right text-no-wrap">
-      <XDate :date="annotation.createdAt" format="relative" />
+      <DateValue :value="annotation.createdAt" format="relative" />
     </td>
   </tr>
 </template>

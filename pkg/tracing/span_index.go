@@ -9,7 +9,7 @@ import (
 )
 
 type SpanIndex struct {
-	ch.CHModel `ch:"table:spans_index_stub,alias:s"`
+	ch.CHModel `ch:"table:spans_index,insert:spans_index_buffer,alias:s"`
 
 	*Span
 
@@ -76,7 +76,7 @@ func initSpanIndex(index *SpanIndex, span *Span) {
 	index.DeploymentEnvironment, _ = span.Attrs[attrkey.DeploymentEnvironment].(string)
 
 	index.ServiceName = span.Attrs.ServiceName()
-	index.ServiceName = span.Attrs.Text(attrkey.ServiceVersion)
+	index.ServiceVersion = span.Attrs.Text(attrkey.ServiceVersion)
 	index.HostName = span.Attrs.HostName()
 
 	index.ClientAddress = span.Attrs.Text(attrkey.ClientAddress)

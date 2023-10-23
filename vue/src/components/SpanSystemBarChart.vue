@@ -10,7 +10,7 @@
         >
           <v-avatar :color="sys.color" size="12" class="mr-2"></v-avatar>
           <span class="d-inline-flex mr-1">{{ truncate(sys.name, { length: 32 }) }}</span>
-          <XPct
+          <PctValue
             :a="sys.duration"
             :b="totalDuration"
             :unit="Unit.Microseconds"
@@ -27,7 +27,7 @@
         </template>
         <div>
           <span>{{ sys.name }}</span>
-          <XDuration :duration="sys.duration" class="ml-1" />
+          <DurationValue :value="sys.duration" class="ml-1" />
         </div>
       </v-tooltip>
     </div>
@@ -41,7 +41,7 @@ import { truncate } from 'lodash-es'
 import { defineComponent, computed, PropType } from 'vue'
 
 // Components
-import XPct from '@/components/XPct.vue'
+import PctValue from '@/components/PctValue.vue'
 
 // Utilities
 import { Unit } from '@/util/fmt'
@@ -49,7 +49,7 @@ import { ColoredSystem } from '@/models/colored-system'
 
 export default defineComponent({
   name: 'SpanSystemBarChart',
-  components: { XPct },
+  components: { PctValue },
 
   props: {
     loading: {

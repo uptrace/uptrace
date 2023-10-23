@@ -35,7 +35,7 @@ export default defineComponent({
     const span = useSpan(() => {
       const { projectId, traceId, spanId } = route.value.params
       return {
-        url: `/api/v1/tracing/${projectId}/traces/${traceId}/${spanId}`,
+        url: `/internal/v1/tracing/${projectId}/traces/${traceId}/${spanId}`,
         params: forceReloadParams.value,
       }
     })

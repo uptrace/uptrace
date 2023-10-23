@@ -34,7 +34,7 @@ export function useDashGauges(paramsSource: AxiosParamsSource) {
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId, dashId } = route.value.params
     return {
-      url: `/api/v1/metrics/${projectId}/dashboards/${dashId}/gauges`,
+      url: `/internal/v1/metrics/${projectId}/dashboards/${dashId}/gauges`,
       params: paramsSource(),
     }
   })
@@ -66,7 +66,7 @@ export function useDashGaugeQuery(
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
-      url: `/api/v1/metrics/${projectId}/gauge`,
+      url: `/internal/v1/metrics/${projectId}/gauge`,
       params: axiosParamsSource(),
     }
   })
@@ -132,7 +132,7 @@ export function useDashGaugeManager() {
 
   function create(gauge: Partial<DashGauge>) {
     const { projectId, dashId } = route.value.params
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/gauges`
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/gauges`
 
     return request({ method: 'POST', url, data: gauge }).then((resp) => {
       return resp.data.gauge as DashGauge
@@ -141,7 +141,7 @@ export function useDashGaugeManager() {
 
   function update(gauge: DashGauge) {
     const { id, projectId, dashId } = gauge
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/gauges/${id}`
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/gauges/${id}`
 
     return request({ method: 'PUT', url, data: gauge }).then((resp) => {
       return resp.data.gauge as DashGauge
@@ -157,7 +157,7 @@ export function useDashGaugeManager() {
 
   function del(gauge: DashGauge) {
     const { id, projectId, dashId } = gauge
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/gauges/${id}`
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/gauges/${id}`
 
     return request({ method: 'DELETE', url, data: gauge }).then((resp) => {
       return resp.data.gauge as DashGauge
@@ -166,7 +166,7 @@ export function useDashGaugeManager() {
 
   function updateOrder(gauges: DashGauge[]) {
     const { projectId, dashId } = route.value.params
-    const url = `/api/v1/metrics/${projectId}/dashboards/${dashId}/gauges`
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/gauges`
 
     const data = gauges.map((gauge, index) => {
       return { id: gauge.id, index }
