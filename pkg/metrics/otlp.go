@@ -165,7 +165,7 @@ func (s *MetricsServiceServer) process(
 
 		for _, sm := range rms.ScopeMetrics {
 			var scope AttrMap
-			if len(sm.Scope.Attributes) > 0 {
+			if sm.Scope != nil && len(sm.Scope.Attributes) > 0 {
 				scope = make(AttrMap, len(resource)+len(sm.Scope.Attributes))
 				maps.Copy(scope, resource)
 				otlpconv.ForEachKeyValue(sm.Scope.Attributes, func(key string, value any) {
@@ -175,7 +175,7 @@ func (s *MetricsServiceServer) process(
 				scope = resource
 			}
 
-			if sm.Scope.Name != "" {
+			if sm.Scope != nil && sm.Scope.Name != "" {
 				if strings.Contains(sm.Scope.Name, "otelcol") {
 					p.hasCollectorMetrics = true
 				} else {
