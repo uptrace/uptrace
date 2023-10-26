@@ -11,13 +11,19 @@ import (
 )
 
 var coreAttrs = []string{
+	attrkey.SpanStatusCode,
 	attrkey.DeploymentEnvironment,
 	attrkey.ServiceName,
+	attrkey.ServiceVersion,
+	attrkey.ServiceNamespace,
 	attrkey.HostName,
 	attrkey.RPCMethod,
+	attrkey.RPCService,
 	attrkey.HTTPRequestMethod,
 	attrkey.HTTPResponseStatusCode,
+	attrkey.DBName,
 	attrkey.DBOperation,
+	attrkey.DBSqlTable,
 	attrkey.LogSeverity,
 	attrkey.LogSource,
 	attrkey.LogFilePath,

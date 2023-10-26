@@ -181,6 +181,16 @@ func validateConfig(conf *Config) error {
 		conf.Metrics.CumToDeltaSize = ScaleWithCPU(10000, 500000)
 	}
 
+	if !conf.ServiceGraph.Disabled {
+		store := &conf.ServiceGraph.Store
+		if store.Size == 0 {
+			store.Size = ScaleWithCPU(100000, 10000000)
+		}
+		if store.TTL == 0 {
+			store.TTL = 5 * time.Second
+		}
+	}
+
 	return nil
 }
 
@@ -299,6 +309,14 @@ type Config struct {
 		BatchSize      int `yaml:"batch_size"`
 		CumToDeltaSize int `yaml:"cum_to_delta_size"`
 	} `yaml:"metrics"`
+
+	ServiceGraph struct {
+		Disabled bool `yaml:"disabled"`
+		Store    struct {
+			Size int           `yaml:"size"`
+			TTL  time.Duration `yaml:"ttl"`
+		} `yaml:"store"`
+	}
 
 	SMTPMailer struct {
 		Enabled  bool              `yaml:"enabled"`

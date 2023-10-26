@@ -1,4 +1,4 @@
-lockfileVersion: '6.1'
+lockfileVersion: '6.0'
 
 settings:
   autoInstallPeers: true
@@ -33,8 +33,8 @@ dependencies:
     specifier: 2.29.3
     version: 2.29.3
   echarts:
-    specifier: 5.4.0
-    version: 5.4.0
+    specifier: 5.4.3
+    version: 5.4.3
   element-resize-detector:
     specifier: 1.2.4
     version: 1.2.4
@@ -68,6 +68,9 @@ dependencies:
   vue:
     specifier: 2.7.14
     version: 2.7.14
+  vue-demi:
+    specifier: ^0.14.6
+    version: 0.14.6(vue@2.7.14)
   vue-frag:
     specifier: 1.4.1
     version: 1.4.1(vue@2.7.14)
@@ -2575,7 +2578,7 @@ packages:
       '@types/web-bluetooth': 0.0.16
       '@vueuse/metadata': 9.4.0
       '@vueuse/shared': 9.4.0(vue@2.7.14)
-      vue-demi: 0.14.0(vue@2.7.14)
+      vue-demi: 0.14.6(vue@2.7.14)
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
@@ -2588,7 +2591,7 @@ packages:
   /@vueuse/shared@9.4.0(vue@2.7.14):
     resolution: {integrity: sha512-fTuem51KwMCnqUKkI8B57qAIMcFovtGgsCtAeqxIzH3i6nE9VYge+gVfneNHAAy7lj8twbkNfqQSygOPJTm4tQ==}
     dependencies:
-      vue-demi: 0.14.0(vue@2.7.14)
+      vue-demi: 0.14.6(vue@2.7.14)
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
@@ -4172,11 +4175,11 @@ packages:
     engines: {node: '>=6.0.0'}
     dev: true
 
-  /echarts@5.4.0:
-    resolution: {integrity: sha512-uPsO9VRUIKAdFOoH3B0aNg7NRVdN7aM39/OjovjO9MwmWsAkfGyeXJhK+dbRi51iDrQWliXV60/XwLA7kg3z0w==}
+  /echarts@5.4.3:
+    resolution: {integrity: sha512-mYKxLxhzy6zyTi/FaEbJMOZU1ULGEQHaeIeuMR5L+JnJTpz+YR03mnnpBhbR4+UYJAgiXgpyTVLffPAjOTLkZA==}
     dependencies:
       tslib: 2.3.0
-      zrender: 5.4.0
+      zrender: 5.4.4
     dev: false
 
   /editorconfig@0.15.3:
@@ -8046,8 +8049,8 @@ packages:
       webpack: 5.80.0
     dev: true
 
-  /vue-demi@0.14.0(vue@2.7.14):
-    resolution: {integrity: sha512-gt58r2ogsNQeVoQ3EhoUAvUsH9xviydl0dWJj7dabBC/2L4uBId7ujtCwDRD0JhkGsV1i0CtfLAeyYKBht9oWg==}
+  /vue-demi@0.14.6(vue@2.7.14):
+    resolution: {integrity: sha512-8QA7wrYSHKaYgUxDA5ZC24w+eHm3sYCbp0EzcDwKqN3p6HqtTCGR/GVsPyZW92unff4UlcSh++lmqDWN3ZIq4w==}
     engines: {node: '>=12'}
     hasBin: true
     requiresBuild: true
@@ -8713,8 +8716,8 @@ packages:
       strip-indent: 2.0.0
     dev: true
 
-  /zrender@5.4.0:
-    resolution: {integrity: sha512-rOS09Z2HSVGFs2dn/TuYk5BlCaZcVe8UDLLjj1ySYF828LATKKdxuakSZMvrDz54yiKPDYVfjdKqcX8Jky3BIA==}
+  /zrender@5.4.4:
+    resolution: {integrity: sha512-0VxCNJ7AGOMCWeHVyTrGzUgrK4asT4ml9PEkeGirAkKNYXYzoPJCLvmyfdoOXcjTHPs10OZVMfD1Rwg16AZyYw==}
     dependencies:
       tslib: 2.3.0
     dev: false

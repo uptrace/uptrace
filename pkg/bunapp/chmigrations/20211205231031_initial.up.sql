@@ -41,6 +41,7 @@ CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
 
   service_name LowCardinality(String) Codec(?CODEC),
   service_version LowCardinality(String) Codec(?CODEC),
+  service_namespace LowCardinality(String) Codec(?CODEC),
   host_name LowCardinality(String) Codec(?CODEC),
 
   client_address LowCardinality(String) Codec(?CODEC),
@@ -55,7 +56,11 @@ CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
   http_response_status_code UInt16 Codec(?CODEC),
   http_route LowCardinality(String) Codec(?CODEC),
 
+  rpc_method LowCardinality(String) Codec(?CODEC),
+  rpc_service LowCardinality(String) Codec(?CODEC),
+
   db_system LowCardinality(String) Codec(?CODEC),
+  db_name LowCardinality(String) Codec(?CODEC),
   db_statement String Codec(?CODEC),
   db_operation LowCardinality(String) Codec(?CODEC),
   db_sql_table LowCardinality(String) Codec(?CODEC),
@@ -184,3 +189,186 @@ AS SELECT
   max(annotations) AS annotations
 FROM ?DB.datapoint_minutes AS m
 GROUP BY m.project_id, m.metric, toStartOfHour(m.time), m.attrs_hash
+
+--------------------------------------------------------------------------------
+--migration:split
+
+CREATE TABLE ?DB.service_graph_edges ?ON_CLUSTER (
+  project_id UInt32 Codec(DoubleDelta, ?CODEC),
+  type LowCardinality(String) Codec(?CODEC),
+  time DateTime Codec(T64, ?CODEC),
+
+  client_name LowCardinality(String) Codec(?CODEC),
+  server_name LowCardinality(String) Codec(?CODEC),
+  server_attr LowCardinality(String) Codec(?CODEC),
+
+  deployment_environment LowCardinality(String) Codec(?CODEC),
+  service_namespace LowCardinality(String) Codec(?CODEC),
+
+  client_duration_min SimpleAggregateFunction(min, Float32) Codec(?CODEC),
+  client_duration_max SimpleAggregateFunction(max, Float32) Codec(?CODEC),
+  client_duration_sum SimpleAggregateFunction(sumWithOverflow, Float32) Codec(?CODEC),
+
+  server_duration_min SimpleAggregateFunction(min, Float32) Codec(?CODEC),
+  server_duration_max SimpleAggregateFunction(max, Float32) Codec(?CODEC),
+  server_duration_sum SimpleAggregateFunction(sumWithOverflow, Float32) Codec(?CODEC),
+
+  count SimpleAggregateFunction(sumWithOverflow, UInt32) Codec(Delta, ?CODEC),
+  error_count SimpleAggregateFunction(sumWithOverflow, UInt32) Codec(Delta, ?CODEC)
+)
+ENGINE = ?(REPLICATED)AggregatingMergeTree
+PARTITION BY toDate(time)
+ORDER BY (project_id, time, type, client_name, server_name, deployment_environment, service_namespace)
+PRIMARY KEY (project_id, time, type, client_name, server_name)
+TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
+SETTINGS ttl_only_drop_parts = 1,
+  storage_policy = ?SPANS_STORAGE
+
+--migration:split
+
+CREATE TABLE ?DB.service_graph_edges_buffer ?ON_CLUSTER AS ?DB.service_graph_edges
+ENGINE = Buffer(currentDatabase(), service_graph_edges, 3, 5, 10, 10000, 1000000, 10000000, 100000000)
+
+--migration:split
+
+CREATE MATERIALIZED VIEW ?DB.metrics_uptrace_service_graph_client_duration_mv ?ON_CLUSTER
+TO ?DB.datapoint_minutes AS
+SELECT
+  e.project_id,
+  'uptrace.service_graph.client_duration' AS metric,
+  e.time,
+  xxHash64(
+    e.project_id,
+    e.type,
+    e.client_name,
+    e.server_name,
+    e.deployment_environment,
+    e.service_namespace
+  ) AS attrs_hash,
+
+  'summary' AS instrument,
+  min(e.client_duration_min) AS min,
+  min(e.client_duration_max) AS max,
+  sum(e.client_duration_sum) AS sum,
+  sum(e.count) AS count,
+
+  arrayConcat(
+    ['type', 'client', 'server'],
+    if(e.deployment_environment != '', ['deployment.environment'], []),
+    if(e.service_namespace != '', ['service.namespace'], [])
+  ) AS all_keys,
+  arrayConcat(
+    ['type', 'client', 'server'],
+    if(e.deployment_environment != '', ['deployment.environment'], []),
+    if(e.service_namespace != '', ['service.namespace'], [])
+   ) AS string_keys,
+  arrayConcat(
+    [e.type, e.client_name, e.server_name],
+    if(e.deployment_environment != '', [e.deployment_environment], []),
+    if(e.service_namespace != '', [e.service_namespace], [])
+  ) AS string_values
+FROM ?DB.service_graph_edges AS e
+WHERE e.count > 0 AND e.client_duration_sum > 0
+GROUP BY
+  e.project_id,
+  e.type,
+  e.time,
+  e.client_name,
+  e.server_name,
+  e.deployment_environment,
+  e.service_namespace
+
+--migration:split
+
+CREATE MATERIALIZED VIEW ?DB.metrics_uptrace_service_graph_server_duration_mv ?ON_CLUSTER
+TO ?DB.datapoint_minutes AS
+SELECT
+  e.project_id,
+  'uptrace.service_graph.server_duration' AS metric,
+  e.time,
+  xxHash64(
+    e.project_id,
+    e.type,
+    e.client_name,
+    e.server_name,
+    e.deployment_environment,
+    e.service_namespace
+  ) AS attrs_hash,
+
+  'summary' AS instrument,
+  min(e.server_duration_min) AS min,
+  min(e.server_duration_max) AS max,
+  sum(e.server_duration_sum) AS sum,
+  sum(e.count) AS count,
+
+  arrayConcat(
+    ['type', 'client', 'server'],
+    if(e.deployment_environment != '', ['deployment.environment'], []),
+    if(e.service_namespace != '', ['service.namespace'], [])
+  ) AS all_keys,
+  arrayConcat(
+    ['type', 'client', 'server'],
+    if(e.deployment_environment != '', ['deployment.environment'], []),
+    if(e.service_namespace != '', ['service.namespace'], [])
+   ) AS string_keys,
+  arrayConcat(
+    [e.type, e.client_name, e.server_name],
+    if(e.deployment_environment != '', [e.deployment_environment], []),
+    if(e.service_namespace != '', [e.service_namespace], [])
+  ) AS string_values
+FROM ?DB.service_graph_edges AS e
+WHERE e.count > 0 AND e.server_duration_sum > 0
+GROUP BY
+  e.project_id,
+  e.type,
+  e.time,
+  e.client_name,
+  e.server_name,
+  e.deployment_environment,
+  e.service_namespace
+
+--migration:split
+
+CREATE MATERIALIZED VIEW ?DB.metrics_uptrace_service_graph_failed_requests_mv ?ON_CLUSTER
+TO ?DB.datapoint_minutes AS
+SELECT
+  e.project_id,
+  'uptrace.service_graph.failed_requests' AS metric,
+  e.time,
+  xxHash64(
+    e.project_id,
+    e.type,
+    e.client_name,
+    e.server_name,
+    e.deployment_environment,
+    e.service_namespace
+  ) AS attrs_hash,
+
+  'counter' AS instrument,
+  sum(e.error_count) AS sum,
+
+  arrayConcat(
+    ['type', 'client', 'server'],
+    if(e.deployment_environment != '', ['deployment.environment'], []),
+    if(e.service_namespace != '', ['service.namespace'], [])
+  ) AS all_keys,
+  arrayConcat(
+    ['type', 'client', 'server'],
+    if(e.deployment_environment != '', ['deployment.environment'], []),
+    if(e.service_namespace != '', ['service.namespace'], [])
+   ) AS string_keys,
+  arrayConcat(
+    [e.type, e.client_name, e.server_name],
+    if(e.deployment_environment != '', [e.deployment_environment], []),
+    if(e.service_namespace != '', [e.service_namespace], [])
+  ) AS string_values
+FROM ?DB.service_graph_edges AS e
+WHERE e.error_count > 0
+GROUP BY
+  e.project_id,
+  e.type,
+  e.time,
+  e.client_name,
+  e.server_name,
+  e.deployment_environment,
+  e.service_namespace

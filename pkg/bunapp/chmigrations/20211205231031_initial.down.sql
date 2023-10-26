@@ -41,3 +41,24 @@ DROP TABLE IF EXISTS ?DB.datapoint_hours ?ON_CLUSTER
 --migration:split
 
 DROP VIEW IF EXISTS ?DB.datapoint_hours_mv ?ON_CLUSTER
+
+--------------------------------------------------------------------------------
+--migration:split
+
+DROP TABLE IF EXISTS ?DB.service_graph_edges ?ON_CLUSTER
+
+--migration:split
+
+DROP TABLE IF EXISTS ?DB.service_graph_edges_buffer ?ON_CLUSTER
+
+--migration:split
+
+DROP VIEW IF EXISTS ?DB.metrics_uptrace_service_graph_client_duration_mv ?ON_CLUSTER
+
+--migration:split
+
+DROP VIEW IF EXISTS ?DB.metrics_uptrace_service_graph_server_duration_mv ?ON_CLUSTER
+
+--migration:split
+
+DROP VIEW IF EXISTS ?DB.metrics_uptrace_service_graph_failed_requests_mv ?ON_CLUSTER

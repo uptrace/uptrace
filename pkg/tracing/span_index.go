@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/uptrace/go-clickhouse/ch"
@@ -33,9 +34,10 @@ type SpanIndex struct {
 
 	DeploymentEnvironment string `ch:",lc"`
 
-	ServiceName    string `ch:",lc"`
-	ServiceVersion string `ch:",lc"`
-	HostName       string `ch:",lc"`
+	ServiceName      string `ch:",lc"`
+	ServiceVersion   string `ch:",lc"`
+	ServiceNamespace string `ch:",lc"`
+	HostName         string `ch:",lc"`
 
 	ClientAddress       string `ch:",lc"`
 	ClientSocketAddress string `ch:",lc"`
@@ -49,7 +51,11 @@ type SpanIndex struct {
 	HTTPResponseStatusCode uint16
 	HTTPRoute              string `ch:",lc"`
 
+	RPCMethod  string `ch:",lc"`
+	RPCService string `ch:",lc"`
+
 	DBSystem    string `ch:",lc"`
+	DBName      string `ch:",lc"`
 	DBStatement string
 	DBOperation string `ch:",lc"`
 	DBSqlTable  string `ch:",lc"`
@@ -77,6 +83,7 @@ func initSpanIndex(index *SpanIndex, span *Span) {
 
 	index.ServiceName = span.Attrs.ServiceName()
 	index.ServiceVersion = span.Attrs.Text(attrkey.ServiceVersion)
+	index.ServiceNamespace = span.Attrs.Text(attrkey.ServiceNamespace)
 	index.HostName = span.Attrs.HostName()
 
 	index.ClientAddress = span.Attrs.Text(attrkey.ClientAddress)
@@ -91,7 +98,11 @@ func initSpanIndex(index *SpanIndex, span *Span) {
 	index.HTTPResponseStatusCode = uint16(span.Attrs.Uint64(attrkey.HTTPResponseStatusCode))
 	index.HTTPRoute = span.Attrs.Text(attrkey.HTTPRoute)
 
+	index.RPCMethod = span.Attrs.Text(attrkey.RPCMethod)
+	index.RPCService = span.Attrs.Text(attrkey.RPCService)
+
 	index.DBSystem = span.Attrs.Text(attrkey.DBSystem)
+	index.DBName = span.Attrs.Text(attrkey.DBName)
 	index.DBStatement = span.Attrs.Text(attrkey.DBStatement)
 	index.DBOperation = span.Attrs.Text(attrkey.DBOperation)
 	index.DBSqlTable = span.Attrs.Text(attrkey.DBSqlTable)
@@ -103,7 +114,9 @@ func initSpanIndex(index *SpanIndex, span *Span) {
 	index.ExceptionMessage = span.Attrs.Text(attrkey.ExceptionMessage)
 
 	index.AllKeys = mapKeys(span.Attrs)
-	index.StringKeys, index.StringValues = attrKeysAndValues(span.Attrs)
+	slices.Sort(index.AllKeys)
+
+	index.StringKeys, index.StringValues = attrKeysAndValues(span.Attrs, index.AllKeys)
 }
 
 func mapKeys(m AttrMap) []string {
@@ -112,6 +125,22 @@ func mapKeys(m AttrMap) []string {
 		keys = append(keys, key)
 	}
 	return keys
+}
+
+func attrKeysAndValues(m AttrMap, sortedKeys []string) ([]string, []string) {
+	keys := make([]string, 0, len(m))
+	values := make([]string, 0, len(m))
+	for _, key := range sortedKeys {
+		if strings.HasPrefix(key, "_") {
+			continue
+		}
+		if IsIndexedAttr(key) {
+			continue
+		}
+		keys = append(keys, key)
+		values = append(values, utf8util.TruncSmall(asString(m[key])))
+	}
+	return keys, values
 }
 
 var (
@@ -130,6 +159,7 @@ var (
 
 		attrkey.ServiceName,
 		attrkey.ServiceVersion,
+		attrkey.ServiceNamespace,
 		attrkey.HostName,
 
 		attrkey.ClientAddress,
@@ -144,7 +174,11 @@ var (
 		attrkey.HTTPResponseStatusCode,
 		attrkey.HTTPRoute,
 
+		attrkey.RPCMethod,
+		attrkey.RPCService,
+
 		attrkey.DBSystem,
+		attrkey.DBName,
 		attrkey.DBStatement,
 		attrkey.DBOperation,
 		attrkey.DBSqlTable,
@@ -161,20 +195,4 @@ var (
 func IsIndexedAttr(key string) bool {
 	_, ok := indexedAttrSet[key]
 	return ok
-}
-
-func attrKeysAndValues(m AttrMap) ([]string, []string) {
-	keys := make([]string, 0, len(m))
-	values := make([]string, 0, len(m))
-	for k, v := range m {
-		if strings.HasPrefix(k, "_") {
-			continue
-		}
-		if IsIndexedAttr(k) {
-			continue
-		}
-		keys = append(keys, k)
-		values = append(values, utf8util.TruncMedium(asString(v)))
-	}
-	return keys, values
 }

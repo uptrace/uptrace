@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
@@ -136,7 +137,7 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 	q, _ := buildSpanIndexQuery(h.App, f, 0)
 	chExpr := appendCHAttr(nil, attr)
 
-	q = q.ColumnExpr("? AS value", chExpr).
+	q = q.ColumnExpr("? AS value", ch.Safe(chExpr)).
 		GroupExpr("value").
 		ColumnExpr("count() AS count")
 	if !strings.HasPrefix(f.AttrKey, ".") {

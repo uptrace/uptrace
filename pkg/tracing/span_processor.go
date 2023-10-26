@@ -23,6 +23,8 @@ type SpanProcessor struct {
 	queue     chan *Span
 	gate      *syncutil.Gate
 
+	sgp *ServiceGraphProcessor
+
 	logger *otelzap.Logger
 }
 
@@ -37,6 +39,10 @@ func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
 		gate:      syncutil.NewGate(maxprocs),
 
 		logger: app.Logger,
+	}
+
+	if !conf.ServiceGraph.Disabled {
+		p.sgp = NewServiceGraphProcessor(app)
 	}
 
 	p.logger.Info("starting processing spans...",
@@ -145,14 +151,14 @@ func (p *SpanProcessor) processSpans(ctx context.Context, src []*Span) {
 	}()
 }
 
-func (s *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
+func (p *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
 	indexedSpans := make([]SpanIndex, 0, len(spans))
 	dataSpans := make([]SpanData, 0, len(spans))
 
 	seenErrors := make(map[uint64]bool) // basic deduplication
 
 	for _, span := range spans {
-		initSpanOrEvent(ctx, s.App, span)
+		initSpanOrEvent(ctx, p.App, span)
 		spanCounter.Add(
 			ctx,
 			1,
@@ -166,6 +172,12 @@ func (s *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
 		index := &indexedSpans[len(indexedSpans)-1]
 		initSpanIndex(index, span)
 
+		if p.sgp != nil {
+			if err := p.sgp.ProcessSpan(ctx, index); err != nil {
+				p.Zap(ctx).Error("service graph failed", zap.Error(err))
+			}
+		}
+
 		if span.EventName != "" {
 			dataSpans = append(dataSpans, SpanData{})
 			initSpanData(&dataSpans[len(dataSpans)-1], span)
@@ -178,7 +190,7 @@ func (s *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
 		for _, event := range span.Events {
 			eventSpan := new(Span)
 			initEventFromHostSpan(eventSpan, event, span)
-			initEvent(ctx, s.App, eventSpan)
+			initEvent(ctx, p.App, eventSpan)
 
 			spanCounter.Add(
 				ctx,
@@ -199,7 +211,7 @@ func (s *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
 				errorCount++
 				if !seenErrors[eventSpan.GroupID] {
 					seenErrors[eventSpan.GroupID] = true
-					scheduleCreateErrorAlert(ctx, s.App, eventSpan)
+					scheduleCreateErrorAlert(ctx, p.App, eventSpan)
 				}
 			}
 			if isLogSystem(eventSpan.System) {
@@ -217,18 +229,18 @@ func (s *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
 		initSpanData(&dataSpans[len(dataSpans)-1], span)
 	}
 
-	if _, err := s.CH.NewInsert().
+	if _, err := p.CH.NewInsert().
 		Model(&dataSpans).
 		Exec(ctx); err != nil {
-		s.Zap(ctx).Error("ch.Insert failed",
+		p.Zap(ctx).Error("ch.Insert failed",
 			zap.Error(err),
 			zap.String("table", "spans_data"))
 	}
 
-	if _, err := s.CH.NewInsert().
+	if _, err := p.CH.NewInsert().
 		Model(&indexedSpans).
 		Exec(ctx); err != nil {
-		s.Zap(ctx).Error("ch.Insert failed",
+		p.Zap(ctx).Error("ch.Insert failed",
 			zap.Error(err),
 			zap.String("table", "spans_index"))
 	}

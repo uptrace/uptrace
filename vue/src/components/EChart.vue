@@ -1,6 +1,15 @@
 <template>
-  <div ref="container" v-element-resize @resize="onResize">
-    <v-sheet :width="width" :height="height" class="mx-auto echart"></v-sheet>
+  <div
+    v-element-resize
+    class="echart-container"
+    :style="{
+      width: withUnit(width),
+      height: withUnit(height),
+    }"
+    @resize="onResizeDebounced"
+  >
+    <div ref="div"></div>
+
     <v-menu
       v-model="popover.menu"
       :position-x="popover.x"
@@ -58,7 +67,7 @@ import {
   proxyRefs,
   watch,
   onMounted,
-  onUnmounted,
+  onBeforeUnmount,
   PropType,
 } from 'vue'
 
@@ -115,8 +124,8 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
-    let echart: ECharts
-    const container = shallowRef<HTMLElement>()
+    let echart: ECharts | undefined
+    const div = shallowRef<HTMLDivElement>()
 
     const config = computed(() => {
       if (!props.option) {
@@ -129,21 +138,58 @@ export default defineComponent({
       return conf
     })
 
-    function init() {
-      if (echart) {
+    onMounted(() => {
+      echart = init()
+
+      watch(
+        config,
+        (config) => {
+          if (config) {
+            setOptionDebounced(config)
+          }
+        },
+        { immediate: true },
+      )
+
+      watch(
+        () => props.loading,
+        (loading) => {
+          if (!echart) {
+            return
+          }
+          if (loading) {
+            echart.showLoading()
+          } else {
+            echart.hideLoading()
+          }
+        },
+        { immediate: true },
+      )
+    })
+
+    onBeforeUnmount(() => {
+      if (!echart) {
         return
       }
 
-      const div = container.value!.getElementsByClassName('echart')[0] as HTMLDivElement
-      echart = initChart(div)
+      if (props.group) {
+        unregister(props.group, echart)
+      }
+      echart.dispose()
+      echart = undefined
+    })
+
+    function init() {
+      const echart = initChart(div.value!, undefined)
+      initAnnotations(echart)
 
       ctx.emit('input', echart)
-
-      initAnnotations(echart)
 
       if (props.group) {
         register(props.group, echart)
       }
+
+      return echart
     }
 
     const popover = usePopover()
@@ -168,58 +214,29 @@ export default defineComponent({
       })
     }
 
-    const setOption = debounce((option: EChartsOption) => {
-      if (echart.isDisposed()) {
+    const setOptionDebounced = debounce((option: EChartsOption) => {
+      if (!echart) {
         return
       }
+      echart.setOption(option, { notMerge: true, silent: true })
+    }, 10)
 
-      echart.setOption(option, { notMerge: true, lazyUpdate: true, silent: true })
-    }, 50)
-
-    onMounted(() => {
-      init()
-
-      watch(
-        config,
-        (config) => {
-          if (config) {
-            setOption(config)
-          }
-        },
-        { immediate: true },
-      )
-
-      watch(
-        () => props.loading,
-        (loading) => {
-          if (loading) {
-            echart.showLoading()
-          } else {
-            echart.hideLoading()
-          }
-        },
-        { immediate: true },
-      )
-    })
-
-    onUnmounted(() => {
-      if (echart) {
-        if (props.group) {
-          unregister(props.group, echart)
-        }
-        echart.dispose()
-      }
-    })
-
-    const onResize = debounce(() => {
+    const onResizeDebounced = debounce(() => {
       if (echart) {
         echart.resize()
       }
     }, 50)
 
-    return { container, onResize, popover }
+    return { popover, div, withUnit, onResizeDebounced }
   },
 })
+
+function withUnit(v: number | string): string {
+  if (typeof v === 'number') {
+    return v + 'px'
+  }
+  return v
+}
 
 //------------------------------------------------------------------------------
 
@@ -379,6 +396,18 @@ function usePopover() {
         font-weight: 600;
       }
     }
+  }
+}
+</style>
+
+<style lang="scss" scoped>
+.echart-container {
+  position: relative;
+
+  & > div {
+    position: absolute;
+    width: 100%;
+    height: 100%;
   }
 }
 </style>

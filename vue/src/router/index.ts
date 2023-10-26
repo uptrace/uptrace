@@ -28,6 +28,7 @@ import Overview from '@/tracing/views/Overview.vue'
 import OverviewAttr from '@/tracing/views/OverviewAttr.vue'
 import OverviewSlowestGroups from '@/tracing/views/OverviewSlowestGroups.vue'
 import OverviewGroups from '@/tracing/views/OverviewGroups.vue'
+import OverviewServiceGraph from '@/tracing/views/OverviewServiceGraph.vue'
 
 import TracingHelp from '@/tracing/views/Help.vue'
 import TracingCheatsheet from '@/tracing/views/Cheatsheet.vue'
@@ -190,22 +191,27 @@ const routes: RouteConfig[] = [
       {
         name: 'SystemOverview',
         path: 'systems',
-        component: OverviewAttr,
+        components: { overview: OverviewAttr },
       },
       {
         name: 'SystemGroupList',
         path: 'groups/:system',
-        component: OverviewGroups,
+        components: { overview: OverviewGroups },
       },
       {
         name: 'AttrOverview',
         path: 'attributes/:attr',
-        component: OverviewAttr,
+        components: { overview: OverviewAttr },
       },
       {
         name: 'SlowestGroups',
         path: 'slowest-groups',
-        component: OverviewSlowestGroups,
+        components: { overview: OverviewSlowestGroups },
+      },
+      {
+        name: 'ServiceGraph',
+        path: 'service-graph',
+        components: { overview: OverviewServiceGraph },
       },
     ],
   },

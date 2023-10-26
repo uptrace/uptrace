@@ -224,6 +224,19 @@ metrics:
   # The size of the buffer for converting cumulative metrics to delta.
   #cum_to_delta_size: 100000
 
+###
+### Service graph processing options.
+###
+service_graph:
+  # Uncomment to disable.
+  #disabled: true
+  store:
+    # Number of incomplete edges to store.
+    # If the store is full, the edge is dropped.
+    size: 1000000
+    # For how long the incomplete edges are stored.
+    ttl: 5s
+
 ##
 ## SMTP settings to send emails.
 ## https://uptrace.dev/get/alerting.html

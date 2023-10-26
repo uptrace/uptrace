@@ -44,16 +44,20 @@
               <v-tab :to="{ name: 'SystemOverview', query: pick($route.query, 'system', 'query') }"
                 >Systems</v-tab
               >
+              <v-tab :to="{ name: 'ServiceGraph', query: pick($route.query, 'system', 'query') }">
+                Service graph
+              </v-tab>
               <v-tab
                 v-for="system in chosenSystems"
-                :key="system"
+                :key="system.name"
                 :to="{
                   name: 'SystemGroupList',
-                  params: { system },
+                  params: { system: system.name },
                   query: pick($route.query, 'system', 'query'),
                 }"
-                >{{ system }}</v-tab
               >
+                {{ system.name }} ({{ system.groupCount }})
+              </v-tab>
               <v-tab :to="{ name: 'SlowestGroups', query: pick($route.query, 'system', 'query') }"
                 >Slowest</v-tab
               >
@@ -75,7 +79,7 @@
       <v-container :fluid="$vuetify.breakpoint.lgAndDown">
         <v-row>
           <v-col>
-            <router-view :date-range="dateRange" :systems="systems" :uql="uql" />
+            <router-view name="overview" :date-range="dateRange" :systems="systems" :uql="uql" />
           </v-col>
         </v-row>
       </v-container>
@@ -105,6 +109,11 @@ import HelpCard from '@/tracing/HelpCard.vue'
 // Utilities
 import { isSpanSystem, isErrorSystem, SystemName, AttrKey } from '@/models/otel'
 import { DAY } from '@/util/fmt/date'
+
+interface ChosenSystem {
+  name: string
+  groupCount: number
+}
 
 export default defineComponent({
   name: 'Overview',
@@ -144,18 +153,33 @@ export default defineComponent({
       return items
     })
 
-    const chosenSystems = computed((): string[] => {
+    const chosenSystems = computed((): ChosenSystem[] => {
       if (props.dateRange.duration > 3 * DAY) {
         return []
       }
 
-      const chosen = []
+      const chosenMap = new Map<string, ChosenSystem>()
+
       for (let system of systems.items) {
-        if (isErrorSystem(system.system)) {
-          chosen.push(system.system)
+        if (system.isGroup) {
+          continue
+        }
+        if (!isErrorSystem(system.system)) {
+          continue
+        }
+
+        const found = chosenMap.get(system.system)
+        if (found) {
+          found.groupCount += system.groupCount
+        } else {
+          chosenMap.set(system.system, {
+            name: system.system,
+            groupCount: system.groupCount,
+          })
         }
       }
-      return chosen
+
+      return Array.from(chosenMap.values())
     })
 
     return {

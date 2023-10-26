@@ -45,8 +45,7 @@ func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	router := app.Router()
 	middleware := org.NewMiddleware(app)
-
-	api := app.APIGroup()
+	internalV1 := app.APIGroup()
 
 	// https://zipkin.io/zipkin-api/#/default/post_spans
 	router.WithGroup("/api/v2", func(g *bunrouter.Group) {
@@ -69,7 +68,13 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 		g.POST("/vector/logs", vectorHandler.Create)
 	})
 
-	api.
+	router.WithGroup("/api/v1/cloudwatch", func(g *bunrouter.Group) {
+		handler := NewKinesisHandler(app, sp)
+
+		g.POST("/logs", handler.Logs)
+	})
+
+	internalV1.
 		Use(middleware.UserAndProject).
 		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
 			sysHandler := NewSystemHandler(app)
@@ -77,7 +82,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			g.GET("/systems", sysHandler.ListSystems)
 		})
 
-	api.
+	internalV1.
 		Use(middleware.UserAndProject).
 		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
 			attrHandler := NewAttrHandler(app)
@@ -86,7 +91,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			g.GET("/attr-values", attrHandler.AttrValues)
 		})
 
-	api.Use(middleware.UserAndProject).
+	internalV1.Use(middleware.UserAndProject).
 		WithGroup("/tracing/:project_id/saved-views", func(g *bunrouter.Group) {
 			viewHandler := NewSavedViewHandler(app)
 
@@ -99,8 +104,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			g.PUT("/:view_id/unpinned", viewHandler.Unpin)
 		})
 
-	api.
-		Use(middleware.UserAndProject).
+	internalV1.Use(middleware.UserAndProject).
 		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
 			spanHandler := NewSpanHandler(app)
 
@@ -111,8 +115,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			g.GET("/timeseries", spanHandler.Timeseries)
 		})
 
-	api.
-		Use(middleware.User).
+	internalV1.Use(middleware.User).
 		WithGroup("", func(g *bunrouter.Group) {
 			traceHandler := NewTraceHandler(app)
 
@@ -124,9 +127,11 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			g.GET("/traces/:trace_id/:span_id", traceHandler.ShowSpan)
 		})
 
-	api.WithGroup("/cloudwatch", func(g *bunrouter.Group) {
-		handler := NewKinesisHandler(app, sp)
+	internalV1.WithGroup("/tracing/:project_id/service-graph", func(g *bunrouter.Group) {
+		g = g.Use(middleware.UserAndProject)
 
-		g.POST("/logs", handler.Logs)
+		handler := NewServiceGraphHandler(app)
+
+		g.GET("", handler.List)
 	})
 }
