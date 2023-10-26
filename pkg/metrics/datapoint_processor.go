@@ -197,7 +197,7 @@ func (p *DatapointProcessor) _processDatapoints(ctx *datapointContext, datapoint
 	}
 
 	if len(ctx.metrics) > 0 {
-		if err := p.upsertMetrics(ctx, ctx.metrics); err != nil {
+		if err := UpsertMetrics(ctx, p.App, ctx.metrics); err != nil {
 			p.Zap(ctx).Error("upsertMetrics failed", zap.Error(err))
 		}
 	}
@@ -404,39 +404,6 @@ func (p *DatapointProcessor) upsertMetric(ctx *datapointContext, datapoint *Data
 		Instrument:  datapoint.Instrument,
 		AttrKeys:    datapoint.StringKeys,
 	})
-}
-
-func (p *DatapointProcessor) upsertMetrics(ctx *datapointContext, metrics []Metric) error {
-	if _, err := p.PG.NewInsert().
-		Model(&metrics).
-		On("CONFLICT (project_id, name) DO UPDATE").
-		Set("description = EXCLUDED.description").
-		Set("unit = EXCLUDED.unit").
-		Set("instrument = EXCLUDED.instrument").
-		Set("attr_keys = EXCLUDED.attr_keys").
-		Set("updated_at = now()").
-		Returning("updated_at").
-		Exec(ctx); err != nil {
-		return err
-	}
-
-	seen := make(map[uint32]bool)
-	for i := range ctx.metrics {
-		metric := &ctx.metrics[i]
-
-		if !metric.UpdatedAt.IsZero() || seen[metric.ProjectID] {
-			continue
-		}
-		seen[metric.ProjectID] = true
-
-		job := createDashboardsTask.NewJob(metric.ProjectID)
-		job.OnceInPeriod(30 * time.Second)
-		if err := p.MainQueue.AddJob(ctx, job); err != nil {
-			p.Zap(ctx).Error("DefaultQueue.Add failed", zap.Error(err))
-		}
-	}
-
-	return nil
 }
 
 //------------------------------------------------------------------------------

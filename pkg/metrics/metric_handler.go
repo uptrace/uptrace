@@ -13,6 +13,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
+	"go.uber.org/zap"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
@@ -66,6 +67,11 @@ func NewMetricHandler(app *bunapp.App) *MetricHandler {
 
 func (h *MetricHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
+	project := org.ProjectFromContext(ctx)
+
+	if err := CreateSystemMetrics(ctx, h.App, project.ID); err != nil {
+		h.Zap(ctx).Error("CreateSystemMetrics failed", zap.Error(err))
+	}
 
 	f := new(MetricFilter)
 	now := time.Now()

@@ -8,9 +8,17 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
+	"go.uber.org/zap"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
+)
+
+const (
+	uptraceServiceGraphClientDuration = "uptrace.service_graph.client_duration"
+	uptraceServiceGraphServerDuration = "uptrace.service_graph.server_duration"
+	uptraceServiceGraphFailedRequests = "uptrace.service_graph.failed_requests"
 )
 
 type Metric struct {
@@ -111,6 +119,86 @@ func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) error {
 		Exec(ctx); err != nil {
 		return err
 	}
+	return nil
+}
+
+func CreateSystemMetrics(ctx context.Context, app *bunapp.App, projectID uint32) error {
+	metrics := []Metric{
+		{
+			ProjectID:   projectID,
+			Name:        uptraceServiceGraphClientDuration,
+			Description: "Requests duration between two nodes as seen from the client",
+			Instrument:  InstrumentSummary,
+			Unit:        bunconv.UnitMicroseconds,
+			AttrKeys: []string{
+				"type",
+				"client",
+				"server",
+				"deployment.environment",
+				"service.namespace",
+			},
+		},
+		{
+			ProjectID:   projectID,
+			Name:        uptraceServiceGraphServerDuration,
+			Description: "Requests duration between two nodes as seen from the server",
+			Instrument:  InstrumentSummary,
+			Unit:        bunconv.UnitMicroseconds,
+			AttrKeys: []string{
+				"type",
+				"client",
+				"server",
+				"deployment.environment",
+				"service.namespace",
+			},
+		},
+		{
+			ProjectID:   projectID,
+			Name:        uptraceServiceGraphFailedRequests,
+			Description: "Total count of failed requests between two nodes",
+			Instrument:  InstrumentCounter,
+			AttrKeys: []string{
+				"type",
+				"client",
+				"server",
+				"deployment.environment",
+				"service.namespace",
+			},
+		},
+	}
+	return UpsertMetrics(ctx, app, metrics)
+}
+
+func UpsertMetrics(ctx context.Context, app *bunapp.App, metrics []Metric) error {
+	if _, err := app.PG.NewInsert().
+		Model(&metrics).
+		On("CONFLICT (project_id, name) DO UPDATE").
+		Set("description = EXCLUDED.description").
+		Set("unit = EXCLUDED.unit").
+		Set("instrument = EXCLUDED.instrument").
+		Set("attr_keys = EXCLUDED.attr_keys").
+		Set("updated_at = now()").
+		Returning("updated_at").
+		Exec(ctx); err != nil {
+		return err
+	}
+
+	seen := make(map[uint32]bool)
+	for i := range metrics {
+		metric := &metrics[i]
+
+		if !metric.UpdatedAt.IsZero() || seen[metric.ProjectID] {
+			continue
+		}
+		seen[metric.ProjectID] = true
+
+		job := createDashboardsTask.NewJob(metric.ProjectID)
+		job.OnceInPeriod(30 * time.Second)
+		if err := app.MainQueue.AddJob(ctx, job); err != nil {
+			app.Zap(ctx).Error("DefaultQueue.Add failed", zap.Error(err))
+		}
+	}
+
 	return nil
 }
 
