@@ -112,6 +112,7 @@ func SelectTraceSpans(
 	var data []SpanData
 
 	if err := app.CH.NewSelect().
+		DistinctOn("id").
 		ColumnExpr("project_id, trace_id, id, parent_id, time, data").
 		Model(&data).
 		Column("data").

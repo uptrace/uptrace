@@ -81,13 +81,11 @@ func (h *KinesisHandler) Metrics(w http.ResponseWriter, req bunrouter.Request) e
 	}
 
 	p := otlpProcessor{
-		App: h.App,
-
-		mp: h.mp,
-
-		ctx:     ctx,
+		App:     h.App,
+		mp:      h.mp,
 		project: project,
 	}
+	defer p.close(ctx)
 
 	var src CloudwatchDatapoint
 	for _, record := range event.Records {
@@ -110,7 +108,7 @@ func (h *KinesisHandler) Metrics(w http.ResponseWriter, req bunrouter.Request) e
 				return err
 			}
 
-			p.enqueue(dest)
+			p.enqueue(ctx, dest)
 		}
 	}
 

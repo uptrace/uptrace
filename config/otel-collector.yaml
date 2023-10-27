@@ -49,6 +49,11 @@ processors:
     timeout: 10s
 
 exporters:
+  prometheusremotewrite:
+    endpoint: 'http://host.docker.internal:14318/api/v1/prometheus/write'
+    tls:
+      insecure: true
+    headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14317/1' }
   otlp/uptrace:
     endpoint: host.docker.internal:14317
     tls:
@@ -74,12 +79,16 @@ service:
       processors: [cumulativetodelta, batch]
       exporters: [otlp/uptrace]
     metrics/hostmetrics:
-      receivers: [hostmetrics, postgresql, prometheus/otelcol]
+      receivers: [hostmetrics, postgresql]
       processors: [cumulativetodelta, batch, resourcedetection]
       exporters: [otlp/uptrace]
     logs:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp/uptrace]
+    metrics/otelcol:
+      receivers: [prometheus/otelcol]
+      processors: [batch]
+      exporters: [prometheusremotewrite]
 
   extensions: [health_check, pprof, zpages]

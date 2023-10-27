@@ -20,9 +20,11 @@ Foundation.
 
 #### Features
 
-- Added service graphs. Service Graphs provide a visual representation of service interactions,
-  dependencies, and performance metrics. Service graphs are built by analyzing span relationships
-  and require certain span attributes.
+- Added [service graphs](https://app.uptrace.dev/overview/1/service-graph?). Service Graphs provide
+  a visual representation of service interactions, dependencies, and performance metrics. Service
+  graphs are built by analyzing span relationships and require certain span attributes.
+
+- Added support for [Prometheus remote write](https://uptrace.dev/get/ingest/prometheus.html).
 
 - Added [annotations](https://uptrace.dev/get/annotations.html) support.
 

@@ -1,7 +1,21 @@
 <template>
-  <v-form ref="form" v-model="isValid" lazy-validation @submit.prevent="submit">
-    <v-row align="start" class="mb-n5">
-      <v-col cols="5">
+  <v-form ref="formRef" v-model="isValid" @submit.prevent="apply">
+    <v-row
+      :dense="$vuetify.breakpoint.mdAndDown"
+      align="start"
+      :class="$vuetify.breakpoint.mdAndDown ? 'mb-n4' : 'mb-n8'"
+    >
+      <v-col v-if="editable" cols="auto">
+        <v-btn
+          icon
+          title="Remove metric"
+          :disabled="!('click:remove' in $listeners)"
+          @click="$emit('click:remove')"
+        >
+          <v-icon>mdi-delete</v-icon>
+        </v-btn>
+      </v-col>
+      <v-col cols="5" md="4">
         <v-autocomplete
           v-model="metricName"
           :loading="loading"
@@ -11,7 +25,6 @@
           auto-select-first
           label="Select a metric..."
           :rules="rules.name"
-          hide-details="auto"
           :disabled="disabled"
           solo
           flat
@@ -48,24 +61,22 @@
         </v-autocomplete>
       </v-col>
       <v-col cols="auto" class="mt-2 text--secondary">AS</v-col>
-      <v-col cols="5" md="4">
+      <v-col cols="4" md="3" lg="2">
         <v-text-field
           ref="metricAliasRef"
           v-model="metricAlias"
-          label="Short alias"
+          placeholder="short_alias"
           :rules="rules.alias"
-          hide-details="auto"
           prefix="$"
           solo
           flat
           dense
+          clearable
           background-color="grey lighten-4"
         />
       </v-col>
-    </v-row>
-    <v-row>
-      <v-col>
-        <v-btn type="submit" color="primary" :disabled="!isValid">Add metric</v-btn>
+      <v-col cols="auto">
+        <v-btn type="submit" color="primary" :disabled="applyDisabled">Apply</v-btn>
       </v-col>
     </v-row>
   </v-form>
@@ -76,12 +87,12 @@ import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
 import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
-import { UseUql } from '@/use/uql'
 import { defaultMetricAlias } from '@/metrics/use-metrics'
 
 // Utilities
 import { unitShortName } from '@/util/fmt'
-import { requiredRule, optionalRule } from '@/util/validation'
+import { requiredRule } from '@/util/validation'
+import { escapeRe } from '@/util/string'
 
 // Types
 import { Metric, MetricAlias } from '@/metrics/types'
@@ -98,17 +109,22 @@ export default defineComponent({
       type: Array as PropType<Metric[]>,
       required: true,
     },
+
+    value: {
+      type: Object as PropType<MetricAlias>,
+      default: undefined,
+    },
     activeMetrics: {
       type: Array as PropType<MetricAlias[]>,
       required: true,
     },
-    uql: {
-      type: Object as PropType<UseUql>,
+    query: {
+      type: String,
       required: true,
     },
-    required: {
+    editable: {
       type: Boolean,
-      required: true,
+      default: false,
     },
     disabled: {
       type: Boolean,
@@ -118,15 +134,16 @@ export default defineComponent({
 
   setup(props, ctx) {
     const metricAliasRef = shallowRef()
-    const metricName = shallowRef('')
-    const metricAlias = shallowRef('')
     const searchInput = shallowRef('')
 
-    const form = shallowRef()
+    const metricName = shallowRef(props.value?.name ?? '')
+    const metricAlias = shallowRef(props.value?.alias ?? '')
+
+    const formRef = shallowRef()
     const isValid = shallowRef(false)
     const rules = computed(() => {
       return {
-        name: [props.required ? requiredRule : optionalRule],
+        name: [requiredRule],
         alias: [
           (v: string) => {
             if (!metricName.value) {
@@ -139,9 +156,11 @@ export default defineComponent({
               return 'Only letters and numbers are allowed'
             }
 
-            const found = props.activeMetrics.find((m) => m.alias === v)
-            if (found) {
-              return 'Alias is duplicated'
+            if (v !== props.value?.alias) {
+              const found = props.activeMetrics.find((m) => m.alias === v)
+              if (found) {
+                return 'Alias is duplicated'
+              }
             }
 
             return true
@@ -158,14 +177,33 @@ export default defineComponent({
       return metrics
     })
 
-    function submit() {
-      if (!validate()) {
-        return
+    const applyDisabled = computed((): boolean => {
+      if (!metricName.value || !metricAlias.value) {
+        return true
       }
+      if (props.value) {
+        if (metricName.value !== props.value.name || metricAlias.value !== props.value.alias) {
+          return false
+        }
+      }
+      if (!createRegexp(metricAlias.value).test(props.query)) {
+        return false
+      }
+      return true
+    })
 
+    function apply() {
       metricAlias.value = metricAlias.value.toLowerCase()
-      ctx.emit('click:add', { name: metricName.value, alias: metricAlias.value })
-      reset()
+      ctx.emit('click:apply', { name: metricName.value, alias: metricAlias.value })
+      if (!props.value) {
+        reset()
+      }
+    }
+
+    function reset() {
+      metricName.value = ''
+      metricAlias.value = ''
+      formRef.value.reset()
     }
 
     function onMetricNameChange(metricName: string | null) {
@@ -177,29 +215,19 @@ export default defineComponent({
       metricAliasRef.value.focus()
     }
 
-    function validate() {
-      return form.value.validate()
-    }
-
-    function reset() {
-      metricName.value = ''
-      metricAlias.value = ''
-      form.value.reset()
-    }
-
     return {
       searchInput,
       metricAliasRef,
       metricName,
       metricAlias,
 
-      form,
+      formRef,
       isValid,
       rules,
       filteredMetrics,
 
-      submit,
-      validate,
+      applyDisabled,
+      apply,
       reset,
 
       unitShortName,
@@ -207,6 +235,10 @@ export default defineComponent({
     }
   },
 })
+
+function createRegexp(alias: string, flags = '') {
+  return new RegExp(escapeRe('$' + alias) + '\\b', flags)
+}
 </script>
 
 <style lang="scss" scoped></style>

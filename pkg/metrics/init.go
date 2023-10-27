@@ -54,6 +54,7 @@ func initOTLP(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
 }
 
 func initRoutes(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
+	router := app.Router()
 	middleware := NewMiddleware(app)
 	api := app.APIGroup()
 
@@ -139,10 +140,16 @@ func initRoutes(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
 			g.DELETE("/:gauge_id", handler.Delete)
 		})
 
-	api.WithGroup("/cloudwatch", func(g *bunrouter.Group) {
+	router.WithGroup("/api/v1/cloudwatch", func(g *bunrouter.Group) {
 		handler := NewKinesisHandler(app, mp)
 
 		g.POST("/metrics", handler.Metrics)
+	})
+
+	router.WithGroup("/api/v1/prometheus", func(g *bunrouter.Group) {
+		handler := NewPrometheusHandler(app, mp)
+
+		g.POST("/write", handler.Write)
 	})
 }
 

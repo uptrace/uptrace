@@ -148,14 +148,11 @@ func (s *MetricsServiceServer) process(
 	project *org.Project,
 ) (*collectormetricspb.ExportMetricsServiceResponse, error) {
 	p := otlpProcessor{
-		App: s.App,
-
-		mp: s.mp,
-
-		ctx:     ctx,
+		App:     s.App,
+		mp:      s.mp,
 		project: project,
 	}
-	defer p.close()
+	defer p.close(ctx)
 
 	for _, rms := range req.ResourceMetrics {
 		resource := make(AttrMap, len(rms.Resource.Attributes))
@@ -190,17 +187,17 @@ func (s *MetricsServiceServer) process(
 
 				switch data := metric.Data.(type) {
 				case *metricspb.Metric_Gauge:
-					p.otlpGauge(scope, metric, data)
+					p.otlpGauge(ctx, scope, metric, data)
 				case *metricspb.Metric_Sum:
-					p.otlpSum(scope, metric, data)
+					p.otlpSum(ctx, scope, metric, data)
 				case *metricspb.Metric_Histogram:
-					p.otlpHistogram(scope, metric, data)
+					p.otlpHistogram(ctx, scope, metric, data)
 				case *metricspb.Metric_ExponentialHistogram:
-					p.otlpExpHistogram(scope, metric, data)
+					p.otlpExpHistogram(ctx, scope, metric, data)
 				case *metricspb.Metric_Summary:
-					p.otlpSummary(scope, metric, data)
+					p.otlpSummary(ctx, scope, metric, data)
 				default:
-					p.Zap(p.ctx).Error("unknown metric",
+					p.Zap(ctx).Error("unknown metric",
 						zap.String("type", fmt.Sprintf("%T", data)))
 				}
 			}
@@ -215,24 +212,22 @@ type otlpProcessor struct {
 
 	mp *DatapointProcessor
 
-	ctx     context.Context
-	project *org.Project
-
+	project     *org.Project
 	metricIDMap map[MetricKey]struct{}
 
 	hasCollectorMetrics bool
 	hasAppMetrics       bool
 }
 
-func (p *otlpProcessor) close() {
+func (p *otlpProcessor) close(ctx context.Context) {
 	if p.hasCollectorMetrics {
-		org.CreateAchievementOnce(p.ctx, p.App, &org.Achievement{
+		org.CreateAchievementOnce(ctx, p.App, &org.Achievement{
 			ProjectID: p.project.ID,
 			Name:      org.AchievInstallCollector,
 		})
 	}
 	if p.hasAppMetrics {
-		org.CreateAchievementOnce(p.ctx, p.App, &org.Achievement{
+		org.CreateAchievementOnce(ctx, p.App, &org.Achievement{
 			ProjectID: p.project.ID,
 			Name:      org.AchievConfigureMetrics,
 		})
@@ -240,6 +235,7 @@ func (p *otlpProcessor) close() {
 }
 
 func (p *otlpProcessor) otlpGauge(
+	ctx context.Context,
 	scope AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_Gauge,
@@ -249,25 +245,26 @@ func (p *otlpProcessor) otlpGauge(
 			continue
 		}
 
-		dest := p.nextDatapoint(scope, metric, InstrumentGauge, dp.Attributes, dp.TimeUnixNano)
+		dest := p.otlpNextDatapoint(scope, metric, InstrumentGauge, dp.Attributes, dp.TimeUnixNano)
 		switch num := dp.Value.(type) {
 		case nil:
 			dest.Gauge = 0
-			p.enqueue(dest)
+			p.enqueue(ctx, dest)
 		case *metricspb.NumberDataPoint_AsInt:
 			dest.Gauge = float64(num.AsInt)
-			p.enqueue(dest)
+			p.enqueue(ctx, dest)
 		case *metricspb.NumberDataPoint_AsDouble:
 			dest.Gauge = num.AsDouble
-			p.enqueue(dest)
+			p.enqueue(ctx, dest)
 		default:
-			p.Zap(p.ctx).Error("unknown data point value",
+			p.Zap(ctx).Error("unknown data point value",
 				zap.String("type", fmt.Sprintf("%T", dp.Value)))
 		}
 	}
 }
 
 func (p *otlpProcessor) otlpSum(
+	ctx context.Context,
 	scope AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_Sum,
@@ -278,12 +275,12 @@ func (p *otlpProcessor) otlpSum(
 			continue
 		}
 
-		dest := p.nextDatapoint(scope, metric, "", dp.Attributes, dp.TimeUnixNano)
+		dest := p.otlpNextDatapoint(scope, metric, "", dp.Attributes, dp.TimeUnixNano)
 
 		if !data.Sum.IsMonotonic {
 			dest.Instrument = InstrumentAdditive
 			dest.Gauge = toFloat64(dp.Value)
-			p.enqueue(dest)
+			p.enqueue(ctx, dest)
 			continue
 		}
 
@@ -291,7 +288,7 @@ func (p *otlpProcessor) otlpSum(
 
 		if isDelta {
 			dest.Sum = toFloat64(dp.Value)
-			p.enqueue(dest)
+			p.enqueue(ctx, dest)
 			continue
 		}
 
@@ -301,21 +298,22 @@ func (p *otlpProcessor) otlpSum(
 			dest.CumPoint = &NumberPoint{
 				Int: value.AsInt,
 			}
-			p.enqueue(dest)
+			p.enqueue(ctx, dest)
 		case *metricspb.NumberDataPoint_AsDouble:
 			dest.StartTimeUnixNano = dp.StartTimeUnixNano
 			dest.CumPoint = &NumberPoint{
 				Double: value.AsDouble,
 			}
-			p.enqueue(dest)
+			p.enqueue(ctx, dest)
 		default:
-			p.Zap(p.ctx).Error("unknown point value type",
+			p.Zap(ctx).Error("unknown point value type",
 				zap.String("type", fmt.Sprintf("%T", dp.Value)))
 		}
 	}
 }
 
 func (p *otlpProcessor) otlpHistogram(
+	ctx context.Context,
 	scope AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_Histogram,
@@ -326,7 +324,8 @@ func (p *otlpProcessor) otlpHistogram(
 			continue
 		}
 
-		dest := p.nextDatapoint(scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
+		dest := p.otlpNextDatapoint(
+			scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
 		if isDelta {
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
@@ -352,11 +351,12 @@ func (p *otlpProcessor) otlpHistogram(
 				BucketCounts: dp.BucketCounts,
 			}
 		}
-		p.enqueue(dest)
+		p.enqueue(ctx, dest)
 	}
 }
 
 func (p *otlpProcessor) otlpExpHistogram(
+	ctx context.Context,
 	scope AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_ExponentialHistogram,
@@ -377,7 +377,8 @@ func (p *otlpProcessor) otlpExpHistogram(
 		buildBFloat16Hist(hist, base, int(dp.Positive.Offset), dp.Positive.BucketCounts, +1)
 		buildBFloat16Hist(hist, base, int(dp.Negative.Offset), dp.Negative.BucketCounts, -1)
 
-		dest := p.nextDatapoint(scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
+		dest := p.otlpNextDatapoint(
+			scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
 		if isDelta {
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
@@ -390,7 +391,7 @@ func (p *otlpProcessor) otlpExpHistogram(
 				Histogram: hist,
 			}
 		}
-		p.enqueue(dest)
+		p.enqueue(ctx, dest)
 	}
 }
 
@@ -410,6 +411,7 @@ func buildBFloat16Hist(
 }
 
 func (p *otlpProcessor) otlpSummary(
+	ctx context.Context,
 	scope AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_Summary,
@@ -430,17 +432,17 @@ func (p *otlpProcessor) otlpSummary(
 			}
 		}
 
-		dest := p.nextDatapoint(scope, metric, InstrumentSummary, dp.Attributes, dp.TimeUnixNano)
+		dest := p.otlpNextDatapoint(scope, metric, InstrumentSummary, dp.Attributes, dp.TimeUnixNano)
 		dest.Min = min
 		dest.Max = max
 		dest.Sum = dp.Sum
 		dest.Count = dp.Count
 
-		p.enqueue(dest)
+		p.enqueue(ctx, dest)
 	}
 }
 
-func (p *otlpProcessor) nextDatapoint(
+func (p *otlpProcessor) otlpNextDatapoint(
 	scopeAttrs AttrMap,
 	metric *metricspb.Metric,
 	instrument Instrument,
@@ -453,38 +455,49 @@ func (p *otlpProcessor) nextDatapoint(
 		attrs[key] = fmt.Sprint(value)
 	})
 
-	out := new(Datapoint)
+	metricName := attrkey.Clean(metric.Name)
+	dest := p.nextDatapoint(metricName, instrument, attrs, unixNano)
 
-	out.ProjectID = p.project.ID
-	out.Metric = attrkey.Clean(metric.Name)
-	out.Description = metric.Description
-	out.Unit = bunconv.NormUnit(metric.Unit)
-	out.Instrument = instrument
-	out.Attrs = attrs
-	out.Time = time.Unix(0, int64(unixNano))
+	dest.Description = metric.Description
+	dest.Unit = bunconv.NormUnit(metric.Unit)
 
-	return out
+	return dest
 }
 
-func (p *otlpProcessor) enqueue(datapoint *Datapoint) {
+func (p *otlpProcessor) nextDatapoint(
+	metricName string,
+	instrument Instrument,
+	attrs AttrMap,
+	unixNano uint64,
+) *Datapoint {
+	dest := new(Datapoint)
+	dest.ProjectID = p.project.ID
+	dest.Metric = metricName
+	dest.Instrument = instrument
+	dest.Time = time.Unix(0, int64(unixNano))
+	dest.Attrs = attrs
+	return dest
+}
+
+func (p *otlpProcessor) enqueue(ctx context.Context, datapoint *Datapoint) {
 	if datapoint.ProjectID == 0 {
-		p.Zap(p.ctx).Error("project id is empty")
+		p.Zap(ctx).Error("project id is empty")
 		return
 	}
 	if datapoint.Metric == "" {
-		p.Zap(p.ctx).Error("metric name is empty")
+		p.Zap(ctx).Error("metric name is empty")
 		return
 	}
 	if datapoint.Instrument == "" {
-		p.Zap(p.ctx).Error("instrument is empty")
+		p.Zap(ctx).Error("instrument is empty")
 		return
 	}
 	if datapoint.Time.IsZero() {
-		p.Zap(p.ctx).Error("time is empty")
+		p.Zap(ctx).Error("time is empty")
 		return
 	}
 
-	p.mp.AddDatapoint(p.ctx, datapoint)
+	p.mp.AddDatapoint(ctx, datapoint)
 }
 
 //------------------------------------------------------------------------------

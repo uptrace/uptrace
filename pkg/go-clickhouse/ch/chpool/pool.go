@@ -399,6 +399,10 @@ func (p *ConnPool) isHealthyConn(cn *Conn) bool {
 		return false
 	}
 
+	if err := connCheck(cn.netConn); err != nil {
+		return false
+	}
+
 	cn.SetUsedAt(now)
 	return true
 }

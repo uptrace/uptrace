@@ -30,7 +30,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunapp/chmigrations"
 	"github.com/uptrace/uptrace/pkg/bunapp/pgmigrations"
-	"github.com/uptrace/uptrace/pkg/grafana"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/run"
@@ -147,7 +146,6 @@ var serveCommand = &cli.Command{
 		tracing.Init(ctx, app)
 		metrics.Init(ctx, app)
 		alerting.Init(ctx, app)
-		grafana.Init(ctx, app)
 
 		if err := syncDashboards(ctx, app); err != nil {
 			app.Zap(ctx).Error("syncDashboards failed", zap.Error(err))
