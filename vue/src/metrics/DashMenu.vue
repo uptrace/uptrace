@@ -38,10 +38,11 @@
           </v-list-item>
         </template>
 
-        <DashEditForm :dashboard="dashboard.data" @update="onUpdateDash">
-          <template #prepend-actions>
-            <v-btn color="primary" text @click="closeDialog">Cancel</v-btn>
-          </template>
+        <DashEditForm
+          :dashboard="dashboard.data"
+          @update="onUpdateDash"
+          @click:cancel="closeDialog"
+        >
         </DashEditForm>
       </v-dialog>
 

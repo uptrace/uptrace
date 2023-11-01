@@ -9,7 +9,7 @@
         <v-row class="mb-n2">
           <v-col>
             <v-text-field
-              v-model="name"
+              v-model="dashboard.name"
               label="Dashboard name"
               :rules="rules.name"
               dense
@@ -21,10 +21,41 @@
           </v-col>
         </v-row>
 
+        <v-row dense>
+          <v-col>
+            <v-select
+              v-model="dashboard.minInterval"
+              :items="minIntervalItems"
+              label="Min interval"
+              hint="Min limit for the automatically calculated interval"
+              persistent-hint
+              dense
+              filled
+            ></v-select>
+          </v-col>
+        </v-row>
+
+        <v-row dense>
+          <v-col>
+            <v-text-field
+              v-model.number="timeOffset"
+              type="number"
+              label="Time offset"
+              hint="Shift time to the past (negative offset) or future (positive offset)"
+              placeholder="-60"
+              suffix="minutes"
+              persistent-hint
+              filled
+              dense
+              :rules="rules.timeOffset"
+            />
+          </v-col>
+        </v-row>
+
         <v-row>
           <v-spacer />
           <v-col cols="auto">
-            <slot name="prepend-actions" />
+            <v-btn color="primary" text @click="$emit('click:cancel')">Cancel</v-btn>
             <v-btn type="submit" color="primary" :disabled="!isValid" :loading="dashMan.pending"
               >Update</v-btn
             >
@@ -36,14 +67,15 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, watch, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
 import { useDashManager } from '@/metrics/use-dashboards'
 
 // Utilities
 import { Dashboard } from '@/metrics/types'
-import { requiredRule } from '@/util/validation'
+import { requiredRule, minMaxRule } from '@/util/validation'
+import { MINUTE } from '@/util/fmt/date'
 
 export default defineComponent({
   name: 'DashEditForm',
@@ -60,32 +92,53 @@ export default defineComponent({
     const isValid = shallowRef(false)
     const rules = {
       name: [requiredRule],
+      timeOffset: [minMaxRule(-300, 300)],
     }
 
-    const dashMan = useDashManager()
+    const minIntervalItems = computed(() => {
+      return [
+        { text: 'Not set', value: 0 },
+        { text: '2 minutes', value: 2 * MINUTE },
+        { text: '3 minutes', value: 3 * MINUTE },
+        { text: '5 minutes', value: 5 * MINUTE },
+        { text: '10 minutes', value: 10 * MINUTE },
+        { text: '15 minutes', value: 15 * MINUTE },
+      ]
+    })
 
-    watch(
-      () => props.dashboard.name,
-      (dashName) => {
-        name.value = dashName
+    const timeOffset = computed({
+      get() {
+        return props.dashboard.timeOffset / MINUTE
       },
-      { immediate: true },
-    )
+      set(minutes: number) {
+        props.dashboard.timeOffset = minutes * MINUTE
+      },
+    })
+
+    const dashMan = useDashManager()
 
     function update() {
       if (!isValid.value) {
         return
       }
 
-      dashMan.update({ name: name.value }).then((dash) => {
-        ctx.emit('update', dash)
-      })
+      dashMan
+        .update({
+          name: props.dashboard.name,
+          minInterval: props.dashboard.minInterval,
+          timeOffset: props.dashboard.timeOffset,
+        })
+        .then((dash) => {
+          ctx.emit('update', dash)
+        })
     }
 
     return {
       name,
       isValid,
       rules,
+      minIntervalItems,
+      timeOffset,
 
       dashMan,
       update,

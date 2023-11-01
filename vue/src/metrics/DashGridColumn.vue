@@ -86,6 +86,7 @@
 
     <DashGridColumnItem
       :date-range="dateRange"
+      :dashboard="dashboard"
       :grid-column="internalGridColumn"
       :height="height"
       @error="columnError = $event"
@@ -116,6 +117,7 @@
         <div class="pa-2 pb-4">
           <DashGridColumnItem
             :date-range="dateRange"
+            :dashboard="dashboard"
             :grid-column="internalGridColumn"
             :height="500"
             verbose
@@ -132,6 +134,7 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
+import { Dashboard } from '@/metrics/types'
 import { joinQuery } from '@/use/uql'
 import { useGridColumnManager } from '@/metrics/use-dashboards'
 
@@ -150,6 +153,10 @@ export default defineComponent({
   props: {
     dateRange: {
       type: Object as PropType<UseDateRange>,
+      required: true,
+    },
+    dashboard: {
+      type: Object as PropType<Dashboard>,
       required: true,
     },
     gridColumn: {

@@ -12,6 +12,18 @@ export function optionalRule(v: string): boolean {
   return true
 }
 
+export function minMaxRule(min: number, max: number) {
+  return (num: number) => {
+    if (num < min) {
+      return `Must be greater than ${min}`
+    }
+    if (num > max) {
+      return `Must be smaller than ${max}`
+    }
+    return true
+  }
+}
+
 export function minMaxStringLengthRule(min: number, max: number) {
   return (s: string) => {
     const length = s.length

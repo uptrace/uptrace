@@ -10,6 +10,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/unixtime"
 	"gopkg.in/yaml.v3"
 )
 
@@ -56,8 +57,10 @@ func (h *DashHandler) Update(w http.ResponseWriter, req bunrouter.Request) error
 	dash := dashFromContext(ctx)
 
 	var in struct {
-		Name      *string `json:"name"`
-		GridQuery *string `json:"gridQuery"`
+		Name        *string          `json:"name"`
+		GridQuery   *string          `json:"gridQuery"`
+		MinInterval *unixtime.Millis `json:"minInterval"`
+		TimeOffset  *unixtime.Millis `json:"timeOffset"`
 	}
 	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
 		return err
@@ -75,6 +78,14 @@ func (h *DashHandler) Update(w http.ResponseWriter, req bunrouter.Request) error
 	if in.GridQuery != nil {
 		dash.GridQuery = *in.GridQuery
 		q = q.Column("grid_query")
+	}
+	if in.MinInterval != nil {
+		dash.MinInterval = *in.MinInterval
+		q = q.Column("min_interval")
+	}
+	if in.TimeOffset != nil {
+		dash.TimeOffset = *in.TimeOffset
+		q = q.Column("time_offset")
 	}
 
 	if err := dash.Validate(); err != nil {
