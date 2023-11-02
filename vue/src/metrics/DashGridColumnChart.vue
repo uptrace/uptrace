@@ -16,6 +16,7 @@ import { defineComponent, computed, watch, PropType } from 'vue'
 // Composables
 import { UseDateRange } from '@/use/date-range'
 import { useTimeseries, useStyledTimeseries } from '@/metrics/use-query'
+import { Dashboard } from '@/metrics/types'
 
 // Components
 import GridColumnChart from '@/metrics/GridColumnChart.vue'
@@ -38,6 +39,10 @@ export default defineComponent({
   props: {
     dateRange: {
       type: Object as PropType<UseDateRange>,
+      required: true,
+    },
+    dashboard: {
+      type: Object as PropType<Dashboard>,
       required: true,
     },
     gridColumn: {
@@ -77,6 +82,8 @@ export default defineComponent({
         metric: props.gridColumn.params.metrics.map((m) => m.name),
         alias: props.gridColumn.params.metrics.map((m) => m.alias),
         query: props.gridColumn.params.query,
+        min_interval: props.dashboard.minInterval,
+        time_offset: props.dashboard.timeOffset,
       }
     })
 

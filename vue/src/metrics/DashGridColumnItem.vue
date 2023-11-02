@@ -3,6 +3,7 @@
     <DashGridColumnChart
       v-if="gridColumn.type === GridColumnType.Chart"
       :date-range="dateRange"
+      :dashboard="dashboard"
       :grid-column="gridColumn"
       :height="height"
       :verbose="verbose"
@@ -32,6 +33,7 @@ import { defineComponent, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
+import { Dashboard } from '@/metrics/types'
 
 // Components
 import DashGridColumnChart from '@/metrics/DashGridColumnChart.vue'
@@ -52,6 +54,10 @@ export default defineComponent({
   props: {
     dateRange: {
       type: Object as PropType<UseDateRange>,
+      required: true,
+    },
+    dashboard: {
+      type: Object as PropType<Dashboard>,
       required: true,
     },
     gridColumn: {

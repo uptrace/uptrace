@@ -76,6 +76,7 @@
             <div class="grid-stack-item-content">
               <DashGridColumn
                 :date-range="dateRange"
+                :dashboard="dashboard"
                 :grid-column="gridColumn"
                 :grid-query="gridQueryFor(gridColumn)"
                 :height="gridColumn.height * gridCellHeight - 64"
