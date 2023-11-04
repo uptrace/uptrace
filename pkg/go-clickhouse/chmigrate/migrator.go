@@ -33,15 +33,15 @@ func WithReplicated(on bool) MigratorOption {
 	}
 }
 
-func WithDistributed(on bool) MigratorOption {
-	return func(m *Migrator) {
-		m.distributed = on
-	}
-}
-
 func WithOnCluster(cluster string) MigratorOption {
 	return func(m *Migrator) {
 		m.cluster = cluster
+	}
+}
+
+func WithDistributed(on bool) MigratorOption {
+	return func(m *Migrator) {
+		m.distributed = on
 	}
 }
 
@@ -62,8 +62,8 @@ type Migrator struct {
 	migrationsTable      string
 	locksTable           string
 	replicated           bool
-	distributed          bool
 	cluster              string
+	distributed          bool
 	markAppliedOnSuccess bool
 }
 
@@ -155,7 +155,7 @@ func (m *Migrator) Init(ctx context.Context) error {
 			Table(m.distTable(m.migrationsTable)).
 			As(m.migrationsTable).
 			Engine("Distributed(?, currentDatabase(), ?, rand())",
-				ch.Ident(m.cluster), ch.Ident(m.migrationsTable)).
+				ch.Name(m.cluster), ch.Name(m.migrationsTable)).
 			OnCluster(m.cluster).
 			IfNotExists().
 			Exec(ctx); err != nil {
@@ -409,7 +409,7 @@ func (m *Migrator) MarkUnapplied(ctx context.Context, migration *Migration) erro
 }
 
 func (m *Migrator) TruncateTable(ctx context.Context) error {
-	_, err := m.db.Exec("TRUNCATE TABLE ?", ch.Ident(m.distTable(m.migrationsTable)))
+	_, err := m.db.Exec("TRUNCATE TABLE ?", ch.Name(m.distTable(m.migrationsTable)))
 	return err
 }
 

@@ -22,12 +22,12 @@ ch:
   password:
   database: uptrace
 
+  # Maximum query execution time.
+  max_execution_time: 30s
+
   # TLS configuration. Uncomment to enable.
   # tls:
   #   insecure_skip_verify: true # only for self-signed certificates
-
-  # Maximum query execution time.
-  max_execution_time: 30s
 
 ##
 ## PostgreSQL db that is used to store metadata such us metric names, dashboards, alerts,

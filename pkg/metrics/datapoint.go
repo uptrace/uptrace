@@ -31,7 +31,7 @@ type Datapoint struct {
 
 	Attrs        AttrMap  `ch:"-"`
 	StringKeys   []string `ch:"type:Array(LowCardinality(String))"`
-	StringValues []string `ch:"type:Array(LowCardinality(String))"`
+	StringValues []string
 
 	StartTimeUnixNano uint64 `ch:"-"`
 	CumPoint          any    `ch:"-"`
