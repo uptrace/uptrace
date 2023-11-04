@@ -16,7 +16,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/httputil"
-	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 	"go4.org/syncutil"
@@ -177,8 +176,8 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	groupingPeriod := org.CalcGroupingPeriod(f.TimeGTE, f.TimeLT, 300)
-	minutes := groupingPeriod.Minutes()
+	groupingInterval := f.GroupingInterval()
+	minutes := groupingInterval.Minutes()
 
 	m := make(map[string]interface{})
 
@@ -229,7 +228,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	bunutil.FillHoles(m, f.TimeGTE, f.TimeLT, groupingPeriod)
+	bunutil.FillHoles(m, f.TimeGTE, f.TimeLT, groupingInterval)
 
 	return httputil.JSON(w, m)
 }
@@ -248,11 +247,11 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 	}
 	f.Pager.Limit = 1000
 
-	groupingPeriod := org.CalcGroupingPeriod(f.TimeGTE, f.TimeLT, 300)
+	groupingInterval := f.GroupingInterval()
 
-	subq, _ := buildSpanIndexQuery(h.App, f, groupingPeriod)
+	subq, _ := buildSpanIndexQuery(h.App, f, groupingInterval)
 	subq = subq.
-		ColumnExpr("toStartOfInterval(time, toIntervalMinute(?)) AS time_", groupingPeriod.Minutes()).
+		ColumnExpr("toStartOfInterval(time, toIntervalMinute(?)) AS time_", groupingInterval.Minutes()).
 		GroupExpr("time_").
 		OrderExpr("time_ ASC")
 
@@ -261,7 +260,7 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 		if err != nil {
 			return err
 		}
-		chExpr, err := appendCHColumn(nil, col, groupingPeriod)
+		chExpr, err := appendCHColumn(nil, col, groupingInterval)
 		if err != nil {
 			return err
 		}
@@ -285,7 +284,7 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	bunutil.FillHoles(item, f.TimeGTE, f.TimeLT, groupingPeriod)
+	bunutil.FillHoles(item, f.TimeGTE, f.TimeLT, groupingInterval)
 
 	return httputil.JSON(w, item)
 }
@@ -300,9 +299,8 @@ func (h *SpanHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	groupingPeriod := f.GroupingPeriod()
-
-	subq, columnMap := buildSpanIndexQuery(h.App, f, groupingPeriod)
+	groupingInterval := f.GroupingInterval()
+	subq, columnMap := buildSpanIndexQuery(h.App, f, groupingInterval)
 
 	var numAgg int
 	for _, colName := range columnNames(columnMap) {
@@ -318,7 +316,7 @@ func (h *SpanHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) e
 	subq = subq.
 		ColumnExpr(
 			"toStartOfInterval(s.time, INTERVAL ? minute) AS `_time`",
-			groupingPeriod.Minutes(),
+			groupingInterval.Minutes(),
 		).
 		Group("_time").
 		OrderExpr("`_time` ASC")
@@ -363,7 +361,7 @@ func (h *SpanHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) e
 
 	digest := xxhash.New()
 	for _, group := range groups {
-		bunutil.FillHoles(group, f.TimeGTE, f.TimeLT, groupingPeriod)
+		bunutil.FillHoles(group, f.TimeGTE, f.TimeLT, groupingInterval)
 
 		if timeCol == nil {
 			timeCol = group["_time"].([]time.Time)

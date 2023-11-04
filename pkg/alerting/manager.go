@@ -215,10 +215,10 @@ func (m *Manager) selectTimeseries(
 ) (*mql.Result, error) {
 
 	storageConf := &metrics.CHStorageConfig{
-		ProjectID:      monitor.ProjectID,
-		MetricMap:      metricMap,
-		TableName:      "datapoint_minutes",
-		GroupingPeriod: time.Minute,
+		ProjectID:        monitor.ProjectID,
+		MetricMap:        metricMap,
+		TableName:        "datapoint_minutes",
+		GroupingInterval: time.Minute,
 	}
 	storageConf.TimeFilter = org.TimeFilter{
 		TimeGTE: timeLT.Add(-noDataMinutesThreshold * time.Minute),

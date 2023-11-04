@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/zeebo/xxh3"
 	"go.opentelemetry.io/otel/attribute"
@@ -67,16 +68,16 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	tableName, groupingPeriod := datapointTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
+	tableName, groupingInterval := datapointTableForGrouping(&f.TimeFilter, org.GroupingIntervalLarge)
 	engine := mql.NewEngine(NewCHStorage(ctx, h.CH, &CHStorageConfig{
 		ProjectID:  f.Project.ID,
 		TimeFilter: f.TimeFilter,
 		MetricMap:  metricMap,
 		Search:     f.Search,
 
-		TableName:      tableName,
-		GroupingPeriod: groupingPeriod,
-		TableMode:      true,
+		TableName:        tableName,
+		GroupingInterval: groupingInterval,
+		TableMode:        true,
 	}))
 	result := engine.Run(f.allParts)
 
@@ -346,18 +347,18 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 func (h *QueryHandler) selectTimeseries(
 	ctx context.Context, f *QueryFilter, metricMap map[string]*Metric,
 ) ([]mql.Timeseries, []time.Time, []string) {
-	tableName, groupingPeriod := datapointTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
+	tableName, groupingInterval := datapointTableForGrouping(&f.TimeFilter, org.GroupingIntervalLarge)
 	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
 		ProjectID:  f.Project.ID,
 		TimeFilter: f.TimeFilter,
 		MetricMap:  metricMap,
 
-		TableName:      tableName,
-		GroupingPeriod: groupingPeriod,
+		TableName:        tableName,
+		GroupingInterval: groupingInterval,
 	})
 	engine := mql.NewEngine(storage)
 	result := engine.Run(f.allParts)
-	timeCol := bunutil.FillTime(nil, f.TimeGTE, f.TimeLT, groupingPeriod)
+	timeCol := bunutil.FillTime(nil, f.TimeGTE, f.TimeLT, groupingInterval)
 	return result.Timeseries, timeCol, result.Columns
 }
 
@@ -387,15 +388,15 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	tableName, groupingPeriod := datapointTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
+	tableName, groupingInterval := datapointTableForGrouping(&f.TimeFilter, org.GroupingIntervalLarge)
 	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
 		ProjectID:  f.Project.ID,
 		TimeFilter: f.TimeFilter,
 		MetricMap:  metricMap,
 
-		TableName:      tableName,
-		GroupingPeriod: groupingPeriod,
-		TableMode:      true,
+		TableName:        tableName,
+		GroupingInterval: groupingInterval,
+		TableMode:        true,
 	})
 	engine := mql.NewEngine(storage)
 	result := engine.Run(f.allParts)
@@ -439,13 +440,13 @@ func (h *QueryHandler) Heatmap(w http.ResponseWriter, req bunrouter.Request) err
 func (h *QueryHandler) selectMetricHeatmap(
 	ctx context.Context, f *QueryFilter,
 ) (*histutil.Heatmap, error) {
-	tableName, groupingPeriod := datapointTableForGroup(h.App, &f.TimeFilter, org.GroupingPeriod)
+	tableName, groupingInterval := datapointTableForGrouping(&f.TimeFilter, org.GroupingIntervalLarge)
 
 	q := h.CH.NewSelect().
 		ColumnExpr("quantilesBFloat16MergeState(0.5, 0.9, 0.99)(histogram) AS value").
 		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_",
-			groupingPeriod.Minutes()).
-		TableExpr("?", tableName).
+			groupingInterval.Minutes()).
+		TableExpr("?", ch.Name(tableName)).
 		Where("project_id = ?", f.Project.ID).
 		Where("metric = ?", f.Metric[0]).
 		Where("time >= ?", f.TimeGTE).
@@ -491,8 +492,8 @@ func (h *QueryHandler) selectMetricHeatmap(
 		tdigestCol[i] = tdigest
 	}
 
-	tdigestCol = bunutil.Fill(tdigestCol, timeCol, nil, f.TimeGTE, f.TimeLT, groupingPeriod)
-	timeCol = bunutil.FillTime(timeCol, f.TimeGTE, f.TimeLT, groupingPeriod)
+	tdigestCol = bunutil.Fill(tdigestCol, timeCol, nil, f.TimeGTE, f.TimeLT, groupingInterval)
+	timeCol = bunutil.FillTime(timeCol, f.TimeGTE, f.TimeLT, groupingInterval)
 	heatmap := histutil.BuildHeatmap(tdigestCol, timeCol)
 
 	return heatmap, nil

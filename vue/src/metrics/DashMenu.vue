@@ -111,6 +111,7 @@ export default defineComponent({
       editDialog.value = false
       menu.value = false
       props.dashboards.reload()
+      props.dashboard.reload()
     }
 
     function onCreateDash(dash: Dashboard) {
