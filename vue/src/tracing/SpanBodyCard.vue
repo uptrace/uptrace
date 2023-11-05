@@ -82,13 +82,13 @@
         <v-sheet outlined rounded="lg">
           <v-tabs v-model="activeTab" background-color="transparent" class="light-blue lighten-5">
             <v-tab href="#attrs">Attrs</v-tab>
+            <v-tab href="#group">Group</v-tab>
             <v-tab v-if="dbStatement" href="#dbStatement">SQL:raw</v-tab>
             <v-tab v-if="dbStatementPretty" href="#dbStatementPretty">SQL:pretty</v-tab>
             <v-tab v-if="excStacktrace" href="#excStacktrace">Stacktrace</v-tab>
             <v-tab v-if="span.events && span.events.length" href="#events">
               Events ({{ span.events.length }})
             </v-tab>
-            <v-tab v-if="span.groupId" href="#pctile">Percentiles</v-tab>
           </v-tabs>
 
           <v-tabs-items v-model="activeTab">
@@ -98,6 +98,14 @@
                 :attrs="span.attrs"
                 :system="span.system"
                 :group-id="span.groupId"
+              />
+            </v-tab-item>
+            <v-tab-item value="group">
+              <GroupInfoCard
+                :date-range="dateRange"
+                :system="span.system"
+                :group-id="span.groupId"
+                :annotations="annotations"
               />
             </v-tab-item>
 
@@ -119,10 +127,6 @@
                 :annotations="annotations"
               />
             </v-tab-item>
-
-            <v-tab-item value="pctile" class="pa-4">
-              <LoadPctileChart :axios-params="axiosParams" :annotations="annotations" />
-            </v-tab-item>
           </v-tabs-items>
         </v-sheet>
       </v-col>
@@ -142,9 +146,9 @@ import { injectAnnotations } from '@/org/use-annotations'
 
 // Components
 import NewMonitorMenu from '@/tracing/NewMonitorMenu.vue'
-import LoadPctileChart from '@/components/LoadPctileChart.vue'
 import SpanAttrs from '@/tracing/SpanAttrs.vue'
 import EventPanels from '@/tracing/EventPanels.vue'
+import GroupInfoCard from '@/tracing/GroupInfoCard.vue'
 
 // Utilities
 import { AttrKey, isEventSystem } from '@/models/otel'
@@ -156,7 +160,8 @@ export default defineComponent({
     NewMonitorMenu,
     SpanAttrs,
     EventPanels,
-    LoadPctileChart,
+    // LoadPctileChart,
+    GroupInfoCard,
   },
 
   props: {

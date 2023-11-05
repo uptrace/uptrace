@@ -115,6 +115,13 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			g.GET("/timeseries", spanHandler.Timeseries)
 		})
 
+	internalV1.Use(middleware.UserAndProject).
+		WithGroup("/tracing/:project_id/groups/:group_id", func(g *bunrouter.Group) {
+			groupHandler := NewGroupHandler(app)
+
+			g.GET("", groupHandler.ShowSummary)
+		})
+
 	internalV1.Use(middleware.User).
 		WithGroup("", func(g *bunrouter.Group) {
 			traceHandler := NewTraceHandler(app)

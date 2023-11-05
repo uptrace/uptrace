@@ -16,7 +16,7 @@ export default Vue.component('DateValue', {
   functional: true,
   props: {
     value: {
-      type: [String, Date],
+      type: [String, Date, Number],
       required: true,
     },
     format: {
