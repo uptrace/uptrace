@@ -304,7 +304,7 @@ END $$;
 DO $$ BEGIN
   CREATE TYPE public.alert_event_name_enum AS ENUM (
     'created',
-    'state-changed',
+    'status-changed',
     'recurring'
   );
 EXCEPTION
