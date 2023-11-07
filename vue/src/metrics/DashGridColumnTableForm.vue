@@ -45,12 +45,7 @@
         </v-row>
         <v-row>
           <v-col>
-            <MetricsPicker
-              ref="metricsPicker"
-              v-model="gridColumn.params.metrics"
-              :uql="uql"
-              :editable="editable"
-            />
+            <MetricsPicker v-model="gridColumn.params.metrics" :uql="uql" :editable="editable" />
           </v-col>
         </v-row>
 
@@ -254,7 +249,6 @@ export default defineComponent({
   setup(props, ctx) {
     const uql = useUql()
 
-    const metricsPicker = shallowRef()
     const form = shallowRef()
     const isValid = shallowRef(false)
     const rules = { name: [requiredRule] }
@@ -328,9 +322,7 @@ export default defineComponent({
     )
 
     function submit() {
-      const r1 = metricsPicker.value.validate()
-      const r2 = form.value.validate()
-      if (!r1 || !r2) {
+      if (!form.value.validate()) {
         return
       }
 
@@ -342,7 +334,6 @@ export default defineComponent({
     return {
       uql,
 
-      metricsPicker,
       form,
       isValid,
       rules,

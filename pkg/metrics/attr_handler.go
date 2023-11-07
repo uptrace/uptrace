@@ -196,13 +196,12 @@ func (h *AttrHandler) selectAttrValues(
 ) (any, bool, error) {
 	const limit = 1000
 
-	tableName := datapointTableForWhere(h.App, &f.TimeFilter)
-
+	tableName := datapointTableForWhere(&f.TimeFilter)
 	items := make([]AttrValueItem, 0)
 
 	if err := h.CH.NewSelect().
 		ColumnExpr("DISTINCT string_values[indexOf(string_keys, ?)] AS value", f.AttrKey).
-		TableExpr("?", tableName).
+		TableExpr("?", ch.Name(tableName)).
 		Where("project_id = ?", f.ProjectID).
 		Where("metric IN ?", ch.In(f.Metric)).
 		Where("time >= ?", f.TimeGTE).

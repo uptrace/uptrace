@@ -10,6 +10,7 @@ import (
 	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
@@ -25,13 +26,14 @@ type CHStorageConfig struct {
 	MetricMap map[string]*Metric
 	Search    string
 
-	TableName      ch.Name
-	TableMode      bool
-	GroupingPeriod time.Duration
+	TableName        string
+	TableMode        bool
+	GroupingInterval time.Duration
 }
 
 type CHStorage struct {
 	ctx  context.Context
+	app  *bunapp.App
 	conf *CHStorageConfig
 
 	db *ch.DB
@@ -50,8 +52,8 @@ var _ mql.Storage = (*CHStorage)(nil)
 
 func (s *CHStorage) Consts() map[string]float64 {
 	return map[string]float64{
-		"_seconds": s.conf.GroupingPeriod.Seconds(),
-		"_minutes": s.conf.GroupingPeriod.Minutes(),
+		"_seconds": s.conf.GroupingInterval.Seconds(),
+		"_minutes": s.conf.GroupingInterval.Minutes(),
 	}
 }
 
@@ -72,11 +74,11 @@ func (s *CHStorage) MakeTimeseries(f *mql.TimeseriesFilter) []mql.Timeseries {
 		return []mql.Timeseries{ts}
 	}
 
-	size := int(s.conf.TimeFilter.Duration() / s.conf.GroupingPeriod)
+	size := int(s.conf.TimeFilter.Duration() / s.conf.GroupingInterval)
 	ts.Value = make([]float64, size)
 	ts.Time = make([]time.Time, size)
 	for i := range ts.Time {
-		ts.Time[i] = s.conf.TimeGTE.Add(time.Duration(i) * s.conf.GroupingPeriod)
+		ts.Time[i] = s.conf.TimeGTE.Add(time.Duration(i) * s.conf.GroupingInterval)
 	}
 
 	return []mql.Timeseries{ts}
@@ -91,7 +93,7 @@ func (s *CHStorage) SelectTimeseries(f *mql.TimeseriesFilter) ([]mql.Timeseries,
 	q := s.db.NewSelect().
 		ColumnExpr("metric").
 		ColumnExpr("max(annotations) AS annotations").
-		TableExpr("?", s.conf.TableName).
+		TableExpr("?", ch.Name(s.conf.TableName)).
 		Where("project_id = ?", s.conf.ProjectID).
 		Where("metric = ?", metric.Name).
 		Where("time >= ?", s.conf.TimeGTE).
@@ -175,7 +177,7 @@ func (s *CHStorage) subquery(
 
 	q = q.
 		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_",
-			s.conf.GroupingPeriod.Minutes()).
+			s.conf.GroupingInterval.Minutes()).
 		GroupExpr("time_").
 		OrderExpr("time_")
 
@@ -452,9 +454,9 @@ func (s *CHStorage) newTimeseries(
 			math.NaN(),
 			s.conf.TimeGTE,
 			s.conf.TimeLT,
-			s.conf.GroupingPeriod,
+			s.conf.GroupingInterval,
 		)
-		ts.Time = bunutil.FillTime(ts.Time, s.conf.TimeGTE, s.conf.TimeLT, s.conf.GroupingPeriod)
+		ts.Time = bunutil.FillTime(ts.Time, s.conf.TimeGTE, s.conf.TimeLT, s.conf.GroupingInterval)
 
 		if annotations, _ := m["annotations"].(string); annotations != "" {
 			if err := json.Unmarshal([]byte(annotations), &ts.Annotations); err != nil {

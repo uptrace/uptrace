@@ -42,7 +42,6 @@ func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request)
 	parts := []string{
 		".count",
 		"per_min(.count)",
-		"max(.time)",
 	}
 	if !f.isEventSystem() {
 		parts = append(parts,

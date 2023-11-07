@@ -125,12 +125,12 @@ func selectMetricsFromCH(
 ) ([]*Metric, bool, error) {
 	const limit = 1000
 
-	tableName := datapointTableForWhere(app, &f.TimeFilter)
+	tableName := datapointTableForWhere(&f.TimeFilter)
 	q := app.CH.NewSelect().
 		ColumnExpr("m.metric AS name").
 		ColumnExpr("anyLast(m.instrument) AS instrument").
 		ColumnExpr("uniqCombined64(m.attrs_hash) AS num_timeseries").
-		TableExpr("? AS m", tableName).
+		TableExpr("? AS m", ch.Name(tableName)).
 		Where("m.project_id = ?", f.ProjectID).
 		Where("m.time >= ?", f.TimeGTE).
 		Where("m.time < ?", f.TimeLT).

@@ -160,7 +160,6 @@ export default defineComponent({
     NewMonitorMenu,
     SpanAttrs,
     EventPanels,
-    // LoadPctileChart,
     GroupInfoCard,
   },
 

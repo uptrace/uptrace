@@ -61,7 +61,7 @@ func defaultConfig() *Config {
 	conf = &Config{
 		Config: chpool.Config{
 			PoolSize:        poolSize,
-			PoolTimeout:     30 * time.Second,
+			PoolTimeout:     10 * time.Second,
 			MaxIdleConns:    poolSize,
 			ConnMaxIdleTime: 30 * time.Minute,
 		},
@@ -246,9 +246,8 @@ func WithConnMaxIdleTime(d time.Duration) Option {
 }
 
 // WithPoolTimeout configures time for which client waits for free connection if all
-// connections are busy before returning an error.
-// Default is 30 seconds if ReadTimeOut is not defined, otherwise,
-// ReadTimeout + 1 second.
+// connections are busy before opening a new connection.
+// Default is 10 seconds.
 func WithPoolTimeout(timeout time.Duration) Option {
 	return func(db *DB) {
 		db.conf.PoolTimeout = timeout

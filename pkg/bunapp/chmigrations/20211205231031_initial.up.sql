@@ -27,7 +27,7 @@ CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
 
   all_keys Array(LowCardinality(String)) Codec(?CODEC),
   string_keys Array(LowCardinality(String)) Codec(?CODEC),
-  string_values Array(String) Codec(ZSTD(6)),
+  string_values Array(String) Codec(?CODEC),
 
   telemetry_sdk_name LowCardinality(String) Codec(?CODEC),
   telemetry_sdk_language LowCardinality(String) Codec(?CODEC),
@@ -87,7 +87,7 @@ CREATE TABLE ?DB.spans_data ?ON_CLUSTER (
   id UInt64 Codec(T64, ?CODEC),
   parent_id UInt64 Codec(?CODEC),
   time DateTime64(6) Codec(Delta, ?CODEC),
-  data String Codec(ZSTD(6))
+  data String Codec(?CODEC)
 )
 ENGINE = ?(REPLICATED)MergeTree()
 ORDER BY (trace_id, id)
@@ -124,7 +124,7 @@ CREATE TABLE ?DB.datapoint_minutes ?ON_CLUSTER (
   histogram AggregateFunction(quantilesBFloat16(0.5), Float32) Codec(?CODEC),
 
   string_keys Array(LowCardinality(String)) Codec(?CODEC),
-  string_values Array(LowCardinality(String)) Codec(?CODEC),
+  string_values Array(String) Codec(?CODEC),
   annotations SimpleAggregateFunction(max, String) Codec(?CODEC)
 )
 ENGINE = ?(REPLICATED)AggregatingMergeTree
@@ -156,7 +156,7 @@ CREATE TABLE ?DB.datapoint_hours ?ON_CLUSTER (
   histogram AggregateFunction(quantilesBFloat16(0.5), Float32) Codec(?CODEC),
 
   string_keys Array(LowCardinality(String)) Codec(?CODEC),
-  string_values Array(LowCardinality(String)) Codec(?CODEC),
+  string_values Array(String) Codec(?CODEC),
   annotations SimpleAggregateFunction(max, String) Codec(?CODEC)
 )
 ENGINE = ?(REPLICATED)AggregatingMergeTree

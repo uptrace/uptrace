@@ -14,6 +14,7 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/pgquery"
+	"github.com/uptrace/uptrace/pkg/unixtime"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
 
@@ -66,8 +67,12 @@ func (f OrderByMixin) SortDir() string {
 //------------------------------------------------------------------------------
 
 type TimeFilter struct {
-	TimeGTE time.Time
-	TimeLT  time.Time
+	TimeGTE    time.Time
+	TimeLT     time.Time
+	TimeOffset unixtime.Millis
+
+	Interval    unixtime.Millis
+	MinInterval unixtime.Millis
 }
 
 var _ urlstruct.ValuesUnmarshaler = (*TimeFilter)(nil)
@@ -79,17 +84,42 @@ func (f *TimeFilter) UnmarshalValues(ctx context.Context, values url.Values) err
 	if f.TimeLT.IsZero() {
 		return fmt.Errorf("time_lt is required")
 	}
+	if f.TimeGTE.After(f.TimeLT) {
+		return fmt.Errorf("time_gte=%q can't be after time_lt=%q", f.TimeGTE, f.TimeLT)
+	}
+
+	if f.TimeOffset != 0 {
+		offset := f.TimeOffset.Duration()
+		f.TimeGTE = f.TimeGTE.Add(offset)
+		f.TimeLT = f.TimeLT.Add(offset)
+	}
+
 	return nil
+}
+
+func (f *TimeFilter) IsZero() bool {
+	return f == nil || (f.TimeGTE.IsZero() && f.TimeLT.IsZero())
 }
 
 func (f *TimeFilter) Duration() time.Duration {
 	return f.TimeLT.Sub(f.TimeGTE)
 }
 
-func (f *TimeFilter) GroupingPeriod() time.Duration {
-	period := GroupingPeriod(f.TimeGTE, f.TimeLT)
-	f.Round(period)
-	return period
+func (f *TimeFilter) GroupingInterval() time.Duration {
+	if f.Interval > 0 {
+		dur := f.Duration()
+		interval := f.Interval.Duration()
+		if numPoint := dur / interval; numPoint < 1000 {
+			return interval
+		}
+	}
+
+	interval := GroupingIntervalLarge(f.TimeGTE, f.TimeLT)
+	if minInterval := f.MinInterval.Duration(); minInterval != 0 && interval < minInterval {
+		interval = minInterval
+	}
+	f.Round(interval)
+	return interval
 }
 
 func (f *TimeFilter) Round(d time.Duration) {
@@ -179,37 +209,38 @@ func (f *FacetFilter) WhereClause(q *bun.SelectQuery) *bun.SelectQuery {
 
 //------------------------------------------------------------------------------
 
-func TablePeriod(f *TimeFilter) time.Duration {
-	var period time.Duration
-
+func TableWhereResolution(f *TimeFilter) time.Duration {
+	var resolution time.Duration
 	if d := f.TimeLT.Sub(f.TimeGTE); d >= 6*time.Hour {
-		period = time.Hour
+		resolution = time.Hour
 	} else {
-		period = time.Minute
+		resolution = time.Minute
+	}
+	f.Round(resolution)
+	return resolution
+}
+
+func GroupingInterval(f *TimeFilter) (tableResolution, groupingInterval time.Duration) {
+	groupingInterval = f.GroupingInterval()
+
+	if groupingInterval >= time.Hour {
+		tableResolution = time.Hour
+	} else {
+		tableResolution = time.Minute
 	}
 
-	return period
+	return tableResolution, groupingInterval
 }
 
-func TableGroupingPeriod(f *TimeFilter) (tablePeriod, groupingPeriod time.Duration) {
-	groupingPeriod = GroupingPeriod(f.TimeGTE, f.TimeLT)
-	if groupingPeriod >= time.Hour {
-		tablePeriod = time.Hour
-	} else {
-		tablePeriod = time.Minute
-	}
-	return tablePeriod, groupingPeriod
+func GroupingIntervalSmall(gte, lt time.Time) time.Duration {
+	return groupingInterval(gte, lt, 60)
 }
 
-func GroupingPeriod(gte, lt time.Time) time.Duration {
-	return CalcGroupingPeriod(gte, lt, 120)
+func GroupingIntervalLarge(gte, lt time.Time) time.Duration {
+	return groupingInterval(gte, lt, 120)
 }
 
-func CompactGroupingPeriod(gte, lt time.Time) time.Duration {
-	return CalcGroupingPeriod(gte, lt, 60)
-}
-
-var periods = []time.Duration{
+var intervals = []time.Duration{
 	time.Minute,
 	2 * time.Minute,
 	3 * time.Minute,
@@ -226,11 +257,11 @@ var periods = []time.Duration{
 	12 * time.Hour,
 }
 
-func CalcGroupingPeriod(gte, lt time.Time, n int) time.Duration {
+func groupingInterval(gte, lt time.Time, n int) time.Duration {
 	d := lt.Sub(gte)
-	for _, period := range periods {
-		if int(d/period) <= n {
-			return period
+	for _, interval := range intervals {
+		if int(d/interval) <= n {
+			return interval
 		}
 	}
 	return 24 * time.Hour

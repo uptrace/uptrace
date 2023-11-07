@@ -31,7 +31,7 @@ type Datapoint struct {
 
 	Attrs        AttrMap  `ch:"-"`
 	StringKeys   []string `ch:"type:Array(LowCardinality(String))"`
-	StringValues []string `ch:"type:Array(LowCardinality(String))"`
+	StringValues []string
 
 	StartTimeUnixNano uint64 `ch:"-"`
 	CumPoint          any    `ch:"-"`
@@ -52,25 +52,24 @@ func InsertDatapoints(ctx context.Context, app *bunapp.App, datapoints []*Datapo
 	return err
 }
 
-func datapointTableForWhere(app *bunapp.App, f *org.TimeFilter) ch.Name {
-	switch org.TablePeriod(f) {
-	case time.Minute:
-		return ch.Name("datapoint_minutes")
-	case time.Hour:
-		return ch.Name("datapoint_hours")
-	}
-	panic("not reached")
+func datapointTableForWhere(f *org.TimeFilter) string {
+	return datapointTable(org.TableWhereResolution(f))
 }
 
-func datapointTableForGroup(
-	app *bunapp.App, f *org.TimeFilter, groupingPeriodFn func(time.Time, time.Time) time.Duration,
-) (ch.Name, time.Duration) {
-	tablePeriod, groupingPeriod := org.TableGroupingPeriod(f)
-	switch tablePeriod {
+func datapointTableForGrouping(
+	f *org.TimeFilter, groupingIntervalFn func(time.Time, time.Time) time.Duration,
+) (string, time.Duration) {
+	tableResolution, groupingInterval := org.GroupingInterval(f)
+	tableName := datapointTable(tableResolution)
+	return tableName, groupingInterval
+}
+
+func datapointTable(tableResolution time.Duration) string {
+	switch tableResolution {
 	case time.Minute:
-		return ch.Name("datapoint_minutes"), groupingPeriod
+		return "datapoint_minutes"
 	case time.Hour:
-		return ch.Name("datapoint_hours"), groupingPeriod
+		return "datapoint_hours"
 	}
 	panic("not reached")
 }

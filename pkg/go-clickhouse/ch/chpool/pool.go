@@ -11,10 +11,7 @@ import (
 	"github.com/uptrace/go-clickhouse/ch/internal"
 )
 
-var (
-	ErrClosed      = errors.New("ch: database is closed")
-	ErrPoolTimeout = errors.New("ch: connection pool timeout")
-)
+var ErrClosed = errors.New("ch: database is closed")
 
 var timers = sync.Pool{
 	New: func() any {
@@ -84,7 +81,7 @@ type Config struct {
 }
 
 type ConnPool struct {
-	cfg *Config
+	conf *Config
 
 	dialErrorsNum uint32 // atomic
 
@@ -104,13 +101,17 @@ type ConnPool struct {
 
 var _ Pooler = (*ConnPool)(nil)
 
-func New(cfg *Config) *ConnPool {
+func New(conf *Config) *ConnPool {
 	p := &ConnPool{
-		cfg: cfg,
+		conf: conf,
 
-		queue:     make(chan struct{}, cfg.PoolSize),
-		conns:     make([]*Conn, 0, cfg.PoolSize),
-		idleConns: make([]*Conn, 0, cfg.PoolSize),
+		queue:     make(chan struct{}, conf.PoolSize),
+		conns:     make([]*Conn, 0, conf.PoolSize),
+		idleConns: make([]*Conn, 0, conf.PoolSize),
+	}
+
+	for i := 0; i < conf.PoolSize; i++ {
+		p.queue <- struct{}{}
 	}
 
 	return p
@@ -133,14 +134,14 @@ func (p *ConnPool) dialConn(ctx context.Context) (*Conn, error) {
 		return nil, ErrClosed
 	}
 
-	if atomic.LoadUint32(&p.dialErrorsNum) >= uint32(p.cfg.PoolSize) {
+	if atomic.LoadUint32(&p.dialErrorsNum) >= uint32(p.conf.PoolSize) {
 		return nil, p.getLastDialError()
 	}
 
-	netConn, err := p.cfg.Dialer(ctx)
+	netConn, err := p.conf.Dialer(ctx)
 	if err != nil {
 		p.setLastDialError(err)
-		if atomic.AddUint32(&p.dialErrorsNum, 1) == uint32(p.cfg.PoolSize) {
+		if atomic.AddUint32(&p.dialErrorsNum, 1) == uint32(p.conf.PoolSize) {
 			go p.tryDial()
 		}
 		return nil, err
@@ -156,7 +157,7 @@ func (p *ConnPool) tryDial() {
 			return
 		}
 
-		conn, err := p.cfg.Dialer(context.TODO())
+		conn, err := p.conf.Dialer(context.TODO())
 		if err != nil {
 			p.setLastDialError(err)
 			time.Sleep(time.Second)
@@ -215,15 +216,11 @@ func (p *ConnPool) Get(ctx context.Context) (*Conn, error) {
 
 	newcn, err := p.NewConn(ctx)
 	if err != nil {
-		p.freeTurn()
+		_ = p.freeTurn()
 		return nil, err
 	}
 
 	return newcn, nil
-}
-
-func (p *ConnPool) getTurn() {
-	p.queue <- struct{}{}
 }
 
 func (p *ConnPool) waitTurn(ctx context.Context) error {
@@ -234,13 +231,13 @@ func (p *ConnPool) waitTurn(ctx context.Context) error {
 	}
 
 	select {
-	case p.queue <- struct{}{}:
+	case <-p.queue:
 		return nil
 	default:
 	}
 
 	timer := timers.Get().(*time.Timer)
-	timer.Reset(p.cfg.PoolTimeout)
+	timer.Reset(p.conf.PoolTimeout)
 
 	select {
 	case <-ctx.Done():
@@ -249,7 +246,7 @@ func (p *ConnPool) waitTurn(ctx context.Context) error {
 		}
 		timers.Put(timer)
 		return ctx.Err()
-	case p.queue <- struct{}{}:
+	case <-p.queue:
 		if !timer.Stop() {
 			<-timer.C
 		}
@@ -258,12 +255,17 @@ func (p *ConnPool) waitTurn(ctx context.Context) error {
 	case <-timer.C:
 		timers.Put(timer)
 		atomic.AddUint32(&p.stats.Timeouts, 1)
-		return ErrPoolTimeout
+		return nil
 	}
 }
 
-func (p *ConnPool) freeTurn() {
-	<-p.queue
+func (p *ConnPool) freeTurn() bool {
+	select {
+	case p.queue <- struct{}{}:
+		return true
+	default:
+		return false
+	}
 }
 
 func (p *ConnPool) popIdle() *Conn {
@@ -288,7 +290,7 @@ func (p *ConnPool) Put(cn *Conn) {
 
 	p.connsMu.Lock()
 
-	if p.cfg.MaxIdleConns == 0 || len(p.idleConns) < p.cfg.MaxIdleConns {
+	if p.conf.MaxIdleConns == 0 || len(p.idleConns) < p.conf.MaxIdleConns {
 		p.idleConns = append(p.idleConns, cn)
 	} else {
 		p.removeConn(cn)
@@ -297,16 +299,14 @@ func (p *ConnPool) Put(cn *Conn) {
 
 	p.connsMu.Unlock()
 
-	p.freeTurn()
-
-	if shouldCloseConn {
+	if !p.freeTurn() || shouldCloseConn {
 		_ = p.closeConn(cn)
 	}
 }
 
 func (p *ConnPool) Remove(cn *Conn, reason error) {
 	p.removeConnWithLock(cn)
-	p.freeTurn()
+	_ = p.freeTurn()
 	_ = p.closeConn(cn)
 }
 
@@ -331,8 +331,8 @@ func (p *ConnPool) removeConn(cn *Conn) {
 }
 
 func (p *ConnPool) closeConn(cn *Conn) error {
-	if p.cfg.OnClose != nil {
-		_ = p.cfg.OnClose(cn)
+	if p.conf.OnClose != nil {
+		_ = p.conf.OnClose(cn)
 	}
 	return cn.Close()
 }
@@ -391,10 +391,10 @@ func (p *ConnPool) Close() error {
 func (p *ConnPool) isHealthyConn(cn *Conn) bool {
 	now := time.Now()
 
-	if p.cfg.ConnMaxLifetime > 0 && now.Sub(cn.createdAt) >= p.cfg.ConnMaxLifetime {
+	if p.conf.ConnMaxLifetime > 0 && now.Sub(cn.createdAt) >= p.conf.ConnMaxLifetime {
 		return false
 	}
-	if p.cfg.ConnMaxIdleTime > 0 && now.Sub(cn.UsedAt()) >= p.cfg.ConnMaxIdleTime {
+	if p.conf.ConnMaxIdleTime > 0 && now.Sub(cn.UsedAt()) >= p.conf.ConnMaxIdleTime {
 		atomic.AddUint32(&p.stats.IdleConns, 1)
 		return false
 	}
