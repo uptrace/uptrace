@@ -254,7 +254,7 @@ func AppendFilter(filter tql.Filter, dur time.Duration) ([]byte, error) {
 	b = append(b, ' ')
 
 	switch value := filter.RHS.(type) {
-	case *tql.NumberValue:
+	case tql.NumberValue:
 		if convToNum {
 			b = append(b, "toFloat64OrDefault("...)
 		}

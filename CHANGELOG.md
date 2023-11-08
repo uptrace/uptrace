@@ -33,6 +33,8 @@ Foundation.
 - Added support for `per_min(sum(attr_key))` expressions in tracing query language.
 - Added support for simple expressions like `sum(.duration) / .count` which is the same as
   `avg(.duration)`.
+- Update DSN now contains gRPC port so the same DSN can be used by all OpenTelemetry distributions
+  provided by Uptrace such as uptrace-go, uptrace-js, etc.
 - Improved templates for emails and Slack notifications.
 - Added more metrics dashboards for HTTP checks and Kubernetes.
 - Added more indexed semantic attributes in ClickHouse.
