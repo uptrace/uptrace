@@ -52,6 +52,10 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 		q = q.Where("s.group_id = ?", f.GroupID)
 	}
 
+	return f.systemFilter(q)
+}
+
+func (f *SystemFilter) systemFilter(q *ch.SelectQuery) *ch.SelectQuery {
 	return q.WhereGroup(" AND ", func(q *ch.SelectQuery) *ch.SelectQuery {
 		for _, system := range f.System {
 			switch system {
