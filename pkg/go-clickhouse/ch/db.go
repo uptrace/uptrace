@@ -350,7 +350,7 @@ func (db *DB) _query(ctx context.Context, query string) (*blockIter, error) {
 		return nil, err
 	}
 
-	return newBlockIter(db, cn), nil
+	return newBlockIter(ctx, db, cn), nil
 }
 
 func (db *DB) insert(
@@ -405,7 +405,7 @@ func (db *DB) _insert(
 
 		return cn.WithReader(ctx, db.conf.ReadTimeout, func(rd *chproto.Reader) error {
 			var err error
-			res, err = readPacket(cn, rd)
+			res, err = readInsertResult(cn, rd)
 			if err != nil {
 				return err
 			}
@@ -521,7 +521,7 @@ func (db *DB) makeQueryBytes() []byte {
 type Rows struct {
 	ctx    context.Context
 	blocks *blockIter
-	block  *chschema.Block
+	block  chschema.Block
 
 	rowIndex int
 	hasNext  bool
@@ -532,21 +532,25 @@ func newRows(ctx context.Context, blocks *blockIter) *Rows {
 	return &Rows{
 		ctx:    ctx,
 		blocks: blocks,
-		block:  new(chschema.Block),
 	}
 }
 
 func (rs *Rows) Close() error {
-	if !rs.closed {
-		for rs.blocks.Next(rs.ctx, rs.block) {
-		}
-		rs.close()
+	if rs.closed {
+		return nil
 	}
+
+	// Drain pending blocks so we don't have errors in ClickHouse logs.
+	for rs.blocks.Next(&rs.block) {
+	}
+
+	rs.close()
 	return nil
 }
 
 func (rs *Rows) close() {
 	rs.closed = true
+	rs.block = chschema.Block{} // zero memory
 	_ = rs.blocks.Close()
 }
 
@@ -568,7 +572,7 @@ func (rs *Rows) Next() bool {
 	}
 
 	for rs.rowIndex >= rs.block.NumRow {
-		if !rs.blocks.Next(rs.ctx, rs.block) {
+		if !rs.blocks.Next(&rs.block) {
 			rs.close()
 			return false
 		}
@@ -600,7 +604,9 @@ func (rs *Rows) Scan(dest ...any) error {
 	}
 
 	for i, col := range rs.block.Columns {
-		if err := col.ConvertAssign(rs.rowIndex-1, reflect.ValueOf(dest[i]).Elem()); err != nil {
+		x := dest[i]
+		v := reflect.ValueOf(x).Elem()
+		if err := col.ConvertAssign(rs.rowIndex-1, v); err != nil {
 			return err
 		}
 	}

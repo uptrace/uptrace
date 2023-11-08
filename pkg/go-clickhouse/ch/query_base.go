@@ -108,6 +108,7 @@ func (q *baseQuery) query(ctx context.Context, model Model, query string) (*resu
 	if err != nil {
 		return nil, err
 	}
+	defer blocks.Close()
 
 	res := &result{
 		model: model,
@@ -117,7 +118,7 @@ func (q *baseQuery) query(ctx context.Context, model Model, query string) (*resu
 		block.Table = model.Table()
 	}
 
-	for blocks.Next(ctx, block) {
+	for blocks.Next(block) {
 		if err := model.ScanBlock(block); err != nil {
 			return nil, err
 		}

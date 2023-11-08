@@ -25,96 +25,6 @@ var (
 	hostname, _ = os.Hostname()
 )
 
-type blockIter struct {
-	db *DB
-	cn *chpool.Conn
-
-	stickyErr error
-}
-
-func newBlockIter(db *DB, cn *chpool.Conn) *blockIter {
-	return &blockIter{
-		db: db,
-		cn: cn,
-	}
-}
-
-func (it *blockIter) Close() error {
-	if it.cn != nil {
-		it.close()
-	}
-	return nil
-}
-
-func (it *blockIter) close() {
-	it.db.releaseConn(it.cn, it.stickyErr)
-	it.cn = nil
-}
-
-func (it *blockIter) Err() error {
-	return it.stickyErr
-}
-
-func (it *blockIter) Next(ctx context.Context, block *chschema.Block) bool {
-	if it.cn == nil {
-		return false
-	}
-
-	ok, err := it.read(ctx, block)
-	if err != nil {
-		it.stickyErr = err
-		it.close()
-		return false
-	}
-
-	if !ok {
-		it.close()
-		return false
-	}
-	return true
-}
-
-func (it *blockIter) read(ctx context.Context, block *chschema.Block) (bool, error) {
-	rd := it.cn.Reader(ctx, it.db.conf.ReadTimeout)
-	for {
-		packet, err := rd.Uvarint()
-		if err != nil {
-			return false, err
-		}
-
-		switch packet {
-		case chproto.ServerData:
-			if err := it.db.readBlock(rd, block, true); err != nil {
-				return false, err
-			}
-			return true, nil
-		case chproto.ServerException:
-			return false, readException(rd)
-		case chproto.ServerProgress:
-			if err := readProgress(it.cn, rd); err != nil {
-				return false, err
-			}
-		case chproto.ServerProfileInfo:
-			if err := readProfileInfo(rd); err != nil {
-				return false, err
-			}
-		case chproto.ServerTableColumns:
-			if err := readServerTableColumns(rd); err != nil {
-				return false, err
-			}
-		case chproto.ServerProfileEvents:
-			block := new(chschema.Block)
-			if err := it.db.readBlock(rd, block, false); err != nil {
-				return false, err
-			}
-		case chproto.ServerEndOfStream:
-			return false, nil
-		default:
-			return false, fmt.Errorf("ch: blockIter.Next: unexpected packet: %d", packet)
-		}
-	}
-}
-
 func (db *DB) hello(ctx context.Context, cn *chpool.Conn) error {
 	err := cn.WithWriter(ctx, db.conf.WriteTimeout, func(wr *chproto.Writer) {
 		wr.WriteByte(chproto.ClientHello)
@@ -441,7 +351,7 @@ func (db *DB) readDataBlocks(cn *chpool.Conn, rd *chproto.Reader) (*result, erro
 	}
 }
 
-func readPacket(cn *chpool.Conn, rd *chproto.Reader) (*result, error) {
+func readInsertResult(cn *chpool.Conn, rd *chproto.Reader) (*result, error) {
 	packet, err := rd.Uvarint()
 	if err != nil {
 		return nil, err
@@ -469,7 +379,7 @@ func readPacket(cn *chpool.Conn, rd *chproto.Reader) (*result, error) {
 	case chproto.ServerEndOfStream:
 		return res, nil
 	default:
-		return nil, fmt.Errorf("ch: readPacket: unexpected packet: %d", packet)
+		return nil, fmt.Errorf("ch: readInsertResult: unexpected packet: %d", packet)
 	}
 }
 
@@ -554,4 +464,98 @@ func readServerTableColumns(rd *chproto.Reader) error {
 		return err
 	}
 	return nil
+}
+
+//------------------------------------------------------------------------------
+
+type blockIter struct {
+	db *DB
+	cn *chpool.Conn
+	rd *chproto.Reader
+
+	stickyErr error
+}
+
+func newBlockIter(ctx context.Context, db *DB, cn *chpool.Conn) *blockIter {
+	rd := cn.Reader(ctx, db.conf.ReadTimeout)
+	return &blockIter{
+		db: db,
+		cn: cn,
+		rd: rd,
+	}
+}
+
+func (it *blockIter) Close() error {
+	if it.cn != nil {
+		it.close()
+	}
+	return nil
+}
+
+func (it *blockIter) close() {
+	it.db.releaseConn(it.cn, it.stickyErr)
+	it.cn = nil
+}
+
+func (it *blockIter) Err() error {
+	return it.stickyErr
+}
+
+func (it *blockIter) Next(block *chschema.Block) bool {
+	if it.cn == nil {
+		return false
+	}
+
+	ok, err := it.read(block)
+	if err != nil {
+		it.stickyErr = err
+		it.close()
+		return false
+	}
+
+	if !ok {
+		it.close()
+		return false
+	}
+	return true
+}
+
+func (it *blockIter) read(block *chschema.Block) (bool, error) {
+	for {
+		packet, err := it.rd.Uvarint()
+		if err != nil {
+			return false, err
+		}
+
+		switch packet {
+		case chproto.ServerData:
+			if err := it.db.readBlock(it.rd, block, true); err != nil {
+				return false, err
+			}
+			return true, nil
+		case chproto.ServerException:
+			return false, readException(it.rd)
+		case chproto.ServerProgress:
+			if err := readProgress(it.cn, it.rd); err != nil {
+				return false, err
+			}
+		case chproto.ServerProfileInfo:
+			if err := readProfileInfo(it.rd); err != nil {
+				return false, err
+			}
+		case chproto.ServerTableColumns:
+			if err := readServerTableColumns(it.rd); err != nil {
+				return false, err
+			}
+		case chproto.ServerProfileEvents:
+			block := new(chschema.Block)
+			if err := it.db.readBlock(it.rd, block, false); err != nil {
+				return false, err
+			}
+		case chproto.ServerEndOfStream:
+			return false, nil
+		default:
+			return false, fmt.Errorf("ch: blockIter.Next: unexpected packet: %d", packet)
+		}
+	}
 }
