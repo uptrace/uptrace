@@ -3,6 +3,7 @@ package bunconf
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/url"
 	"os"
@@ -154,6 +155,12 @@ func validateConfig(conf *Config) error {
 		return err
 	}
 
+	if conf.Listen.HTTP.TLS != nil {
+		slog.Warn("DEPRECATED listen.http.tls is replaced with listen.tls")
+	}
+	if conf.Listen.GRPC.TLS != nil {
+		slog.Warn("DEPRECATED listen.grpc.tls is replaced with listen.tls")
+	}
 	if conf.Listen.TLS == nil {
 		if conf.Listen.HTTP.TLS != nil {
 			conf.Listen.TLS = conf.Listen.HTTP.TLS
