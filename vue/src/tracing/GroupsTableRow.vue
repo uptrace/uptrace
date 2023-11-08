@@ -4,7 +4,7 @@
       {{ group[AttrKey.displayName] }}
     </td>
     <td v-for="col in plainColumns" :key="col.name">
-      <AnyValue :value="group[col.name]" :name="col.name" />
+      <AnyValue :value="group[col.name]" :unit="col.unit" />
     </td>
     <td v-if="headerValues.includes(AttrKey.spanSystem)">
       <router-link :to="systemRoute" @click.stop.prevent>

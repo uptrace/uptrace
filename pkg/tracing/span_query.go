@@ -301,6 +301,8 @@ func unitForExpr(expr tql.Expr) string {
 	switch expr := expr.(type) {
 	case tql.Attr:
 		switch expr.Name {
+		case attrkey.SpanTime:
+			return bunconv.UnitUnixTime
 		case attrkey.SpanErrorRate:
 			return bunconv.UnitUtilization
 		case attrkey.SpanDuration:
@@ -381,7 +383,10 @@ func isNumExpr(expr tql.Expr) bool {
 			return false
 		}
 	case *tql.FuncCall:
-		return isNumFunc(expr.Func)
+		if !isNumFunc(expr.Func) {
+			return false
+		}
+		return isNumExpr(expr.Arg)
 	case *tql.BinaryExpr:
 		return true
 	case tql.ParenExpr:

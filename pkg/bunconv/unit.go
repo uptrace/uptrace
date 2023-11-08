@@ -24,7 +24,8 @@ const (
 	UnitGigabytes string = "gigabytes"
 	UnitTerabytes string = "terabytes"
 
-	UnitTime string = "time"
+	UnitTime     string = "time"
+	UnitUnixTime string = "unix-time"
 )
 
 func NormUnit(s string) string {

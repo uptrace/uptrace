@@ -6,6 +6,7 @@ import { duration, durationShort } from './duration'
 export * from './unit'
 export * from './duration'
 export * from './num'
+export * from './date'
 
 export function fmt(val: any, unit = '', ...args: any[]): string {
   return createFormatter(unit)(val, ...args)

@@ -15,6 +15,8 @@ export enum Unit {
   Terabytes = 'terabytes',
 
   Date = '{date}',
+  Time = 'time',
+  UnixTime = 'unix-time', // number of seconds
 }
 
 export const UNITS = [
