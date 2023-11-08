@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/uptracebundle"
 	"github.com/urfave/cli/v2"
 )
 
@@ -39,7 +39,7 @@ func NewCHSchemaCommand() *cli.Command {
 					},
 				},
 				Action: func(c *cli.Context) error {
-					ctx, app, err := bunapp.StartCLI(c)
+					ctx, app, err := uptracebundle.StartCLI(c)
 					if err != nil {
 						return err
 					}

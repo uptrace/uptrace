@@ -31,16 +31,8 @@ func (h *ProjectHandler) Show(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	conf := h.Config()
 	return httputil.JSON(w, bunrouter.H{
 		"project": project,
-		"grpc": bunrouter.H{
-			"endpoint": conf.GRPCEndpoint(),
-			"dsn":      conf.GRPCDsn(project.ID, project.Token),
-		},
-		"http": bunrouter.H{
-			"endpoint": conf.HTTPEndpoint(),
-			"dsn":      conf.HTTPDsn(project.ID, project.Token),
-		},
+		"dsn":     BuildDSN(h.Config(), project.Token),
 	})
 }

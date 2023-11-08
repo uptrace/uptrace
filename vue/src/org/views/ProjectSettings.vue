@@ -89,19 +89,13 @@ export default defineComponent({
     })
     useTitle(title)
 
-    const headers = [
-      { text: 'Transport', value: 'transport', sortable: false },
-      { text: 'DSN', value: 'dsn', sortable: false },
-    ]
+    const headers = [{ text: 'DSN', value: 'dsn', sortable: false }]
 
     const tokens = computed(() => {
       if (!project.data) {
         return []
       }
-      return [
-        { transport: 'OTLP/HTTP', dsn: project.http.dsn },
-        { transport: 'OTLP/gRPC', dsn: project.grpc.dsn },
-      ]
+      return [{ dsn: project.dsn }]
     })
 
     return {

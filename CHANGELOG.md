@@ -43,6 +43,9 @@ Foundation.
 
 - Changed the default spans TTL to 7 days, metrics TTL to 30 days.
 
+- There is now a single TLS config shared by HTTP and GRPC servers and defined in `listen.tls`
+  section. The old configuration still works, but the first TLS config will be used.
+
 - Upgraded to
   [v1.21](https://github.com/open-telemetry/opentelemetry-specification/blob/main/schemas/1.21.0)
   OpenTelemetry semantic conventions which introduced some breaking changes to attribute names. Most

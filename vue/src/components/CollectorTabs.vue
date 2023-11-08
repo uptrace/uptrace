@@ -1,43 +1,53 @@
 <template>
-  <v-card flat>
-    <v-tabs v-model="activeTab">
-      <v-tab href="#grpc">GRPC</v-tab>
-      <v-tab href="#http">HTTP</v-tab>
-    </v-tabs>
+  <div>
+    <v-row dense>
+      <v-col>
+        <v-alert type="info" prominent border="left" outlined class="mb-0">
+          Don't forget to add the Uptrace exporter to <code>service.pipelines</code> section,
+          because unused exporters are silently ignored.
+        </v-alert>
+      </v-col>
+    </v-row>
 
-    <v-tabs-items v-model="activeTab">
-      <v-tab-item value="grpc">
-        <PrismCode language="yaml" :code="otlpGrpc"></PrismCode>
-      </v-tab-item>
-      <v-tab-item value="http">
-        <PrismCode language="yaml" :code="otlpHttp"></PrismCode>
-      </v-tab-item>
-    </v-tabs-items>
-  </v-card>
+    <v-row dense>
+      <v-col>
+        <v-tabs v-model="activeTab">
+          <v-tab href="#grpc">GRPC</v-tab>
+          <v-tab href="#http">HTTP</v-tab>
+        </v-tabs>
+
+        <v-tabs-items v-model="activeTab">
+          <v-tab-item value="grpc">
+            <PrismCode language="yaml" :code="otlpGrpc"></PrismCode>
+          </v-tab-item>
+          <v-tab-item value="http">
+            <PrismCode language="yaml" :code="otlpHttp"></PrismCode>
+          </v-tab-item>
+        </v-tabs-items>
+      </v-col>
+    </v-row>
+  </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed, PropType } from 'vue'
+import { defineComponent, shallowRef, computed } from 'vue'
 
 // Composables
-import { ConnDetails } from '@/org/use-projects'
+import { useDsn } from '@/org/use-projects'
 
 export default defineComponent({
   name: 'CollectorTabs',
 
   props: {
-    grpc: {
-      type: Object as PropType<ConnDetails>,
-      required: true,
-    },
-    http: {
-      type: Object as PropType<ConnDetails>,
-      required: true,
+    dsn: {
+      type: String,
+      default: '',
     },
   },
 
   setup(props) {
-    const activeTab = shallowRef('')
+    const activeTab = shallowRef()
+    const dsn = useDsn(computed(() => props.dsn))
 
     const otlpGrpc = computed(() => {
       return `
@@ -51,11 +61,10 @@ processors:
 
 exporters:
   otlp/uptrace:
-    endpoint: ${props.grpc.endpoint}
-    tls:
-      insecure: true
+    endpoint: ${dsn.grpcEndpoint}
+    tls: { insecure: ${dsn.insecure} }
     headers:
-      uptrace-dsn: '${props.grpc.dsn}'
+      uptrace-dsn: '${props.dsn}'
 
 service:
   pipelines:
@@ -86,11 +95,9 @@ processors:
 
 exporters:
   otlphttp/uptrace:
-    endpoint: ${props.http.endpoint}
-    tls:
-      insecure: true
+    endpoint: ${dsn.httpEndpoint}
     headers:
-      uptrace-dsn: '${props.http.dsn}'
+      uptrace-dsn: '${props.dsn}'
 
 service:
   pipelines:

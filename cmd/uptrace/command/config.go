@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/uptracebundle"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
@@ -18,7 +18,7 @@ func NewConfigCommand() *cli.Command {
 				Name:  "dump",
 				Usage: "dumps Uptrace config in YAML format",
 				Action: func(c *cli.Context) error {
-					_, app, err := bunapp.StartCLI(c)
+					_, app, err := uptracebundle.StartCLI(c)
 					if err != nil {
 						return err
 					}

@@ -162,12 +162,12 @@ ch_schema:
 
   spans:
     # Delete spans data after 30 days.
-    ttl_delete: 30 DAY
+    ttl_delete: 7 DAY
     storage_policy: 'default'
 
   metrics:
     # Delete metrics data after 90 days.
-    ttl_delete: 90 DAY
+    ttl_delete: 30 DAY
     storage_policy: 'default'
 
 ##
@@ -177,16 +177,14 @@ listen:
   # OTLP/gRPC API.
   grpc:
     addr: ':14317'
-    # tls:
-    #   cert_file: config/tls/uptrace.crt
-    #   key_file: config/tls/uptrace.key
 
   # OTLP/HTTP API and Uptrace API with UI.
   http:
     addr: ':14318'
-    # tls:
-    #   cert_file: config/tls/uptrace.crt
-    #   key_file: config/tls/uptrace.key
+
+  # tls:
+  #   cert_file: config/tls/uptrace.crt
+  #   key_file: config/tls/uptrace.key
 
 ##
 ## Various options for Uptrace UI.

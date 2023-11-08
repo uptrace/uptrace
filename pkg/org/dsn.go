@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+
+	"github.com/uptrace/uptrace/pkg/bunconf"
 )
 
 type DSN struct {
@@ -61,4 +63,13 @@ func ParseDSN(dsnStr string) (*DSN, error) {
 	}
 
 	return &dsn, nil
+}
+
+func BuildDSN(conf *bunconf.Config, token string) string {
+	return fmt.Sprintf("%s://%s@%s:%s?grpc=%s",
+		conf.Listen.Scheme,
+		token,
+		conf.Site.Host,
+		conf.Listen.HTTP.Port,
+		conf.Listen.GRPC.Port)
 }

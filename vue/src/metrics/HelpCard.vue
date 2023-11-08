@@ -17,8 +17,8 @@
 
           <ol class="mb-4">
             <li>
-              <a href="#in-app">In-app metrics</a> using OpenTelemetry SDK, for example, Go HTTP
-              server metrics or user-defined metrics.
+              <a href="#in-app">In-app metrics</a> using OpenTelemetry SDK, for example, Go runtime
+              metrics or built-in HTTP server metrics.
             </li>
             <li>
               <a href="#infra">Infrastructure metrics</a> using OpenTelemetry Collector, for
@@ -45,20 +45,16 @@
 
     <v-container class="mb-6 px-4 py-6">
       <v-row>
-        <v-col class="text-subtitle-1">
-          <p>
-            To start sending in-app metrics to Uptrace, you need to configure OpenTelemetry metrics
-            SDK. Use the following <strong>DSN</strong> to configure OpenTelemetry for your
-            programming language:
-          </p>
-
-          <PrismCode :code="`export UPTRACE_DSN=&quot;${project.http.dsn}&quot;`" />
+        <v-col>
+          To start sending in-app metrics to Uptrace, you need to configure OpenTelemetry Metrics
+          SDK. Use the following <strong>DSN</strong> to configure OpenTelemetry for your
+          programming language:
         </v-col>
       </v-row>
 
       <v-row>
         <v-col>
-          <DistroIcons />
+          <OtelSdkCard :dsn="project.dsn" />
         </v-col>
       </v-row>
     </v-container>
@@ -69,27 +65,19 @@
 
     <v-container class="mb-6 px-4 py-6">
       <v-row>
-        <v-col class="text-subtitle-1">
-          <p>
-            To start monitoring your infrastructure, you need to install OpenTelemetry Collector on
-            each host that you want to monitor. Collector acts as an agent that pulls metrics from
-            monitored systems and exports them to Uptrace using the OTLP exporter.
-          </p>
-
-          <p>Use the following <strong>DSN</strong> to configure OpenTelemetry Collector:</p>
-
-          <PrismCode :code="`export UPTRACE_DSN=&quot;${project.http.dsn}&quot;`" />
+        <v-col>
+          To start monitoring your infrastructure, you need to
+          <a href="https://uptrace.dev/opentelemetry/collector.html" target="_blank"
+            >install OpenTelemetry Collector</a
+          >
+          on each host that you want to monitor. Collector acts as an agent that pulls metrics from
+          monitored systems and exports them to Uptrace using the OTLP exporter.
         </v-col>
       </v-row>
 
       <v-row>
-        <v-col class="text-center">
-          <v-btn
-            color="primary"
-            href="https://uptrace.dev/opentelemetry/collector.html#installation"
-            target="_blank"
-            >Install Collector</v-btn
-          >
+        <v-col>
+          <CollectorTabs :dsn="project.dsn" />
         </v-col>
       </v-row>
     </v-container>
@@ -125,13 +113,14 @@ import { useProject } from '@/org/use-projects'
 
 // Components
 import ForceReloadBtn from '@/components/date/ForceReloadBtn.vue'
-import DistroIcons from '@/components/DistroIcons.vue'
+import CollectorTabs from '@/components/CollectorTabs.vue'
+import OtelSdkCard from '@/components/OtelSdkCard.vue'
 import DevIcon from '@/components/DevIcon.vue'
 import HelpLinks from '@/components/HelpLinks.vue'
 
 export default defineComponent({
   name: 'HelpCard',
-  components: { ForceReloadBtn, DistroIcons, DevIcon, HelpLinks },
+  components: { ForceReloadBtn, CollectorTabs, OtelSdkCard, DevIcon, HelpLinks },
 
   props: {
     loading: {

@@ -10,28 +10,15 @@
 
     <v-container class="mb-6 px-4 py-6">
       <v-row>
-        <v-col class="text-subtitle-1">
-          <p>
-            To start sending data to Uptrace, you need to configure OpenTelemetry SDK. Use the
-            following <strong>DSN</strong> to configure OpenTelemetry for your programming language:
-          </p>
-
-          <p>
-            For Go, Python, Java, .NET, Rust, Erlang, and Elixir, use
-            <strong>OTLP/gRPC</strong> port:
-          </p>
-
-          <PrismCode :code="`export UPTRACE_DSN=&quot;${project.grpc.dsn}&quot;`" class="mb-4" />
-
-          <p>For Ruby, Node.JS, and PHP, use <strong>OTLP/HTTP</strong> port:</p>
-
-          <PrismCode :code="`export UPTRACE_DSN=&quot;${project.http.dsn}&quot;`" class="mb-4" />
+        <v-col>
+          To start sending data to Uptrace, you need to configure OpenTelemetry SDK. Use the
+          following <strong>DSN</strong> to configure OpenTelemetry for your programming language:
         </v-col>
       </v-row>
 
       <v-row>
         <v-col>
-          <DistroIcons />
+          <OtelSdkCard :dsn="project.dsn" />
         </v-col>
       </v-row>
     </v-container>
@@ -42,28 +29,22 @@
 
     <v-container class="mb-6 px-4 py-6">
       <v-row>
-        <v-col class="text-subtitle-1">
-          <p>
-            In case you are already using OpenTelemetry
-            <a href="https://uptrace.dev/opentelemetry/collector.html" target="_blank">Collector</a
-            >, you can send data to Uptrace using
-            <a
-              href="https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlpexporter"
-              target="_blank"
-              >otlpexporter</a
-            >.
-          </p>
-
-          <v-alert type="info" prominent border="left" outlined class="mb-0">
-            Don't forget to add the Uptrace exporter to <code>service.pipelines</code> section,
-            because unused exporters are silently ignored.
-          </v-alert>
+        <v-col>
+          In case you are already using
+          <a href="https://uptrace.dev/opentelemetry/collector.html" target="_blank"
+            >OpenTelemetry Collector</a
+          >, you can send data to Uptrace using
+          <a
+            href="https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlpexporter"
+            target="_blank"
+            >otlpexporter</a
+          >.
         </v-col>
       </v-row>
 
       <v-row>
         <v-col>
-          <CollectorTabs :http="project.http" :grpc="project.grpc" />
+          <CollectorTabs :dsn="project.dsn" />
         </v-col>
       </v-row>
     </v-container>
@@ -99,8 +80,8 @@ import { useProject } from '@/org/use-projects'
 
 // Components
 import ForceReloadBtn from '@/components/date/ForceReloadBtn.vue'
+import OtelSdkCard from '@/components/OtelSdkCard.vue'
 import CollectorTabs from '@/components/CollectorTabs.vue'
-import DistroIcons from '@/components/DistroIcons.vue'
 import DevIcon from '@/components/DevIcon.vue'
 import HelpLinks from '@/components/HelpLinks.vue'
 
@@ -108,8 +89,8 @@ export default defineComponent({
   name: 'HelpCard',
   components: {
     ForceReloadBtn,
+    OtelSdkCard,
     CollectorTabs,
-    DistroIcons,
     DevIcon,
     HelpLinks,
   },

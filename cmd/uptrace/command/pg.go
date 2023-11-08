@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/uptrace/bun/migrate"
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/uptracebundle"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
@@ -20,7 +20,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 				Name:  "wait",
 				Usage: "wait until PostgreSQL is up and running",
 				Action: func(c *cli.Context) error {
-					ctx, app, err := bunapp.StartCLI(c)
+					ctx, app, err := uptracebundle.StartCLI(c)
 					if err != nil {
 						return err
 					}
@@ -48,7 +48,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 				Name:  "init",
 				Usage: "create migration tables",
 				Action: func(c *cli.Context) error {
-					ctx, app, err := bunapp.StartCLI(c)
+					ctx, app, err := uptracebundle.StartCLI(c)
 					if err != nil {
 						return err
 					}
@@ -62,7 +62,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 				Name:  "migrate",
 				Usage: "migrate database",
 				Action: func(c *cli.Context) error {
-					ctx, app, err := bunapp.StartCLI(c)
+					ctx, app, err := uptracebundle.StartCLI(c)
 					if err != nil {
 						return err
 					}
@@ -86,7 +86,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 				Name:  "rollback",
 				Usage: "rollback the last migration group",
 				Action: func(c *cli.Context) error {
-					ctx, app, err := bunapp.StartCLI(c)
+					ctx, app, err := uptracebundle.StartCLI(c)
 					if err != nil {
 						return err
 					}
@@ -110,7 +110,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 				Name:  "reset",
 				Usage: "reset database schema",
 				Action: func(c *cli.Context) error {
-					ctx, app, err := bunapp.StartCLI(c)
+					ctx, app, err := uptracebundle.StartCLI(c)
 					if err != nil {
 						return err
 					}
@@ -153,7 +153,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 				Name:  "lock",
 				Usage: "lock migrations",
 				Action: func(c *cli.Context) error {
-					ctx, app, err := bunapp.StartCLI(c)
+					ctx, app, err := uptracebundle.StartCLI(c)
 					if err != nil {
 						return err
 					}
@@ -168,7 +168,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 				Name:  "unlock",
 				Usage: "unlock migrations",
 				Action: func(c *cli.Context) error {
-					ctx, app, err := bunapp.StartCLI(c)
+					ctx, app, err := uptracebundle.StartCLI(c)
 					if err != nil {
 						return err
 					}
@@ -183,7 +183,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 				Name:  "create_go",
 				Usage: "create Go migration",
 				Action: func(c *cli.Context) error {
-					ctx, app, err := bunapp.StartCLI(c)
+					ctx, app, err := uptracebundle.StartCLI(c)
 					if err != nil {
 						return err
 					}
@@ -204,7 +204,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 				Name:  "create_sql",
 				Usage: "create up and down SQL migrations",
 				Action: func(c *cli.Context) error {
-					ctx, app, err := bunapp.StartCLI(c)
+					ctx, app, err := uptracebundle.StartCLI(c)
 					if err != nil {
 						return err
 					}
@@ -229,7 +229,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 				Name:  "status",
 				Usage: "print migrations status",
 				Action: func(c *cli.Context) error {
-					ctx, app, err := bunapp.StartCLI(c)
+					ctx, app, err := uptracebundle.StartCLI(c)
 					if err != nil {
 						return err
 					}
@@ -251,7 +251,7 @@ func NewBunCommand(migrations *migrate.Migrations) *cli.Command {
 				Name:  "mark_applied",
 				Usage: "mark migrations as applied without actually running them",
 				Action: func(c *cli.Context) error {
-					ctx, app, err := bunapp.StartCLI(c)
+					ctx, app, err := uptracebundle.StartCLI(c)
 					if err != nil {
 						return err
 					}

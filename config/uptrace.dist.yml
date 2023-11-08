@@ -175,16 +175,14 @@ listen:
   # OTLP/gRPC API.
   grpc:
     addr: ':14317'
-    # tls:
-    #   cert_file: config/tls/uptrace.crt
-    #   key_file: config/tls/uptrace.key
 
   # OTLP/HTTP API and Uptrace API with Vue UI.
   http:
     addr: ':14318'
-    # tls:
-    #   cert_file: config/tls/uptrace.crt
-    #   key_file: config/tls/uptrace.key
+
+  # tls:
+  #   cert_file: config/tls/uptrace.crt
+  #   key_file: config/tls/uptrace.key
 
 ##
 ## Various options for Uptrace UI.

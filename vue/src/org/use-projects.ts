@@ -1,4 +1,4 @@
-import { computed, proxyRefs, watch } from 'vue'
+import { computed, proxyRefs, watch, Ref } from 'vue'
 
 // Composables
 import { useStorage } from '@/use/local-storage'
@@ -12,11 +12,6 @@ export interface Project {
   groupFuncsByService: boolean
   pinnedAttrs: string[]
   token: string
-}
-
-export interface ConnDetails {
-  endpoint: string
-  dsn: string
 }
 
 export function useProject() {
@@ -34,22 +29,8 @@ export function useProject() {
     return data.value?.project
   })
 
-  const grpc = computed((): ConnDetails => {
-    return (
-      data.value?.grpc ?? {
-        endpoint: 'http://localhost:14317',
-        dsn: 'http://project1_secret_token@localhost:14317/1',
-      }
-    )
-  })
-
-  const http = computed((): ConnDetails => {
-    return (
-      data.value?.http ?? {
-        endpoint: 'http://localhost:14318',
-        dsn: 'http://project1_secret_token@localhost:14318/1',
-      }
-    )
+  const dsn = computed((): string => {
+    return data.value?.dsn ?? 'http://project1_secret_token@localhost:14318?grpc=14317'
   })
 
   const pinnedAttrs = computed(() => {
@@ -64,9 +45,47 @@ export function useProject() {
 
   return proxyRefs({
     data: project,
-    grpc,
-    http,
+    dsn,
     pinnedAttrs,
     lastProjectId,
+  })
+}
+
+export function useDsn(dsn: Ref<string>) {
+  const url = computed(() => {
+    return new URL(dsn.value)
+  })
+
+  const insecure = computed(() => {
+    return url.value.protocol === 'http:'
+  })
+
+  const grpcEndpoint = computed(() => {
+    switch (url.value.hostname) {
+      case 'uptrace.dev':
+      case 'api.uptrace.dev':
+        return 'https://otlp.uptrace.dev:4317'
+      default: {
+        const port = url.value.searchParams.get('grpc') ?? 4317
+        return `${url.value.protocol}//${url.value.hostname}:${port}`
+      }
+    }
+  })
+
+  const httpEndpoint = computed(() => {
+    switch (url.value.hostname) {
+      case 'uptrace.dev':
+      case 'api.uptrace.dev':
+        return 'https://otlp.uptrace.dev'
+      default:
+        return `${url.value.protocol}//${url.value.host}`
+    }
+  })
+
+  return proxyRefs({
+    original: dsn,
+    insecure,
+    grpcEndpoint,
+    httpEndpoint,
   })
 }

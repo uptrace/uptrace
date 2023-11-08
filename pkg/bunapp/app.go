@@ -4,10 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"net/http/pprof"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,7 +25,6 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
-	"github.com/urfave/cli/v2"
 	"github.com/vmihailenco/taskq/pgq/v4"
 	"github.com/vmihailenco/taskq/v4"
 	"github.com/zyedidia/generic/cache"
@@ -48,51 +45,6 @@ func AppFromContext(ctx context.Context) *App {
 func ContextWithApp(ctx context.Context, app *App) context.Context {
 	ctx = context.WithValue(ctx, appCtxKey{}, app)
 	return ctx
-}
-
-func StartCLI(c *cli.Context) (context.Context, *App, error) {
-	return Start(c.Context, c.String("config"), c.Command.Name)
-}
-
-func Start(ctx context.Context, confPath, service string) (context.Context, *App, error) {
-	if confPath == "" {
-		var err error
-		confPath, err = findConfigPath()
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	conf, err := bunconf.ReadConfig(confPath, service)
-	if err != nil {
-		return nil, nil, err
-	}
-	return StartConfig(ctx, conf)
-}
-
-func findConfigPath() (string, error) {
-	files := []string{
-		"uptrace.yml",
-		"config/uptrace.yml",
-		"/etc/uptrace/uptrace.yml",
-	}
-	for _, confPath := range files {
-		if _, err := os.Stat(confPath); err == nil {
-			return confPath, nil
-		}
-	}
-	return "", fmt.Errorf("can't find uptrace.yml in usual locations")
-}
-
-func StartConfig(ctx context.Context, conf *bunconf.Config) (context.Context, *App, error) {
-	rand.Seed(time.Now().UnixNano())
-
-	app, err := New(ctx, conf)
-	if err != nil {
-		return ctx, nil, err
-	}
-
-	return app.Context(), app, nil
 }
 
 type App struct {
@@ -147,13 +99,6 @@ func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
 	app.PG = app.newPG()
 	app.CH = app.newCH()
 	app.initTaskq()
-
-	switch conf.Service {
-	case "serve":
-		if err := configureOpentelemetry(app); err != nil {
-			return nil, err
-		}
-	}
 
 	return app, nil
 }

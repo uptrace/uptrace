@@ -80,6 +80,7 @@ func defaultConfig() *Config {
 	conf.CHSchema.Metrics.TTLDelete = "90 DAY"
 	conf.CHSchema.Metrics.StoragePolicy = "default"
 
+	conf.Listen.Scheme = "http"
 	conf.Listen.GRPC.Addr = ":14317"
 	conf.Listen.HTTP.Addr = ":14318"
 
@@ -153,6 +154,24 @@ func validateConfig(conf *Config) error {
 		return err
 	}
 
+	if conf.Listen.TLS == nil {
+		if conf.Listen.HTTP.TLS != nil {
+			conf.Listen.TLS = conf.Listen.HTTP.TLS
+		} else if conf.Listen.GRPC.TLS != nil {
+			conf.Listen.TLS = conf.Listen.GRPC.TLS
+		}
+	}
+
+	if conf.Listen.TLS != nil {
+		tlsConf, err := conf.Listen.TLS.TLSConfig()
+		if err != nil {
+			return err
+		}
+		if tlsConf != nil {
+			conf.Listen.Scheme = "https"
+		}
+	}
+
 	if err := conf.Listen.GRPC.init(); err != nil {
 		return fmt.Errorf("invalid listen.grpc option: %w", err)
 	}
@@ -197,7 +216,7 @@ func validateConfig(conf *Config) error {
 func (conf *Config) initSite() error {
 	if conf.Site.Addr == "" {
 		conf.Site.Addr = fmt.Sprintf("%s://%s:%s",
-			conf.Listen.HTTP.Scheme, conf.Listen.HTTP.Host, conf.Listen.HTTP.Port)
+			conf.Listen.Scheme, conf.Listen.HTTP.Host, conf.Listen.HTTP.Port)
 	}
 
 	siteURL, err := url.Parse(conf.Site.Addr)
@@ -278,16 +297,14 @@ type Config struct {
 			StoragePolicy string `yaml:"storage_policy"`
 			TTLDelete     string `yaml:"ttl_delete"`
 		} `yaml:"metrics"`
-
-		Tables struct {
-			SpansData  CHTableOverride `yaml:"spans_data"`
-			SpansIndex CHTableOverride `yaml:"spans_index"`
-		}
 	} `yaml:"ch_schema"`
 
 	Listen struct {
 		HTTP Listen `yaml:"http"`
 		GRPC Listen `yaml:"grpc"`
+
+		TLS    *TLSServer `yaml:"tls"`
+		Scheme string     `yaml:"-"`
 	} `yaml:"listen"`
 
 	Site struct {
@@ -362,12 +379,12 @@ func (m *SpanMetric) ViewName() string {
 }
 
 type Listen struct {
-	Addr string     `yaml:"addr"`
-	TLS  *TLSServer `yaml:"tls"`
+	Addr string `yaml:"addr"`
+	Host string `yaml:"-"`
+	Port string `yaml:"-"`
 
-	Scheme string `yaml:"-"`
-	Host   string `yaml:"-"`
-	Port   string `yaml:"-"`
+	// DEPRECATED
+	TLS *TLSServer `yaml:"tls"`
 }
 
 func (l *Listen) init() error {
@@ -382,54 +399,7 @@ func (l *Listen) init() error {
 	}
 	l.Port = port
 
-	l.Scheme = "http"
-	if l.TLS != nil {
-		tlsConf, err := l.TLS.TLSConfig()
-		if err != nil {
-			return err
-		}
-		if tlsConf != nil {
-			l.Scheme = "https"
-		}
-	}
-
 	return nil
-}
-
-type CHTableOverride struct {
-	TTL string `yaml:"ttl"`
-}
-
-func (c *Config) GRPCEndpoint() string {
-	return fmt.Sprintf("%s://%s:%s",
-		c.Listen.GRPC.Scheme,
-		c.Site.Host,
-		c.Listen.GRPC.Port)
-}
-
-func (c *Config) HTTPEndpoint() string {
-	return fmt.Sprintf("%s://%s:%s",
-		c.Listen.HTTP.Scheme,
-		c.Site.Host,
-		c.Listen.HTTP.Port)
-}
-
-func (c *Config) GRPCDsn(projectID uint32, projectToken string) string {
-	return fmt.Sprintf("%s://%s@%s:%s/%d",
-		c.Listen.GRPC.Scheme,
-		projectToken,
-		c.Site.Host,
-		c.Listen.GRPC.Port,
-		projectID)
-}
-
-func (c *Config) HTTPDsn(projectID uint32, projectToken string) string {
-	return fmt.Sprintf("%s://%s@%s:%s/%d",
-		c.Listen.HTTP.Scheme,
-		projectToken,
-		c.Site.Host,
-		c.Listen.HTTP.Port,
-		projectID)
 }
 
 func (c *Config) SiteURL(sitePath string, args ...any) string {

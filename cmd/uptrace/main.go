@@ -33,6 +33,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/run"
+	"github.com/uptrace/uptrace/pkg/uptracebundle"
 	"github.com/vmihailenco/taskq/extra/oteltaskq/v4"
 	"golang.org/x/net/http2"
 
@@ -89,7 +90,7 @@ var serveCommand = &cli.Command{
 	Name:  "serve",
 	Usage: "run HTTP and gRPC APIs",
 	Action: func(c *cli.Context) error {
-		ctx, app, err := bunapp.StartCLI(c)
+		ctx, app, err := uptracebundle.StartCLI(c)
 		if err != nil {
 			return err
 		}
@@ -98,16 +99,10 @@ var serveCommand = &cli.Command{
 		conf := app.Config()
 		logger := app.Logger
 
-		projects := app.Config().Projects
-		project := &projects[len(projects)-1]
-
 		fmt.Printf("read the docs at            https://uptrace.dev/get/\n")
 		fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
 		fmt.Printf("Telegram chat               https://t.me/uptrace\n")
-		fmt.Println()
-
-		fmt.Printf("OTLP/gRPC (listen.grpc)     %s\n", conf.GRPCDsn(project.ID, project.Token))
-		fmt.Printf("OTLP/HTTP (listen.http)     %s\n", conf.HTTPDsn(project.ID, project.Token))
+		fmt.Printf("Slack chat                  https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw\n")
 		fmt.Println()
 
 		fmt.Printf("Open UI (site.addr)         %s\n", conf.SiteURL("/"))

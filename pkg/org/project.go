@@ -9,6 +9,7 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 )
 
 type Project struct {
@@ -44,6 +45,10 @@ func (p *Project) SettingsURL() string {
 
 func (p *Project) EmailSettingsURL() string {
 	return fmt.Sprintf("/alerting/%d/email", p.ID)
+}
+
+func (p *Project) DSN(conf *bunconf.Config) string {
+	return BuildDSN(conf, p.Token)
 }
 
 func SelectProject(
