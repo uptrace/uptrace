@@ -22,11 +22,6 @@ func NewGroupHandler(app *bunapp.App) *GroupHandler {
 	}
 }
 
-type GroupTimeOut struct {
-	FirstSeenAt time.Time `bun:",scanonly"`
-	LastSeenAt  time.Time `bun:",scanonly"`
-}
-
 func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
@@ -50,25 +45,27 @@ func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request)
 		)
 	}
 	f.parts = tql.ParseQuery(strings.Join(parts, " | "))
+	q, _ := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
 
 	summary := make(map[string]any)
-	q, _ := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
 	if err = q.Apply(f.CHOrder).Scan(ctx, &summary); err != nil {
 		return err
 	}
 
-	groupTimeOut := new(GroupTimeOut)
-	if err = NewSpanIndexQuery(h.App).
+	var firstSeenAt, lastSeenAt time.Time
+	if err := NewSpanIndexQuery(h.App).
 		ColumnExpr("min(time) as first_seen_at").
 		ColumnExpr("max(time) as last_seen_at").
+		Where("project_id = ?", f.ProjectID).
+		Apply(f.systemFilter).
 		Where("group_id = ?", f.GroupID).
-		Scan(ctx, groupTimeOut); err != nil {
+		Scan(ctx, &firstSeenAt, &lastSeenAt); err != nil {
 		return err
 	}
 
 	return httputil.JSON(w, bunrouter.H{
-		"firstSeenAt": groupTimeOut.FirstSeenAt,
-		"lastSeenAt":  groupTimeOut.LastSeenAt,
 		"summary":     summary,
+		"firstSeenAt": firstSeenAt,
+		"lastSeenAt":  lastSeenAt,
 	})
 }
