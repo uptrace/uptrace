@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Setup Go
         uses: actions/setup-go@v2.1.4
         with:
@@ -46,6 +48,8 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
@@ -76,6 +80,8 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v2
+        with:
+          submodules: true
       - name: Setup Go Environment
         run: |
           echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
