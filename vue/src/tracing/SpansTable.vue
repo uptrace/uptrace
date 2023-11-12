@@ -54,6 +54,9 @@
                 @click:chip="$emit('click:chip', $event)"
               />
             </td>
+            <td v-for="col in columns" :key="col">
+              <AnyValue :value="span.attrs[col]" :name="col" />
+            </td>
             <td class="text-no-wrap"><DateValue :value="span.time" format="relative" /></td>
             <td v-if="!eventsMode" class="text-right">
               <DurationValue :value="span.duration" fixed />

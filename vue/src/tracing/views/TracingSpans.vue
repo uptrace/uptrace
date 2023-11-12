@@ -5,6 +5,7 @@
         <v-toolbar flat color="light-blue lighten-5">
           <v-toolbar-title>
             <span>Spans</span>
+            <SpansTableSettings :spans="spans.items" class="ml-2" @input="tableColumns = $event" />
           </v-toolbar-title>
 
           <v-spacer />
@@ -40,6 +41,7 @@
                 :order="spans.order"
                 :pager="spans.pager"
                 :events-mode="systems.isEvent"
+                :columns="tableColumns"
                 :show-system="showSystem"
                 @click:chip="onChipClick"
               />
@@ -58,7 +60,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, watch, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 
 // Composables
 import { useRouter, useSyncQueryParams } from '@/use/router'
@@ -71,6 +73,7 @@ import { useSpans } from '@/tracing/use-spans'
 // Components
 import ApiErrorCard from '@/components/ApiErrorCard.vue'
 import SpansTable from '@/tracing/SpansTable.vue'
+import SpansTableSettings from '@/tracing/SpansTableSettings.vue'
 import { SpanChip } from '@/tracing/SpanChips.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 
@@ -79,7 +82,12 @@ import { isGroupSystem, AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'TracingSpans',
-  components: { ApiErrorCard, SpansTable, LoadPctileChart },
+  components: {
+    ApiErrorCard,
+    SpansTable,
+    SpansTableSettings,
+    LoadPctileChart,
+  },
 
   props: {
     dateRange: {
@@ -103,6 +111,7 @@ export default defineComponent({
   setup(props) {
     props.dateRange.roundUp()
     const { route } = useRouter()
+    const tableColumns = shallowRef<string[]>([])
 
     const annotations = useAnnotations(() => {
       return {
@@ -185,6 +194,7 @@ export default defineComponent({
 
       spans,
       showSystem,
+      tableColumns,
 
       onChipClick,
     }
