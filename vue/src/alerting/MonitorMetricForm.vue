@@ -38,6 +38,7 @@
           :metrics="activeMetrics"
           :uql="uql"
           :disabled="!activeMetrics.length"
+          show-agg
           show-group-by
           show-dash-where
         />
@@ -347,8 +348,8 @@ export default defineComponent({
           ) {
             return true
           }
-          if (props.monitor.params.maxValue <= props.monitor.params.minValue) {
-            return 'Max value should be greater than min'
+          if (props.monitor.params.maxValue < props.monitor.params.minValue) {
+            return 'Max value should be greater than or equal min'
           }
           return true
         },

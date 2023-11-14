@@ -24,6 +24,9 @@
 <script lang="ts">
 import { defineComponent, shallowRef, computed } from 'vue'
 
+// Composables
+import { joinQuery } from '@/use/uql'
+
 export default defineComponent({
   name: 'NewMonitorMenu',
 
@@ -106,7 +109,7 @@ export default defineComponent({
           name: props.name,
           metric: props.metric,
           alias: 'spans',
-          query: joinQuery(query, props.where),
+          query: joinQuery([query, props.where]),
         },
       }
     }
@@ -118,13 +121,9 @@ export default defineComponent({
           name: props.name,
           metric: 'uptrace.tracing.events',
           alias: 'events',
-          query: joinQuery(query, props.where),
+          query: joinQuery([query, props.where]),
         },
       }
-    }
-
-    function joinQuery(...parts: string[]) {
-      return parts.filter((part) => part).join(' | ')
     }
 
     return {

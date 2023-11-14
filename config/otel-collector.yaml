@@ -20,6 +20,13 @@ receivers:
       memory:
       network:
       paging:
+  httpcheck:
+    targets:
+      - endpoint: 'http://localhost:13133/health/status'
+        method: GET
+      - endpoint: 'http://localhost:13134/health/status'
+        method: GET
+    collection_interval: 15s
   jaeger:
     protocols:
       grpc:
@@ -79,7 +86,7 @@ service:
       processors: [cumulativetodelta, batch]
       exporters: [otlp/uptrace]
     metrics/hostmetrics:
-      receivers: [hostmetrics, postgresql]
+      receivers: [hostmetrics, postgresql, httpcheck]
       processors: [cumulativetodelta, batch, resourcedetection]
       exporters: [otlp/uptrace]
     logs:

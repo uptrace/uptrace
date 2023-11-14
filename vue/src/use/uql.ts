@@ -156,7 +156,7 @@ export function splitQuery(query: string): string[] {
     .filter((part) => part.length)
 }
 
-export function joinQuery(...parts: any[]): string {
+export function joinQuery(parts: string[]): string {
   return parts
     .filter((part) => {
       if (typeof part !== 'string') {

@@ -10,6 +10,7 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/zyedidia/generic/cache"
@@ -235,6 +236,8 @@ func (p *DatapointProcessor) processDatapoint(ctx *datapointContext, datapoint *
 }
 
 func (p *DatapointProcessor) initDatapoint(ctx *datapointContext, datapoint *Datapoint) {
+	normAttrs(datapoint.Attrs)
+
 	keys := make([]string, 0, len(datapoint.Attrs))
 	values := make([]string, 0, len(datapoint.Attrs))
 
@@ -425,4 +428,41 @@ func newDatapointContext(ctx context.Context) *datapointContext {
 func (c *datapointContext) ResettedDigest() *xxhash.Digest {
 	c.digest.Reset()
 	return c.digest
+}
+
+//------------------------------------------------------------------------------
+
+type AttrName struct {
+	Canonical string
+	Alts      []string
+}
+
+var attrNames = []AttrName{
+	{
+		Canonical: attrkey.DeploymentEnvironment,
+		Alts:      []string{"deployment_environment", "environment", "env"},
+	},
+	{Canonical: attrkey.ServiceName, Alts: []string{"service_name", "service", "component"}},
+	{Canonical: attrkey.ServiceVersion, Alts: []string{"service_version"}},
+	{Canonical: attrkey.URLScheme, Alts: []string{"http.scheme", "http_scheme"}},
+	{Canonical: attrkey.URLFull, Alts: []string{"http.url", "http_url"}},
+	{Canonical: attrkey.URLPath, Alts: []string{"http.target", "http_target"}},
+	{Canonical: attrkey.HTTPRequestMethod, Alts: []string{"http.method"}},
+	{Canonical: attrkey.HTTPResponseStatusCode, Alts: []string{"http.status_code"}},
+}
+
+func normAttrs(attrs AttrMap) {
+	for _, name := range attrNames {
+		if _, ok := attrs[name.Canonical]; ok {
+			continue
+		}
+
+		for _, key := range name.Alts {
+			if val, ok := attrs[key]; ok {
+				delete(attrs, key)
+				attrs[name.Canonical] = val
+				break
+			}
+		}
+	}
 }

@@ -142,7 +142,7 @@ export default defineComponent({
         return undefined
       }
 
-      const query = joinQuery(props.axiosParams.query, props.group._query)
+      const query = joinQuery([props.axiosParams.query, props.group._query])
       return {
         ...props.axiosParams,
         query,

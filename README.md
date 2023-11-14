@@ -56,9 +56,9 @@ also requires PostgreSQL database to store metadata such as metric names and ale
 
 ## Quickstart
 
-In just a few minutes, you can try Uptrace by visiting the
-[cloud demo](https://app.uptrace.dev/play) (no login required) or running it locally with
-[Docker](https://github.com/uptrace/uptrace/tree/master/example/docker).
+You can try Uptrace in just a few minutes by visiting the [cloud demo](https://app.uptrace.dev/play)
+(no login required) or by [running](https://github.com/uptrace/uptrace/tree/master/example/docker)
+it locally with Docker.
 
 Then follow the [getting started](https://uptrace.dev/get/get-started.html) guide.
 

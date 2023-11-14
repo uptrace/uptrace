@@ -192,7 +192,7 @@ export default defineComponent({
               name: props.gridColumn.name,
               metric: props.gridColumn.params.metrics.map((m) => m.name),
               alias: props.gridColumn.params.metrics.map((m) => m.alias),
-              query: joinQuery(props.gridColumn.params.query, props.gridQuery),
+              query: joinQuery([props.gridColumn.params.query, props.gridQuery]),
               columns: JSON.stringify(props.gridColumn.params.columnMap),
             },
           }

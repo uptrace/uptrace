@@ -226,7 +226,15 @@ type AttrName struct {
 }
 
 var attrNames = []AttrName{
+	{
+		Canonical: attrkey.DeploymentEnvironment,
+		Alts:      []string{"deployment_environment", "environment", "env"},
+	},
 	{Canonical: attrkey.ServiceName, Alts: []string{"service_name", "service", "component"}},
+	{Canonical: attrkey.ServiceVersion, Alts: []string{"service_version"}},
+	{Canonical: attrkey.URLScheme, Alts: []string{"http.scheme", "http_scheme"}},
+	{Canonical: attrkey.URLFull, Alts: []string{"http.url", "http_url"}},
+	{Canonical: attrkey.URLPath, Alts: []string{"http.target", "http_target"}},
 	{Canonical: attrkey.HTTPRequestMethod, Alts: []string{"http.method"}},
 	{Canonical: attrkey.HTTPResponseStatusCode, Alts: []string{"http.status_code"}},
 	{Canonical: attrkey.DBSystem, Alts: []string{"db.type"}},
