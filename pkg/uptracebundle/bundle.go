@@ -76,7 +76,9 @@ func configureOpentelemetry(app *bunapp.App) error {
 
 	var options []uptrace.Option
 
-	options = append(options, uptrace.WithServiceName(conf.Service))
+	options = append(options,
+		uptrace.WithServiceName(conf.Service),
+		uptrace.WithDeploymentEnvironment("self-hosted"))
 
 	if conf.UptraceGo.DSN == "" {
 		dsn := org.BuildDSN(conf, project.Token)
