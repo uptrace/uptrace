@@ -134,9 +134,9 @@ func (p *ServiceGraphProcessor) ProcessSpan(
 			edge.ServiceNamespace = span.ServiceNamespace
 			edge.SetClientDuration(span)
 
-			if serverName, attrKey := serviceGraphServerNode(span); serverName != "" {
-				edge.ServerName = serverName
+			if attrKey, serverName := serviceGraphServerNode(span); serverName != "" {
 				edge.ServerAttr = attrKey
+				edge.ServerName = serverName
 			}
 		})
 		return nil

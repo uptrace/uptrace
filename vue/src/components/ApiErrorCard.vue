@@ -23,8 +23,13 @@
               <code>http:all</code> system if you're analyzing HTTP requests.
             </li>
             <li>
-              Add a <code>.group_id</code> filter, for example,
+              Further narrow the scope by adding the <code>.group_id</code> filter, for example,
               <code>where .group_id = 123456789</code>.
+            </li>
+            <li>
+              Consider using
+              <a href="https://uptrace.dev/get/enterprise.html">Uptrace Enterprise</a> edition which
+              supports data pre-aggregation for common queries.
             </li>
           </ul>
 
