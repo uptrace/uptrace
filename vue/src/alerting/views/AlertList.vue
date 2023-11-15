@@ -114,7 +114,7 @@ export default defineComponent({
       computed(() => {
         const params: Record<string, any> = {
           ...forceReloadParams.value,
-          ...facetedSearch.axiosParams,
+          ...facetedSearch.axiosParams(),
         }
 
         return params

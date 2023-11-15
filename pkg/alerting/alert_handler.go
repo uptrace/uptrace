@@ -257,6 +257,7 @@ func selectAlertFacetsForAttr(
 ) (map[string]*org.Facet, error) {
 	searchq := app.PG.NewSelect().
 		Model((*org.BaseAlert)(nil)).
+		Join("JOIN alert_events AS event ON event.id = a.event_id").
 		ColumnExpr("tsv").
 		Apply(f.WhereClause).
 		Limit(100e3)

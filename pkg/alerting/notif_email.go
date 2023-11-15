@@ -86,6 +86,9 @@ func (n *EmailNotifier) NotifyHandler(
 
 	alert, err := selectAlertWithEvent(ctx, app, eventID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
 		return err
 	}
 	baseAlert := alert.Base()
@@ -133,13 +136,17 @@ func (n *EmailNotifier) notifyOnErrorAlert(
 
 	var buf bytes.Buffer
 
-	keys := attrKeys(span.Attrs)
 	if err := n.emails.ExecuteTemplate(&buf, tplName, map[string]any{
-		"siteURL": app.SiteURL(""),
-		"project": project,
-		"alert":   alert,
-		"attrs":   span.Attrs,
-		"keys":    keys,
+		"projectName":        project.Name,
+		"projectSettingsURL": app.SiteURL(project.EmailSettingsURL()),
+
+		"title":     emailErrorFormatter.Format(project, alert),
+		"alert":     alert,
+		"alertName": alert.Name,
+		"alertURL":  app.SiteURL(alert.URL()),
+
+		"spanAttrs": span.Attrs,
+		"attrKeys":  attrKeys(span.Attrs),
 	}); err != nil {
 		return err
 	}
@@ -194,9 +201,14 @@ func (n *EmailNotifier) notifyOnMetricAlert(
 	var buf bytes.Buffer
 
 	if err := n.emails.ExecuteTemplate(&buf, tplName, map[string]any{
-		"siteURL": app.SiteURL(""),
-		"project": project,
-		"alert":   alert,
+		"projectName":        project.Name,
+		"projectSettingsURL": app.SiteURL(project.EmailSettingsURL()),
+
+		"title":       template.HTML(emailMetricFormatter.Format(project, alert)),
+		"longSummary": template.HTML(alert.LongSummary("<br />")),
+		"alert":       alert,
+		"alertName":   alert.Name,
+		"alertURL":    app.SiteURL(alert.URL()),
 	}); err != nil {
 		return err
 	}

@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+<!doctype html>
 <html
   xmlns="http://www.w3.org/1999/xhtml"
   xmlns:v="urn:schemas-microsoft-com:vml"
   xmlns:o="urn:schemas-microsoft-com:office:office"
 >
   <head>
-    <title>[{{ $.project.Name }}] {{ $.alert.Name }}</title>
+    <title>[{{ $.projectName }}] {{ $.alertName }}</title>
     <!--[if !mso]><!-->
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <!--<![endif]-->
@@ -183,7 +183,6 @@
                                     style="color: #1976d2; text-decoration: none; font-weight: 500"
                                   >
                                     <img
-                                      alt="Uptrace logo"
                                       src="https://uptrace.dev/img/logo-large.png"
                                       style="
                                         border: 0;
@@ -306,14 +305,7 @@
                                         class="text-h6 font-weight-regular"
                                         style="line-height: 1.25; font-size: 20px; font-weight: 400"
                                       >
-                                        [{{ $.project.Name }}] {{ if $.alert.Event.User }} {{ if eq
-                                        $.alert.State "open" }} The metric alert is reopened by {{
-                                        $.alert.Event.User.Username }} {{ else }} The metric alert
-                                        is closed by {{ $.alert.Event.User.Username }} {{ end }} {{
-                                        else if eq $.alert.State "closed" }} The metric is back to
-                                        normal {{ else if eq $.alert.Event.Name "created" }} The
-                                        metric is firing: {{ $.alert.Summary }} {{ else }} The
-                                        metric is still firing: {{ $.alert.Summary }} {{ end }}
+                                        {{ $.title }}
                                       </div>
                                     </div>
                                   </td>
@@ -337,7 +329,30 @@
                                         color: #2c3e50;
                                       "
                                     >
-                                      {{ $.alert.Name }}
+                                      [{{ $.projectName }}] {{ $.alertName }}
+                                    </div>
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td
+                                    align="left"
+                                    style="
+                                      font-size: 0px;
+                                      padding: 8px 30px;
+                                      word-break: break-word;
+                                    "
+                                  >
+                                    <div
+                                      style="
+                                        font-family: Roboto, RobotoDraft, Helvetica, Arial,
+                                          sans-serif;
+                                        font-size: 16px;
+                                        line-height: 1.5;
+                                        text-align: left;
+                                        color: #2c3e50;
+                                      "
+                                    >
+                                      {{ $.longSummary }}
                                     </div>
                                   </td>
                                 </tr>
@@ -374,7 +389,7 @@
                                             valign="middle"
                                           >
                                             <a
-                                              href="{{ $.siteURL }}{{ $.alert.URL }}"
+                                              href="{{ $.alertURL }}"
                                               style="
                                                 display: inline-block;
                                                 background: #1565c0;
@@ -467,7 +482,7 @@
                           >
                             Change notification
                             <a
-                              href="{{ $.siteURL }}{{ $.project.EmailSettingsURL }}"
+                              href="{{ $.projectSettingsURL }}"
                               style="color: #1976d2; text-decoration: none; font-weight: 500"
                               >settings</a
                             >.

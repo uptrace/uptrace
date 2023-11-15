@@ -98,7 +98,7 @@ services:
       - '5432:5432'
 
   otelcol:
-    image: otel/opentelemetry-collector-contrib:0.87.0
+    image: otel/opentelemetry-collector-contrib:0.88.0
     restart: on-failure
     volumes:
       - ./config/otel-collector.yaml:/etc/otelcol-contrib/config.yaml

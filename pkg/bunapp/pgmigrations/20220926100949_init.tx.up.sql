@@ -77,16 +77,12 @@ CREATE TABLE user_project_data (
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
-  CREATE TYPE public.achiev_name_enum AS ENUM (
-    'configure-tracing',
-    'configure-metrics',
-    'install-collector',
-    'create-metric-monitor'
-  );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+CREATE TYPE public.achiev_name_enum AS ENUM (
+  'configure-tracing',
+  'configure-metrics',
+  'install-collector',
+  'create-metric-monitor'
+);
 
 --bun:split
 
@@ -138,28 +134,20 @@ CREATE TABLE pinned_facets (
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
-  CREATE TYPE public.monitor_state_enum AS ENUM (
-    'active',
-    'paused',
-    'firing',
-    'no-data',
-    'failed'
-  );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+CREATE TYPE public.monitor_state_enum AS ENUM (
+  'active',
+  'paused',
+  'firing',
+  'no-data',
+  'failed'
+);
 
 --bun:split
 
-DO $$ BEGIN
-  CREATE TYPE public.monitor_type_enum AS ENUM (
-    'metric',
-    'error'
-  );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+CREATE TYPE public.monitor_type_enum AS ENUM (
+  'metric',
+  'error'
+);
 
 --bun:split
 
@@ -182,28 +170,20 @@ CREATE TABLE monitors (
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
-  CREATE TYPE public.notif_channel_type_enum AS ENUM (
-    'slack',
-    'webhook',
-    'alertmanager'
-  );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+CREATE TYPE public.notif_channel_type_enum AS ENUM (
+  'slack',
+  'webhook',
+  'alertmanager'
+);
 
 --bun:split
 
-DO $$ BEGIN
-  CREATE TYPE public.notif_channel_state_enum AS ENUM (
-    'draft',
-    'delivering',
-    'paused',
-    'disabled'
-  );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+CREATE TYPE public.notif_channel_state_enum AS ENUM (
+  'draft',
+  'delivering',
+  'paused',
+  'disabled'
+);
 
 --bun:split
 
@@ -229,28 +209,19 @@ CREATE TABLE monitor_channels (
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
-  CREATE TYPE public.trackable_model_enum AS ENUM (
-    'Span',
-    'SpanGroup',
-    'Project',
-    'MetricMonitor'
-  );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
-
+CREATE TYPE public.trackable_model_enum AS ENUM (
+  'Span',
+  'SpanGroup',
+  'Project',
+  'MetricMonitor'
+);
 
 --bun:split
 
-DO $$ BEGIN
-  CREATE TYPE public.alert_type_enum AS ENUM (
-    'error',
-    'metric'
-  );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+CREATE TYPE public.alert_type_enum AS ENUM (
+  'error',
+  'metric'
+);
 
 --bun:split
 
@@ -361,15 +332,11 @@ ON dashboards (project_id, template_id);
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
-  CREATE TYPE public.grid_column_type_enum AS ENUM (
-    'chart',
-    'table',
-    'heatmap'
-  );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+CREATE TYPE public.grid_column_type_enum AS ENUM (
+  'chart',
+  'table',
+  'heatmap'
+);
 
 --bun:split
 
@@ -409,14 +376,10 @@ ON dash_grid_columns (project_id);
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
-  CREATE TYPE public.dash_kind_enum AS ENUM (
-    'grid',
-    'table'
-  );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+CREATE TYPE public.dash_kind_enum AS ENUM (
+  'grid',
+  'table'
+);
 
 --bun:split
 
@@ -451,17 +414,13 @@ ON dash_gauges (dash_id);
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
-  CREATE TYPE public.metric_instrument_enum AS ENUM (
-    'gauge',
-    'additive',
-    'counter',
-    'histogram',
-    'summary'
-  );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+CREATE TYPE public.metric_instrument_enum AS ENUM (
+  'gauge',
+  'additive',
+  'counter',
+  'histogram',
+  'summary'
+);
 
 --bun:split
 

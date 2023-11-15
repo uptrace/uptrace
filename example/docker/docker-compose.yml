@@ -2,7 +2,7 @@ version: '3'
 
 services:
   clickhouse:
-    image: clickhouse/clickhouse-server:23.4
+    image: clickhouse/clickhouse-server:23.7
     restart: on-failure
     environment:
       CLICKHOUSE_DB: uptrace
@@ -12,7 +12,7 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - ch_data9:/var/lib/clickhouse
+      - ch_data0:/var/lib/clickhouse
     ports:
       - '8123:8123'
       - '9000:9000'
@@ -31,12 +31,12 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - 'pg_data6:/var/lib/postgresql/data/pgdata'
+      - 'pg_data0:/var/lib/postgresql/data/pgdata'
     ports:
       - '5432:5432'
 
   uptrace:
-    image: 'uptrace/uptrace:1.5.6'
+    image: 'uptrace/uptrace:1.6.0-rc.1'
     #image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:
@@ -48,7 +48,7 @@ services:
       - '14318:14318'
 
   otelcol:
-    image: otel/opentelemetry-collector-contrib:0.70.0
+    image: otel/opentelemetry-collector-contrib:0.88.0
     restart: on-failure
     volumes:
       - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml
@@ -79,5 +79,5 @@ services:
       - 'host.docker.internal:host-gateway'
 
 volumes:
-  ch_data9:
-  pg_data6:
+  ch_data0:
+  pg_data0:

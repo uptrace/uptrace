@@ -55,12 +55,10 @@ processors:
     timeout: 10s
 
 exporters:
-  logging:
-    logLevel: debug
   otlp/uptrace:
-    endpoint: uptrace:14317
+    endpoint: http://uptrace:14317
     tls: { insecure: true }
-    headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14317/1' }
+    headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14318?grpc=14317' }
 
 service:
   telemetry:
@@ -72,7 +70,7 @@ service:
     traces:
       receivers: [otlp, jaeger]
       processors: [batch]
-      exporters: [otlp/uptrace, logging]
+      exporters: [otlp/uptrace]
     metrics:
       receivers: [otlp]
       processors: [batch]

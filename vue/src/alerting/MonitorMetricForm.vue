@@ -176,10 +176,10 @@
       <v-col cols="3" class="mt-4 text--secondary">Minimal duration</v-col>
       <v-col cols="6">
         <v-select
-          v-model="monitor.params.forDuration"
-          hint="Trigger an alert after this number of minutes"
+          v-model="monitor.params.checkNumPoint"
+          hint="Create an alert if the last N points are outside of the allowed range"
           persistent-hint
-          :items="forMinuteItems"
+          :items="checkNumPointItems"
           filled
           dense
           hide-details="auto"
@@ -355,7 +355,7 @@ export default defineComponent({
         },
       ],
     }
-    const forMinuteItems = [
+    const checkNumPointItems = [
       { text: '1 minute', value: 1 },
       { text: '3 minutes', value: 3 },
       { text: '5 minutes', value: 5 },
@@ -548,7 +548,7 @@ export default defineComponent({
       form,
       isValid,
       rules,
-      forMinuteItems,
+      checkNumPointItems,
       submit,
 
       uql,

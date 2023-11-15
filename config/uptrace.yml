@@ -256,7 +256,7 @@ uptrace_go:
   #disabled: true
 
   # Defaults to the first projects.
-  dsn: http://project1_secret_token@localhost:4317/1
+  #dsn: http://project1_secret_token@localhost:4318?grpc=4317
 
   #tls:
   #  cert_file: config/tls/uptrace.crt

@@ -114,7 +114,7 @@ func (f *AlertFilter) WhereClause(q *bun.SelectQuery) *bun.SelectQuery {
 		q = q.Where("a.monitor_id = ?", f.MonitorID)
 	}
 	if len(f.Status) > 0 {
-		q = q.Where("a.state IN (?)", bun.In(f.Status))
+		q = q.Where("event.status IN (?)", bun.In(f.Status))
 	}
 
 	return q

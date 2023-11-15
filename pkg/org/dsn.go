@@ -3,7 +3,6 @@ package org
 import (
 	"fmt"
 	"net/url"
-	"strconv"
 
 	"github.com/uptrace/uptrace/pkg/bunconf"
 )
@@ -13,9 +12,7 @@ type DSN struct {
 
 	Scheme string
 	Host   string
-
-	ProjectID uint32
-	Token     string
+	Token  string
 }
 
 func (dsn *DSN) String() string {
@@ -44,16 +41,6 @@ func ParseDSN(dsnStr string) (*DSN, error) {
 	if dsn.Host == "api.uptrace.dev" {
 		dsn.Host = "uptrace.dev"
 	}
-
-	if len(u.Path) <= 1 {
-		return nil, fmt.Errorf("DSN=%q does not have a project id", dsnStr)
-	}
-
-	projectID, err := strconv.ParseUint(u.Path[1:], 10, 32)
-	if err != nil {
-		return nil, err
-	}
-	dsn.ProjectID = uint32(projectID)
 
 	if u.User != nil {
 		dsn.Token = u.User.Username()
