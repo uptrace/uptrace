@@ -9,8 +9,8 @@ KillMode = mixed
 User  = uptrace
 Group = uptrace
 
-ExecStart       = /usr/bin/uptrace $UPTRACE_OPTIONS serve
 EnvironmentFile = /etc/uptrace/uptrace.conf
+ExecStart       = /usr/bin/uptrace $UPTRACE_OPTIONS serve
 
 Restart    = always
 RestartSec = 1s

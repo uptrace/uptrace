@@ -120,7 +120,7 @@ func (app *App) OnStopped(name string, fn HookFunc) {
 	app.onStopped.Add(newHook(name, fn))
 }
 
-func (app *App) Debugging() bool {
+func (app *App) Debug() bool {
 	return app.conf.Debug
 }
 
@@ -187,7 +187,7 @@ func (app *App) initRouter() {
 		app.routerGroup = app.router.NewGroup("")
 	}
 
-	if app.Debugging() {
+	if app.Debug() {
 		adapter := bunrouter.HTTPHandlerFunc
 
 		app.routerGroup.GET("/debug/pprof/", adapter(pprof.Index))
@@ -208,7 +208,7 @@ func (app *App) initRouter() {
 func (app *App) newRouter(opts ...bunrouter.Option) *bunrouter.Router {
 	opts = append(opts,
 		bunrouter.WithMiddleware(reqlog.NewMiddleware(
-			reqlog.WithVerbose(app.Debugging()),
+			reqlog.WithVerbose(app.Debug()),
 			reqlog.FromEnv("HTTPDEBUG", "DEBUG"),
 		)),
 	)
@@ -340,7 +340,7 @@ func (app *App) newPG() *bun.DB {
 	db := bun.NewDB(pgdb, pgdialect.New())
 
 	db.AddQueryHook(bundebug.NewQueryHook(
-		bundebug.WithEnabled(app.Debugging()),
+		bundebug.WithEnabled(app.Debug()),
 		bundebug.FromEnv("PGDEBUG", "DEBUG"),
 	))
 	db.AddQueryHook(bunotel.NewQueryHook(bunotel.WithFormattedQueries(true)))
@@ -401,7 +401,7 @@ func (app *App) newCH() *ch.DB {
 	db = db.WithFormatter(fmter)
 
 	db.AddQueryHook(chdebug.NewQueryHook(
-		chdebug.WithVerbose(app.Debugging()),
+		chdebug.WithVerbose(app.Debug()),
 		chdebug.FromEnv("CHDEBUG", "DEBUG"),
 	))
 	db.AddQueryHook(chotel.NewQueryHook())
