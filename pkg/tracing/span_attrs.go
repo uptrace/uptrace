@@ -67,7 +67,6 @@ func processAttrs(ctx *spanContext, span *Span) {
 	}
 
 	if span.TraceID.IsZero() {
-		// Standalone span.
 		span.TraceID = uuid.Rand()
 		span.ID = 0
 		span.ParentID = 0
@@ -87,6 +86,44 @@ func processAttrs(ctx *spanContext, span *Span) {
 			span.Attrs[attrkey.LogSeverity] = bunotel.InfoSeverity
 		}
 	}
+}
+
+func parseLogMessage(ctx *spanContext, span *Span, msg string) {
+	hash, params := messageHashAndParams(ctx, msg)
+	if span.EventName == otelEventLog {
+		span.logMessageHash = hash
+	}
+	populateSpanFromParams(span, params)
+}
+
+func messageHashAndParams(
+	ctx *spanContext, msg string,
+) (uint64, map[string]any) {
+	digest := ctx.digest
+	digest.Reset()
+
+	var params map[string]any
+
+	tok := logparser.NewTokenizer(msg)
+loop:
+	for {
+		tok := tok.NextToken()
+		switch tok.Type {
+		case logparser.InvalidToken:
+			break loop
+		case logparser.WordToken:
+			digest.WriteString(tok.Text)
+		case logparser.ParamToken:
+			if k, v, ok := logparser.IsLogfmt(tok.Text); ok {
+				if params == nil {
+					params = make(map[string]any)
+				}
+				params[k] = v
+			}
+		}
+	}
+
+	return digest.Sum64(), params
 }
 
 func initHTTPUserAgent(attrs AttrMap, str string) {
@@ -116,42 +153,6 @@ func initHTTPUserAgent(attrs AttrMap, str string) {
 }
 
 //------------------------------------------------------------------------------
-
-func parseLogMessage(ctx *spanContext, span *Span, msg string) {
-	if params, ok := logparser.IsJSON(msg); ok {
-		parseJSONLogMessage(ctx, span, params)
-	} else {
-		parseTextLogMessage(ctx, span, msg)
-	}
-}
-
-func parseJSONLogMessage(ctx *spanContext, span *Span, params AttrMap) {
-	msg := popLogMessageParam(params)
-	populateSpanFromParams(span, params)
-
-	if msg != "" {
-		span.Attrs[attrkey.LogMessage] = msg
-		parseTextLogMessage(ctx, span, msg)
-	}
-}
-
-func parseTextLogMessage(ctx *spanContext, span *Span, msg string) {
-	hash, params := messageHashAndParams(ctx, msg)
-	if span.EventName == otelEventLog {
-		span.logMessageHash = hash
-	}
-	populateSpanFromParams(span, params)
-}
-
-func popLogMessageParam(params AttrMap) string {
-	for _, key := range []string{"log", "message", "msg"} {
-		if value, _ := params[key].(string); value != "" {
-			delete(params, key)
-			return value
-		}
-	}
-	return ""
-}
 
 func populateSpanFromParams(span *Span, params AttrMap) {
 	attrs := span.Attrs
@@ -258,6 +259,32 @@ func normAttrs(attrs AttrMap) {
 			}
 		}
 	}
+
+	if val, ok := attrs[attrkey.LogSeverity].(string); ok {
+		attrs[attrkey.LogSeverity] = normLogSeverity(val)
+	}
+}
+
+func normLogSeverity(val string) string {
+	switch val {
+	case "trace":
+		return "TRACE"
+	case "debug":
+		return "DEBUG"
+	case "information", "notice", "log", "normal",
+		"INFORMATION", "NOTICE", "LOG", "NORMAL":
+		return "INFO"
+	case "err", "error", "alert", "severe",
+		"ERR", "ALERT", "SEVERE":
+		return "ERROR"
+	case "fatal", "crit", "critical", "emerg", "emergency",
+		"CRIT", "CRITICAL", "EMERG", "EMERGENCY":
+		return "FATAL"
+	case "panic":
+		return "PANIC"
+	default:
+		return val
+	}
 }
 
 func flattenAttrValues(attrs AttrMap) {
@@ -285,36 +312,6 @@ loop:
 			}
 		}
 	}
-}
-
-func messageHashAndParams(
-	ctx *spanContext, msg string,
-) (uint64, map[string]any) {
-	digest := ctx.digest
-	digest.Reset()
-
-	var params map[string]any
-
-	tok := logparser.NewTokenizer(msg)
-loop:
-	for {
-		tok := tok.NextToken()
-		switch tok.Type {
-		case logparser.InvalidToken:
-			break loop
-		case logparser.WordToken:
-			digest.WriteString(tok.Text)
-		case logparser.ParamToken:
-			if k, v, ok := logparser.IsLogfmt(tok.Text); ok {
-				if params == nil {
-					params = make(map[string]any)
-				}
-				params[k] = v
-			}
-		}
-	}
-
-	return digest.Sum64(), params
 }
 
 //------------------------------------------------------------------------------

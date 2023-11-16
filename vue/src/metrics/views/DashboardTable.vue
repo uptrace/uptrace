@@ -1,5 +1,18 @@
 <template>
   <v-container :fluid="$vuetify.breakpoint.lgAndDown">
+    <v-row v-if="activeMetrics.length">
+      <v-col>
+        <v-card outlined rounded="lg" class="py-2 px-4">
+          <MetricsQueryBuilder
+            :date-range="dateRange"
+            :metrics="activeMetrics"
+            :uql="uql"
+            show-dash-where
+          />
+        </v-card>
+      </v-col>
+    </v-row>
+
     <v-row v-if="dashGauges.items.length || editable" align="end" class="mb-n5">
       <v-col>
         <DashGaugeRow
@@ -154,12 +167,13 @@ import { useTableQuery, TableItem } from '@/metrics/use-query'
 import { useDashGauges } from '@/metrics/gauge/use-dash-gauges'
 
 // Components
-import ApiErrorCard from '@/components/ApiErrorCard.vue'
+import MetricsQueryBuilder from '@/metrics/query/MetricsQueryBuilder.vue'
 import GroupingToggle from '@/metrics/query/GroupingToggle.vue'
 import TimeseriesTable from '@/metrics/TimeseriesTable.vue'
 import DashTableForm from '@/metrics/DashTableForm.vue'
 import DashTableDialogCard from '@/metrics/DashTableDialogCard.vue'
 import DashGaugeRow from '@/metrics/gauge/DashGaugeRow.vue'
+import ApiErrorCard from '@/components/ApiErrorCard.vue'
 
 // Utilities
 import { AttrKey } from '@/models/otel'
@@ -173,12 +187,13 @@ interface Props {
 export default defineComponent({
   name: 'DashboardTable',
   components: {
-    ApiErrorCard,
+    MetricsQueryBuilder,
     GroupingToggle,
     TimeseriesTable,
     DashTableForm,
     DashTableDialogCard,
     DashGaugeRow,
+    ApiErrorCard,
   },
 
   props: {

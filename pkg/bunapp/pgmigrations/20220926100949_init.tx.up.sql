@@ -311,12 +311,12 @@ CREATE TABLE dashboards (
   name varchar(1000) NOT NULL,
   pinned boolean NOT NULL,
 
-  grid_query varchar(1000),
+  grid_query varchar(5000),
   min_interval float8 NOT NULL DEFAULT 0,
   time_offset float8 NOT NULL DEFAULT 0,
 
   table_metrics jsonb,
-  table_query varchar(1000),
+  table_query varchar(5000),
   table_grouping jsonb,
   table_column_map jsonb,
 

@@ -10,7 +10,6 @@ replace github.com/grafana/tempo => ./pkg/tempo
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3
-	github.com/cespare/xxhash v1.1.0
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/codemodus/kace v0.5.1
 	github.com/coreos/go-oidc/v3 v3.7.0

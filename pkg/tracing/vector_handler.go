@@ -13,6 +13,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -54,15 +55,18 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 	case "application/x-ndjson", "application/json":
 		// ok
 	default:
-		// TODO: update error and improve check
 		return fmt.Errorf(
-			`got %q, wanted %q (use encoding.codec = "json" and framing.method = "newline_delimited")`,
+			`got content-type %q, wanted %q`+
+				` (use encoding.codec = "json" and framing.method = "newline_delimited")`,
 			ct, "application/json")
 	}
 
+	p := new(vectorLogProcessor)
+
 	dec := json.NewDecoder(req.Body)
+	m := make(map[string]any)
 	for {
-		var m map[string]any
+		clear(m)
 
 		if err := dec.Decode(&m); err != nil {
 			if err == io.EOF {
@@ -72,7 +76,7 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 		}
 
 		span := new(Span)
-		h.spanFromVector(ctx, span, m)
+		p.spanFromVector(ctx, span, m)
 		span.ProjectID = project.ID
 		h.sp.AddSpan(ctx, span)
 	}
@@ -80,7 +84,13 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 	return nil
 }
 
-func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, params AttrMap) {
+//------------------------------------------------------------------------------
+
+type vectorLogProcessor struct {
+	baseLogProcessor
+}
+
+func (p *vectorLogProcessor) spanFromVector(ctx context.Context, span *Span, params AttrMap) {
 	span.ID = rand.Uint64()
 	span.Kind = InternalSpanKind
 	span.EventName = otelEventLog
@@ -89,9 +99,24 @@ func (h *VectorHandler) spanFromVector(ctx context.Context, span *Span, params A
 	span.Attrs = make(AttrMap, len(params)+2)
 	span.Attrs[attrkey.TelemetrySDKName] = vectorSDK
 
-	if msg, _ := params[attrkey.LogMessage].(string); msg != "" {
-		span.Attrs[attrkey.LogMessage] = msg
-	} else if msg := popLogMessageParam(params); msg != "" {
+	msg, ok := params[attrkey.LogMessage]
+	if !ok {
+		msg = popLogMessageParam(params)
+	}
+
+	switch msg := msg.(type) {
+	case string:
+		if msg == "" {
+			break
+		}
+		if params, ok := bunutil.IsJSON(msg); ok {
+			p.parseJSONLogMessage(span, params)
+		} else {
+			span.Attrs[attrkey.LogMessage] = msg
+		}
+	case map[string]any:
+		populateSpanFromParams(span, msg)
+	default:
 		span.Attrs[attrkey.LogMessage] = msg
 	}
 

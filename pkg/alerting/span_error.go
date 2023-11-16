@@ -28,6 +28,9 @@ func createErrorAlertHandler(
 		ID:        spanID,
 	}
 	if err := tracing.SelectSpan(ctx, app, span); err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
 		return err
 	}
 

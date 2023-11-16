@@ -6,11 +6,16 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"slices"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
@@ -134,6 +139,7 @@ func (s *LogsServiceServer) Export(
 func (s *LogsServiceServer) export(
 	ctx context.Context, resourceLogs []*logspb.ResourceLogs, project *org.Project,
 ) (*collectorlogspb.ExportLogsServiceResponse, error) {
+	p := new(otlpLogProcessor)
 	for _, rl := range resourceLogs {
 		var resource AttrMap
 		if rl.Resource != nil {
@@ -158,7 +164,7 @@ func (s *LogsServiceServer) export(
 			}
 
 			for _, lr := range sl.LogRecords {
-				span := s.convLog(scope, lr)
+				span := p.processLogRecord(scope, lr)
 				span.ProjectID = project.ID
 				s.sp.AddSpan(ctx, span)
 			}
@@ -167,7 +173,13 @@ func (s *LogsServiceServer) export(
 	return &collectorlogspb.ExportLogsServiceResponse{}, nil
 }
 
-func (s *LogsServiceServer) convLog(resource AttrMap, lr *logspb.LogRecord) *Span {
+//-----------------------------------------------------------------------------------------
+
+type otlpLogProcessor struct {
+	baseLogProcessor
+}
+
+func (p *otlpLogProcessor) processLogRecord(resource AttrMap, lr *logspb.LogRecord) *Span {
 	span := new(Span)
 
 	span.ID = rand.Uint64()
@@ -190,7 +202,7 @@ func (s *LogsServiceServer) convLog(resource AttrMap, lr *logspb.LogRecord) *Spa
 		span.Attrs[attrkey.LogSeverity] = lr.SeverityText
 	}
 	if lr.Body.Value != nil {
-		s.processLogRecordBody(span, lr.Body.Value)
+		p.processLogRecordBody(span, lr.Body.Value)
 	}
 
 	if !span.Attrs.Has(attrkey.LogMessage) {
@@ -212,12 +224,113 @@ func minNonZero(u1, u2 uint64) uint64 {
 	return u2
 }
 
-func (s *LogsServiceServer) processLogRecordBody(span *Span, bodyValue any) {
+func (p *otlpLogProcessor) processLogRecordBody(span *Span, bodyValue any) {
 	switch v := bodyValue.(type) {
 	case *commonpb.AnyValue_StringValue:
-		span.Attrs[attrkey.LogMessage] = v.StringValue
+		msg := v.StringValue
+		if params, ok := bunutil.IsJSON(msg); ok {
+			p.parseJSONLogMessage(span, params)
+		} else {
+			span.Attrs[attrkey.LogMessage] = msg
+		}
 	case *commonpb.AnyValue_KvlistValue:
 		params := otlpconv.Map(v.KvlistValue.Values)
 		populateSpanFromParams(span, params)
+	}
+}
+
+//------------------------------------------------------------------------------
+
+type baseLogProcessor struct {
+	buf []byte
+}
+
+func (p *baseLogProcessor) parseJSONLogMessage(span *Span, params AttrMap) {
+	type kv struct {
+		key string
+		val any
+	}
+
+	keys := make([]string, 0, len(params))
+	var renamed []kv
+
+	for oldKey, val := range params {
+		newKey := attrkey.Clean(oldKey)
+		if newKey == "" {
+			delete(params, oldKey)
+			continue
+		}
+
+		if newKey != oldKey {
+			delete(params, oldKey)
+			renamed = append(renamed, kv{key: newKey, val: val})
+		}
+		keys = append(keys, newKey)
+	}
+
+	for i := range renamed {
+		kv := &renamed[i]
+		params[kv.key] = kv.val
+	}
+
+	msg := popLogMessageParam(params)
+
+	if msg != "" {
+		span.Attrs[attrkey.LogMessage] = msg
+		populateSpanFromParams(span, params)
+		return
+	}
+
+	if span.EventName != otelEventLog {
+		return
+	}
+
+	slices.Sort(keys)
+	buf := p.buf[:0]
+
+	for i, key := range keys {
+		if i > 0 {
+			buf = append(buf, ' ')
+		}
+		buf = append(buf, key...)
+		buf = append(buf, '=')
+		buf = appendParamValue(buf, params[key])
+	}
+
+	span.Attrs[attrkey.LogMessage] = string(buf)
+	p.buf = buf
+}
+
+func popLogMessageParam(params AttrMap) string {
+	for _, key := range []string{"log", "message", "msg"} {
+		if value, _ := params[key].(string); value != "" {
+			delete(params, key)
+			return value
+		}
+	}
+	return ""
+}
+
+func appendParamValue(b []byte, val any) []byte {
+	switch val := val.(type) {
+	case string:
+		if strings.IndexByte(val, ' ') == -1 && strings.IndexByte(val, '"') == -1 {
+			return append(b, val...)
+		}
+		return strconv.AppendQuote(b, fmt.Sprint(val))
+	case json.Number:
+		return append(b, val...)
+	case float64:
+		return strconv.AppendFloat(b, val, 'f', -1, 64)
+	case int64:
+		return strconv.AppendInt(b, val, 10)
+	case uint64:
+		return strconv.AppendUint(b, val, 10)
+	case bool:
+		return strconv.AppendBool(b, val)
+	case nil:
+		return append(b, "<nil>"...)
+	default:
+		return strconv.AppendQuote(b, fmt.Sprint(val))
 	}
 }
