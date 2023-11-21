@@ -116,7 +116,13 @@
 
         <v-row>
           <v-col>
-            <TraceTabs :date-range="dateRange" :trace="trace" :annotations="annotations.items" />
+            <TraceTabs
+              :date-range="dateRange"
+              :trace="trace"
+              :root-span-id="rootSpanId"
+              :annotations="annotations.items"
+              @click:crop="rootSpanId = $event"
+            />
           </v-col>
         </v-row>
       </v-container>
@@ -126,9 +132,10 @@
 
 <script lang="ts">
 import { truncate } from 'lodash-es'
-import { defineComponent, computed, watch, proxyRefs } from 'vue'
+import { defineComponent, shallowRef, computed, watch, proxyRefs } from 'vue'
 
 // Composables
+import { useSyncQueryParams } from '@/use/router'
 import { useTitle } from '@vueuse/core'
 import { useDateRange, UseDateRange } from '@/use/date-range'
 import { useTrace, UseTrace } from '@/tracing/use-trace'
@@ -155,8 +162,16 @@ export default defineComponent({
 
   setup() {
     useTitle('View trace')
+    const rootSpanId = shallowRef('')
+
     const dateRange = useDateRange()
-    const trace = useTrace()
+    const trace = useTrace(() => {
+      if (!rootSpanId.value) {
+        return {}
+      }
+
+      return { root_span_id: rootSpanId.value }
+    })
 
     const annotations = useAnnotations(() => {
       return {
@@ -224,9 +239,25 @@ export default defineComponent({
       },
     )
 
+    useSyncQueryParams({
+      fromQuery(queryParams) {
+        rootSpanId.value = queryParams.string('root_span')
+      },
+      toQuery() {
+        const queryParams: Record<string, any> = {}
+
+        if (rootSpanId.value) {
+          queryParams.root_span = rootSpanId.value
+        }
+
+        return queryParams
+      },
+    })
+
     return {
       dateRange,
       trace,
+      rootSpanId,
       annotations,
       meta: useMeta(dateRange, trace),
 

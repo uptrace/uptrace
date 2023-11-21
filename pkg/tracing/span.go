@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"errors"
 	"math/rand"
 	"strings"
 	"time"
@@ -130,11 +131,19 @@ func (s *Span) TreeEndTime() time.Time {
 	return endTime
 }
 
+var (
+	walkBreak    = errors.New("break")
+	walkContinue = errors.New("continue")
+)
+
 func (s *Span) Walk(fn func(child, parent *Span) error) error {
-	if err := fn(s, nil); err != nil {
-		return err
-	}
 	for _, child := range s.Children {
+		if err := fn(child, s); err != nil {
+			if err == walkContinue {
+				continue
+			}
+			return err
+		}
 		if err := child.Walk(fn); err != nil {
 			return err
 		}

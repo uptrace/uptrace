@@ -36,6 +36,18 @@
               </v-btn>
 
               <span class="cursor-pointer span-name">{{ spanName(span, 100) }}</span>
+
+              <span class="ml-1">
+                <v-btn
+                  v-if="span.id !== rootSpanId && span.parentId"
+                  icon
+                  title="Focus on this sub-tree and drop the rest"
+                  @click.native.stop="$emit('click:crop', span.id)"
+                >
+                  <v-icon>mdi-crop</v-icon>
+                </v-btn>
+              </span>
+
               <SpanChips :span="span" trace-mode class="ml-2" />
             </td>
 
@@ -112,6 +124,10 @@ export default defineComponent({
     trace: {
       type: Object as PropType<UseTrace>,
       required: true,
+    },
+    rootSpanId: {
+      type: String,
+      default: undefined,
     },
   },
 
