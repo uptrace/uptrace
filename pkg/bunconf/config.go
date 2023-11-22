@@ -368,6 +368,10 @@ type Config struct {
 
 	Path    string `yaml:"-"`
 	Service string `yaml:"-"`
+
+	Telegram struct {
+		BotToken string `yaml:"bot_token"`
+	} `yaml:"telegram"`
 }
 
 type SpanMetric struct {

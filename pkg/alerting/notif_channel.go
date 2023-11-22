@@ -35,6 +35,7 @@ const (
 	NotifChannelSlack        NotifChannelType = "slack"
 	NotifChannelWebhook      NotifChannelType = "webhook"
 	NotifChannelAlertmanager NotifChannelType = "alertmanager"
+	NotifChannelTelegram     NotifChannelType = "telegram"
 )
 
 type NotifChannelState string
@@ -115,6 +116,8 @@ func SelectNotifChannel(
 	switch channel.Type {
 	case NotifChannelSlack:
 		return newSlackNotifChannel(channel)
+	case NotifChannelTelegram:
+		return newTelegramNotifChannel(channel)
 	case NotifChannelWebhook, NotifChannelAlertmanager:
 		return newWebhookNotifChannel(channel)
 	default:

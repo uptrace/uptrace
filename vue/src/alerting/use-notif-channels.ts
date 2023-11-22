@@ -8,6 +8,7 @@ import { AttrMatcher } from '@/use/attr-matcher'
 
 export enum NotifChannelType {
   Slack = 'slack',
+  Telegram = 'telegram',
   Webhook = 'webhook',
   Alertmanager = 'alertmanager',
 }
@@ -29,7 +30,7 @@ interface BaseNotifChannel {
   params: Record<string, any>
 }
 
-export type NotifChannel = SlackNotifChannel | WebhookNotifChannel
+export type NotifChannel = SlackNotifChannel | TelegramNotifChannel | WebhookNotifChannel
 
 export interface SlackNotifChannel extends BaseNotifChannel {
   type: NotifChannelType.Slack
@@ -38,6 +39,15 @@ export interface SlackNotifChannel extends BaseNotifChannel {
 
 export interface SlackNotifChannelParams {
   webhookUrl: string
+}
+
+export interface TelegramNotifChannel extends BaseNotifChannel {
+  type: NotifChannelType.Telegram
+  params: TelegramNotifChannelParams
+}
+
+export interface TelegramNotifChannelParams {
+  chatId: number | null
 }
 
 export interface WebhookNotifChannel extends BaseNotifChannel {
@@ -91,6 +101,20 @@ export function emptySlackNotifChannel(): SlackNotifChannel {
   }
 }
 
+export function emptyTelegramNotifChannel(): TelegramNotifChannel {
+  return {
+    id: 0,
+    orgId: 0,
+    state: NotifChannelState.Delivering,
+    name: '',
+
+    type: NotifChannelType.Telegram,
+    params: {
+      chatId: null,
+    },
+  }
+}
+
 export function emptyWebhookNotifChannel(): WebhookNotifChannel {
   return {
     id: 0,
@@ -127,6 +151,22 @@ export function useSlackNotifChannel(axiosReqSource: AxiosRequestSource) {
   const { status, loading, data, reload } = useWatchAxios(axiosReqSource)
 
   const channel = computed((): SlackNotifChannel | undefined => {
+    return data.value?.channel
+  })
+
+  return proxyRefs({
+    status,
+    loading,
+    reload,
+
+    data: channel,
+  })
+}
+
+export function useTelegramNotifChannel(axiosReqSource: AxiosRequestSource) {
+  const { status, loading, data, reload } = useWatchAxios(axiosReqSource)
+
+  const channel = computed((): TelegramNotifChannel | undefined => {
     return data.value?.channel
   })
 
@@ -215,6 +255,24 @@ export function useNotifChannelManager() {
 
   //------------------------------------------------------------------------------
 
+  function telegramCreate(channel: TelegramNotifChannel) {
+    const { projectId } = route.value.params
+    const url = `/internal/v1/projects/${projectId}/notification-channels/telegram`
+    return request({ method: 'POST', url, data: channel }).then((resp) => {
+      return resp.data.channel as TelegramNotifChannel
+    })
+  }
+
+  function telegramUpdate(channel: TelegramNotifChannel) {
+    const { projectId } = route.value.params
+    const url = `/internal/v1/projects/${projectId}/notification-channels/telegram/${channel.id}`
+    return request({ method: 'PUT', url, data: channel }).then((resp) => {
+      return resp.data.channel as TelegramNotifChannel
+    })
+  }
+
+  //------------------------------------------------------------------------------
+
   function webhookCreate(channel: WebhookNotifChannel) {
     const { projectId } = route.value.params
     const url = `/internal/v1/projects/${projectId}/notification-channels/webhook`
@@ -254,6 +312,9 @@ export function useNotifChannelManager() {
 
     slackCreate,
     slackUpdate,
+
+    telegramCreate,
+    telegramUpdate,
 
     webhookCreate,
     webhookUpdate,

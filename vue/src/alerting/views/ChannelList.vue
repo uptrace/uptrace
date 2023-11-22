@@ -51,6 +51,12 @@
           @click:save="channels.reload"
           @click:close="dialog = false"
         />
+        <NotifChannelTelegramForm
+          v-else-if="activeChannel.type === NotifChannelType.Telegram"
+          :channel="activeChannel"
+          @click:save="channels.reload"
+          @click:close="dialog = false"
+        />
         <NotifChannelAlertmanagerForm
           v-else-if="activeChannel.type === NotifChannelType.Alertmanager"
           :channel="activeChannel"
@@ -80,6 +86,7 @@ import { useNotifChannels, NotifChannel, NotifChannelType } from '@/alerting/use
 import ForceReloadBtn from '@/components/date/ForceReloadBtn.vue'
 import NotifChannelNewMenu from '@/alerting/NotifChannelNewMenu.vue'
 import NotifChannelSlackForm from '@/alerting/NotifChannelSlackForm.vue'
+import NotifChannelTelegramForm from '@/alerting/NotifChannelTelegramForm.vue'
 import NotifChannelWebhookForm from '@/alerting/NotifChannelWebhookForm.vue'
 import NotifChannelAlertmanagerForm from '@/alerting/NotifChannelAlertmanagerForm.vue'
 import NotifChannelsTable from '@/alerting/NotifChannelsTable.vue'
@@ -90,6 +97,7 @@ export default defineComponent({
     ForceReloadBtn,
     NotifChannelNewMenu,
     NotifChannelSlackForm,
+    NotifChannelTelegramForm,
     NotifChannelWebhookForm,
     NotifChannelAlertmanagerForm,
     NotifChannelsTable,
