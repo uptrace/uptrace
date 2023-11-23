@@ -9,7 +9,27 @@
 
     <v-tabs-items v-model="activeTab">
       <v-tab-item value="trace" class="px-4 py-6">
-        <TraceTimeline :trace="trace" :date-range="dateRange" />
+        <v-container fluid>
+          <v-row align="center">
+            <v-col v-if="rootSpanId" cols="auto">
+              <v-chip close color="primary" outlined @click:close="$emit('click:crop', undefined)">
+                <span>Focused on span: </span>
+                <strong class="ml-1">{{ rootSpanId }}</strong>
+              </v-chip>
+            </v-col>
+          </v-row>
+
+          <v-row>
+            <v-col>
+              <TraceTimeline
+                :date-range="dateRange"
+                :trace="trace"
+                :root-span-id="rootSpanId"
+                @click:crop="$emit('click:crop', $event)"
+              />
+            </v-col>
+          </v-row>
+        </v-container>
       </v-tab-item>
       <v-tab-item v-for="(events, system) in trace.events" :key="system" :value="system">
         <EventPanels :date-range="dateRange" :events="events" :annotations="annotations" />
@@ -49,6 +69,10 @@ export default defineComponent({
     annotations: {
       type: Array as PropType<Annotation[]>,
       default: () => [],
+    },
+    rootSpanId: {
+      type: String,
+      default: undefined,
     },
   },
 

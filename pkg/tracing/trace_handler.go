@@ -68,6 +68,22 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 	root, numSpan := buildSpanTree(spans)
 	traceInfo := NewTraceInfo(root)
 
+	if rootSpanIDStr :=  req.URL.Query().Get("root_span_id"); rootSpanIDStr != "" {
+		rootSpanID, err := parseSpanID(rootSpanIDStr)
+		if err != nil {
+			return err
+		}
+
+		_ = root.Walk(func(span, parent *Span) error {
+			if span.ID == rootSpanID {
+				span.ParentID = 0
+				root = span
+				return walkBreak
+			}
+			return nil
+		})
+	}
+
 	_ = root.Walk(func(span, parent *Span) error {
 		span.StartPct = spanPct(traceInfo, span.Time)
 		span.EndPct = spanPct(traceInfo, span.EndTime())
