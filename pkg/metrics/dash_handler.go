@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"time"
@@ -243,8 +244,11 @@ func (h *DashHandler) ShowYAML(w http.ResponseWriter, req bunrouter.Request) err
 		return err
 	}
 
-	b, err := yaml.Marshal(tpl)
-	if err != nil {
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+
+	if err := enc.Encode(tpl); err != nil {
 		return err
 	}
 
@@ -252,7 +256,7 @@ func (h *DashHandler) ShowYAML(w http.ResponseWriter, req bunrouter.Request) err
 	header.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.yaml", tpl.ID))
 	header.Set("Content-Type", "text/yaml")
 
-	if _, err := w.Write(b); err != nil {
+	if _, err := w.Write(buf.Bytes()); err != nil {
 		return err
 	}
 	return nil

@@ -179,16 +179,6 @@ func attrKeys(attrs map[string]any) []string {
 	return keys
 }
 
-func (n *EmailNotifier) errorNotificationTpl(
-	ctx context.Context,
-	app *bunapp.App,
-	project *org.Project,
-	alert *ErrorAlert,
-	span *tracing.Span,
-) (string, error) {
-	return "", nil
-}
-
 func (n *EmailNotifier) notifyOnMetricAlert(
 	ctx context.Context,
 	app *bunapp.App,

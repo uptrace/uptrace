@@ -614,11 +614,14 @@ func lastTableValue(ns []float64) float64 {
 			return n
 		}
 	}
-	return 0
+	return math.NaN()
 }
 
 func avgTableValue(ns []float64) float64 {
 	sum, count := sumCount(ns)
+	if count > 0 {
+		return sum / float64(count)
+	}
 	return sum / float64(count)
 }
 

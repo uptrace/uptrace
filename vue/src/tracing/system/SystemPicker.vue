@@ -130,11 +130,21 @@ export default defineComponent({
       const allSystems = [SystemName.All, SystemName.SpansAll, SystemName.EventsAll] as string[]
 
       let activeSystems = props.value.slice()
-      const index = activeSystems.indexOf(system)
 
+      const index = activeSystems.indexOf(system)
       if (index >= 0) {
         activeSystems.splice(index, 1)
-        ctx.emit('input', activeSystems)
+        if (activeSystems.length) {
+          ctx.emit('input', activeSystems)
+          return
+        }
+
+        if (props.systems.length) {
+          ctx.emit('input', [props.systems[0].system])
+          return
+        }
+
+        ctx.emit('input', [])
         return
       }
 
@@ -158,8 +168,18 @@ export default defineComponent({
     }
 
     function toggleOne(system: string) {
-      const value = props.value.length === 1 && props.value.includes(system) ? [] : [system]
-      ctx.emit('input', value)
+      if (props.value.length === 1 && props.value.includes(system)) {
+        if (props.systems.length) {
+          ctx.emit('input', [props.systems[0].system])
+          return
+        }
+
+        ctx.emit('input', [])
+        return
+      }
+
+      ctx.emit('input', [system])
+      return
     }
 
     return {
