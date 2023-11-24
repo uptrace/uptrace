@@ -7,6 +7,7 @@ import { useWatchAxios } from '@/use/watch-axios'
 
 // Utilities
 import { isEventSystem, isGroupSystem, SystemName } from '@/models/otel'
+import { DataHint } from '@/org/types'
 
 export interface System {
   system: string
@@ -48,8 +49,8 @@ export function useSystems(params: () => Record<string, any>) {
     return orderBy(systems, 'system')
   })
 
-  const hasNoData = computed(() => {
-    return data.value?.hasNoData ?? false
+  const dataHint = computed((): DataHint | undefined => {
+    return data.value?.dataHint
   })
 
   const internalValue = shallowRef<string[]>([])
@@ -95,7 +96,7 @@ export function useSystems(params: () => Record<string, any>) {
     loading,
 
     items: systems,
-    hasNoData,
+    dataHint,
 
     activeSystems,
     isEvent,

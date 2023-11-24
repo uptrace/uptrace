@@ -1,4 +1,4 @@
-import { min, addMilliseconds, subMilliseconds, differenceInMilliseconds } from 'date-fns'
+import { addMilliseconds, subMilliseconds, differenceInMilliseconds } from 'date-fns'
 import { shallowRef, computed, proxyRefs, watch, onBeforeUnmount, getCurrentInstance } from 'vue'
 
 // Composables
@@ -164,7 +164,7 @@ export function useDateRange(conf: Config = {}) {
     updateNow(true)
   }
 
-  function contains(dt: Date | string): boolean {
+  function includes(dt: Date | string): boolean {
     if (!isValid.value) {
       return false
     }
@@ -176,15 +176,16 @@ export function useDateRange(conf: Config = {}) {
 
   function changeAround(dt: Date | string, ms = 0) {
     if (typeof dt === 'string') {
+      console.log(dt, new Date(dt))
       dt = new Date(dt)
     }
-    if (ms) {
-      duration.value = ms
+
+    if ((ms === 0 || duration.value === ms) && includes(dt)) {
+      // Don't change date range if possible.
+      return
     }
 
     dt = addMilliseconds(dt, duration.value / 2)
-    const now = ceilDate(new Date(), MINUTE)
-    dt = min([dt, now])
     changeLT(dt)
   }
 
@@ -339,7 +340,7 @@ export function useDateRange(conf: Config = {}) {
     reset,
     change,
     changeDuration,
-    contains,
+    includes,
     changeAround,
     syncWith,
 

@@ -1,8 +1,6 @@
 <template>
   <div>
-    <template v-if="systems.hasNoData">
-      <HelpCard :loading="systems.loading" show-reload />
-    </template>
+    <TracingPlaceholder v-if="systems.dataHint" :date-range="dateRange" :systems="systems" />
 
     <template v-else>
       <PageToolbar :loading="systems.loading" :fluid="$vuetify.breakpoint.lgAndDown">
@@ -100,11 +98,11 @@ import { useProject } from '@/org/use-projects'
 import { useSystems, addAllSystem } from '@/tracing/system/use-systems'
 
 // Components
+import TracingPlaceholder from '@/tracing/TracingPlaceholder.vue'
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import SystemPicker from '@/tracing/system/SystemPicker.vue'
 import QuickSpanFilter from '@/tracing/query/QuickSpanFilter.vue'
 import SystemQuickMetrics from '@/tracing/system/SystemQuickMetrics.vue'
-import HelpCard from '@/tracing/HelpCard.vue'
 
 // Utilities
 import { isSpanSystem, isErrorSystem, SystemName, AttrKey } from '@/models/otel'
@@ -117,7 +115,13 @@ interface ChosenSystem {
 
 export default defineComponent({
   name: 'Overview',
-  components: { DateRangePicker, SystemPicker, QuickSpanFilter, HelpCard, SystemQuickMetrics },
+  components: {
+    TracingPlaceholder,
+    DateRangePicker,
+    SystemPicker,
+    QuickSpanFilter,
+    SystemQuickMetrics,
+  },
 
   props: {
     dateRange: {

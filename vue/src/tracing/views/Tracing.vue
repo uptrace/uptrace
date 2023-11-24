@@ -1,6 +1,6 @@
 <template>
   <div>
-    <HelpCard v-if="systems.hasNoData" :loading="systems.loading" show-reload />
+    <TracingPlaceholder v-if="systems.dataHint" :date-range="dateRange" :systems="systems" />
 
     <template v-else>
       <div class="border-bottom">
@@ -80,10 +80,10 @@ import { useSystems, System } from '@/tracing/system/use-systems'
 import { useUql, createQueryEditor, provideQueryStore, useQueryStore } from '@/use/uql'
 
 // Components
+import TracingPlaceholder from '@/tracing/TracingPlaceholder.vue'
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import SystemPicker from '@/tracing/system/SystemPicker.vue'
 import SystemGroupPicker from '@/tracing/system/SystemGroupPicker.vue'
-import HelpCard from '@/tracing/HelpCard.vue'
 import SavedViews from '@/tracing/views/SavedViews.vue'
 import UptraceQuery from '@/components/UptraceQuery.vue'
 import SpanQueryBuilder from '@/tracing/query/SpanQueryBuilder.vue'
@@ -94,10 +94,10 @@ import { AttrKey } from '@/models/otel'
 export default defineComponent({
   name: 'Tracing',
   components: {
+    TracingPlaceholder,
     DateRangePicker,
     SystemPicker,
     SystemGroupPicker,
-    HelpCard,
     SavedViews,
     UptraceQuery,
     SpanQueryBuilder,
