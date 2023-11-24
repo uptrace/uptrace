@@ -167,6 +167,11 @@ func scheduleNotifyByChannelsOnErrorAlert(
 			if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
 				firstErr = err
 			}
+		case NotifChannelTelegram:
+			job := NotifyByTelegramTask.NewJob(alert.EventID, channel.ID)
+			if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
+				firstErr = err
+			}
 		case NotifChannelWebhook, NotifChannelAlertmanager:
 			job := NotifyByWebhookTask.NewJob(alert.EventID, channel.ID)
 			if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
@@ -232,6 +237,11 @@ func scheduleNotifyOnMetricAlert(
 		switch channel.Type {
 		case NotifChannelSlack:
 			job := NotifyBySlackTask.NewJob(alert.EventID, channel.ID)
+			if err := app.MainQueue.AddJob(ctx, job); err != nil {
+				return err
+			}
+		case NotifChannelTelegram:
+			job := NotifyByTelegramTask.NewJob(alert.EventID, channel.ID)
 			if err := app.MainQueue.AddJob(ctx, job); err != nil {
 				return err
 			}

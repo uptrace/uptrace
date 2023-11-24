@@ -103,6 +103,7 @@ require (
 	github.com/go-openapi/swag v0.22.4 // indirect
 	github.com/go-openapi/validate v0.22.1 // indirect
 	github.com/go-redis/redis_rate/v10 v10.0.1 // indirect
+	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.3.1 // indirect
@@ -146,6 +147,7 @@ require (
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
+	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelsql v0.2.2 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.2.3 // indirect

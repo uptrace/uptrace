@@ -66,6 +66,7 @@ func initRouter(ctx context.Context, app *bunapp.App) {
 
 			g.POST("/slack", handler.SlackCreate)
 			g.POST("/webhook", handler.WebhookCreate)
+			g.POST("/telegram", handler.TelegramCreate)
 
 			g.GET("/email", handler.EmailShow)
 			g.PUT("/email", handler.EmailUpdate)
@@ -81,6 +82,9 @@ func initRouter(ctx context.Context, app *bunapp.App) {
 
 			g.GET("/webhook/:channel_id", handler.WebhookShow)
 			g.PUT("/webhook/:channel_id", handler.WebhookUpdate)
+
+			g.GET("/telegram/:channel_id", handler.TelegramShow)
+			g.PUT("/telegram/:channel_id", handler.TelegramUpdate)
 		})
 }
 
@@ -161,6 +165,16 @@ func SlackNotifChannelFromContext(ctx context.Context) (*SlackNotifChannel, erro
 	return channel, nil
 }
 
+func TelegramNotifChannelFromContext(ctx context.Context) (*TelegramNotifChannel, error) {
+	channelAny := NotifChannelFromContext(ctx)
+
+	channel, ok := channelAny.(*TelegramNotifChannel)
+	if !ok {
+		return nil, fmt.Errorf("unexpected notification channel: %T", channelAny)
+	}
+	return channel, nil
+}
+
 func WebhookNotifChannelFromContext(ctx context.Context) (*WebhookNotifChannel, error) {
 	channelAny := NotifChannelFromContext(ctx)
 	channel, ok := channelAny.(*WebhookNotifChannel)
@@ -198,9 +212,10 @@ func (m *Middleware) NotifChannel(next bunrouter.HandlerFunc) bunrouter.HandlerF
 //------------------------------------------------------------------------------
 
 var (
-	NotifyByEmailTask   = taskq.NewTask("notify-by-email")
-	NotifyBySlackTask   = taskq.NewTask("notify-by-slack")
-	NotifyByWebhookTask = taskq.NewTask("notify-by-webhook")
+	NotifyByEmailTask    = taskq.NewTask("notify-by-email")
+	NotifyBySlackTask    = taskq.NewTask("notify-by-slack")
+	NotifyByWebhookTask  = taskq.NewTask("notify-by-webhook")
+	NotifyByTelegramTask = taskq.NewTask("notify-by-telegram")
 )
 
 func initTasks(ctx context.Context, app *bunapp.App) {
@@ -209,6 +224,9 @@ func initTasks(ctx context.Context, app *bunapp.App) {
 	})
 	_ = app.RegisterTask(NotifyByEmailTask.Name(), &taskq.TaskConfig{
 		Handler: NewEmailNotifier(app).NotifyHandler,
+	})
+	_ = app.RegisterTask(NotifyByTelegramTask.Name(), &taskq.TaskConfig{
+		Handler: notifyByTelegramHandler,
 	})
 	_ = app.RegisterTask(NotifyBySlackTask.Name(), &taskq.TaskConfig{
 		Handler: notifyBySlackHandler,
