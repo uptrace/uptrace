@@ -93,11 +93,11 @@ export default defineComponent({
     },
     system: {
       type: String,
-      default: undefined,
+      default: "",
     },
     groupId: {
       type: String,
-      default: undefined,
+      default: "",
     },
   },
 
