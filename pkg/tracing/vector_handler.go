@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/segmentio/encoding/json"
 
 	"github.com/uptrace/bunrouter"
@@ -79,7 +78,6 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 		span := new(Span)
 		p.spanFromVector(ctx, span, m)
 		span.ProjectID = project.ID
-		spew.Dump(span)
 		h.sp.AddSpan(ctx, span)
 	}
 
