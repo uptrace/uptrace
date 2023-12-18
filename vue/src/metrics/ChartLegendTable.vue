@@ -24,31 +24,31 @@
           <v-icon size="16" :color="isSelected ? item.color : 'grey'" class="mr-1"
             >mdi-circle</v-icon
           >
-          <span>{{ truncateMiddle(item.name, maxLength) }}</span>
+          <span class="word-break-all">{{ item.name }}</span>
         </td>
         <td
           v-if="values.indexOf(LegendValue.Avg) >= 0"
           class="text-right text-caption font-weight-medium"
         >
-          <NumValue :value="item.avg" :unit="item.unit" short />
+          <NumValue :value="item.avg" :unit="item.unit" format="short" />
         </td>
         <td
           v-if="values.indexOf(LegendValue.Last) >= 0"
           class="text-right text-caption font-weight-medium"
         >
-          <NumValue :value="item.last" :unit="item.unit" short />
+          <NumValue :value="item.last" :unit="item.unit" format="short" />
         </td>
         <td
           v-if="values.indexOf(LegendValue.Min) >= 0"
           class="text-right text-caption font-weight-medium"
         >
-          <NumValue :value="item.min" :unit="item.unit" short />
+          <NumValue :value="item.min" :unit="item.unit" format="short" />
         </td>
         <td
           v-if="values.indexOf(LegendValue.Max) >= 0"
           class="text-right text-caption font-weight-medium"
         >
-          <NumValue :value="item.max" :unit="item.unit" short />
+          <NumValue :value="item.max" :unit="item.unit" format="short" />
         </td>
         <td v-if="showExpand">
           <v-btn v-if="isExpanded" icon title="Hide spans" @click.stop="expand(false)">
@@ -69,9 +69,8 @@
 <script lang="ts">
 import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 
-// Utilities
+// Misc
 import { StyledTimeseries, LegendValue } from '@/metrics/types'
-import { truncateMiddle } from '@/util/string'
 
 export default defineComponent({
   name: 'ChartLegendTable',
@@ -87,7 +86,7 @@ export default defineComponent({
     },
     values: {
       type: Array as PropType<LegendValue[]>,
-      default: () => [LegendValue.Avg, LegendValue.Last, LegendValue.Min, LegendValue.Max],
+      default: () => [LegendValue.Avg, LegendValue.Min, LegendValue.Max],
     },
     maxLength: {
       type: Number,
@@ -149,7 +148,6 @@ export default defineComponent({
       showExpand,
       headers,
       onCurrentItems,
-      truncateMiddle,
     }
   },
 })

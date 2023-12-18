@@ -16,11 +16,11 @@
 <script lang="ts">
 import { defineComponent, computed, PropType } from 'vue'
 
-// Composables
-import { Monitor } from '@/alerting/use-monitors'
-
 // Components
 import MonitorsTableRow from '@/alerting/MonitorsTableRow.vue'
+
+// Misc
+import { Monitor } from '@/alerting/types'
 
 export default defineComponent({
   name: 'MonitorsTable',

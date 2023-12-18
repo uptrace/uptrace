@@ -1,8 +1,12 @@
 <template>
   <v-app>
-    <AppBar v-if="user.isAuth && project.data" :user="user.current" :project="project.data" />
+    <AppBar
+      v-if="header && user.isAuth && project.data"
+      :user="user.current"
+      :project="project.data"
+    />
 
-    <v-app-bar app absolute flat color="white" class="v-bar--underline">
+    <v-app-bar v-if="header" app absolute flat color="white" class="v-bar--underline">
       <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pa-0 fill-height">
         <v-row align="center" class="flex-nowrap">
           <v-col cols="auto">
@@ -77,7 +81,7 @@
       <router-view :date-range="dateRange" />
     </v-main>
 
-    <v-footer app absolute color="grey lighten-5">
+    <v-footer v-if="footer" app absolute color="grey lighten-5">
       <v-container fluid>
         <v-row justify="center" align="center">
           <v-col cols="auto">
@@ -109,10 +113,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { defineComponent, shallowRef, provide } from 'vue'
 
 // Composables
-import { useForceReload } from '@/use/force-reload'
+import { provideForceReload } from '@/use/force-reload'
 import { useDateRange } from '@/use/date-range'
 import { useUser } from '@/org/use-users'
 import { useProject } from '@/org/use-projects'
@@ -137,13 +141,23 @@ export default defineComponent({
   },
 
   setup() {
-    useForceReload()
+    // Make these global across the app.
+    provideForceReload()
+
+    const header = shallowRef(true)
+    provide('header', header)
+
+    const footer = shallowRef(true)
+    provide('footer', footer)
 
     const dateRange = useDateRange()
     const user = useUser()
     const project = useProject()
 
     return {
+      header,
+      footer,
+
       dateRange,
       user,
       project,

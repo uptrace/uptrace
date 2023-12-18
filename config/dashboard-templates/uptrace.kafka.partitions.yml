@@ -1,0 +1,53 @@
+schema: v2
+name: 'Kafka: Partitions'
+
+table:
+  grid_items:
+    - title: Brokers
+      description: Number of brokers in the cluster
+      type: gauge
+      metrics:
+        - kafka.brokers as $brokers
+      query:
+        - $brokers
+
+    - title: Consumers
+      description: Number of members in the consumer group
+      type: gauge
+      metrics:
+        - kafka.consumer_group.members as $members
+      query:
+        - $members
+
+  metrics:
+    - kafka.partition.current_offset as $current_offset
+    - kafka.partition.replicas_in_sync as $replicas_in_sync
+  query:
+    - group by topic
+    - group by partition
+    - per_min(delta($current_offset)) as processed
+    - $replicas_in_sync
+
+grid_rows:
+  - title: General
+    items:
+      - title: Number of processed messages for the partition of the topic
+        metrics:
+          - kafka.partition.current_offset as $current_offset
+        query:
+          - per_min(delta($current_offset)) as processed
+
+      - title: Number of available (unpruned) messages in the partition
+        metrics:
+          - kafka.partition.oldest_offset as $oldest_offset
+          - kafka.partition.current_offset as $current_offset
+        query:
+          - $current_offset - $oldest_offset as messages
+
+      - title: Number of replicas for the partition of the topic
+        metrics:
+          - kafka.partition.replicas as $replicas_total
+          - kafka.partition.replicas_in_sync as $replicas_in_sync
+        query:
+          - $replicas_total
+          - $replicas_in_sync

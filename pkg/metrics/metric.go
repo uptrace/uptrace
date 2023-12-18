@@ -209,6 +209,11 @@ type MetricColumn struct {
 	Color string `json:"color" yaml:"color,omitempty"`
 }
 
+func (c *MetricColumn) Validate() error {
+	c.Unit = bunconv.NormUnit(c.Unit)
+	return nil
+}
+
 func newMetricAlias(metric *Metric, alias string) mql.MetricAlias {
 	return mql.MetricAlias{Name: metric.Name, Alias: alias}
 }

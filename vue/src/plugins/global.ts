@@ -11,7 +11,6 @@ import DurationValue from '@/components/DurationValue.vue'
 import PrismCode from '@/components/PrismCode.vue'
 import PagedSpansCardLazy from '@/tracing/PagedSpansCardLazy.vue'
 import PagedGroupsCard from '@/tracing/PagedGroupsCard.vue'
-import DashGaugeCard from '@/metrics/gauge/DashGaugeCard.vue'
 
 Vue.component('PageToolbar', PageToolbar)
 Vue.component('XPlaceholder', XPlaceholder)
@@ -24,7 +23,6 @@ Vue.component('DurationValue', DurationValue)
 Vue.component('PrismCode', PrismCode)
 Vue.component('PagedSpansCardLazy', PagedSpansCardLazy)
 Vue.component('PagedGroupsCard', PagedGroupsCard)
-Vue.component('DashGaugeCard', DashGaugeCard)
 
 Vue.mixin({
   data() {

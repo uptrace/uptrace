@@ -5,10 +5,15 @@ import { shallowRef, computed, watch } from 'vue'
 // Composables
 import { useSnackbar } from '@/use/snackbar'
 
-// Utilities
+// Misc
 import { sentence } from '@/util/string'
 
 type AsyncFunc = (...args: any[]) => Promise<any>
+
+export interface Config {
+  debounce?: number
+  ignoreErrors?: boolean
+}
 
 export interface ApiError {
   code: string
@@ -23,6 +28,7 @@ export function usePromise(fn: AsyncFunc, conf: Config = {}) {
   const snackbar = useSnackbar()
 
   const result = shallowRef<any>()
+  const resultId = shallowRef(0)
   const rawError = shallowRef<any>()
   const status = shallowRef<Status>(Status.Unset)
 
@@ -35,11 +41,12 @@ export function usePromise(fn: AsyncFunc, conf: Config = {}) {
     return false
   })
 
-  let id = 0
+  let currentId = 0
 
   let promised = (...args: any[]): Promise<any> => {
     switch (status.value) {
       case Status.Unset:
+      case Status.Rejected:
         status.value = Status.Initing
         break
       case Status.Resolved:
@@ -49,29 +56,30 @@ export function usePromise(fn: AsyncFunc, conf: Config = {}) {
 
     let promise: Promise<any>
 
-    id++
+    currentId++
     ;(function (localID: number) {
       promise = fn(...args)
       promise.then(
         (res: any) => {
-          if (localID === id) {
+          if (localID === currentId) {
             resolve(res)
           }
         },
         (err: any) => {
-          if (localID === id) {
+          if (localID === currentId) {
             reject(err)
           }
           return err
         },
       )
-    })(id)
+    })(currentId)
 
     return promise
   }
 
   let resolve = (res: any): void => {
     result.value = res
+    resultId.value = currentId
     rawError.value = undefined
     status.value = Status.Resolved
   }
@@ -84,18 +92,22 @@ export function usePromise(fn: AsyncFunc, conf: Config = {}) {
 
     if (err === undefined) {
       result.value = undefined
+      resultId.value = 0
       rawError.value = undefined
       status.value = Status.Unset
       return
     }
 
     result.value = undefined
+    resultId.value = 0
     rawError.value = err
     status.value = Status.Rejected
   }
 
   let cancel = (): void => {
-    id++
+    if (status.value.pending()) {
+      currentId++
+    }
   }
 
   if (conf.debounce) {
@@ -156,6 +168,7 @@ export function usePromise(fn: AsyncFunc, conf: Config = {}) {
       }
       switch (error.statusCode) {
         case 400:
+        case 402:
         case 403:
           snackbar.notifyError(error.message)
       }
@@ -168,6 +181,7 @@ export function usePromise(fn: AsyncFunc, conf: Config = {}) {
 
     promised,
     result,
+    resultId,
     rawError,
     error,
     errorMessage,
@@ -217,6 +231,10 @@ class Status {
     return this.value === StatusValue.Reloading
   }
 
+  isReady(): boolean {
+    return !this.pending()
+  }
+
   pending(): boolean {
     switch (this.value) {
       case StatusValue.Resolved:
@@ -236,11 +254,6 @@ class Status {
         return false
     }
   }
-}
-
-export interface Config {
-  debounce?: number
-  ignoreErrors?: boolean
 }
 
 function asString(s: string | Error | undefined): string {

@@ -1,7 +1,7 @@
 import { computed, watch, proxyRefs } from 'vue'
 
 // Composables
-import { usePager, PagerConfig } from '@/use/pager'
+import { usePager } from '@/use/pager'
 import { useOrder, Order } from '@/use/order'
 import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
 import { BackendQueryInfo } from '@/use/uql'
@@ -10,13 +10,13 @@ import { BackendQueryInfo } from '@/use/uql'
 import { Span } from '@/models/span'
 
 interface SpansConfig {
-  pager?: PagerConfig
+  perPage?: number
 }
 
 export type UseSpans = ReturnType<typeof useSpans>
 
 export function useSpans(reqSource: AxiosRequestSource, conf: SpansConfig = {}) {
-  const pager = usePager(conf.pager)
+  const pager = usePager(conf.perPage ?? 15)
   const order = useOrder()
 
   const { status, loading, error, data, reload } = useWatchAxios(() => {

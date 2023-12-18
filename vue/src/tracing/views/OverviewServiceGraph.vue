@@ -404,7 +404,7 @@ export default defineComponent({
 
     function tracingGroupsRouteForNode(node: ServiceGraphNode) {
       const routeQuery: Record<string, any> = {}
-      const query = createQueryEditor(where.value).exploreAttr(AttrKey.spanGroupId)
+      const query = createQueryEditor(where.value).exploreAttr(AttrKey.spanGroupId, true)
 
       if (node.attr === AttrKey.spanSystem) {
         routeQuery.system = node.name
@@ -431,7 +431,7 @@ export default defineComponent({
 
       const routeQuery: Record<string, any> = {}
       const query = createQueryEditor()
-        .exploreAttr(AttrKey.spanGroupId)
+        .exploreAttr(AttrKey.spanGroupId, true)
         .add(where.value)
         .where(AttrKey.serviceName, '=', link.clientName)
 

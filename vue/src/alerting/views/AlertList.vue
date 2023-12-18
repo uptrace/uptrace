@@ -76,13 +76,13 @@ import { defineComponent, shallowRef, computed, watch } from 'vue'
 // Composables
 import { useTitle } from '@vueuse/core'
 import { useSyncQueryParams } from '@/use/router'
-import { useForceReload } from '@/use/force-reload'
+import { injectForceReload } from '@/use/force-reload'
 import { usePager } from '@/use/pager'
 import { useFacetedSearch } from '@/use/faceted-search'
 import { useAlerts, useAlertSelection, Alert } from '@/alerting/use-alerts'
 
 // Components
-import ForceReloadBtn from '@/components/date/ForceReloadBtn.vue'
+import ForceReloadBtn from '@/components/ForceReloadBtn.vue'
 import AlertsSidebar from '@/alerting/AlertsSidebar.vue'
 import AlertSelection from '@/alerting/AlertSelection.vue'
 import AlertOrderPicker from '@/alerting/AlertOrderPicker.vue'
@@ -106,14 +106,14 @@ export default defineComponent({
     const dialog = shallowRef(false)
     const activeAlertId = shallowRef<number>()
 
-    const { forceReloadParams } = useForceReload()
+    const forceReload = injectForceReload()
 
     const pager = usePager()
     const facetedSearch = useFacetedSearch()
     const alerts = useAlerts(
       computed(() => {
         const params: Record<string, any> = {
-          ...forceReloadParams.value,
+          ...forceReload.params,
           ...facetedSearch.axiosParams(),
         }
 

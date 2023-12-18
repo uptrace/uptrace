@@ -1,0 +1,269 @@
+schema: v2
+name: 'K8s: containers'
+
+table:
+  grid_items:
+    - title: Available RAM
+      description: Total available RAM on all nodes
+      type: gauge
+      metrics:
+        - container.memory.available as $mem_available
+      query:
+        - last(sum($mem_available))
+      columns:
+        sum($mem_available):
+          unit: bytes
+
+    - title: FS available
+      description: Total available filesystem on all nodes
+      type: gauge
+      metrics:
+        - container.filesystem.available as $fs_available
+      query:
+        - last(sum($fs_available))
+      columns:
+        sum($fs_available):
+          unit: bytes
+
+  metrics:
+    - container.cpu.utilization as $cpu_util
+    - container.memory.available as $mem_available
+    - container.filesystem.available as $fs_available
+    - container.memory.rss as $rss_mem
+    - container.memory.usage as $mem_usage
+  query:
+    - group by k8s.container.name
+    - $cpu_util
+    - $mem_usage
+    - $rss_mem
+    - $mem_available
+    - $fs_available
+  columns:
+    fs_available:
+      unit: bytes
+    mem_available:
+      unit: bytes
+    mem_usage:
+      unit: bytes
+    rss_mem:
+      unit: bytes
+
+grid_rows:
+  - title: Gauges
+    items:
+      - title: Available RAM
+        description: Total available RAM on all nodes
+        type: gauge
+        metrics:
+          - container.memory.available as $mem_available
+        query:
+          - last(sum($mem_available))
+        columns:
+          sum($mem_available):
+            unit: bytes
+            color: '#5470c6'
+      - title: FS available
+        description: Total available filesystem on all nodes
+        type: gauge
+        metrics:
+          - container.filesystem.available as $fs_available
+        query:
+          - last(sum($fs_available))
+        columns:
+          sum($fs_available):
+            unit: bytes
+            color: '#5470c6'
+
+  - title: General
+    items:
+      - title: CPU utilization
+        width: 6
+        height: 15
+        type: chart
+        chart: line
+        metrics:
+          - container.cpu.utilization as $cpu_util
+        query:
+          - $cpu_util
+        columns:
+          cpu_util:
+            unit: utilization
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: CPU time
+        width: 6
+        height: 15
+        xAxis: 6
+        type: chart
+        chart: line
+        metrics:
+          - container.cpu.time as $cpu_time
+        query:
+          - per_min($cpu_time)
+        columns:
+          per_min($cpu_time):
+            unit: seconds
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: RAM memory usage
+        width: 6
+        height: 15
+        yAxis: 15
+        type: chart
+        chart: line
+        metrics:
+          - container.memory.usage as $usage
+        query:
+          - $usage
+        columns:
+          usage:
+            unit: bytes
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: RSS memory usage
+        width: 6
+        height: 15
+        xAxis: 6
+        yAxis: 15
+        type: chart
+        chart: line
+        metrics:
+          - container.memory.rss as $rss_mem
+        query:
+          - $rss_mem
+        columns:
+          rss_mem:
+            unit: bytes
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: RAM available
+        width: 6
+        height: 15
+        yAxis: 30
+        type: chart
+        chart: line
+        metrics:
+          - container.memory.available as $mem_available
+        query:
+          - $mem_available
+        columns:
+          mem_available:
+            unit: bytes
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: Memory working set
+        width: 6
+        height: 15
+        xAxis: 6
+        yAxis: 30
+        type: chart
+        chart: line
+        metrics:
+          - container.memory.working_set as $working_set
+        query:
+          - $working_set
+        columns:
+          working_set:
+            unit: bytes
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: Filesystem usage
+        width: 6
+        height: 15
+        yAxis: 45
+        type: chart
+        chart: line
+        metrics:
+          - container.filesystem.usage as $usage
+        query:
+          - $usage
+        columns:
+          usage:
+            unit: bytes
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: Filesystem available
+        width: 6
+        height: 15
+        xAxis: 6
+        yAxis: 45
+        type: chart
+        chart: line
+        metrics:
+          - container.filesystem.available as $fs_available
+        query:
+          - $fs_available
+        columns:
+          fs_available:
+            unit: bytes
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: Page faults
+        width: 6
+        height: 15
+        yAxis: 60
+        type: chart
+        chart: line
+        metrics:
+          - container.memory.page_faults as $page_faults
+        query:
+          - delta($page_faults)
+        columns:
+          delta($page_faults):
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: Major page faults
+        width: 6
+        height: 15
+        xAxis: 6
+        yAxis: 60
+        type: chart
+        chart: line
+        metrics:
+          - container.memory.major_page_faults as $major_page_faults
+        query:
+          - $major_page_faults
+        columns:
+          major_page_faults:
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg

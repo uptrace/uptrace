@@ -1,6 +1,6 @@
 <template>
   <v-text-field
-    v-model="traceId"
+    v-model="searchInput"
     prepend-inner-icon="mdi-magnify"
     placeholder="Search or jump to trace id..."
     hide-details
@@ -8,7 +8,7 @@
     solo
     background-color="grey lighten-4"
     style="min-width: 400px; width: 400px"
-    @keyup.enter="jumpToTrace"
+    @keyup.enter="submit"
   />
 </template>
 
@@ -20,7 +20,7 @@ import { useRouter } from '@/use/router'
 import { createQueryEditor } from '@/use/uql'
 
 // Utilities
-import { SystemName, AttrKey } from '@/models/otel'
+import { AttrKey } from '@/models/otel'
 
 const TRACE_ID_RE = /^([0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
 
@@ -29,33 +29,39 @@ export default defineComponent({
 
   setup() {
     const { router } = useRouter()
-    const traceId = shallowRef('')
+    const searchInput = shallowRef('')
 
-    function jumpToTrace() {
-      traceId.value = traceId.value.trim()
-      if (TRACE_ID_RE.test(traceId.value)) {
+    function submit() {
+      if (!searchInput.value) {
+        return
+      }
+
+      const str = searchInput.value.trim()
+      searchInput.value = ''
+
+      if (TRACE_ID_RE.test(str)) {
         router.push({
           name: 'TraceFind',
-          params: { traceId: traceId.value },
+          params: { traceId: str },
         })
-      } else {
-        const query = createQueryEditor()
-          .exploreAttr(AttrKey.spanGroupId)
-          .where(`{${AttrKey.spanName},${AttrKey.spanEventName}}`, 'contains', traceId.value)
-          .toString()
-        router.push({
+        return
+      }
+
+      const query = createQueryEditor()
+        .exploreAttr(AttrKey.spanGroupId)
+        .where(AttrKey.displayName, 'contains', str)
+        .toString()
+      router
+        .push({
           name: 'SpanGroupList',
-          params: { traceId: traceId.value },
           query: {
-            system: SystemName.All,
             query,
           },
         })
-      }
-      traceId.value = ''
+        .catch(() => {})
     }
 
-    return { traceId, jumpToTrace }
+    return { searchInput, submit }
   },
 })
 </script>

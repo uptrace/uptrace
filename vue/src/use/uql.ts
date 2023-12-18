@@ -184,8 +184,8 @@ export class QueryEditor {
     return formatParts(this.parts)
   }
 
-  exploreAttr(column: string, isEventSystem = false) {
-    return this.add(exploreAttr(column, isEventSystem))
+  exploreAttr(column: string, isSpan = false) {
+    return this.add(exploreAttr(column, isSpan))
   }
 
   add(query: string) {
@@ -268,15 +268,13 @@ export function buildWhere(column: string, op: string, value?: any) {
   return `where ${column} ${op} ${quote(value)}`
 }
 
-export function exploreAttr(column: string, isEventSystem = false) {
-  const ss = isEventSystem
-    ? [`group by ${column}`, AttrKey.spanCountPerMin]
-    : [
-        `group by ${column}`,
-        AttrKey.spanCountPerMin,
-        AttrKey.spanErrorRate,
-        `{p50,p90,p99}(${AttrKey.spanDuration})`,
-      ]
+export function exploreAttr(column: string, isSpan = false) {
+  const ss = [`group by ${column}`, AttrKey.spanCountPerMin]
+  if (isSpan) {
+    ss.push(AttrKey.spanErrorRate, `{p50,p90,p99}(${AttrKey.spanDuration})`)
+  } else {
+    ss.push(`max(${AttrKey.spanTime})`)
+  }
   return ss.join(QUERY_PART_SEP)
 }
 
@@ -285,7 +283,7 @@ export function exploreAttr(column: string, isEventSystem = false) {
 const injectionKey = Symbol('query-store')
 
 export function injectQueryStore() {
-  return inject(injectionKey, undefined) ?? useQueryStore()
+  return inject(injectionKey, undefined) ?? useQueryStore(undefined)
 }
 
 export function provideQueryStore(store: QueryStore) {
@@ -294,7 +292,7 @@ export function provideQueryStore(store: QueryStore) {
 
 export type QueryStore = ReturnType<typeof useQueryStore>
 
-export function useQueryStore(uql: UseUql | undefined = undefined) {
+export function useQueryStore(uql: UseUql | undefined) {
   const query = shallowRef('')
   const where = shallowRef('')
 

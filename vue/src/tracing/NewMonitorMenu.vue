@@ -13,7 +13,7 @@
       <v-list>
         <slot name="header-item" />
 
-        <v-list-item v-for="(item, index) in items" :key="index" :to="item.route">
+        <v-list-item v-for="(item, index) in menuItems" :key="index" :to="item.route">
           <v-list-item-title>{{ item.title }}</v-list-item-title>
         </v-list-item>
       </v-list>
@@ -22,34 +22,30 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed } from 'vue'
+import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
 import { joinQuery } from '@/use/uql'
+import { defaultMetricAlias } from '@/metrics/use-metrics'
+
+// Misc
+import { isEventSystem, isLogSystem } from '@/models/otel'
 
 export default defineComponent({
   name: 'NewMonitorMenu',
 
   props: {
-    metric: {
-      type: String,
-      default: 'uptrace.tracing.spans',
+    systems: {
+      type: Array as PropType<string[]>,
+      required: true,
     },
     name: {
       type: String,
       required: true,
     },
-    axiosParams: {
-      type: Object,
-      default: undefined,
-    },
     where: {
       type: String,
       default: undefined,
-    },
-    eventsMode: {
-      type: Boolean,
-      default: false,
     },
     verbose: {
       type: Boolean,
@@ -60,67 +56,70 @@ export default defineComponent({
   setup(props) {
     const menu = shallowRef(false)
 
-    const items = computed(() => {
-      if (props.eventsMode) {
+    const menuItems = computed(() => {
+      if (isLogSystem(...props.systems)) {
+        const metricName = 'uptrace.tracing.logs'
         return [
           {
-            title: 'Monitor number of events',
-            route: eventsRoute('per_min($events)'),
+            title: 'Monitor number of logs',
+            route: routeFor(metricName, 'per_min($logs)'),
           },
         ]
       }
 
+      if (isEventSystem(...props.systems)) {
+        const metricName = 'uptrace.tracing.events'
+        return [
+          {
+            title: 'Monitor number of events',
+            route: routeFor(metricName, 'per_min($events)'),
+          },
+        ]
+      }
+
+      const metricName = 'uptrace.tracing.spans'
       return [
         {
           title: 'Monitor number of spans',
-          route: spansRoute('per_min(count($spans))'),
+          route: routeFor(metricName, 'per_min(count($spans))'),
         },
         {
           title: 'Monitor number of failed spans',
-          route: spansRoute('per_min(count($spans{span.status_code="error"}))'),
+          route: routeFor(metricName, 'per_min(count($spans{.status_code="error"}))'),
         },
         {
           title: 'Monitor error rate',
-          route: spansRoute('count($spans{span.status_code="error"}) / count($spans) as err_rate'),
+          route: routeFor(
+            metricName,
+            'count($spans{.status_code="error"}) / count($spans) as err_rate',
+          ),
         },
         {
           title: 'Monitor p50 duration',
-          route: spansRoute('p50($spans)'),
+          route: routeFor(metricName, 'p50($spans)'),
         },
         {
           title: 'Monitor p90 duration',
-          route: spansRoute('p90($spans)'),
+          route: routeFor(metricName, 'p90($spans)'),
         },
         {
           title: 'Monitor p99 duration',
-          route: spansRoute('p99($spans)'),
+          route: routeFor(metricName, 'p99($spans)'),
         },
         {
           title: 'Monitor avg duration',
-          route: spansRoute('avg($spans)'),
+          route: routeFor(metricName, 'avg($spans)'),
         },
       ]
     })
 
-    function spansRoute(query: string) {
+    function routeFor(metricName: string, query: string) {
       return {
         name: 'MonitorMetricNew',
         query: {
           name: props.name,
-          metric: props.metric,
-          alias: 'spans',
-          query: joinQuery([query, props.where]),
-        },
-      }
-    }
-
-    function eventsRoute(query: string) {
-      return {
-        name: 'MonitorMetricNew',
-        query: {
-          name: props.name,
-          metric: 'uptrace.tracing.events',
-          alias: 'events',
+          metric: metricName,
+          alias: defaultMetricAlias(metricName),
           query: joinQuery([query, props.where]),
         },
       }
@@ -128,7 +127,7 @@ export default defineComponent({
 
     return {
       menu,
-      items,
+      menuItems,
     }
   },
 })

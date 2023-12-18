@@ -47,7 +47,7 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
-    const pager = usePager({ perPage: 10 })
+    const pager = usePager()
     const values = ref<string[]>([])
 
     const pagedItems = computed(() => {

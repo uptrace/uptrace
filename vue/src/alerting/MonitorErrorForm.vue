@@ -123,13 +123,14 @@ import { defineComponent, shallowRef, watch, PropType } from 'vue'
 
 // Composables
 import { useNotifChannels } from '@/alerting/use-notif-channels'
-import { useMonitorManager, ErrorMonitor } from '@/alerting/use-monitors'
+import { useMonitorManager } from '@/alerting/use-monitors'
 import { emptyAttrMatcher } from '@/use/attr-matcher'
 
 // Components
 import AttrMatcher from '@/components/AttrMatcher.vue'
 
 // Utilities
+import { ErrorMonitor } from '@/alerting/types'
 import { requiredRule } from '@/util/validation'
 
 export default defineComponent({

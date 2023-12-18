@@ -74,6 +74,10 @@ DROP TYPE IF EXISTS public.alert_status_enum CASCADE;
 
 --bun:split
 
+DROP TYPE IF EXISTS public.alert_state_enum CASCADE;
+
+--bun:split
+
 DROP TABLE IF EXISTS alert_events CASCADE;
 
 --bun:split
@@ -111,3 +115,15 @@ DROP TYPE IF EXISTS public.metric_instrument_enum CASCADE;
 --bun:split
 
 DROP TABLE IF EXISTS metrics CASCADE;
+
+--bun:split
+
+DROP TYPE IF EXISTS public.grid_item_type_enum CASCADE;
+
+--bun:split
+
+DROP TABLE IF EXISTS grid_items CASCADE;
+
+--bun:split
+
+DROP TABLE IF EXISTS grid_rows CASCADE;

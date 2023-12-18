@@ -1,0 +1,85 @@
+schema: v2
+name: 'Go: SQL client'
+
+table:
+  metrics:
+    - go.sql.query_timing as $query_timing
+    - go.sql.connections_open as $conns_open
+  query:
+    - group by service.name
+    - group by host.name
+    - per_min(count($query_timing)) as queries
+    - p90($query_timing) as timing_p90
+    - p99($query_timing) as timing_p99
+    - $conns_open
+  columns:
+    timing_p90: { unit: milliseconds }
+    timing_p99: { unit: milliseconds }
+
+grid_rows:
+  - title: General
+    items:
+      - title: Number of queries
+        metrics:
+          - go.sql.query_timing as $query_timing
+        query:
+          - per_min(count($query_timing)) as queries
+
+      - title: Query percentiles
+        metrics:
+          - go.sql.query_timing as $query_timing
+        query:
+          - p50($query_timing) as p50
+          - p90($query_timing) as p90
+          - p99($query_timing) as p99
+        columns:
+          p50: { unit: milliseconds }
+          p90: { unit: milliseconds }
+          p99: { unit: milliseconds }
+        chart: area
+
+      - title: Number of established connections both in use and idle
+        metrics:
+          - go.sql.connections_open as $conns_open
+        query:
+          - $conns_open
+
+      - title: Number of connections currently in use
+        metrics:
+          - go.sql.connections_in_use as $conns_in_use
+        query:
+          - $conns_in_use
+
+      - title: Number of idle connections
+        metrics:
+          - go.sql.connections_idle as $conns_idle
+        query:
+          - $conns_idle
+
+      - title: Connection wait count and duration
+        metrics:
+          - go.sql.connections_wait_count as $wait_count
+          - go.sql.connections_wait_duration as $wait_dur
+        query:
+          - per_min($wait_count) as wait_count
+          - per_min($wait_dur) as wait_dur
+        columns:
+          timing_p50: { unit: nanoseconds }
+
+      - title: Number of connections closed due to SetMaxIdleConns
+        metrics:
+          - go.sql.connections_closed_max_idle as $closed_max_idle
+        query:
+          - per_min($closed_max_idle) as closed_max_idle
+
+      - title: Number of connections closed due to SetConnMaxIdleTime
+        metrics:
+          - go.sql.connections_closed_max_idle_time as $closed_max_idle_time
+        query:
+          - per_min($closed_max_idle_time) as closed_max_idle_time
+
+      - title: Number of connections closed due to SetConnMaxLifetime
+        metrics:
+          - go.sql.connections_closed_max_lifetime as $closed_max_lifetime
+        query:
+          - per_min($closed_max_lifetime) as closed_max_lifetime

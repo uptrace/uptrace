@@ -28,7 +28,7 @@ import SpanBodyCard from '@/tracing/SpanBodyCard.vue'
 
 // Utitlies
 import { Span } from '@/models/span'
-import { isEventSystem, AttrKey } from '@/models/otel'
+import { isSpanSystem, AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'SpanCard',
@@ -54,10 +54,6 @@ export default defineComponent({
   },
 
   setup(props) {
-    const isEvent = computed((): boolean => {
-      return isEventSystem(props.span.system)
-    })
-
     const breadcrumbs = computed(() => {
       const bs: any[] = []
 
@@ -83,7 +79,7 @@ export default defineComponent({
             ...props.dateRange.queryParams(),
             system: props.span.system,
             query: createQueryEditor()
-              .exploreAttr(AttrKey.spanGroupId, isEvent.value)
+              .exploreAttr(AttrKey.spanGroupId, isSpanSystem(props.span.system))
               .where(AttrKey.spanGroupId, '=', props.span.groupId)
               .toString(),
           },

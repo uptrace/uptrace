@@ -8,9 +8,20 @@
     :sort-by.sync="order.column"
     :sort-desc.sync="order.desc"
     must-sort
-    no-data-text="There are no metrics"
+    :footer-props="{ disableItemsPerPage: true }"
+    :dense="dense"
     class="v-data-table--narrow"
+    @current-items="
+      currentItems = $event
+      $emit('current-items', $event)
+    "
+    @update:sort-by="$nextTick(() => (order.desc = true))"
   >
+    <template #no-data>
+      <div class="pa-4">
+        <div class="mb-4">The query result is empty.</div>
+      </div>
+    </template>
     <template #item="{ item }">
       <TimeseriesTableRow
         :axios-params="axiosParams"
@@ -18,7 +29,7 @@
         :class="{ 'cursor-pointer': 'click' in $listeners }"
         @click="$emit('click', item)"
       >
-        <template #default="{ rowId, metrics, value, time }">
+        <template #default="{ metrics, time, emptyValue }">
           <template v-for="attrKey in grouping">
             <td v-if="attrKey === AttrKey.spanGroupId" :key="attrKey">
               <router-link :to="routeForSpanList(item[AttrKey.spanGroupdId])">{{
@@ -32,11 +43,10 @@
             <div class="d-flex align-center">
               <SparklineChart
                 :name="col.name"
-                :line="(metrics[col.name] && metrics[col.name].value) || value"
+                :line="(metrics[col.name] && metrics[col.name].value) || emptyValue"
                 :time="time"
                 :unit="col.unit"
                 :color="col.color"
-                :group="rowId"
                 class="mr-2"
               />
               <NumValue :value="item[col.name] || 0" :unit="col.unit" />
@@ -54,16 +64,15 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { UseOrder } from '@/use/order'
 import { exploreAttr } from '@/use/uql'
-import { AxiosParams } from '@/use/watch-axios'
-import { TableItem } from '@/metrics/use-query'
 
 // Components
 import SparklineChart from '@/components/SparklineChart.vue'
 import TimeseriesTableRow from '@/metrics/TimeseriesTableRow.vue'
 
-// Utilities
-import { StyledColumnInfo } from '@/metrics/types'
+// Misc
+import { StyledColumnInfo, TableRowData } from '@/metrics/types'
 import { AttrKey } from '@/models/otel'
+import { Unit } from '@/util/fmt'
 
 export default defineComponent({
   name: 'TimeseriesTable',
@@ -75,12 +84,12 @@ export default defineComponent({
       default: false,
     },
     items: {
-      type: Array as PropType<TableItem[]>,
+      type: Array as PropType<TableRowData[]>,
       required: true,
     },
     itemsPerPage: {
       type: Number,
-      default: 10,
+      default: 15,
     },
     columns: {
       type: Array as PropType<StyledColumnInfo[]>,
@@ -91,8 +100,12 @@ export default defineComponent({
       required: true,
     },
     axiosParams: {
-      type: Object as PropType<AxiosParams>,
+      type: Object as PropType<Record<string, any>>,
       default: undefined,
+    },
+    dense: {
+      type: Boolean,
+      default: false,
     },
   },
 
@@ -117,7 +130,7 @@ export default defineComponent({
     })
 
     function routeForSpanList(groupId: string) {
-      const query = exploreAttr(AttrKey.spanGroupId)
+      const query = exploreAttr(AttrKey.spanGroupId, true)
       return {
         name: 'SpanList',
         query: {
@@ -126,7 +139,16 @@ export default defineComponent({
       }
     }
 
-    return { AttrKey, grouping, aggColumns, headers, routeForSpanList }
+    return {
+      Unit,
+      AttrKey,
+
+      grouping,
+      aggColumns,
+      headers,
+
+      routeForSpanList,
+    }
   },
 })
 </script>

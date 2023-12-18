@@ -3,10 +3,8 @@
     <v-col>
       <v-card rounded="lg" outlined class="mb-4">
         <v-toolbar flat color="light-blue lighten-5">
-          <v-toolbar-title>
-            <span>Spans</span>
-            <SpansTableSettings :spans="spans.items" class="ml-2" @input="tableColumns = $event" />
-          </v-toolbar-title>
+          <slot name="search-filter" />
+          <SpansTableSettings :spans="spans.items" class="ml-2" @input="tableColumns = $event" />
 
           <v-spacer />
 
@@ -40,7 +38,7 @@
                 :spans="spans.items"
                 :order="spans.order"
                 :pager="spans.pager"
-                :events-mode="systems.isEvent"
+                :is-span="systems.isSpan"
                 :columns="tableColumns"
                 :show-system="showSystem"
                 @click:chip="onChipClick"
@@ -78,7 +76,7 @@ import { SpanChip } from '@/tracing/SpanChips.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 
 // Utilities
-import { isGroupSystem, AttrKey } from '@/models/otel'
+import { isLogSystem, isGroupSystem, AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'TracingSpans',
@@ -129,6 +127,9 @@ export default defineComponent({
 
     const showSystem = computed(() => {
       const systems = props.systems.activeSystems
+      if (isLogSystem(...systems)) {
+        return false
+      }
       if (systems.length > 1) {
         return true
       }
@@ -180,7 +181,7 @@ export default defineComponent({
       if (!props.systems.activeSystems) {
         return
       }
-      spans.order.column = props.systems.isEvent ? AttrKey.spanTime : AttrKey.spanDuration
+      spans.order.column = props.systems.isSpan ? AttrKey.spanDuration : AttrKey.spanTime
     }
 
     function onChipClick(chip: SpanChip) {

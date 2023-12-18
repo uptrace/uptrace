@@ -23,10 +23,10 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
-import { createQueryEditor, useQueryStore } from '@/use/uql'
+import { createQueryEditor, injectQueryStore } from '@/use/uql'
 
 // Utilities
-import { isEventSystem, AttrKey } from '@/models/otel'
+import { isSpanSystem, AttrKey } from '@/models/otel'
 import { truncateMiddle, quote } from '@/util/string'
 
 export default defineComponent({
@@ -57,7 +57,7 @@ export default defineComponent({
 
   setup(props) {
     const menu = shallowRef(false)
-    const { query, where } = useQueryStore()
+    const { query, where } = injectQueryStore()
 
     const menuItems = computed(() => {
       const quotedValue = quote(truncateMiddle(props.attrValue, 60))
@@ -67,7 +67,7 @@ export default defineComponent({
           text: `Group by ${props.attrKey}`,
           attrs: createLink('SpanGroupList', {
             query: createQueryEditor()
-              .exploreAttr(props.attrKey, isEventSystem(props.system))
+              .exploreAttr(props.attrKey, isSpanSystem(props.system))
               .add(where.value)
               .where(AttrKey.spanGroupId, '=', props.groupId)
               .where(props.attrKey, 'exists')
@@ -91,7 +91,7 @@ export default defineComponent({
           text: `Groups with ${props.attrKey} = ${quotedValue}`,
           attrs: createLink('SpanGroupList', {
             query: createQueryEditor()
-              .exploreAttr(AttrKey.spanGroupId, isEventSystem(props.system))
+              .exploreAttr(AttrKey.spanGroupId, isSpanSystem(props.system))
               .where(props.attrKey, '=', props.attrValue)
               .toString(),
           }),

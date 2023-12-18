@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/gogo/protobuf/jsonpb"
@@ -103,7 +102,9 @@ func initRoutes(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
 			g.POST("", dashHandler.Clone)
 			g.PUT("", dashHandler.Update)
 			g.PUT("/table", dashHandler.UpdateTable)
+			g.PUT("/grid", dashHandler.UpdateGrid)
 			g.PUT("/yaml", dashHandler.FromYAML)
+			g.PUT("/reset", dashHandler.Reset)
 			g.DELETE("", dashHandler.Delete)
 			g.PUT("/pinned", dashHandler.Pin)
 			g.PUT("/unpinned", dashHandler.Unpin)
@@ -113,31 +114,32 @@ func initRoutes(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
 		Use(middleware.UserAndProject).
 		Use(middleware.Dashboard).
 		WithGroup("/metrics/:project_id/dashboards/:dash_id/grid", func(g *bunrouter.Group) {
-			handler := NewGridColumnHandler(app)
+			handler := NewGridItemHandler(app)
 
-			g.PUT("", handler.UpdateOrder)
 			g.POST("", handler.Create)
+			g.PUT("/layout", handler.UpdateLayout)
 
-			g = g.Use(middleware.GridColumn)
+			g = g.Use(handler.GridItemMiddleware)
 
-			g.PUT("/:col_id", handler.Update)
-			g.DELETE("/:col_id", handler.Delete)
+			g.PUT("/:row_id", handler.Update)
+			g.DELETE("/:row_id", handler.Delete)
 		})
 
 	api.
 		Use(middleware.UserAndProject).
 		Use(middleware.Dashboard).
-		WithGroup("/metrics/:project_id/dashboards/:dash_id/gauges", func(g *bunrouter.Group) {
-			handler := NewDashGaugeHandler(app)
+		WithGroup("/metrics/:project_id/dashboards/:dash_id/rows", func(g *bunrouter.Group) {
+			handler := NewGridRowHandler(app)
 
-			g.GET("", handler.List)
 			g.POST("", handler.Create)
-			g.PUT("", handler.UpdateOrder)
 
-			g = g.Use(middleware.DashGauge)
+			g = g.Use(handler.GridRowMiddleware)
 
-			g.PUT("/:gauge_id", handler.Update)
-			g.DELETE("/:gauge_id", handler.Delete)
+			g.GET("/:row_id", handler.Show)
+			g.PUT("/:row_id", handler.Update)
+			g.PUT("/:row_id/up", handler.MoveUp)
+			g.PUT("/:row_id/down", handler.MoveDown)
+			g.DELETE("/:row_id", handler.Delete)
 		})
 
 	router.WithGroup("/api/v1/cloudwatch", func(g *bunrouter.Group) {
@@ -195,97 +197,6 @@ func (m Middleware) Dashboard(next bunrouter.HandlerFunc) bunrouter.HandlerFunc 
 
 func dashFromContext(ctx context.Context) *Dashboard {
 	return ctx.Value(dashCtxKey{}).(*Dashboard)
-}
-
-//------------------------------------------------------------------------------
-
-type gridColumnCtxKey struct{}
-
-func (m *Middleware) GridColumn(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
-	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		ctx := req.Context()
-		dash := dashFromContext(ctx)
-
-		colID, err := req.Params().Uint64("col_id")
-		if err != nil {
-			return err
-		}
-
-		col, err := SelectGridColumn(ctx, m.App, colID)
-		if err != nil {
-			return err
-		}
-
-		if col.Base().DashID != dash.ID {
-			return org.ErrAccessDenied
-		}
-
-		ctx = context.WithValue(ctx, gridColumnCtxKey{}, col)
-		return next(w, req.WithContext(ctx))
-	}
-}
-
-func gridColumnFromContext(ctx context.Context) GridColumn {
-	return ctx.Value(gridColumnCtxKey{}).(GridColumn)
-}
-
-func chartGridColumnFromContext(ctx context.Context) (*ChartGridColumn, error) {
-	anyGridCol := ctx.Value(gridColumnCtxKey{})
-	gridCol, ok := anyGridCol.(*ChartGridColumn)
-	if !ok {
-		return nil, fmt.Errorf("expected *ChartGridColumn, got %T", anyGridCol)
-	}
-	return gridCol, nil
-}
-
-func tableGridColumnFromContext(ctx context.Context) (*TableGridColumn, error) {
-	anyGridCol := ctx.Value(gridColumnCtxKey{})
-	gridCol, ok := anyGridCol.(*TableGridColumn)
-	if !ok {
-		return nil, fmt.Errorf("expected *TableGridColumn, got %T", anyGridCol)
-	}
-	return gridCol, nil
-}
-
-func heatmapGridColumnFromContext(ctx context.Context) (*HeatmapGridColumn, error) {
-	anyGridCol := ctx.Value(gridColumnCtxKey{})
-	gridCol, ok := anyGridCol.(*HeatmapGridColumn)
-	if !ok {
-		return nil, fmt.Errorf("expected *HeatmapGridColumn, got %T", anyGridCol)
-	}
-	return gridCol, nil
-}
-
-//------------------------------------------------------------------------------
-
-type dashGaugeCtxKey struct{}
-
-func (m *Middleware) DashGauge(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
-	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		ctx := req.Context()
-		dash := dashFromContext(ctx)
-
-		gaugeID, err := req.Params().Uint64("gauge_id")
-		if err != nil {
-			return err
-		}
-
-		gauge, err := SelectDashGauge(ctx, m.App, dash.ID, gaugeID)
-		if err != nil {
-			return err
-		}
-
-		if gauge.ProjectID != dash.ProjectID {
-			return org.ErrAccessDenied
-		}
-
-		ctx = context.WithValue(ctx, dashGaugeCtxKey{}, gauge)
-		return next(w, req.WithContext(ctx))
-	}
-}
-
-func dashGaugeFromContext(ctx context.Context) *DashGauge {
-	return ctx.Value(dashGaugeCtxKey{}).(*DashGauge)
 }
 
 //------------------------------------------------------------------------------

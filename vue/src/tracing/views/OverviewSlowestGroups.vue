@@ -31,7 +31,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useSyncQueryParams } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { createQueryEditor, useQueryStore, provideQueryStore, UseUql } from '@/use/uql'
+import { createQueryEditor, injectQueryStore, provideQueryStore, UseUql } from '@/use/uql'
 import { UseSystems } from '@/tracing/system/use-systems'
 import { useGroups } from '@/tracing/use-explore-spans'
 
@@ -62,10 +62,10 @@ export default defineComponent({
   },
 
   setup(props) {
-    const { where } = useQueryStore()
+    const { where } = injectQueryStore()
 
     const query = computed(() => {
-      return createQueryEditor().exploreAttr(AttrKey.spanGroupId).add(where.value).toString()
+      return createQueryEditor().exploreAttr(AttrKey.spanGroupId, true).add(where.value).toString()
     })
     provideQueryStore({ query: computed(() => ''), where })
 

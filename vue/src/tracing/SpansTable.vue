@@ -10,7 +10,7 @@
             <span>{{ col }}</span>
           </ThOrder>
           <ThOrder :value="AttrKey.spanTime" :order="order">Time</ThOrder>
-          <ThOrder v-if="!eventsMode" :value="AttrKey.spanDuration" :order="order" align="end">
+          <ThOrder v-if="isSpan" :value="AttrKey.spanDuration" :order="order" align="end">
             <span>Dur.</span>
           </ThOrder>
         </tr>
@@ -58,7 +58,7 @@
               <AnyValue :value="span.attrs[col]" :name="col" />
             </td>
             <td class="text-no-wrap"><DateValue :value="span.time" format="relative" /></td>
-            <td v-if="!eventsMode" class="text-right">
+            <td v-if="isSpan" class="text-right">
               <DurationValue :value="span.duration" fixed />
             </td>
           </tr>
@@ -132,7 +132,7 @@ export default defineComponent({
       type: Array as PropType<string[]>,
       default: () => [],
     },
-    eventsMode: {
+    isSpan: {
       type: Boolean,
       required: true,
     },

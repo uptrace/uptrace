@@ -19,9 +19,9 @@
 import { defineComponent, PropType } from 'vue'
 
 // Composables
-import { useDashManager } from '@/metrics/use-dashboards'
+import { useDashboardManager } from '@/metrics/use-dashboards'
 
-// Utilities
+// Misc
 import { Dashboard } from '@/metrics/types'
 
 export default defineComponent({
@@ -35,7 +35,7 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
-    const dashMan = useDashManager()
+    const dashMan = useDashboardManager()
 
     function pinDashboard() {
       dashMan.pin(props.dashboard).then((dash) => {

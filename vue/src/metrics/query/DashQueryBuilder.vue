@@ -41,10 +41,6 @@ export default defineComponent({
       type: Object as PropType<UseUql>,
       required: true,
     },
-    showGroupBy: {
-      type: Boolean,
-      default: false,
-    },
   },
 
   setup(props) {

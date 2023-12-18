@@ -5,19 +5,13 @@ import { refDebounced } from '@vueuse/core'
 // Composables
 import { useRoute } from '@/use/router'
 import { useOrder, Order } from '@/use/order'
-import {
-  useWatchAxios,
-  AxiosRequestSource,
-  AxiosParamsSource,
-  AxiosParams,
-} from '@/use/watch-axios'
+import { useWatchAxios, AxiosParams, AxiosParamsSource } from '@/use/watch-axios'
 import { BackendQueryInfo } from '@/use/uql'
 
-// Utilities
-import { escapeRe } from '@/util/string'
+// Misc
 import { eChart as colorScheme } from '@/util/colorscheme'
 
-// Types
+// Misc
 import {
   defaultTimeseriesStyle,
   Timeseries,
@@ -26,6 +20,7 @@ import {
   MetricColumn,
   ColumnInfo,
   StyledColumnInfo,
+  TableRowData,
 } from '@/metrics/types'
 
 export type UseTimeseries = ReturnType<typeof useTimeseries>
@@ -37,7 +32,7 @@ interface TimeseriesConfig {
 export function useTimeseries(axiosParamsSource: AxiosParamsSource, conf: TimeseriesConfig = {}) {
   const route = useRoute()
 
-  const { status, loading, error, data, reload } = useWatchAxios(() => {
+  const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
       url: `/internal/v1/metrics/${projectId}/timeseries`,
@@ -50,7 +45,7 @@ export function useTimeseries(axiosParamsSource: AxiosParamsSource, conf: Timese
     return data.value?.query
   })
 
-  const queryError = computed(() => {
+  const error = computed(() => {
     const parts = query.value?.parts ?? []
     for (let part of parts) {
       if (part.error) {
@@ -66,16 +61,22 @@ export function useTimeseries(axiosParamsSource: AxiosParamsSource, conf: Timese
       return reactive({
         ...ts,
 
-        last: ts.value[ts.value.length - 1],
-        avg: ts.value.reduce((p, c) => p + c, 0) / ts.value.length,
-        min: Math.min(...ts.value),
-        max: Math.max(...ts.value),
+        last: lastValue(ts.value),
+        avg: avgValue(ts.value),
+        min: minValue(ts.value),
+        max: maxValue(ts.value),
       })
     })
   })
 
   const time = computed((): string[] => {
     return data.value?.time ?? []
+  })
+
+  const emptyValue = computed(() => {
+    const value = time.value.slice() as unknown as number[]
+    value.fill(0)
+    return value
   })
 
   const columns = computed((): ColumnInfo[] => {
@@ -85,16 +86,81 @@ export function useTimeseries(axiosParamsSource: AxiosParamsSource, conf: Timese
   return proxyRefs({
     status,
     loading,
-    error,
     reload,
 
     query,
-    queryError,
+    error,
     items: timeseries,
     time,
+    emptyValue,
     columns,
   })
 }
+
+function lastValue(ns: (number | null)[]): number | null {
+  for (let i = ns.length - 1; i >= 0; i--) {
+    const n = ns[i]
+    if (n !== null) {
+      return n
+    }
+  }
+  return null
+}
+
+function avgValue(ns: (number | null)[]): number | null {
+  let sum = 0
+  let count = 0
+
+  for (let n of ns) {
+    if (n !== null) {
+      sum += n
+      count++
+    }
+  }
+
+  if (count) {
+    return sum / count
+  }
+  return 0
+}
+
+function minValue(ns: (number | null)[]): number | null {
+  let min = Number.MAX_VALUE
+
+  for (let n of ns) {
+    if (n === null) {
+      continue
+    }
+    if (n < min) {
+      min = n
+    }
+  }
+
+  if (min !== Number.MAX_VALUE) {
+    return min
+  }
+  return null
+}
+
+function maxValue(ns: (number | null)[]): number | null {
+  let max = Number.MIN_VALUE
+
+  for (let n of ns) {
+    if (n === null) {
+      continue
+    }
+    if (n > max) {
+      max = n
+    }
+  }
+
+  if (max !== Number.MIN_VALUE) {
+    return max
+  }
+  return null
+}
+
+//------------------------------------------------------------------------------
 
 export function useStyledTimeseries(
   items: Ref<Timeseries[]>,
@@ -141,43 +207,7 @@ export function useStyledTimeseries(
   })
 }
 
-export interface AnalyzedTimeseries {
-  name: string
-  metric: string
-  median: number
-  minAllowedValue: number | null
-  maxAllowedValue: number | null
-}
-
-export function useAnalyzedTimeseries(axiosReq: AxiosRequestSource) {
-  const { status, loading, data, reload } = useWatchAxios(axiosReq)
-
-  const timeseries = computed((): AnalyzedTimeseries[] => {
-    return data.value?.timeseries ?? []
-  })
-
-  const time = computed((): string[] => {
-    return data.value?.time ?? []
-  })
-
-  return proxyRefs({
-    status,
-    loading,
-
-    items: timeseries,
-    time,
-
-    reload,
-  })
-}
-
 //------------------------------------------------------------------------------
-
-export interface TableItem extends Record<string, string | number> {
-  _id: string
-  _name: string
-  _query: string
-}
 
 export type UseTableQuery = ReturnType<typeof useTableQuery>
 
@@ -189,14 +219,14 @@ export function useTableQuery(
   const order = useOrder()
 
   const searchInput = shallowRef('')
-  const debouncedSearchInput = refDebounced(searchInput, 1000)
-  const hasMore = shallowRef(false)
+  const debouncedSearchInput = refDebounced(searchInput, 600)
+  const hasMore = shallowRef(true)
 
   const axiosParams = computed(() => {
     return axiosParamsSource()
   })
 
-  const { status, loading, data, reload } = useWatchAxios(() => {
+  const { status, loading, error, data, reload } = useWatchAxios(() => {
     if (!axiosParams.value) {
       return axiosParams.value
     }
@@ -216,10 +246,11 @@ export function useTableQuery(
 
   const lastAxiosParams = shallowRef<AxiosParams>()
   watch(data, () => {
+    // Update axios params after data is fully loaded.
     lastAxiosParams.value = cloneDeep(axiosParams.value)
   })
 
-  const items = computed((): TableItem[] => {
+  const items = computed((): TableRowData[] => {
     return data.value?.items ?? []
   })
 
@@ -272,7 +303,7 @@ export function useTableQuery(
     return data.value?.query
   })
 
-  const error = computed(() => {
+  const queryError = computed(() => {
     const parts = query.value?.parts ?? []
     for (let part of parts) {
       if (part.error) {
@@ -283,7 +314,7 @@ export function useTableQuery(
   })
 
   watch(
-    () => data.value?.hasMore ?? false,
+    () => data.value?.hasMore ?? true,
     (hasMoreValue) => {
       hasMore.value = hasMoreValue
     },
@@ -304,6 +335,7 @@ export function useTableQuery(
   return proxyRefs({
     status,
     loading,
+    error,
     reload,
 
     order,
@@ -314,7 +346,7 @@ export function useTableQuery(
     hasMore,
 
     query,
-    error,
+    queryError,
     columns: styledColumns,
     groupingColumns,
   })
@@ -382,11 +414,4 @@ export function useHeatmapQuery(axiosParamsSource: AxiosParamsSource) {
     query,
     error,
   })
-}
-
-//------------------------------------------------------------------------------
-
-export function hasMetricAlias(query: string, alias: string): boolean {
-  alias = escapeRe('$' + alias)
-  return new RegExp(`${alias}([^a-z0-9]|$)`).test(query)
 }

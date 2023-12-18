@@ -12,8 +12,7 @@ import Alerting from '@/alerting/views/Alerting.vue'
 import AlertList from '@/alerting/views/AlertList.vue'
 import AlertShow from '@/alerting/views/AlertShow.vue'
 import MonitorList from '@/alerting/views/MonitorList.vue'
-import MonitorMetricShow from '@/alerting/views/MonitorMetricShow.vue'
-import MonitorMetricNew from '@/alerting/views/MonitorMetricNew.vue'
+import MonitorMetric from '@/alerting/views/MonitorMetric.vue'
 import MonitorErrorShow from '@/alerting/views/MonitorErrorShow.vue'
 import MonitorErrorNew from '@/alerting/views/MonitorErrorNew.vue'
 import ChannelList from '@/alerting/views/ChannelList.vue'
@@ -133,12 +132,12 @@ const routes: RouteConfig[] = [
   {
     name: 'MonitorMetricNew',
     path: '/alerting/:projectId(\\d+)/monitors/new-metric',
-    component: MonitorMetricNew,
+    component: MonitorMetric,
   },
   {
     name: 'MonitorMetricShow',
     path: '/alerting/:projectId(\\d+)/monitors/:monitorId(\\d+)/metric',
-    component: MonitorMetricShow,
+    component: MonitorMetric,
   },
   {
     name: 'MonitorErrorNew',

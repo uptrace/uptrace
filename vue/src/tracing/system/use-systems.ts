@@ -6,7 +6,7 @@ import { useRoute, Values } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
 
 // Utilities
-import { isEventSystem, isGroupSystem, SystemName } from '@/models/otel'
+import { isLogSystem, isEventSystem, isSpanSystem, isGroupSystem, SystemName } from '@/models/otel'
 import { DataHint } from '@/org/types'
 
 export interface System {
@@ -70,8 +70,18 @@ export function useSystems(params: () => Record<string, any>) {
     },
   })
 
-  const isEvent = computed(() => {
-    return isEventSystem(...activeSystems.value)
+  const isSpan = computed(() => {
+    return isSpanSystem(...activeSystems.value)
+  })
+
+  const groupName = computed(() => {
+    if (isLogSystem(...activeSystems.value)) {
+      return SystemName.LogAll
+    }
+    if (isEventSystem(...activeSystems.value)) {
+      return SystemName.EventsAll
+    }
+    return SystemName.SpansAll
   })
 
   function reset(): void {
@@ -99,7 +109,8 @@ export function useSystems(params: () => Record<string, any>) {
     dataHint,
 
     activeSystems,
-    isEvent,
+    isSpan,
+    groupName,
 
     reset,
     axiosParams,

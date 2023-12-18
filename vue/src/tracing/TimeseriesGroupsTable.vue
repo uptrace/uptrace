@@ -64,7 +64,7 @@
         <td :colspan="headers.length" class="pa-4">
           <PagedSpansCardLazy
             :date-range="dateRange"
-            :events-mode="eventsMode"
+            :is-span="isSpan"
             :axios-params="axiosParams"
             :where="item._query"
           />
@@ -124,7 +124,7 @@ export default defineComponent({
       type: Array as PropType<ColumnInfo[]>,
       required: true,
     },
-    eventsMode: {
+    isSpan: {
       type: Boolean,
       required: true,
     },

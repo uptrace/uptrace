@@ -16,7 +16,7 @@ import { defineComponent, watch } from 'vue'
 // Composables
 import { useTitle } from '@vueuse/core'
 import { useRoute } from '@/use/router'
-import { useForceReload } from '@/use/force-reload'
+import { injectForceReload } from '@/use/force-reload'
 import { useDateRange } from '@/use/date-range'
 import { useSpan } from '@/tracing/use-spans'
 
@@ -30,13 +30,13 @@ export default defineComponent({
   setup() {
     const route = useRoute()
     const dateRange = useDateRange()
-    const { forceReloadParams } = useForceReload()
+    const forceReload = injectForceReload()
 
     const span = useSpan(() => {
       const { projectId, traceId, spanId } = route.value.params
       return {
         url: `/internal/v1/tracing/${projectId}/traces/${traceId}/${spanId}`,
-        params: forceReloadParams.value,
+        params: forceReload.params,
       }
     })
 

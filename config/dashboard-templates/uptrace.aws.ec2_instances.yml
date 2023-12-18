@@ -1,0 +1,148 @@
+# https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html
+schema: v2
+name: 'AWS instances'
+
+table:
+  grid_items:
+    - title: Number of regions
+      description: Number of AWS regions
+      type: gauge
+      metrics:
+        - amazonaws.com.aws.ec2.cpu_utilization as $cpu_utilization
+      query:
+        - uniq($cpu_utilization, cloud.region) as num_region
+
+    - title: Number of instances
+      description: Number of instances
+      metrics:
+        - amazonaws.com.aws.ec2.cpu_utilization as $cpu_utilization
+      query:
+        - uniq($cpu_utilization, instance_id) as num_instance
+
+  metrics:
+    - amazonaws.com.aws.ec2.cpu_utilization as $cpu_util
+    - amazonaws.com.aws.ec2.cpu_credit_usage as $cpu_credit_usage
+    - amazonaws.com.aws.ec2.cpu_surplus_credits_charged as $cpu_surplus_credits_charged
+
+  query:
+    - group by cloud.region
+    - group by instance_id
+    - avg($cpu_util)
+    - sum($cpu_credit_usage)
+    - sum($cpu_surplus_credits_charged)
+
+grid_rows:
+  - title: Instance metrics
+    items:
+      - title: Percentage of allocated compute units that are currently in use
+        metrics:
+          - amazonaws.com.aws.ec2.cpu_utilization as $cpu_utilization
+        query:
+          - avg($cpu_utilization) as cpu_utilization
+
+      - name:
+          Percentage of allocated compute capacity that is currently in use on the Dedicated Host
+        metrics:
+          - amazonaws.com.aws.ec2.dedicated_host_cpu_utilization as $dedicated_host_cpu_utilization
+        query:
+          - avg($dedicated_host_cpu_utilization) as dedicated_host_cpu_utilization
+
+      - title: Completed read operations from all instance store volumes
+        metrics:
+          - amazonaws.com.aws.ec2.disk_read_ops as $disk_read_ops
+        query:
+          - sum($disk_read_ops) as disk_read_ops
+
+      - title: Completed write operations from all instance store volumes
+        metrics:
+          - amazonaws.com.aws.ec2.disk_write_ops as $disk_write_ops
+        query:
+          - sum($disk_write_ops) as disk_write_ops
+
+      - title: Bytes read from all instance store volumes
+        metrics:
+          - amazonaws.com.aws.ec2.disk_read_bytes as $disk_read_bytes
+        query:
+          - sum($disk_read_bytes) as disk_read_bytes
+
+      - title: Bytes written to all instance store volumes
+        metrics:
+          - amazonaws.com.aws.ec2.disk_write_bytes as $disk_write_bytes
+        query:
+          - sum($disk_write_bytes) as disk_write_bytes
+
+      - title: Number of bytes received on all network interfaces
+        metrics:
+          - amazonaws.com.aws.ec2.network_in as $network_in
+        query:
+          - sum($network_in) as network_in
+
+      - title: Number of bytes sent out on all network interfaces
+        metrics:
+          - amazonaws.com.aws.ec2.network_out as $network_out
+        query:
+          - sum($network_out) as network_out
+
+      - title: Number of packets received on all network interfaces
+        metrics:
+          - amazonaws.com.aws.ec2.network_packets_in as $network_packets_in
+        query:
+          - sum($network_packets_in) as network_packets_in
+
+      - title: Number of packets sent out on all network interfaces
+        metrics:
+          - amazonaws.com.aws.ec2.network_packets_out as $network_packets_out
+        query:
+          - sum($network_packets_out) as network_packets_out
+
+  - title: CPU credit metrics
+    items:
+      - title: Number of CPU credits spent by the instance for CPU utilization
+        metrics:
+          - amazonaws.com.aws.ec2.cpu_credit_usage as $cpu_credit_usage
+        query:
+          - sum($cpu_credit_usage) as cpu_credit_usage
+
+      - title: Number of earned CPU credits that an instance
+        metrics:
+          - amazonaws.com.aws.ec2.cpu_credit_balance as $cpu_credit_balance
+        query:
+          - sum($cpu_credit_balance) as cpu_credit_balance
+
+      - title: Number of surplus credits that have been spent by an unlimited instance
+        metrics:
+          - amazonaws.com.aws.ec2.cpu_surplus_credit_balance as $cpu_surplus_credit_balance
+        query:
+          - sum($cpu_surplus_credit_balance) as cpu_surplus_credit_balance
+
+      - title: Number of spent surplus credits that are not paid down by earned CPU credits
+        metrics:
+          - amazonaws.com.aws.ec2.cpu_surplus_credits_charged as $cpu_surplus_credits_charged
+        query:
+          - sum($cpu_surplus_credits_charged) as cpu_surplus_credits_charged
+
+  - title: Status check metrics
+    items:
+      - title: Status of instance and system status check
+        metrics:
+          - amazonaws.com.aws.ec2.status_check_failed as $status_check_failed
+        query:
+          - last(avg($status_check_failed)) as status_check_failed
+
+      - title: Status of system status check
+        metrics:
+          - amazonaws.com.aws.ec2.status_check_failed_system as $status_check_failed_system
+        query:
+          - last(avg($status_check_failed_system)) as status_check_failed_system
+
+      - title: Status of instance status check
+        metrics:
+          - amazonaws.com.aws.ec2.status_check_failed_instance as $status_check_failed_instance
+        query:
+          - last(avg($status_check_failed_instance)) as status_check_failed_instance
+
+      - title: Number of times the Metadata was accessed without a token
+        metrics:
+          - amazonaws.com.aws.ec2.metadata_no_token as $metadata_no_token
+        query:
+          - last(avg($metadata_no_token)) as metadata_no_token

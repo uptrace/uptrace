@@ -12,9 +12,14 @@
       <v-icon size="16" :color="isSelected(item) ? item.color : 'grey'" class="mr-1"
         >mdi-circle</v-icon
       >
-      <div>{{ truncateMiddle(item.name, 40) }}</div>
+      <div>{{ truncateMiddle(item.name, 60) }}</div>
       <div v-for="metric in values" :key="metric" class="ml-1 font-weight-medium">
-        <NumValue :value="item[metric]" :unit="item.unit" short :title="`${metric}: {0}`" />
+        <NumValue
+          :value="item[metric]"
+          :unit="item.unit"
+          format="short"
+          :title="`${metric}: {0}`"
+        />
       </div>
     </div>
   </div>
@@ -23,7 +28,7 @@
 <script lang="ts">
 import { defineComponent, shallowRef, watch, PropType } from 'vue'
 
-// Utilities
+// Misc
 import { StyledTimeseries, LegendValue } from '@/metrics/types'
 import { truncateMiddle } from '@/util/string'
 
@@ -53,10 +58,18 @@ export default defineComponent({
     const selectedTimeseries = shallowRef<StyledTimeseries[]>([])
     watch(
       () => props.timeseries,
-      (timeseries) => (selectedTimeseries.value = timeseries),
+      (timeseries) => {
+        selectedTimeseries.value = timeseries
+      },
       { immediate: true },
     )
-    watch(selectedTimeseries, (selectedTimeseries) => ctx.emit('current-items', selectedTimeseries))
+    watch(
+      selectedTimeseries,
+      (selectedTimeseries) => {
+        ctx.emit('current-items', selectedTimeseries)
+      },
+      { immediate: true },
+    )
 
     function toggle(ts: StyledTimeseries) {
       const items = selectedTimeseries.value.slice()

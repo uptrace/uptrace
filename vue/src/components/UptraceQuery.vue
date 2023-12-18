@@ -1,5 +1,5 @@
 <template>
-  <div class="text-truncate">
+  <div class="uptrace-query text-truncate">
     <v-row no-gutters align="center" style="margin-bottom: 1px">
       <v-col>
         <div class="d-flex filters">
@@ -205,6 +205,13 @@ function usePartEditor(uql: UseUql) {
   font-size: 20px;
   width: 20px;
   height: 20px;
+}
+
+.uptrace-query ::v-deep .v-divider--vertical {
+  min-height: 80% !important;
+  height: 80% !important;
+  max-height: 80% !important;
+  align-self: center !important;
 }
 </style>
 

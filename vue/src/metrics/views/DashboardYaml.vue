@@ -40,9 +40,9 @@ import { defineComponent, shallowRef, watch, PropType } from 'vue'
 
 // Composables
 import { useSnackbar } from '@/use/snackbar'
-import { useYamlDashboard, useDashManager } from '@/metrics/use-dashboards'
+import { useYamlDashboard, useDashboardManager } from '@/metrics/use-dashboards'
 
-// Utilities
+// Misc
 import { Dashboard } from '@/metrics/types'
 
 export default defineComponent({
@@ -60,7 +60,7 @@ export default defineComponent({
 
     const yaml = shallowRef('')
     const dash = useYamlDashboard()
-    const dashMan = useDashManager()
+    const dashMan = useDashboardManager()
 
     watch(
       () => dash.yaml,

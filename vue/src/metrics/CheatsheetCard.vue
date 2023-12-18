@@ -38,14 +38,13 @@
       </v-col>
 
       <v-col cols="6">
-        <h2 class="mb-5 text-h5">Grouping and combining</h2>
+        <h2 class="mb-5 text-h5">Grouping and joining</h2>
 
-        <QueryExample query="$hits | $misses | group by host.name">
-          <template #description>Select cache hits and misses on every hostname.</template>
-        </QueryExample>
-
-        <QueryExample query="$misses / ($hits + $misses) | group by host.name">
-          <template #description>Sum timeseries with matching attributes.</template>
+        <QueryExample query="$hits + $misses | group by host.name">
+          <template #description>
+            Uptrace can automatically join timeseries with matching attributes, e.g. sum
+            <code>$hits</code> and <code>$misses</code> metrics on each hostname.
+          </template>
         </QueryExample>
 
         <QueryExample query='$cpu_time{cpu="0",mode="idle"} as cpu0_idle_time'>
@@ -53,17 +52,23 @@
         </QueryExample>
 
         <QueryExample
-          query="$cache{type=hits} as hits | $cache{type=misses} as misses | hits + misses as total"
+          query="$cache{type=hits} as _hits | $cache{type=misses} as _misses | _hits + _misses as total"
         >
-          <template #description>Combine timeseries using the aliases.</template>
+          <template #description>
+            Join timeseries using the aliases. Underscored aliases are not displayed.
+          </template>
         </QueryExample>
 
         <QueryExample query="$metric1 group by service.name | $metric2 group by host.name">
-          <template #description>Individual grouping for each timeseries.</template>
+          <template #description>
+            Timeseries can have individual grouping if you don't need to join them.
+          </template>
         </QueryExample>
 
-        <QueryExample query="$metric_name group by all">
-          <template #description>Group by all attributes like Prometheus.</template>
+        <QueryExample query="$m1 + $m2 | group by $m1.host.name | group by $m2.host as host.name">
+          <template #description>
+            To join metrics with different attributes, use aliases in <code>group by</code>.
+          </template>
         </QueryExample>
       </v-col>
 
@@ -128,7 +133,17 @@
       </v-col>
 
       <v-col cols="6">
-        <h2 class="mb-5 text-h5">Advanced</h2>
+        <h2 class="mb-5 text-h5">Uniq</h2>
+
+        <QueryExample query="uniq($status) as num_checks">
+          <template #description>Count the number of timeseries.</template>
+        </QueryExample>
+
+        <QueryExample
+          query="uniq($status{_value=1}) as num_up | uniq($status{_value=0}) as num_down"
+        >
+          <template #description>Number of timeseries with the given values.</template>
+        </QueryExample>
 
         <QueryExample query="uniq($hits, host.name, service.name) as num_timeseries">
           <template #description
@@ -136,6 +151,10 @@
             <code>service.name</code>.</template
           >
         </QueryExample>
+      </v-col>
+
+      <v-col cols="6">
+        <h2 class="mb-5 text-h5">Advanced</h2>
 
         <QueryExample query="delta($kafka_part_offset) as messages_processed">
           <template #description
@@ -150,9 +169,13 @@
           >
         </QueryExample>
 
-        <QueryExample query="min($cache..time), max($cache..time)">
+        <QueryExample query="min($cache._time), max($cache._time)">
+          <template #description>Get the first/last time the metric received an update.</template>
+        </QueryExample>
+
+        <QueryExample query="group by lower(service.name) as service">
           <template #description
-            >Get the first/last time the metric received an update (note the double dot)</template
+            >You can use <code>lower</code> and <code>upper</code> functions in groupings.</template
           >
         </QueryExample>
       </v-col>

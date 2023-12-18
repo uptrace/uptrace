@@ -35,7 +35,7 @@ import { Metric } from '@/metrics/types'
 // Components
 import SearchableList from '@/components/SearchableList.vue'
 
-// Utilities
+// Misc
 import { truncateMiddle } from '@/util/string'
 
 export default defineComponent({

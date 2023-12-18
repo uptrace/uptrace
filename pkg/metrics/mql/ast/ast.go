@@ -15,10 +15,20 @@ type Expr interface {
 	AppendTemplate(b []byte) []byte
 }
 
+func String(expr Expr) string {
+	return unsafeconv.String(expr.AppendString(nil))
+}
+
+var (
+	_ Expr = (*ParenExpr)(nil)
+	_ Expr = (*Name)(nil)
+	_ Expr = (*BinaryExpr)(nil)
+	_ Expr = (*FuncCall)(nil)
+)
+
 type Selector struct {
-	Expr       NamedExpr
-	Grouping   []string
-	GroupByAll bool
+	Exprs    []NamedExpr
+	Grouping []NamedExpr
 }
 
 type NamedExpr struct {
@@ -45,7 +55,6 @@ func (e ParenExpr) AppendTemplate(b []byte) []byte {
 }
 
 type Name struct {
-	Func    string
 	Name    string
 	Filters []Filter
 }
@@ -86,19 +95,19 @@ type Number struct {
 	Kind NumberKind
 }
 
-func (n *Number) String() string {
+func (n Number) String() string {
 	return n.Text
 }
 
-func (n *Number) AppendString(b []byte) []byte {
+func (n Number) AppendString(b []byte) []byte {
 	return append(b, n.Text...)
 }
 
-func (n *Number) AppendTemplate(b []byte) []byte {
+func (n Number) AppendTemplate(b []byte) []byte {
 	return append(b, n.Text...)
 }
 
-func (n *Number) ConvertValue(unit string) (float64, error) {
+func (n Number) ConvertValue(unit string) (float64, error) {
 	switch n.Kind {
 	case NumberDuration:
 		dur, err := time.ParseDuration(n.Text)
@@ -121,7 +130,7 @@ func (n *Number) ConvertValue(unit string) (float64, error) {
 	}
 }
 
-func (n *Number) Float64() float64 {
+func (n Number) Float64() float64 {
 	switch n.Kind {
 	case NumberDuration:
 		dur, err := time.ParseDuration(n.Text)
@@ -142,6 +151,23 @@ func (n *Number) Float64() float64 {
 		}
 		return f
 	}
+}
+
+type SimpleFuncCall struct {
+	Func *Func
+	Arg  string
+}
+
+func (fn *SimpleFuncCall) AppendString(b []byte) []byte {
+	b = append(b, fn.Func.Name...)
+	b = append(b, '(')
+	b = append(b, fn.Arg...)
+	b = append(b, ')')
+	return b
+}
+
+func (fn *SimpleFuncCall) AppendTemplate(b []byte) []byte {
+	return fn.AppendString(b)
 }
 
 type FuncCall struct {
@@ -201,8 +227,9 @@ func (uq *UniqExpr) AppendTemplate(b []byte) []byte {
 type BinaryExpr struct {
 	Op       BinaryOp
 	LHS, RHS Expr
-	JoinOn   []string
 }
+
+type BinaryOp string
 
 func (e *BinaryExpr) AppendString(b []byte) []byte {
 	b = e.LHS.AppendString(b)
@@ -222,13 +249,10 @@ func (e *BinaryExpr) AppendTemplate(b []byte) []byte {
 	return b
 }
 
-type BinaryOp string
-
 //------------------------------------------------------------------------------
 
 type Grouping struct {
-	Names      []string
-	GroupByAll bool
+	Elems []NamedExpr
 }
 
 //------------------------------------------------------------------------------
@@ -242,6 +266,10 @@ type FilterOp string
 const (
 	FilterEqual     FilterOp = "="
 	FilterNotEqual  FilterOp = "!="
+	FilterLT        FilterOp = "<"
+	FilterLTE       FilterOp = "<="
+	FilterGT        FilterOp = ">"
+	FilterGTE       FilterOp = ">="
 	FilterIn        FilterOp = "in"
 	FilterNotIn     FilterOp = "not in"
 	FilterRegexp    FilterOp = "~"
@@ -307,12 +335,12 @@ func (v StringValue) AppendString(b []byte) []byte {
 }
 
 type StringValues struct {
-	Texts []string
+	Values []string
 }
 
 func (v StringValues) AppendString(b []byte) []byte {
 	b = append(b, '(')
-	for i, text := range v.Texts {
+	for i, text := range v.Values {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
@@ -340,23 +368,16 @@ func SplitAliasName(s string) (string, string) {
 }
 
 var opPrecedence = [][]BinaryOp{
-	[]BinaryOp{"^"},
-	[]BinaryOp{"*", "/", "%"},
-	[]BinaryOp{"+", "-"},
-	[]BinaryOp{"+", "-"},
-	[]BinaryOp{"==", "!=", "<=", "<", ">=", ">"},
-	[]BinaryOp{"and", "unless"},
-	[]BinaryOp{"or"},
+	{"^"},
+	{"*", "/", "%"},
+	{"+", "-"},
+	{"+", "-"},
+	{"==", "!=", "<=", "<", ">=", ">"},
+	{"and", "unless"},
+	{"or"},
 }
 
-func binaryExprPrecedence(expr Expr) Expr {
-	if expr, ok := expr.(*BinaryExpr); ok {
-		return binaryOpPrecedence(expr)
-	}
-	return expr
-}
-
-func binaryOpPrecedence(expr *BinaryExpr) *BinaryExpr {
+func binaryExprPrecedence(expr *BinaryExpr) *BinaryExpr {
 	for _, ops := range opPrecedence {
 		expr = unwrapBinaryExpr(exprPrecedence(expr, ops))
 	}
@@ -407,6 +428,8 @@ func unwrapBinaryExpr(expr Expr) *BinaryExpr {
 		panic("not reached")
 	}
 }
+
+//------------------------------------------------------------------------------
 
 func clean(attrKey string) string {
 	if strings.HasPrefix(attrKey, "span.") {

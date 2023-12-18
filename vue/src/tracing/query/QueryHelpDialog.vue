@@ -1,10 +1,7 @@
 <template>
   <v-dialog v-model="dialog" :max-width="1280" @keydown.esc="dialog = false">
     <template #activator="{ on, attrs }">
-      <v-btn text class="v-btn--filter" v-bind="attrs" v-on="on">
-        <v-icon left>mdi-help-circle-outline</v-icon>
-        <span>Help</span>
-      </v-btn>
+      <v-btn text class="v-btn--filter" v-bind="attrs" v-on="on"> Help </v-btn>
     </template>
 
     <v-card>

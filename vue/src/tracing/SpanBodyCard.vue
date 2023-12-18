@@ -29,7 +29,7 @@
         <div>{{ span.kind }}</div>
       </v-col>
 
-      <v-col v-if="!isEvent" cols="auto">
+      <v-col v-if="isSpan" cols="auto">
         <div class="grey--text font-weight-regular">Status</div>
         <div>
           <v-tooltip v-if="span.statusMessage" max-width="600" bottom>
@@ -67,9 +67,9 @@
 
           <NewMonitorMenu
             v-else
+            :systems="[span.system]"
             :name="`${span.system} > ${span.displayName}`"
             :where="`where ${AttrKey.spanGroupId} = '${span.groupId}'`"
-            :events-mode="isEvent"
             verbose
             class="ml-2"
           />
@@ -141,7 +141,7 @@ import { defineComponent, ref, computed, PropType } from 'vue'
 // Composables
 import { useRoute } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { createQueryEditor, useQueryStore } from '@/use/uql'
+import { createQueryEditor, injectQueryStore } from '@/use/uql'
 import { injectAnnotations } from '@/org/use-annotations'
 
 // Components
@@ -151,7 +151,7 @@ import EventPanels from '@/tracing/EventPanels.vue'
 import GroupInfoCard from '@/tracing/GroupInfoCard.vue'
 
 // Utilities
-import { AttrKey, isEventSystem } from '@/models/otel'
+import { AttrKey, isSpanSystem } from '@/models/otel'
 import { spanName, Span } from '@/models/span'
 
 export default defineComponent({
@@ -180,11 +180,11 @@ export default defineComponent({
 
   setup(props) {
     const route = useRoute()
-    const { where } = useQueryStore()
+    const { where } = injectQueryStore()
     const activeTab = ref('attrs')
 
-    const isEvent = computed((): boolean => {
-      return isEventSystem(props.span.system)
+    const isSpan = computed((): boolean => {
+      return isSpanSystem(props.span.system)
     })
 
     const axiosParams = computed(() => {
@@ -241,7 +241,7 @@ export default defineComponent({
           ...props.dateRange.queryParams(),
           system: props.span.system,
           query: createQueryEditor()
-            .exploreAttr(AttrKey.spanGroupId, isEvent.value)
+            .exploreAttr(AttrKey.spanGroupId, isSpan.value)
             .where(AttrKey.spanGroupId, '=', props.span.groupId)
             .toString(),
         },
@@ -251,7 +251,7 @@ export default defineComponent({
     return {
       AttrKey,
       activeTab,
-      isEvent,
+      isSpan,
 
       annotations: injectAnnotations(),
 

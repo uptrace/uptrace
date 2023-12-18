@@ -64,7 +64,7 @@ export default defineComponent({
 
   setup(props) {
     const searchInput = shallowRef('')
-    const pager = usePager({ perPage: 10 })
+    const pager = usePager()
 
     const filteredItems = computed(() => {
       if (!searchInput.value) {

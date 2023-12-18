@@ -11,20 +11,46 @@ export interface Dashboard {
 
   minInterval: number
   timeOffset: number
-  gridQuery: string
 
   tableMetrics: MetricAlias[]
   tableQuery: string
   tableGrouping: string[]
   tableColumnMap: Record<string, MetricColumn>
+
+  gridQuery: string
+  gridMaxWidth: number
 }
 
-interface BaseGridColumn {
+export interface GridRow {
   id: number
-  projectId: number
   dashId: number
 
-  name: string
+  title: string
+  description: string
+  expanded: boolean
+  index: number
+
+  items: GridItem[]
+
+  createdAt: string
+  updatedAt: string
+}
+
+export interface GridItemPos {
+  id: number
+  width: number
+  height: number
+  xAxis: number
+  yAxis: number
+}
+
+interface BaseGridItem {
+  id: number
+  dashId: number
+  dashKind: DashKind
+  rowId: number
+
+  title: string
   description: string
 
   width: number
@@ -32,24 +58,56 @@ interface BaseGridColumn {
   xAxis: number
   yAxis: number
 
-  gridQueryTemplate: string
-
-  type: GridColumnType
+  type: GridItemType
   params: unknown
+
+  createdAt: string
+  updatedAt: string
 }
 
-export enum GridColumnType {
+export enum DashKind {
+  Invalid = '',
+  Grid = 'grid',
+  Table = 'table',
+}
+
+export enum GridItemType {
+  Invalid = '',
+  Gauge = 'gauge',
   Chart = 'chart',
   Table = 'table',
   Heatmap = 'heatmap',
 }
 
-export interface ChartGridColumn extends BaseGridColumn {
-  type: GridColumnType.Chart
-  params: ChartColumnParams
+export function emptyBaseGridItem(): BaseGridItem {
+  return {
+    id: 0,
+    dashId: 0,
+    dashKind: DashKind.Invalid,
+    rowId: 0,
+
+    title: '',
+    description: '',
+
+    xAxis: 0,
+    yAxis: 0,
+    width: 0,
+    height: 0,
+
+    type: GridItemType.Invalid,
+    params: undefined,
+
+    createdAt: '',
+    updatedAt: '',
+  }
 }
 
-export interface ChartColumnParams {
+export interface ChartGridItem extends BaseGridItem {
+  type: GridItemType.Chart
+  params: ChartGridItemParams
+}
+
+export interface ChartGridItemParams {
   chartKind: ChartKind
   metrics: MetricAlias[]
   query: string
@@ -99,48 +157,79 @@ export enum LegendValue {
   Last = 'last',
 }
 
-export interface TableGridColumn extends BaseGridColumn {
-  type: GridColumnType.Table
-  params: TableColumnParams
+export interface TableGridItem extends BaseGridItem {
+  type: GridItemType.Table
+  params: TableGridItemParams
 }
 
-export interface TableColumnParams {
+export interface TableGridItemParams {
   metrics: MetricAlias[]
   query: string
   columnMap: Record<string, MetricColumn>
+  itemsPerPage: number
+  denseTable: boolean
 }
 
-export interface HeatmapGridColumn extends BaseGridColumn {
-  type: GridColumnType.Heatmap
-  params: HeatmapColumnParams
+export interface HeatmapGridItem extends BaseGridItem {
+  type: GridItemType.Heatmap
+  params: HeatmapGridItemParams
 }
 
-export interface HeatmapColumnParams {
+export interface HeatmapGridItemParams {
   metric: string
   unit: string
   query: string
 }
 
-export type GridColumn = ChartGridColumn | TableGridColumn | HeatmapGridColumn
-
-export enum DashKind {
-  Grid = 'grid',
-  Table = 'table',
+export interface RowGridItem extends BaseGridItem {
+  type: GridItemType.Invalid
+  params: RowGridItemParams
 }
 
-export interface DashGauge {
-  id: string
-  projectId: number
-  dashId: string
+export interface RowGridItemParams {
+  gridItems: GridItem[]
+}
 
-  dashKind: DashKind
-  name: string
-  template: string
+export interface GaugeGridItem extends BaseGridItem {
+  type: GridItemType.Gauge
+  params: GaugeGridItemParams
+}
 
+export interface GaugeGridItemParams {
   metrics: MetricAlias[]
   query: string
   columnMap: Record<string, MetricColumn>
+
+  template: string
+  valueMappings: ValueMapping[]
 }
+
+export interface ValueMapping {
+  op: MappingOp
+  value: number
+  text: string
+  color: string
+}
+
+export enum MappingOp {
+  Any = 'any',
+  Equal = 'eq',
+  Lt = 'lt',
+  Lte = 'lte',
+  Gt = 'gt',
+  Gte = 'gte',
+}
+
+export function emptyValueMapping(): ValueMapping {
+  return {
+    op: MappingOp.Equal,
+    value: 0,
+    text: '',
+    color: '',
+  }
+}
+
+export type GridItem = GaugeGridItem | ChartGridItem | TableGridItem | HeatmapGridItem
 
 export interface Metric {
   id: string
@@ -148,8 +237,9 @@ export interface Metric {
 
   name: string
   description: string
-  unit: string
   instrument: Instrument
+  unit: string
+  attrKeys: string[]
 
   createdAt: string
   updatedAt: string
@@ -162,8 +252,9 @@ export function emptyMetric() {
 
     name: '',
     description: '',
-    unit: '',
     instrument: Instrument.Deleted,
+    unit: '',
+    attrKeys: [],
 
     createdAt: '',
     updatedAt: '',
@@ -199,12 +290,13 @@ export interface Timeseries {
   name: string
   unit: string
   attrs: Record<string, string>
-  value: number[]
+  attrsHash: string
+  value: (number | null)[]
 
-  last: number
-  avg: number
-  min: number
-  max: number
+  last: number | null
+  avg: number | null
+  min: number | null
+  max: number | null
 }
 
 export interface StyledTimeseries extends Timeseries, TimeseriesStyle {}
@@ -222,8 +314,8 @@ export interface StyledColumnInfo extends ColumnInfo {
 export function defaultTimeseriesStyle(): TimeseriesStyle {
   return {
     color: '',
-    opacity: 15,
-    lineWidth: 2,
+    opacity: 10,
+    lineWidth: 1.5,
     symbol: 'none',
     symbolSize: 4,
   }
@@ -277,4 +369,11 @@ export function updateColumnMap(colMap: Record<string, MetricColumn>, columns: C
       index++
     }
   }
+}
+
+export interface TableRowData extends Record<string, any> {
+  _id: string
+  _name: string
+  _query: string
+  _hash: string
 }

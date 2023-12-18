@@ -79,11 +79,11 @@ import { defineComponent, shallowRef, computed } from 'vue'
 
 // Composables
 import { useTitle } from '@vueuse/core'
-import { useForceReload } from '@/use/force-reload'
+import { injectForceReload } from '@/use/force-reload'
 import { useNotifChannels, NotifChannel, NotifChannelType } from '@/alerting/use-notif-channels'
 
 // Components
-import ForceReloadBtn from '@/components/date/ForceReloadBtn.vue'
+import ForceReloadBtn from '@/components/ForceReloadBtn.vue'
 import NotifChannelNewMenu from '@/alerting/NotifChannelNewMenu.vue'
 import NotifChannelSlackForm from '@/alerting/NotifChannelSlackForm.vue'
 import NotifChannelTelegramForm from '@/alerting/NotifChannelTelegramForm.vue'
@@ -105,10 +105,10 @@ export default defineComponent({
 
   setup() {
     useTitle('Notification Channels')
-    const { forceReloadParams } = useForceReload()
+    const forceReload = injectForceReload()
 
     const channels = useNotifChannels(() => {
-      return forceReloadParams.value
+      return forceReload.params
     })
 
     const internalDialog = shallowRef(false)

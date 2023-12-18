@@ -1,6 +1,11 @@
 <template>
   <tr @click="$emit('click')">
-    <slot :row-id="rowId" :metrics="metrics" :value="defaultValue" :time="timeseries.time" />
+    <slot
+      :row-id="rowId"
+      :metrics="metrics"
+      :empty-value="timeseries.emptyValue"
+      :time="timeseries.time"
+    />
   </tr>
 </template>
 
@@ -8,8 +13,10 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Compsables
-import { AxiosParams } from '@/use/watch-axios'
+import { joinQuery } from '@/use/uql'
 import { useTimeseries } from '@/metrics/use-query'
+
+// Misc
 import { Timeseries } from '@/metrics/types'
 
 export default defineComponent({
@@ -17,7 +24,7 @@ export default defineComponent({
 
   props: {
     axiosParams: {
-      type: Object as PropType<AxiosParams>,
+      type: Object as PropType<Record<string, any>>,
       default: undefined,
     },
     query: {
@@ -35,7 +42,7 @@ export default defineComponent({
 
         let query = props.axiosParams.query
         if (props.query) {
-          query += ' | ' + props.query
+          query = joinQuery([props.axiosParams.query, props.query])
         }
 
         return {
@@ -54,13 +61,7 @@ export default defineComponent({
       return metrics
     })
 
-    const defaultValue = computed(() => {
-      const value = timeseries.time.slice() as unknown as number[]
-      value.fill(0)
-      return value
-    })
-
-    return { rowId: Symbol(), timeseries, metrics, defaultValue }
+    return { rowId: Symbol(), timeseries, metrics }
   },
 })
 </script>

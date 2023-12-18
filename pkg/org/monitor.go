@@ -91,8 +91,8 @@ type MetricMonitorParams struct {
 	CheckNumPoint int             `json:"checkNumPoint"`
 	TimeOffset    unixtime.Millis `json:"timeOffset"`
 
-	MinValue bunutil.NullFloat64 `json:"minValue"`
-	MaxValue bunutil.NullFloat64 `json:"maxValue"`
+	MinAllowedValue bunutil.NullFloat64 `json:"minValue"`
+	MaxAllowedValue bunutil.NullFloat64 `json:"maxValue"`
 }
 
 func (m *MetricMonitor) Base() *BaseMonitor {
@@ -122,17 +122,17 @@ func (m *MetricMonitor) Validate() error {
 }
 
 func (m *MetricMonitor) MadalarmOptions() ([]madalarm.Option, error) {
-	if !m.Params.MinValue.Valid && !m.Params.MaxValue.Valid {
+	if !m.Params.MinAllowedValue.Valid && !m.Params.MaxAllowedValue.Valid {
 		return nil, errors.New("at least min or max value is required")
 	}
 
 	var options []madalarm.Option
 	options = append(options, madalarm.WithDuration(m.Params.CheckNumPoint))
-	if m.Params.MinValue.Valid {
-		options = append(options, madalarm.WithMinValue(m.Params.MinValue.Float64))
+	if m.Params.MinAllowedValue.Valid {
+		options = append(options, madalarm.WithMinValue(m.Params.MinAllowedValue.Float64))
 	}
-	if m.Params.MaxValue.Valid {
-		options = append(options, madalarm.WithMaxValue(m.Params.MaxValue.Float64))
+	if m.Params.MaxAllowedValue.Valid {
+		options = append(options, madalarm.WithMaxValue(m.Params.MaxAllowedValue.Float64))
 	}
 
 	return options, nil
@@ -177,8 +177,8 @@ type MonitorChannel struct {
 	ChannelID uint64
 }
 
-func InsertMonitor(ctx context.Context, app *bunapp.App, monitor Monitor) error {
-	if _, err := app.PG.NewInsert().
+func InsertMonitor(ctx context.Context, db bun.IDB, monitor Monitor) error {
+	if _, err := db.NewInsert().
 		Model(monitor).
 		Exec(ctx); err != nil {
 		return err

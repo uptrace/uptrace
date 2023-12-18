@@ -2,6 +2,10 @@
   cursor: pointer;
 }
 
+.cursor-move {
+  cursor: move;
+}
+
 .overflow-y-scroll {
   overflow-y: scroll;
 }
@@ -10,8 +14,12 @@
   user-select: text !important;
 }
 
+.user-select-all {
+  user-select: all !important;
+}
+
 .text-transform-none {
-  text-transform: none;
+  text-transform: none !important;
 }
 
 .word-break-all {

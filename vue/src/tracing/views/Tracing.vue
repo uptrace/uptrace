@@ -33,7 +33,7 @@
             <v-col cols="auto">
               <v-tabs :key="$route.fullPath" background-color="transparent">
                 <v-tab :to="routes.groupList" exact-path>Groups</v-tab>
-                <v-tab :to="routes.spanList" exact-path>Spans</v-tab>
+                <v-tab :to="routes.spanList" exact-path>{{ spanListName }}</v-tab>
                 <v-tab :to="routes.timeseries" exact-path>Timeseries</v-tab>
               </v-tabs>
             </v-col>
@@ -50,7 +50,7 @@
             :uql="uql"
             :systems="systems"
             :axios-params="axiosParams"
-            :agg-disabled="['SpanGroupList'].indexOf($route.name) === -1"
+            :agg-disabled="$route.name === 'SpanList'"
             @click:reset="resetQuery(true)"
           />
         </UptraceQuery>
@@ -61,7 +61,20 @@
           :systems="systems"
           :uql="uql"
           :axios-params="axiosParams"
-        />
+        >
+          <template slot="search-filter">
+            <v-text-field
+              v-model="searchInput"
+              placeholder="Quick search: option1|option2"
+              prepend-inner-icon="mdi-magnify"
+              clearable
+              outlined
+              dense
+              hide-details="auto"
+              style="max-width: 300px"
+            />
+          </template>
+        </router-view>
       </v-container>
     </template>
   </div>
@@ -69,7 +82,8 @@
 
 <script lang="ts">
 import { pick } from 'lodash-es'
-import { defineComponent, shallowRef, computed, watch, proxyRefs, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, proxyRefs, PropType } from 'vue'
+import { refDebounced } from '@vueuse/core'
 
 // Composables
 import { useTitle } from '@vueuse/core'
@@ -89,7 +103,7 @@ import UptraceQuery from '@/components/UptraceQuery.vue'
 import SpanQueryBuilder from '@/tracing/query/SpanQueryBuilder.vue'
 
 // Utilities
-import { AttrKey } from '@/models/otel'
+import { SystemName, AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'Tracing',
@@ -113,8 +127,10 @@ export default defineComponent({
   setup(props) {
     useTitle('Explore spans')
 
-    const route = useRoute()
     const user = useUser()
+
+    const searchInput = shallowRef('')
+    const debouncedSearchInput = refDebounced(searchInput, 600)
 
     const uql = useUql()
     provideQueryStore(useQueryStore(uql))
@@ -131,24 +147,26 @@ export default defineComponent({
     const axiosParams = computed(() => {
       return {
         ...props.dateRange.axiosParams(),
+        ...systems.axiosParams(),
         ...uql.axiosParams(),
-        system: systems.activeSystems,
+        search: debouncedSearchInput.value,
       }
     })
 
-    watch(
-      () => systems.activeSystems,
-      (activeSystem) => {
-        if (activeSystem.length && !route.value.query.query) {
-          resetQuery()
-        }
-      },
-      { immediate: true, flush: 'post' },
-    )
+    const spanListName = computed(() => {
+      switch (systems.groupName) {
+        case SystemName.LogAll:
+          return 'Logs'
+        case SystemName.EventsAll:
+          return 'Events'
+        default:
+          return 'Spans'
+      }
+    })
 
     function resetQuery(clear = false) {
       uql.query = createQueryEditor()
-        .exploreAttr(AttrKey.spanGroupId, systems.isEvent)
+        .exploreAttr(AttrKey.spanGroupId, systems.isSpan)
         .add(clear ? '' : uql.whereQuery)
         .toString()
     }
@@ -160,6 +178,8 @@ export default defineComponent({
 
       uql,
       axiosParams,
+      searchInput,
+      spanListName,
 
       routes: useRoutes(),
 

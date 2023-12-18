@@ -3,7 +3,7 @@ import { shallowRef, computed, proxyRefs, watch, onBeforeUnmount, getCurrentInst
 
 // Composables
 import { useRoute, Values } from '@/use/router'
-import { useForceReload } from '@/use/force-reload'
+import { injectForceReload } from '@/use/force-reload'
 
 // Utilities
 import {
@@ -43,7 +43,7 @@ export function useDateRange(conf: Config = {}) {
   const duration = shallowRef(0)
 
   let updateNowTimer: ReturnType<typeof setTimeout> | null
-  const { forceReload, forceReloadParams } = useForceReload()
+  const forceReload = injectForceReload()
 
   const isValid = computed((): boolean => {
     return Boolean(lt.value) && Boolean(duration.value)
@@ -128,12 +128,12 @@ export function useDateRange(conf: Config = {}) {
 
   function reload() {
     updateNow()
-    forceReload()
+    forceReload.do()
   }
 
   function reloadNow() {
     updateNow(true)
-    forceReload()
+    forceReload.do()
   }
 
   function reset() {
@@ -176,7 +176,6 @@ export function useDateRange(conf: Config = {}) {
 
   function changeAround(dt: Date | string, ms = 0) {
     if (typeof dt === 'string') {
-      console.log(dt, new Date(dt))
       dt = new Date(dt)
     }
 
@@ -298,7 +297,7 @@ export function useDateRange(conf: Config = {}) {
     }
 
     const params: Record<string, any> = {
-      ...forceReloadParams.value,
+      ...forceReload.params,
       [prefix + 'gte']: gteVal.toISOString(),
       [prefix + 'lt']: ltVal.toISOString(),
     }

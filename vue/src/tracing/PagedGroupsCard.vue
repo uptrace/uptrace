@@ -220,7 +220,7 @@ export default defineComponent({
       })
     })
 
-    const pager = usePager({ perPage: 15 })
+    const pager = usePager(15)
     const pagedGroups = computed((): Group[] => {
       const pagedGroups = filteredGroups.value.slice(pager.pos.start, pager.pos.end)
       return pagedGroups

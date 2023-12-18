@@ -5,16 +5,12 @@ interface PagePos {
   end: number
 }
 
-export interface PagerConfig {
-  perPage: number
-}
-
 export type UsePager = ReturnType<typeof usePager>
 
-export function usePager(cfg: PagerConfig = { perPage: 10 }) {
+export function usePager(perPageValue = 10) {
   const numItem = shallowRef(0)
   const page = shallowRef(1)
-  const perPage = shallowRef(cfg.perPage)
+  const perPage = shallowRef(perPageValue)
 
   const pos = computed((): PagePos => {
     const start = (page.value - 1) * perPage.value

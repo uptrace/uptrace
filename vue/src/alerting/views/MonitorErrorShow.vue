@@ -75,12 +75,15 @@ import { useTitle } from '@vueuse/core'
 import { useRouterOnly, useSyncQueryParams } from '@/use/router'
 import { useDateRange } from '@/use/date-range'
 import { useProject } from '@/org/use-projects'
-import { useErrorMonitor, useMonitorManager, MonitorState } from '@/alerting/use-monitors'
+import { useErrorMonitor, useMonitorManager } from '@/alerting/use-monitors'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import MonitorErrorForm from '@/alerting/MonitorErrorForm.vue'
 import MonitorStateAvatar from '@/alerting/MonitorStateAvatar.vue'
+
+// Misc
+import { MonitorState } from '@/alerting/types'
 
 export default defineComponent({
   name: 'MonitorErrorShow',

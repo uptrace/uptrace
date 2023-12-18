@@ -71,12 +71,12 @@ import { defineComponent, shallowRef } from 'vue'
 // Composables
 import { useTitle } from '@vueuse/core'
 import { useSyncQueryParams } from '@/use/router'
-import { useForceReload } from '@/use/force-reload'
+import { injectForceReload } from '@/use/force-reload'
 import { useOrder } from '@/use/order'
 import { useAnnotations, emptyAnnotation } from '@/org/use-annotations'
 
 // Components
-import ForceReloadBtn from '@/components/date/ForceReloadBtn.vue'
+import ForceReloadBtn from '@/components/ForceReloadBtn.vue'
 import AnnotationsTable from '@/alerting/AnnotationsTable.vue'
 import AnnotationForm from '@/alerting/AnnotationForm.vue'
 
@@ -91,12 +91,12 @@ export default defineComponent({
   setup() {
     useTitle('Annotations')
     const dialog = shallowRef(false)
-    const { forceReloadParams } = useForceReload()
+    const forceReload = injectForceReload()
     const order = useOrder()
 
     const annotations = useAnnotations(() => {
       return {
-        ...forceReloadParams.value,
+        ...forceReload.params,
         ...order.axiosParams,
       }
     })

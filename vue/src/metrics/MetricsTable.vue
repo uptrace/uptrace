@@ -1,5 +1,6 @@
 <template>
   <v-data-table
+    :loading="loading"
     :headers="headers"
     :items="metrics"
     item-key="name"
@@ -35,8 +36,8 @@
 <script lang="ts">
 import { defineComponent, computed, PropType } from 'vue'
 
-// Utilities
-import { MetricStats } from '@/metrics/use-metrics'
+// Misc
+import { ExploredMetric } from '@/metrics/use-metrics'
 
 export default defineComponent({
   name: 'MetricsTable',
@@ -47,7 +48,7 @@ export default defineComponent({
       required: true,
     },
     metrics: {
-      type: Array as PropType<MetricStats[]>,
+      type: Array as PropType<ExploredMetric[]>,
       required: true,
     },
   },

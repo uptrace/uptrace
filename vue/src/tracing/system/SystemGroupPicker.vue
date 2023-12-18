@@ -22,11 +22,18 @@
 import { defineComponent, computed, watch, PropType } from 'vue'
 
 // Composables
-import { createQueryEditor, useQueryStore } from '@/use/uql'
+import { createQueryEditor, injectQueryStore } from '@/use/uql'
 import { addAllSystem, System } from '@/tracing/system/use-systems'
 
-// Utilities
-import { isSpanSystem, isEventSystem, isLogSystem, SystemName, AttrKey } from '@/models/otel'
+// Misc
+import {
+  isSpanSystem,
+  isLogSystem,
+  isEventSystem,
+  systemMatches,
+  SystemName,
+  AttrKey,
+} from '@/models/otel'
 
 interface Group {
   name: string
@@ -59,44 +66,84 @@ export default defineComponent({
       return systems
     })
 
+    const activeSpanSystems = computed(() => {
+      if (!isSpanSystem(...props.value)) {
+        return spanSystems.value
+      }
+      return spanSystems.value.filter((item) => {
+        for (let system of props.value) {
+          if (systemMatches(item.system, system)) {
+            return true
+          }
+        }
+        return false
+      })
+    })
+
     const logSystems = computed(() => {
       const systems = props.systems.filter((item) => isLogSystem(item.system))
       addAllSystem(systems, SystemName.LogAll)
       return systems
     })
 
+    const activeLogSystems = computed(() => {
+      if (!isLogSystem(...props.value)) {
+        return logSystems.value
+      }
+      return logSystems.value.filter((item) => {
+        for (let system of props.value) {
+          if (systemMatches(item.system, system)) {
+            return true
+          }
+        }
+        return false
+      })
+    })
+
     const eventSystems = computed(() => {
-      const systems = props.systems.filter(
-        (item) => isEventSystem(item.system) && !isLogSystem(item.system),
-      )
+      const systems = props.systems.filter((item) => isEventSystem(item.system))
       addAllSystem(systems, SystemName.EventsAll)
       return systems
+    })
+
+    const activeEventSystems = computed(() => {
+      if (!isEventSystem(...props.value)) {
+        return eventSystems.value
+      }
+      return eventSystems.value.filter((item) => {
+        for (let system of props.value) {
+          if (systemMatches(item.system, system)) {
+            return true
+          }
+        }
+        return false
+      })
     })
 
     const groups = computed(() => {
       const groups: Group[] = []
 
-      if (spanSystems.value.length > 1) {
+      if (spanSystems.value.length > 1 || isSpanSystem(...props.value)) {
         groups.push({
           name: 'Spans',
           system: SystemName.SpansAll,
-          count: countGroups(spanSystems.value),
+          count: countGroups(activeSpanSystems.value),
         })
       }
 
-      if (logSystems.value.length > 1) {
+      if (logSystems.value.length > 1 || isLogSystem(...props.value)) {
         groups.push({
           name: 'Logs',
           system: SystemName.LogAll,
-          count: countGroups(logSystems.value),
+          count: countGroups(activeLogSystems.value),
         })
       }
 
-      if (eventSystems.value.length > 1) {
+      if (eventSystems.value.length > 1 || isEventSystem(...props.value)) {
         groups.push({
           name: 'Events',
           system: SystemName.EventsAll,
-          count: countGroups(eventSystems.value),
+          count: countGroups(activeEventSystems.value),
         })
       }
 
@@ -146,14 +193,14 @@ export default defineComponent({
       { immediate: true, flush: 'sync' },
     )
 
-    const { where } = useQueryStore()
+    const { where } = injectQueryStore()
     function routeFor(system: string) {
       return {
         name: 'SpanGroupList',
         query: {
           system,
           query: createQueryEditor()
-            .exploreAttr(AttrKey.spanGroupId, isEventSystem(system))
+            .exploreAttr(AttrKey.spanGroupId, isSpanSystem(system))
             .add(where.value)
             .toString(),
         },

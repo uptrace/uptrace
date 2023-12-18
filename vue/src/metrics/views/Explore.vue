@@ -12,67 +12,67 @@
           <v-toolbar flat color="blue lighten-5">
             <v-toolbar-title>Metrics</v-toolbar-title>
 
-            <v-text-field
-              v-model="metricStats.searchInput"
-              label="Quick search: option1|option2"
-              prepend-inner-icon="mdi-magnify"
-              clearable
-              outlined
-              dense
-              hide-details="auto"
-              class="ml-8"
-              style="max-width: 300px"
-            />
+            <v-col cols="auto">
+              <v-text-field
+                v-model="metrics.searchInput"
+                placeholder="Quick search: option1|option2"
+                prepend-inner-icon="mdi-magnify"
+                clearable
+                outlined
+                dense
+                hide-details="auto"
+                style="min-width: 300px"
+              />
+            </v-col>
+
+            <v-col cols="auto">
+              <v-autocomplete
+                v-model="activeAttrKeys"
+                multiple
+                :loading="attrKeysDs.loading"
+                :items="attrKeysDs.filteredItems"
+                :error-messages="attrKeysDs.errorMessages"
+                :search-input.sync="attrKeysDs.searchInput"
+                placeholder="Show all metrics"
+                outlined
+                dense
+                no-filter
+                auto-select-first
+                clearable
+                hide-details="auto"
+                style="min-width: 300px"
+              >
+                <template #item="{ item }">
+                  <v-list-item-action class="my-0 mr-4">
+                    <v-simple-checkbox
+                      :value="activeAttrKeys.includes(item.value)"
+                    ></v-simple-checkbox>
+                  </v-list-item-action>
+                  <v-list-item-content>
+                    <v-list-item-title>
+                      {{ item.text }}
+                    </v-list-item-title>
+                  </v-list-item-content>
+                  <v-list-item-action>
+                    <v-chip small>{{ item.count }}</v-chip>
+                  </v-list-item-action>
+                </template>
+              </v-autocomplete>
+            </v-col>
 
             <v-spacer />
 
             <div class="text-body-2 blue-grey--text text--darken-3">
-              <span v-if="metricStats.hasMore">more than </span>
-              <span class="font-weight-bold">{{ metricStats.items.length }}</span>
+              <span v-if="metrics.hasMore">more than </span>
+              <span class="font-weight-bold">{{ metrics.items.length }}</span>
               <span> metrics</span>
             </div>
           </v-toolbar>
 
           <div class="pa-4">
-            <v-row align="center">
-              <v-col cols="auto" class="text-body-2 text--secondary"
-                >Only show metrics with attributes</v-col
-              >
-              <v-col cols="auto">
-                <v-autocomplete
-                  v-model="activeAttrKeys"
-                  multiple
-                  :loading="attrKeysDs.loading"
-                  :items="attrKeysDs.filteredItems"
-                  :error-messages="attrKeysDs.errorMessages"
-                  :search-input.sync="attrKeysDs.searchInput"
-                  placeholder="Show all metrics"
-                  solo
-                  flat
-                  dense
-                  background-color="grey lighten-4"
-                  no-filter
-                  auto-select-first
-                  clearable
-                  hide-details="auto"
-                >
-                  <template #item="{ item }">
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        {{ item.text }}
-                      </v-list-item-title>
-                    </v-list-item-content>
-                    <v-list-item-action>
-                      <v-chip small>{{ item.count }}</v-chip>
-                    </v-list-item-action>
-                  </template>
-                </v-autocomplete>
-              </v-col>
-            </v-row>
-
             <MetricsTable
-              :loading="metricStats.loading"
-              :metrics="metricStats.items"
+              :loading="metrics.loading"
+              :metrics="metrics.items"
               @click:item="
                 activeMetric = $event
                 dialog = true
@@ -101,9 +101,8 @@ import { defineComponent, shallowRef, PropType } from 'vue'
 import { useTitle } from '@vueuse/core'
 import { useRoute } from '@/use/router'
 import { useDataSource } from '@/use/datasource'
-import { useForceReload } from '@/use/force-reload'
 import { UseDateRange } from '@/use/date-range'
-import { useMetricStats, MetricStats } from '@/metrics/use-metrics'
+import { useExploreMetrics, ExploredMetric } from '@/metrics/use-metrics'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
@@ -123,22 +122,18 @@ export default defineComponent({
 
   setup(props) {
     useTitle('Explore Metrics')
-
     const route = useRoute()
-    const { forceReloadParams } = useForceReload()
 
     const activeAttrKeys = shallowRef<string[]>([])
     const attrKeysDs = useDataSource(() => {
       const { projectId } = route.value.params
       return {
         url: `/internal/v1/metrics/${projectId}/attr-keys`,
-        params: {
-          ...forceReloadParams.value,
-        },
+        params: props.dateRange.axiosParams(),
       }
     })
 
-    const metricStats = useMetricStats(() => {
+    const metrics = useExploreMetrics(() => {
       return {
         ...props.dateRange.axiosParams(),
         attr_key: activeAttrKeys.value,
@@ -146,12 +141,12 @@ export default defineComponent({
     })
 
     const dialog = shallowRef(false)
-    const activeMetric = shallowRef<MetricStats>()
+    const activeMetric = shallowRef<ExploredMetric>()
 
     return {
       activeAttrKeys,
       attrKeysDs,
-      metricStats,
+      metrics,
 
       dialog,
       activeMetric,

@@ -4,9 +4,9 @@ import { refDebounced } from '@vueuse/core'
 // Composables
 import { useRoute } from '@/use/router'
 import { useWatchAxios, AxiosParamsSource } from '@/use/watch-axios'
-import { useForceReload } from '@/use/force-reload'
+import { injectForceReload } from '@/use/force-reload'
 
-// Types
+// Misc
 import { emptyMetric, Metric, ActiveMetric, MetricAlias, Instrument } from '@/metrics/types'
 
 export type UseMetrics = ReturnType<typeof useMetrics>
@@ -16,7 +16,7 @@ export function useMetrics(
   debounce = 0,
 ) {
   const route = useRoute()
-  const { forceReloadParams } = useForceReload()
+  const forceReload = injectForceReload()
 
   const { status, loading, data, reload } = useWatchAxios(() => {
     const params = axiosParamsSource ? axiosParamsSource() : {}
@@ -28,7 +28,7 @@ export function useMetrics(
     return {
       url: `/internal/v1/metrics/${projectId}`,
       params: {
-        ...forceReloadParams.value,
+        ...forceReload.params,
         ...params,
       },
     }
@@ -70,14 +70,14 @@ export function metricShortName(name: string): string {
 
 //------------------------------------------------------------------------------
 
-export interface MetricStats {
+export interface ExploredMetric {
   name: string
   attrKeys: string[]
   instrument: Instrument
   numTimeseries: number
 }
 
-export function useMetricStats(axiosParamsSource: AxiosParamsSource) {
+export function useExploreMetrics(axiosParamsSource: AxiosParamsSource) {
   const route = useRoute()
 
   const searchInput = shallowRef('')
@@ -86,6 +86,7 @@ export function useMetricStats(axiosParamsSource: AxiosParamsSource) {
 
   const { status, loading, data, reload } = useWatchAxios(() => {
     const params = axiosParamsSource()
+
     if (params) {
       params.search_input = debouncedSearchInput.value
     }
@@ -97,7 +98,7 @@ export function useMetricStats(axiosParamsSource: AxiosParamsSource) {
     }
   })
 
-  const metrics = computed((): MetricStats[] => {
+  const metrics = computed((): ExploredMetric[] => {
     return data.value?.metrics ?? []
   })
 
@@ -182,7 +183,10 @@ export function defaultMetricQuery(instrument: Instrument, alias: string) {
 export function defaultMetricAlias(metricName: string): string {
   let i = metricName.lastIndexOf('.')
   if (i >= 0) {
-    return metricName.slice(i + 1)
+    metricName = metricName.slice(i + 1)
+    if (metricName.length < 20) {
+      return metricName
+    }
   }
 
   i = metricName.lastIndexOf('_')

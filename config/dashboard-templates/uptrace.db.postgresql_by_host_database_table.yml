@@ -1,0 +1,53 @@
+schema: v2
+name: 'DB: PostgreSQL tables'
+
+table:
+  metrics:
+    - postgresql.table.size as $size
+    - postgresql.rows as $rows
+    - postgresql.operations as $ops
+    - postgresql.blocks_read as $blocks_read
+  query:
+    - group by host.name
+    - group by postgresql.database.name
+    - group by postgresql.table.name
+    - $size
+    - $rows
+    - per_min($ops) as ops
+    - per_min($blocks_read) as blocks_read
+
+grid_rows:
+  - title: General
+    items:
+      - title: Disk space used by the table
+        metrics:
+          - postgresql.table.size as $size
+        query:
+          - $size
+
+      - title: Number of rows in the table
+        metrics:
+          - postgresql.rows as $rows
+        query:
+          - $rows group by state
+        chart: stacked-bar
+
+      - title: Number of db row operations
+        metrics:
+          - postgresql.operations as $ops
+        query:
+          - per_min($ops) as ops group by operation
+        chart: stacked-bar
+
+      - title: Number of blocks read
+        metrics:
+          - postgresql.blocks_read as $blocks_read
+        query:
+          - per_min($blocks_read) as blocks_read group by source
+        chart: stacked-bar
+
+      - title: Number of times the table has been manually vacuumed
+        metrics:
+          - postgresql.table.vacuum.count as $vacuum_count
+        query:
+          - $vacuum_count

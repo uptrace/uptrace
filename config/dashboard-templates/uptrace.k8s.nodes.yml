@@ -1,0 +1,239 @@
+schema: v2
+name: 'K8s: Nodes'
+
+table:
+  grid_items:
+    - title: Available RAM
+      description: Total available RAM on all nodes
+      type: gauge
+      metrics:
+        - k8s.node.memory.available as $mem_available
+      query:
+        - last(sum($mem_available))
+      columns:
+        sum($mem_available):
+          unit: bytes
+          color: '#5470c6'
+    - title: FS available
+      description: Total available filesystem on all nodes
+      type: gauge
+      metrics:
+        - k8s.node.filesystem.available as $fs_available
+      query:
+        - last(sum($fs_available))
+      columns:
+        sum($fs_available):
+          unit: bytes
+          color: '#5470c6'
+
+  metrics:
+    - k8s.node.cpu.utilization as $cpu_util
+    - k8s.node.memory.available as $mem_available
+    - k8s.node.filesystem.available as $fs_available
+    - k8s.node.memory.rss as $rss_mem
+    - k8s.node.memory.usage as $mem_usage
+  query:
+    - group by k8s.node.name
+    - $cpu_util
+    - $mem_usage
+    - $rss_mem
+    - $mem_available
+    - $fs_available
+  columns:
+    cpu_util:
+      color: '#5470c6'
+    fs_available:
+      unit: bytes
+      color: '#fac858'
+    mem_available:
+      unit: bytes
+      color: '#91cc75'
+    mem_usage:
+      unit: bytes
+      color: '#73c0de'
+    rss_mem:
+      unit: bytes
+      color: '#ee6666'
+
+grid_rows:
+  - title: Gauges
+    items:
+      - title: Available RAM
+        description: Total available RAM on all nodes
+        type: gauge
+        metrics:
+          - k8s.node.memory.available as $mem_available
+        query:
+          - last(sum($mem_available))
+        columns:
+          sum($mem_available):
+            unit: bytes
+            color: '#5470c6'
+
+      - title: FS available
+        description: Total available filesystem on all nodes
+        type: gauge
+        metrics:
+          - k8s.node.filesystem.available as $fs_available
+        query:
+          - last(sum($fs_available))
+        columns:
+          sum($fs_available):
+            unit: bytes
+            color: '#5470c6'
+
+  - title: General
+    items:
+      - title: CPU utilization
+        width: 6
+        height: 15
+        type: chart
+        chart: line
+        metrics:
+          - k8s.node.cpu.utilization as $cpu_util
+        query:
+          - $cpu_util
+        columns:
+          cpu_util:
+            unit: utilization
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: RAM memory usage
+        width: 6
+        height: 15
+        xAxis: 6
+        type: chart
+        chart: line
+        metrics:
+          - k8s.node.memory.usage as $usage
+        query:
+          - $usage
+        columns:
+          usage:
+            unit: bytes
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: RSS memory usage
+        width: 6
+        height: 15
+        yAxis: 15
+        type: chart
+        chart: line
+        metrics:
+          - k8s.node.memory.rss as $rss_mem
+        query:
+          - $rss_mem
+        columns:
+          rss_mem:
+            unit: bytes
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: Filesystem available
+        width: 6
+        height: 15
+        xAxis: 6
+        yAxis: 15
+        type: chart
+        chart: line
+        metrics:
+          - k8s.node.filesystem.available as $fs_available
+        query:
+          - $fs_available
+        columns:
+          fs_available:
+            unit: bytes
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: RAM available
+        width: 6
+        height: 15
+        yAxis: 30
+        type: chart
+        chart: line
+        metrics:
+          - k8s.node.memory.available as $mem_available
+        query:
+          - $mem_available
+        columns:
+          mem_available:
+            unit: bytes
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: Network IO
+        width: 6
+        height: 15
+        xAxis: 6
+        yAxis: 30
+        type: chart
+        chart: line
+        metrics:
+          - k8s.node.network.io as $io
+        query:
+          - per_min($io)
+          - group by direction
+        columns:
+          per_min($io):
+            unit: bytes
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: Page faults
+        width: 6
+        height: 15
+        yAxis: 45
+        type: chart
+        chart: line
+        metrics:
+          - k8s.node.memory.page_faults as $page_faults
+        query:
+          - delta($page_faults)
+        columns:
+          delta($page_faults):
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg
+      - title: Major page faults
+        width: 6
+        height: 15
+        xAxis: 6
+        yAxis: 45
+        type: chart
+        chart: line
+        metrics:
+          - k8s.node.memory.major_page_faults as $major_page_faults
+        query:
+          - $major_page_faults
+        columns:
+          major_page_faults:
+            color: '#5470c6'
+        legend:
+          type: list
+          placement: bottom
+          values:
+            - avg

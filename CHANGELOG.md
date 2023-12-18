@@ -4,16 +4,17 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
 ## v1.6.0 UNRELEASED
 
-This release is backwards incompatible with v1.5. You need to reset the database schema to upgrade:
+This release is partially backwards incompatible with v1.5. PostgreSQL database will be migrated
+automatically preserving your settings and dashboards, but you will need to reset the ClickHouse
+database schema to upgrade:
 
 ```shell
 uptrace ch reset
-uptrace pg reset
 ```
 
 The recommended upgrade path is to start a separate Uptrace v1.6 instance in parallel with v1.5,
-write data to both instances, and switch when you have enough data in the v1.6 instance. This is
-more or less what we do when we deploy major changes to Uptrace Cloud.
+write data to both instances, and switch when you have enough data in the new instance. This is more
+or less what we do when deploying major changes to Uptrace Cloud.
 
 The license is changed from BSL to AGPL v3.0 which is a license approved by Open Software
 Foundation.
@@ -24,12 +25,15 @@ Foundation.
   a visual representation of service interactions, dependencies, and performance metrics. Service
   graphs are built by analyzing span relationships and require certain span attributes.
 
+- Added ability to group dashboard charts into rows.
+
 - Added support for [Prometheus remote write](https://uptrace.dev/get/ingest/prometheus.html).
 
 - Added [annotations](https://uptrace.dev/get/annotations.html) support.
 
 #### Improvements
 
+- Simplified UI for building dashboards and metric monitors.
 - Added support for `per_min(sum(attr_key))` expressions in tracing query language.
 - Added support for simple expressions like `sum(.duration) / .count` which is the same as
   `avg(.duration)`.

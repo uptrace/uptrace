@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
 var errAlias = errors.New("alias is required (AS alias)")
@@ -47,6 +49,7 @@ func (p *queryParser) parseQuery() (any, error) {
 	}
 
 	{
+		var grouping []NamedExpr
 		_pos1 := p.Pos()
 		{
 			_tok := p.NextToken()
@@ -65,8 +68,12 @@ func (p *queryParser) parseQuery() (any, error) {
 			}
 		}
 		{
-			_tok := p.NextToken()
-			_match := _tok.ID == IDENT_TOKEN && len(_tok.Text) == 3 && (_tok.Text[0] == 'a' || _tok.Text[0] == 'A') && (_tok.Text[1] == 'l' || _tok.Text[1] == 'L') && (_tok.Text[2] == 'l' || _tok.Text[2] == 'L')
+			var _err error
+			grouping, _err = p.grouping()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
 			if !_match {
 				p.ResetPos(_pos1)
 				goto r1_i0_group_end
@@ -77,21 +84,36 @@ func (p *queryParser) parseQuery() (any, error) {
 			_match := _tok.ID == EOF_TOKEN
 			if !_match {
 				p.ResetPos(_pos1)
+				grouping = nil
 				goto r1_i0_group_end
 			}
 		}
-		return &Grouping{GroupByAll: true}, nil
+		return &Grouping{Elems: grouping}, nil
 	r1_i0_group_end:
 	}
 
 	{
-		var grouping []string
+		var grouping []NamedExpr
+		var namedExprs []NamedExpr
 		_pos1 := p.Pos()
+		{
+			var _err error
+			namedExprs, _err = p.namedExprs()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r2_i0_group_end
+			}
+		}
 		{
 			_tok := p.NextToken()
 			_match := len(_tok.Text) == 5 && (_tok.Text[0] == 'g' || _tok.Text[0] == 'G') && (_tok.Text[1] == 'r' || _tok.Text[1] == 'R') && (_tok.Text[2] == 'o' || _tok.Text[2] == 'O') && (_tok.Text[3] == 'u' || _tok.Text[3] == 'U') && (_tok.Text[4] == 'p' || _tok.Text[4] == 'P')
 			if !_match {
 				p.ResetPos(_pos1)
+				namedExprs = nil
 				goto r2_i0_group_end
 			}
 		}
@@ -100,6 +122,7 @@ func (p *queryParser) parseQuery() (any, error) {
 			_match := len(_tok.Text) == 2 && (_tok.Text[0] == 'b' || _tok.Text[0] == 'B') && (_tok.Text[1] == 'y' || _tok.Text[1] == 'Y')
 			if !_match {
 				p.ResetPos(_pos1)
+				namedExprs = nil
 				goto r2_i0_group_end
 			}
 		}
@@ -112,6 +135,7 @@ func (p *queryParser) parseQuery() (any, error) {
 			_match := _err == nil
 			if !_match {
 				p.ResetPos(_pos1)
+				namedExprs = nil
 				goto r2_i0_group_end
 			}
 		}
@@ -120,20 +144,36 @@ func (p *queryParser) parseQuery() (any, error) {
 			_match := _tok.ID == EOF_TOKEN
 			if !_match {
 				p.ResetPos(_pos1)
+				namedExprs = nil
 				grouping = nil
 				goto r2_i0_group_end
 			}
 		}
-		return &Grouping{Names: grouping}, nil
+		{
+			for _, elem := range grouping {
+				switch expr := elem.Expr.(type) {
+				case *Name:
+					metric, _ := SplitAliasName(expr.Name)
+					if metric != "" {
+						return nil, fmt.Errorf("inline grouping shouldn't contain a metric: %s", metric)
+					}
+				}
+			}
+
+			return &Selector{
+				Exprs:    namedExprs,
+				Grouping: grouping,
+			}, nil
+		}
 	r2_i0_group_end:
 	}
 
 	{
-		var namedExpr NamedExpr
+		var namedExprs []NamedExpr
 		_pos1 := p.Pos()
 		{
 			var _err error
-			namedExpr, _err = p.namedExpr()
+			namedExprs, _err = p.namedExprs()
 			if _err != nil && _err != errBacktrack {
 				return nil, _err
 			}
@@ -145,145 +185,15 @@ func (p *queryParser) parseQuery() (any, error) {
 		}
 		{
 			_tok := p.NextToken()
-			_match := len(_tok.Text) == 5 && (_tok.Text[0] == 'g' || _tok.Text[0] == 'G') && (_tok.Text[1] == 'r' || _tok.Text[1] == 'R') && (_tok.Text[2] == 'o' || _tok.Text[2] == 'O') && (_tok.Text[3] == 'u' || _tok.Text[3] == 'U') && (_tok.Text[4] == 'p' || _tok.Text[4] == 'P')
-			if !_match {
-				p.ResetPos(_pos1)
-				namedExpr = NamedExpr{}
-				goto r3_i0_group_end
-			}
-		}
-		{
-			_tok := p.NextToken()
-			_match := len(_tok.Text) == 2 && (_tok.Text[0] == 'b' || _tok.Text[0] == 'B') && (_tok.Text[1] == 'y' || _tok.Text[1] == 'Y')
-			if !_match {
-				p.ResetPos(_pos1)
-				namedExpr = NamedExpr{}
-				goto r3_i0_group_end
-			}
-		}
-		{
-			_tok := p.NextToken()
-			_match := _tok.ID == IDENT_TOKEN && len(_tok.Text) == 3 && (_tok.Text[0] == 'a' || _tok.Text[0] == 'A') && (_tok.Text[1] == 'l' || _tok.Text[1] == 'L') && (_tok.Text[2] == 'l' || _tok.Text[2] == 'L')
-			if !_match {
-				p.ResetPos(_pos1)
-				namedExpr = NamedExpr{}
-				goto r3_i0_group_end
-			}
-		}
-		{
-			_tok := p.NextToken()
 			_match := _tok.ID == EOF_TOKEN
 			if !_match {
 				p.ResetPos(_pos1)
-				namedExpr = NamedExpr{}
+				namedExprs = nil
 				goto r3_i0_group_end
 			}
 		}
-		return &Selector{
-			Expr:       namedExpr,
-			GroupByAll: true,
-		}, nil
+		return &Selector{Exprs: namedExprs}, nil
 	r3_i0_group_end:
-	}
-
-	{
-		var grouping []string
-		var namedExpr NamedExpr
-		_pos1 := p.Pos()
-		{
-			var _err error
-			namedExpr, _err = p.namedExpr()
-			if _err != nil && _err != errBacktrack {
-				return nil, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r4_i0_group_end
-			}
-		}
-		{
-			_tok := p.NextToken()
-			_match := len(_tok.Text) == 5 && (_tok.Text[0] == 'g' || _tok.Text[0] == 'G') && (_tok.Text[1] == 'r' || _tok.Text[1] == 'R') && (_tok.Text[2] == 'o' || _tok.Text[2] == 'O') && (_tok.Text[3] == 'u' || _tok.Text[3] == 'U') && (_tok.Text[4] == 'p' || _tok.Text[4] == 'P')
-			if !_match {
-				p.ResetPos(_pos1)
-				namedExpr = NamedExpr{}
-				goto r4_i0_group_end
-			}
-		}
-		{
-			_tok := p.NextToken()
-			_match := len(_tok.Text) == 2 && (_tok.Text[0] == 'b' || _tok.Text[0] == 'B') && (_tok.Text[1] == 'y' || _tok.Text[1] == 'Y')
-			if !_match {
-				p.ResetPos(_pos1)
-				namedExpr = NamedExpr{}
-				goto r4_i0_group_end
-			}
-		}
-		{
-			var _err error
-			grouping, _err = p.grouping()
-			if _err != nil && _err != errBacktrack {
-				return nil, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				namedExpr = NamedExpr{}
-				goto r4_i0_group_end
-			}
-		}
-		{
-			_tok := p.NextToken()
-			_match := _tok.ID == EOF_TOKEN
-			if !_match {
-				p.ResetPos(_pos1)
-				namedExpr = NamedExpr{}
-				grouping = nil
-				goto r4_i0_group_end
-			}
-		}
-		{
-			for _, grouping := range grouping {
-				metric, _ := SplitAliasName(grouping)
-				if metric != "" {
-					return nil, fmt.Errorf("inline grouping can't contain a metric: %s", metric)
-				}
-			}
-			return &Selector{
-				Expr:     namedExpr,
-				Grouping: grouping,
-			}, nil
-		}
-	r4_i0_group_end:
-	}
-
-	{
-		var namedExpr NamedExpr
-		_pos1 := p.Pos()
-		{
-			var _err error
-			namedExpr, _err = p.namedExpr()
-			if _err != nil && _err != errBacktrack {
-				return nil, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r5_i0_group_end
-			}
-		}
-		{
-			_tok := p.NextToken()
-			_match := _tok.ID == EOF_TOKEN
-			if !_match {
-				p.ResetPos(_pos1)
-				namedExpr = NamedExpr{}
-				goto r5_i0_group_end
-			}
-		}
-		return &Selector{Expr: namedExpr}, nil
-	r5_i0_group_end:
 	}
 
 	var where []Filter
@@ -706,56 +616,9 @@ func (p *queryParser) filter() (Filter, error) {
 	r3_i0_group_end:
 	}
 
-	{
-		var filterOp FilterOp
-		var lhs *Token
-		var value Value
-		_pos1 := p.Pos()
-		{
-			_tok := p.NextToken()
-			_match := _tok.ID == IDENT_TOKEN
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r4_i0_group_end
-			}
-			lhs = _tok
-		}
-		{
-			var _err error
-			filterOp, _err = p.filterOp()
-			if _err != nil && _err != errBacktrack {
-				return Filter{}, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				lhs = nil
-				goto r4_i0_group_end
-			}
-		}
-		{
-			var _err error
-			value, _err = p.value()
-			if _err != nil && _err != errBacktrack {
-				return Filter{}, _err
-			}
-			_match := _err == nil
-			if !_match {
-				p.ResetPos(_pos1)
-				lhs = nil
-				filterOp = ""
-				goto r4_i0_group_end
-			}
-		}
-		return Filter{
-			LHS: clean(lhs.Text),
-			Op:  filterOp,
-			RHS: value,
-		}, nil
-	r4_i0_group_end:
-	}
-
+	var filterOp FilterOp
 	var lhs *Token
+	var value Value
 
 	{
 		_tok := p.NextToken()
@@ -765,10 +628,32 @@ func (p *queryParser) filter() (Filter, error) {
 		}
 		lhs = _tok
 	}
+	{
+		var _err error
+		filterOp, _err = p.filterOp()
+		if _err != nil && _err != errBacktrack {
+			return Filter{}, _err
+		}
+		_match := _err == nil
+		if !_match {
+			return Filter{}, errBacktrack
+		}
+	}
+	{
+		var _err error
+		value, _err = p.value()
+		if _err != nil && _err != errBacktrack {
+			return Filter{}, _err
+		}
+		_match := _err == nil
+		if !_match {
+			return Filter{}, errBacktrack
+		}
+	}
 	return Filter{
 		LHS: clean(lhs.Text),
-		Op:  FilterEqual,
-		RHS: &Number{Text: "1"},
+		Op:  filterOp,
+		RHS: value,
 	}, nil
 }
 
@@ -879,6 +764,50 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 		}
 		return FilterNotRegexp, nil
 	r3_i0_group_end:
+	}
+
+	{
+		_pos1 := p.Pos()
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "<"
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r4_i0_group_end
+			}
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "="
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r4_i0_group_end
+			}
+		}
+		return FilterLTE, nil
+	r4_i0_group_end:
+	}
+
+	{
+		_pos1 := p.Pos()
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == ">"
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r5_i0_group_end
+			}
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "="
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r5_i0_group_end
+			}
+		}
+		return FilterGTE, nil
+	r5_i0_group_end:
 	}
 
 	var t *Token
@@ -1024,7 +953,7 @@ i0_has_match:
 func (p *queryParser) value() (Value, error) {
 
 	{
-		var number *Number
+		var number Number
 		_pos1 := p.Pos()
 		{
 			var _err error
@@ -1200,7 +1129,7 @@ func (p *queryParser) namedExpr() (NamedExpr, error) {
 			}
 		}
 		return NamedExpr{
-			Expr:  binaryExprPrecedence(expr),
+			Expr:  expr,
 			Alias: alias,
 		}, nil
 	i0_group_end:
@@ -1227,7 +1156,7 @@ func (p *queryParser) namedExpr() (NamedExpr, error) {
 	}
 
 	return NamedExpr{
-		Expr:  binaryExprPrecedence(expr),
+		Expr:  expr,
 		Alias: alias,
 	}, nil
 }
@@ -1300,13 +1229,13 @@ func (p *queryParser) binaryExpr() (*BinaryExpr, error) {
 		LHS: lhs,
 		RHS: rhs,
 	}
-	return expr, nil
+	return binaryExprPrecedence(expr), nil
 }
 
 func (p *queryParser) term() (Expr, error) {
 
 	{
-		var number *Number
+		var number Number
 		_pos1 := p.Pos()
 		{
 			var _err error
@@ -1516,7 +1445,7 @@ func (p *queryParser) name() (Name, error) {
 	}, nil
 }
 
-func (p *queryParser) number() (*Number, error) {
+func (p *queryParser) number() (Number, error) {
 
 	{
 		var t *Token
@@ -1530,7 +1459,7 @@ func (p *queryParser) number() (*Number, error) {
 			}
 			t = _tok
 		}
-		return &Number{Text: t.Text, Kind: NumberDuration}, nil
+		return Number{Text: t.Text, Kind: NumberDuration}, nil
 	i0_group_end:
 	}
 
@@ -1546,7 +1475,7 @@ func (p *queryParser) number() (*Number, error) {
 			}
 			t = _tok
 		}
-		return &Number{Text: t.Text, Kind: NumberBytes}, nil
+		return Number{Text: t.Text, Kind: NumberBytes}, nil
 	r1_i0_group_end:
 	}
 
@@ -1556,11 +1485,11 @@ func (p *queryParser) number() (*Number, error) {
 		_tok := p.NextToken()
 		_match := _tok.ID == NUMBER_TOKEN
 		if !_match {
-			return nil, errBacktrack
+			return Number{}, errBacktrack
 		}
 		t = _tok
 	}
-	return &Number{Text: t.Text}, nil
+	return Number{Text: t.Text}, nil
 }
 
 func (p *queryParser) binaryOp() (BinaryOp, error) {
@@ -1933,15 +1862,195 @@ func (p *queryParser) args() ([]Expr, error) {
 
 //------------------------------------------------------------------------------
 
-func (p *queryParser) grouping() ([]string, error) {
-	idents, err := p.idents()
-	if err != nil {
-		return nil, err
+func (p *queryParser) grouping() ([]NamedExpr, error) {
+	var grouping []NamedExpr
+
+	var groupingElem NamedExpr
+
+	{
+		var _err error
+		groupingElem, _err = p.groupingElem()
+		if _err != nil && _err != errBacktrack {
+			return nil, _err
+		}
+		_match := _err == nil
+		if !_match {
+			return nil, errBacktrack
+		}
 	}
-	for i, ident := range idents {
-		idents[i] = clean(ident)
+	{
+		grouping = append(grouping, groupingElem)
+		p.cut()
 	}
-	return idents, nil
+
+	{
+		var groupingElem NamedExpr
+		var _matchCount int
+		for {
+			_pos1 := p.Pos()
+			{
+				_tok := p.NextToken()
+				_match := _tok.Text == ","
+				if !_match {
+					p.ResetPos(_pos1)
+					goto r1_i0_no_match
+				}
+			}
+			{
+				var _err error
+				groupingElem, _err = p.groupingElem()
+				if _err != nil && _err != errBacktrack {
+					return nil, _err
+				}
+				_match := _err == nil
+				if !_match {
+					p.ResetPos(_pos1)
+					goto r1_i0_no_match
+				}
+			}
+			_matchCount = _matchCount + 1
+			{
+				grouping = append(grouping, groupingElem)
+				p.cut()
+			}
+			continue
+		r1_i0_no_match:
+			p.ResetPos(_pos1)
+			if _matchCount >= 0 {
+				break
+			}
+			return nil, errBacktrack
+		}
+	}
+
+	return grouping, nil
+}
+
+func (p *queryParser) groupingElem() (NamedExpr, error) {
+
+	{
+		var alias string
+		var groupingExpr Expr
+		_pos1 := p.Pos()
+		{
+			var _err error
+			groupingExpr, _err = p.groupingExpr()
+			if _err != nil && _err != errBacktrack {
+				return NamedExpr{}, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+		}
+		{
+			var _err error
+			alias, _err = p.alias()
+			if _err != nil && _err != errBacktrack {
+				return NamedExpr{}, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				groupingExpr = nil
+				goto i0_group_end
+			}
+		}
+		return NamedExpr{
+			Expr:  groupingExpr,
+			Alias: alias,
+		}, nil
+	i0_group_end:
+	}
+
+	var groupingExpr Expr
+
+	{
+		var _err error
+		groupingExpr, _err = p.groupingExpr()
+		if _err != nil && _err != errBacktrack {
+			return NamedExpr{}, _err
+		}
+		_match := _err == nil
+		if !_match {
+			return NamedExpr{}, errBacktrack
+		}
+	}
+	return NamedExpr{
+		Expr:  groupingExpr,
+		Alias: unsafeconv.String(groupingExpr.AppendString(nil)),
+	}, nil
+}
+
+func (p *queryParser) groupingExpr() (Expr, error) {
+
+	{
+		var arg *Token
+		var funcName *Token
+		_pos1 := p.Pos()
+		{
+			_tok := p.NextToken()
+			_match := _tok.ID == IDENT_TOKEN
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+			funcName = _tok
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "("
+			if !_match {
+				p.ResetPos(_pos1)
+				funcName = nil
+				goto i0_group_end
+			}
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.ID == IDENT_TOKEN
+			if !_match {
+				p.ResetPos(_pos1)
+				funcName = nil
+				goto i0_group_end
+			}
+			arg = _tok
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == ")"
+			if !_match {
+				p.ResetPos(_pos1)
+				funcName = nil
+				arg = nil
+				goto i0_group_end
+			}
+		}
+		{
+			fn, ok := groupingFuncs[funcName.Text]
+			if !ok {
+				return nil, fmt.Errorf("unknown grouping func: %q", funcName.Text)
+			}
+			return &SimpleFuncCall{
+				Func: fn,
+				Arg:  arg.Text,
+			}, nil
+		}
+	i0_group_end:
+	}
+
+	var name *Token
+
+	{
+		_tok := p.NextToken()
+		_match := _tok.ID == IDENT_TOKEN
+		if !_match {
+			return nil, errBacktrack
+		}
+		name = _tok
+	}
+	return &Name{Name: name.Text}, nil
 }
 
 func (p *queryParser) idents() ([]string, error) {

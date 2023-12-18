@@ -1,0 +1,106 @@
+schema: v2
+name: 'DB: PostgreSQL dbs'
+
+table:
+  grid_items:
+    - title: Number of dbs
+      description: Number of user databases
+      type: gauge
+      metrics:
+        - postgresql.database.count as $db_count
+      query:
+        - $db_count
+
+    - title: Size of dbs
+      description: Databases disk usage
+      type: gauge
+      metrics:
+        - postgresql.db_size as $db_size
+      query:
+        - $db_size
+
+    - title: Number of tables
+      description: Number of user tables in all databases
+      type: gauge
+      metrics:
+        - postgresql.table.count as $table_count
+      query:
+        - $table_count
+
+    - title: Connections
+      description: Number of backends (connections)
+      type: gauge
+      metrics:
+        - postgresql.backends as $backends
+        - postgresql.connection.max as $max_conns
+      query:
+        - $backends
+        - $max_conns
+      template: ${backends} of ${max_conns}
+
+  metrics:
+    - postgresql.db_size as $db_size
+    - postgresql.table.count as $table_count
+    - postgresql.backends as $backends
+    - postgresql.commits as $commits
+    - postgresql.rollbacks as $rollbacks
+  query:
+    - group by host.name
+    - group by postgresql.database.name
+    - $db_size
+    - $table_count
+    - $backends
+    - $commits
+    - $rollbacks
+  columns:
+    db_size: { unit: bytes }
+
+grid_rows:
+  - title: General
+    items:
+      - title: Number of backends (connections)
+        metrics:
+          - postgresql.backends as $backends
+        query:
+          - $backends
+
+      - title: Number of blocks read
+        metrics:
+          - postgresql.blocks_read as $blocks_read
+        query:
+          - per_min($blocks_read) as blocks_read group by source
+        chart: stacked-bar
+
+      - title: Database disk usage
+        metrics:
+          - postgresql.db_size as $db_size
+        query:
+          - $db_size
+        columns:
+          db_size: { unit: bytes }
+
+      - title: Number of rows in the database
+        metrics:
+          - postgresql.rows as $rows
+        query:
+          - $rows group by state
+        chart: stacked-bar
+
+      - title: Number of commits
+        metrics:
+          - postgresql.commits as $commits
+        query:
+          - $commits
+
+      - title: Number of rollbacks
+        metrics:
+          - postgresql.rollbacks as $rollbacks
+        query:
+          - $rollbacks
+
+      - title: Number of db row operations
+        metrics:
+          - postgresql.operations as $ops
+        query:
+          - per_min($ops) as ops group by operation
+        chart: stacked-bar

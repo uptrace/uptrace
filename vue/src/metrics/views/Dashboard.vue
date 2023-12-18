@@ -1,9 +1,13 @@
 <template>
   <div>
-    <v-container v-if="dashboards.isEmpty" class="fill-height">
+    <v-container
+      v-if="dashboards.isEmpty"
+      class="fill-height"
+      style="min-height: calc(100vh - 240px)"
+    >
       <v-row align="center" justify="center">
         <v-col cols="8" md="6" lg="5">
-          <DashNewForm @create="onCreateDash" />
+          <DashboardForm @saved="dashboards.reload()" />
         </v-col>
       </v-row>
     </v-container>
@@ -21,7 +25,15 @@
             />
           </v-col>
           <v-col v-if="dashboard.data" cols="auto">
-            <DashMenu :dashboards="dashboards" :dashboard="dashboard" />
+            <DashboardMenu
+              :dashboard="dashboard.data"
+              @created="onCreateDashboard($event)"
+              @updated="
+                dashboard.reload()
+                dashboards.reload()
+              "
+              @deleted="dashboards.reload()"
+            />
             <DashPinBtn v-if="dashboard.data" :dashboard="dashboard.data" @update="onPinDash" />
           </v-col>
           <v-spacer />
@@ -33,7 +45,7 @@
 
       <div class="border">
         <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="py-0">
-          <v-row align="center" no-gutters>
+          <v-row align="center" justify="space-between" no-gutters>
             <v-col v-if="$route.params.dashId" cols="auto">
               <v-tabs>
                 <v-tab :to="{ name: 'DashboardTable' }" exact-path>Table</v-tab>
@@ -42,23 +54,34 @@
                 <v-tab :to="{ name: 'DashboardHelp' }" exact-path>Help</v-tab>
               </v-tabs>
             </v-col>
+            <v-col v-if="dashboard.data && dashKind" cols="auto">
+              <NewGridItemMenu
+                :date-range="dateRange"
+                :dashboard="dashboard.data"
+                :dash-kind="dashKind"
+                @change="dashboard.reload()"
+              />
+            </v-col>
           </v-row>
         </v-container>
       </div>
 
-      <router-view
-        v-if="dashboard.data"
-        name="tab"
-        :date-range="dateRange"
-        :dashboard="dashboard.data"
-        :grid="dashboard.grid"
-        :grid-query="dashboard.data.gridQuery"
-        editable
-        @change="dashboard.reload"
-      />
-      <v-container v-else :fluid="$vuetify.breakpoint.lgAndDown">
-        <v-skeleton-loader type="card,table"></v-skeleton-loader>
-      </v-container>
+      <v-card flat min-height="calc(100vh - 342px)" color="grey lighten-5">
+        <router-view
+          v-if="dashboard.data"
+          name="tab"
+          :date-range="dateRange"
+          :dashboard="dashboard.data"
+          :table-items="dashboard.tableItems"
+          :grid-rows="dashboard.gridRows"
+          :grid-metrics="dashboard.gridMetrics"
+          :grid-query="dashboard.data.gridQuery"
+          @change="dashboard.reload()"
+        />
+        <v-container v-else :fluid="$vuetify.breakpoint.lgAndDown">
+          <v-skeleton-loader type="card,table"></v-skeleton-loader>
+        </v-container>
+      </v-card>
     </template>
   </div>
 </template>
@@ -76,21 +99,23 @@ import { useDashboards, useDashboard } from '@/metrics/use-dashboards'
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import DashPicker from '@/metrics/DashPicker.vue'
-import DashMenu from '@/metrics/DashMenu.vue'
+import DashboardMenu from '@/metrics/DashboardMenu.vue'
 import DashPinBtn from '@/metrics/DashPinBtn.vue'
-import DashNewForm from '@/metrics/DashNewForm.vue'
+import DashboardForm from '@/metrics/DashboardForm.vue'
+import NewGridItemMenu from '@/metrics/NewGridItemMenu.vue'
 
-// Types
+// Misc
 import { Dashboard, DashKind } from '@/metrics/types'
 
 export default defineComponent({
-  name: 'MetricsDashboard',
+  name: 'Dashboard',
   components: {
     DateRangePicker,
     DashPicker,
-    DashMenu,
+    DashboardMenu,
     DashPinBtn,
-    DashNewForm,
+    DashboardForm,
+    NewGridItemMenu,
   },
 
   props: {
@@ -113,7 +138,6 @@ export default defineComponent({
     const dashboards = useDashboards()
     const dashboard = useDashboard()
     useTitle(computed(() => `${dashboard.data?.name ?? 'Dashboard'} | Dashboard`))
-
     watch(
       () => dashboard.data,
       (data) => {
@@ -129,7 +153,7 @@ export default defineComponent({
           return
         }
 
-        if (dashboard.grid.length) {
+        if (dashboard.gridRows.length) {
           router.push({ name: 'DashboardGrid' })
           return
         }
@@ -138,13 +162,18 @@ export default defineComponent({
       },
     )
 
-    function onCreateDash(dash: Dashboard) {
-      dashboards.reload().then(() => {
-        router.replace({ name: 'DashboardShow', params: { dashId: String(dash.id) } })
-      })
-    }
+    const dashKind = computed(() => {
+      switch (route.value.name) {
+        case 'DashboardTable':
+          return DashKind.Table
+        case 'DashboardGrid':
+          return DashKind.Grid
+        default:
+          return undefined
+      }
+    })
 
-    function onCloneDash(dash: Dashboard) {
+    function onCreateDashboard(dash: Dashboard) {
       dashboards.reload().then(() => {
         router.replace({ name: 'DashboardShow', params: { dashId: String(dash.id) } })
       })
@@ -156,13 +185,11 @@ export default defineComponent({
     }
 
     return {
-      DashKind,
-
       dashboards,
       dashboard,
+      dashKind,
 
-      onCreateDash,
-      onCloneDash,
+      onCreateDashboard,
       onPinDash,
     }
   },

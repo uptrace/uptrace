@@ -21,25 +21,25 @@
         <div class="grey--text font-weight-regular">Rate</div>
         <div><NumValue :value="group.getMetric('per_min(.count)')" /> / min</div>
       </v-col>
-      <v-col v-if="!isEvent" cols="auto">
+      <v-col v-if="isSpan" cols="auto">
         <div class="grey--text font-weight-regular">Err rate</div>
         <div>
           <PctValue :a="group.getMetric('.error_count')" :b="group.getMetric('.count')" />
         </div>
       </v-col>
-      <v-col v-if="!isEvent" cols="auto">
+      <v-col v-if="isSpan" cols="auto">
         <div class="grey--text font-weight-regular">P50</div>
         <div><DurationValue :value="group.getMetric('p50(.duration)')" /></div>
       </v-col>
-      <v-col v-if="!isEvent" cols="auto">
+      <v-col v-if="isSpan" cols="auto">
         <div class="grey--text font-weight-regular">P90</div>
         <div><DurationValue :value="group.getMetric('p90(.duration)')" /></div>
       </v-col>
-      <v-col v-if="!isEvent" cols="auto">
+      <v-col v-if="isSpan" cols="auto">
         <div class="grey--text font-weight-regular">P99</div>
         <div><DurationValue :value="group.getMetric('p99(.duration)')" /></div>
       </v-col>
-      <v-col v-if="!isEvent" cols="auto">
+      <v-col v-if="isSpan" cols="auto">
         <div class="grey--text font-weight-regular">Max</div>
         <div><DurationValue :value="group.getMetric('max(.duration)')" /></div>
       </v-col>
@@ -53,7 +53,7 @@
               <LoadPctileChart :axios-params="axiosParams" :annotations="annotations" />
             </v-expansion-panel-content>
           </v-expansion-panel>
-          <v-expansion-panel v-if="!isEvent">
+          <v-expansion-panel v-if="isSpan">
             <v-expansion-panel-header>
               <div class="d-flex align-center">
                 <div style="min-width: 280px">Slowest spans</div>
@@ -79,12 +79,12 @@
 
               <PagedSpansCardLazy
                 :date-range="dateRange"
-                :events-mode="isEvent"
+                :is-span="isSpan"
                 :axios-params="slowestSpansAxiosParams"
               />
             </v-expansion-panel-content>
           </v-expansion-panel>
-          <v-expansion-panel v-if="!isEvent">
+          <v-expansion-panel v-if="isSpan">
             <v-expansion-panel-header>
               <div class="d-flex align-center">
                 <div style="min-width: 280px">Spans with .status_code = 'error'</div>
@@ -110,12 +110,12 @@
 
               <PagedSpansCardLazy
                 :date-range="dateRange"
-                :events-mode="isEvent"
+                :is-span="isSpan"
                 :axios-params="failedSpansAxiosParams"
               />
             </v-expansion-panel-content>
           </v-expansion-panel>
-          <v-expansion-panel v-if="!isEvent">
+          <v-expansion-panel v-if="isSpan">
             <v-expansion-panel-header>
               <div class="d-flex align-center">
                 <div style="min-width: 280px">Status messages</div>
@@ -163,7 +163,7 @@ import UqlCardReadonly from '@/components/UqlCardReadonly.vue'
 import PagedGroupsCardLazy from '@/tracing/PagedGroupsCardLazy.vue'
 
 // Utilities
-import { isEventSystem, SystemName, AttrKey } from '@/models/otel'
+import { isSpanSystem, SystemName, AttrKey } from '@/models/otel'
 import { Unit } from '@/util/fmt'
 
 export default defineComponent({
@@ -214,13 +214,13 @@ export default defineComponent({
       }
     })
 
-    const isEvent = computed((): boolean => {
-      return isEventSystem(props.system)
+    const isSpan = computed((): boolean => {
+      return isSpanSystem(props.system)
     })
 
     const slowestSpansQuery = computed(() => {
       return createQueryEditor()
-        .exploreAttr(AttrKey.spanGroupId)
+        .exploreAttr(AttrKey.spanGroupId, true)
         .where(AttrKey.spanGroupId, '=', props.groupId)
         .add(where.value)
         .toString()
@@ -235,7 +235,7 @@ export default defineComponent({
 
     const failedSpansQuery = computed(() => {
       return createQueryEditor()
-        .exploreAttr(AttrKey.spanGroupId)
+        .exploreAttr(AttrKey.spanGroupId, true)
         .where(AttrKey.spanGroupId, '=', props.groupId)
         .where(AttrKey.spanStatusCode, '=', 'error')
         .add(where.value)
@@ -251,7 +251,7 @@ export default defineComponent({
 
     const statusMessagesQuery = computed(() => {
       return createQueryEditor()
-        .exploreAttr(AttrKey.spanStatusMessage)
+        .exploreAttr(AttrKey.spanStatusMessage, true)
         .where(AttrKey.spanGroupId, '=', props.groupId)
         .where(AttrKey.spanStatusMessage, '!=', '')
         .add(where.value)
@@ -265,7 +265,7 @@ export default defineComponent({
 
       axiosParams,
       group,
-      isEvent,
+      isSpan,
       slowestSpansQuery,
       slowestSpansAxiosParams,
       failedSpansQuery,

@@ -8,8 +8,8 @@
 <script lang="ts">
 import { defineComponent, computed, PropType } from 'vue'
 
-// Composables
-import { MonitorState } from '@/alerting/use-monitors'
+// Misc
+import { MonitorState } from '@/alerting/types'
 
 export default defineComponent({
   name: 'MonitorStateAvatar',

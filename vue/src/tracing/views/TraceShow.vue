@@ -201,7 +201,7 @@ export default defineComponent({
           ...dateRange.queryParams(),
           system: trace.root.system,
           query: createQueryEditor()
-            .exploreAttr(AttrKey.spanGroupId)
+            .exploreAttr(AttrKey.spanGroupId, true)
             .where(AttrKey.spanGroupId, '=', trace.root.groupId)
             .toString(),
         },
@@ -300,7 +300,7 @@ function useMeta(dateRange: UseDateRange, trace: UseTrace) {
             ...dateRange.queryParams(),
             system: root.system,
             query: createQueryEditor()
-              .exploreAttr(AttrKey.spanGroupId)
+              .exploreAttr(AttrKey.spanGroupId, true)
               .where(AttrKey.spanGroupId, '=', root.groupId)
               .toString(),
           },

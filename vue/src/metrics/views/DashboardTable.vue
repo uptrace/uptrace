@@ -1,6 +1,6 @@
 <template>
   <v-container :fluid="$vuetify.breakpoint.lgAndDown">
-    <v-row v-if="activeMetrics.length">
+    <v-row v-if="activeMetrics.length" dense>
       <v-col>
         <v-card outlined rounded="lg" class="py-2 px-4">
           <MetricsQueryBuilder
@@ -13,22 +13,30 @@
       </v-col>
     </v-row>
 
-    <v-row v-if="dashGauges.items.length || editable" align="end" class="mb-n5">
+    <v-row v-if="tableItems.length" dense>
       <v-col>
-        <DashGaugeRow
-          :date-range="dateRange"
-          :dash-kind="DashKind.Table"
-          :dash-gauges="dashGauges.items"
-          :editable="editable"
-          @change="dashGauges.reload"
-        />
+        <GridStackCard :items="tableItems">
+          <template #item="{ attrs, on }">
+            <GridItemAny
+              :date-range="dateRange"
+              :dashboard="dashboard"
+              v-bind="attrs"
+              v-on="{
+                ...on,
+                change() {
+                  $emit('change')
+                },
+              }"
+            />
+          </template>
+        </GridStackCard>
       </v-col>
     </v-row>
 
-    <v-row>
+    <v-row dense>
       <v-col>
         <v-card outlined rounded="lg">
-          <v-toolbar flat color="blue lighten-5">
+          <v-toolbar flat dense color="blue lighten-5">
             <v-tooltip v-if="tableQuery.queryError" bottom>
               <template #activator="{ on, attrs }">
                 <v-toolbar-items v-bind="attrs" v-on="on">
@@ -56,7 +64,7 @@
 
             <v-spacer />
 
-            <v-btn v-if="dashboard.tableQuery" class="primary" @click="dialog = true">
+            <v-btn v-if="dashboard.tableQuery" small class="primary" @click="dialog = true">
               <v-icon left>mdi-pencil</v-icon>
               <span>Edit table</span>
             </v-btn>
@@ -123,29 +131,23 @@
       </v-col>
     </v-row>
 
-    <v-dialog v-model="dialog" max-width="1400">
-      <DashTableForm
-        v-if="dialog"
-        :date-range="dateRange"
-        :dashboard="reactive(cloneDeep(dashboard))"
-        :editable="editable"
-        @click:save="
-          dialog = false
-          $emit('change')
-        "
-        @click:cancel="dialog = false"
-      >
-      </DashTableForm>
-    </v-dialog>
+    <DashTableFormDialog
+      v-model="dialog"
+      :date-range="dateRange"
+      :dashboard="reactive(cloneDeep(dashboard))"
+      @saved="$emit('change')"
+    >
+    </DashTableFormDialog>
 
-    <v-dialog v-model="tableItem.dialog" max-width="1900">
-      <DashTableDialogCard
+    <v-dialog v-model="tableItem.dialog" fullscreen>
+      <DashGridForTableRow
         v-if="tableItem.dialog && tableItem.active"
         :date-range="dateRange"
         :dashboard="dashboard"
-        :grid="grid"
-        :grouping-columns="tableQuery.groupingColumns"
-        :table-item="tableItem.active"
+        :grid-rows="gridRows"
+        :grid-metrics="gridMetrics"
+        :table-row="tableItem.active"
+        :table-grouping="tableQuery.groupingColumns"
         @click:close="tableItem.dialog = false"
       />
     </v-dialog>
@@ -163,26 +165,21 @@ import { useRoute } from '@/use/router'
 import { useDataSource } from '@/use/datasource'
 import { useUql, createQueryEditor } from '@/use/uql'
 import { useActiveMetrics } from '@/metrics/use-metrics'
-import { useTableQuery, TableItem } from '@/metrics/use-query'
-import { useDashGauges } from '@/metrics/gauge/use-dash-gauges'
+import { useTableQuery } from '@/metrics/use-query'
 
 // Components
 import MetricsQueryBuilder from '@/metrics/query/MetricsQueryBuilder.vue'
 import GroupingToggle from '@/metrics/query/GroupingToggle.vue'
 import TimeseriesTable from '@/metrics/TimeseriesTable.vue'
-import DashTableForm from '@/metrics/DashTableForm.vue'
-import DashTableDialogCard from '@/metrics/DashTableDialogCard.vue'
-import DashGaugeRow from '@/metrics/gauge/DashGaugeRow.vue'
+import DashTableFormDialog from '@/metrics/DashTableFormDialog.vue'
+import DashGridForTableRow from '@/metrics/DashGridForTableRow.vue'
 import ApiErrorCard from '@/components/ApiErrorCard.vue'
+import GridStackCard from '@/metrics/GridStackCard.vue'
+import GridItemAny from '@/metrics/GridItemAny.vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
-import { Dashboard, DashKind, GridColumn } from '@/metrics/types'
-
-interface Props {
-  dashboard: Dashboard
-  grid: GridColumn[]
-}
+import { Dashboard, DashKind, GridRow, GridItem, TableRowData } from '@/metrics/types'
 
 export default defineComponent({
   name: 'DashboardTable',
@@ -190,10 +187,11 @@ export default defineComponent({
     MetricsQueryBuilder,
     GroupingToggle,
     TimeseriesTable,
-    DashTableForm,
-    DashTableDialogCard,
-    DashGaugeRow,
+    DashTableFormDialog,
+    DashGridForTableRow,
     ApiErrorCard,
+    GridStackCard,
+    GridItemAny,
   },
 
   props: {
@@ -205,13 +203,17 @@ export default defineComponent({
       type: Object as PropType<Dashboard>,
       required: true,
     },
-    grid: {
-      type: Array as PropType<GridColumn[]>,
+    tableItems: {
+      type: Array as PropType<GridItem[]>,
       required: true,
     },
-    editable: {
-      type: Boolean,
-      default: false,
+    gridRows: {
+      type: Array as PropType<GridRow[]>,
+      required: true,
+    },
+    gridMetrics: {
+      type: Array as PropType<string[]>,
+      required: true,
     },
   },
 
@@ -219,12 +221,6 @@ export default defineComponent({
     const route = useRoute()
     const dialog = shallowRef(false)
     const uql = useUql()
-
-    const dashGauges = useDashGauges(() => {
-      return {
-        dash_kind: DashKind.Table,
-      }
-    })
 
     const activeMetrics = useActiveMetrics(computed(() => props.dashboard.tableMetrics))
 
@@ -234,7 +230,7 @@ export default defineComponent({
           return { _: undefined }
         }
 
-        const params = {
+        return {
           ...props.dateRange.axiosParams(),
           time_offset: props.dashboard.timeOffset,
           metric: props.dashboard.tableMetrics.map((m) => m.name),
@@ -242,7 +238,6 @@ export default defineComponent({
           query: uql.query,
           min_interval: props.dashboard.minInterval,
         }
-        return params
       },
       computed(() => props.dashboard.tableColumnMap),
     )
@@ -320,14 +315,13 @@ export default defineComponent({
       },
     })
 
-    const tableItem = useTableItem(props)
+    const tableItem = useTableRowData()
 
     return {
       AttrKey,
       DashKind,
 
       dialog,
-      dashGauges,
 
       uql,
       activeMetrics,
@@ -344,13 +338,13 @@ export default defineComponent({
   },
 })
 
-function useTableItem(props: Props) {
+function useTableRowData() {
   const dialog = shallowRef(false)
-  const activeItem = shallowRef<TableItem>()
+  const activeItem = shallowRef<TableRowData>()
 
   const tableListeners = computed(() => {
     return {
-      click(item: TableItem) {
+      click(item: TableRowData) {
         activeItem.value = item
         dialog.value = true
       },

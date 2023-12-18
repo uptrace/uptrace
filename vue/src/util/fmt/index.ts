@@ -3,6 +3,7 @@ import { datetime } from '@/util/fmt/date'
 import { num, numShort, bytes, bytesShort, percents, utilization } from './num'
 import { duration, durationShort } from './duration'
 
+export * from './util'
 export * from './unit'
 export * from './duration'
 export * from './num'

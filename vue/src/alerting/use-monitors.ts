@@ -5,114 +5,21 @@ import { useRoute } from '@/use/router'
 import { useAxios } from '@/use/axios'
 import { useWatchAxios } from '@/use/watch-axios'
 import { usePager } from '@/use/pager'
-import { useForceReload } from '@/use/force-reload'
-import { AttrMatcher } from '@/use/attr-matcher'
+import { injectForceReload } from '@/use/force-reload'
 
-// Utilities
-import { MetricAlias } from '@/metrics/types'
-
-export interface BaseMonitor {
-  id: number
-  projectId: number
-
-  type: MonitorType
-  name: string
-  state: MonitorState
-
-  notifyEveryoneByEmail: boolean
-  params: Record<string, any>
-
-  createdAt: string
-  updatedAt: string | null
-
-  channelIds: number[]
-  alertCount?: number
-}
-
-export enum MonitorType {
-  Metric = 'metric',
-  Error = 'error',
-}
-
-export interface MetricMonitor extends BaseMonitor {
-  type: MonitorType.Metric
-  params: MetricMonitorParams
-}
-
-export interface MetricMonitorParams {
-  metrics: MetricAlias[]
-  query: string
-  column: string
-  columnUnit: string
-
-  checkNumPoint: number
-  timeOffset: number
-
-  minValue: number | string | null
-  maxValue: number | string | null
-}
-
-export interface ErrorMonitor extends BaseMonitor {
-  type: MonitorType.Error
-  params: ErrorMonitorParams
-}
-
-export interface ErrorMonitorParams {
-  notifyOnNewErrors: boolean
-  notifyOnRecurringErrors: boolean
-  matchers: AttrMatcher[]
-}
-
-export type Monitor = MetricMonitor | ErrorMonitor
-
-export enum MonitorState {
-  Active = 'active',
-  Paused = 'paused',
-  Firing = 'firing',
-  NoData = 'no-data',
-}
-
-export enum MonitorDuration {
-  Minutes = 'minutes',
-  Hours = 'hours',
-}
+// Misc
+import { Monitor, MonitorType, MonitorState, MetricMonitor, ErrorMonitor } from '@/alerting/types'
 
 export interface StateCount {
   state: string
   count: number
 }
 
-export type EmptyMetricMonitor = Omit<MetricMonitor, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>
-
-export function emptyMetricMonitor(): EmptyMetricMonitor {
+export function createEmptyErrorMonitor(): ErrorMonitor {
   return {
-    name: '',
-    state: MonitorState.Active,
+    id: 0,
+    projectId: 0,
 
-    notifyEveryoneByEmail: true,
-
-    type: MonitorType.Metric,
-    params: {
-      metrics: [],
-      query: '',
-      column: '',
-      columnUnit: '',
-
-      checkNumPoint: 5,
-      timeOffset: 0,
-
-      minValue: null,
-      maxValue: null,
-    },
-
-    channelIds: [],
-  }
-}
-
-export type EmptyErrorMonitor = Omit<ErrorMonitor, 'id' | 'projectId' | 'createdAt' | 'updatedAt'>
-
-export function createEmptyErrorMonitor(): EmptyErrorMonitor {
-  return {
     name: '',
     state: MonitorState.Active,
 
@@ -126,6 +33,9 @@ export function createEmptyErrorMonitor(): EmptyErrorMonitor {
     },
 
     channelIds: [],
+
+    createdAt: '',
+    updatedAt: '',
   }
 }
 
@@ -133,7 +43,7 @@ export type UseMonitors = ReturnType<typeof useMonitors>
 
 export function useMonitors() {
   const route = useRoute()
-  const { forceReloadParams } = useForceReload()
+  const forceReload = injectForceReload()
   const pager = usePager()
 
   const stateFilter = ref<MonitorState | undefined>()
@@ -143,7 +53,7 @@ export function useMonitors() {
     return {
       url: `/internal/v1/projects/${projectId}/monitors`,
       params: {
-        ...forceReloadParams.value,
+        ...forceReload.params,
         ...pager.axiosParams,
         state: stateFilter.value ?? null,
       },
@@ -225,17 +135,17 @@ export function useMonitorManager() {
     })
   }
 
-  function activate(monitor: BaseMonitor) {
+  function activate(monitor: Monitor) {
     monitor.state = MonitorState.Active
     return updateState(monitor)
   }
 
-  function pause(monitor: BaseMonitor) {
+  function pause(monitor: Monitor) {
     monitor.state = MonitorState.Paused
     return updateState(monitor)
   }
 
-  function updateState(monitor: BaseMonitor) {
+  function updateState(monitor: Monitor) {
     const { id, projectId, state } = monitor
     const url = `/internal/v1/projects/${projectId}/monitors/${id}/${state}`
 
@@ -244,7 +154,7 @@ export function useMonitorManager() {
     })
   }
 
-  function del(monitor: BaseMonitor) {
+  function del(monitor: Monitor) {
     const { id, projectId } = monitor
     const url = `/internal/v1/projects/${projectId}/monitors/${id}`
 

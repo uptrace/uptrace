@@ -6,7 +6,10 @@ import (
 	"github.com/segmentio/encoding/json"
 
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
+	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
+
+const querySeparator = " | "
 
 func ParseQueryError(query string) (*ParsedQuery, error) {
 	parsedQuery := ParseQuery(query)
@@ -50,6 +53,17 @@ type ParsedQuery struct {
 	Columns []*ColumnInfo `json:"columns"`
 }
 
+func (q *ParsedQuery) String() string {
+	b := make([]byte, 0, len(q.Parts)*20)
+	for i, part := range q.Parts {
+		if i > 0 {
+			b = append(b, querySeparator...)
+		}
+		b = append(b, part.Query...)
+	}
+	return unsafeconv.String(b)
+}
+
 type QueryPart struct {
 	Query    string    `json:"query"`
 	Error    JSONError `json:"error,omitempty"`
@@ -72,9 +86,9 @@ func (e JSONError) MarshalJSON() ([]byte, error) {
 }
 
 func SplitQuery(query string) []string {
-	return strings.Split(query, " | ")
+	return strings.Split(query, querySeparator)
 }
 
 func JoinQuery(parts []string) string {
-	return strings.Join(parts, " | ")
+	return strings.Join(parts, querySeparator)
 }

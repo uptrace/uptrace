@@ -40,14 +40,18 @@ var (
 type TimeseriesExpr struct {
 	ast.Expr
 
-	Metric     string
-	AggFunc    string
-	TableFunc  string
-	Uniq       []string
-	Filters    []ast.Filter
-	Where      [][]ast.Filter
-	Grouping   []string
-	GroupByAll bool
+	Metric string
+
+	AggFunc string
+	Attr    string
+
+	TableFunc string
+	Uniq      []string
+
+	Filters []ast.Filter
+	Where   [][]ast.Filter
+
+	Grouping []ast.NamedExpr
 
 	Part       *QueryPart
 	Timeseries []Timeseries

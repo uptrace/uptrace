@@ -43,7 +43,7 @@ export type UseSystemStats = ReturnType<typeof useSystemStats>
 
 export function useSystemStats(params: () => Record<string, any>) {
   const { route } = useRouter()
-  const pager = usePager({ perPage: 15 })
+  const pager = usePager(15)
   const order = useOrder()
   const filters = ref([])
 

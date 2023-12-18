@@ -15,34 +15,32 @@ func compile(parts []*QueryPart) ([]NamedExpr, []*TimeseriesExpr) {
 			continue
 		}
 
-		switch expr := part.AST.(type) {
+		switch value := part.AST.(type) {
 		case *ast.Selector:
-			pos := len(c.timeseries)
+			for _, expr := range value.Exprs {
+				pos := len(c.timeseries)
 
-			sel, err := c.selector(expr.Expr.Expr)
-			if err != nil {
-				part.Error.Wrapped = err
-				break
-			}
-
-			for _, ts := range c.timeseries[pos:] {
-				if expr.GroupByAll {
-					ts.GroupByAll = true
-				} else {
-					ts.Grouping = append(ts.Grouping, expr.Grouping...)
+				sel, err := c.selector(expr.Expr)
+				if err != nil {
+					part.Error.Wrapped = err
+					break
 				}
-				ts.Part = part
-			}
 
-			c.exprs = append(c.exprs, NamedExpr{
-				Part:  part,
-				Expr:  sel,
-				Alias: expr.Expr.Alias,
-			})
+				for _, ts := range c.timeseries[pos:] {
+					ts.Grouping = append(ts.Grouping, value.Grouping...)
+					ts.Part = part
+				}
+
+				c.exprs = append(c.exprs, NamedExpr{
+					Part:  part,
+					Expr:  sel,
+					Alias: expr.Alias,
+				})
+			}
 		case *ast.Where, *ast.Grouping:
 			// see below
 		default:
-			panic(fmt.Errorf("unknown ast: %T", expr))
+			panic(fmt.Errorf("unknown ast: %T", value))
 		}
 	}
 
@@ -247,37 +245,60 @@ func (c *compiler) where(expr *ast.Where) error {
 }
 
 func (c *compiler) grouping(expr *ast.Grouping) error {
-	if expr.GroupByAll {
-		for _, ts := range c.timeseries {
-			ts.GroupByAll = true
-		}
-		return nil
-	}
-
-	for _, name := range expr.Names {
-		if err := c.groupingName(name); err != nil {
+	for _, elem := range expr.Elems {
+		if err := c.groupingName(elem); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *compiler) groupingName(name string) error {
-	var found bool
-	alias, name := ast.SplitAliasName(name)
+func (c *compiler) groupingName(elem ast.NamedExpr) error {
+	switch expr := elem.Expr.(type) {
+	case *ast.Name:
+		alias, name := ast.SplitAliasName(expr.Name)
+		var found bool
 
-	for _, ts := range c.timeseries {
-		if alias != "" && ts.Metric != alias {
-			continue
+		for _, ts := range c.timeseries {
+			if alias != "" && ts.Metric != alias {
+				continue
+			}
+			ts.Grouping = append(ts.Grouping, ast.NamedExpr{
+				Expr:  &ast.Name{Name: name},
+				Alias: elem.Alias,
+			})
+			found = true
 		}
-		ts.Grouping = append(ts.Grouping, name)
-		found = true
-	}
 
-	if alias != "" && !found {
-		return fmt.Errorf("can't find metric with alias %q", alias)
+		if alias != "" && !found {
+			return fmt.Errorf("can't find metric with alias %q", alias)
+		}
+		return nil
+	case *ast.SimpleFuncCall:
+		alias, name := ast.SplitAliasName(expr.Arg)
+		var found bool
+
+		for _, ts := range c.timeseries {
+			if alias != "" && ts.Metric != alias {
+				continue
+			}
+			ts.Grouping = append(ts.Grouping, ast.NamedExpr{
+				Expr: &ast.SimpleFuncCall{
+					Func: expr.Func,
+					Arg:  name,
+				},
+				Alias: elem.Alias,
+			})
+			found = true
+		}
+
+		if alias != "" && !found {
+			return fmt.Errorf("can't find metric with alias %q", alias)
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported grouping expr: %T", expr)
 	}
-	return nil
 }
 
 func hasWherePrefix(s string) bool {

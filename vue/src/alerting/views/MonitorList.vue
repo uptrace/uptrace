@@ -57,7 +57,7 @@ import { useMetrics } from '@/metrics/use-metrics'
 import { useMonitors } from '@/alerting/use-monitors'
 
 // Components
-import ForceReloadBtn from '@/components/date/ForceReloadBtn.vue'
+import ForceReloadBtn from '@/components/ForceReloadBtn.vue'
 import MonitorNewMenu from '@/alerting/MonitorNewMenu.vue'
 import MonitorsTable from '@/alerting/MonitorsTable.vue'
 import MonitorStateCounts from '@/alerting/MonitorStateCounts.vue'

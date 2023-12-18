@@ -1,0 +1,103 @@
+# https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/dockerstatsreceiver/metadata.yaml
+
+schema: v2
+name: 'Docker: containers'
+
+table:
+  metrics:
+    - container.cpu.percent as $cpu_percent
+    - container.memory.percent as $mem_percent
+    - container.memory.usage.total as $mem_usage
+    - container.memory.swap as $swap
+    - container.network.io.usage.rx_bytes as $rx_bytes
+    - container.network.io.usage.tx_bytes as $tx_bytes
+  query:
+    - group by container.name
+    - $cpu_percent
+    - $mem_percent
+    - $mem_usage
+    - $swap
+    - per_sec($rx_bytes)
+    - per_sec($tx_bytes)
+  columns:
+    cpu_percent: { unit: percents }
+    mem_percent: { unit: percents }
+
+grid_rows:
+  - title: General
+    items:
+      - title: Percentage of CPU used
+        metrics:
+          - container.cpu.percent as $cpu_percent
+        query:
+          - $cpu_percent
+        columns:
+          cpu_percent: { unit: percents }
+
+      - title: Percentage of memory used
+        metrics:
+          - container.memory.percent as $mem_percent
+        query:
+          - $mem_percent
+        columns:
+          mem_percent: { unit: percents }
+
+      - title: Memory usage (excludes the total cache)
+        metrics:
+          - container.memory.usage.total as $mem_usage
+        query:
+          - $mem_usage
+
+      - title: Memory used by the processes of this control group
+        description:
+          Memory used by the processes of this control group that can be associated precisely with a
+          block on a block device
+        metrics:
+          - container.memory.cache as $mem_cache
+        query:
+          - $mem_cache
+
+      - title: RSS memory
+        description:
+          'Memory that doesn’t correspond to anything on disk: stacks, heaps, and anonymous memory
+          maps'
+        metrics:
+          - container.memory.rss as $rss
+        query:
+          - $rss
+
+      - title: Number of bytes of anonymous transparent hugepages
+        metrics:
+          - container.memory.rss_huge as $rss_huge
+        query:
+          - $rss_huge
+
+      - title: Bytes that are waiting to get written back to the disk
+        metrics:
+          - container.memory.dirty as $mem_dirty
+        query:
+          - $mem_dirty
+
+      - title: Bytes of file/anon cache that are queued for syncing to disk
+        metrics:
+          - container.memory.writeback as $writeback
+        query:
+          - $writeback
+
+      - title: Swap memory
+        metrics:
+          - container.memory.swap as $swap
+        query:
+          - $swap
+
+      - title: Network bytes/sec received
+        metrics:
+          - container.network.io.usage.rx_bytes as $rx_bytes
+        query:
+          - per_sec($rx_bytes)
+
+      - title: Network bytes/sec sent
+        metrics:
+          - container.network.io.usage.tx_bytes as $tx_bytes
+        query:
+          - per_sec($tx_bytes)

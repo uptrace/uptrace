@@ -2,15 +2,15 @@
   <DashGrid
     :date-range="dateRange"
     :dashboard="dashboard"
-    :grid="grid"
+    :grid-rows="gridRows"
+    :grid-metrics="gridMetrics"
     :grid-query="gridQuery"
-    :editable="editable"
     @change="$emit('change', $event)"
   />
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue'
+import { defineComponent, onBeforeUnmount, inject, PropType, Ref } from 'vue'
 
 // Composables
 import { useSyncQueryParams } from '@/use/router'
@@ -19,8 +19,8 @@ import { UseDateRange } from '@/use/date-range'
 // Components
 import DashGrid from '@/metrics/DashGrid.vue'
 
-// Utilities
-import { Dashboard, GridColumn } from '@/metrics/types'
+// Misc
+import { Dashboard, GridRow } from '@/metrics/types'
 
 export default defineComponent({
   name: 'DashboardGrid',
@@ -35,21 +35,27 @@ export default defineComponent({
       type: Object as PropType<Dashboard>,
       required: true,
     },
-    grid: {
-      type: Array as PropType<GridColumn[]>,
+    gridRows: {
+      type: Array as PropType<GridRow[]>,
+      required: true,
+    },
+    gridMetrics: {
+      type: Array as PropType<string[]>,
       required: true,
     },
     gridQuery: {
       type: String,
       default: '',
     },
-    editable: {
-      type: Boolean,
-      default: false,
-    },
   },
 
   setup(props, ctx) {
+    const footer = inject<Ref<boolean>>('footer')!
+    footer.value = false
+    onBeforeUnmount(() => {
+      footer.value = true
+    })
+
     useSyncQueryParams({
       fromQuery(queryParams) {
         props.dateRange.parseQueryParams(queryParams)

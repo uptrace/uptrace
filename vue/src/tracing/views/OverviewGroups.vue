@@ -34,7 +34,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useRoute, useSyncQueryParams } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { createQueryEditor, useQueryStore, provideQueryStore, UseUql } from '@/use/uql'
+import { createQueryEditor, injectQueryStore, provideQueryStore, UseUql } from '@/use/uql'
 import { UseSystems } from '@/tracing/system/use-systems'
 import { useGroups } from '@/tracing/use-explore-spans'
 
@@ -43,7 +43,7 @@ import ApiErrorCard from '@/components/ApiErrorCard.vue'
 import PagedGroupsCard from '@/tracing/PagedGroupsCard.vue'
 
 // Utilities
-import { AttrKey, isEventSystem } from '@/models/otel'
+import { AttrKey, isSpanSystem } from '@/models/otel'
 
 export default defineComponent({
   name: 'OverviewGroups',
@@ -66,19 +66,15 @@ export default defineComponent({
 
   setup(props) {
     const route = useRoute()
-    const { where } = useQueryStore()
+    const { where } = injectQueryStore()
 
     const system = computed(() => {
       return route.value.params.system
     })
 
-    const eventsMode = computed(() => {
-      return isEventSystem(system.value)
-    })
-
     const query = computed(() => {
       return createQueryEditor()
-        .exploreAttr(AttrKey.spanGroupId, eventsMode.value)
+        .exploreAttr(AttrKey.spanGroupId, isSpanSystem(system.value))
         .add(where.value)
         .toString()
     })
@@ -126,7 +122,6 @@ export default defineComponent({
     return {
       AttrKey,
       system,
-      eventsMode,
       groups,
       groupListRoute,
     }

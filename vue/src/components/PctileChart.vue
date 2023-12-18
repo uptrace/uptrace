@@ -105,7 +105,7 @@ function percentilesChart(data: ChartData) {
         formatter: (params: any) => durationShort(params.value),
       },
     },
-    splitLine: { show: false },
+    splitNumber: 4,
   })
 
   conf.dataset.push({
@@ -191,7 +191,7 @@ function countAndErrorRateChart(data: ChartData | undefined) {
         formatter: (params: any) => num(params.value),
       },
     },
-    splitLine: { show: false },
+    splitNumber: 4,
   })
 
   if (data) {
@@ -268,7 +268,7 @@ function eventRateChart(data: ChartData | undefined) {
         formatter: (params: any) => num(params.value),
       },
     },
-    splitLine: { show: false },
+    splitNumber: 4,
   })
 
   if (data) {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/histutil"
 	"github.com/uptrace/uptrace/pkg/httputil"
@@ -46,19 +48,31 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 
 	var grouping []string
 
+outer_loop:
 	for _, part := range f.allParts {
 		if part.Error.Wrapped != nil {
 			continue
 		}
 
-		switch expr := part.AST.(type) {
+		switch value := part.AST.(type) {
 		case *ast.Grouping:
-			for _, name := range expr.Names {
-				if strings.HasPrefix(name, "$") {
-					part.Error.Wrapped = errors.New("individual grouping is forbidden")
-					continue
+			for _, elem := range value.Elems {
+				switch expr := elem.Expr.(type) {
+				case *ast.Name:
+					if strings.HasPrefix(expr.Name, "$") {
+						part.Error.Wrapped = errors.New("individual grouping is forbidden")
+						continue outer_loop
+					}
+				case *ast.SimpleFuncCall:
+					if strings.HasPrefix(expr.Arg, "$") {
+						part.Error.Wrapped = errors.New("individual grouping is forbidden")
+						continue outer_loop
+					}
+				default:
+					return fmt.Errorf("unsupported grouping expr: %T", expr)
 				}
-				grouping = append(grouping, name)
+
+				grouping = append(grouping, elem.Alias)
 			}
 		}
 	}
@@ -148,24 +162,23 @@ func convertToTable(
 	for i := range timeseries {
 		ts := &timeseries[i]
 
-		if col, ok := columnMap[ts.MetricName]; ok {
-			col.Unit = ts.Unit
-		} else {
+		col, ok := columnMap[ts.MetricName]
+		if !ok {
 			col := &ColumnInfo{
 				Name: ts.MetricName,
-				Unit: ts.Unit,
 			}
 			columnMap[ts.MetricName] = col
 			columns = append(columns, col)
 		}
+		col.Unit = ts.Unit
 
-		for _, name := range ts.Grouping {
-			if _, ok := columnMap[name]; !ok {
+		for _, elem := range ts.Grouping {
+			if _, ok := columnMap[elem.Alias]; !ok {
 				col := &ColumnInfo{
-					Name:    name,
+					Name:    elem.Alias,
 					IsGroup: true,
 				}
-				columnMap[name] = col
+				columnMap[elem.Alias] = col
 				columns = append(columns, col)
 			}
 		}
@@ -180,7 +193,9 @@ func convertToTable(
 
 			row["_name"] = ts.Attrs.String()
 			row["_query"] = ts.WhereQuery()
-			row["_attrs"] = ts.Attrs
+
+			buf = ts.Attrs.Bytes(buf[:0])
+			row["_hash"] = strconv.FormatUint(xxh3.Hash(buf), 10)
 
 			for _, kv := range ts.Attrs {
 				if _, ok := columnMap[kv.Key]; !ok {
@@ -200,7 +215,12 @@ func convertToTable(
 			}
 		}
 
-		row[ts.MetricName] = ts.Value[0]
+		value := ts.Value[0]
+		if col.Unit == bunconv.UnitTime {
+			row[ts.MetricName] = value * 1000
+		} else {
+			row[ts.MetricName] = value
+		}
 	}
 
 	table := make([]map[string]any, 0, len(rowMap))
@@ -208,7 +228,6 @@ func convertToTable(
 		for _, col := range columns {
 			if _, ok := row[col.Name]; !ok {
 				if col.IsGroup {
-					// TODO: consider using nil and fixing sorting
 					row[col.Name] = ""
 				} else {
 					row[col.Name] = float64(0)
@@ -465,12 +484,9 @@ func (h *QueryHandler) selectMetricHeatmap(
 		case *ast.Grouping:
 			part.Error.Wrapped = errors.New("not supported by heatmap")
 		case *ast.Where:
-			where, err := compileFilters(ast.Filters)
-			if err != nil {
+			if err := compileFilters(q, InstrumentHistogram, ast.Filters); err != nil {
 				part.Error.Wrapped = err
-				break
 			}
-			q = q.Where(where)
 		default:
 			return nil, fmt.Errorf("unexpected ast: %T", ast)
 		}

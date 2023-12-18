@@ -17,8 +17,8 @@ import (
 type DashKind string
 
 const (
-	DashGrid  DashKind = "grid"
-	DashTable DashKind = "table"
+	DashKindGrid  DashKind = "grid"
+	DashKindTable DashKind = "table"
 )
 
 type Dashboard struct {
@@ -31,9 +31,10 @@ type Dashboard struct {
 	Name   string `json:"name"`
 	Pinned bool   `json:"pinned"`
 
-	MinInterval unixtime.Millis `json:"minInterval"`
-	TimeOffset  unixtime.Millis `json:"timeOffset"`
-	GridQuery   string          `json:"gridQuery" bun:",nullzero"`
+	MinInterval  unixtime.Millis `json:"minInterval"`
+	TimeOffset   unixtime.Millis `json:"timeOffset"`
+	GridQuery    string          `json:"gridQuery" bun:",nullzero"`
+	GridMaxWidth int             `json:"gridMaxWidth" bun:",nullzero"`
 
 	TableMetrics   []mql.MetricAlias        `json:"tableMetrics" bun:",type:jsonb,nullzero"`
 	TableQuery     string                   `json:"tableQuery" bun:",nullzero"`
@@ -42,29 +43,6 @@ type Dashboard struct {
 
 	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
 	UpdatedAt time.Time `json:"updatedAt" bun:",nullzero"`
-}
-
-func (d *Dashboard) FromTemplate(tpl *DashboardTpl) error {
-	if tpl.Schema != "v1" {
-		return fmt.Errorf("unsupported template schema: %q", tpl.Schema)
-	}
-	if d.TemplateID != "" && d.TemplateID != tpl.ID {
-		return fmt.Errorf("template id does not match: got %q, has %q", tpl.ID, d.TemplateID)
-	}
-
-	metrics, err := parseMetrics(tpl.Table.Metrics)
-	if err != nil {
-		return err
-	}
-
-	d.TemplateID = tpl.ID
-	d.Name = tpl.Name
-	d.TimeOffset = tpl.TimeOffset
-	d.TableMetrics = metrics
-	d.TableQuery = mql.JoinQuery(tpl.Table.Query)
-	d.TableColumnMap = tpl.Table.Columns
-
-	return nil
 }
 
 func (d *Dashboard) Validate() error {
@@ -91,7 +69,7 @@ func (d *Dashboard) validate() error {
 	if d.TableQuery != "" {
 		query, err := mql.ParseQueryError(d.TableQuery)
 		if err != nil {
-			return fmt.Errorf("can't parse query: %w", err)
+			return fmt.Errorf("can't parse table query: %w", err)
 		}
 
 		d.TableGrouping = make([]string, 0)
@@ -100,7 +78,15 @@ func (d *Dashboard) validate() error {
 			if !ok {
 				continue
 			}
-			d.TableGrouping = append(d.TableGrouping, grouping.Names...)
+			for _, elem := range grouping.Elems {
+				d.TableGrouping = append(d.TableGrouping, elem.Alias)
+			}
+		}
+	}
+
+	for _, col := range d.TableColumnMap {
+		if err := col.Validate(); err != nil {
+			return err
 		}
 	}
 	if d.TableColumnMap == nil {
@@ -127,18 +113,17 @@ func SelectDashboard(ctx context.Context, app *bunapp.App, id uint64) (*Dashboar
 	return dash, nil
 }
 
-func InsertDashboard(ctx context.Context, app *bunapp.App, dash *Dashboard) error {
-	if _, err := app.PG.NewInsert().
+func InsertDashboard(ctx context.Context, db bun.IDB, dash *Dashboard) error {
+	if _, err := db.NewInsert().
 		Model(dash).
-		On("CONFLICT DO NOTHING").
 		Exec(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
-func DeleteDashboard(ctx context.Context, app *bunapp.App, id uint64) error {
-	if _, err := app.PG.NewDelete().
+func DeleteDashboard(ctx context.Context, db bun.IDB, id uint64) error {
+	if _, err := db.NewDelete().
 		Model((*Dashboard)(nil)).
 		Where("id = ?", id).
 		Exec(ctx); err != nil {

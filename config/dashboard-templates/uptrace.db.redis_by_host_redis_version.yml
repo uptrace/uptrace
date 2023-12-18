@@ -1,0 +1,137 @@
+schema: v2
+name: 'DB: Redis'
+
+table:
+  metrics:
+    - redis.commands as $cmds
+    - redis.db.keys as $db_keys
+    - redis.memory.rss as $rss
+    - redis.memory.fragmentation_ratio as $fragmentation
+    - redis.connections.rejected as $conns_rejected
+  query:
+    - group by host.name
+    - group by redis.version
+    - $cmds
+    - $rss
+    - $db_keys
+    - $fragmentation
+    - per_min($conns_rejected) as conns_rejected
+
+grid_rows:
+  - title: Gauges
+    items:
+      - title: Number of keys
+        description: Number of keys in all Redis databases
+        type: gauge
+        metrics:
+          - redis.db.keys as $keys
+        query:
+          - $keys
+
+      - title: Commands
+        description: Number of processed commands
+        type: gauge
+        metrics:
+          - redis.commands as $cmds
+        query:
+          - $cmds
+
+      - title: RAM fragm.
+        description: RAM fragmentation ratio (RSS / allocated RAM)
+        type: gauge
+        metrics:
+          - redis.memory.fragmentation_ratio as $mem_frag
+        query:
+          - $mem_frag
+        columns:
+          mem_frag: { unit: utilization }
+
+      - title: Ingress/min
+        description: Incoming network traffic
+        type: gauge
+        metrics:
+          - redis.net.input as $input
+        query:
+          - per_min($input)
+
+      - title: Egress/min
+        description: Outgoing network traffic
+        type: gauge
+        metrics:
+          - redis.net.output as $output
+        query:
+          - per_min($output)
+
+  - title: General
+    items:
+      - title: Fragmentation ratio
+        metrics:
+          - redis.memory.fragmentation_ratio as $fragmentation
+        query:
+          - $fragmentation
+
+      - title: Number of rejected connections
+        metrics:
+          - redis.connections.rejected as $conns_rejected
+        query:
+          - per_min($conns_rejected) as conns_rejected
+
+      - title: Number of evicted keys
+        metrics:
+          - redis.keys.evicted as $keys_evicted
+        query:
+          - per_min($keys_evicted) as keys_evicted
+
+      - title: Total number of keys and number of keys with a TTL
+        metrics:
+          - redis.db.keys as $db_keys
+          - redis.db.expires as $db_expires
+        query:
+          - $db_keys
+          - $db_expires
+        chart: bar
+
+      - title: Keyspace hit rate
+        metrics:
+          - redis.keyspace.hits as $hits
+          - redis.keyspace.misses as $misses
+        query:
+          - per_min($hits) as hits
+          - per_min($misses) as misses
+          - hits / (hits + misses) as hit_rate
+        columns:
+          hit_rate: { unit: utilization }
+
+      - title: Number of processed commands
+        metrics:
+          - redis.commands as $commands
+        query:
+          - $commands
+
+      - title: Biggest input and output client buffers
+        metrics:
+          - redis.clients.max_input_buffer as $input
+          - redis.clients.max_output_buffer as $output
+        query:
+          - $input
+          - $output
+
+      - title: Number of bytes read and written from the network
+        metrics:
+          - redis.net.input as $input
+          - redis.net.output as $output
+        query:
+          - per_min($input) as input_per_min
+          - per_min($output) as output_per_min
+        columns:
+          input_per_min: { unit: bytes }
+          output_per_min: { unit: bytes }
+        chart: stacked-bar
+
+      - title: RSS memory
+        metrics:
+          - redis.memory.rss as $rss
+        query:
+          - $rss
+        columns:
+          rss: { unit: bytes }

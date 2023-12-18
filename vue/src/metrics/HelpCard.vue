@@ -112,7 +112,7 @@ import { defineComponent, computed } from 'vue'
 import { useProject } from '@/org/use-projects'
 
 // Components
-import ForceReloadBtn from '@/components/date/ForceReloadBtn.vue'
+import ForceReloadBtn from '@/components/ForceReloadBtn.vue'
 import CollectorTabs from '@/components/CollectorTabs.vue'
 import OtelSdkCard from '@/components/OtelSdkCard.vue'
 import DevIcon from '@/components/DevIcon.vue'

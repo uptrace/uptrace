@@ -7,7 +7,6 @@ import (
 
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
-	"golang.org/x/exp/constraints"
 )
 
 const sep = '0'
@@ -24,8 +23,7 @@ type Timeseries struct {
 	Value []float64
 	Time  []time.Time
 
-	Grouping   []string
-	GroupByAll bool
+	Grouping []ast.NamedExpr
 }
 
 func newTimeseriesFrom(ts *Timeseries) Timeseries {
@@ -41,8 +39,7 @@ func newTimeseriesFrom(ts *Timeseries) Timeseries {
 		Value: make([]float64, len(ts.Value)),
 		Time:  ts.Time,
 
-		Grouping:   ts.Grouping,
-		GroupByAll: ts.GroupByAll,
+		Grouping: ts.Grouping,
 	}
 }
 
@@ -101,19 +98,16 @@ func (ts *Timeseries) Clone() *Timeseries {
 }
 
 type TimeseriesFilter struct {
-	Metric     string
-	AggFunc    string
-	TableFunc  string
-	Uniq       []string
-	Filters    []ast.Filter
-	Where      [][]ast.Filter
-	Grouping   []string
-	GroupByAll bool
-}
+	Metric string
 
-func min[T constraints.Ordered](a, b T) T {
-	if a <= b {
-		return a
-	}
-	return b
+	AggFunc string
+	Attr    string
+
+	Uniq      []string
+	TableFunc string
+
+	Filters []ast.Filter
+	Where   [][]ast.Filter
+
+	Grouping []ast.NamedExpr
 }

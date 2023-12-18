@@ -23,7 +23,7 @@
         :headers="headers"
         :column-map="columnMap"
         :group="item"
-        :events-mode="isEventSystemGroup(item)"
+        :is-span="isSpanSystemGroup(item)"
         :hide-actions="hideActions"
         :is-expanded="isExpanded"
         :expand="expand"
@@ -38,7 +38,7 @@
             :date-range="dateRange"
             :axios-params="axiosParams"
             :where="item._query"
-            :events-mode="isEventSystemGroup(item)"
+            :is-span="isSpanSystemGroup(item)"
           />
         </td>
       </tr>
@@ -68,7 +68,7 @@ import GroupsTableRow from '@/tracing/GroupsTableRow.vue'
 import PagedSpansCardLazy from '@/tracing/PagedSpansCardLazy.vue'
 
 // Utilities
-import { isEventSystem, AttrKey } from '@/models/otel'
+import { isSpanSystem, AttrKey } from '@/models/otel'
 import { updateColumnMap, MetricColumn } from '@/metrics/types'
 
 export default defineComponent({
@@ -254,12 +254,12 @@ export default defineComponent({
       return name
     }
 
-    function isEventSystemGroup(group: Group) {
+    function isSpanSystemGroup(group: Group) {
       const system = group[AttrKey.spanSystem]
       if (system) {
-        return isEventSystem(system)
+        return isSpanSystem(system)
       }
-      return isEventSystem(...props.systems)
+      return isSpanSystem(...props.systems)
     }
 
     return {
@@ -270,7 +270,7 @@ export default defineComponent({
       headers,
       columnMap,
 
-      isEventSystemGroup,
+      isSpanSystemGroup,
     }
   },
 })

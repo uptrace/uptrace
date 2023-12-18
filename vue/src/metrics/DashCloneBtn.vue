@@ -7,8 +7,8 @@
 <script lang="ts">
 import { defineComponent, PropType } from 'vue'
 
-// Utilities
-import { useDashManager, UseDashboard } from '@/metrics/use-dashboards'
+// Misc
+import { useDashboardManager, UseDashboard } from '@/metrics/use-dashboards'
 
 export default defineComponent({
   name: 'DashCloneBtn',
@@ -21,7 +21,7 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
-    const dashMan = useDashManager()
+    const dashMan = useDashboardManager()
 
     function cloneDashboard() {
       dashMan.clone(props.dashboard.data!).then((dash) => {

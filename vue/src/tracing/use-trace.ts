@@ -5,7 +5,7 @@ import { ref, computed, watch, proxyRefs, shallowReactive, set } from 'vue'
 import { useRouter } from '@/use/router'
 import { useWatchAxios, AxiosParamsSource } from '@/use/watch-axios'
 
-import { useForceReload } from '@/use/force-reload'
+import { injectForceReload } from '@/use/force-reload'
 import { traceSpans, Trace, TraceSpan } from '@/models/trace-span'
 import { SpanEvent } from '@/models/span'
 import { spanColoredSystems, ColoredSystem } from '@/models/colored-system'
@@ -19,7 +19,7 @@ export type UseTrace = ReturnType<typeof useTrace>
 
 export function useTrace(axiosParams: AxiosParamsSource) {
   const { route } = useRouter()
-  const { forceReloadParams } = useForceReload()
+  const forceReload = injectForceReload()
 
   const activeSpanId = ref('')
   const coloredSystems = ref<ColoredSystem[]>([])
@@ -30,7 +30,7 @@ export function useTrace(axiosParams: AxiosParamsSource) {
     return {
       url: `/internal/v1/tracing/${projectId}/traces/${traceId}`,
       params: {
-        ...forceReloadParams.value,
+        ...forceReload.params,
         ...axiosParams(),
       },
     }

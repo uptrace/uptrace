@@ -27,14 +27,9 @@
       </div>
     </td>
     <td v-if="!hideActions" class="text-right text-no-wrap">
-      <NewMonitorMenu
-        :name="group._name"
-        :axios-params="axiosParams"
-        :where="group._query"
-        :events-mode="eventsMode"
-      >
+      <NewMonitorMenu :systems="systemsForGroup(group)" :name="group._name" :where="group._query">
         <template #header-item>
-          <slot name="summary-item" :group="group" :is-event="eventsMode" />
+          <slot name="summary-item" :group="group" :is-span="isSpan" />
         </template>
       </NewMonitorMenu>
 
@@ -98,7 +93,7 @@ export default defineComponent({
       type: Array as PropType<string[]>,
       required: true,
     },
-    eventsMode: {
+    isSpan: {
       type: Boolean,
       required: true,
     },
@@ -155,7 +150,10 @@ export default defineComponent({
     })
 
     const systemRoute = computed(() => {
-      const query = createQueryEditor().exploreAttr(AttrKey.spanGroupId).add(where.value).toString()
+      const query = createQueryEditor()
+        .exploreAttr(AttrKey.spanGroupId, props.isSpan)
+        .add(where.value)
+        .toString()
       return {
         name: 'SpanGroupList',
         query: {
@@ -169,7 +167,7 @@ export default defineComponent({
     const itemListRoute = computed(() => {
       const editor = query.value
         ? createQueryEditor(query.value)
-        : createQueryEditor().exploreAttr(AttrKey.spanGroupId, props.eventsMode)
+        : createQueryEditor().exploreAttr(AttrKey.spanGroupId, props.isSpan)
       editor.add(props.group._query)
 
       for (let colName of props.groupingColumns) {

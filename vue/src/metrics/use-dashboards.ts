@@ -4,15 +4,16 @@ import { ref, reactive, computed, watch, proxyRefs } from 'vue'
 // Composables
 import { useRoute } from '@/use/router'
 import { useAxios } from '@/use/axios'
-import { useWatchAxios } from '@/use/watch-axios'
-import { useForceReload } from '@/use/force-reload'
+import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
+import { injectForceReload } from '@/use/force-reload'
 
-// Types
+// Misc
 import {
   defaultChartLegend,
   Dashboard,
-  GridColumn,
-  GridColumnType,
+  GridRow,
+  GridItem,
+  GridItemType,
   MetricColumn,
   MetricAlias,
 } from '@/metrics/types'
@@ -21,14 +22,14 @@ export type UseDashboards = ReturnType<typeof useDashboards>
 
 export function useDashboards() {
   const route = useRoute()
-  const { forceReloadParams } = useForceReload()
+  const forceReload = injectForceReload()
   const dashboards = ref<Dashboard[]>([])
 
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
       url: `/internal/v1/metrics/${projectId}/dashboards`,
-      params: forceReloadParams.value,
+      params: forceReload.params,
     }
   })
 
@@ -65,13 +66,13 @@ export type UseDashboard = ReturnType<typeof useDashboard>
 
 export function useDashboard() {
   const route = useRoute()
-  const { forceReloadParams } = useForceReload()
+  const forceReload = injectForceReload()
 
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId, dashId } = route.value.params
     return {
       url: `/internal/v1/metrics/${projectId}/dashboards/${dashId}`,
-      params: forceReloadParams.value,
+      params: forceReload.params,
     }
   })
 
@@ -86,34 +87,26 @@ export function useDashboard() {
     return dash
   })
 
-  const grid = computed((): GridColumn[] => {
-    const grid = data.value?.grid ?? []
+  const tableItems = computed((): GridItem[] => {
+    const tableItems = data.value?.tableItems ?? []
+    for (let gridItem of tableItems) {
+      fixupGridItem(gridItem)
+    }
+    return tableItems
+  })
 
-    for (let col of grid) {
-      col.width = col.width || 6
-      col.height = col.height || 14
-
-      switch (col.type) {
-        case GridColumnType.Chart:
-          col.params.metrics ??= []
-          col.params.columnMap ??= {}
-          col.params.timeseriesMap ??= {}
-          col.params.legend = mergeWith(
-            col.params.legend,
-            defaultChartLegend(),
-            (objValue, srcValue) => objValue || srcValue,
-          )
-          break
-        case GridColumnType.Table:
-          col.params.metrics ??= []
-          col.params.columnMap ??= {}
-          break
-        case GridColumnType.Heatmap:
-          break
+  const gridRows = computed((): GridRow[] => {
+    const gridRows = data.value?.gridRows ?? []
+    for (let gridRow of gridRows) {
+      for (let gridItem of gridRow.items) {
+        fixupGridItem(gridItem)
       }
     }
+    return gridRows
+  })
 
-    return grid
+  const gridMetrics = computed((): string[] => {
+    return data.value?.gridMetrics
   })
 
   const yamlUrl = computed((): string => {
@@ -146,7 +139,9 @@ export function useDashboard() {
     reload,
 
     data: dashboard,
-    grid,
+    gridRows,
+    gridMetrics,
+    tableItems,
     isTemplate,
     yamlUrl,
 
@@ -157,13 +152,13 @@ export function useDashboard() {
 
 export function useYamlDashboard() {
   const route = useRoute()
-  const { forceReloadParams } = useForceReload()
+  const forceReload = injectForceReload()
 
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId, dashId } = route.value.params
     return {
       url: `/internal/v1/metrics/${projectId}/dashboards/${dashId}/yaml`,
-      params: forceReloadParams.value,
+      params: forceReload.params,
     }
   })
 
@@ -182,38 +177,38 @@ export function useYamlDashboard() {
 
 //------------------------------------------------------------------------------
 
-export function useDashManager() {
+export function useDashboardManager() {
   const route = useRoute()
   const { loading: pending, request } = useAxios()
 
-  function create(dash: Partial<Dashboard>) {
-    const url = `/internal/v1/metrics/${dash.projectId}/dashboards`
+  function create(dash: Dashboard) {
+    const { projectId } = route.value.params
+    const url = `/internal/v1/metrics/${projectId}/dashboards`
 
-    const data = {
-      name: dash.name,
-    }
-
-    return request({ method: 'POST', url, data }).then((resp) => {
+    return request({ method: 'POST', url, data: dash }).then((resp) => {
       return resp.data.dashboard as Dashboard
     })
   }
 
-  function update(data: Partial<Dashboard>) {
-    const { projectId, dashId } = route.value.params
-    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}`
+  function update(dash: Dashboard) {
+    const { projectId } = route.value.params
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dash.id}`
 
-    return request({ method: 'PUT', url, data }).then((resp) => {
-      return resp.data.dashboard as Dashboard
-    })
+    return request({ method: 'PUT', url, data: dash })
   }
 
   function updateTable(data: Partial<Dashboard>) {
     const { projectId, dashId } = route.value.params
     const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/table`
 
-    return request({ method: 'PUT', url, data }).then((resp) => {
-      return resp.data.dashboard as Dashboard
-    })
+    return request({ method: 'PUT', url, data })
+  }
+
+  function updateGrid(dash: Pick<Dashboard, 'id' | 'gridQuery'>) {
+    const { projectId } = route.value.params
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dash.id}/grid`
+
+    return request({ method: 'PUT', url, data: dash })
   }
 
   function updateYaml(data: string) {
@@ -229,6 +224,11 @@ export function useDashManager() {
     return request({ method: 'POST', url }).then((resp) => {
       return resp.data.dashboard as Dashboard
     })
+  }
+
+  function reset(dash: Dashboard) {
+    const url = `/internal/v1/metrics/${dash.projectId}/dashboards/${dash.id}/reset`
+    return request({ method: 'PUT', url })
   }
 
   function pin(dash: Dashboard) {
@@ -256,8 +256,10 @@ export function useDashManager() {
     create,
     update,
     updateTable,
+    updateGrid,
     updateYaml,
     clone,
+    reset,
     pin,
     unpin,
     delete: del,
@@ -266,58 +268,154 @@ export function useDashManager() {
 
 //------------------------------------------------------------------------------
 
-export function useGridColumnManager() {
+export function useGridItemManager() {
   const route = useRoute()
   const { loading: pending, request } = useAxios()
 
-  function save(gridCol: GridColumn) {
-    if (gridCol.id) {
-      return update(gridCol)
+  function save(gridItem: GridItem) {
+    if (gridItem.id) {
+      return update(gridItem)
     }
-    return create(omit(gridCol, 'id'))
+    return create(omit(gridItem, 'id'))
   }
 
-  function create(gridCol: Omit<GridColumn, 'id'>) {
+  function create(gridItem: Omit<GridItem, 'id'>) {
     const { projectId, dashId } = route.value.params
     const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/grid`
 
-    return request({ method: 'POST', url, data: gridCol }).then((resp) => {
-      return resp.data.gridCol as GridColumn
+    return request({ method: 'POST', url, data: gridItem }).then((resp) => {
+      return resp.data.gridItem as GridItem
     })
   }
 
-  function update(gridCol: GridColumn) {
-    const { id, projectId, dashId } = gridCol
-    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/grid/${id}`
-
-    return request({ method: 'PUT', url, data: gridCol }).then((resp) => {
-      return resp.data.gridCol as GridColumn
-    })
-  }
-
-  function del(gridCol: GridColumn) {
-    const { id, projectId, dashId } = gridCol
-    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/grid/${id}`
-
-    return request({ method: 'DELETE', url, data: gridCol }).then((resp) => {
-      return resp.data.gridCol as GridColumn
-    })
-  }
-
-  interface GridColumnPos {
-    id: number
-    width: number
-    height: number
-    xAxis: number
-    yAxis: number
-  }
-
-  function updateOrder(grid: GridColumnPos[]) {
+  function update(gridItem: GridItem) {
     const { projectId, dashId } = route.value.params
-    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/grid`
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/grid/${gridItem.id}`
 
-    return request({ method: 'PUT', url, data: grid })
+    return request({ method: 'PUT', url, data: gridItem }).then((resp) => {
+      return resp.data.gridItem as GridItem
+    })
   }
 
-  return proxyRefs({ pending, create, update, save, del, updateOrder })
+  function del(gridItem: GridItem) {
+    const { projectId, dashId } = route.value.params
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/grid/${gridItem.id}`
+
+    return request({ method: 'DELETE', url, data: gridItem }).then((resp) => {
+      return resp.data.gridItem as GridItem
+    })
+  }
+
+  return proxyRefs({ pending, create, update, save, delete: del })
+}
+
+//------------------------------------------------------------------------------
+
+export function useGridRow(axiosReqSource: AxiosRequestSource) {
+  const { status, loading, resultId, data, reload } = useWatchAxios(axiosReqSource)
+
+  const gridRow = computed((): GridRow | undefined => {
+    return data.value?.gridRow
+  })
+
+  const gridItems = computed((): GridItem[] => {
+    const gridItems = data.value?.gridItems ?? []
+    for (let gridItem of gridItems) {
+      fixupGridItem(gridItem)
+    }
+    return gridItems
+  })
+
+  return proxyRefs({
+    status,
+    loading,
+    resultId,
+    reload,
+
+    data: gridRow,
+    items: gridItems,
+  })
+}
+
+function fixupGridItem(gridItem: GridItem) {
+  switch (gridItem.type) {
+    case GridItemType.Chart:
+      gridItem.params.metrics ??= []
+      gridItem.params.columnMap ??= {}
+      gridItem.params.timeseriesMap ??= {}
+      gridItem.params.legend = mergeWith(
+        gridItem.params.legend,
+        defaultChartLegend(),
+        (objValue, srcValue) => objValue || srcValue,
+      )
+      break
+    case GridItemType.Table:
+      gridItem.params.metrics ??= []
+      gridItem.params.columnMap ??= {}
+      break
+    case GridItemType.Heatmap:
+      break
+    case GridItemType.Gauge:
+      gridItem.params.metrics ??= []
+      gridItem.params.columnMap ??= {}
+      gridItem.params.valueMappings ??= []
+      break
+  }
+}
+
+export function useGridRowManager() {
+  const route = useRoute()
+  const { loading: pending, request } = useAxios()
+
+  function save(gridRow: GridRow) {
+    if (gridRow.id) {
+      return update(gridRow)
+    }
+    return create(omit(gridRow, 'id'))
+  }
+
+  function create(gridRow: Partial<GridRow>) {
+    const { projectId, dashId } = route.value.params
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/rows`
+
+    return request({ method: 'POST', url, data: gridRow }).then((resp) => {
+      return resp.data.gridRow as GridRow
+    })
+  }
+
+  function update(gridRow: GridRow) {
+    const { projectId, dashId } = route.value.params
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/rows/${gridRow.id}`
+
+    return request({ method: 'PUT', url, data: gridRow }).then((resp) => {
+      return resp.data.gridRow as GridRow
+    })
+  }
+
+  function del(gridRow: GridRow) {
+    const { projectId, dashId } = route.value.params
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/rows/${gridRow.id}`
+
+    return request({ method: 'DELETE', url, data: gridRow }).then((resp) => {
+      return resp.data.gridRow as GridItem
+    })
+  }
+
+  function moveUp(gridRow: GridRow) {
+    return move(gridRow, 'up')
+  }
+
+  function moveDown(gridRow: GridRow) {
+    return move(gridRow, 'down')
+  }
+
+  function move(gridRow: GridRow, verb: string) {
+    const { projectId, dashId } = route.value.params
+    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/rows/${gridRow.id}/${verb}`
+    return request({ method: 'PUT', url, data: gridRow }).then((resp) => {
+      return resp.data.gridRow as GridRow
+    })
+  }
+
+  return proxyRefs({ pending, create, update, save, delete: del, moveUp, moveDown })
 }

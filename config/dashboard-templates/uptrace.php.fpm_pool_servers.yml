@@ -1,0 +1,62 @@
+schema: v2
+name: 'PHP-FPM pool servers'
+
+table:
+  metrics:
+    - phpfpm_process_requests as $requests
+    - phpfpm_process_request_duration as $duration
+    - phpfpm_process_last_request_cpu as $cpu
+    - phpfpm_process_last_request_memory as $memory
+  query:
+    - group by host.name
+    - group by pool
+    - group by child
+    - per_min($requests)
+    - sum($duration) / $requests as req_duration
+    - $cpu
+    - $memory
+  columns:
+    req_duration: { unit: microseconds }
+    cpu: { unit: percents }
+    memory: { unit: bytes }
+
+grid_rows:
+  - title: General
+    items:
+      - title: Number of requests the process has served
+        metrics:
+          - phpfpm_process_requests as $requests
+        query:
+          - per_min($requests)
+
+      - title: Avg requests duration
+        metrics:
+          - phpfpm_process_requests as $requests
+          - phpfpm_process_request_duration as $duration
+        query:
+          - sum($duration) / $requests as req_duration
+        columns:
+          req_duration: { unit: microseconds }
+
+      - title: Percent of cpu the last request consumed
+        metrics:
+          - phpfpm_process_last_request_cpu as $cpu
+        query:
+          - $cpu
+        columns:
+          cpu: { unit: percents }
+
+      - title: Max amount of memory the last request consumed
+        metrics:
+          - phpfpm_process_last_request_memory as $memory
+        query:
+          - $memory
+        columns:
+          memory: { unit: bytes }
+
+      - title: State of the process
+        metrics:
+          - phpfpm_process_state as $state
+        query:
+          - sum($state)
+          - group by state

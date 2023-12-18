@@ -5,8 +5,8 @@
 <script lang="ts">
 import { defineComponent, computed, PropType } from 'vue'
 
-// Composables
-import { MonitorType } from '@/alerting/use-monitors'
+// Misc
+import { MonitorType } from '@/alerting/types'
 
 export default defineComponent({
   name: 'MonitorTypeIcon',

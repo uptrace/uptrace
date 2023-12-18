@@ -87,20 +87,37 @@ export function isSpanSystem(...systems: string[]): boolean {
     if (system === SystemName.All) {
       return false
     }
-    return !isEventSystem(system)
+    return !isEventOrLogSystem(system)
   })
 }
 
-export function isEventSystem(...systems: string[]): boolean {
+export function isEventOrLogSystem(...systems: any[]): boolean {
+  return isEventSystem(...systems) || isLogSystem(...systems)
+}
+
+export function isLogSystem(...systems: any[]): boolean {
   if (!systems.length) {
     return false
   }
   return systems.every((system) => {
+    if (typeof system !== 'string') {
+      return true
+    }
+    return system.startsWith('log:')
+  })
+}
+
+export function isEventSystem(...systems: any[]): boolean {
+  if (!systems.length) {
+    return false
+  }
+  return systems.every((system) => {
+    if (typeof system !== 'string') {
+      return true
+    }
     return (
       system === SystemName.EventsAll ||
-      isErrorSystem(system) ||
       system === SystemName.OtherEvents ||
-      isLogSystem(system) ||
       system.startsWith(SystemName.MessagePrefix)
     )
   })
@@ -121,13 +138,24 @@ export function isErrorSystem(...systems: string[]): boolean {
   })
 }
 
-export function isLogSystem(...systems: string[]): boolean {
-  if (!systems.length) {
-    return false
+export function systemMatches(system: string, pattern: string): boolean {
+  switch (pattern) {
+    case SystemName.All:
+      return true
+    case SystemName.SpansAll:
+      return isSpanSystem(system)
+    case SystemName.LogAll:
+      return isLogSystem(system)
+    case SystemName.EventsAll:
+      return isEventSystem(system)
+    default: {
+      const [systemType, systemName] = splitTypeSystem(pattern)
+      if (systemName === SystemName.All) {
+        return system.startsWith(systemType + ':')
+      }
+      return system === pattern
+    }
   }
-  return systems.every((system) => {
-    return system.startsWith('log:')
-  })
 }
 
 export function isGroupSystem(system: string | undefined): boolean {

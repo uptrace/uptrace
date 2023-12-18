@@ -6,7 +6,7 @@
       :spans="spans.items"
       :order="spans.order"
       :pager="spans.pager"
-      :events-mode="eventsMode"
+      :is-span="isSpan"
       class="mb-4"
       v-on="listeners"
     />
@@ -40,7 +40,7 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
-    eventsMode: {
+    isSpan: {
       type: Boolean,
       required: true,
     },
@@ -83,7 +83,7 @@ export default defineComponent({
       }
     })
 
-    spans.order.column = props.eventsMode ? AttrKey.spanTime : AttrKey.spanDuration
+    spans.order.column = props.isSpan ? AttrKey.spanDuration : AttrKey.spanTime
     spans.order.desc = true
 
     const listeners = computed(() => {

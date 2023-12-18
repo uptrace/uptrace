@@ -1,0 +1,52 @@
+schema: v2
+name: 'RPC: client'
+
+table:
+  metrics:
+    - rpc.client.duration as $dur
+  query:
+    - group by host.name
+    - group by rpc.service
+    - group by rpc.method
+    - per_min(count($dur)) as requests
+    - p50($dur)
+    - p99($dur)
+
+grid_rows:
+  - title: General
+    items:
+      - title: Number of RPC requests
+        metrics:
+          - rpc.client.duration as $dur
+        query:
+          - per_min(count($dur)) as requests
+
+      - title: P50 duration
+        metrics:
+          - rpc.client.duration as $dur
+        query:
+          - p50($dur)
+
+      - title: P90 duration
+        metrics:
+          - rpc.client.duration as $dur
+        query:
+          - p90($dur)
+
+      - title: P99 duration
+        metrics:
+          - rpc.client.duration as $dur
+        query:
+          - p99($dur)
+
+      - title: Max duration
+        metrics:
+          - rpc.client.duration as $dur
+        query:
+          - max($dur)
+
+      - title: RPC heatmap
+        type: heatmap
+        size: large
+        metric: rpc.client.duration
+        unit: milliseconds

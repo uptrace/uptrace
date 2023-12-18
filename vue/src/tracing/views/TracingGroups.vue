@@ -4,21 +4,7 @@
       <v-col>
         <v-card rounded="lg" outlined class="mb-4">
           <v-toolbar flat color="light-blue lighten-5">
-            <v-toolbar-title>
-              <span>Groups</span>
-            </v-toolbar-title>
-
-            <v-text-field
-              v-model="groups.searchInput"
-              placeholder="Quick search: option1|option2"
-              prepend-inner-icon="mdi-magnify"
-              clearable
-              outlined
-              dense
-              hide-details="auto"
-              class="ml-8"
-              style="max-width: 300px"
-            />
+            <slot name="search-filter" />
 
             <v-spacer />
 
@@ -133,7 +119,7 @@ export default defineComponent({
             return
           }
           props.uql.query = createQueryEditor()
-            .exploreAttr(AttrKey.spanGroupId, props.systems.isEvent)
+            .exploreAttr(AttrKey.spanGroupId, props.systems.isSpan)
             .toString()
         },
         { immediate: true },
@@ -149,7 +135,7 @@ export default defineComponent({
         if (!queryParams.has('query') && props.systems.activeSystems.length) {
           queryParams.set(
             'query',
-            createQueryEditor().exploreAttr(AttrKey.spanGroupId, props.systems.isEvent).toString(),
+            createQueryEditor().exploreAttr(AttrKey.spanGroupId, props.systems.isSpan).toString(),
           )
         }
         props.uql.parseQueryParams(queryParams)

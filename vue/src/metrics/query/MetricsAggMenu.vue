@@ -44,7 +44,7 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 // Composables
 import { UseUql } from '@/use/uql'
 
-// Types
+// Misc
 import { ActiveMetric as Metric, Instrument } from '@/metrics/types'
 
 interface MetricItem {
@@ -111,55 +111,78 @@ function metricColumns(metric: Metric): ColumnItem[] {
   switch (metric.instrument) {
     case Instrument.Deleted:
       return []
-    case Instrument.Gauge:
-      return [
-        { value: alias, hint: `same as avg(${alias})` },
-        { value: `avg(${alias})`, hint: 'avg of observed values' },
-        { value: `last(${alias})`, hint: 'last avg value' },
-        { value: `min(${alias})`, hint: 'minimim of observed values' },
-        { value: `max(${alias})`, hint: 'maximum of observed values' },
-        { value: `sum(${alias})`, hint: 'sum of observed values (usually invalid)' },
-      ]
-    case Instrument.Additive:
-      return [
-        { value: alias, hint: `same as sum(${alias})` },
-        { value: `sum(${alias})`, hint: 'sum of observed values' },
-        { value: `avg(${alias})`, hint: 'avg of observed values' },
-        { value: `last(${alias})`, hint: 'last avg value in table view' },
-        { value: `min(${alias})` },
-        { value: `max(${alias})` },
-      ]
+
     case Instrument.Counter:
       return [
-        { value: alias, hint: `same as sum(${alias})` },
-        { value: `sum(${alias})`, hint: 'sum of observed values' },
-        { value: `per_min(${alias})`, hint: 'sum(value) / _minutes' },
-        { value: `per_sec(${alias})`, hint: 'sum(value) / _seconds' },
+        { value: alias, hint: `sum of timeseries; sum($result) in table` },
+        { value: `per_min(${alias})`, hint: 'sum(value) / _minutes; avg value in table' },
+        { value: `per_sec(${alias})`, hint: 'sum(value) / _seconds; avg value in table' },
+        { value: `last(${alias})`, hint: `sum of timeseries; last value in table` },
       ]
-    case Instrument.Summary:
+
+    case Instrument.Gauge:
       return [
-        { value: `avg(${alias})`, hint: 'avg of observed values' },
-        { value: `last(${alias})`, hint: 'last avg value in table view' },
-        { value: `sum(${alias})`, hint: 'sum of of observed values' },
-        { value: `count(${alias})`, hint: 'number of observations' },
-        { value: `per_min(count(${alias}))`, hint: 'count() / _minutes' },
-        { value: `per_sec(count(${alias}))`, hint: 'count() / _seconds' },
+        { value: alias, hint: `avg of timeseries; last value in table` },
+        { value: `avg(${alias})`, hint: 'avg of timeseries; avg value in table' },
+        { value: `min(${alias})`, hint: 'min of timeseries; min value in table' },
+        { value: `max(${alias})`, hint: 'max of timeseries; max value in table' },
+        { value: `sum(${alias})`, hint: 'sum of timeseries; sum in table (compat)' },
+        { value: `last(sum(${alias}))`, hint: 'sum of timeseries; last value in table (compat)' },
+        { value: `per_min(${alias})`, hint: '$metric / _minutes; avg in table (compat)' },
+        { value: `per_sec(${alias})`, hint: '$metric / _seconds; avg in table (compat)' },
+        {
+          value: `delta(${alias})`,
+          hint: 'diff between curr and prev values; sum in table (compat)',
+        },
       ]
+
+    case Instrument.Additive:
+      return [
+        { value: alias, hint: `sum of timeseries; last value in table` },
+        { value: `sum(${alias})`, hint: 'sum of timeseries; sum in table' },
+        { value: `avg(${alias})`, hint: 'avg of timeseries; avg in table' },
+        { value: `last(avg(${alias}))`, hint: 'avg of timeseries; last value in table' },
+        { value: `min(${alias})`, hint: 'min of timeseries; min in table' },
+        { value: `max(${alias})`, hint: 'max of timeseries; max in table' },
+        { value: `per_min($metric)`, hint: '$metric / _minutes; avg in table' },
+        { value: `per_sec($metric)`, hint: '$metric / _seconds; avg in table' },
+        {
+          value: `delta($metric)`,
+          hint: 'diff between curr and prev values; sum in table (compat)',
+        },
+      ]
+
     case Instrument.Histogram:
       return [
-        { value: `p50(${alias})` },
-        { value: `p75(${alias})` },
-        { value: `p90(${alias})` },
-        { value: `p95(${alias})` },
-        { value: `p99(${alias})` },
-        { value: `avg(${alias})`, hint: 'avg of observed values' },
-        { value: `last(${alias})`, hint: 'last avg value in table view' },
-        { value: `min(${alias})` },
-        { value: `max(${alias})` },
-        { value: `count(${alias})`, hint: 'number of observed values' },
-        { value: `per_min(count(${alias}))`, hint: 'count() / _minutes' },
-        { value: `per_sec(count(${alias}))`, hint: 'count() / _seconds' },
+        { value: `count(${alias})`, hint: 'number of observed values; sum in table' },
+        { value: `per_min(count(${alias}))`, hint: 'count() / _minutes; avg in table' },
+        { value: `per_sec(count(${alias}))`, hint: 'count() / _seconds; avg in table' },
+        { value: `p50(${alias})`, hint: 'p50 of timeseries; last value in table' },
+        { value: `p75(${alias})`, hint: 'p75 of timeseries; last value in table' },
+        { value: `p90(${alias})`, hint: 'p90 of timeseries; last value in table' },
+        { value: `p95(${alias})`, hint: 'p95 of timeseries; last value in table' },
+        { value: `p99(${alias})`, hint: 'p99 of timeseries; last value in table' },
+        { value: `avg(${alias})`, hint: 'sum($metric) / count($metric); avg in table' },
+        {
+          value: `last(avg(${alias}))`,
+          hint: 'sum($metric) / count($metric); last value in table',
+        },
+        { value: `min(${alias})`, hint: 'min of timeseries; min in table' },
+        { value: `max(${alias})`, hint: 'max of timeseries; max in table' },
       ]
+
+    case Instrument.Summary:
+      return [
+        { value: `avg(${alias})`, hint: 'avg of timeseries; avg in table' },
+        { value: `last(avg(${alias}))`, hint: 'avg of timeseries; last value in table' },
+        { value: `min(${alias})`, hint: 'min of timeseries; min in table' },
+        { value: `max(${alias})`, hint: 'max of timeseries; max in table' },
+        { value: `count(${alias})`, hint: 'number of observed values; sum in table' },
+        { value: `sum(${alias})`, hint: 'sum of timeseries; sum in table' },
+        { value: `per_min(count(${alias}))`, hint: 'count() / _minutes; avg in table' },
+        { value: `per_sec(count(${alias}))`, hint: 'count() / _seconds; avg in table' },
+      ]
+
     default:
       throw new Error(`unknown instrument: ${metric.instrument}`)
   }

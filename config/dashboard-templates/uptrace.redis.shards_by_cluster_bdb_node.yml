@@ -1,0 +1,173 @@
+schema: v2
+name: 'Redis: Shards'
+
+table:
+  metrics:
+    - redis_used_memory as $mem_used
+    - redis_mem_fragmentation_ratio as $mem_frag
+    - redis_connected_clients as $clients
+    - redis_evicted_keys as $evicted_keys
+  query:
+    - group by cluster
+    - group by bdb
+    - group by node
+    - $mem_used
+    - $clients
+    - per_min(delta($evicted_keys)) as evicted_keys
+    - $mem_frag
+  columns:
+    mem_used: { unit: bytes }
+    mem_frag: { unit: utilization }
+
+grid_rows:
+  - title: Gauges
+    items:
+      - title: Used RAM
+        description: redis_used_memory	Memory used by shard (in bigredis this includes flash)
+        type: gauge
+        metrics:
+          - redis_used_memory as $mem_used
+        query:
+          - $mem_used
+        columns:
+          mem_used: { unit: bytes }
+
+      - title: RAM Fragm.
+        description: Memory fragmentation ratio
+        type: gauge
+        metrics:
+          - redis_mem_fragmentation_ratio as $fragmentation
+        query:
+          - $fragmentation
+        columns:
+          fragmentation: { unit: utilization }
+
+      - title: CPU usage
+        description: Shard process CPU usage
+        type: gauge
+        metrics:
+          - redis_process_cpu_usage_percent as $cpu_usage
+        query:
+          - $cpu_usage
+        template: ${cpu_usage}%
+
+      - title: Clients
+        description: Number of client connections to the specific shard
+        type: gauge
+        metrics:
+          - redis_connected_clients as $clients
+        query:
+          - $clients
+
+      - title: Slaves
+        description: Number of connected slaves
+        type: gauge
+        metrics:
+          - redis_connected_slaves as $slaves
+        query:
+          - $slaves
+
+      - title: DB Keys
+        description: Total key count in the DB
+        type: gauge
+        metrics:
+          - redis_db_keys as $db_keys
+        query:
+          - $db_keys
+
+      - title: Defrag
+        description: Automatic memory defragmentation current aggressiveness (% cpu)
+        type: gauge
+        metrics:
+          - redis_active_defrag_running as $defrag
+        query:
+          - $defrag
+
+  - title: General
+    items:
+      - title: Used memory
+        metrics:
+          - redis_used_memory as $mem_used
+        query:
+          - $mem_used
+        columns:
+          mem_used: { unit: bytes }
+
+      - title: RSS memory
+        metrics:
+          - redis_used_memory_rss as $rss
+        query:
+          - $rss
+        columns:
+          rss: { unit: bytes }
+
+      - title: Memory fragmentation ratio
+        metrics:
+          - redis_mem_fragmentation_ratio as $fragmentation
+        query:
+          - $fragmentation
+        columns:
+          fragmentation: { unit: utilization }
+
+      - title: Shard process CPU usage
+        metrics:
+          - redis_process_cpu_usage_percent as $cpu_usage
+        query:
+          - $cpu_usage
+
+      - title: Keyspace read hits and misses
+        metrics:
+          - redis_keyspace_read_hits as $hits
+          - redis_keyspace_read_misses as $misses
+        query:
+          - per_min(delta($hits)) as hits
+          - per_min(delta($misses)) as misses
+          - hits / (hits + misses) as hit_rate
+        columns:
+          hit_rate: { unit: utilization }
+
+      - title: DB Keys
+        metrics:
+          - redis_db_keys as $db_keys
+        query:
+          - $db_keys
+
+      - title: DB evicted keys
+        metrics:
+          - redis_evicted_keys as $evicted_keys
+        query:
+          - per_min(delta($evicted_keys)) as evicted_keys
+
+      - title: DB expired keys
+        metrics:
+          - redis_expired_keys as $expired_keys
+        query:
+          - per_min(delta($expired_keys)) as expired_keys
+
+      - title: Number of keys that were trimmed in the current or last resharding process
+        metrics:
+          - redis_keys_trimmed as $trimmed_keys
+        query:
+          - $trimmed_keys
+
+      - title: Total number of processed commands
+        metrics:
+          - redis_total_commands_processed as $cmds
+        query:
+          - per_min(delta($cmds)) as cmds
+
+      - title: Number of bytes received by the shard
+        metrics:
+          - redis_total_net_input_bytes as $input
+        query:
+          - per_min(delta($input)) as input
+        columns:
+          input: { unit: bytes }
+
+      - title: Number of bytes sent by the shard
+        metrics:
+          - redis_total_net_output_bytes as $output
+        query:
+          - per_min(delta($output)) as output
+        columns:
+          output: { unit: bytes }

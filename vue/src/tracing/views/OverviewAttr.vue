@@ -34,7 +34,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useRouter, useSyncQueryParams } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { createQueryEditor, useQueryStore, provideQueryStore, UseUql } from '@/use/uql'
+import { createQueryEditor, injectQueryStore, provideQueryStore, UseUql } from '@/use/uql'
 import { useGroups } from '@/tracing/use-explore-spans'
 import { UseSystems } from '@/tracing/system/use-systems'
 
@@ -66,7 +66,7 @@ export default defineComponent({
 
   setup(props) {
     const { route } = useRouter()
-    const { where } = useQueryStore()
+    const { where } = injectQueryStore()
 
     const attr = computed(() => {
       return route.value.params.attr ?? AttrKey.spanSystem
@@ -74,7 +74,7 @@ export default defineComponent({
 
     const query = computed(() => {
       return createQueryEditor()
-        .exploreAttr(attr.value)
+        .exploreAttr(attr.value, true)
         .add(`max(${AttrKey.spanDuration})`)
         .add(where.value)
         .toString()

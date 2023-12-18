@@ -1,25 +1,21 @@
 <template>
   <div class="d-flex">
+    <v-btn text class="v-btn--filter" @click="drawer = true">
+      <v-icon small class="mr-1">mdi-page-layout-sidebar-left</v-icon>
+      <span>Filters</span>
+    </v-btn>
     <SearchFilterMenu :systems="systems" :uql="uql" />
-    <DurationFilterMenu v-if="!systems.isEvent" :uql="uql" />
+    <DurationFilterMenu v-if="systems.isSpan" :uql="uql" />
     <AttrFilterMenu
       :uql="uql"
       :axios-params="axiosParams"
       :attr-key="AttrKey.spanStatusCode"
       label="Status"
     />
-    <v-btn text class="v-btn--filter" @click="drawer = true">
-      <v-icon small class="mr-1">mdi-page-layout-sidebar-left</v-icon>
-      <span>Filters</span>
-    </v-btn>
+    <AdvancedMenu :uql="uql" :axios-params="axiosParams" :agg-disabled="aggDisabled" />
 
     <v-divider vertical class="mx-2" />
 
-    <WhereFilterMenu :systems="systems" :uql="uql" :axios-params="axiosParams" />
-    <AggByMenu :uql="uql" :axios-params="axiosParams" :disabled="aggDisabled" />
-    <GroupByMenu :uql="uql" :axios-params="axiosParams" :disabled="aggDisabled" />
-
-    <v-divider vertical class="mx-2" />
     <QueryHelpDialog />
     <v-btn text class="v-btn--filter" @click="$emit('click:reset')">Reset</v-btn>
     <v-btn text class="v-btn--filter" @click="uql.rawMode = true">Edit</v-btn>
@@ -57,9 +53,7 @@ import { UseUql } from '@/use/uql'
 import SearchFilterMenu from '@/tracing/query/SearchFilterMenu.vue'
 import DurationFilterMenu from '@/tracing/query/DurationFilterMenu.vue'
 import AttrFilterMenu from '@/tracing/query/AttrFilterMenu.vue'
-import WhereFilterMenu from '@/tracing/query/WhereFilterMenu.vue'
-import AggByMenu from '@/tracing/query/AggByMenu.vue'
-import GroupByMenu from '@/tracing/query/GroupByMenu.vue'
+import AdvancedMenu from '@/tracing/query/AdvancedMenu.vue'
 import QueryHelpDialog from '@/tracing/query/QueryHelpDialog.vue'
 import FacetList from '@/components/facet/FacetList.vue'
 
@@ -72,9 +66,7 @@ export default defineComponent({
     SearchFilterMenu,
     DurationFilterMenu,
     AttrFilterMenu,
-    WhereFilterMenu,
-    AggByMenu,
-    GroupByMenu,
+    AdvancedMenu,
     QueryHelpDialog,
     FacetList,
   },
@@ -124,9 +116,4 @@ export default defineComponent({
 })
 </script>
 
-<style lang="scss" scoped>
-.v-divider--vertical {
-  margin-top: 6px;
-  margin-bottom: 4px;
-}
-</style>
+<style lang="scss" scoped></style>

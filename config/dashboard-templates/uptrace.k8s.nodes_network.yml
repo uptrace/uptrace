@@ -1,0 +1,41 @@
+schema: v2
+name: 'K8s: Nodes network'
+
+table:
+  metrics:
+    - k8s.node.network.io as $io
+    - k8s.node.network.errors as $errors
+  query:
+    - group by k8s.node.name
+    - group by interface
+    - per_min($io{direction=receive}) as net_receive
+    - per_min($io{direction=transmit}) as net_transmit
+    - per_min($errors)
+  columns:
+    net_receive:
+      unit: bytes
+    net_transmit:
+      unit: bytes
+
+grid_rows:
+  - title: General
+    items:
+      - title: Network IO
+        type: chart
+        chart: line
+        metrics:
+          - k8s.node.network.io as $io
+        query:
+          - per_min($io)
+          - group by direction
+        columns:
+          per_min($io):
+            unit: bytes
+
+      - title: Network errors
+        type: chart
+        chart: line
+        metrics:
+          - k8s.node.network.errors as $errors
+        query:
+          - per_min($errors)

@@ -1,9 +1,9 @@
 <template>
   <v-menu v-model="menu" offset-y :close-on-content-click="false">
     <template #activator="{ on, attrs }">
-      <v-btn text class="v-btn--filter" :disabled="disabled" v-bind="attrs" v-on="on">
-        Group by
-      </v-btn>
+      <v-list-item v-bind="attrs" :disabled="disabled" v-on="on">
+        <v-list-item-title>Group by</v-list-item-title>
+      </v-list-item>
     </template>
     <v-form ref="form" v-model="isValid">
       <v-card width="400px">

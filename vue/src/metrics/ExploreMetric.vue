@@ -1,7 +1,7 @@
 <template>
   <v-card outlined>
     <v-toolbar color="light-blue lighten-5" flat>
-      <v-toolbar-title>Explore metric</v-toolbar-title>
+      <v-toolbar-title>Metric explorer</v-toolbar-title>
 
       <v-spacer />
 
@@ -15,50 +15,25 @@
     </v-toolbar>
 
     <v-container fluid class="pa-4">
-      <v-row align="center" dense>
-        <v-col cols="auto" class="pr-4">
-          <v-avatar color="blue darken-1" size="40">
-            <span class="white--text text-h5">1</span>
-          </v-avatar>
-        </v-col>
-        <v-col>
-          <v-sheet max-width="800" class="text-subtitle-1 text--primary">
-            Select metrics you want to display for each row in the table. The selected metrics
-            should have some common attributes that will be used to join metrics together.
-          </v-sheet>
-        </v-col>
-      </v-row>
       <v-row>
         <v-col>
-          <MetricsPicker v-model="metricAliases" :uql="uql" editable />
+          <MetricsPicker v-model="metricAliases" :uql="uql" />
         </v-col>
       </v-row>
 
-      <v-divider class="my-8" />
-
-      <v-row align="center" dense>
-        <v-col cols="auto" class="pr-4">
-          <v-avatar color="blue darken-1" size="40">
-            <span class="white--text text-h5">2</span>
-          </v-avatar>
-        </v-col>
-        <v-col>
-          <v-sheet max-width="800" class="text-subtitle-1 text--primary">
-            Add some aggregations and group-by attributes to display as columns in the table.
-          </v-sheet>
-        </v-col>
-      </v-row>
       <v-row>
         <v-col>
-          <MetricsQueryBuilder
-            :date-range="dateRange"
-            :metrics="activeMetrics"
-            :uql="uql"
-            show-agg
-            show-group-by
-            show-dash-where
-            :disabled="!activeMetrics.length"
-          />
+          <v-card outlined rounded="lg" class="pa-4">
+            <MetricsQueryBuilder
+              :date-range="dateRange"
+              :metrics="activeMetrics"
+              :uql="uql"
+              show-agg
+              show-group-by
+              show-dash-where
+              :disabled="!activeMetrics.length"
+            />
+          </v-card>
         </v-col>
       </v-row>
 
@@ -68,7 +43,7 @@
         </v-col>
       </v-row>
 
-      <v-row dense>
+      <v-row class="mb-n6">
         <v-col cols="auto">
           <v-chip v-for="(col, colName) in columnMap" :key="colName" outlined label class="ma-1">
             <span>{{ colName }}</span>
@@ -76,9 +51,9 @@
           </v-chip>
         </v-col>
       </v-row>
-      <v-row dense>
+      <v-row>
         <v-col>
-          <GridColumnChart
+          <LegendaryChart
             :loading="timeseries.loading"
             :resolved="timeseries.status.isResolved()"
             :timeseries="styledTimeseries"
@@ -103,7 +78,7 @@ import {
   useActiveMetrics,
   defaultMetricAlias,
   defaultMetricQuery,
-  MetricStats,
+  ExploredMetric,
 } from '@/metrics/use-metrics'
 import { useTimeseries, useStyledTimeseries } from '@/metrics/use-query'
 import { MetricAlias, LegendType, LegendPlacement, LegendValue } from '@/metrics/types'
@@ -113,14 +88,14 @@ import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import MetricsPicker from '@/metrics/MetricsPicker.vue'
 import MetricsQueryBuilder from '@/metrics/query/MetricsQueryBuilder.vue'
 import UnitPicker from '@/components/UnitPicker.vue'
-import GridColumnChart from '@/metrics/GridColumnChart.vue'
+import LegendaryChart from '@/metrics/LegendaryChart.vue'
 
-// Types
+// Misc
 import { updateColumnMap, MetricColumn } from '@/metrics/types'
 
 export default defineComponent({
   name: 'ExploreMetric',
-  components: { DateRangePicker, MetricsPicker, MetricsQueryBuilder, UnitPicker, GridColumnChart },
+  components: { DateRangePicker, MetricsPicker, MetricsQueryBuilder, UnitPicker, LegendaryChart },
 
   props: {
     dateRange: {
@@ -128,7 +103,7 @@ export default defineComponent({
       required: true,
     },
     metric: {
-      type: Object as PropType<MetricStats>,
+      type: Object as PropType<ExploredMetric>,
       required: true,
     },
   },

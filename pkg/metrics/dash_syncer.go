@@ -2,8 +2,8 @@ package metrics
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -11,6 +11,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
+	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
@@ -76,35 +77,34 @@ func (s *DashSyncer) createDashboards(ctx context.Context, projectID uint32) err
 	}
 
 	dashMap := make(map[string]*Dashboard, len(dashboards))
-
 	for _, dash := range dashboards {
 		dashMap[dash.TemplateID] = dash
 	}
 
 	for _, tpl := range s.templates {
-		dash, ok := dashMap[tpl.ID]
-		if ok {
-			if s.isDashChanged(ctx, dash) {
-				continue
-			}
+		existingDash, ok := dashMap[tpl.ID]
+		if ok && s.isDashChanged(ctx, existingDash) {
+			continue
 		}
 
-		builder := NewDashBuilder(projectID, dash)
+		builder := NewDashBuilder(projectID, metricMap)
 
 		if err := builder.Build(tpl); err != nil {
 			return fmt.Errorf("building dashboard %s failed: %w", tpl.ID, err)
 		}
 
-		if !builder.HasMetrics(metricMap) {
+		if builder.IsEmpty() {
+			if existingDash != nil {
+				if err := DeleteDashboard(ctx, s.app.PG, existingDash.ID); err != nil {
+					return fmt.Errorf("DeleteDashboard failed: %w", err)
+				}
+			}
 			continue
 		}
 
-		if builder.oldDash != nil {
-			builder.dash.Name = builder.oldDash.Name
-			builder.dash.GridQuery = builder.oldDash.GridQuery
-		}
-
-		if err := builder.Save(ctx, s.app); err != nil {
+		if err := s.app.PG.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+			return builder.Save(ctx, tx, existingDash, true)
+		}); err != nil {
 			return fmt.Errorf("saving dashboard %s failed: %w", tpl.ID, err)
 		}
 	}
@@ -118,25 +118,11 @@ func (s *DashSyncer) isDashChanged(ctx context.Context, dash *Dashboard) bool {
 	}
 
 	n, err := s.app.PG.NewSelect().
-		Model((*BaseGridColumn)(nil)).
+		Model((*BaseGridItem)(nil)).
 		Where("dash_id = ?", dash.ID).
 		Where("updated_at != created_at").
 		Count(ctx)
 	if err != nil {
-		s.logger.Ctx(ctx).Error("countChangedColumns failed", zap.Error(err))
-		return true
-	}
-	if n > 0 {
-		return true
-	}
-
-	n, err = s.app.PG.NewSelect().
-		Model((*DashGauge)(nil)).
-		Where("dash_id = ?", dash.ID).
-		Where("updated_at != created_at").
-		Count(ctx)
-	if err != nil {
-		s.logger.Ctx(ctx).Error("countChangedGauges failed", zap.Error(err))
 		return true
 	}
 	if n > 0 {
@@ -150,290 +136,325 @@ func (s *DashSyncer) isDashChanged(ctx context.Context, dash *Dashboard) bool {
 
 type DashBuilder struct {
 	projectID uint32
-	oldDash   *Dashboard
-	dash      *Dashboard
-	gauges    []*DashGauge
-	grid      []GridColumn
-	monitors  []*org.MetricMonitor
+	metricMap map[string]*Metric
+
+	dash       *Dashboard
+	tableItems []GridItem
+	gridRows   []*GridRow
+	monitors   []*org.MetricMonitor
 }
 
-func NewDashBuilder(projectID uint32, oldDash *Dashboard) *DashBuilder {
+func NewDashBuilder(projectID uint32, metricMap map[string]*Metric) *DashBuilder {
 	return &DashBuilder{
 		projectID: projectID,
-		oldDash:   oldDash,
+		metricMap: metricMap,
 	}
 }
 
 func (b *DashBuilder) Build(tpl *DashboardTpl) error {
-	now := time.Now()
-	b.dash = &Dashboard{
-		ProjectID: b.projectID,
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-
-	if err := b.initDash(tpl); err != nil {
+	dash, err := b.dashboard(tpl)
+	if err != nil {
 		return fmt.Errorf("invalid dashboard: %w", err)
 	}
+	b.dash = dash
 
-	for index, gauge := range tpl.Table.Gauges {
-		if err := b.gauge(index, gauge, DashTable); err != nil {
-			return fmt.Errorf("invalid table gauge: %w", err)
+	for _, tpl := range tpl.Table.GridItems {
+		gridItem, err := b.gridItem(tpl.Value)
+		if err != nil {
+			return fmt.Errorf("invalid table item: %w", err)
+		}
+		if b.hasGridItemMetrics(gridItem) {
+			b.tableItems = append(b.tableItems, gridItem)
 		}
 	}
 
-	for index, gauge := range tpl.Grid.Gauges {
-		if err := b.gauge(index, gauge, DashGrid); err != nil {
-			return fmt.Errorf("invalid grid gauge: %w", err)
+	for _, tpl := range tpl.GridRows {
+		gridRow, err := b.gridRow(tpl)
+		if err != nil {
+			return fmt.Errorf("invalid grid row: %w", err)
 		}
-	}
-
-	for _, tpl := range tpl.Grid.Columns {
-		if err := b.gridColumn(tpl); err != nil {
-			return fmt.Errorf("invalid grid column: %w", err)
+		if len(gridRow.Items) > 0 {
+			b.gridRows = append(b.gridRows, gridRow)
 		}
 	}
 
 	for _, tpl := range tpl.Monitors {
-		if err := b.monitor(tpl); err != nil {
+		monitor, err := b.monitor(tpl)
+		if err != nil {
 			return fmt.Errorf("invalid monitor: %w", err)
+		}
+		if b.hasMetrics(monitor.Params.Metrics) {
+			b.monitors = append(b.monitors, monitor)
 		}
 	}
 
 	return nil
 }
 
-func (b *DashBuilder) initDash(tpl *DashboardTpl) error {
-	if err := b.dash.FromTemplate(tpl); err != nil {
-		return err
+func (b *DashBuilder) dashboard(tpl *DashboardTpl) (*Dashboard, error) {
+	dash := &Dashboard{
+		ProjectID: b.projectID,
 	}
+	if err := tpl.Populate(dash); err != nil {
+		return nil, err
+	}
+
+	if b.metricMap != nil {
+		tableQueryParts := mql.SplitQuery(dash.TableQuery)
+		for i := len(dash.TableMetrics) - 1; i >= 0; i-- {
+			metric := dash.TableMetrics[i]
+
+			if b.hasMetric(metric.Name) {
+				continue
+			}
+
+			dash.TableMetrics = append(dash.TableMetrics[:i], dash.TableMetrics[i+1:]...)
+
+			for i := len(tableQueryParts) - 1; i >= 0; i-- {
+				part := tableQueryParts[i]
+				if strings.Contains(part, "$"+metric.Alias) {
+					tableQueryParts = append(tableQueryParts[:i], tableQueryParts[i+1:]...)
+				}
+			}
+		}
+		dash.TableQuery = mql.JoinQuery(tableQueryParts)
+
+		tableQuery, err := mql.ParseQueryError(dash.TableQuery)
+		if err != nil {
+			return nil, err
+		}
+
+		tableAttrMap := make(map[string]bool)
+		for _, metric := range dash.TableMetrics {
+			metric, ok := b.metricMap[metric.Name]
+			if !ok {
+				continue
+			}
+			for _, attr := range metric.AttrKeys {
+				tableAttrMap[attr] = true
+			}
+		}
+
+		for i := len(tableQuery.Parts) - 1; i >= 0; i-- {
+			part := tableQuery.Parts[i]
+
+			grouping, ok := part.AST.(*ast.Grouping)
+			if !ok {
+				continue
+			}
+
+			if len(grouping.Elems) != 1 {
+				return nil, fmt.Errorf("group by with multiple elems: %q", part.Query)
+			}
+
+			elem := grouping.Elems[0]
+			if !tableAttrMap[ast.String(elem.Expr)] {
+				tableQuery.Parts = append(tableQuery.Parts[:i], tableQuery.Parts[i+1:]...)
+			}
+		}
+
+		dash.TableQuery = tableQuery.String()
+	}
+
+	return dash, nil
+}
+
+func (b *DashBuilder) gridRow(tpl *GridRowTpl) (*GridRow, error) {
+	row := new(GridRow)
+
+	if err := tpl.Populate(row); err != nil {
+		return nil, err
+	}
+
+	for _, itemTpl := range tpl.Items {
+		gridItem, err := b.gridItem(itemTpl.Value)
+		if err != nil {
+			return nil, err
+		}
+		if b.hasGridItemMetrics(gridItem) {
+			row.Items = append(row.Items, gridItem)
+		}
+	}
+
+	return row, nil
+}
+
+func (b *DashBuilder) gridItem(tpl any) (GridItem, error) {
+	switch tpl := tpl.(type) {
+	case *ChartGridItemTpl:
+		gridItem := NewChartGridItem()
+		if err := tpl.Populate(gridItem); err != nil {
+			return nil, err
+		}
+		return gridItem, nil
+
+	case *TableGridItemTpl:
+		gridItem := NewTableGridItem()
+		if err := tpl.Populate(gridItem); err != nil {
+			return nil, err
+		}
+		return gridItem, nil
+
+	case *HeatmapGridItemTpl:
+		gridItem := NewHeatmapGridItem()
+		if err := tpl.Populate(gridItem); err != nil {
+			return nil, err
+		}
+		return gridItem, nil
+
+	case *GaugeGridItemTpl:
+		gridItem := NewGaugeGridItem()
+		if err := tpl.Populate(gridItem); err != nil {
+			return nil, err
+		}
+		return gridItem, nil
+
+	case *GridItemTpl:
+		return b.gridItem(tpl.Value)
+
+	default:
+		return nil, fmt.Errorf("unsupported grid column template type: %T", tpl)
+	}
+}
+
+func (b *DashBuilder) monitor(tpl *MonitorTpl) (*org.MetricMonitor, error) {
+	monitor := org.NewMetricMonitor()
+	if err := tpl.Populate(monitor); err != nil {
+		return nil, err
+	}
+
+	monitor.ProjectID = b.projectID
+	monitor.NotifyEveryoneByEmail = true
+
+	if err := monitor.Validate(); err != nil {
+		return nil, err
+	}
+
+	return monitor, nil
+}
+
+func (b *DashBuilder) hasGridItemMetrics(gridItem GridItem) bool {
+	switch gridItem := gridItem.(type) {
+	case *ChartGridItem:
+		return b.hasMetrics(gridItem.Params.Metrics)
+	case *TableGridItem:
+		return b.hasMetrics(gridItem.Params.Metrics)
+	case *HeatmapGridItem:
+		return b.hasMetric(gridItem.Params.Metric)
+	case *GaugeGridItem:
+		return b.hasMetrics(gridItem.Params.Metrics)
+	default:
+		panic(fmt.Errorf("unsupported grid item type: %T", gridItem))
+	}
+}
+
+func (b *DashBuilder) hasMetrics(metrics []mql.MetricAlias) bool {
+	for _, metric := range metrics {
+		if !b.hasMetric(metric.Name) {
+			return false
+		}
+	}
+	return true
+}
+
+func (b *DashBuilder) hasMetric(name string) bool {
+	if b.metricMap == nil {
+		return true
+	}
+	_, ok := b.metricMap[name]
+	return ok
+}
+
+func (b *DashBuilder) IsEmpty() bool {
+	return len(b.dash.TableMetrics) == 0 && len(b.gridRows) == 0
+}
+
+func (b *DashBuilder) Validate() error {
 	if err := b.dash.Validate(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (b *DashBuilder) gauge(index int, tpl *DashGaugeTpl, dashKind DashKind) error {
-	gauge := &DashGauge{
-		ProjectID: b.projectID,
-		DashKind:  dashKind,
-		Index:     sql.NullInt64{Int64: int64(index), Valid: true},
-		CreatedAt: b.dash.CreatedAt,
-		UpdatedAt: b.dash.UpdatedAt,
-	}
-	if err := gauge.FromTemplate(tpl); err != nil {
-		return err
-	}
-	if err := gauge.Validate(); err != nil {
-		return err
-	}
-
-	b.gauges = append(b.gauges, gauge)
-	return nil
-}
-
-func (b *DashBuilder) gridColumn(tpl GridColumnTpl) error {
-	switch tpl := tpl.(type) {
-	case *ChartGridColumnTpl:
-		col := &ChartGridColumn{
-			BaseGridColumn: &BaseGridColumn{
-				ProjectID: b.projectID,
-				Type:      GridColumnChart,
-				CreatedAt: b.dash.CreatedAt,
-				UpdatedAt: b.dash.UpdatedAt,
-			},
-		}
-		col.BaseGridColumn.Params.Any = &col.Params
-
-		if err := col.FromTemplate(tpl); err != nil {
-			return err
-		}
-		if err := col.Validate(); err != nil {
-			return err
-		}
-
-		b.grid = append(b.grid, col)
-		return nil
-	case *TableGridColumnTpl:
-		col := &TableGridColumn{
-			BaseGridColumn: &BaseGridColumn{
-				ProjectID: b.projectID,
-				Type:      GridColumnTable,
-				CreatedAt: b.dash.CreatedAt,
-				UpdatedAt: b.dash.UpdatedAt,
-			},
-		}
-		col.BaseGridColumn.Params.Any = &col.Params
-
-		if err := col.FromTemplate(tpl); err != nil {
-			return err
-		}
-		if err := col.Validate(); err != nil {
-			return err
-		}
-
-		b.grid = append(b.grid, col)
-		return nil
-	case *HeatmapGridColumnTpl:
-		col := &HeatmapGridColumn{
-			BaseGridColumn: &BaseGridColumn{
-				ProjectID: b.projectID,
-				Type:      GridColumnHeatmap,
-				CreatedAt: b.dash.CreatedAt,
-				UpdatedAt: b.dash.UpdatedAt,
-			},
-		}
-		col.BaseGridColumn.Params.Any = &col.Params
-
-		if err := col.FromTemplate(tpl); err != nil {
-			return err
-		}
-		if err := col.Validate(); err != nil {
-			return err
-		}
-
-		b.grid = append(b.grid, col)
-		return nil
-	default:
-		return fmt.Errorf("unsupported grid column template type: %T", tpl)
-	}
-}
-
-func (b *DashBuilder) monitor(tpl *MonitorTpl) error {
-	metrics, err := parseMetrics(tpl.Metrics)
-	if err != nil {
-		return err
-	}
-
-	monitor := org.NewMetricMonitor()
-
-	monitor.ProjectID = b.projectID
-	monitor.Name = tpl.Name
-	monitor.State = org.MonitorActive
-	monitor.NotifyEveryoneByEmail = true
-
-	monitor.Params.Metrics = metrics
-	monitor.Params.Query = mql.JoinQuery(tpl.Query)
-	monitor.Params.Column = tpl.Column
-	monitor.Params.ColumnUnit = tpl.ColumnUnit
-
-	monitor.Params.CheckNumPoint = tpl.CheckNumPoint
-
-	monitor.Params.MinValue = tpl.MinAllowedValue
-	monitor.Params.MaxValue = tpl.MaxAllowedValue
-
-	if err := monitor.Validate(); err != nil {
-		return err
-	}
-
-	b.monitors = append(b.monitors, monitor)
-	return nil
-}
-
-func (b *DashBuilder) HasMetrics(metricMap map[string]*Metric) bool {
-	for _, metric := range b.dash.TableMetrics {
-		if _, ok := metricMap[metric.Name]; !ok {
-			return false
-		}
-	}
-
-gauge_loop:
-	for i := len(b.gauges) - 1; i >= 0; i-- {
-		gauge := b.gauges[i]
-		for _, metric := range gauge.Metrics {
-			if _, ok := metricMap[metric.Name]; !ok {
-
-				b.gauges = append(b.gauges[:i], b.gauges[i+1:]...)
-				continue gauge_loop
-			}
-		}
-	}
-
-grid_loop:
-	for i := len(b.grid) - 1; i >= 0; i-- {
-		col := b.grid[i]
-		switch col := col.(type) {
-		case *ChartGridColumn:
-			for _, metric := range col.Params.Metrics {
-				if _, ok := metricMap[metric.Name]; !ok {
-					b.grid = append(b.grid[:i], b.grid[i+1:]...)
-					continue grid_loop
-				}
-			}
-
-		case *TableGridColumn:
-			for _, metric := range col.Params.Metrics {
-				if _, ok := metricMap[metric.Name]; !ok {
-					b.grid = append(b.grid[:i], b.grid[i+1:]...)
-					continue grid_loop
-				}
-			}
-
-		case *HeatmapGridColumn:
-			if _, ok := metricMap[col.Params.Metric]; !ok {
-				b.grid = append(b.grid[:i], b.grid[i+1:]...)
-				continue grid_loop
-			}
-
-		default:
-			panic(fmt.Errorf("unsupported grid column type: %T", col))
-		}
-	}
-
-monitor_loop:
-	for i := len(b.monitors) - 1; i >= 0; i-- {
-		monitor := b.monitors[i]
-		for _, metric := range monitor.Params.Metrics {
-			if _, ok := metricMap[metric.Name]; !ok {
-				b.monitors = append(b.monitors[:i], b.monitors[i+1:]...)
-				continue monitor_loop
-
-			}
-		}
-	}
-
-	return len(b.grid) > 0
-}
-
-func (b *DashBuilder) Save(ctx context.Context, app *bunapp.App) error {
-	if b.oldDash != nil {
-		if err := DeleteDashboard(ctx, app, b.oldDash.ID); err != nil {
+func (b *DashBuilder) Save(
+	ctx context.Context, tx bun.Tx, existingDash *Dashboard, withMonitors bool,
+) error {
+	if existingDash != nil {
+		if err := DeleteDashboard(ctx, tx, existingDash.ID); err != nil {
 			return fmt.Errorf("DeleteDashboard failed: %w", err)
 		}
 
-		b.dash.ID = b.oldDash.ID
+		b.dash.ID = existingDash.ID
+		b.dash.Name = existingDash.Name
+		b.dash.Pinned = existingDash.Pinned
+		b.dash.MinInterval = existingDash.MinInterval
+		b.dash.TimeOffset = existingDash.TimeOffset
+		b.dash.GridQuery = existingDash.GridQuery
 	}
 
-	if err := InsertDashboard(ctx, app, b.dash); err != nil {
+	now := time.Now()
+	b.dash.CreatedAt = now
+	b.dash.UpdatedAt = now
+
+	if err := InsertDashboard(ctx, tx, b.dash); err != nil {
 		return fmt.Errorf("InsertDashboard failed: %w", err)
 	}
 
-	for _, gauge := range b.gauges {
-		gauge.DashID = b.dash.ID
-	}
+	if len(b.tableItems) > 0 {
+		for _, gridItem := range b.tableItems {
+			base := gridItem.Base()
 
-	baseCols := make([]*BaseGridColumn, len(b.grid))
-	for i, col := range b.grid {
-		baseCol := col.Base()
-		baseCol.DashID = b.dash.ID
-		baseCols[i] = baseCol
-	}
+			base.DashID = b.dash.ID
+			base.DashKind = DashKindTable
+			base.CreatedAt = now
+			base.UpdatedAt = now
 
-	if len(b.gauges) > 0 {
-		if err := InsertDashGauges(ctx, app, b.gauges); err != nil {
+			if err := gridItem.Validate(); err != nil {
+				return err
+			}
+		}
+
+		if err := InsertGridItems(ctx, tx, b.tableItems); err != nil {
 			return err
 		}
 	}
 
-	if len(baseCols) > 0 {
-		if err := InsertGridColumns(ctx, app, baseCols); err != nil {
+	for _, gridRow := range b.gridRows {
+		gridRow.DashID = b.dash.ID
+		gridRow.CreatedAt = now
+		gridRow.UpdatedAt = now
+
+		if err := InsertGridRow(ctx, tx, gridRow); err != nil {
+			return err
+		}
+
+		for _, gridItem := range gridRow.Items {
+			base := gridItem.Base()
+
+			base.DashID = b.dash.ID
+			base.DashKind = DashKindGrid
+			base.RowID = gridRow.ID
+			base.CreatedAt = now
+			base.UpdatedAt = now
+
+			if err := gridItem.Validate(); err != nil {
+				return err
+			}
+		}
+
+		if err := resetGridLayout(gridRow.Items, false); err != nil {
+			return err
+		}
+		if err := InsertGridItems(ctx, tx, gridRow.Items); err != nil {
 			return err
 		}
 	}
 
-	if b.oldDash == nil {
+	if withMonitors && existingDash == nil {
 		for _, monitor := range b.monitors {
-			if err := org.InsertMonitor(ctx, app, monitor); err != nil {
+			monitor.ProjectID = b.projectID
+
+			if err := org.InsertMonitor(ctx, tx, monitor); err != nil {
 				return err
 			}
 		}

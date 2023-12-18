@@ -57,18 +57,15 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { useConfirm } from '@/use/confirm'
-import {
-  useMonitorManager,
-  routeForMonitor,
-  Monitor,
-  MonitorType,
-  MonitorState,
-} from '@/alerting/use-monitors'
+import { useMonitorManager, routeForMonitor } from '@/alerting/use-monitors'
 import { AlertStatus } from '@/alerting/use-alerts'
 
 // Components
 import MonitorTypeIcon from '@/alerting/MonitorTypeIcon.vue'
 import MonitorStateAvatar from '@/alerting/MonitorStateAvatar.vue'
+
+// Misc
+import { Monitor, MonitorType, MonitorState } from '@/alerting/types'
 
 export default defineComponent({
   name: 'MonitorsTableRow',

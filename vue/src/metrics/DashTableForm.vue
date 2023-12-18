@@ -1,61 +1,16 @@
 <template>
-  <v-form ref="form" v-model="isValid" lazy-validation @submit.prevent="submit">
-    <v-card outlined>
-      <v-toolbar color="light-blue lighten-5" flat>
-        <v-toolbar-title>Dashboard table</v-toolbar-title>
-        <v-btn icon href="https://uptrace.dev/get/querying-metrics.html" target="_blank"
-          ><v-icon>mdi-help-circle-outline</v-icon></v-btn
-        >
+  <DashTableFormPanes :dashboard="dashboard" v-on="$listeners">
+    <template #picker>
+      <MetricsPicker v-model="dashboard.tableMetrics" :uql="uql" auto-grouping />
+    </template>
+    <template #preview>
+      <v-row v-if="!activeMetrics.length">
+        <v-col>
+          <v-skeleton-loader type="table" :boilerplate="!tableQuery.loading"></v-skeleton-loader>
+        </v-col>
+      </v-row>
 
-        <v-spacer />
-
-        <v-btn small outlined :loading="tableQuery.loading" @click="tableQuery.reload()">
-          <v-icon small left>mdi-refresh</v-icon>
-          <span>Reload</span>
-        </v-btn>
-
-        <v-toolbar-items class="ml-4">
-          <v-btn icon @click="$emit('click:cancel')">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-toolbar-items>
-      </v-toolbar>
-
-      <v-container fluid class="pa-6">
-        <v-row align="center" dense>
-          <v-col cols="auto">
-            <v-avatar color="blue darken-1" size="40">
-              <span class="white--text text-h5">1</span>
-            </v-avatar>
-          </v-col>
-          <v-col>
-            <v-sheet max-width="800" class="px-4 text-subtitle-1 text--primary">
-              Select metrics you want to display for each row in the table. The selected metrics
-              should have some common attributes that will be used to join timeseries together.
-            </v-sheet>
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col>
-            <MetricsPicker v-model="dashboard.tableMetrics" :uql="uql" :editable="editable" />
-          </v-col>
-        </v-row>
-
-        <v-divider class="my-8" />
-
-        <v-row align="center" dense>
-          <v-col cols="auto">
-            <v-avatar color="blue darken-1" size="40">
-              <span class="white--text text-h5">2</span>
-            </v-avatar>
-          </v-col>
-          <v-col>
-            <v-sheet max-width="800" class="px-4 text-subtitle-1 text--primary">
-              Add some aggregations and group-by attributes to display as columns in the table. Each
-              row in the table will lead to a separate grid-based dashboard.
-            </v-sheet>
-          </v-col>
-        </v-row>
+      <template v-else>
         <v-row>
           <v-col>
             <MetricsQueryBuilder
@@ -70,8 +25,6 @@
           </v-col>
         </v-row>
 
-        <v-divider class="my-8" />
-
         <v-row>
           <v-col>
             <v-row dense>
@@ -80,7 +33,7 @@
               </v-col>
             </v-row>
 
-            <v-row>
+            <v-row dense>
               <v-col>
                 <TimeseriesTable
                   :loading="tableQuery.loading"
@@ -93,50 +46,35 @@
             </v-row>
           </v-col>
         </v-row>
-
-        <v-row v-if="editable" class="mt-8">
-          <v-col>
-            <v-divider />
-          </v-col>
-        </v-row>
-
-        <v-row v-if="editable">
-          <v-spacer />
-          <v-col cols="auto">
-            <v-btn text class="mr-2" @click="$emit('click:cancel')">Cancel</v-btn>
-            <v-btn type="submit" color="primary" :disabled="!isValid" :loading="dashMan.pending"
-              >Save</v-btn
-            >
-          </v-col>
-        </v-row>
-      </v-container>
-    </v-card>
-  </v-form>
+      </template>
+    </template>
+  </DashTableFormPanes>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
+import { defineComponent, computed, watch, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
 import { useUql } from '@/use/uql'
 import { useActiveMetrics } from '@/metrics/use-metrics'
-import { useDashManager } from '@/metrics/use-dashboards'
 import { useTableQuery } from '@/metrics/use-query'
 
 // Components
+import DashTableFormPanes from '@/metrics/DashTableFormPanes.vue'
 import MetricsPicker from '@/metrics/MetricsPicker.vue'
 import MetricsQueryBuilder from '@/metrics/query/MetricsQueryBuilder.vue'
 import TimeseriesTable from '@/metrics/TimeseriesTable.vue'
 import MetricColumnChip from '@/metrics/MetricColumnChip.vue'
 
-// Utilities
+// Misc
 import { updateColumnMap, Dashboard, MetricColumn } from '@/metrics/types'
 import { eChart as colorScheme } from '@/util/colorscheme'
 
 export default defineComponent({
   name: 'DashTableForm',
   components: {
+    DashTableFormPanes,
     MetricsPicker,
     MetricsQueryBuilder,
     TimeseriesTable,
@@ -152,18 +90,10 @@ export default defineComponent({
       type: Object as PropType<Dashboard>,
       required: true,
     },
-    editable: {
-      type: Boolean,
-      default: false,
-    },
   },
 
   setup(props, ctx) {
     const uql = useUql()
-
-    const isValid = shallowRef(false)
-    const dashMan = useDashManager()
-
     const activeMetrics = useActiveMetrics(computed(() => props.dashboard.tableMetrics))
 
     const tableQuery = useTableQuery(
@@ -204,7 +134,6 @@ export default defineComponent({
         props.dashboard.tableQuery = query
       },
     )
-
     watch(
       () => tableQuery.query,
       (query) => {
@@ -215,24 +144,8 @@ export default defineComponent({
       { immediate: true },
     )
 
-    function submit() {
-      dashMan
-        .updateTable({
-          tableMetrics: props.dashboard.tableMetrics,
-          tableQuery: props.dashboard.tableQuery,
-          tableColumnMap: props.dashboard.tableColumnMap,
-        })
-        .then((dash) => {
-          ctx.emit('click:save', dash)
-        })
-    }
-
     return {
       uql,
-
-      isValid,
-      dashMan,
-      submit,
 
       activeMetrics,
       tableQuery,

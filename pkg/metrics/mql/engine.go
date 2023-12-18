@@ -8,7 +8,6 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
-	"golang.org/x/exp/slices"
 )
 
 type Engine struct {
@@ -43,14 +42,18 @@ func (e *Engine) Run(parts []*QueryPart) *Result {
 
 	for _, expr := range timeseriesExprs {
 		f := &TimeseriesFilter{
-			Metric:     expr.Metric,
-			AggFunc:    expr.AggFunc,
-			TableFunc:  expr.TableFunc,
-			Uniq:       expr.Uniq,
-			Filters:    expr.Filters,
-			Where:      expr.Where,
-			Grouping:   expr.Grouping,
-			GroupByAll: expr.GroupByAll,
+			Metric: expr.Metric,
+
+			AggFunc: expr.AggFunc,
+			Attr:    expr.Attr,
+
+			TableFunc: expr.TableFunc,
+			Uniq:      expr.Uniq,
+
+			Filters: expr.Filters,
+			Where:   expr.Where,
+
+			Grouping: expr.Grouping,
 		}
 
 		timeseries, err := e.storage.SelectTimeseries(f)
@@ -261,18 +264,8 @@ func (e *Engine) join(
 		return e.evalBinaryExprNumRight(lhs, 0, op)
 	}
 
-	if !slices.Equal(lhs[0].Grouping, rhs[0].Grouping) {
+	if !groupingEqual(lhs[0].Grouping, rhs[0].Grouping) {
 		return nil, fmt.Errorf("can't join timeseries with different grouping")
-	}
-	for i := range lhs {
-		if lhs[i].GroupByAll {
-			return nil, fmt.Errorf("joining timeseries with `group by all` is forbidden")
-		}
-	}
-	for i := range rhs {
-		if rhs[i].GroupByAll {
-			return nil, fmt.Errorf("joining timeseries with `group by all` is forbidden")
-		}
 	}
 
 	joined := make([]Timeseries, 0, max(len(lhs), len(rhs)))
@@ -499,4 +492,17 @@ func (e *Engine) callSingleArgFunc(
 	}
 
 	return timeseries, nil
+}
+
+func groupingEqual(lhs, rhs []ast.NamedExpr) bool {
+	if len(lhs) != len(rhs) {
+		return false
+	}
+	for i, lhsExpr := range lhs {
+		rhsExpr := rhs[i]
+		if lhsExpr.Alias != rhsExpr.Alias {
+			return false
+		}
+	}
+	return true
 }

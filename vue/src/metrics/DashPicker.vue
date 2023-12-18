@@ -121,6 +121,7 @@ export default defineComponent({
     }
 
     function redirectTo(dash: Dashboard) {
+      // Replace the current route or the Back button does not work.
       router.replace({
         name: 'DashboardShow',
         params: { dashId: String(dash.id) },

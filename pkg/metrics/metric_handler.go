@@ -158,12 +158,8 @@ func selectMetricsFromCH(
 
 			switch v := part.AST.(type) {
 			case *ast.Where:
-				where, err := compileFilters(v.Filters)
-				if err != nil {
+				if err := compileFilters(q, InstrumentDeleted, v.Filters); err != nil {
 					return nil, false, err
-				}
-				if len(where) > 0 {
-					q = q.Where(where)
 				}
 			default:
 				return nil, false, fmt.Errorf("unsupported AST type: %T", v)

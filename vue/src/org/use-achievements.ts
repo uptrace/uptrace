@@ -3,7 +3,7 @@ import { proxyRefs, computed, ComputedRef } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
-import { useForceReload } from '@/use/force-reload'
+import { injectForceReload } from '@/use/force-reload'
 import { Project } from '@/org/use-projects'
 
 export enum AchievName {
@@ -38,7 +38,7 @@ export type UseAchievements = ReturnType<typeof useAchievements>
 
 export const useAchievements = function (project: ComputedRef<Project | undefined>) {
   const { route } = useRouter()
-  const { forceReloadParams } = useForceReload()
+  const forceReload = injectForceReload()
 
   const allAchievements = computed((): Achievement[] => {
     const items: Achievement[] = [
@@ -86,7 +86,7 @@ export const useAchievements = function (project: ComputedRef<Project | undefine
     const { projectId } = route.value.params
     return {
       url: `/internal/v1/projects/${projectId}/achievements`,
-      params: forceReloadParams.value,
+      params: forceReload.params,
     }
   })
 

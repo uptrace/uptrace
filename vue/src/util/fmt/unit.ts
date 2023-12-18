@@ -30,6 +30,10 @@ export const UNITS = [
   Unit.Utilization,
 ]
 
+export function isCustomUnit(unit: string): boolean {
+  return unit.startsWith('{') && unit.endsWith('}')
+}
+
 export function unitShortName(unit: Unit): string {
   switch (unit) {
     case Unit.None:

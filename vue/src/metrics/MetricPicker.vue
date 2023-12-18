@@ -1,11 +1,7 @@
 <template>
   <v-form ref="formRef" v-model="isValid" @submit.prevent="apply">
-    <v-row
-      :dense="$vuetify.breakpoint.mdAndDown"
-      align="start"
-      :class="$vuetify.breakpoint.mdAndDown ? 'mb-n4' : 'mb-n8'"
-    >
-      <v-col v-if="editable" cols="auto">
+    <v-row :dense="$vuetify.breakpoint.mdAndDown" align="start">
+      <v-col cols="auto">
         <v-btn
           icon
           title="Remove metric"
@@ -15,7 +11,7 @@
           <v-icon>mdi-delete</v-icon>
         </v-btn>
       </v-col>
-      <v-col cols="5" md="4">
+      <v-col cols="6">
         <v-autocomplete
           v-model="metricName"
           :loading="loading"
@@ -32,8 +28,6 @@
           background-color="grey lighten-4"
           :search-input.sync="searchInput"
           no-filter
-          clearable
-          @click:clear="reset"
           @change="onMetricNameChange"
         >
           <template #item="{ item }">
@@ -61,7 +55,7 @@
         </v-autocomplete>
       </v-col>
       <v-col cols="auto" class="mt-2 text--secondary">AS</v-col>
-      <v-col cols="4" md="3" lg="2">
+      <v-col>
         <v-text-field
           ref="metricAliasRef"
           v-model="metricAlias"
@@ -89,13 +83,13 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 // Composables
 import { defaultMetricAlias } from '@/metrics/use-metrics'
 
-// Utilities
+// Misc
 import { unitShortName } from '@/util/fmt'
 import { requiredRule } from '@/util/validation'
 import { escapeRe } from '@/util/string'
 
-// Types
-import { Metric, MetricAlias } from '@/metrics/types'
+// Misc
+import { emptyMetric, Metric, MetricAlias } from '@/metrics/types'
 
 export default defineComponent({
   name: 'MetricPicker',
@@ -121,10 +115,6 @@ export default defineComponent({
     query: {
       type: String,
       required: true,
-    },
-    editable: {
-      type: Boolean,
-      default: false,
     },
     disabled: {
       type: Boolean,
@@ -170,9 +160,17 @@ export default defineComponent({
     })
 
     const filteredMetrics = computed((): Metric[] => {
-      let metrics = props.metrics
+      let metrics = props.metrics.slice()
       if (searchInput.value) {
         metrics = fuzzyFilter(metrics, searchInput.value, { key: 'name' })
+      }
+      if (props.value && props.value.name) {
+        const index = metrics.findIndex((m) => m.name === props.value.name)
+        if (index === -1) {
+          const metric = emptyMetric()
+          metric.name = props.value.name
+          metrics.push(metric)
+        }
       }
       return metrics
     })
@@ -228,7 +226,6 @@ export default defineComponent({
 
       applyDisabled,
       apply,
-      reset,
 
       unitShortName,
       onMetricNameChange,

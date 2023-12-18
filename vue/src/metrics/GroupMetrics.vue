@@ -77,7 +77,7 @@ import { UseDateRange } from '@/use/date-range'
 // Components
 import GroupMetricsItem from '@/metrics/GroupMetricsItem.vue'
 
-// Utilities
+// Misc
 import { Metric } from '@/metrics/types'
 import { buildPrefixes, Prefix } from '@/models/key-prefixes'
 

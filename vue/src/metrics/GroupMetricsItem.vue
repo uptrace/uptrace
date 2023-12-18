@@ -1,5 +1,5 @@
 <template>
-  <GridColumnChart
+  <LegendaryChart
     :loading="timeseries.loading"
     :resolved="timeseries.status.isResolved()"
     :timeseries="styledTimeseries"
@@ -17,14 +17,14 @@ import { defaultMetricAlias, defaultMetricQuery } from '@/metrics/use-metrics'
 import { useTimeseries, useStyledTimeseries } from '@/metrics/use-query'
 
 // Components
-import GridColumnChart from '@/metrics/GridColumnChart.vue'
+import LegendaryChart from '@/metrics/LegendaryChart.vue'
 
-// Utilities
+// Misc
 import { Metric, LegendType, LegendPlacement, LegendValue } from '@/metrics/types'
 
 export default defineComponent({
   name: 'GroupMetricsItem',
-  components: { GridColumnChart },
+  components: { LegendaryChart },
 
   props: {
     dateRange: {

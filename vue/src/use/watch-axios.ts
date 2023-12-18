@@ -23,7 +23,7 @@ export function watchAxios(source: AxiosRequestSource, options: AxiosWatchOption
 export function useWatchAxios(source: AxiosRequestSource, options: AxiosWatchOptions = {}) {
   options.immediate = true
   if (options.debounce === undefined) {
-    options.debounce = 10
+    options.debounce = 50
   }
   if (options.notEqual === undefined) {
     options.notEqual = true
@@ -35,6 +35,7 @@ export function useWatchAxios(source: AxiosRequestSource, options: AxiosWatchOpt
   const {
     status,
     loading,
+    resultId,
     data,
     error,
     errorMessage,
@@ -118,6 +119,7 @@ export function useWatchAxios(source: AxiosRequestSource, options: AxiosWatchOpt
     status,
     loading,
 
+    resultId,
     data,
     error,
     errorMessage,

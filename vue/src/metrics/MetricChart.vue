@@ -30,19 +30,18 @@
 </template>
 
 <script lang="ts">
+import colors from 'vuetify/lib/util/colors'
 import { ECharts } from 'echarts'
 import { defineComponent, shallowRef, computed, onMounted, PropType } from 'vue'
 
 // Components
 import EChart, { EChartProps } from '@/components/EChart.vue'
 
-// Composables
+// Misc
 import { ChartKind, StyledTimeseries } from '@/metrics/types'
+import { Annotation } from '@/org/types'
 import { EventBus } from '@/models/eventbus'
-import { Annotation } from '@/org/use-annotations'
-
-// Utilities
-import { createFormatter, Unit, Formatter } from '@/util/fmt'
+import { createFormatter, isCustomUnit, Unit, Formatter } from '@/util/fmt'
 import {
   baseChartConfig,
   axisLabelFormatter,
@@ -50,6 +49,7 @@ import {
   addChartTooltip,
   createTooltipFormatter,
   EChartsOption,
+  MarkPoint,
 } from '@/util/chart'
 
 export default defineComponent({
@@ -93,13 +93,17 @@ export default defineComponent({
       type: [Number, String],
       default: '',
     },
-    eventBus: {
-      type: Object as PropType<EventBus>,
+    markPoint: {
+      type: Object as PropType<MarkPoint>,
       default: undefined,
     },
     annotations: {
       type: Array as PropType<Annotation[]>,
       default: () => [],
+    },
+    eventBus: {
+      type: Object as PropType<EventBus>,
+      default: undefined,
     },
   },
 
@@ -110,6 +114,9 @@ export default defineComponent({
       const formatter: Record<string, Formatter> = {}
       for (let ts of props.timeseries) {
         formatter[ts.name] = createFormatter(ts.unit)
+      }
+      if (props.markPoint) {
+        formatter[props.markPoint.name] = createFormatter(props.markPoint.unit)
       }
       return formatter
     })
@@ -122,6 +129,11 @@ export default defineComponent({
       }
 
       const conf = baseChartConfig()
+      conf.toolbox = {
+        feature: {
+          saveAsImage: {},
+        },
+      }
 
       addChartTooltip(conf, {
         formatter: createTooltipFormatter(columnFormatter.value),
@@ -135,7 +147,7 @@ export default defineComponent({
         axisPointer: {
           label: {
             show: false,
-            formatter: axisPointerFormatter(Unit.Date),
+            formatter: axisPointerFormatter(Unit.Time),
           },
         },
       })
@@ -156,7 +168,7 @@ export default defineComponent({
           data: [
             [
               {
-                name: 'Allowed values range',
+                name: 'Allowed values range is in green',
                 xAxis: 'min',
                 yAxis: props.minAllowedValue !== '' ? props.minAllowedValue : 0,
               },
@@ -169,10 +181,14 @@ export default defineComponent({
         }
       }
 
+      if (props.markPoint) {
+        addMarkPoint(conf, props.markPoint)
+      }
+
       conf.grid.push({
         top: '20px',
-        left: '50px',
-        right: conf.yAxis.length === 2 ? '50px' : '20px',
+        left: '60px',
+        right: conf.yAxis.length > 1 ? '60px' : '20px',
         height: String(props.height - 50) + 'px',
       })
 
@@ -221,7 +237,7 @@ export default defineComponent({
       conf.dataset.push({
         source: {
           time: props.time,
-          data: ts.value,
+          value: ts.value as number[],
         },
       })
 
@@ -230,11 +246,12 @@ export default defineComponent({
         datasetIndex: conf.dataset.length - 1,
         name: ts.name,
         type: 'line',
-        encode: { x: 'time', y: 'data' },
+        encode: { x: 'time', y: 'value' },
         symbol: ts.symbol,
         symbolSize: ts.symbolSize,
         color: ts.color,
         emphasis: { focus: 'series' },
+        connectNulls: false,
       }
 
       switch (chartKind) {
@@ -266,6 +283,10 @@ export default defineComponent({
     }
 
     function yAxisIndex(conf: EChartsOption, unit: string): number {
+      if (isCustomUnit(unit)) {
+        unit = ''
+      }
+
       const index = conf.yAxis.findIndex((yAxis) => yAxis.id === unit)
       if (index >= 0) {
         return index
@@ -311,6 +332,17 @@ export default defineComponent({
     return { echart, chart }
   },
 })
+
+function addMarkPoint(conf: EChartsOption, markPoint: MarkPoint) {
+  conf.series.push({
+    name: markPoint.name,
+    type: 'scatter',
+    data: [[markPoint.time, markPoint.value]],
+    symbolSize: 15,
+    color: colors.red.darken2,
+    z: 999,
+  })
+}
 </script>
 
 <style lang="scss" scoped></style>

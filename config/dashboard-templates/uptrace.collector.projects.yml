@@ -1,0 +1,43 @@
+schema: v2
+name: 'Uptrace: collector stats by project'
+
+table:
+  grid_items:
+    - title: Queued spans
+      description: Number of spans in the buffer
+      type: gauge
+      metrics:
+        - uptrace.tracing.queue_length as $queue_len
+      query:
+        - $queue_len
+
+    - title: Queued measures
+      description: Number of measures in the buffer
+      type: gauge
+      metrics:
+        - uptrace.metrics.queue_length as $queue_len
+      query:
+        - $queue_len
+
+  metrics:
+    - uptrace.projects.spans as $spans
+    - uptrace.projects.measures as $measures
+  query:
+    - group by project_id
+    - per_min($spans) as spans_per_min
+    - per_min($measures) as measures_per_min
+
+grid_rows:
+  - title: General
+    items:
+      - title: Number of processed spans
+        metrics:
+          - uptrace.projects.spans as $spans
+        query:
+          - per_min($spans) group by type
+
+      - title: Number of processed measures
+        metrics:
+          - uptrace.projects.measures as $measures
+        query:
+          - per_min($measures) group by type

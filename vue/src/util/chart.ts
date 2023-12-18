@@ -148,6 +148,13 @@ function toNumber(v: any): any {
   return v
 }
 
+export interface MarkPoint {
+  name: string
+  value: number
+  unit: string
+  time: string
+}
+
 export type HistogramBin = [number, number] // gte, lt
 
 export type HeatmapPoint = [number, number, number] // [xIdx, yIdx, count]

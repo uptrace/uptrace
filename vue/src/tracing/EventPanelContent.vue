@@ -17,9 +17,9 @@
         >
         <NewMonitorMenu
           v-if="event.groupId"
+          :systems="[event.system]"
           :name="`${event.system} > ${event.name}`"
           :where="`where ${AttrKey.spanGroupId} = '${event.groupId}'`"
-          events-mode
           verbose
           class="ml-2"
         />
@@ -116,7 +116,7 @@ export default defineComponent({
           ...props.dateRange.queryParams(),
           system: props.event.system,
           query: createQueryEditor()
-            .exploreAttr(AttrKey.spanGroupId, true)
+            .exploreAttr(AttrKey.spanGroupId)
             .where(AttrKey.spanGroupId, '=', props.event.groupId)
             .toString(),
         },

@@ -4,9 +4,7 @@
       <v-col>
         <v-card rounded="lg" outlined class="mb-4">
           <v-toolbar flat dense color="light-blue lighten-5">
-            <v-toolbar-title>
-              <span>Timeseries</span>
-            </v-toolbar-title>
+            <slot name="search-filter" />
 
             <v-spacer />
           </v-toolbar>
@@ -61,7 +59,7 @@
                     :groups="timeseries.groups"
                     :grouping-columns="timeseries.groupingColumns"
                     :metric-columns="timeseries.metricColumns"
-                    :events-mode="systems.isEvent"
+                    :is-span="systems.isSpan"
                     @current-items="setPageGroups($event)"
                     @hover:item="eventBus.emit('hover', $event)"
                   />

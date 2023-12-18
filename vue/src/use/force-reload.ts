@@ -1,15 +1,26 @@
-import { ref, computed } from 'vue'
+import { shallowRef, computed, proxyRefs } from 'vue'
+import { injectLocal, provideLocal } from '@vueuse/core'
 
-import { defineStore } from '@/use/store'
+export type UseForceReload = ReturnType<typeof useForceReload>
 
-export const useForceReload = defineStore(() => {
-  const token = ref(0)
+function useForceReload() {
+  const loading = shallowRef(false)
+  const token = shallowRef(0)
 
   function forceReload() {
-    token.value = Date.now()
+    const slot = Math.trunc(Date.now() / 3000)
+    if (slot === token.value) {
+      return
+    }
+    token.value = slot
+
+    loading.value = true
+    setTimeout(() => {
+      loading.value = false
+    }, 1000)
   }
 
-  const forceReloadParams = computed(() => {
+  const params = computed(() => {
     if (token.value) {
       return {
         _force: token.value,
@@ -18,5 +29,15 @@ export const useForceReload = defineStore(() => {
     return {}
   })
 
-  return { forceReload, forceReloadParams }
-})
+  return proxyRefs({ loading, params, do: forceReload })
+}
+
+const forceReloadKey = Symbol('force-reload')
+
+export function provideForceReload() {
+  provideLocal(forceReloadKey, useForceReload())
+}
+
+export function injectForceReload(): UseForceReload {
+  return injectLocal(forceReloadKey)!
+}

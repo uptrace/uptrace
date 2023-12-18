@@ -44,11 +44,11 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 // Composables
 import { createQueryEditor } from '@/use/uql'
 import { UseDateRange } from '@/use/date-range'
-import { useQueryStore } from '@/use/uql'
+import { injectQueryStore } from '@/use/uql'
 import { useGroups } from '@/tracing/use-explore-spans'
 
 // Utilities
-import { isEventSystem, AttrKey } from '@/models/otel'
+import { isSpanSystem, AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'SpanAttrValues',
@@ -96,7 +96,7 @@ export default defineComponent({
         },
       ]
 
-      if (!eventsMode.value) {
+      if (isSpanSystem(props.system)) {
         items.push(
           {
             value: `p50(${AttrKey.spanDuration})`,
@@ -118,11 +118,7 @@ export default defineComponent({
       })
     })
 
-    const eventsMode = computed(() => {
-      return isEventSystem(props.system)
-    })
-
-    const { where } = useQueryStore()
+    const { where } = injectQueryStore()
 
     const query = computed(() => {
       const editor = createQueryEditor().add(`group by ${props.attrKey}`)
@@ -148,7 +144,6 @@ export default defineComponent({
     })
 
     return {
-      eventsMode,
       plottedColumns,
 
       query,

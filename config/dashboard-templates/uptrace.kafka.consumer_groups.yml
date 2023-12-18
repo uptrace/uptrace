@@ -1,0 +1,37 @@
+schema: v2
+name: 'Kafka: Consumer Groups'
+
+table:
+  grid_items:
+    - title: Consumers
+      description: Number of members in the consumer group
+      type: gauge
+      metrics:
+        - kafka.consumer_group.members as $members
+      query:
+        - $members
+
+  metrics:
+    - kafka.consumer_group.offset as $offset
+    - kafka.consumer_group.lag as $lag
+  query:
+    - group by topic
+    - group by partition
+    - group by group
+    - per_min(delta($offset)) as processed
+    - $lag
+
+grid_rows:
+  - title: General
+    items:
+      - title: Number of processed messages by the consumer group at the partition of the topic
+        metrics:
+          - kafka.consumer_group.offset as $offset
+        query:
+          - per_min(delta($offset)) as processed
+
+      - title: Lag of the consumer group at the partition of the topic
+        metrics:
+          - kafka.consumer_group.lag as $lag
+        query:
+          - $lag

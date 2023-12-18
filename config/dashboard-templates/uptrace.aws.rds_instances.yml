@@ -1,0 +1,80 @@
+# https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-metrics.html
+schema: v2
+name: 'AWS RDS instances'
+
+table:
+  metrics:
+    - amazonaws.com.aws.rds.cpu_utilization as $cpu_util
+    - amazonaws.com.aws.rds.burst_balance as $burst_balance
+    - amazonaws.com.aws.rds.database_connections as $db_conns
+    - amazonaws.com.aws.rds.disk_queue_depth as $queue_depth
+  query:
+    - group by cloud.region
+    - group by db_instance_identifier
+    - avg($cpu_util) as cpu_util
+    - avg($burst_balance) as burst_balance
+    - avg($db_conns) as db_conns
+    - avg($queue_depth) as queue_depth
+
+grid_rows:
+  - title: General
+    items:
+      - title: Percentage of CPU utilization
+        metrics:
+          - amazonaws.com.aws.rds.cpu_utilization as $cpu_util
+        query:
+          - avg($cpu_util) as cpu_util
+
+      - title: Percent of gp2 burst-bucket I/O credits available
+        metrics:
+          - amazonaws.com.aws.rds.burst_balance as $burst_balance
+        query:
+          - avg($burst_balance) as burst_balance
+
+      - title: Number of client network connections
+        metrics:
+          - amazonaws.com.aws.rds.database_connections as $db_conns
+        query:
+          - avg($db_conns) as db_conns
+
+      - title: Number of outstanding I/Os waiting to access the disk
+        metrics:
+          - amazonaws.com.aws.rds.disk_queue_depth as $queue_depth
+        query:
+          - avg($queue_depth) as queue_depth
+
+      - title: Number of earned CPU credits
+        metrics:
+          - amazonaws.com.aws.rds.cpu_credit_balance as $cpu_credit_balance
+        query:
+          - avg($cpu_credit_balance) as cpu_credit_balance
+
+      - title: Number of spent CPU credits
+        metrics:
+          - amazonaws.com.aws.rds.cpu_credit_usage as $cpu_credit_usage
+        query:
+          - avg($cpu_credit_usage) as cpu_credit_usage
+
+      - title: Number of surplus credits
+        metrics:
+          - amazonaws.com.aws.rds.cpu_surplus_credit_balance as $cpu_surplus_credit_balance
+        query:
+          - avg($cpu_surplus_credit_balance) as cpu_surplus_credit_balance
+
+      - title: Number of spent surplus credits
+        metrics:
+          - amazonaws.com.aws.rds.cpu_surplus_credits_charged as $cpu_surplus_credits_charged
+        query:
+          - avg($cpu_surplus_credits_charged) as cpu_surplus_credits_charged
+
+      - title: Percentage of throughput credits remaining in the burst bucket
+        metrics:
+          - amazonaws.com.aws.rds.ebs_byte_balance as $ebs_byte_balance
+        query:
+          - avg($ebs_byte_balance) as ebs_byte_balance
+
+      - title: Percentage of I/O credits remaining in the burst bucket
+        metrics:
+          - amazonaws.com.aws.rds.ebsio_balance as $ebsio_balance
+        query:
+          - avg($ebsio_balance) as ebsio_balance

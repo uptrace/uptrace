@@ -16,7 +16,7 @@ export interface AxiosRequestConfig extends BaseAxiosRequestConfig {
   ignore?: boolean
 }
 
-export function useAxios(cfg: AxiosConfig = {}) {
+export function useAxios(conf: AxiosConfig = {}) {
   let cancelToken: CancelTokenSource | null = null
 
   const {
@@ -24,14 +24,12 @@ export function useAxios(cfg: AxiosConfig = {}) {
     pending: loading,
     promised,
     result,
+    resultId,
     error,
     errorMessage,
     cancel,
-  } = usePromise((req: AxiosRequestConfig | null | undefined) => {
-    if (req === null) {
-      return Promise.reject(null)
-    }
-    if (!isValidReq(req)) {
+  } = usePromise((req: AxiosRequestConfig | undefined) => {
+    if (!req || !isValidReq(req)) {
       return Promise.reject(undefined)
     }
     if (req && req.ignore) {
@@ -46,8 +44,8 @@ export function useAxios(cfg: AxiosConfig = {}) {
       }
     }
 
-    return axios.request(req!)
-  }, cfg)
+    return axios.request(req)
+  }, conf)
 
   const data = computed(() => {
     return result.value?.data
@@ -82,6 +80,7 @@ export function useAxios(cfg: AxiosConfig = {}) {
     loading,
 
     result,
+    resultId,
     data,
     error,
     errorMessage,
@@ -91,11 +90,7 @@ export function useAxios(cfg: AxiosConfig = {}) {
   }
 }
 
-function isValidReq(req: AxiosRequestConfig | undefined): boolean {
-  if (req === undefined) {
-    return false
-  }
-
+function isValidReq(req: AxiosRequestConfig): boolean {
   if (req.url && req.url.includes('undefined')) {
     return false
   }
