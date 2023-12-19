@@ -47,7 +47,7 @@ import DateRangePickerMenu from '@/components/date/DateRangePickerMenu.vue'
 
 // Misc
 import { HOUR } from '@/util/fmt/date'
-import { periodsForDays } from '@/models/period'
+import { periodsForDays, Period } from '@/models/period'
 
 export default defineComponent({
   name: 'DateRangePicker',
@@ -75,17 +75,16 @@ export default defineComponent({
 
     onMounted(() => {
       watchEffect(() => {
-        if (props.dateRange.duration) {
+        if (!periods.value.length || props.dateRange.duration) {
           return
         }
 
-        const period = periods.value.find((p) => p.milliseconds === props.defaultPeriod)
+        const period = periods.value.find((p: Period) => p.milliseconds === props.defaultPeriod)
         if (period) {
           props.dateRange.changeDuration(period.milliseconds)
-          return
+        } else {
+          props.dateRange.changeDuration(periods.value[0].milliseconds)
         }
-
-        props.dateRange.changeDuration(periods.value[0].milliseconds)
       })
     })
 

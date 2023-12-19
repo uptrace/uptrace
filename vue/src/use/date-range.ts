@@ -1,4 +1,4 @@
-import { addMilliseconds, subMilliseconds, differenceInMilliseconds } from 'date-fns'
+import { min, addMilliseconds, subMilliseconds, differenceInMilliseconds } from 'date-fns'
 import { shallowRef, computed, proxyRefs, watch, onBeforeUnmount, getCurrentInstance } from 'vue'
 
 // Composables
@@ -184,7 +184,13 @@ export function useDateRange(conf: Config = {}) {
       return
     }
 
+    if (ms) {
+      duration.value = ms
+    }
+
     dt = addMilliseconds(dt, duration.value / 2)
+    const now = ceilDate(new Date(), MINUTE) // always round up
+    dt = min([dt, now])
     changeLT(dt)
   }
 

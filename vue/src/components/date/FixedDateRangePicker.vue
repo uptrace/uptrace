@@ -65,13 +65,11 @@ export default defineComponent({
           return
         }
 
-        const period = periods.value.find((p) => p.milliseconds === HOUR)
-        if (period) {
-          props.dateRange.changeAround(props.around, period.milliseconds)
-          return
+        let period = periods.value.find((p) => p.milliseconds === HOUR)
+        if (!period) {
+          period = periods.value[0]
         }
-
-        props.dateRange.changeAround(props.around, periods.value[0].milliseconds)
+        props.dateRange.changeAround(props.around, period.milliseconds)
       })
     })
 
