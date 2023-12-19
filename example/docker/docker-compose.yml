@@ -31,12 +31,12 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - 'pg_data0:/var/lib/postgresql/data/pgdata'
+      - 'pg_data1:/var/lib/postgresql/data/pgdata'
     ports:
       - '5432:5432'
 
   uptrace:
-    image: 'uptrace/uptrace:1.6.0-rc.1'
+    image: 'uptrace/uptrace:1.6.0-rc.4'
     #image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:
@@ -80,4 +80,4 @@ services:
 
 volumes:
   ch_data0:
-  pg_data0:
+  pg_data1:

@@ -46,6 +46,9 @@ receivers:
           scrape_interval: 15s
           static_configs:
             - targets: ['0.0.0.0:8888']
+  prometheus/clickhouse:
+    config:
+      scrape_configs:
         - job_name: clickhouse
           scrape_interval: 15s
           static_configs:
@@ -97,8 +100,8 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp/uptrace]
-    metrics/otelcol:
-      receivers: [prometheus/otelcol]
+    metrics/prom:
+      receivers: [prometheus/otelcol, prometheus/clickhouse]
       processors: [batch]
       exporters: [prometheusremotewrite]
 
