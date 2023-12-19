@@ -102,7 +102,10 @@
           <v-col>
             <v-card outlined rounded="lg">
               <v-card-text>
-                <LoadPctileChart :axios-params="axiosParams" :annotations="annotations.items" />
+                <PercentilesChartLazy
+                  :axios-params="axiosParams"
+                  :annotations="annotations.items"
+                />
               </v-card-text>
             </v-card>
           </v-col>
@@ -144,7 +147,7 @@ import { useAnnotations } from '@/org/use-annotations'
 
 // Components
 import FixedDateRangePicker from '@/components/date/FixedDateRangePicker.vue'
-import LoadPctileChart from '@/components/LoadPctileChart.vue'
+import PercentilesChartLazy from '@/components/PercentilesChartLazy.vue'
 import SpanSystemBarChart from '@/components/SpanSystemBarChart.vue'
 import TraceTabs from '@/tracing/TraceTabs.vue'
 
@@ -155,7 +158,7 @@ export default defineComponent({
   name: 'TraceShow',
   components: {
     FixedDateRangePicker,
-    LoadPctileChart,
+    PercentilesChartLazy,
     SpanSystemBarChart,
     TraceTabs,
   },

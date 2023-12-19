@@ -50,7 +50,7 @@
           <v-expansion-panel>
             <v-expansion-panel-header>Percentiles chart</v-expansion-panel-header>
             <v-expansion-panel-content>
-              <LoadPctileChart :axios-params="axiosParams" :annotations="annotations" />
+              <PercentilesChartLazy :axios-params="axiosParams" :annotations="annotations" />
             </v-expansion-panel-content>
           </v-expansion-panel>
           <v-expansion-panel v-if="isSpan">
@@ -158,7 +158,7 @@ import { createQueryEditor, injectQueryStore } from '@/use/uql'
 import { useGroup } from '@/tracing/use-groups'
 
 // Components
-import LoadPctileChart from '@/components/LoadPctileChart.vue'
+import PercentilesChartLazy from '@/components/PercentilesChartLazy.vue'
 import UqlCardReadonly from '@/components/UqlCardReadonly.vue'
 import PagedGroupsCardLazy from '@/tracing/PagedGroupsCardLazy.vue'
 
@@ -169,7 +169,7 @@ import { Unit } from '@/util/fmt'
 export default defineComponent({
   name: 'GroupInfoCard',
   components: {
-    LoadPctileChart,
+    PercentilesChartLazy,
     UqlCardReadonly,
     PagedGroupsCardLazy,
   },

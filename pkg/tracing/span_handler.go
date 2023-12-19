@@ -230,7 +230,9 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 
 	bunutil.FillHoles(m, f.TimeGTE, f.TimeLT, groupingInterval)
 
-	return httputil.JSON(w, m)
+	return httputil.JSON(w, map[string]any{
+		"stats": m,
+	})
 }
 
 func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) error {

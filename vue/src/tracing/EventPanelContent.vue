@@ -29,9 +29,10 @@
 
     <v-row v-if="event.groupId">
       <v-col>
-        <PctileChart
+        <EventRateChart
           :loading="percentiles.loading"
-          :data="percentiles.data"
+          :time="percentiles.stats.time"
+          :count-per-min="percentiles.stats.rate"
           :annotations="annotations"
         />
       </v-col>
@@ -56,12 +57,12 @@ import { defineComponent, PropType, computed } from 'vue'
 // Composables
 import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
-import { usePercentiles } from '@/use/percentiles'
+import { usePercentiles } from '@/tracing/use-percentiles'
 import { createQueryEditor } from '@/use/uql'
 import { Annotation } from '@/org/use-annotations'
 
 // Components
-import PctileChart from '@/components/PctileChart.vue'
+import EventRateChart from '@/components/EventRateChart.vue'
 import NewMonitorMenu from '@/tracing/NewMonitorMenu.vue'
 import SpanAttrs from '@/tracing/SpanAttrs.vue'
 
@@ -71,7 +72,7 @@ import { SpanEvent } from '@/models/span'
 
 export default defineComponent({
   name: 'EventPanelContent',
-  components: { PctileChart, NewMonitorMenu, SpanAttrs },
+  components: { EventRateChart, NewMonitorMenu, SpanAttrs },
 
   props: {
     dateRange: {

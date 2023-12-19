@@ -16,7 +16,7 @@
         <v-container fluid>
           <v-row dense>
             <v-col>
-              <LoadPctileChart
+              <PercentilesChartLazy
                 :axios-params="axiosParams"
                 :annotations="annotations.items"
                 class="pa-4"
@@ -73,7 +73,7 @@ import ApiErrorCard from '@/components/ApiErrorCard.vue'
 import SpansTable from '@/tracing/SpansTable.vue'
 import SpansTableSettings from '@/tracing/SpansTableSettings.vue'
 import { SpanChip } from '@/tracing/SpanChips.vue'
-import LoadPctileChart from '@/components/LoadPctileChart.vue'
+import PercentilesChartLazy from '@/components/PercentilesChartLazy.vue'
 
 // Misc
 import { isLogSystem, isGroupSystem, AttrKey } from '@/models/otel'
@@ -84,7 +84,7 @@ export default defineComponent({
     ApiErrorCard,
     SpansTable,
     SpansTableSettings,
-    LoadPctileChart,
+    PercentilesChartLazy,
   },
 
   props: {
