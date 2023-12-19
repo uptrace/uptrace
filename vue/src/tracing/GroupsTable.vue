@@ -67,7 +67,7 @@ import { Group, ColumnInfo } from '@/tracing/use-explore-spans'
 import GroupsTableRow from '@/tracing/GroupsTableRow.vue'
 import PagedSpansCardLazy from '@/tracing/PagedSpansCardLazy.vue'
 
-// Utilities
+// Misc
 import { isSpanSystem, AttrKey } from '@/models/otel'
 import { updateColumnMap, MetricColumn } from '@/metrics/types'
 

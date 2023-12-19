@@ -110,7 +110,7 @@ import type { OverviewItem } from '@/tracing/overview/types'
 import ThOrder from '@/components/ThOrder.vue'
 import SparklineChart from '@/components/SparklineChart.vue'
 
-// Utilities
+// Misc
 import { isEventSystem } from '@/models/otel'
 import { Unit } from '@/util/fmt'
 import { quote } from '@/util/string'

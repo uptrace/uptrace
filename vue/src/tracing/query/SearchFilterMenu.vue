@@ -57,7 +57,7 @@ import { useRouter } from '@/use/router'
 import { UseSystems } from '@/tracing/system/use-systems'
 import { UseUql } from '@/use/uql'
 
-// Utilities
+// Misc
 import { AttrKey, SystemName } from '@/models/otel'
 import { quote, escapeRe } from '@/util/string'
 

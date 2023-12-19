@@ -44,7 +44,7 @@ import { useDataSource } from '@/use/datasource'
 // Components
 import SearchableList from '@/components/SearchableList.vue'
 
-// Utilities
+// Misc
 import { truncateMiddle } from '@/util/string'
 
 export default defineComponent({

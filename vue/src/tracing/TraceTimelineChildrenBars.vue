@@ -26,7 +26,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { TraceSpan, UseTrace } from '@/tracing/use-trace'
 
-// Utilities
+// Misc
 import { duration } from '@/util/fmt/duration'
 import { spanBarStyle } from '@/models/trace-span'
 

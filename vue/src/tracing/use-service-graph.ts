@@ -4,7 +4,7 @@ import { computed, proxyRefs } from 'vue'
 import { useRoute } from '@/use/router'
 import { useWatchAxios, AxiosParamsSource } from '@/use/watch-axios'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 
 interface ServiceGraphStats {

@@ -30,7 +30,7 @@ import { System } from '@/tracing/system/use-systems'
 // Components
 import SystemQuickMetricCard from '@/tracing/system/SystemQuickMetricCard.vue'
 
-// Utilities
+// Misc
 import { isEventSystem, isGroupSystem, AttrKey } from '@/models/otel'
 import { Unit } from '@/util/fmt'
 

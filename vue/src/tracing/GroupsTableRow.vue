@@ -60,7 +60,7 @@ import { useGroupTimeseries, Group, ColumnInfo } from '@/tracing/use-explore-spa
 import SparklineChart from '@/components/SparklineChart.vue'
 import NewMonitorMenu from '@/tracing/NewMonitorMenu.vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 import { MetricColumn } from '@/metrics/types'
 

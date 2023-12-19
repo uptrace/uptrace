@@ -42,7 +42,7 @@ import { UseSystems } from '@/tracing/system/use-systems'
 import ApiErrorCard from '@/components/ApiErrorCard.vue'
 import PagedGroupsCard from '@/tracing/PagedGroupsCard.vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 
 export default defineComponent({

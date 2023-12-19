@@ -148,7 +148,7 @@ import LoadPctileChart from '@/components/LoadPctileChart.vue'
 import SpanSystemBarChart from '@/components/SpanSystemBarChart.vue'
 import TraceTabs from '@/tracing/TraceTabs.vue'
 
-// Utilities
+// Misc
 import { AttrKey, SystemName } from '@/models/otel'
 
 export default defineComponent({

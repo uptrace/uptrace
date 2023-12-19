@@ -33,7 +33,7 @@
 <script lang="ts">
 import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
-// Utilities
+// Misc
 import { Span } from '@/models/span'
 
 export default defineComponent({

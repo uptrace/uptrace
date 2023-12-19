@@ -118,7 +118,7 @@ import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import GroupsTable from '@/tracing/GroupsTable.vue'
 import GroupMetrics from '@/metrics/GroupMetrics.vue'
 
-// Utilities
+// Misc
 import { isGroupSystem, AttrKey } from '@/models/otel'
 
 export default defineComponent({

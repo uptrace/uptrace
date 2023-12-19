@@ -51,7 +51,7 @@ import { defineComponent, shallowRef, computed, watchEffect, PropType } from 'vu
 // Composables
 import { System } from '@/tracing/system/use-systems'
 
-// Utilities
+// Misc
 import { splitTypeSystem, SystemName } from '@/models/otel'
 
 export default defineComponent({

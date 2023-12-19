@@ -47,7 +47,7 @@ import { UseDateRange } from '@/use/date-range'
 import { injectQueryStore } from '@/use/uql'
 import { useGroups } from '@/tracing/use-explore-spans'
 
-// Utilities
+// Misc
 import { isSpanSystem, AttrKey } from '@/models/otel'
 
 export default defineComponent({

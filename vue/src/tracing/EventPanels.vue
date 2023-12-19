@@ -24,7 +24,7 @@ import { Annotation } from '@/org/use-annotations'
 // Components
 import EventPanelContent from '@/tracing/EventPanelContent.vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 import { SpanEvent } from '@/models/span'
 

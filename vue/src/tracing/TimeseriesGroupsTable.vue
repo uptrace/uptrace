@@ -87,7 +87,7 @@ import { TimeseriesGroup, ColumnInfo } from '@/tracing/use-timeseries'
 // Components
 import PagedSpansCardLazy from '@/tracing/PagedSpansCardLazy.vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 
 export default defineComponent({

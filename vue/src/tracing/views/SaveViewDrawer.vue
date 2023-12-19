@@ -77,7 +77,7 @@ import { useSavedViewManager, UseSavedViews } from '@/tracing/views/use-saved-vi
 // Components
 import SavedViewsList from '@/tracing/views/SavedViewsList.vue'
 
-// Utilities
+// Misc
 import { requiredRule } from '@/util/validation'
 
 export default defineComponent({

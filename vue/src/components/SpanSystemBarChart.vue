@@ -43,7 +43,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Components
 import PctValue from '@/components/PctValue.vue'
 
-// Utilities
+// Misc
 import { Unit } from '@/util/fmt'
 import { ColoredSystem } from '@/models/colored-system'
 

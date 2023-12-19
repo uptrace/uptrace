@@ -102,7 +102,7 @@ import SavedViews from '@/tracing/views/SavedViews.vue'
 import UptraceQuery from '@/components/UptraceQuery.vue'
 import SpanQueryBuilder from '@/tracing/query/SpanQueryBuilder.vue'
 
-// Utilities
+// Misc
 import { SystemName, AttrKey } from '@/models/otel'
 
 export default defineComponent({

@@ -21,7 +21,7 @@ import colors from 'vuetify/lib/util/colors'
 import EChart, { EChartProps } from '@/components/EChart.vue'
 import { Annotation } from '@/org/use-annotations'
 
-// Utilities
+// Misc
 import { baseChartConfig, addChartTooltip, createTooltipFormatter } from '@/util/chart'
 import { num, durationShort } from '@/util/fmt'
 import { datetime } from '@/util/fmt/date'

@@ -129,7 +129,7 @@ import { emptyAttrMatcher } from '@/use/attr-matcher'
 // Components
 import AttrMatcher from '@/components/AttrMatcher.vue'
 
-// Utilities
+// Misc
 import { ErrorMonitor } from '@/alerting/types'
 import { requiredRule } from '@/util/validation'
 

@@ -3,7 +3,7 @@ import { shallowRef, reactive, computed, watch, proxyRefs, provide, inject } fro
 // Composables
 import { Values } from '@/use/router'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 import { quote, escapeRe } from '@/util/string'
 

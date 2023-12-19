@@ -15,7 +15,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { UseUql } from '@/use/uql'
 
-// Utilities
+// Misc
 import { quote } from '@/util/string'
 
 export default defineComponent({

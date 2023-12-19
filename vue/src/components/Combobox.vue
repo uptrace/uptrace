@@ -33,7 +33,7 @@ import { defineComponent, PropType } from 'vue'
 // Composables
 import { UseDataSource, Item } from '@/use/datasource'
 
-// Utilities
+// Misc
 import { truncateMiddle } from '@/util/string'
 
 export default defineComponent({

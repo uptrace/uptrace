@@ -31,7 +31,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 
-// Utilities
+// Misc
 import { Unit } from '@/util/fmt'
 
 export default defineComponent({

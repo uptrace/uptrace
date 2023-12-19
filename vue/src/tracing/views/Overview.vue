@@ -105,7 +105,7 @@ import SystemPicker from '@/tracing/system/SystemPicker.vue'
 import QuickSpanFilter from '@/tracing/query/QuickSpanFilter.vue'
 import SystemQuickMetrics from '@/tracing/system/SystemQuickMetrics.vue'
 
-// Utilities
+// Misc
 import { isSpanSystem, isErrorSystem, SystemName, AttrKey } from '@/models/otel'
 import { DAY } from '@/util/fmt/date'
 

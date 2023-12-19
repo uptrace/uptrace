@@ -162,7 +162,7 @@ import LoadPctileChart from '@/components/LoadPctileChart.vue'
 import UqlCardReadonly from '@/components/UqlCardReadonly.vue'
 import PagedGroupsCardLazy from '@/tracing/PagedGroupsCardLazy.vue'
 
-// Utilities
+// Misc
 import { isSpanSystem, SystemName, AttrKey } from '@/models/otel'
 import { Unit } from '@/util/fmt'
 

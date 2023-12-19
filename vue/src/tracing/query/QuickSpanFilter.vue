@@ -72,7 +72,7 @@ import { UseDateRange } from '@/use/date-range'
 import { UseUql } from '@/use/uql'
 import { useDataSource, Item } from '@/use/datasource'
 
-// Utilities
+// Misc
 import { truncateMiddle } from '@/util/string'
 import { extractFilterState } from '@/components/facet/lexer'
 import { quote, escapeRe } from '@/util/string'

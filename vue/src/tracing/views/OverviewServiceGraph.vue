@@ -218,7 +218,7 @@ import ServiceGraphChart from '@/tracing/ServiceGraphChart.vue'
 import ServiceGraphHelpDialog from '@/tracing/ServiceGraphHelpDialog.vue'
 import ServiceGraphHelpCard from '@/tracing/ServiceGraphHelpCard.vue'
 
-// Utilities
+// Misc
 import { SystemName, AttrKey } from '@/models/otel'
 import { defaultMetricAlias } from '@/metrics/use-metrics'
 import { MINUTE } from '@/util/fmt/date'

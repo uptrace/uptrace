@@ -57,7 +57,7 @@ import AdvancedMenu from '@/tracing/query/AdvancedMenu.vue'
 import QueryHelpDialog from '@/tracing/query/QueryHelpDialog.vue'
 import FacetList from '@/components/facet/FacetList.vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 
 export default defineComponent({

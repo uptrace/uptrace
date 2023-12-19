@@ -5,7 +5,7 @@ import { parse } from 'date-fns'
 // Components
 import DateValue from '@/components/DateValue.vue'
 
-// Utilities
+// Misc
 import { Unit } from '@/util/fmt'
 
 const BREAK_MIN_LEN = 0

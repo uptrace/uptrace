@@ -42,7 +42,7 @@
 <script lang="ts">
 import { defineComponent, shallowRef, computed, watch } from 'vue'
 
-// Utilities
+// Misc
 import { parse, format, isValid } from 'date-fns'
 import { toLocal } from '@/util/fmt/date'
 

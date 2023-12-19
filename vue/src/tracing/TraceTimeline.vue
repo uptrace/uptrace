@@ -107,7 +107,7 @@ import SpanCard from '@/tracing/SpanCard.vue'
 import SpanChips from '@/tracing/SpanChips.vue'
 import TraceTimelineChildrenBars from '@/tracing/TraceTimelineChildrenBars.vue'
 
-// Utilities
+// Misc
 import { spanName } from '@/models/span'
 import { spanBarStyle } from '@/models/trace-span'
 import { duration } from '@/util/fmt/duration'

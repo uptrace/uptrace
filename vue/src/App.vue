@@ -19,7 +19,7 @@
             <ProjectPicker />
           </v-col>
 
-          <v-col cols="auto">
+          <v-col v-if="!searchVisible" cols="auto">
             <v-tabs optional class="ml-lg-10 ml-xl-16">
               <template v-if="user.isAuth && $route.params.projectId">
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
@@ -35,7 +35,7 @@
           <v-spacer />
 
           <v-col v-if="user.isAuth && $route.params.projectId" cols="auto">
-            <AppSearch />
+            <AppSearch v-model="searchVisible" />
           </v-col>
           <v-col cols="auto">
             <v-menu v-if="user.isAuth" bottom offset-y>
@@ -150,6 +150,8 @@ export default defineComponent({
     const footer = shallowRef(true)
     provide('footer', footer)
 
+    const searchVisible = shallowRef(false)
+
     const dateRange = useDateRange()
     const user = useUser()
     const project = useProject()
@@ -157,6 +159,7 @@ export default defineComponent({
     return {
       header,
       footer,
+      searchVisible,
 
       dateRange,
       user,

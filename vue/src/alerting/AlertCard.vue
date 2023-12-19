@@ -68,7 +68,7 @@ import FixedDateRangePicker from '@/components/date/FixedDateRangePicker.vue'
 import AlertCardSpan from '@/alerting/AlertCardSpan.vue'
 import AlertCardMetric from '@/alerting/AlertCardMetric.vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 
 export default defineComponent({

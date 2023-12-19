@@ -35,7 +35,7 @@
 <script lang="ts">
 import { defineComponent, computed, PropType } from 'vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 import { AttrMap, Span } from '@/models/span'
 

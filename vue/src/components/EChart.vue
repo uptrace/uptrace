@@ -77,7 +77,7 @@ import { Annotation } from '@/org/use-annotations'
 // Components
 import AnnotationAttrs from '@/alerting/AnnotationAttrs.vue'
 
-// Utilities
+// Misc
 import type { EChartsOption } from '@/util/chart'
 
 type GroupName = string | symbol

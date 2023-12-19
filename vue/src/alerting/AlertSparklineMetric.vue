@@ -19,7 +19,7 @@ import { useTimeseries } from '@/metrics/use-query'
 // Components
 import SparklineChart from '@/components/SparklineChart.vue'
 
-// Utilities
+// Misc
 import { Timeseries } from '@/metrics/types'
 import { AttrKey } from '@/models/otel'
 import { HOUR } from '@/util/fmt/date'

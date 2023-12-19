@@ -53,7 +53,7 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 // Composables
 import { UseUql } from '@/use/uql'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 
 export default defineComponent({

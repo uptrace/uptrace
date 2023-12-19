@@ -531,6 +531,7 @@ func assignEventSystemAndGroupID(ctx *spanContext, project *org.Project, span *S
 	span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
 		hashSpan(project, digest, span)
 	})
+	span.DisplayName = span.EventName
 }
 
 func handleLogEvent(ctx *spanContext, project *org.Project, span *Span) {

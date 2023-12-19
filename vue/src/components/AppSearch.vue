@@ -1,35 +1,65 @@
 <template>
-  <v-text-field
-    v-model="searchInput"
-    prepend-inner-icon="mdi-magnify"
-    placeholder="Search or jump to trace id..."
-    hide-details
-    flat
-    solo
-    background-color="grey lighten-4"
-    style="min-width: 400px; width: 400px"
-    @keyup.enter="submit"
-  />
+  <div>
+    <v-text-field
+      v-if="value || $vuetify.breakpoint.lgAndUp"
+      ref="textField"
+      v-model="searchInput"
+      prepend-inner-icon="mdi-magnify"
+      placeholder="Search or jump to trace id..."
+      hide-details
+      flat
+      solo
+      background-color="grey lighten-4"
+      style="width: 280px"
+      @keyup.enter="submit"
+      @keyup.esc="hideSearch"
+      @blur="hideSearch"
+    />
+
+    <v-btn v-else icon @click="showSearch">
+      <v-icon>mdi-magnify</v-icon>
+    </v-btn>
+  </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef } from 'vue'
+import { defineComponent, shallowRef, nextTick } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
+import { useRouterOnly } from '@/use/router'
 import { createQueryEditor } from '@/use/uql'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 
 const TRACE_ID_RE = /^([0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
 
 export default defineComponent({
-  name: 'Search',
+  name: 'AppSearch',
 
-  setup() {
-    const { router } = useRouter()
+  props: {
+    value: {
+      type: Boolean,
+      required: true,
+    },
+  },
+
+  setup(props, ctx) {
+    const router = useRouterOnly()
+
+    const textField = shallowRef()
     const searchInput = shallowRef('')
+
+    function showSearch() {
+      ctx.emit('input', true)
+      nextTick(() => {
+        textField.value.focus()
+      })
+    }
+
+    function hideSearch() {
+      ctx.emit('input', false)
+    }
 
     function submit() {
       if (!searchInput.value) {
@@ -61,7 +91,15 @@ export default defineComponent({
         .catch(() => {})
     }
 
-    return { searchInput, submit }
+    return {
+      textField,
+      searchInput,
+
+      showSearch,
+      hideSearch,
+
+      submit,
+    }
   },
 })
 </script>

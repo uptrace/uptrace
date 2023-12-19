@@ -10,7 +10,7 @@ import { traceSpans, Trace, TraceSpan } from '@/models/trace-span'
 import { SpanEvent } from '@/models/span'
 import { spanColoredSystems, ColoredSystem } from '@/models/colored-system'
 
-// Utilities
+// Misc
 import { walkTree } from '@/models/tree'
 
 export type { TraceSpan }

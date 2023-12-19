@@ -105,7 +105,7 @@ import { useAnnotationManager, Attr } from '@/org/use-annotations'
 // Components
 import AnnotationAttrRow from '@/alerting/AnnotationAttrRow.vue'
 
-// Utilities
+// Misc
 import { Annotation } from '@/org/use-annotations'
 import { requiredRule, minMaxStringLengthRule } from '@/util/validation'
 

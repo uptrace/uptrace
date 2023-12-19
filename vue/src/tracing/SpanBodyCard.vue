@@ -150,7 +150,7 @@ import SpanAttrs from '@/tracing/SpanAttrs.vue'
 import EventPanels from '@/tracing/EventPanels.vue'
 import GroupInfoCard from '@/tracing/GroupInfoCard.vue'
 
-// Utilities
+// Misc
 import { AttrKey, isSpanSystem } from '@/models/otel'
 import { spanName, Span } from '@/models/span'
 

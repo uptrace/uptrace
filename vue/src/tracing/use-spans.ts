@@ -6,7 +6,7 @@ import { useOrder, Order } from '@/use/order'
 import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
 import { BackendQueryInfo } from '@/use/uql'
 
-// Utilities
+// Misc
 import { Span } from '@/models/span'
 
 interface SpansConfig {

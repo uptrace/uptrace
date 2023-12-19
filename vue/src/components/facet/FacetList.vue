@@ -70,7 +70,7 @@ import { Category, Filter } from '@/components/facet/types'
 // Components
 import FacetCategory from '@/components/facet/FacetCategory.vue'
 
-// Utilities
+// Misc
 import { extractFilterState } from '@/components/facet/lexer'
 import { AttrKey } from '@/models/otel'
 import { quote, escapeRe } from '@/util/string'

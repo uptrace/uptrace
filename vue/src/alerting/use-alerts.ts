@@ -7,10 +7,8 @@ import { useAxios } from '@/use/axios'
 import { useOrder } from '@/use/order'
 import { Facet } from '@/use/faceted-search'
 
-// Utilities
+// Misc
 import { Unit } from '@/util/fmt'
-
-// Types
 import { MetricAlias } from '@/metrics/types'
 
 interface BaseAlert {

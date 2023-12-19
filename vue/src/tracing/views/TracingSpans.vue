@@ -75,7 +75,7 @@ import SpansTableSettings from '@/tracing/SpansTableSettings.vue'
 import { SpanChip } from '@/tracing/SpanChips.vue'
 import LoadPctileChart from '@/components/LoadPctileChart.vue'
 
-// Utilities
+// Misc
 import { isLogSystem, isGroupSystem, AttrKey } from '@/models/otel'
 
 export default defineComponent({

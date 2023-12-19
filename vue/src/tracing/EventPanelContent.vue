@@ -65,7 +65,7 @@ import PctileChart from '@/components/PctileChart.vue'
 import NewMonitorMenu from '@/tracing/NewMonitorMenu.vue'
 import SpanAttrs from '@/tracing/SpanAttrs.vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 import { SpanEvent } from '@/models/span'
 

@@ -28,7 +28,7 @@ import { UseUql } from '@/use/uql'
 import SpansTable from '@/tracing/SpansTable.vue'
 import { SpanChip } from '@/tracing/SpanChips.vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 
 export default defineComponent({

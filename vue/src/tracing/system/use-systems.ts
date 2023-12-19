@@ -5,7 +5,7 @@ import { shallowRef, computed, proxyRefs } from 'vue'
 import { useRoute, Values } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
 
-// Utilities
+// Misc
 import { isLogSystem, isEventSystem, isSpanSystem, isGroupSystem, SystemName } from '@/models/otel'
 import { DataHint } from '@/org/types'
 

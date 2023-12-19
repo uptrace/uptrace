@@ -2,7 +2,7 @@
 import Vue from 'vue'
 import { PropType } from 'vue'
 
-// Utilities
+// Misc
 import { utilization } from '@/util/fmt/num'
 import { createFormatter, Unit } from '@/util/fmt'
 import { formatTemplate } from '@/util/string'

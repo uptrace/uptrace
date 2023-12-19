@@ -1,4 +1,4 @@
-// Utilities
+// Misc
 import { Span } from '@/models/span'
 import { walkTree } from '@/models/tree'
 import { ColoredSpan } from '@/models/colored-system'

@@ -17,7 +17,7 @@ import { useGroupTimeseries } from '@/tracing/use-explore-spans'
 // Components
 import SparklineChart from '@/components/SparklineChart.vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 import { HOUR } from '@/util/fmt/date'
 

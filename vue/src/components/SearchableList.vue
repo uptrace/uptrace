@@ -39,7 +39,7 @@
 import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
 import { defineComponent, shallowRef, computed, watch } from 'vue'
 
-// Utilities
+// Misc
 import { truncateMiddle } from '@/util/string'
 
 interface Item {

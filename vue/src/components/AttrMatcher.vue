@@ -36,7 +36,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { AttrMatcher, AttrMatcherOp } from '@/use/attr-matcher'
 
-// Utilities
+// Misc
 import { requiredRule } from '@/util/validation'
 
 export default defineComponent({

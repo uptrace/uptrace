@@ -1,7 +1,7 @@
 <script lang="ts">
 import Vue from 'vue'
 
-// Utilities
+// Misc
 import { duration } from '@/util/fmt'
 
 export default Vue.component('DurationValue', {

@@ -67,7 +67,7 @@ import { UseUql } from '@/use/uql'
 import Combobox from '@/components/Combobox.vue'
 import UqlChip from '@/components/UqlChip.vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 import { requiredRule } from '@/util/validation'
 

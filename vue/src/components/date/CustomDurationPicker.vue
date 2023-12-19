@@ -36,7 +36,7 @@
 <script lang="ts">
 import { defineComponent, shallowRef, computed, watch } from 'vue'
 
-// Utilities
+// Misc
 import { MINUTE, HOUR, DAY } from '@/util/fmt/date'
 
 interface Unit {

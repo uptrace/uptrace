@@ -95,7 +95,7 @@ import SpanCard from '@/tracing/SpanCard.vue'
 import ThOrder from '@/components/ThOrder.vue'
 import SpanChips from '@/tracing/SpanChips.vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 import { Span } from '@/models/span'
 

@@ -11,6 +11,14 @@
   <!--   </server> -->
   <!-- </openSSL> -->
 
+  <prometheus>
+    <endpoint>/metrics</endpoint>
+    <port>9363</port>
+    <metrics>true</metrics>
+    <events>true</events>
+    <asynchronous_metrics>true</asynchronous_metrics>
+  </prometheus>
+
   <storage_configuration>
     <disks>
       <default>

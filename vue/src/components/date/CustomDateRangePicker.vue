@@ -32,7 +32,7 @@ import { UseDateRange } from '@/use/date-range'
 // Components
 import DateTextInput from '@/components/date/DateTextInput.vue'
 
-// Utilities
+// Misc
 import { HOUR } from '@/util/fmt/date'
 
 export default defineComponent({

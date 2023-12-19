@@ -5,7 +5,7 @@ import { shallowRef, computed, proxyRefs, watch, onBeforeUnmount, getCurrentInst
 import { useRoute, Values } from '@/use/router'
 import { injectForceReload } from '@/use/force-reload'
 
-// Utilities
+// Misc
 import {
   formatUTC,
   parseUTC,

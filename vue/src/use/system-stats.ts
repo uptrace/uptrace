@@ -7,7 +7,7 @@ import { usePager } from '@/use/pager'
 import { useOrder } from '@/use/order'
 import { useWatchAxios } from '@/use/watch-axios'
 
-// Utilities
+// Misc
 import { splitTypeSystem } from '@/models/otel'
 
 export interface OverviewItem {

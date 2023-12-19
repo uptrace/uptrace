@@ -142,7 +142,7 @@ import { defineComponent, shallowRef, PropType } from 'vue'
 // Composables
 import { useNotifChannelManager, WebhookNotifChannel } from '@/alerting/use-notif-channels'
 
-// Utilities
+// Misc
 import { requiredRule } from '@/util/validation'
 
 export default defineComponent({

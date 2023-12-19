@@ -23,7 +23,7 @@
 <script lang="ts">
 import { defineComponent, computed, PropType } from 'vue'
 
-// Utilities
+// Misc
 import { Period } from '@/models/period'
 import { formatDistance } from 'date-fns'
 

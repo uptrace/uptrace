@@ -15,7 +15,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Components
 import EChart, { EChartProps } from '@/components/EChart.vue'
 
-// Utilities
+// Misc
 import {
   baseChartConfig,
   addChartTooltip,

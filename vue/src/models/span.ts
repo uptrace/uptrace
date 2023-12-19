@@ -1,6 +1,6 @@
 import { truncate } from 'lodash-es'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 
 export type AttrMap = { [key: string]: any }

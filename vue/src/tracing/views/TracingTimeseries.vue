@@ -89,7 +89,7 @@ import ApiErrorCard from '@/components/ApiErrorCard.vue'
 import TimeseriesMetric from '@/tracing/TimeseriesMetric.vue'
 import TimeseriesGroupsTable from '@/tracing/TimeseriesGroupsTable.vue'
 
-// Utilities
+// Misc
 import { eChart as colorScheme } from '@/util/colorscheme'
 import { EventBus } from '@/models/eventbus'
 

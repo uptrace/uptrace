@@ -24,7 +24,7 @@ import {
   NodeSizeMetric,
 } from '@/tracing/use-service-graph'
 
-// Utilities
+// Misc
 import { num, numShort, duration, durationShort, utilization } from '@/util/fmt'
 import { mapNumber } from '@/util/mapping'
 

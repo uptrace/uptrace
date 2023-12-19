@@ -25,7 +25,7 @@ import { defineComponent, shallowRef, computed, PropType } from 'vue'
 import { UseDateRange } from '@/use/date-range'
 import { createQueryEditor, injectQueryStore } from '@/use/uql'
 
-// Utilities
+// Misc
 import { isSpanSystem, AttrKey } from '@/models/otel'
 import { truncateMiddle, quote } from '@/util/string'
 

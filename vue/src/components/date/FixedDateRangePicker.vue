@@ -25,7 +25,7 @@ import { UseDateRange } from '@/use/date-range'
 // Components
 import PeriodPickerMenu from '@/components/date/PeriodPickerMenu.vue'
 
-// Utilities
+// Misc
 import { periodsForDays } from '@/models/period'
 import { HOUR } from '@/util/fmt/date'
 

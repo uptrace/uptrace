@@ -19,7 +19,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Components
 import MetricChart from '@/metrics/MetricChart.vue'
 
-// Utilities
+// Misc
 import { EventBus } from '@/models/eventbus'
 import { TimeseriesGroup } from '@/tracing/use-timeseries'
 

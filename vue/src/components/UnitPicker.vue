@@ -14,7 +14,7 @@ import { defineComponent, computed } from 'vue'
 // Components
 import BtnSelectMenu from '@/components/BtnSelectMenu.vue'
 
-// Utilities
+// Misc
 import { unitShortName, Unit } from '@/util/fmt'
 
 export default defineComponent({

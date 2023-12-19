@@ -59,7 +59,7 @@ import { defineComponent, PropType } from 'vue'
 // Composables
 import { Alert } from '@/alerting/use-alerts'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 
 export default defineComponent({

@@ -1,6 +1,6 @@
 import Color from 'color'
 
-// Utilities
+// Misc
 import { AttrKey, SystemName } from '@/models/otel'
 import { walkTree, Tree } from '@/models/tree'
 import { eChart as colorSet } from '@/util/colorscheme'

@@ -39,7 +39,7 @@ import { useGroups } from '@/tracing/use-explore-spans'
 import ApiErrorCard from '@/components/ApiErrorCard.vue'
 import PagedGroupsCard from '@/tracing/PagedGroupsCard.vue'
 
-// Utilities
+// Misc
 import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
