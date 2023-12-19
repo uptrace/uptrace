@@ -68,6 +68,9 @@ dependencies:
   vue:
     specifier: 2.7.15
     version: 2.7.15
+  vue-demi:
+    specifier: ^0.14.6
+    version: 0.14.6(vue@2.7.15)
   vue-frag:
     specifier: 1.4.3
     version: 1.4.3(vue@2.7.15)

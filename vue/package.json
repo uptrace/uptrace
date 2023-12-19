@@ -31,6 +31,7 @@
     "splitpanes": "^2.4.1",
     "sql-formatter": "11.0.2",
     "vue": "2.7.15",
+    "vue-demi": "^0.14.6",
     "vue-frag": "1.4.3",
     "vue-prism-component": "1.2.0",
     "vue-router": "3.6.5",
