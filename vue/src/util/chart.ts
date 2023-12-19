@@ -1,4 +1,3 @@
-import { createFormatter, createShortFormatter, Formatter } from '@/util/fmt'
 import {
   EChartsOption as BaseEChartsOption,
   LegendComponentOption,
@@ -10,6 +9,13 @@ import {
   TooltipComponentOption,
 } from 'echarts'
 
+import {
+  createFormatter,
+  createVerboseFormatter,
+  createShortFormatter,
+  Formatter,
+  Unit,
+} from '@/util/fmt'
 import { truncateMiddle } from '@/util/string'
 
 export interface EChartsOption extends BaseEChartsOption {
@@ -65,7 +71,7 @@ interface TooltipFormatterConfig {
 }
 
 export function createTooltipFormatter(
-  formatter: string | Formatter | Record<string, string | Formatter> = '',
+  formatter: string | Formatter | Record<string, string | Formatter> = Unit.None,
   conf: TooltipFormatterConfig = {},
 ) {
   const cache: Record<string, Formatter> = {}
@@ -74,21 +80,29 @@ export function createTooltipFormatter(
     let v = cache[name]
     if (!v) {
       if (typeof formatter === 'object') {
-        v = createFormatter(formatter[name])
+        v = createVerboseFormatter(formatter[name] ?? formatter[columnName(name)])
       } else {
-        v = createFormatter(formatter)
+        v = createVerboseFormatter(formatter)
       }
       cache[name] = v
     }
     return v
   }
 
-  return (params: any): string => {
+  return (params: any): any => {
     const rows = []
 
     for (let p of params) {
-      const name = truncateMiddle(p.seriesName, 60)
+      if (p.seriesName.startsWith('_')) {
+        continue
+      }
+
       const value = p.value[p.encode.y[0]]
+      if (value === null) {
+        continue
+      }
+
+      const name = truncateMiddle(p.seriesName, 60)
       const fmt = getFormatter(p.seriesName)
 
       let cssClass = ''
@@ -104,9 +118,13 @@ export function createTooltipFormatter(
           `</tr>`,
       )
 
-      if (rows.length === 20) {
+      if (rows.length === 10) {
         break
       }
+    }
+
+    if (!rows.length) {
+      return
     }
 
     const ss = [
@@ -125,6 +143,9 @@ export function createTooltipFormatter(
 }
 
 export function axisPointerFormatter(unit = '') {
+  if (unit === Unit.Percents) {
+    unit = Unit.None
+  }
   const fmt = createFormatter(unit)
   return (params: any): string => {
     return fmt(toNumber(params.value))
@@ -132,6 +153,9 @@ export function axisPointerFormatter(unit = '') {
 }
 
 export function axisLabelFormatter(unit = '') {
+  if (unit === Unit.Percents) {
+    unit = Unit.None
+  }
   const fmt = createShortFormatter(unit)
   return (value: any): string => {
     return fmt(toNumber(value))
@@ -177,4 +201,14 @@ export function findBin(bins: HistogramBin[], x: number): HistogramBin | undefin
   return bins.find((bin) => {
     return x >= bin[0] && (bin[1] === 0 || x <= bin[1])
   })
+}
+
+const seriesNameRe = /^(.+)\s+\(.+\)$/
+
+function columnName(s: string): string {
+  const m = s.match(seriesNameRe)
+  if (m) {
+    return m[1]
+  }
+  return s
 }

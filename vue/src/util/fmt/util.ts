@@ -1,23 +1,31 @@
 import numbro from 'numbro'
 
-export function trimMantissa(n: number, mantissa: number): string {
+export interface Config {
+  trimMantissa?: boolean
+  forceSign?: boolean
+  short?: boolean
+}
+
+export function fixedMantissa(n: unknown, mantissa: number, conf: Config = {}): string {
+  return formatNum(n, mantissa, { ...conf, trimMantissa: false })
+}
+
+export function trimMantissa(n: unknown, mantissa: number, conf: Config = {}): string {
+  return formatNum(n, mantissa, { ...conf, trimMantissa: true })
+}
+
+export function formatNum(n: unknown, mantissa: number, conf: Config = {}): string {
   if (typeof n !== 'number') {
     return '0'
   }
   return numbro(n).format({
     mantissa,
-    trimMantissa: true,
+    trimMantissa: conf.trimMantissa ?? true,
+    forceSign: conf.forceSign ?? false,
   })
 }
 
-export function fixedMantissa(n: number | undefined, mantissa: number): string {
-  if (typeof n === 'undefined') {
-    return '0'
-  }
-  return numbro(n).format({ mantissa })
-}
-
-export function mantissa(n: number): number {
+export function mantissaSize(n: number): number {
   n = Math.abs(n)
   for (let i = 12; i >= -1; i--) {
     const threshold = 1 / Math.pow(10, i)

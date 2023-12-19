@@ -1,3 +1,4 @@
+import enGB from 'date-fns/locale/en-GB'
 import {
   isValid,
   parse,
@@ -42,7 +43,7 @@ export function dateShort(v: number | string | Date | undefined, fmt = 'LLL d'):
   return formatDate(v, fmt)
 }
 
-export function datetime(v: number | string | Date | undefined, fmt = 'LLL d y HH:mm'): string {
+export function datetime(v: number | string | Date | undefined, fmt = 'LLL d y HH:mm:ss'): string {
   return formatDate(v, fmt)
 }
 
@@ -65,10 +66,30 @@ function formatDate(v: number | string | Date | undefined, fmt: string): string 
   if (!v) {
     return String(v)
   }
+
   if (typeof v === 'string') {
-    v = parseISO(v)
+    const date = parseISO(v)
+    if (!isNaN(date.getTime())) {
+      return format(date, fmt)
+    }
+    return String(v)
   }
+
   return format(v, fmt)
+}
+
+const formatRelativeLocale = {
+  lastWeek: "'last' eeee 'at' p",
+  yesterday: "'yesterday at' p",
+  today: "'today at' p",
+  tomorrow: "'tomorrow at' p",
+  nextWeek: "eeee 'at' p",
+  other: 'P',
+}
+
+const locale = {
+  ...enGB,
+  formatRelative: (token: keyof typeof formatRelativeLocale) => formatRelativeLocale[token],
 }
 
 export function relative(v: number | string | Date | undefined): string {
@@ -78,11 +99,11 @@ export function relative(v: number | string | Date | undefined): string {
   if (typeof v === 'string') {
     v = parseISO(v)
   }
-  return formatRelative(v, new Date())
+  return formatRelative(v, new Date(), { locale })
 }
 
-export function fromNow(v: number | Date): string {
-  return formatDistanceToNow(v, { addSuffix: true })
+export function fromNow(v: number | string | Date): string {
+  return formatDistanceToNow(toDate(v))
 }
 
 const basicFormat = "yyyyMMdd'T'HHmmss"
