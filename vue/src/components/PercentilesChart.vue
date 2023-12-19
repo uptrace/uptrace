@@ -104,7 +104,7 @@ export default defineComponent({
     })
 
     const percentilesChart = computed(() => {
-      const conf = baseChartConfig({ brush: true })
+      const conf = baseChartConfig()
       addChartTooltip(conf, {
         formatter: createTooltipFormatter(Unit.Microseconds, { hideDate: true }),
       })
@@ -145,7 +145,7 @@ export default defineComponent({
         },
       })
 
-      const legend = []
+      const legend: string[] = []
 
       const items = [
         { name: 'p50', value: props.p50, color: colors.green.lighten2 },
@@ -268,10 +268,6 @@ export default defineComponent({
         right: 30,
         height: 70,
       })
-
-      if (props.markDateRange) {
-        addMarkDateRange(conf, props.markDateRange)
-      }
 
       return chart
     })

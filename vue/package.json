@@ -44,6 +44,7 @@
     "@types/lodash": "4.14.186",
     "@types/lodash-es": "^4.17.6",
     "@types/markdown-it": "13.0.7",
+    "@types/node": "^20.10.5",
     "@types/prismjs": "1.26.3",
     "@types/splitpanes": "2.2.6",
     "@typescript-eslint/eslint-plugin": "5.41.0",
