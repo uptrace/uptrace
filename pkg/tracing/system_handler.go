@@ -106,5 +106,8 @@ func (h *SystemHandler) selectDataHint(
 		dataHint["after"] = after
 	}
 
+	if len(dataHint) == 0 {
+		return nil, nil
+	}
 	return dataHint, nil
 }

@@ -1,5 +1,5 @@
 <template>
-  <div v-frag>
+  <div class="d-flex align-center">
     <v-toolbar-title
       v-if="!autocompleteActive && user.projects.length"
       class="d-inline-flex cursor-pointer"
