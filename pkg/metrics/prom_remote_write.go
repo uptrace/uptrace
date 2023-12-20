@@ -125,7 +125,7 @@ func promMetadata(name string) (isCumCounter bool, unit string) {
 		word, after, hasNext := strings.Cut(name, "_")
 
 		switch word {
-		case "sum", "count", "total":
+		case "sum", "count":
 			isCumCounter = true
 		case "milliseconds", "seconds", "bytes":
 			unit = word

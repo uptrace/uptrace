@@ -1,5 +1,6 @@
 schema: v2
 name: 'K8s: Nodes network'
+force: true
 
 table:
   metrics:
@@ -21,7 +22,6 @@ grid_rows:
   - title: General
     items:
       - title: Network IO
-        type: chart
         chart: line
         metrics:
           - k8s.node.network.io as $io
@@ -33,7 +33,6 @@ grid_rows:
             unit: bytes
 
       - title: Network errors
-        type: chart
         chart: line
         metrics:
           - k8s.node.network.errors as $errors

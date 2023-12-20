@@ -1,5 +1,6 @@
 schema: v2
 name: 'K8s: containers'
+force: true
 
 table:
   grid_items:
@@ -61,7 +62,7 @@ grid_rows:
         columns:
           sum($mem_available):
             unit: bytes
-            color: '#5470c6'
+
       - title: FS available
         description: Total available filesystem on all nodes
         type: gauge
@@ -72,14 +73,10 @@ grid_rows:
         columns:
           sum($fs_available):
             unit: bytes
-            color: '#5470c6'
 
   - title: General
     items:
       - title: CPU utilization
-        width: 6
-        height: 15
-        type: chart
         chart: line
         metrics:
           - container.cpu.utilization as $cpu_util
@@ -88,17 +85,8 @@ grid_rows:
         columns:
           cpu_util:
             unit: utilization
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: CPU time
-        width: 6
-        height: 15
-        xAxis: 6
-        type: chart
         chart: line
         metrics:
           - container.cpu.time as $cpu_time
@@ -107,17 +95,8 @@ grid_rows:
         columns:
           per_min($cpu_time):
             unit: seconds
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: RAM memory usage
-        width: 6
-        height: 15
-        yAxis: 15
-        type: chart
         chart: line
         metrics:
           - container.memory.usage as $usage
@@ -126,18 +105,8 @@ grid_rows:
         columns:
           usage:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: RSS memory usage
-        width: 6
-        height: 15
-        xAxis: 6
-        yAxis: 15
-        type: chart
         chart: line
         metrics:
           - container.memory.rss as $rss_mem
@@ -146,17 +115,8 @@ grid_rows:
         columns:
           rss_mem:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: RAM available
-        width: 6
-        height: 15
-        yAxis: 30
-        type: chart
         chart: line
         metrics:
           - container.memory.available as $mem_available
@@ -165,18 +125,8 @@ grid_rows:
         columns:
           mem_available:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: Memory working set
-        width: 6
-        height: 15
-        xAxis: 6
-        yAxis: 30
-        type: chart
         chart: line
         metrics:
           - container.memory.working_set as $working_set
@@ -185,17 +135,8 @@ grid_rows:
         columns:
           working_set:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: Filesystem usage
-        width: 6
-        height: 15
-        yAxis: 45
-        type: chart
         chart: line
         metrics:
           - container.filesystem.usage as $usage
@@ -204,18 +145,8 @@ grid_rows:
         columns:
           usage:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: Filesystem available
-        width: 6
-        height: 15
-        xAxis: 6
-        yAxis: 45
-        type: chart
         chart: line
         metrics:
           - container.filesystem.available as $fs_available
@@ -224,46 +155,17 @@ grid_rows:
         columns:
           fs_available:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: Page faults
-        width: 6
-        height: 15
-        yAxis: 60
-        type: chart
         chart: line
         metrics:
           - container.memory.page_faults as $page_faults
         query:
           - delta($page_faults)
-        columns:
-          delta($page_faults):
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: Major page faults
-        width: 6
-        height: 15
-        xAxis: 6
-        yAxis: 60
-        type: chart
         chart: line
         metrics:
           - container.memory.major_page_faults as $major_page_faults
         query:
           - $major_page_faults
-        columns:
-          major_page_faults:
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg

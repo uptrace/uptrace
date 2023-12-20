@@ -43,8 +43,15 @@ type Metric struct {
 func SelectMetricMap(
 	ctx context.Context, app *bunapp.App, projectID uint32,
 ) (map[string]*Metric, error) {
-	metrics, err := SelectMetrics(ctx, app, projectID)
-	if err != nil {
+	var metrics []*Metric
+
+	if err := app.PG.NewSelect().
+		Model(&metrics).
+		Where("project_id = ?", projectID).
+		Where("updated_at >= ?", time.Now().Add(-72*time.Hour)).
+		OrderExpr("name ASC").
+		Limit(10000).
+		Scan(ctx); err != nil {
 		return nil, err
 	}
 
@@ -63,19 +70,6 @@ func newDeletedMetric(projectID uint32, metricName string) *Metric {
 		Name:       metricName,
 		Instrument: InstrumentDeleted,
 	}
-}
-
-func SelectMetrics(ctx context.Context, app *bunapp.App, projectID uint32) ([]*Metric, error) {
-	var metrics []*Metric
-	if err := app.PG.NewSelect().
-		Model(&metrics).
-		Where("project_id = ?", projectID).
-		OrderExpr("name ASC").
-		Limit(10000).
-		Scan(ctx); err != nil {
-		return nil, err
-	}
-	return metrics, nil
 }
 
 func SelectMetric(ctx context.Context, app *bunapp.App, id uint64) (*Metric, error) {

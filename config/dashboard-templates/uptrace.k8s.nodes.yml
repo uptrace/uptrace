@@ -1,5 +1,6 @@
 schema: v2
 name: 'K8s: Nodes'
+force: true
 
 table:
   grid_items:
@@ -13,7 +14,7 @@ table:
       columns:
         sum($mem_available):
           unit: bytes
-          color: '#5470c6'
+
     - title: FS available
       description: Total available filesystem on all nodes
       type: gauge
@@ -24,7 +25,6 @@ table:
       columns:
         sum($fs_available):
           unit: bytes
-          color: '#5470c6'
 
   metrics:
     - k8s.node.cpu.utilization as $cpu_util
@@ -40,20 +40,14 @@ table:
     - $mem_available
     - $fs_available
   columns:
-    cpu_util:
-      color: '#5470c6'
     fs_available:
       unit: bytes
-      color: '#fac858'
     mem_available:
       unit: bytes
-      color: '#91cc75'
     mem_usage:
       unit: bytes
-      color: '#73c0de'
     rss_mem:
       unit: bytes
-      color: '#ee6666'
 
 grid_rows:
   - title: Gauges
@@ -68,7 +62,6 @@ grid_rows:
         columns:
           sum($mem_available):
             unit: bytes
-            color: '#5470c6'
 
       - title: FS available
         description: Total available filesystem on all nodes
@@ -80,14 +73,10 @@ grid_rows:
         columns:
           sum($fs_available):
             unit: bytes
-            color: '#5470c6'
 
   - title: General
     items:
       - title: CPU utilization
-        width: 6
-        height: 15
-        type: chart
         chart: line
         metrics:
           - k8s.node.cpu.utilization as $cpu_util
@@ -96,17 +85,8 @@ grid_rows:
         columns:
           cpu_util:
             unit: utilization
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: RAM memory usage
-        width: 6
-        height: 15
-        xAxis: 6
-        type: chart
         chart: line
         metrics:
           - k8s.node.memory.usage as $usage
@@ -115,17 +95,8 @@ grid_rows:
         columns:
           usage:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: RSS memory usage
-        width: 6
-        height: 15
-        yAxis: 15
-        type: chart
         chart: line
         metrics:
           - k8s.node.memory.rss as $rss_mem
@@ -134,18 +105,8 @@ grid_rows:
         columns:
           rss_mem:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: Filesystem available
-        width: 6
-        height: 15
-        xAxis: 6
-        yAxis: 15
-        type: chart
         chart: line
         metrics:
           - k8s.node.filesystem.available as $fs_available
@@ -154,17 +115,8 @@ grid_rows:
         columns:
           fs_available:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: RAM available
-        width: 6
-        height: 15
-        yAxis: 30
-        type: chart
         chart: line
         metrics:
           - k8s.node.memory.available as $mem_available
@@ -173,18 +125,8 @@ grid_rows:
         columns:
           mem_available:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: Network IO
-        width: 6
-        height: 15
-        xAxis: 6
-        yAxis: 30
-        type: chart
         chart: line
         metrics:
           - k8s.node.network.io as $io
@@ -194,46 +136,17 @@ grid_rows:
         columns:
           per_min($io):
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: Page faults
-        width: 6
-        height: 15
-        yAxis: 45
-        type: chart
         chart: line
         metrics:
           - k8s.node.memory.page_faults as $page_faults
         query:
           - delta($page_faults)
-        columns:
-          delta($page_faults):
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: Major page faults
-        width: 6
-        height: 15
-        xAxis: 6
-        yAxis: 45
-        type: chart
         chart: line
         metrics:
           - k8s.node.memory.major_page_faults as $major_page_faults
         query:
           - $major_page_faults
-        columns:
-          major_page_faults:
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg

@@ -1,5 +1,6 @@
 schema: v2
 name: 'K8s: Pods'
+force: true
 
 table:
   grid_items:
@@ -73,11 +74,6 @@ grid_rows:
         query:
           - uniq($phase{_value=2}, k8s.pod.name) as num_running
           - uniq($phase, k8s.pod.name) as num_all
-        columns:
-          num_all:
-            color: '#91cc75'
-          num_running:
-            color: '#5470c6'
 
       - title: Total RSS
         description: RSS usage on all pods
@@ -89,7 +85,6 @@ grid_rows:
         columns:
           sum($rss):
             unit: bytes
-            color: '#5470c6'
 
       - title: Total FS
         description: Total filesystem usage on all nodes
@@ -101,15 +96,10 @@ grid_rows:
         columns:
           sum($usage):
             unit: bytes
-            color: '#5470c6'
 
   - title: General
     items:
       - title: CPU utilization
-        width: 6
-        height: 15
-        type: chart
-        chart: area
         metrics:
           - k8s.pod.cpu.utilization as $utilization
         query:
@@ -117,18 +107,8 @@ grid_rows:
         columns:
           utilization:
             unit: utilization
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: RSS memory
-        width: 6
-        height: 15
-        xAxis: 6
-        type: chart
-        chart: area
         metrics:
           - k8s.pod.memory.rss as $rss
         query:
@@ -136,18 +116,8 @@ grid_rows:
         columns:
           rss:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: RAM usage
-        width: 6
-        height: 15
-        yAxis: 15
-        type: chart
-        chart: area
         metrics:
           - k8s.pod.memory.usage as $usage
         query:
@@ -155,19 +125,8 @@ grid_rows:
         columns:
           usage:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: Memory working set
-        width: 6
-        height: 15
-        xAxis: 6
-        yAxis: 15
-        type: chart
-        chart: line
         metrics:
           - k8s.pod.memory.working_set as $working_set
         query:
@@ -175,37 +134,14 @@ grid_rows:
         columns:
           working_set:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: Memory major page faults
-        width: 6
-        height: 15
-        yAxis: 30
-        type: chart
-        chart: line
         metrics:
           - k8s.pod.memory.major_page_faults as $major_page_faults
         query:
           - $major_page_faults
-        columns:
-          major_page_faults:
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: Memory page faults
-        width: 6
-        height: 15
-        xAxis: 6
-        yAxis: 30
-        type: chart
-        chart: line
         metrics:
           - k8s.pod.memory.page_faults as $page_faults
         query:
@@ -218,12 +154,8 @@ grid_rows:
           placement: bottom
           values:
             - avg
+
       - title: Filesystem available
-        width: 6
-        height: 15
-        yAxis: 45
-        type: chart
-        chart: area
         metrics:
           - k8s.pod.filesystem.available as $available
         query:
@@ -231,19 +163,8 @@ grid_rows:
         columns:
           available:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+
       - title: Filesystem usage
-        width: 6
-        height: 15
-        xAxis: 6
-        yAxis: 45
-        type: chart
-        chart: area
         metrics:
           - k8s.pod.filesystem.usage as $usage
         query:
@@ -251,9 +172,3 @@ grid_rows:
         columns:
           usage:
             unit: bytes
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
