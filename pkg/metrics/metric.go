@@ -172,7 +172,7 @@ func UpsertMetrics(ctx context.Context, app *bunapp.App, metrics []Metric) error
 		Set("instrument = EXCLUDED.instrument").
 		Set("attr_keys = EXCLUDED.attr_keys").
 		Set("updated_at = now()").
-		Returning("updated_at").
+		Returning("created_at, updated_at").
 		Exec(ctx); err != nil {
 		return err
 	}
@@ -181,7 +181,7 @@ func UpsertMetrics(ctx context.Context, app *bunapp.App, metrics []Metric) error
 	for i := range metrics {
 		metric := &metrics[i]
 
-		if !metric.UpdatedAt.IsZero() || seen[metric.ProjectID] {
+		if !metric.CreatedAt.Equal(metric.UpdatedAt) || seen[metric.ProjectID] {
 			continue
 		}
 		seen[metric.ProjectID] = true
