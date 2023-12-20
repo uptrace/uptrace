@@ -55,6 +55,8 @@ services:
     ports:
       - '4317:4317'
       - '4318:4318'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
 
   mailhog:
     image: mailhog/mailhog:v1.0.1
@@ -77,6 +79,17 @@ services:
       - '3000:3000'
     extra_hosts:
       - 'host.docker.internal:host-gateway'
+
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - '--path.rootfs=/host'
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - '/:/host:ro,rslave'
 
 volumes:
   ch_data0:

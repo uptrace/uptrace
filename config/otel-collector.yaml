@@ -53,6 +53,13 @@ receivers:
           scrape_interval: 15s
           static_configs:
             - targets: ['clickhouse-1:9363']
+  prometheus/node_exporter:
+    config:
+      scrape_configs:
+        - job_name: node_exporter
+          scrape_interval: 15s
+          static_configs:
+            - targets: ['host.docker.internal:9100']
 
 processors:
   resourcedetection:
@@ -63,13 +70,13 @@ processors:
     timeout: 10s
 
 exporters:
-  prometheusremotewrite:
-    endpoint: 'http://host.docker.internal:14318/api/v1/prometheus/write'
+  otlp/uptrace:
+    endpoint: host.docker.internal:14317
     tls:
       insecure: true
     headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14317/1' }
-  otlp/uptrace:
-    endpoint: host.docker.internal:14317
+  prometheusremotewrite/uptrace:
+    endpoint: 'http://host.docker.internal:14318/api/v1/prometheus/write'
     tls:
       insecure: true
     headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14317/1' }
@@ -101,8 +108,8 @@ service:
       processors: [batch]
       exporters: [otlp/uptrace]
     metrics/prom:
-      receivers: [prometheus/otelcol, prometheus/clickhouse]
+      receivers: [prometheus/otelcol, prometheus/clickhouse, prometheus/node_exporter]
       processors: [batch]
-      exporters: [prometheusremotewrite]
+      exporters: [prometheusremotewrite/uptrace]
 
   extensions: [health_check, pprof, zpages]

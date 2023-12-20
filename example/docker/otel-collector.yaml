@@ -46,6 +46,13 @@ receivers:
           scrape_interval: 10s
           static_configs:
             - targets: ['0.0.0.0:8888']
+  prometheus/node_exporter:
+    config:
+      scrape_configs:
+        - job_name: node_exporter
+          scrape_interval: 15s
+          static_configs:
+            - targets: ['host.docker.internal:9100']
 
 processors:
   resourcedetection:
@@ -58,6 +65,11 @@ exporters:
   otlp/uptrace:
     endpoint: http://uptrace:14317
     tls: { insecure: true }
+    headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14318?grpc=14317' }
+  prometheusremotewrite/uptrace:
+    endpoint: 'http://uptrace:14318/api/v1/prometheus/write'
+    tls:
+      insecure: true
     headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14318?grpc=14317' }
 
 service:
@@ -76,12 +88,16 @@ service:
       processors: [batch]
       exporters: [otlp/uptrace]
     metrics/hostmetrics:
-      receivers: [hostmetrics, postgresql, prometheus/otelcol, httpcheck]
+      receivers: [hostmetrics, postgresql, httpcheck]
       processors: [batch, resourcedetection]
       exporters: [otlp/uptrace]
     logs:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp/uptrace]
+    metrics/prom:
+      receivers: [prometheus/otelcol, prometheus/node_exporter]
+      processors: [batch]
+      exporters: [prometheusremotewrite/uptrace]
 
   extensions: [health_check, pprof, zpages]

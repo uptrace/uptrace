@@ -155,6 +155,17 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - '--path.rootfs=/host'
+    network_mode: host
+    pid: host
+    restart: unless-stopped
+    volumes:
+      - '/:/host:ro,rslave'
+
 volumes:
   ch1_data:
   ch2_data:
