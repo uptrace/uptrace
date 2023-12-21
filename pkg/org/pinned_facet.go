@@ -1,6 +1,7 @@
 package org
 
 import (
+	"cmp"
 	"context"
 	"strings"
 
@@ -33,20 +34,20 @@ var coreAttrs = []string{
 	attrkey.CodeFunction,
 }
 
-func CoreAttrLess(a, b string) bool {
+func CompareAttrs(a, b string) int {
 	i0 := slices.Index(coreAttrs, a)
 	i1 := slices.Index(coreAttrs, b)
 
 	if i0 == -1 && i1 == -1 {
-		return strings.Compare(a, b) == -1
+		return strings.Compare(a, b)
 	}
 	if i0 == -1 {
-		return false
+		return -1
 	}
 	if i1 == -1 {
-		return true
+		return 1
 	}
-	return i0 < i1
+	return cmp.Compare(i0, i1)
 }
 
 type PinnedFacet struct {

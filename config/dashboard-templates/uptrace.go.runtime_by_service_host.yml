@@ -4,28 +4,28 @@ name: 'Go: Runtime'
 table:
   grid_items:
     - title: Number of hosts
-      description: Number of host.name
+      description: Number of host_name
       type: gauge
       metrics:
-        - process.runtime.go.goroutines as $goroutines
+        - process_runtime_go_goroutines as $goroutines
       query:
-        - uniq($goroutines, host.name) as num_host
+        - uniq($goroutines, host_name) as num_host
       template: ${num_host} hosts
 
     - title: Number of services
-      description: Number of service.name
+      description: Number of service_name
       type: gauge
       metrics:
-        - process.runtime.go.goroutines as $goroutines
+        - process_runtime_go_goroutines as $goroutines
       query:
-        - uniq($goroutines, service.name) as num_service
+        - uniq($goroutines, service_name) as num_service
       template: ${num_service} services
 
     - title: Max GC pause
       description: Max garbage collector pause
       type: gauge
       metrics:
-        - process.runtime.go.gc.pause_ns as $gc_pause
+        - process_runtime_go_gc_pause_ns as $gc_pause
       query:
         - max($gc_pause) as max_gc_pause
       columns:
@@ -35,7 +35,7 @@ table:
       description: Total heap memory in use
       type: gauge
       metrics:
-        - process.runtime.go.mem.heap_inuse as $mem_in_use
+        - process_runtime_go_mem_heap_inuse as $mem_in_use
       query:
         - $mem_in_use
       columns:
@@ -45,18 +45,18 @@ table:
       description: Total heap live objects
       type: gauge
       metrics:
-        - process.runtime.go.mem.heap_objects as $heap_objects
+        - process_runtime_go_mem_heap_objects as $heap_objects
       query:
         - $heap_objects
 
   metrics:
-    - process.runtime.go.gc.pause_ns as $gc_pause
-    - process.runtime.go.mem.heap_inuse as $mem_in_use
-    - process.runtime.go.mem.heap_objects as $heap_objects
-    - process.runtime.go.goroutines as $goroutines
+    - process_runtime_go_gc_pause_ns as $gc_pause
+    - process_runtime_go_mem_heap_inuse as $mem_in_use
+    - process_runtime_go_mem_heap_objects as $heap_objects
+    - process_runtime_go_goroutines as $goroutines
   query:
-    - group by service.name
-    - group by host.name
+    - group by service_name
+    - group by host_name
     - max($gc_pause) as max_gc_pause
     - $mem_in_use
     - $heap_objects
@@ -69,7 +69,7 @@ grid_rows:
     items:
       - title: Max GC stop-the-world pause
         metrics:
-          - process.runtime.go.gc.pause_ns as $gc_pause
+          - process_runtime_go_gc_pause_ns as $gc_pause
         query:
           - max($gc_pause) as gc_pause_max
         columns:
@@ -77,13 +77,13 @@ grid_rows:
 
       - title: Number of completed garbage collection cycles
         metrics:
-          - process.runtime.go.gc.count as $gc_count
+          - process_runtime_go_gc_count as $gc_count
         query:
           - per_min($gc_count) as gc_count
 
       - title: Heap memory in use
         metrics:
-          - process.runtime.go.mem.heap_inuse as $mem_in_use
+          - process_runtime_go_mem_heap_inuse as $mem_in_use
         query:
           - $mem_in_use
         columns:
@@ -91,7 +91,7 @@ grid_rows:
 
       - title: Bytes of allocated heap objects
         metrics:
-          - process.runtime.go.mem.heap_alloc as $heap_alloc
+          - process_runtime_go_mem_heap_alloc as $heap_alloc
         query:
           - $heap_alloc
         columns:
@@ -99,7 +99,7 @@ grid_rows:
 
       - title: Bytes of heap memory obtained from the OS
         metrics:
-          - process.runtime.go.mem.heap_sys as $heap_sys
+          - process_runtime_go_mem_heap_sys as $heap_sys
         query:
           - $heap_sys
         columns:
@@ -107,18 +107,18 @@ grid_rows:
 
       - title: Heap live objects
         metrics:
-          - process.runtime.go.mem.heap_objects as $heap_objects
+          - process_runtime_go_mem_heap_objects as $heap_objects
         query:
           - $heap_objects
 
       - title: Goroutines
         metrics:
-          - process.runtime.go.goroutines as $goroutines
+          - process_runtime_go_goroutines as $goroutines
         query:
           - $goroutines
 
       - title: cgo calls
         metrics:
-          - process.runtime.go.cgo.calls as $cgo_calls
+          - process_runtime_go_cgo_calls as $cgo_calls
         query:
           - per_min(delta($cgo_calls)) as cgo_calls

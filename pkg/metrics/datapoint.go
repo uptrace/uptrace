@@ -52,11 +52,11 @@ func InsertDatapoints(ctx context.Context, app *bunapp.App, datapoints []*Datapo
 	return err
 }
 
-func datapointTableForWhere(f *org.TimeFilter) string {
+func DatapointTableForWhere(f *org.TimeFilter) string {
 	return datapointTable(org.TableWhereResolution(f))
 }
 
-func datapointTableForGrouping(
+func DatapointTableForGrouping(
 	f *org.TimeFilter, groupingIntervalFn func(time.Time, time.Time) time.Duration,
 ) (string, time.Duration) {
 	tableResolution, groupingInterval := org.GroupingInterval(f)

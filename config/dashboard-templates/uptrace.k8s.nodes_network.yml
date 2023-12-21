@@ -4,10 +4,10 @@ force: true
 
 table:
   metrics:
-    - k8s.node.network.io as $io
-    - k8s.node.network.errors as $errors
+    - k8s_node_network_io as $io
+    - k8s_node_network_errors as $errors
   query:
-    - group by k8s.node.name
+    - group by k8s_node_name
     - group by interface
     - per_min($io{direction=receive}) as net_receive
     - per_min($io{direction=transmit}) as net_transmit
@@ -24,7 +24,7 @@ grid_rows:
       - title: Network IO
         chart: line
         metrics:
-          - k8s.node.network.io as $io
+          - k8s_node_network_io as $io
         query:
           - per_min($io)
           - group by direction
@@ -35,6 +35,6 @@ grid_rows:
       - title: Network errors
         chart: line
         metrics:
-          - k8s.node.network.errors as $errors
+          - k8s_node_network_errors as $errors
         query:
           - per_min($errors)

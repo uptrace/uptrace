@@ -3,11 +3,11 @@ name: 'Uptrace: collector stats by host'
 
 table:
   metrics:
-    - uptrace.projects.spans as $spans
-    - uptrace.projects.measures as $measures
+    - uptrace_projects_spans as $spans
+    - uptrace_projects_measures as $measures
 
   query:
-    - group by host.name
+    - group by host_name
     - per_min($spans{type=inserted}) as spans_inserted
     - per_min($spans{type=dropped}) as spans_dropped
     - per_min($measures{type=inserted}) as measures_inserted
@@ -18,12 +18,12 @@ grid_rows:
     items:
       - title: Number of processed spans
         metrics:
-          - uptrace.projects.spans as $spans
+          - uptrace_projects_spans as $spans
         query:
           - per_min($spans) group by type
 
       - title: Number of processed measures
         metrics:
-          - uptrace.projects.measures as $measures
+          - uptrace_projects_measures as $measures
         query:
           - per_min($measures) group by type

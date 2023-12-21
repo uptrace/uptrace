@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"cmp"
 	"net/http"
 	"strconv"
 	"time"
@@ -68,7 +69,7 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 	root, numSpan := buildSpanTree(spans)
 	traceInfo := NewTraceInfo(root)
 
-	if rootSpanIDStr :=  req.URL.Query().Get("root_span_id"); rootSpanIDStr != "" {
+	if rootSpanIDStr := req.URL.Query().Get("root_span_id"); rootSpanIDStr != "" {
 		rootSpanID, err := parseSpanID(rootSpanIDStr)
 		if err != nil {
 			return err
@@ -96,8 +97,12 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 			}
 		}
 
-		slices.SortFunc(span.Children, func(a, b *Span) bool { return a.Time.Before(b.Time) })
-		slices.SortFunc(span.Events, func(a, b *SpanEvent) bool { return a.Time.Before(b.Time) })
+		slices.SortFunc(span.Children, func(a, b *Span) int {
+			return cmp.Compare(a.Time.UnixNano(), b.Time.UnixNano())
+		})
+		slices.SortFunc(span.Events, func(a, b *SpanEvent) int {
+			return cmp.Compare(a.Time.UnixNano(), b.Time.UnixNano())
+		})
 
 		return nil
 	})

@@ -41,7 +41,7 @@
           Grid dashboards are used together with table dashboards. Each row in the table dashboard
           leads to the same grid dashboard filtered by <code>group by</code> attributes from the
           table row, for example,
-          <code>where host.name = ${host} and service.name = ${service}.</code>.
+          <code>where host_name = ${host} and service_name = ${service}.</code>.
         </v-col>
       </v-row>
 

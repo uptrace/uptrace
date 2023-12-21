@@ -88,16 +88,15 @@ func appendCHAttr(b []byte, attr tql.Attr) []byte {
 	case attrkey.SpanIsEvent:
 		return chschema.AppendQuery(b, "s.type IN ?", ch.In(EventTypes))
 	default:
-		if strings.HasPrefix(attr.Name, ".") {
-			ident := strings.TrimPrefix(attr.Name, ".")
+		if strings.HasPrefix(attr.Name, "_") {
+			ident := strings.TrimPrefix(attr.Name, "_")
 			b = append(b, "s."...)
 			return chschema.AppendIdent(b, ident)
 		}
 
 		if IsIndexedAttr(attr.Name) {
-			ident := strings.ReplaceAll(attr.Name, ".", "_")
 			b = append(b, "s."...)
-			return chschema.AppendIdent(b, ident)
+			return chschema.AppendIdent(b, attr.Name)
 		}
 
 		return chschema.AppendQuery(b, "s.string_values[indexOf(s.string_keys, ?)]", attr.Name)

@@ -31,7 +31,6 @@
 
 <script lang="ts">
 import 'gridstack/dist/gridstack.min.css'
-import 'gridstack/dist/gridstack-extra.min.css'
 import {
   GridStack,
   GridStackOptions,
@@ -84,6 +83,7 @@ export default defineComponent({
 
     const gridStackEl = shallowRef()
     let gridStack: GridStack | undefined
+    const danglingEls = new Set<GridItemHTMLElement>()
 
     const rowItems = computed(() => {
       const rowId = props.rowId ?? 0
@@ -92,10 +92,10 @@ export default defineComponent({
       })
     })
 
-    const itemsHeight = ref<Record<number, number>>({})
+    const heightByItemId = ref<Record<number, number>>({})
     const cellHeight = 10
     function itemHeight(gridItem: GridItem): number {
-      const height = itemsHeight.value[gridItem.id]
+      const height = heightByItemId.value[gridItem.id]
       if (height) {
         return height * cellHeight
       }
@@ -148,9 +148,9 @@ export default defineComponent({
     const gridStackOptions = computed((): GridStackOptions => {
       const options = {
         animate: false,
-        column: 12,
+        //column: 24,
         cellHeight,
-        columnOpts: { breakpoints: [{ w: 960, c: 1 }] },
+        columnOpts: { columnMax: 24, breakpoints: [{ w: 960, c: 1 }] },
         margin: 3,
         minRow: 8,
         draggable: {
@@ -169,18 +169,11 @@ export default defineComponent({
     })
 
     onBeforeUnmount(() => {
-      if (gridStack) {
-        gridStack.destroy(false)
-        gridStack = undefined
-      }
+      cleanup()
     })
 
     function updateGridStack() {
-      if (gridStack) {
-        gridStack.setAnimation(false)
-        gridStack.destroy(false)
-        gridStack = undefined
-      }
+      cleanup()
 
       gridStack = GridStack.init(gridStackOptions.value, gridStackEl.value)
       setTimeout(() => {
@@ -218,26 +211,47 @@ export default defineComponent({
       gridStack.on('added', (_event: unknown, items: GridStackNode[]) => {
         for (let node of items) {
           const id = parseInt(node.id!, 10)
-          set(itemsHeight.value, id, node.h)
+          set(heightByItemId.value, id, node.h)
+          if (node.el) {
+            danglingEls.add(node.el)
+          }
         }
         saveItemsLayout(items)
       })
       gridStack.on('removed', (_event: unknown, items: GridStackNode[]) => {
         for (let node of items) {
           const id = parseInt(node.id!, 10)
-          del(itemsHeight.value, id)
+          del(heightByItemId.value, id)
+          if (node.el) {
+            danglingEls.delete(node.el)
+          }
         }
       })
       gridStack.on('change', (_event: unknown, items: GridStackNode[]) => {
         for (let node of items) {
           const id = parseInt(node.id!, 10)
-          set(itemsHeight.value, id, node.h)
+          set(heightByItemId.value, id, node.h)
         }
         if (!gridStack || gridStack.getColumn() <= 1) {
           return
         }
         saveItemsLayout(items)
       })
+    }
+
+    function cleanup() {
+      if (!gridStack) {
+        return
+      }
+
+      gridStack.setAnimation(false)
+      gridStack.destroy(false)
+      gridStack = undefined
+
+      for (const el of danglingEls) {
+        el.remove()
+      }
+      danglingEls.clear()
     }
 
     function resizeItem(item: GridItem) {

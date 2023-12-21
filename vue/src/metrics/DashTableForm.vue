@@ -27,26 +27,42 @@
 
         <v-row>
           <v-col>
-            <v-row dense>
-              <v-col v-for="(col, colName) in dashboard.tableColumnMap" :key="colName" cols="auto">
-                <MetricColumnChip :name="colName" :column="col" />
-              </v-col>
-            </v-row>
-
-            <v-row dense>
-              <v-col>
-                <TimeseriesTable
-                  :loading="tableQuery.loading"
-                  :items="tableQuery.items"
-                  :columns="tableQuery.columns"
-                  :order="tableQuery.order"
-                  :axios-params="tableQuery.axiosParams"
-                />
-              </v-col>
-            </v-row>
+            <TimeseriesTable
+              :loading="tableQuery.loading"
+              :items="tableQuery.items"
+              :agg-columns="tableQuery.aggColumns"
+              :grouping-columns="tableQuery.groupingColumns"
+              :order="tableQuery.order"
+              :axios-params="tableQuery.axiosParams"
+            />
           </v-col>
         </v-row>
       </template>
+    </template>
+    <template #options>
+      <v-container fluid>
+        <v-row>
+          <v-col>
+            <SinglePanel title="Chart options" expanded>
+              <v-text-field
+                v-model="dashboard.name"
+                label="Dashboard name"
+                filled
+                dense
+                :rules="rules.name"
+              />
+            </SinglePanel>
+          </v-col>
+        </v-row>
+
+        <v-row v-for="col in tableQuery.aggColumns" :key="col.name">
+          <v-col>
+            <SinglePanel :title="col.name" expanded>
+              <TableColumnOptionsForm :column="dashboard.tableColumnMap[col.name]" />
+            </SinglePanel>
+          </v-col>
+        </v-row>
+      </v-container>
     </template>
   </DashTableFormPanes>
 </template>
@@ -62,23 +78,25 @@ import { useTableQuery } from '@/metrics/use-query'
 
 // Components
 import DashTableFormPanes from '@/metrics/DashTableFormPanes.vue'
+import SinglePanel from '@/components/SinglePanel.vue'
 import MetricsPicker from '@/metrics/MetricsPicker.vue'
 import MetricsQueryBuilder from '@/metrics/query/MetricsQueryBuilder.vue'
 import TimeseriesTable from '@/metrics/TimeseriesTable.vue'
-import MetricColumnChip from '@/metrics/MetricColumnChip.vue'
+import TableColumnOptionsForm from '@/metrics/TableColumnOptionsForm.vue'
 
 // Misc
-import { updateColumnMap, Dashboard, MetricColumn } from '@/metrics/types'
-import { eChart as colorScheme } from '@/util/colorscheme'
+import { updateColumnMap, assignColors, emptyTableColumn, Dashboard } from '@/metrics/types'
+import { requiredRule } from '@/util/validation'
 
 export default defineComponent({
   name: 'DashTableForm',
   components: {
     DashTableFormPanes,
+    SinglePanel,
     MetricsPicker,
     MetricsQueryBuilder,
     TimeseriesTable,
-    MetricColumnChip,
+    TableColumnOptionsForm,
   },
 
   props: {
@@ -93,6 +111,8 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
+    const rules = { name: [requiredRule] }
+
     const uql = useUql()
     const activeMetrics = useActiveMetrics(computed(() => props.dashboard.tableMetrics))
 
@@ -113,10 +133,10 @@ export default defineComponent({
     )
 
     watch(
-      () => tableQuery.columns,
-      (columns) => {
-        updateColumnMap(props.dashboard.tableColumnMap, columns)
-        assignColors(props.dashboard.tableColumnMap)
+      () => tableQuery.aggColumns,
+      (aggColumns) => {
+        updateColumnMap(props.dashboard.tableColumnMap, aggColumns, emptyTableColumn)
+        assignColors(props.dashboard.tableColumnMap, aggColumns)
       },
     )
 
@@ -145,36 +165,14 @@ export default defineComponent({
     )
 
     return {
-      uql,
+      rules,
 
+      uql,
       activeMetrics,
       tableQuery,
     }
   },
 })
-
-function assignColors(colMap: Record<string, MetricColumn>) {
-  const colors = new Set(colorScheme)
-
-  for (let colName in colMap) {
-    const col = colMap[colName]
-    if (!col.color) {
-      continue
-    }
-    colors.delete(col.color)
-  }
-
-  const values = colors.values()
-  for (let colName in colMap) {
-    const col = colMap[colName]
-    if (col.color) {
-      continue
-    }
-
-    const first = values.next()
-    col.color = first.value
-  }
-}
 </script>
 
 <style lang="scss" scoped></style>

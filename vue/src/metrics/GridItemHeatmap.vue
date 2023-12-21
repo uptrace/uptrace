@@ -16,6 +16,7 @@ import { defineComponent, watch, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
+import { joinQuery, injectQueryStore } from '@/use/uql'
 import { useHeatmapQuery } from '@/metrics/use-query'
 
 // Components
@@ -44,6 +45,7 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
+    const { where } = injectQueryStore()
     const heatmapQuery = useHeatmapQuery(() => {
       if (!props.gridItem.params.metric) {
         return undefined
@@ -54,7 +56,7 @@ export default defineComponent({
         time_offset: props.dashboard.timeOffset,
         metric: props.gridItem.params.metric,
         alias: props.gridItem.params.metric,
-        query: props.gridItem.params.query,
+        query: joinQuery([props.gridItem.params.query, where.value]),
       }
     })
 

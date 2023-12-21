@@ -443,7 +443,7 @@ func (h *SentryHandler) processTransaction(
 		if span.Name == "" {
 			span.Name = event.Transaction
 		} else {
-			span.Attrs["display.name"] = event.Transaction
+			span.Attrs[attrkey.DisplayName] = event.Transaction
 		}
 	}
 

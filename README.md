@@ -22,6 +22,8 @@ also requires PostgreSQL database to store metadata such as metric names and ale
 **Features**:
 
 - Single UI for traces, metrics, and logs.
+- [Grafana](https://uptrace.dev/get/grafana.html) compatibility. You can configure Grafana to use
+  Uptrace as a Tempo/Prometheus datasource.
 - SQL-like query language to [aggregate spans](https://uptrace.dev/get/querying-spans.html).
 - Promql-like language to [aggregate metrics](https://uptrace.dev/get/querying-metrics.html).
 - Built-in [alerts](https://uptrace.dev/get/alerting.html) with notifications via Email, Slack,

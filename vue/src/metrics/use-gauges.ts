@@ -7,20 +7,33 @@ import { BackendQueryInfo } from '@/use/uql'
 
 // Misc
 import { fmt } from '@/util/fmt'
-import { MetricColumn, ColumnInfo, StyledColumnInfo } from '@/metrics/types'
-import { eChart as colorScheme } from '@/util/colorscheme'
+import { ColumnInfo, GaugeColumn, StyledGaugeColumn } from '@/metrics/types'
 
 export function useGaugeQuery(
   axiosParamsSource: AxiosParamsSource,
-  columnMap: ComputedRef<Record<string, MetricColumn>>,
+  columnMap: ComputedRef<Record<string, GaugeColumn>>,
 ) {
   const route = useRoute()
 
   const { status, loading, error, data, reload } = useWatchAxios(() => {
+    const axiosParams = axiosParamsSource()
+    if (!axiosParams) {
+      return axiosParams
+    }
+
+    const tableAgg: Record<string, string> = {}
+    for (let colName in columnMap.value) {
+      const col = columnMap.value[colName]
+      tableAgg[colName] = col.aggFunc
+    }
+
     const { projectId } = route.value.params
     return {
       url: `/internal/v1/metrics/${projectId}/gauge`,
-      params: axiosParamsSource(),
+      params: {
+        ...axiosParams,
+        table_agg: tableAgg,
+      },
     }
   })
 
@@ -28,32 +41,13 @@ export function useGaugeQuery(
     return data.value?.columns ?? []
   })
 
-  const styledColumns = computed((): StyledColumnInfo[] => {
+  const styledColumns = computed((): StyledGaugeColumn[] => {
     const items = columns.value.map((col) => {
       return {
         ...col,
         ...columnMap.value[col.name],
       }
     })
-
-    const colorSet = new Set(colorScheme)
-
-    for (let col of items) {
-      if (!col.color) {
-        continue
-      }
-      colorSet.delete(col.color)
-    }
-
-    const colors = Array.from(colorSet)
-    let index = 0
-    for (let col of items) {
-      if (!col.color) {
-        col.color = colors[index % colors.length]
-        index++
-      }
-    }
-
     return items
   })
 
@@ -73,13 +67,14 @@ export function useGaugeQuery(
 
     query,
     values,
-    columns: styledColumns,
+    columns,
+    styledColumns,
   })
 }
 
 export function formatGauge(
   values: Record<string, number>,
-  columns: StyledColumnInfo[],
+  columns: StyledGaugeColumn[],
   template: string,
   noData = '-',
 ): string {

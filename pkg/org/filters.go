@@ -1,6 +1,7 @@
 package org
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"net/url"
@@ -171,8 +172,8 @@ func BuildFacetMap(items []*FacetItem) map[string]*Facet {
 
 func FacetMapToList(m map[string]*Facet) []*Facet {
 	facets := maps.Values(m)
-	slices.SortFunc(facets, func(a, b *Facet) bool {
-		return a.Key < b.Key
+	slices.SortFunc(facets, func(a, b *Facet) int {
+		return cmp.Compare(a.Key, b.Key)
 	})
 	return facets
 }

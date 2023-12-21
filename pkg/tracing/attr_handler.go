@@ -70,8 +70,8 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 		}
 	}
 
-	slices.SortFunc(items, func(a, b *AttrKeyItem) bool {
-		return org.CoreAttrLess(a.Value, b.Value)
+	slices.SortFunc(items, func(a, b *AttrKeyItem) int {
+		return org.CompareAttrs(a.Value, b.Value)
 	})
 
 	return httputil.JSON(w, bunrouter.H{

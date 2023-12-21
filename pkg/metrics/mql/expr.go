@@ -7,6 +7,7 @@ import (
 
 type NamedExpr struct {
 	Part  *QueryPart
+	AST   ast.Expr
 	Expr  Expr
 	Alias string
 }
@@ -15,19 +16,17 @@ func (e *NamedExpr) String() string {
 	if e.Alias != "" {
 		return e.Alias
 	}
-	return unsafeconv.String(e.Expr.AppendString(nil))
+	return unsafeconv.String(e.AST.AppendString(nil))
 }
 
 func (e *NamedExpr) NameTemplate() string {
 	if e.Alias != "" {
 		return e.Alias + "$$"
 	}
-	return unsafeconv.String(e.Expr.AppendTemplate(nil))
+	return unsafeconv.String(e.AST.AppendTemplate(nil))
 }
 
-type Expr interface {
-	ast.Expr
-}
+type Expr interface{}
 
 var (
 	_ Expr = (*TimeseriesExpr)(nil)
@@ -38,63 +37,37 @@ var (
 )
 
 type TimeseriesExpr struct {
-	ast.Expr
-
 	Metric string
 
-	AggFunc string
-	Attr    string
+	CHFunc string
+	Attr   string
 
-	TableFunc string
-	Uniq      []string
+	Uniq []string
 
-	Filters []ast.Filter
-	Where   [][]ast.Filter
-
-	Grouping []ast.NamedExpr
+	Filters  []ast.Filter
+	Where    [][]ast.Filter
+	Grouping []ast.GroupingElem
 
 	Part       *QueryPart
-	Timeseries []Timeseries
-}
-
-func (e *TimeseriesExpr) String() string {
-	var b []byte
-
-	if e.AggFunc != "" {
-		b = append(b, e.AggFunc...)
-		b = append(b, '(')
-	}
-
-	b = append(b, e.Metric...)
-
-	if e.AggFunc != "" {
-		b = append(b, ')')
-	}
-
-	return unsafeconv.String(b)
+	Timeseries []*Timeseries
 }
 
 type FuncCall struct {
-	*ast.FuncCall
-
-	Func string
-	Args []Expr
+	Func     string
+	Arg      Expr
+	Grouping []string
 }
 
 type BinaryExpr struct {
-	*ast.BinaryExpr
-
 	Op  ast.BinaryOp
 	LHS Expr
 	RHS Expr
 }
 
 type RefExpr struct {
-	*ast.Name
+	Expr *ast.MetricExpr
 }
 
 type ParenExpr struct {
-	ast.ParenExpr
-
 	Expr Expr
 }

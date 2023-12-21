@@ -4,7 +4,8 @@
       :loading="tableQuery.loading"
       :items="tableQuery.items"
       :items-per-page="gridItem.params.itemsPerPage"
-      :columns="tableQuery.columns"
+      :agg-columns="tableQuery.aggColumns"
+      :grouping-columns="tableQuery.groupingColumns"
       :order="tableQuery.order"
       :axios-params="tableQuery.axiosParams"
       :dense="gridItem.params.denseTable"
@@ -18,6 +19,7 @@ import { defineComponent, computed, watch, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
+import { joinQuery, injectQueryStore } from '@/use/uql'
 import { useTableQuery } from '@/metrics/use-query'
 
 // Components
@@ -48,6 +50,7 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
+    const { where } = injectQueryStore()
     const tableQuery = useTableQuery(
       () => {
         if (!props.gridItem.params.metrics.length || !props.gridItem.params.query) {
@@ -59,7 +62,7 @@ export default defineComponent({
           time_offset: props.dashboard.timeOffset,
           metric: props.gridItem.params.metrics.map((m) => m.name),
           alias: props.gridItem.params.metrics.map((m) => m.alias),
-          query: props.gridItem.params.query,
+          query: joinQuery([props.gridItem.params.query, where.value]),
         }
       },
       computed(() => props.gridItem.params.columnMap),

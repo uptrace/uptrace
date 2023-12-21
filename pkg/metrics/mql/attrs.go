@@ -1,7 +1,7 @@
 package mql
 
 import (
-	"strings"
+	"cmp"
 
 	"github.com/segmentio/encoding/json"
 
@@ -94,76 +94,35 @@ func (attrs Attrs) SortedKeys() []string {
 	return keys
 }
 
-func (attrs Attrs) Pick(keys ...string) Attrs {
-	clone := make(Attrs, 0, len(keys))
-
-	i, j := 0, 0
-	for i < len(attrs) && j < len(keys) {
-		if keys[j] < attrs[i].Key {
-			j++
-		} else if attrs[i].Key < keys[j] {
-			i++
-		} else {
-			clone = append(clone, attrs[i])
-			i++
-			j++
+func (attrs Attrs) Pick(grouping map[string]struct{}) Attrs {
+	dest := make(Attrs, 0, len(grouping))
+	for _, kv := range attrs {
+		if _, ok := grouping[kv.Key]; ok {
+			dest = append(dest, kv)
 		}
 	}
-
-	return clone
+	return dest
 }
 
-func (attrs Attrs) Bytes(buf []byte) []byte {
+func (attrs Attrs) Bytes(buf []byte, pick map[string]struct{}) []byte {
+	const sep = '0'
+
 	if buf == nil {
 		buf = make([]byte, 0, len(attrs)*20)
 	}
 
 	for _, kv := range attrs {
+		if pick != nil {
+			if _, ok := pick[kv.Key]; !ok {
+				continue
+			}
+		}
 		buf = append(buf, kv.Key...)
 		buf = append(buf, sep)
 		buf = append(buf, kv.Value...)
 		buf = append(buf, sep)
 	}
 	return buf
-}
-
-func (attrs Attrs) BytesWithKeys(buf []byte, keys ...string) []byte {
-	if len(keys) == 0 {
-		return buf
-	}
-	if buf == nil {
-		buf = make([]byte, 0, len(keys)*20)
-	}
-
-	i, j := 0, 0
-	for i < len(attrs) && j < len(keys) {
-		kv := attrs[i]
-		if keys[j] < kv.Key {
-			j++
-		} else if kv.Key < keys[j] {
-			i++
-		} else {
-			buf = append(buf, kv.Key...)
-			buf = append(buf, sep)
-			buf = append(buf, kv.Value...)
-			buf = append(buf, sep)
-			i++
-			j++
-		}
-	}
-	return buf
-}
-
-func (attrs Attrs) Intersect(other Attrs) Attrs {
-	set := make(Attrs, 0, min(len(attrs), len(other)))
-	for _, kv := range attrs {
-		if _, ok := slices.BinarySearchFunc(other, kv, func(a, b KeyValue) int {
-			return strings.Compare(a.Key, b.Key)
-		}); ok {
-			set = append(set, kv)
-		}
-	}
-	return set
 }
 
 func (attrs Attrs) Map() map[string]string {
@@ -201,7 +160,7 @@ func (attrs *Attrs) UnmarshalJSON(b []byte) error {
 }
 
 func SortAttrs(attrs Attrs) {
-	slices.SortFunc(attrs, func(a, b KeyValue) bool {
-		return strings.Compare(a.Key, b.Key) == -1
+	slices.SortFunc(attrs, func(a, b KeyValue) int {
+		return cmp.Compare(a.Key, b.Key)
 	})
 }

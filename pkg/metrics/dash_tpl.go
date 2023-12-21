@@ -58,10 +58,10 @@ type DashboardTpl struct {
 	TimeOffset unixtime.Millis `yaml:"time_offset,omitempty"`
 
 	Table struct {
-		GridItems []*GridItemTpl           `yaml:"grid_items,omitempty"`
-		Metrics   []string                 `yaml:"metrics"`
-		Query     []string                 `yaml:"query"`
-		Columns   map[string]*MetricColumn `yaml:"columns,omitempty"`
+		GridItems []*GridItemTpl          `yaml:"grid_items,omitempty"`
+		Metrics   []string                `yaml:"metrics"`
+		Query     []string                `yaml:"query"`
+		Columns   map[string]*TableColumn `yaml:"columns,omitempty"`
 	} `yaml:"table"`
 
 	GridRows []*GridRowTpl `yaml:"grid_rows"`
@@ -226,8 +226,8 @@ type BaseGridItemTpl struct {
 
 	Width  int `yaml:"width,omitempty"`
 	Height int `yaml:"height,omitempty"`
-	XAxis  int `yaml:"xAxis,omitempty"`
-	YAxis  int `yaml:"yAxis,omitempty"`
+	XAxis  int `yaml:"x_axis,omitempty"`
+	YAxis  int `yaml:"y_axis,omitempty"`
 
 	Type GridItemType `yaml:"type"`
 }
@@ -383,9 +383,9 @@ func (tpl *HeatmapGridItemTpl) Populate(item *HeatmapGridItem) error {
 type GaugeGridItemTpl struct {
 	BaseGridItemTpl `yaml:",inline"`
 
-	Metrics []string                 `yaml:"metrics"`
-	Query   []string                 `yaml:"query"`
-	Columns map[string]*MetricColumn `yaml:"columns,omitempty"`
+	Metrics []string                `yaml:"metrics"`
+	Query   []string                `yaml:"query"`
+	Columns map[string]*GaugeColumn `yaml:"columns,omitempty"`
 
 	Template      string         `yaml:"template,omitempty"`
 	ValueMappings []ValueMapping `yaml:"value_mappings,omitempty"`

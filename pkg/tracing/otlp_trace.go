@@ -140,7 +140,10 @@ func (s *TraceServiceServer) process(
 	ctx context.Context, project *org.Project, resourceSpans []*tracepb.ResourceSpans,
 ) (*collectortrace.ExportTraceServiceResponse, error) {
 	for _, rss := range resourceSpans {
-		resource := AttrMap(otlpconv.Map(rss.Resource.Attributes))
+		var resource AttrMap
+		if rss.Resource != nil {
+			resource = AttrMap(otlpconv.Map(rss.Resource.Attributes))
+		}
 
 		for _, ss := range rss.ScopeSpans {
 			var scope AttrMap

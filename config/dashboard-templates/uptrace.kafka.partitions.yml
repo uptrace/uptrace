@@ -7,7 +7,7 @@ table:
       description: Number of brokers in the cluster
       type: gauge
       metrics:
-        - kafka.brokers as $brokers
+        - kafka_brokers as $brokers
       query:
         - $brokers
 
@@ -15,13 +15,13 @@ table:
       description: Number of members in the consumer group
       type: gauge
       metrics:
-        - kafka.consumer_group.members as $members
+        - kafka_consumer_group_members as $members
       query:
         - $members
 
   metrics:
-    - kafka.partition.current_offset as $current_offset
-    - kafka.partition.replicas_in_sync as $replicas_in_sync
+    - kafka_partition_current_offset as $current_offset
+    - kafka_partition_replicas_in_sync as $replicas_in_sync
   query:
     - group by topic
     - group by partition
@@ -33,21 +33,21 @@ grid_rows:
     items:
       - title: Number of processed messages for the partition of the topic
         metrics:
-          - kafka.partition.current_offset as $current_offset
+          - kafka_partition_current_offset as $current_offset
         query:
           - per_min(delta($current_offset)) as processed
 
       - title: Number of available (unpruned) messages in the partition
         metrics:
-          - kafka.partition.oldest_offset as $oldest_offset
-          - kafka.partition.current_offset as $current_offset
+          - kafka_partition_oldest_offset as $oldest_offset
+          - kafka_partition_current_offset as $current_offset
         query:
           - $current_offset - $oldest_offset as messages
 
       - title: Number of replicas for the partition of the topic
         metrics:
-          - kafka.partition.replicas as $replicas_total
-          - kafka.partition.replicas_in_sync as $replicas_in_sync
+          - kafka_partition_replicas as $replicas_total
+          - kafka_partition_replicas_in_sync as $replicas_in_sync
         query:
           - $replicas_total
           - $replicas_in_sync

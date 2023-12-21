@@ -1,6 +1,9 @@
 package mql
 
-import "math"
+import (
+	"math"
+	"slices"
+)
 
 type binaryOpFunc func(v1, v2 float64) float64
 
@@ -182,4 +185,48 @@ func perSecFunc(value []float64, consts map[string]float64) {
 	}
 }
 
+func irateFunc(value []float64, consts map[string]float64) {
+	deltaFunc(value, consts)
+	perSecFunc(value, consts)
+}
+
 func noop(value []float64, consts map[string]float64) {}
+
+func nan(f float64) float64 {
+	if math.IsNaN(f) {
+		return 0
+	}
+	return f
+}
+
+//------------------------------------------------------------------------------
+
+type aggFunc func(value []float64) float64
+
+func minAgg(value []float64) float64 {
+	return slices.Min(value)
+}
+
+func maxAgg(value []float64) float64 {
+	return slices.Max(value)
+}
+
+func avgAgg(value []float64) float64 {
+	sum, count := sumCount(value)
+	return sum / float64(count)
+}
+
+func sumAgg(value []float64) float64 {
+	sum, _ := sumCount(value)
+	return sum
+}
+
+func sumCount(value []float64) (sum float64, count int) {
+	for _, f := range value {
+		if !math.IsNaN(f) {
+			sum += f
+			count++
+		}
+	}
+	return sum, count
+}

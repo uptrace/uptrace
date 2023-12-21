@@ -83,30 +83,30 @@ metrics_from_spans:
     description: Spans duration (excluding events)
     instrument: histogram
     unit: microseconds
-    value: .duration / 1000
+    value: _duration / 1000
     attrs:
-      - .system
-      - .group_id
-      - service.name
-      - host.name
-      - .status_code
+      - _system
+      - _group_id
+      - service_name
+      - host_name
+      - _status_code
     annotations:
-      - display.name
-    where: .event_name = ''
+      - display_name
+    where: _event_name = ''
 
-  - name: uptrace.tracing.events
+  - name: uptrace_tracing_events
     description: Events count (excluding spans)
     instrument: counter
     unit: 1
     value: .count
     attrs:
-      - .system
-      - .group_id
-      - .name
-      - host.name
+      - _system
+      - _group_id
+      - _name
+      - host_name
     annotations:
-      - display.name
-    where: .is_event = 1
+      - display_name
+    where: _is_event = 1
 
 ##
 ## To require authentication, uncomment one of the following sections.

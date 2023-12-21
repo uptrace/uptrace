@@ -1,6 +1,7 @@
 package mql
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -17,26 +18,24 @@ func compile(parts []*QueryPart) ([]NamedExpr, []*TimeseriesExpr) {
 
 		switch value := part.AST.(type) {
 		case *ast.Selector:
-			for _, expr := range value.Exprs {
-				pos := len(c.timeseries)
+			pos := len(c.timeseries)
 
-				sel, err := c.selector(expr.Expr)
-				if err != nil {
-					part.Error.Wrapped = err
-					break
-				}
-
-				for _, ts := range c.timeseries[pos:] {
-					ts.Grouping = append(ts.Grouping, value.Grouping...)
-					ts.Part = part
-				}
-
-				c.exprs = append(c.exprs, NamedExpr{
-					Part:  part,
-					Expr:  sel,
-					Alias: expr.Alias,
-				})
+			sel, err := c.selector(value.Expr.Expr)
+			if err != nil {
+				part.Error.Wrapped = err
+				break
 			}
+
+			for _, ts := range c.timeseries[pos:] {
+				ts.Part = part
+			}
+
+			c.exprs = append(c.exprs, NamedExpr{
+				Part:  part,
+				AST:   value.Expr.Expr,
+				Expr:  sel,
+				Alias: value.Expr.Alias,
+			})
 		case *ast.Where, *ast.Grouping:
 			// see below
 		default:
@@ -59,7 +58,7 @@ func compile(parts []*QueryPart) ([]NamedExpr, []*TimeseriesExpr) {
 				part.Error.Wrapped = err
 			}
 		case *ast.Grouping:
-			if err := c.grouping(expr); err != nil {
+			if err := c.applyGlobalGrouping(expr); err != nil {
 				part.Error.Wrapped = err
 			}
 		}
@@ -69,7 +68,6 @@ func compile(parts []*QueryPart) ([]NamedExpr, []*TimeseriesExpr) {
 }
 
 type compiler struct {
-	storage    Storage
 	exprs      []NamedExpr
 	timeseries []*TimeseriesExpr
 }
@@ -90,29 +88,27 @@ func (c *compiler) selector(astExpr ast.Expr) (_ Expr, retErr error) {
 
 func (c *compiler) panickySelector(expr ast.Expr) Expr {
 	switch expr := expr.(type) {
-	case *ast.Name:
+	case *ast.MetricExpr:
 		if !strings.HasPrefix(expr.Name, "$") {
-			return &RefExpr{
-				Name: expr,
+			return RefExpr{
+				Expr: expr,
 			}
 		}
-		return c.name(expr)
+		return c.metricExpr(expr)
 
 	case *ast.BinaryExpr:
 		return &BinaryExpr{
-			BinaryExpr: expr,
-			Op:         expr.Op,
-			LHS:        c.panickySelector(expr.LHS),
-			RHS:        c.panickySelector(expr.RHS),
+			Op:  expr.Op,
+			LHS: c.panickySelector(expr.LHS),
+			RHS: c.panickySelector(expr.RHS),
 		}
 
 	case ast.ParenExpr:
 		return ParenExpr{
-			ParenExpr: expr,
-			Expr:      c.panickySelector(expr.Expr),
+			Expr: c.panickySelector(expr.Expr),
 		}
 
-	case *ast.Number:
+	case ast.Number:
 		return expr
 
 	case *ast.FuncCall:
@@ -126,79 +122,46 @@ func (c *compiler) panickySelector(expr ast.Expr) Expr {
 	}
 }
 
-func (c *compiler) name(name *ast.Name) *TimeseriesExpr {
+func (c *compiler) metricExpr(expr *ast.MetricExpr) *TimeseriesExpr {
+	metric, attr := ast.SplitAliasName(expr.Name)
 	ts := &TimeseriesExpr{
-		Expr:    name,
-		Metric:  name.Name,
-		Filters: name.Filters,
+		Metric:   metric,
+		Attr:     attr,
+		Filters:  expr.Filters,
+		Grouping: expr.Grouping,
 	}
 	c.timeseries = append(c.timeseries, ts)
 	return ts
 }
 
 func (c *compiler) funcCall(fn *ast.FuncCall) Expr {
-	if isAggFunc(fn.Func) {
-		if len(fn.Args) != 1 {
-			panic(fmt.Errorf("%q requires a single arg", fn.Func))
+	switch arg := c.panickySelector(fn.Arg); arg := arg.(type) {
+	case *TimeseriesExpr:
+		if arg.CHFunc == "" {
+			if isCHFunc(fn.Func) {
+				arg.CHFunc = fn.Func
+				return arg
+			}
+			arg.CHFunc = "_"
 		}
 
-		expr, ok := c.panickySelector(fn.Args[0]).(*TimeseriesExpr)
-		if !ok {
-			panic(fmt.Errorf("%q can be only applied to a timeseries", fn.Func))
+		return &FuncCall{
+			Func:     fn.Func,
+			Arg:      arg,
+			Grouping: fn.Grouping.Attrs(),
 		}
-		expr.Expr = fn
-
-		if expr.AggFunc == "" {
-			expr.AggFunc = fn.Func
-			return expr
+	default:
+		return &FuncCall{
+			Func:     fn.Func,
+			Arg:      arg,
+			Grouping: fn.Grouping.Attrs(),
 		}
-	}
-
-	if isTableFunc(fn.Func) {
-		if len(fn.Args) != 1 {
-			panic(fmt.Errorf("%q requires a single arg", fn.Func))
-		}
-
-		expr, ok := c.panickySelector(fn.Args[0]).(*TimeseriesExpr)
-		if !ok {
-			panic(fmt.Errorf("%q can be only applied to a timeseries", fn.Func))
-		}
-
-		if expr.TableFunc != "" {
-			panic(fmt.Errorf("can't apply %q to %q", fn.Func, expr))
-		}
-
-		expr.TableFunc = fn.Func
-		return expr
-	}
-
-	if !isOpFunc(fn.Func) {
-		if isAggFunc(fn.Func) {
-			panic(fmt.Errorf("can't apply %q in this context", fn.Func))
-		}
-		panic(fmt.Errorf("unsupported func: %q", fn.Func))
-	}
-
-	args := make([]Expr, len(fn.Args))
-	for i, arg := range fn.Args {
-		sel := c.panickySelector(arg)
-		args[i] = sel
-
-		if expr, ok := sel.(*TimeseriesExpr); ok && expr.TableFunc == "" {
-			expr.TableFunc = fn.Func
-		}
-	}
-
-	return &FuncCall{
-		FuncCall: fn,
-		Func:     fn.Func,
-		Args:     args,
 	}
 }
 
 func (c *compiler) uniqExpr(uq *ast.UniqExpr) *TimeseriesExpr {
-	expr := c.name(&uq.Name)
-	expr.AggFunc = AggUniq
+	expr := c.metricExpr(&uq.Name)
+	expr.CHFunc = CHAggUniq
 	expr.Uniq = uq.Attrs
 	return expr
 }
@@ -244,61 +207,16 @@ func (c *compiler) where(expr *ast.Where) error {
 	return nil
 }
 
-func (c *compiler) grouping(expr *ast.Grouping) error {
+func (c *compiler) applyGlobalGrouping(expr *ast.Grouping) error {
 	for _, elem := range expr.Elems {
-		if err := c.groupingName(elem); err != nil {
-			return err
+		if alias, _ := ast.SplitAliasName(elem.Name); alias != "" {
+			return errors.New("global grouping can't reference a metric")
 		}
+	}
+	for _, namedExpr := range c.exprs {
+		applyGrouping(namedExpr.Expr, expr.Elems)
 	}
 	return nil
-}
-
-func (c *compiler) groupingName(elem ast.NamedExpr) error {
-	switch expr := elem.Expr.(type) {
-	case *ast.Name:
-		alias, name := ast.SplitAliasName(expr.Name)
-		var found bool
-
-		for _, ts := range c.timeseries {
-			if alias != "" && ts.Metric != alias {
-				continue
-			}
-			ts.Grouping = append(ts.Grouping, ast.NamedExpr{
-				Expr:  &ast.Name{Name: name},
-				Alias: elem.Alias,
-			})
-			found = true
-		}
-
-		if alias != "" && !found {
-			return fmt.Errorf("can't find metric with alias %q", alias)
-		}
-		return nil
-	case *ast.SimpleFuncCall:
-		alias, name := ast.SplitAliasName(expr.Arg)
-		var found bool
-
-		for _, ts := range c.timeseries {
-			if alias != "" && ts.Metric != alias {
-				continue
-			}
-			ts.Grouping = append(ts.Grouping, ast.NamedExpr{
-				Expr: &ast.SimpleFuncCall{
-					Func: expr.Func,
-					Arg:  name,
-				},
-				Alias: elem.Alias,
-			})
-			found = true
-		}
-
-		if alias != "" && !found {
-			return fmt.Errorf("can't find metric with alias %q", alias)
-		}
-		return nil
-	default:
-		return fmt.Errorf("unsupported grouping expr: %T", expr)
-	}
 }
 
 func hasWherePrefix(s string) bool {
@@ -308,4 +226,25 @@ func hasWherePrefix(s string) bool {
 		return false
 	}
 	return strings.EqualFold(s[:l], "where ")
+}
+
+func applyGrouping(expr Expr, grouping []ast.GroupingElem) {
+	switch expr := expr.(type) {
+	case *TimeseriesExpr:
+		expr.Grouping = append(expr.Grouping, grouping...)
+	case *FuncCall:
+		for _, elem := range grouping {
+			expr.Grouping = append(expr.Grouping, elem.Alias)
+		}
+		applyGrouping(expr.Arg, grouping)
+	case *BinaryExpr:
+		applyGrouping(expr.LHS, grouping)
+		applyGrouping(expr.RHS, grouping)
+	case ParenExpr:
+		applyGrouping(expr.Expr, grouping)
+	case RefExpr, ast.Number:
+		// nothing
+	default:
+		panic(fmt.Errorf("unsupported expr: %T", expr))
+	}
 }

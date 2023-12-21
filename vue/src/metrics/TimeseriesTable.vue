@@ -30,7 +30,7 @@
         @click="$emit('click', item)"
       >
         <template #default="{ metrics, time, emptyValue }">
-          <template v-for="attrKey in grouping">
+          <template v-for="attrKey in groupingColumns">
             <td v-if="attrKey === AttrKey.spanGroupId" :key="attrKey">
               <router-link :to="routeForSpanList(item[AttrKey.spanGroupdId])">{{
                 item[AttrKey.displayName] || item[AttrKey.spanGroupId]
@@ -91,8 +91,12 @@ export default defineComponent({
       type: Number,
       default: 15,
     },
-    columns: {
+    aggColumns: {
       type: Array as PropType<StyledColumnInfo[]>,
+      required: true,
+    },
+    groupingColumns: {
+      type: Array as PropType<string[]>,
       required: true,
     },
     order: {
@@ -110,20 +114,12 @@ export default defineComponent({
   },
 
   setup(props) {
-    const grouping = computed((): string[] => {
-      return props.columns.filter((col) => col.isGroup).map((col) => col.name)
-    })
-
-    const aggColumns = computed(() => {
-      return props.columns.filter((col) => !col.isGroup)
-    })
-
     const headers = computed(() => {
       const headers = []
-      for (let colName of grouping.value) {
+      for (let colName of props.groupingColumns) {
         headers.push({ text: colName, value: colName, sortable: true })
       }
-      for (let col of aggColumns.value) {
+      for (let col of props.aggColumns) {
         headers.push({ text: col.name, value: col.name, sortable: true, align: 'start' })
       }
       return headers
@@ -143,8 +139,6 @@ export default defineComponent({
       Unit,
       AttrKey,
 
-      grouping,
-      aggColumns,
       headers,
 
       routeForSpanList,

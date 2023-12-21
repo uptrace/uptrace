@@ -11,7 +11,9 @@ func Clean(s string) string {
 	if isClean(s) {
 		return s
 	}
-	return clean(s)
+	b := make([]byte, 0, len(s))
+	b = clean(b, s)
+	return unsafeconv.String(b)
 }
 
 func isClean(s string) bool {
@@ -23,48 +25,27 @@ func isClean(s string) bool {
 	return true
 }
 
-func clean(s string) string {
-	b := make([]byte, 0, len(s))
-
-	var prevCh uint8
-	for i, ch := range []byte(s) {
-		switch ch {
-		case '/':
-			b = append(b, '.')
-		case '-':
-			b = append(b, '_')
-		case '.', '_':
+func clean(b []byte, s string) []byte {
+	var prevCh byte
+	for _, ch := range []byte(s) {
+		if isAllowed(ch) {
 			b = append(b, ch)
-		default:
-			if isDigit(ch) {
-				b = append(b, ch)
-				break
-			}
-
-			if isLC(ch) {
-				b = append(b, ch)
-				break
-			}
-
-			if isUC(ch) {
-				if isAlnum(prevCh) && i+1 < len(s) {
-					if nextCh := s[i+1]; isAlpha(nextCh) && !isUC(nextCh) {
-						b = append(b, '_')
-					}
-				}
-				b = append(b, ch+32)
-				break
-			}
+			prevCh = ch
+			continue
 		}
-
-		prevCh = ch
+		if prevCh != 0 && prevCh != '_' {
+			b = append(b, '_')
+			prevCh = '_'
+		}
 	}
-
-	return unsafeconv.String(b)
+	if prevCh == '_' {
+		b = b[:len(b)-1]
+	}
+	return b
 }
 
 func isAllowed(c byte) bool {
-	return isDigit(c) || isLC(c) || c == '.' || c == '_'
+	return isAlnum(c) || c == '_'
 }
 
 func isAlnum(c byte) bool {

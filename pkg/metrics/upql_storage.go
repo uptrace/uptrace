@@ -57,20 +57,15 @@ func (s *CHStorage) Consts() map[string]float64 {
 	}
 }
 
-func (s *CHStorage) MakeTimeseries(f *mql.TimeseriesFilter) []mql.Timeseries {
+func (s *CHStorage) MakeTimeseries(f *mql.TimeseriesFilter) *mql.Timeseries {
 	var ts mql.Timeseries
 
 	if f != nil {
 		ts.Filters = f.Filters
-		ts.Grouping = f.Grouping
+		ts.Grouping = f.Grouping.Attrs()
 		if metric, ok := s.conf.MetricMap[f.Metric]; ok {
 			ts.Unit = metric.Unit
 		}
-	}
-
-	if s.conf.TableMode {
-		ts.Value = []float64{0}
-		return []mql.Timeseries{ts}
 	}
 
 	size := int(s.conf.TimeFilter.Duration() / s.conf.GroupingInterval)
@@ -80,10 +75,10 @@ func (s *CHStorage) MakeTimeseries(f *mql.TimeseriesFilter) []mql.Timeseries {
 		ts.Time[i] = s.conf.TimeGTE.Add(time.Duration(i) * s.conf.GroupingInterval)
 	}
 
-	return []mql.Timeseries{ts}
+	return &ts
 }
 
-func (s *CHStorage) SelectTimeseries(f *mql.TimeseriesFilter) ([]mql.Timeseries, error) {
+func (s *CHStorage) SelectTimeseries(f *mql.TimeseriesFilter) ([]*mql.Timeseries, error) {
 	metric, ok := s.conf.MetricMap[f.Metric]
 	if !ok {
 		return nil, fmt.Errorf("can't find metric with alias %q", f.Metric)
@@ -104,30 +99,20 @@ func (s *CHStorage) SelectTimeseries(f *mql.TimeseriesFilter) ([]mql.Timeseries,
 
 func (s *CHStorage) compileQuery(metric *Metric, f *mql.TimeseriesFilter) (*ch.SelectQuery, error) {
 	q := s.db.NewSelect().
-		ColumnExpr("m.metric").
-		ColumnExpr("max(m.annotations) AS annotations").
-		TableExpr("? AS m", ch.Name(s.conf.TableName)).
-		Where("m.project_id = ?", s.conf.ProjectID).
-		Where("m.metric = ?", metric.Name).
-		Where("m.time >= ?", s.conf.TimeGTE).
-		Where("m.time < ?", s.conf.TimeLT).
-		GroupExpr("m.metric")
+		ColumnExpr("d.metric").
+		ColumnExpr("max(d.annotations) AS annotations").
+		TableExpr("? AS d", ch.Name(s.conf.TableName)).
+		Where("d.project_id = ?", s.conf.ProjectID).
+		Where("d.metric = ?", metric.Name).
+		Where("d.time >= ?", s.conf.TimeGTE).
+		Where("d.time < ?", s.conf.TimeLT).
+		GroupExpr("d.metric")
 
 	if s.conf.Search != "" {
 		values := strings.Split(s.conf.Search, "|")
 		q = q.WhereGroup(" AND ", func(q *ch.SelectQuery) *ch.SelectQuery {
 			for _, elem := range f.Grouping {
-				var chExpr ch.Safe
-
-				switch expr := elem.Expr.(type) {
-				case *ast.Name:
-					chExpr = CHExpr(expr.Name)
-				case *ast.SimpleFuncCall:
-					chExpr = CHExpr(expr.Arg)
-				default:
-					return q.Err(fmt.Errorf("unsupported grouping expr: %T", expr))
-				}
-
+				chExpr := CHExpr(elem.Name)
 				q = q.WhereOr("multiSearchAnyCaseInsensitiveUTF8(?, ?) != 0",
 					chExpr, ch.Array(values))
 			}
@@ -141,12 +126,12 @@ func (s *CHStorage) compileQuery(metric *Metric, f *mql.TimeseriesFilter) (*ch.S
 	}
 
 	q = s.db.NewSelect().
-		ColumnExpr("m.metric").
-		ColumnExpr("max(m.annotations) AS annotations").
-		ColumnExpr("groupArray(toFloat64(m.value)) AS value").
-		ColumnExpr("groupArray(m.time) AS time").
-		TableExpr("(?) AS m", subq).
-		GroupExpr("m.metric").
+		ColumnExpr("d.metric").
+		ColumnExpr("max(d.annotations) AS annotations").
+		ColumnExpr("groupArray(toFloat64(d.value)) AS value").
+		ColumnExpr("groupArray(d.time) AS time").
+		TableExpr("(?) AS d", subq).
+		GroupExpr("d.metric").
 		Limit(10000)
 
 	if len(f.Grouping) > 0 {
@@ -175,29 +160,16 @@ func (s *CHStorage) subquery(
 	}
 
 	for _, elem := range f.Grouping {
-		switch expr := elem.Expr.(type) {
-		case *ast.Name:
-			chExpr := CHExpr(expr.Name)
-			q = q.
-				ColumnExpr("? AS ?", chExpr, ch.Name(elem.Alias)).
-				GroupExpr("?", chExpr)
-		case *ast.SimpleFuncCall:
-			buf, err := expr.Func.AppendQuery(nil, CHExpr(expr.Arg))
-			if err != nil {
-				return nil, err
-			}
-			chExpr := ch.Safe(buf)
-
-			q = q.
-				ColumnExpr("? AS ?", chExpr, ch.Name(elem.Alias)).
-				GroupExpr("?", chExpr)
-		default:
-			return nil, fmt.Errorf("unsupported grouping expr: %T", expr)
+		chExpr, err := chGrouping(elem, CHExpr(elem.Name))
+		if err != nil {
+			return nil, err
 		}
+		q.ColumnExpr("? AS ?", chExpr, ch.Name(elem.Alias)).
+			GroupExpr("?", chExpr)
 	}
 
 	q = q.
-		ColumnExpr("toStartOfInterval(m.time, INTERVAL ? SECOND) AS time",
+		ColumnExpr("toStartOfInterval(d.time, INTERVAL ? SECOND) AS time",
 			s.conf.GroupingInterval.Seconds()).
 		GroupExpr("time").
 		OrderExpr("time")
@@ -205,14 +177,14 @@ func (s *CHStorage) subquery(
 	shouldDedup := isValueInstrument(metric.Instrument)
 
 	if shouldDedup {
-		switch f.AggFunc {
-		case mql.AggMin:
-			q = q.ColumnExpr("min(m.gauge) AS value")
-		case mql.AggMax:
-			q = q.ColumnExpr("max(m.gauge) AS value")
-		case mql.AggUniq:
+		switch f.CHFunc {
+		case mql.CHAggMin:
+			q = q.ColumnExpr("min(d.gauge) AS value")
+		case mql.CHAggMax:
+			q = q.ColumnExpr("max(d.gauge) AS value")
+		case mql.CHAggUniq:
 			if len(f.Uniq) == 0 {
-				q = q.ColumnExpr("m.attrs_hash").GroupExpr("m.attrs_hash")
+				q = q.ColumnExpr("d.attrs_hash").GroupExpr("d.attrs_hash")
 			} else {
 				for _, attrKey := range f.Uniq {
 					chExpr := CHExpr(attrKey)
@@ -220,19 +192,19 @@ func (s *CHStorage) subquery(
 						GroupExpr(string(chExpr))
 				}
 			}
-			q = q.ColumnExpr("argMax(m.gauge, m.time) AS value")
-		case "", mql.AggSum, mql.AggAvg:
-			q = q.ColumnExpr("argMax(m.gauge, m.time) AS value").
-				GroupExpr("m.attrs_hash")
+			q = q.ColumnExpr("argMax(d.gauge, d.time) AS value")
+		case "", "_", mql.CHAggSum, mql.CHAggAvg:
+			q = q.ColumnExpr("argMax(d.gauge, d.time) AS value").
+				GroupExpr("d.attrs_hash")
 		default:
-			q = q.ColumnExpr("argMax(m.gauge, m.time) AS value")
+			q = q.ColumnExpr("argMax(d.gauge, d.time) AS value")
 		}
 
 		q = s.db.NewSelect().
-			ColumnExpr("m.metric").
-			ColumnExpr("max(m.annotations) AS annotations").
-			TableExpr("(?) AS m", q).
-			GroupExpr("m.metric")
+			ColumnExpr("d.metric").
+			ColumnExpr("max(d.annotations) AS annotations").
+			TableExpr("(?) AS d", q).
+			GroupExpr("d.metric")
 	}
 
 	q, err = s.agg(q, metric, f)
@@ -302,7 +274,7 @@ func compileFilters(
 
 func appendExistsFilter(b []byte, filter *ast.Filter, attrKey string) []byte {
 	b = appendFilterSep(b, filter)
-	b = chschema.AppendQuery(b, "has(m.string_keys, ?)", attrKey)
+	b = chschema.AppendQuery(b, "has(d.string_keys, ?)", attrKey)
 	return b
 }
 
@@ -378,13 +350,13 @@ func (s *CHStorage) agg(
 	metric *Metric,
 	f *mql.TimeseriesFilter,
 ) (*ch.SelectQuery, error) {
-	switch f.AggFunc {
-	case mql.AggUniq:
+	switch f.CHFunc {
+	case mql.CHAggUniq:
 		var b []byte
 		b = append(b, "uniqCombined64("...)
 
 		if len(f.Uniq) == 0 {
-			b = append(b, "m.attrs_hash"...)
+			b = append(b, "d.attrs_hash"...)
 		} else {
 			isValue := isValueInstrument(metric.Instrument)
 			for i, attrKey := range f.Uniq {
@@ -408,18 +380,18 @@ func (s *CHStorage) agg(
 	case "":
 		// continue below
 	case ".time", "_time":
-		switch f.AggFunc {
-		case mql.AggMin:
-			q = q.ColumnExpr("min(m.time) AS value")
+		switch f.CHFunc {
+		case mql.CHAggMin:
+			q = q.ColumnExpr("min(d.time) AS value")
 			return q, nil
-		case mql.AggMax:
-			q = q.ColumnExpr("max(m.time) AS value")
+		case mql.CHAggMax:
+			q = q.ColumnExpr("max(d.time) AS value")
 			return q, nil
 		default:
-			return nil, unsupportedAttrFunc(f.Attr, f.AggFunc)
+			return nil, unsupportedAttrFunc(f.Attr, f.CHFunc)
 		}
 	default:
-		return nil, unsupportedAttrFunc(f.Attr, f.AggFunc)
+		return nil, unsupportedAttrFunc(f.Attr, f.CHFunc)
 	}
 
 	switch metric.Instrument {
@@ -427,102 +399,102 @@ func (s *CHStorage) agg(
 		return nil, fmt.Errorf("metric %q not found", metric.Name)
 
 	case InstrumentCounter:
-		switch f.AggFunc {
-		case "", mql.AggSum:
-			q = q.ColumnExpr("sumWithOverflow(m.sum) AS value")
+		switch f.CHFunc {
+		case "", "_", mql.CHAggSum:
+			q = q.ColumnExpr("sumWithOverflow(d.sum) AS value")
 			return q, nil
 		default:
-			return nil, unsupportedInstrumentFunc(metric.Instrument, f.AggFunc)
+			return nil, unsupportedInstrumentFunc(metric.Instrument, f.CHFunc)
 		}
 
 	case InstrumentGauge:
-		switch f.AggFunc {
-		case "", mql.AggAvg:
-			q = q.ColumnExpr("avg(m.value) AS value")
+		switch f.CHFunc {
+		case "", "_", mql.CHAggAvg:
+			q = q.ColumnExpr("avg(d.value) AS value")
 			return q, nil
-		case mql.AggSum: // may be okay
-			q = q.ColumnExpr("sumWithOverflow(m.value) AS value")
+		case mql.CHAggSum: // may be okay
+			q = q.ColumnExpr("sumWithOverflow(d.value) AS value")
 			return q, nil
-		case mql.AggMin:
-			q = q.ColumnExpr("min(m.value) AS value")
+		case mql.CHAggMin:
+			q = q.ColumnExpr("min(d.value) AS value")
 			return q, nil
-		case mql.AggMax:
-			q = q.ColumnExpr("max(m.value) AS value")
+		case mql.CHAggMax:
+			q = q.ColumnExpr("max(d.value) AS value")
 			return q, nil
 		default:
-			return nil, unsupportedInstrumentFunc(metric.Instrument, f.AggFunc)
+			return nil, unsupportedInstrumentFunc(metric.Instrument, f.CHFunc)
 		}
 
 	case InstrumentAdditive:
-		switch f.AggFunc {
-		case "", mql.AggSum:
-			q = q.ColumnExpr("sumWithOverflow(m.value) AS value")
+		switch f.CHFunc {
+		case "", mql.CHAggSum:
+			q = q.ColumnExpr("sumWithOverflow(d.value) AS value")
 			return q, nil
-		case mql.AggAvg: // may be okay
-			q = q.ColumnExpr("avg(m.value) AS value")
+		case mql.CHAggAvg: // may be okay
+			q = q.ColumnExpr("avg(d.value) AS value")
 			return q, nil
-		case mql.AggMin:
-			q = q.ColumnExpr("min(m.value) AS value")
+		case mql.CHAggMin:
+			q = q.ColumnExpr("min(d.value) AS value")
 			return q, nil
-		case mql.AggMax:
-			q = q.ColumnExpr("max(m.value) AS value")
+		case mql.CHAggMax:
+			q = q.ColumnExpr("max(d.value) AS value")
 			return q, nil
 		default:
-			return nil, unsupportedInstrumentFunc(metric.Instrument, f.AggFunc)
+			return nil, unsupportedInstrumentFunc(metric.Instrument, f.CHFunc)
 		}
 
 	case InstrumentSummary:
-		switch f.AggFunc {
-		case mql.AggCount:
-			q = q.ColumnExpr("sumWithOverflow(m.count) AS value")
+		switch f.CHFunc {
+		case mql.CHAggCount:
+			q = q.ColumnExpr("sumWithOverflow(d.count) AS value")
 			return q, nil
-		case mql.AggAvg:
-			q = q.ColumnExpr("sumWithOverflow(m.sum) / sumWithOverflow(m.count) AS value")
+		case mql.CHAggAvg:
+			q = q.ColumnExpr("sumWithOverflow(d.sum) / sumWithOverflow(d.count) AS value")
 			return q, nil
-		case mql.AggSum:
-			q = q.ColumnExpr("sumWithOverflow(m.sum) AS value")
+		case mql.CHAggSum:
+			q = q.ColumnExpr("sumWithOverflow(d.sum) AS value")
 			return q, nil
-		case mql.AggMin:
-			q = q.ColumnExpr("min(m.min) AS value")
+		case mql.CHAggMin:
+			q = q.ColumnExpr("min(d.min) AS value")
 			return q, nil
-		case mql.AggMax:
-			q = q.ColumnExpr("max(m.max) AS value")
+		case mql.CHAggMax:
+			q = q.ColumnExpr("max(d.max) AS value")
 			return q, nil
 		default:
-			return nil, unsupportedInstrumentFunc(metric.Instrument, f.AggFunc)
+			return nil, unsupportedInstrumentFunc(metric.Instrument, f.CHFunc)
 		}
 
 	case InstrumentHistogram:
-		switch f.AggFunc {
-		case mql.AggAvg:
-			q = q.ColumnExpr("sumWithOverflow(m.sum) / sumWithOverflow(m.count) AS value")
+		switch f.CHFunc {
+		case mql.CHAggAvg:
+			q = q.ColumnExpr("sumWithOverflow(d.sum) / sumWithOverflow(d.count) AS value")
 			return q, nil
-		case mql.AggMin:
-			q = q.ColumnExpr("min(m.min) AS value")
+		case mql.CHAggMin:
+			q = q.ColumnExpr("min(d.min) AS value")
 			return q, nil
-		case mql.AggMax:
-			q = q.ColumnExpr("max(m.max) AS value")
+		case mql.CHAggMax:
+			q = q.ColumnExpr("max(d.max) AS value")
 			return q, nil
-		case mql.AggP50:
+		case mql.CHAggP50:
 			q = quantileColumn(q, 0.5)
 			return q, nil
-		case mql.AggP75:
+		case mql.CHAggP75:
 			q = quantileColumn(q, 0.75)
 			return q, nil
-		case mql.AggP90:
+		case mql.CHAggP90:
 			q = quantileColumn(q, 0.9)
 			return q, nil
-		case mql.AggP95:
+		case mql.CHAggP95:
 			q = quantileColumn(q, 0.95)
 			return q, nil
-		case mql.AggP99:
+		case mql.CHAggP99:
 			q = quantileColumn(q, 0.99)
 			return q, nil
-		case mql.AggCount:
-			q = q.ColumnExpr("sumWithOverflow(m.count) AS value")
+		case mql.CHAggCount:
+			q = q.ColumnExpr("sumWithOverflow(d.count) AS value")
 			return q, nil
 		default:
-			return nil, unsupportedInstrumentFunc(metric.Instrument, f.AggFunc)
+			return nil, unsupportedInstrumentFunc(metric.Instrument, f.CHFunc)
 		}
 
 	default:
@@ -532,16 +504,16 @@ func (s *CHStorage) agg(
 
 func (s *CHStorage) newTimeseries(
 	metric *Metric, f *mql.TimeseriesFilter, items []map[string]any,
-) ([]mql.Timeseries, error) {
-	timeseries := make([]mql.Timeseries, 0, len(items))
+) ([]*mql.Timeseries, error) {
+	timeseries := make([]*mql.Timeseries, 0, len(items))
 
 	for _, m := range items {
-		timeseries = append(timeseries, mql.Timeseries{
+		ts := &mql.Timeseries{
 			Unit:     metricUnit(metric, f),
 			Filters:  f.Filters,
-			Grouping: f.Grouping,
-		})
-		ts := &timeseries[len(timeseries)-1]
+			Grouping: f.Grouping.Attrs(),
+		}
+		timeseries = append(timeseries, ts)
 
 		delete(m, "metric")
 
@@ -559,13 +531,7 @@ func (s *CHStorage) newTimeseries(
 			s.conf.TimeLT,
 			s.conf.GroupingInterval,
 		)
-
-		if s.conf.TableMode {
-			ts.Time = nil
-			ts.Value = []float64{tableValue(ts.Value, metric.Instrument, f.AggFunc, f.TableFunc)}
-		} else {
-			ts.Time = bunutil.FillTime(ts.Time, s.conf.TimeGTE, s.conf.TimeLT, s.conf.GroupingInterval)
-		}
+		ts.Time = bunutil.FillTime(ts.Time, s.conf.TimeGTE, s.conf.TimeLT, s.conf.GroupingInterval)
 
 		if annotations, _ := m["annotations"].(string); annotations != "" {
 			if err := json.Unmarshal([]byte(annotations), &ts.Annotations); err != nil {
@@ -587,7 +553,7 @@ func (s *CHStorage) newTimeseries(
 }
 
 func quantileColumn(q *ch.SelectQuery, quantile float64) *ch.SelectQuery {
-	return q.ColumnExpr("quantileBFloat16Merge(?)(histogram) AS value", quantile)
+	return q.ColumnExpr("quantileBFloat16Merge(?)(d.histogram) AS value", quantile)
 }
 
 func metricUnit(metric *Metric, f *mql.TimeseriesFilter) string {
@@ -600,8 +566,8 @@ func metricUnit(metric *Metric, f *mql.TimeseriesFilter) string {
 		return ""
 	}
 
-	switch f.AggFunc {
-	case mql.AggCount, mql.AggUniq:
+	switch f.CHFunc {
+	case mql.CHAggCount, mql.CHAggUniq:
 		return bunconv.UnitNone
 	default:
 		return metric.Unit
@@ -637,145 +603,34 @@ func CHExpr(key string) ch.Safe {
 }
 
 func AppendCHExpr(b []byte, key string) []byte {
-	return chschema.AppendQuery(b, "m.string_values[indexOf(m.string_keys, ?)]", key)
+	return chschema.AppendQuery(b, "d.string_values[indexOf(d.string_keys, ?)]", key)
 }
 
-//------------------------------------------------------------------------------
-
-func tableValue(
-	value []float64, instrument Instrument, aggFunc, tableFunc string,
-) float64 {
-	var funcName string
-	if tableFunc != "" {
-		funcName = tableFunc
-	} else {
-		funcName = aggFunc
+func chGrouping(elem ast.GroupingElem, attr ch.Safe) (ch.Safe, error) {
+	b, err := appendCHGrouping(nil, elem, attr)
+	if err != nil {
+		return "", err
 	}
+	return ch.Safe(b), nil
+}
 
-	switch funcName {
+func appendCHGrouping(b []byte, elem ast.GroupingElem, attr ch.Safe) ([]byte, error) {
+	switch elem.Func {
 	case "":
-		// continue below
-	case mql.TableMin:
-		return minTableValue(value)
-	case mql.TableMax:
-		return maxTableValue(value)
-	case mql.TableAvg,
-		mql.FuncPerMin, mql.FuncPerSec,
-		mql.AggP50, mql.AggP75, mql.AggP90, mql.AggP95, mql.AggP99:
-		return avgTableValue(value)
-	case mql.TableSum, mql.AggCount:
-		return sumTableValue(value)
-	case mql.FuncDelta:
-		return deltaTableValue(value)
-	case mql.TableLast, mql.AggUniq:
-		return lastTableValue(value)
+		// nothing
+	case "lower":
+		b = append(b, "lowerUTF8("...)
+	case "upper":
+		b = append(b, "upperUTF8("...)
 	default:
-		return lastTableValue(value)
+		return nil, fmt.Errorf("unsupported grouping func: %q", elem.Func)
 	}
 
-	switch instrument {
-	case InstrumentCounter:
-		return sumTableValue(value)
-	default:
-		return lastTableValue(value)
-	}
-}
+	b = append(b, attr...)
 
-func minTableValue(ns []float64) float64 {
-	min := math.MaxFloat64
-	for _, n := range ns {
-		if math.IsNaN(n) {
-			continue
-		}
-		if n < min {
-			min = n
-		}
-	}
-	if min != math.MaxFloat64 {
-		return min
-	}
-	return math.NaN()
-}
-
-func maxTableValue(ns []float64) float64 {
-	max := -math.MaxFloat64
-	for _, n := range ns {
-		if math.IsNaN(n) {
-			continue
-		}
-		if n > max {
-			max = n
-		}
-	}
-	if max != -math.MaxFloat64 {
-		return max
-	}
-	return math.NaN()
-}
-
-func lastTableValue(ns []float64) float64 {
-	end := len(ns) - 3
-	if end < 0 {
-		end = 0
+	if elem.Func != "" {
+		b = append(b, ')')
 	}
 
-	for i := len(ns) - 1; i >= end; i-- {
-		n := ns[i]
-		if !math.IsNaN(n) {
-			return n
-		}
-	}
-	return math.NaN()
-}
-
-func avgTableValue(ns []float64) float64 {
-	sum, count := sumCount(ns)
-	if count > 0 {
-		return sum / float64(count)
-	}
-	return math.NaN()
-}
-
-func sumTableValue(ns []float64) float64 {
-	sum, _ := sumCount(ns)
-	return sum
-}
-
-func sumCount(ns []float64) (float64, int) {
-	var sum float64
-	var count int
-	for _, n := range ns {
-		if !math.IsNaN(n) {
-			sum += n
-			count++
-		}
-	}
-	return sum, count
-}
-
-func deltaTableValue(value []float64) float64 {
-	for i, num := range value {
-		if !math.IsNaN(num) {
-			value = value[i:]
-			break
-		}
-	}
-
-	if len(value) == 0 {
-		return 0
-	}
-
-	prevNum := value[0]
-	value = value[1:]
-	var sum float64
-
-	for _, num := range value {
-		if math.IsNaN(num) {
-			continue
-		}
-		sum += num - prevNum
-		prevNum = num
-	}
-
-	return sum
+	return b, nil
 }

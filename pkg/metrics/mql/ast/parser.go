@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
 var errAlias = errors.New("alias is required (AS alias)")
@@ -49,24 +47,8 @@ func (p *queryParser) parseQuery() (any, error) {
 	}
 
 	{
-		var grouping []NamedExpr
+		var grouping []GroupingElem
 		_pos1 := p.Pos()
-		{
-			_tok := p.NextToken()
-			_match := len(_tok.Text) == 5 && (_tok.Text[0] == 'g' || _tok.Text[0] == 'G') && (_tok.Text[1] == 'r' || _tok.Text[1] == 'R') && (_tok.Text[2] == 'o' || _tok.Text[2] == 'O') && (_tok.Text[3] == 'u' || _tok.Text[3] == 'U') && (_tok.Text[4] == 'p' || _tok.Text[4] == 'P')
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r1_i0_group_end
-			}
-		}
-		{
-			_tok := p.NextToken()
-			_match := len(_tok.Text) == 2 && (_tok.Text[0] == 'b' || _tok.Text[0] == 'B') && (_tok.Text[1] == 'y' || _tok.Text[1] == 'Y')
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r1_i0_group_end
-			}
-		}
 		{
 			var _err error
 			grouping, _err = p.grouping()
@@ -93,36 +75,18 @@ func (p *queryParser) parseQuery() (any, error) {
 	}
 
 	{
-		var grouping []NamedExpr
-		var namedExprs []NamedExpr
+		var grouping []GroupingElem
+		var namedExpr NamedExpr
 		_pos1 := p.Pos()
 		{
 			var _err error
-			namedExprs, _err = p.namedExprs()
+			namedExpr, _err = p.namedExpr()
 			if _err != nil && _err != errBacktrack {
 				return nil, _err
 			}
 			_match := _err == nil
 			if !_match {
 				p.ResetPos(_pos1)
-				goto r2_i0_group_end
-			}
-		}
-		{
-			_tok := p.NextToken()
-			_match := len(_tok.Text) == 5 && (_tok.Text[0] == 'g' || _tok.Text[0] == 'G') && (_tok.Text[1] == 'r' || _tok.Text[1] == 'R') && (_tok.Text[2] == 'o' || _tok.Text[2] == 'O') && (_tok.Text[3] == 'u' || _tok.Text[3] == 'U') && (_tok.Text[4] == 'p' || _tok.Text[4] == 'P')
-			if !_match {
-				p.ResetPos(_pos1)
-				namedExprs = nil
-				goto r2_i0_group_end
-			}
-		}
-		{
-			_tok := p.NextToken()
-			_match := len(_tok.Text) == 2 && (_tok.Text[0] == 'b' || _tok.Text[0] == 'B') && (_tok.Text[1] == 'y' || _tok.Text[1] == 'Y')
-			if !_match {
-				p.ResetPos(_pos1)
-				namedExprs = nil
 				goto r2_i0_group_end
 			}
 		}
@@ -135,7 +99,7 @@ func (p *queryParser) parseQuery() (any, error) {
 			_match := _err == nil
 			if !_match {
 				p.ResetPos(_pos1)
-				namedExprs = nil
+				namedExpr = NamedExpr{}
 				goto r2_i0_group_end
 			}
 		}
@@ -144,36 +108,24 @@ func (p *queryParser) parseQuery() (any, error) {
 			_match := _tok.ID == EOF_TOKEN
 			if !_match {
 				p.ResetPos(_pos1)
-				namedExprs = nil
+				namedExpr = NamedExpr{}
 				grouping = nil
 				goto r2_i0_group_end
 			}
 		}
 		{
-			for _, elem := range grouping {
-				switch expr := elem.Expr.(type) {
-				case *Name:
-					metric, _ := SplitAliasName(expr.Name)
-					if metric != "" {
-						return nil, fmt.Errorf("inline grouping shouldn't contain a metric: %s", metric)
-					}
-				}
-			}
-
-			return &Selector{
-				Exprs:    namedExprs,
-				Grouping: grouping,
-			}, nil
+			applyGrouping(namedExpr.Expr, grouping)
+			return &Selector{Expr: namedExpr}, nil
 		}
 	r2_i0_group_end:
 	}
 
 	{
-		var namedExprs []NamedExpr
+		var namedExpr NamedExpr
 		_pos1 := p.Pos()
 		{
 			var _err error
-			namedExprs, _err = p.namedExprs()
+			namedExpr, _err = p.namedExpr()
 			if _err != nil && _err != errBacktrack {
 				return nil, _err
 			}
@@ -188,11 +140,11 @@ func (p *queryParser) parseQuery() (any, error) {
 			_match := _tok.ID == EOF_TOKEN
 			if !_match {
 				p.ResetPos(_pos1)
-				namedExprs = nil
+				namedExpr = NamedExpr{}
 				goto r3_i0_group_end
 			}
 		}
-		return &Selector{Exprs: namedExprs}, nil
+		return &Selector{Expr: namedExpr}, nil
 	r3_i0_group_end:
 	}
 
@@ -810,6 +762,50 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 	r5_i0_group_end:
 	}
 
+	{
+		_pos1 := p.Pos()
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "="
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r6_i0_group_end
+			}
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "~"
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r6_i0_group_end
+			}
+		}
+		return FilterRegexp, nil
+	r6_i0_group_end:
+	}
+
+	{
+		_pos1 := p.Pos()
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "~"
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r7_i0_group_end
+			}
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "="
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r7_i0_group_end
+			}
+		}
+		return FilterRegexp, nil
+	r7_i0_group_end:
+	}
+
 	var t *Token
 
 	{
@@ -1149,7 +1145,7 @@ func (p *queryParser) namedExpr() (NamedExpr, error) {
 		}
 	}
 	var alias string
-	if name, ok := expr.(*Name); ok {
+	if name, ok := expr.(*MetricExpr); ok {
 		if len(name.Filters) == 0 && strings.HasPrefix(name.Name, "$") {
 			alias = strings.TrimPrefix(name.Name, "$")
 		}
@@ -1292,11 +1288,11 @@ func (p *queryParser) term() (Expr, error) {
 	}
 
 	{
-		var name Name
+		var metricExpr MetricExpr
 		_pos1 := p.Pos()
 		{
 			var _err error
-			name, _err = p.name()
+			metricExpr, _err = p.metricExpr()
 			if _err != nil && _err != errBacktrack {
 				return nil, _err
 			}
@@ -1306,7 +1302,7 @@ func (p *queryParser) term() (Expr, error) {
 				goto r3_i0_group_end
 			}
 		}
-		return &name, nil
+		return &metricExpr, nil
 	r3_i0_group_end:
 	}
 
@@ -1340,7 +1336,47 @@ func (p *queryParser) term() (Expr, error) {
 	return ParenExpr{Expr: expr}, nil
 }
 
-func (p *queryParser) name() (Name, error) {
+func (p *queryParser) metricExpr() (MetricExpr, error) {
+
+	var metricExpr1 MetricExpr
+
+	{
+		var _err error
+		metricExpr1, _err = p.metricExpr1()
+		if _err != nil && _err != errBacktrack {
+			return MetricExpr{}, _err
+		}
+		_match := _err == nil
+		if !_match {
+			return MetricExpr{}, errBacktrack
+		}
+	}
+	{
+	}
+
+	{
+		var inlineGrouping []GroupingElem
+		_pos1 := p.Pos()
+		{
+			var _err error
+			inlineGrouping, _err = p.inlineGrouping()
+			if _err != nil && _err != errBacktrack {
+				return MetricExpr{}, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r1_i0_group_end
+			}
+		}
+		metricExpr1.Grouping = inlineGrouping
+	r1_i0_group_end:
+	}
+
+	return metricExpr1, nil
+}
+
+func (p *queryParser) metricExpr1() (MetricExpr, error) {
 
 	{
 		var filters []Filter
@@ -1368,7 +1404,7 @@ func (p *queryParser) name() (Name, error) {
 			var _err error
 			filters, _err = p.filters()
 			if _err != nil && _err != errBacktrack {
-				return Name{}, _err
+				return MetricExpr{}, _err
 			}
 			_match := _err == nil
 			if !_match {
@@ -1387,7 +1423,7 @@ func (p *queryParser) name() (Name, error) {
 				goto i0_group_end
 			}
 		}
-		return Name{
+		return MetricExpr{
 			Name:    name.Text,
 			Filters: filters,
 		}, nil
@@ -1424,7 +1460,7 @@ func (p *queryParser) name() (Name, error) {
 				goto r1_i0_group_end
 			}
 		}
-		return Name{
+		return MetricExpr{
 			Name: name.Text,
 		}, nil
 	r1_i0_group_end:
@@ -1436,11 +1472,11 @@ func (p *queryParser) name() (Name, error) {
 		_tok := p.NextToken()
 		_match := _tok.ID == IDENT_TOKEN
 		if !_match {
-			return Name{}, errBacktrack
+			return MetricExpr{}, errBacktrack
 		}
 		name = _tok
 	}
-	return Name{
+	return MetricExpr{
 		Name: name.Text,
 	}, nil
 }
@@ -1642,7 +1678,7 @@ func (p *queryParser) alias() (string, error) {
 func (p *queryParser) uniq() (*UniqExpr, error) {
 
 	{
-		var name Name
+		var metricExpr MetricExpr
 		_pos1 := p.Pos()
 		{
 			_tok := p.NextToken()
@@ -1662,7 +1698,7 @@ func (p *queryParser) uniq() (*UniqExpr, error) {
 		}
 		{
 			var _err error
-			name, _err = p.name()
+			metricExpr, _err = p.metricExpr()
 			if _err != nil && _err != errBacktrack {
 				return nil, _err
 			}
@@ -1677,14 +1713,14 @@ func (p *queryParser) uniq() (*UniqExpr, error) {
 			_match := _tok.Text == ")"
 			if !_match {
 				p.ResetPos(_pos1)
-				name = Name{}
+				metricExpr = MetricExpr{}
 				goto i0_group_end
 			}
 		}
 		{
-			alias, attr := SplitAliasName(name.Name)
-			name.Name = alias
-			uq := &UniqExpr{Name: name}
+			alias, attr := SplitAliasName(metricExpr.Name)
+			metricExpr.Name = alias
+			uq := &UniqExpr{Name: metricExpr}
 			if attr != "" {
 				uq.Attrs = []string{attr}
 			}
@@ -1694,7 +1730,7 @@ func (p *queryParser) uniq() (*UniqExpr, error) {
 	}
 
 	var idents []string
-	var name Name
+	var metricExpr MetricExpr
 
 	{
 		_tok := p.NextToken()
@@ -1712,7 +1748,7 @@ func (p *queryParser) uniq() (*UniqExpr, error) {
 	}
 	{
 		var _err error
-		name, _err = p.name()
+		metricExpr, _err = p.metricExpr()
 		if _err != nil && _err != errBacktrack {
 			return nil, _err
 		}
@@ -1747,14 +1783,83 @@ func (p *queryParser) uniq() (*UniqExpr, error) {
 		}
 	}
 	return &UniqExpr{
-		Name:  name,
+		Name:  metricExpr,
 		Attrs: idents,
 	}, nil
 }
 
 func (p *queryParser) funcCall() (*FuncCall, error) {
 
-	var args []Expr
+	{
+		var expr Expr
+		var fn *Token
+		var inlineGrouping []GroupingElem
+		_pos1 := p.Pos()
+		{
+			_tok := p.NextToken()
+			_match := _tok.ID == IDENT_TOKEN
+			if !_match {
+				p.ResetPos(_pos1)
+				goto i0_group_end
+			}
+			fn = _tok
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "("
+			if !_match {
+				p.ResetPos(_pos1)
+				fn = nil
+				goto i0_group_end
+			}
+		}
+		{
+			var _err error
+			expr, _err = p.expr()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				fn = nil
+				goto i0_group_end
+			}
+		}
+		{
+			var _err error
+			inlineGrouping, _err = p.inlineGrouping()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				fn = nil
+				expr = nil
+				goto i0_group_end
+			}
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == ")"
+			if !_match {
+				p.ResetPos(_pos1)
+				fn = nil
+				expr = nil
+				inlineGrouping = nil
+				goto i0_group_end
+			}
+		}
+		return &FuncCall{
+			Func:     fn.Text,
+			Arg:      expr,
+			Grouping: inlineGrouping,
+		}, nil
+	i0_group_end:
+	}
+
+	var expr Expr
 	var fn *Token
 
 	{
@@ -1774,7 +1879,7 @@ func (p *queryParser) funcCall() (*FuncCall, error) {
 	}
 	{
 		var _err error
-		args, _err = p.args()
+		expr, _err = p.expr()
 		if _err != nil && _err != errBacktrack {
 			return nil, _err
 		}
@@ -1792,18 +1897,18 @@ func (p *queryParser) funcCall() (*FuncCall, error) {
 	}
 	return &FuncCall{
 		Func: fn.Text,
-		Args: args,
+		Arg:  expr,
 	}, nil
 }
 
 func (p *queryParser) args() ([]Expr, error) {
 	var args []Expr
 
-	var term Expr
+	var expr Expr
 
 	{
 		var _err error
-		term, _err = p.term()
+		expr, _err = p.expr()
 		if _err != nil && _err != errBacktrack {
 			return nil, _err
 		}
@@ -1813,12 +1918,12 @@ func (p *queryParser) args() ([]Expr, error) {
 		}
 	}
 	{
-		args = append(args, term)
+		args = append(args, expr)
 		p.cut()
 	}
 
 	{
-		var term Expr
+		var expr Expr
 		var _matchCount int
 		for {
 			_pos1 := p.Pos()
@@ -1832,7 +1937,7 @@ func (p *queryParser) args() ([]Expr, error) {
 			}
 			{
 				var _err error
-				term, _err = p.term()
+				expr, _err = p.expr()
 				if _err != nil && _err != errBacktrack {
 					return nil, _err
 				}
@@ -1844,7 +1949,7 @@ func (p *queryParser) args() ([]Expr, error) {
 			}
 			_matchCount = _matchCount + 1
 			{
-				args = append(args, term)
+				args = append(args, expr)
 				p.cut()
 			}
 			continue
@@ -1862,10 +1967,81 @@ func (p *queryParser) args() ([]Expr, error) {
 
 //------------------------------------------------------------------------------
 
-func (p *queryParser) grouping() ([]NamedExpr, error) {
-	var grouping []NamedExpr
+func (p *queryParser) grouping() ([]GroupingElem, error) {
 
-	var groupingElem NamedExpr
+	var grouping1 []GroupingElem
+
+	{
+		_tok := p.NextToken()
+		_match := len(_tok.Text) == 5 && (_tok.Text[0] == 'g' || _tok.Text[0] == 'G') && (_tok.Text[1] == 'r' || _tok.Text[1] == 'R') && (_tok.Text[2] == 'o' || _tok.Text[2] == 'O') && (_tok.Text[3] == 'u' || _tok.Text[3] == 'U') && (_tok.Text[4] == 'p' || _tok.Text[4] == 'P')
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	{
+		_tok := p.NextToken()
+		_match := len(_tok.Text) == 2 && (_tok.Text[0] == 'b' || _tok.Text[0] == 'B') && (_tok.Text[1] == 'y' || _tok.Text[1] == 'Y')
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	{
+		var _err error
+		grouping1, _err = p.grouping1()
+		if _err != nil && _err != errBacktrack {
+			return nil, _err
+		}
+		_match := _err == nil
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	return grouping1, nil
+}
+
+func (p *queryParser) inlineGrouping() ([]GroupingElem, error) {
+
+	var grouping1 []GroupingElem
+
+	{
+		_tok := p.NextToken()
+		_match := len(_tok.Text) == 2 && (_tok.Text[0] == 'b' || _tok.Text[0] == 'B') && (_tok.Text[1] == 'y' || _tok.Text[1] == 'Y')
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	{
+		_tok := p.NextToken()
+		_match := _tok.Text == "("
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	{
+		var _err error
+		grouping1, _err = p.grouping1()
+		if _err != nil && _err != errBacktrack {
+			return nil, _err
+		}
+		_match := _err == nil
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	{
+		_tok := p.NextToken()
+		_match := _tok.Text == ")"
+		if !_match {
+			return nil, errBacktrack
+		}
+	}
+	return grouping1, nil
+}
+
+func (p *queryParser) grouping1() ([]GroupingElem, error) {
+	var grouping []GroupingElem
+
+	var groupingElem GroupingElem
 
 	{
 		var _err error
@@ -1884,7 +2060,7 @@ func (p *queryParser) grouping() ([]NamedExpr, error) {
 	}
 
 	{
-		var groupingElem NamedExpr
+		var groupingElem GroupingElem
 		var _matchCount int
 		for {
 			_pos1 := p.Pos()
@@ -1926,17 +2102,17 @@ func (p *queryParser) grouping() ([]NamedExpr, error) {
 	return grouping, nil
 }
 
-func (p *queryParser) groupingElem() (NamedExpr, error) {
+func (p *queryParser) groupingElem() (GroupingElem, error) {
 
 	{
 		var alias string
-		var groupingExpr Expr
+		var groupingExpr GroupingElem
 		_pos1 := p.Pos()
 		{
 			var _err error
 			groupingExpr, _err = p.groupingExpr()
 			if _err != nil && _err != errBacktrack {
-				return NamedExpr{}, _err
+				return GroupingElem{}, _err
 			}
 			_match := _err == nil
 			if !_match {
@@ -1948,42 +2124,40 @@ func (p *queryParser) groupingElem() (NamedExpr, error) {
 			var _err error
 			alias, _err = p.alias()
 			if _err != nil && _err != errBacktrack {
-				return NamedExpr{}, _err
+				return GroupingElem{}, _err
 			}
 			_match := _err == nil
 			if !_match {
 				p.ResetPos(_pos1)
-				groupingExpr = nil
+				groupingExpr = GroupingElem{}
 				goto i0_group_end
 			}
 		}
-		return NamedExpr{
-			Expr:  groupingExpr,
-			Alias: alias,
-		}, nil
+		{
+			groupingExpr.Alias = alias
+			return groupingExpr, nil
+		}
 	i0_group_end:
 	}
 
-	var groupingExpr Expr
+	var groupingExpr GroupingElem
 
 	{
 		var _err error
 		groupingExpr, _err = p.groupingExpr()
 		if _err != nil && _err != errBacktrack {
-			return NamedExpr{}, _err
+			return GroupingElem{}, _err
 		}
 		_match := _err == nil
 		if !_match {
-			return NamedExpr{}, errBacktrack
+			return GroupingElem{}, errBacktrack
 		}
 	}
-	return NamedExpr{
-		Expr:  groupingExpr,
-		Alias: unsafeconv.String(groupingExpr.AppendString(nil)),
-	}, nil
+	groupingExpr.Alias = groupingExpr.String()
+	return groupingExpr, nil
 }
 
-func (p *queryParser) groupingExpr() (Expr, error) {
+func (p *queryParser) groupingExpr() (GroupingElem, error) {
 
 	{
 		var arg *Token
@@ -2028,13 +2202,9 @@ func (p *queryParser) groupingExpr() (Expr, error) {
 			}
 		}
 		{
-			fn, ok := groupingFuncs[funcName.Text]
-			if !ok {
-				return nil, fmt.Errorf("unknown grouping func: %q", funcName.Text)
-			}
-			return &SimpleFuncCall{
-				Func: fn,
-				Arg:  arg.Text,
+			return GroupingElem{
+				Func: funcName.Text,
+				Name: arg.Text,
 			}, nil
 		}
 	i0_group_end:
@@ -2046,11 +2216,11 @@ func (p *queryParser) groupingExpr() (Expr, error) {
 		_tok := p.NextToken()
 		_match := _tok.ID == IDENT_TOKEN
 		if !_match {
-			return nil, errBacktrack
+			return GroupingElem{}, errBacktrack
 		}
 		name = _tok
 	}
-	return &Name{Name: name.Text}, nil
+	return GroupingElem{Name: name.Text}, nil
 }
 
 func (p *queryParser) idents() ([]string, error) {

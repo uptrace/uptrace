@@ -2,7 +2,7 @@
   <GaugeCard
     :loading="gaugeQuery.loading"
     :grid-item="gridItem"
-    :columns="gaugeQuery.columns"
+    :columns="gaugeQuery.styledColumns"
     :values="gaugeQuery.values"
     :column-map="gridItem.params.columnMap"
     show-edit
@@ -16,6 +16,7 @@ import { defineComponent, computed, watch, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
+import { joinQuery, injectQueryStore } from '@/use/uql'
 import { useGaugeQuery } from '@/metrics/use-gauges'
 
 // Components
@@ -40,6 +41,7 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
+    const { where } = injectQueryStore()
     const gaugeQuery = useGaugeQuery(
       () => {
         if (!props.gridItem.params.metrics.length) {
@@ -50,7 +52,7 @@ export default defineComponent({
           ...props.dateRange.axiosParams(),
           metric: props.gridItem.params.metrics.map((m) => m.name),
           alias: props.gridItem.params.metrics.map((m) => m.alias),
-          query: props.gridItem.params.query,
+          query: joinQuery([props.gridItem.params.query, where.value]),
         }
       },
       computed(() => props.gridItem.params.columnMap),

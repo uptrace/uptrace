@@ -141,7 +141,7 @@
         <v-row v-for="ts in styledTimeseries" :key="ts.id">
           <v-col>
             <SinglePanel :title="ts.name" expanded>
-              <TimeseriesStyleCard
+              <TimeseriesStyleForm
                 :chart-kind="gridItem.params.chartKind"
                 :timeseries-style="getTimeseriesStyle(ts)"
               />
@@ -170,13 +170,15 @@ import UnitPicker from '@/components/UnitPicker.vue'
 import LegendaryChart from '@/metrics/LegendaryChart.vue'
 import MetricsPicker from '@/metrics/MetricsPicker.vue'
 import MetricsQueryBuilder from '@/metrics/query/MetricsQueryBuilder.vue'
-import TimeseriesStyleCard from '@/metrics/TimeseriesStyleCard.vue'
+import TimeseriesStyleForm from '@/metrics/TimeseriesStyleForm.vue'
 
 // Misc
 import { requiredRule } from '@/util/validation'
 import {
   defaultTimeseriesStyle,
   updateColumnMap,
+  assignColors,
+  emptyMetricColumn,
   ChartGridItem,
   ChartKind,
   StyledTimeseries,
@@ -196,7 +198,7 @@ export default defineComponent({
     UnitPicker,
     MetricsPicker,
     MetricsQueryBuilder,
-    TimeseriesStyleCard,
+    TimeseriesStyleForm,
   },
 
   props: {
@@ -292,7 +294,8 @@ export default defineComponent({
     watch(
       () => timeseries.columns,
       (columns) => {
-        updateColumnMap(props.gridItem.params.columnMap, columns)
+        updateColumnMap(props.gridItem.params.columnMap, columns, emptyMetricColumn)
+        assignColors(props.gridItem.params.columnMap, columns)
       },
     )
 

@@ -126,7 +126,7 @@ import ChartLegendTable from '@/metrics/ChartLegendTable.vue'
 
 // Misc
 import { EventBus } from '@/models/eventbus'
-import { updateColumnMap, Metric, MetricColumn } from '@/metrics/types'
+import { updateColumnMap, emptyMetricColumn, Metric, MetricColumn } from '@/metrics/types'
 import { MetricMonitor } from '@/alerting/types'
 
 export default defineComponent({
@@ -235,7 +235,7 @@ export default defineComponent({
     watch(
       () => timeseries.columns,
       (columns) => {
-        updateColumnMap(internalColumnMap.value, columns)
+        updateColumnMap(internalColumnMap.value, columns, emptyMetricColumn)
 
         const params = props.monitor.params
         if (params.column in internalColumnMap.value) {

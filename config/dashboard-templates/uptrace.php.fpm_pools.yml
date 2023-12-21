@@ -9,7 +9,7 @@ table:
     - phpfpm_max_children_reached as $max_children_reached
     - phpfpm_total_processes as $processes
   query:
-    - group by host.name
+    - group by host_name
     - group by pool
     - per_min($connections) as requests
     - $listen_queue

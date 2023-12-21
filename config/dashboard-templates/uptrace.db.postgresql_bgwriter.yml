@@ -3,12 +3,12 @@ name: 'DB: PostgreSQL bgwriter'
 
 table:
   metrics:
-    - postgresql.bgwriter.buffers.allocated as $buf_allocated
-    - postgresql.bgwriter.buffers.writes as $buf_writes
-    - postgresql.bgwriter.checkpoint.count as $checkpoint_count
-    - postgresql.bgwriter.duration as $bgwriter_dur
+    - postgresql_bgwriter_buffers_allocated as $buf_allocated
+    - postgresql_bgwriter_buffers_writes as $buf_writes
+    - postgresql_bgwriter_checkpoint_count as $checkpoint_count
+    - postgresql_bgwriter_duration as $bgwriter_dur
   query:
-    - group by host.name
+    - group by host_name
     - per_min($buf_allocated)
     - per_min($buf_writes)
     - per_min($checkpoint_count)
@@ -19,27 +19,27 @@ grid_rows:
     items:
       - title: Number of buffers allocated
         metrics:
-          - postgresql.bgwriter.buffers.allocated as $buf_allocated
+          - postgresql_bgwriter_buffers_allocated as $buf_allocated
         query:
           - per_min($buf_allocated)
 
       - title: Number of buffers written
         metrics:
-          - postgresql.bgwriter.buffers.writes as $buf_writes
+          - postgresql_bgwriter_buffers_writes as $buf_writes
         query:
           - per_min($buf_writes) group by source
         chart: stacked-bar
 
       - title: Number of checkpoints performed
         metrics:
-          - postgresql.bgwriter.checkpoint.count as $checkpoint_count
+          - postgresql_bgwriter_checkpoint_count as $checkpoint_count
         query:
           - per_min($checkpoint_count) group by type
         chart: stacked-bar
 
       - title: Total time spent writing and syncing files to disk by checkpoints
         metrics:
-          - postgresql.bgwriter.duration as $bgwriter_dur
+          - postgresql_bgwriter_duration as $bgwriter_dur
         query:
           - per_min($bgwriter_dur) group by type
         chart: stacked-bar
@@ -48,6 +48,6 @@ grid_rows:
           Number of times the background writer stopped a cleaning scan because it had written too
           many buffers
         metrics:
-          - postgresql.bgwriter.maxwritten as $bgwriter_maxwritten
+          - postgresql_bgwriter_maxwritten as $bgwriter_maxwritten
         query:
           - per_min($bgwriter_maxwritten)

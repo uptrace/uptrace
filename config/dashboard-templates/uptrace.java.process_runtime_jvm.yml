@@ -3,17 +3,17 @@ name: 'Java: JVM runtime'
 
 table:
   metrics:
-    - process.runtime.jvm.memory.usage as $mem_usage
-    - process.runtime.jvm.memory.usage_after_last_gc as $usage_after_last_gc
-    - process.runtime.jvm.gc.duration as $gc_dur
-    - process.runtime.jvm.system.cpu.utilization as $cpu_util
+    - process_runtime_jvm_memory_usage as $mem_usage
+    - process_runtime_jvm_memory_usage_after_last_gc as $usage_after_last_gc
+    - process_runtime_jvm_gc_duration as $gc_dur
+    - process_runtime_jvm_system_cpu_utilization as $cpu_util
   query:
     - $mem_usage
     - $usage_after_last_gc
     - avg($gc_dur)
     - per_min(count($gc_dur)) as num_gc
     - $cpu_util
-    - group by host.name
+    - group by host_name
   columns:
     cpu_util: { unit: utilization }
 
@@ -22,34 +22,34 @@ grid_rows:
     items:
       - title: Number of executing threads
         metrics:
-          - process.runtime.jvm.threads.count as $threads_count
+          - process_runtime_jvm_threads_count as $threads_count
         query:
           - $threads_count
 
       - title: Memory used by pool
         metrics:
-          - process.runtime.jvm.memory.usage as $mem_usage
+          - process_runtime_jvm_memory_usage as $mem_usage
         query:
           - $mem_usage group by pool
         chart: stacked-bar
 
       - title: Memory used by type
         metrics:
-          - process.runtime.jvm.memory.usage as $mem_usage
+          - process_runtime_jvm_memory_usage as $mem_usage
         query:
           - $mem_usage group by type
         chart: stacked-bar
 
       - title: Memory used after the last garbage collection
         metrics:
-          - process.runtime.jvm.memory.usage_after_last_gc as $usage_after_last_gc
+          - process_runtime_jvm_memory_usage_after_last_gc as $usage_after_last_gc
         query:
           - $usage_after_last_gc group by pool, type
         chart: stacked-bar
 
       - title: Recent cpu utilization for the process
         metrics:
-          - process.runtime.jvm.cpu.utilization as $cpu_util
+          - process_runtime_jvm_cpu_utilization as $cpu_util
         query:
           - $cpu_util
         columns:
@@ -57,7 +57,7 @@ grid_rows:
 
       - title: Recent CPU utilization for the whole system
         metrics:
-          - process.runtime.jvm.system.cpu.utilization as $cpu_util
+          - process_runtime_jvm_system_cpu_utilization as $cpu_util
         query:
           - $cpu_util
         columns:
@@ -65,74 +65,74 @@ grid_rows:
 
       - title: Average CPU load of the whole system for the last minute
         metrics:
-          - process.runtime.jvm.system.cpu.load_1m as $cpu_load_1m
+          - process_runtime_jvm_system_cpu_load_1m as $cpu_load_1m
         query:
           - $cpu_load_1m
 
       - title: Memory commited
         metrics:
-          - process.runtime.jvm.memory.committed as $mem_committed
+          - process_runtime_jvm_memory_committed as $mem_committed
         query:
           - $mem_committed group by pool, type
         chart: stacked-bar
 
       - title: Initial memory requested
         metrics:
-          - process.runtime.jvm.memory.init as $mem_init
+          - process_runtime_jvm_memory_init as $mem_init
         query:
           - $mem_init group by pool, type
         chart: stacked-bar
 
       - title: Max obtainable memory
         metrics:
-          - process.runtime.jvm.memory.limit as $mem_limit
+          - process_runtime_jvm_memory_limit as $mem_limit
         query:
           - $mem_limit group by pool, type
         chart: stacked-bar
 
       - title: Number of buffers
         metrics:
-          - process.runtime.jvm.buffer.count as $buf_count
+          - process_runtime_jvm_buffer_count as $buf_count
         query:
           - $buf_count group by pool
         chart: stacked-bar
 
       - title: Capacity of the buffers
         metrics:
-          - process.runtime.jvm.buffer.limit as $buf_limit
+          - process_runtime_jvm_buffer_limit as $buf_limit
         query:
           - $buf_limit group by pool
         chart: stacked-bar
 
       - title: Memory that the JVM is using
         metrics:
-          - process.runtime.jvm.buffer.usage as $buf_usage
+          - process_runtime_jvm_buffer_usage as $buf_usage
         query:
           - $buf_usage group by pool
         chart: stacked-bar
 
       - title: Total number of classes currently loaded
         metrics:
-          - process.runtime.jvm.classes.current_loaded as $classes_loaded
+          - process_runtime_jvm_classes_current_loaded as $classes_loaded
         query:
           - $classes_loaded
 
       - title: Number of classes loaded
         metrics:
-          - process.runtime.jvm.classes.loaded as $loaded
+          - process_runtime_jvm_classes_loaded as $loaded
         query:
           - per_min($loaded)
 
       - title: Number of classes unloaded
         metrics:
-          - process.runtime.jvm.classes.unloaded as $unloaded
+          - process_runtime_jvm_classes_unloaded as $unloaded
         query:
           - per_min($unloaded)
 
       - title: Number of open/max files
         metrics:
-          - process.files.max as $max
-          - process.files.open as $open
+          - process_files_max as $max
+          - process_files_open as $open
         query:
           - $max
           - $open

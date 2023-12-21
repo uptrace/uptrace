@@ -7,9 +7,9 @@ table:
       description: Number of filesystems
       type: gauge
       metrics:
-        - system.filesystem.usage as $fs_usage
+        - system_filesystem_usage as $fs_usage
       query:
-        - uniq($fs_usage, host.name, device, mountpoint) as num_fs
+        - uniq($fs_usage, host_name, device, mountpoint) as num_fs
         - where device !~ "loop"
       template: ${num_fs} mounts
 
@@ -17,7 +17,7 @@ table:
       description: Used space out of all available space
       type: gauge
       metrics:
-        - system.filesystem.usage as $fs_usage
+        - system_filesystem_usage as $fs_usage
       query:
         - $fs_usage{state="used"} / $fs_usage as fs_util
         - where device !~ "loop"
@@ -28,7 +28,7 @@ table:
       description: Used space out of all available space
       type: gauge
       metrics:
-        - system.filesystem.inodes.usage as $inodes
+        - system_filesystem_inodes_usage as $inodes
       query:
         - $inodes{state="used"} / $inodes as inodes_util
         - where device !~ "loop"
@@ -39,7 +39,7 @@ table:
       description: Total available filesystem space across all mounts
       type: gauge
       metrics:
-        - system.filesystem.usage as $fs_usage
+        - system_filesystem_usage as $fs_usage
       query:
         - $fs_usage
         - where device !~ "loop"
@@ -48,16 +48,16 @@ table:
       description: Total free filesystem space across all mounts
       type: gauge
       metrics:
-        - system.filesystem.usage as $fs_usage
+        - system_filesystem_usage as $fs_usage
       query:
         - $fs_usage{state="free"}
         - where device !~ "loop"
 
   metrics:
-    - system.filesystem.usage as $fs_usage
-    - system.filesystem.inodes.usage as $inodes
+    - system_filesystem_usage as $fs_usage
+    - system_filesystem_inodes_usage as $inodes
   query:
-    - group by host.name
+    - group by host_name
     - group by device
     - group by mountpoint
     - where device !~ "loop"
@@ -74,7 +74,7 @@ grid_rows:
     items:
       - title: Filesystem utilization
         metrics:
-          - system.filesystem.usage as $fs_usage
+          - system_filesystem_usage as $fs_usage
         query:
           - $fs_usage{state="used"} / $fs_usage as fs_util
         columns:
@@ -82,7 +82,7 @@ grid_rows:
 
       - title: Filesystem usage
         metrics:
-          - system.filesystem.usage as $fs_usage
+          - system_filesystem_usage as $fs_usage
         query:
           - $fs_usage group by state
         columns:
@@ -91,7 +91,7 @@ grid_rows:
 
       - title: Inodes utilization
         metrics:
-          - system.filesystem.inodes.usage as $inodes
+          - system_filesystem_inodes_usage as $inodes
         query:
           - $inodes{state="used"} / $inodes as inode_util
         columns:
@@ -99,7 +99,7 @@ grid_rows:
 
       - title: Inodes usage
         metrics:
-          - system.filesystem.inodes.usage as $inodes
+          - system_filesystem_inodes_usage as $inodes
         query:
           - $inodes group by state
         chart: stacked-bar
@@ -107,10 +107,10 @@ grid_rows:
 monitors:
   - name: Filesystem usage
     metrics:
-      - system.filesystem.usage as $fs_usage
+      - system_filesystem_usage as $fs_usage
     query:
       - $fs_usage{state='used'} / $fs_usage as fs_util
-      - group by host.name, device, mountpoint
+      - group by host_name, device, mountpoint
       - where device !~ "loop"
     column: fs_util
     column_unit: utilization

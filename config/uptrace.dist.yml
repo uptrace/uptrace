@@ -53,13 +53,15 @@ projects:
     # Token grants write access to the project. Keep a secret.
     token: project1_secret_token
     pinned_attrs:
-      - service.name
-      - host.name
-      - deployment.environment
+      - service_name
+      - host_name
+      - deployment_environment
     # Group spans by deployment.environment attribute.
     group_by_env: false
     # Group funcs spans by service.name attribute.
     group_funcs_by_service: false
+    # Enable prom_compat if you want to use the project as a Prometheus datasource in Grafana.
+    prom_compat: true
 
   # Other projects can be used to monitor your applications.
   # To monitor micro-services or multiple related services, use a single project.
@@ -67,46 +69,43 @@ projects:
     name: My project
     token: project2_secret_token
     pinned_attrs:
-      - service.name
-      - host.name
-      - deployment.environment
-    # Group spans by deployment.environment attribute.
-    group_by_env: false
-    # Group funcs spans by service.name attribute.
-    group_funcs_by_service: false
+      - service_name
+      - host_name
+      - deployment_environment
+    prom_compat: true
 
 ##
 ## Create metrics from spans and events.
 ##
 metrics_from_spans:
-  - name: uptrace.tracing.spans
+  - name: uptrace_tracing_spans
     description: Spans duration (excluding events)
     instrument: histogram
     unit: microseconds
-    value: .duration / 1000
+    value: _duration / 1000
     attrs:
-      - .system
-      - .group_id
-      - service.name
-      - host.name
-      - .status_code
+      - _system
+      - _group_id
+      - service_name
+      - host_name
+      - _status_code
     annotations:
-      - display.name
-    where: .event_name = ''
+      - display_name
+    where: _event_name = ''
 
-  - name: uptrace.tracing.events
+  - name: uptrace_tracing_events
     description: Events count (excluding spans)
     instrument: counter
     unit: 1
-    value: .count
+    value: _count
     attrs:
-      - .system
-      - .group_id
-      - .name
-      - host.name
+      - _system
+      - _group_id
+      - _name
+      - host_name
     annotations:
-      - display.name
-    where: .is_event = 1
+      - display_name
+    where: _is_event = 1
 
 auth:
   users:

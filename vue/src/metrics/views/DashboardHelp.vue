@@ -13,7 +13,7 @@
           A <strong>table</strong>-based dashboard is a table where each row leads to the same grid
           dashboard filtered by <code>group by</code> attributes from the table row, for example, a
           table of host names with rows leading to the grid dashboard filtered by
-          <code>host.name = ${host_value}</code>.
+          <code>host_name = ${host_value}</code>.
         </li>
       </ul>
 
@@ -53,7 +53,7 @@
 
       <p>
         When viewing the table dashboard, you can click on a row to view the grid dashboard filtered
-        by the <code>host.name</code> attribute:
+        by the <code>host_name</code> attribute:
       </p>
 
       <v-img src="/metrics/dash-table-row.png" class="framed" />

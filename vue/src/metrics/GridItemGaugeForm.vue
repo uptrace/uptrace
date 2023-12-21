@@ -41,7 +41,7 @@
               <GaugeCard
                 :loading="gaugeQuery.loading"
                 :grid-item="gridItem"
-                :columns="gaugeQuery.columns"
+                :columns="gaugeQuery.styledColumns"
                 :values="gaugeQuery.values"
                 preview
               />
@@ -92,11 +92,18 @@
               <GaugeValuesTable
                 v-if="activeMetrics.length"
                 :loading="gaugeQuery.loading"
-                :grid-item="gridItem"
-                :columns="gaugeQuery.columns"
+                :columns="gaugeQuery.styledColumns"
                 :values="gaugeQuery.values"
-                :column-map="gridItem.params.columnMap"
+                class="mb-4"
               ></GaugeValuesTable>
+            </SinglePanel>
+          </v-col>
+        </v-row>
+
+        <v-row v-for="col in gaugeQuery.columns" :key="col.name">
+          <v-col>
+            <SinglePanel :title="col.name" expanded>
+              <GaugeColumnOptionsForm :column="gridItem.params.columnMap[col.name]" />
             </SinglePanel>
           </v-col>
         </v-row>
@@ -154,11 +161,12 @@ import MetricsPicker from '@/metrics/MetricsPicker.vue'
 import MetricsQueryBuilder from '@/metrics/query/MetricsQueryBuilder.vue'
 import GaugeCard from '@/metrics/GaugeCard.vue'
 import GaugeValuesTable from '@/metrics/GaugeValuesTable.vue'
+import GaugeColumnOptionsForm from '@/metrics/GaugeColumnOptionsForm.vue'
 import ValueMappingsForm from '@/metrics/ValueMappingsForm.vue'
 
 // Misc
 import { requiredRule, minMaxStringLengthRule } from '@/util/validation'
-import { updateColumnMap, GaugeGridItem } from '@/metrics/types'
+import { updateColumnMap, emptyGaugeColumn, GaugeGridItem } from '@/metrics/types'
 
 export default defineComponent({
   name: 'GridItemGaugeForm',
@@ -170,6 +178,7 @@ export default defineComponent({
     MetricsQueryBuilder,
     GaugeCard,
     GaugeValuesTable,
+    GaugeColumnOptionsForm,
     ValueMappingsForm,
   },
 
@@ -193,7 +202,6 @@ export default defineComponent({
     const rules = { title: [requiredRule, minMaxStringLengthRule(0, 40)] }
 
     const uql = useUql()
-
     const activeMetrics = useActiveMetrics(computed(() => props.gridItem.params.metrics))
 
     const gaugeQuery = useGaugeQuery(
@@ -203,7 +211,7 @@ export default defineComponent({
           !props.gridItem.params.metrics.length ||
           !props.gridItem.params.query
         ) {
-          return undefined
+          return { _: undefined }
         }
 
         return {
@@ -219,7 +227,7 @@ export default defineComponent({
     const gaugeText = computed(() => {
       return formatGauge(
         gaugeQuery.values,
-        gaugeQuery.columns,
+        gaugeQuery.styledColumns,
         props.gridItem.params.template,
         'Add a metric first...',
       )
@@ -250,7 +258,7 @@ export default defineComponent({
     watch(
       () => gaugeQuery.columns,
       (columns) => {
-        updateColumnMap(props.gridItem.params.columnMap, columns)
+        updateColumnMap(props.gridItem.params.columnMap, columns, emptyGaugeColumn)
       },
     )
 

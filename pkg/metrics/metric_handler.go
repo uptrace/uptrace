@@ -125,7 +125,7 @@ func selectMetricsFromCH(
 ) ([]*Metric, bool, error) {
 	const limit = 1000
 
-	tableName := datapointTableForWhere(&f.TimeFilter)
+	tableName := DatapointTableForWhere(&f.TimeFilter)
 	q := app.CH.NewSelect().
 		ColumnExpr("m.metric AS name").
 		ColumnExpr("anyLast(m.instrument) AS instrument").

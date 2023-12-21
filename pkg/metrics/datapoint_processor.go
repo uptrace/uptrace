@@ -13,6 +13,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
+	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/zyedidia/generic/cache"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -171,10 +172,33 @@ func (p *DatapointProcessor) processDatapoints(ctx context.Context, src []*Datap
 
 func (p *DatapointProcessor) _processDatapoints(ctx *datapointContext, datapoints []*Datapoint) {
 	for i := len(datapoints) - 1; i >= 0; i-- {
-		datapoint := datapoints[i]
+		dp := datapoints[i]
+		p.initDatapoint(ctx, dp)
 
-		if !p.processDatapoint(ctx, datapoint) {
+		if !p.cumToDelta(ctx, dp) {
 			datapoints = append(datapoints[:i], datapoints[i+1:]...)
+			datapointCounter.Add(
+				ctx,
+				1,
+				metric.WithAttributes(
+					bunotel.ProjectIDAttr(dp.ProjectID),
+					attribute.String("type", "dropped"),
+				),
+			)
+			continue
+		}
+
+		project := ctx.Project(p.App, dp.ProjectID)
+		if project == nil {
+			datapoints = append(datapoints[:i], datapoints[i+1:]...)
+			datapointCounter.Add(
+				ctx,
+				1,
+				metric.WithAttributes(
+					bunotel.ProjectIDAttr(dp.ProjectID),
+					attribute.String("type", "dropped"),
+				),
+			)
 			continue
 		}
 
@@ -182,13 +206,18 @@ func (p *DatapointProcessor) _processDatapoints(ctx *datapointContext, datapoint
 			ctx,
 			1,
 			metric.WithAttributes(
-				bunotel.ProjectIDAttr(datapoint.ProjectID),
+				bunotel.ProjectIDAttr(dp.ProjectID),
 				attribute.String("type", "inserted"),
 			),
 		)
 
-		p.upsertMetric(ctx, datapoint)
-		datapoint.Time = datapoint.Time.Truncate(time.Minute)
+		p.upsertMetric(ctx, dp)
+
+		if project.PromCompat {
+			dp.Time = dp.Time.Truncate(15 * time.Second)
+		} else {
+			dp.Time = dp.Time.Truncate(time.Minute)
+		}
 	}
 
 	if len(datapoints) > 0 {
@@ -204,9 +233,7 @@ func (p *DatapointProcessor) _processDatapoints(ctx *datapointContext, datapoint
 	}
 }
 
-func (p *DatapointProcessor) processDatapoint(ctx *datapointContext, datapoint *Datapoint) bool {
-	p.initDatapoint(ctx, datapoint)
-
+func (p *DatapointProcessor) cumToDelta(ctx *datapointContext, datapoint *Datapoint) bool {
 	switch point := datapoint.CumPoint.(type) {
 	case nil:
 		return true
@@ -414,15 +441,32 @@ func (p *DatapointProcessor) upsertMetric(ctx *datapointContext, datapoint *Data
 type datapointContext struct {
 	context.Context
 
-	digest  *xxhash.Digest
-	metrics []Metric
+	projects map[uint32]*org.Project
+	digest   *xxhash.Digest
+	metrics  []Metric
 }
 
 func newDatapointContext(ctx context.Context) *datapointContext {
 	return &datapointContext{
-		Context: ctx,
-		digest:  xxhash.New(),
+		Context:  ctx,
+		projects: make(map[uint32]*org.Project),
+		digest:   xxhash.New(),
 	}
+}
+
+func (c *datapointContext) Project(app *bunapp.App, projectID uint32) *org.Project {
+	if p, ok := c.projects[projectID]; ok {
+		return p
+	}
+
+	project, err := org.SelectProject(c.Context, app, projectID)
+	if err != nil {
+		app.Zap(c.Context).Error("SelectProject failed", zap.Error(err))
+		return nil
+	}
+
+	c.projects[projectID] = project
+	return project
 }
 
 func (c *datapointContext) ResettedDigest() *xxhash.Digest {

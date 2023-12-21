@@ -3,13 +3,13 @@ name: 'DB: PostgreSQL indexes'
 
 table:
   metrics:
-    - postgresql.index.scans as $index_scans
-    - postgresql.index.size as $index_size
+    - postgresql_index_scans as $index_scans
+    - postgresql_index_size as $index_size
   query:
-    - group by host.name
-    - group by postgresql.database.name
-    - group by postgresql.table.name
-    - group by postgresql.index.name
+    - group by host_name
+    - group by postgresql_database_name
+    - group by postgresql_table_name
+    - group by postgresql_index_name
     - $index_size
     - per_min($index_scans)
 
@@ -18,12 +18,12 @@ grid_rows:
     items:
       - title: Number of index scans
         metrics:
-          - postgresql.index.scans as $index_scans
+          - postgresql_index_scans as $index_scans
         query:
           - per_min($index_scans)
 
       - title: Index size
         metrics:
-          - postgresql.index.size as $index_size
+          - postgresql_index_size as $index_size
         query:
           - $index_size

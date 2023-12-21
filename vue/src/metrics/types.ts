@@ -15,7 +15,7 @@ export interface Dashboard {
   tableMetrics: MetricAlias[]
   tableQuery: string
   tableGrouping: string[]
-  tableColumnMap: Record<string, MetricColumn>
+  tableColumnMap: Record<string, TableColumn>
 
   gridQuery: string
   gridMaxWidth: number
@@ -165,7 +165,7 @@ export interface TableGridItem extends BaseGridItem {
 export interface TableGridItemParams {
   metrics: MetricAlias[]
   query: string
-  columnMap: Record<string, MetricColumn>
+  columnMap: Record<string, TableColumn>
   itemsPerPage: number
   denseTable: boolean
 }
@@ -198,7 +198,7 @@ export interface GaugeGridItem extends BaseGridItem {
 export interface GaugeGridItemParams {
   metrics: MetricAlias[]
   query: string
-  columnMap: Record<string, MetricColumn>
+  columnMap: Record<string, GaugeColumn>
 
   template: string
   valueMappings: ValueMapping[]
@@ -284,6 +284,57 @@ export interface MetricColumn {
   color: string
 }
 
+export function emptyMetricColumn(): MetricColumn {
+  return {
+    unit: '',
+    color: '',
+  }
+}
+
+export interface GaugeColumn {
+  unit: string
+  aggFunc: TableAggFunc
+}
+
+export interface StyledGaugeColumn extends ColumnInfo, GaugeColumn {}
+
+export function emptyGaugeColumn(): GaugeColumn {
+  return {
+    unit: '',
+    aggFunc: TableAggFunc.Last,
+  }
+}
+
+export interface TableColumn extends MetricColumn {
+  aggFunc: TableAggFunc
+  sparklineDisabled: boolean
+}
+
+export enum TableAggFunc {
+  Last = 'last',
+  Avg = 'avg',
+  Min = 'min',
+  Max = 'max',
+  Sum = 'sum',
+}
+
+export const aggFuncItems = [
+  { text: 'Last value', value: TableAggFunc.Last },
+  { text: 'Avg value', value: TableAggFunc.Avg },
+  { text: 'Min value', value: TableAggFunc.Min },
+  { text: 'Max value', value: TableAggFunc.Max },
+  { text: 'Sum of values', value: TableAggFunc.Sum },
+]
+
+export function emptyTableColumn(): TableColumn {
+  return {
+    unit: '',
+    color: '',
+    aggFunc: TableAggFunc.Last,
+    sparklineDisabled: false,
+  }
+}
+
 export interface Timeseries {
   id: string
   metric: string
@@ -303,8 +354,9 @@ export interface StyledTimeseries extends Timeseries, TimeseriesStyle {}
 
 export interface ColumnInfo {
   name: string
-  isGroup?: boolean
   unit: string
+  isGroup?: boolean
+  tableFunc?: string
 }
 
 export interface StyledColumnInfo extends ColumnInfo {
@@ -330,27 +382,48 @@ export function defaultChartLegend(): ChartLegend {
   }
 }
 
-export function updateColumnMap(colMap: Record<string, MetricColumn>, columns: ColumnInfo[]) {
+interface BasicColumn {
+  unit: string
+}
+
+export function updateColumnMap<T extends BasicColumn>(
+  colMap: Record<string, T>,
+  columns: ColumnInfo[],
+  empty: () => T,
+) {
   const unused = new Set(Object.keys(colMap))
 
   for (let col of columns) {
     if (col.isGroup) {
       continue
     }
+
     unused.delete(col.name)
     if (col.name in colMap) {
       continue
     }
-    set(colMap, col.name, {
+
+    const data: Record<string, any> = {
+      ...empty(),
       unit: col.unit,
-      color: '',
-    })
+    }
+    if (col.tableFunc) {
+      data.aggFunc = col.tableFunc
+    }
+
+    set(colMap, col.name, data)
   }
 
   for (let colName of unused.values()) {
     del(colMap, colName)
   }
+}
 
+interface ColoredColumn extends BasicColumn {
+  color: string
+}
+
+export function assignColors(colMap: Record<string, ColoredColumn>, columns: ColumnInfo[]) {
   const colorSet = new Set(colorScheme)
 
   for (let colName in colMap) {

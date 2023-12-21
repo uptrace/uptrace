@@ -27,7 +27,7 @@ func (h *PinnedFacetHandler) List(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	slices.SortFunc(attrs, CoreAttrLess)
+	slices.SortFunc(attrs, CompareAttrs)
 
 	return httputil.JSON(w, bunrouter.H{
 		"attrs": attrs,

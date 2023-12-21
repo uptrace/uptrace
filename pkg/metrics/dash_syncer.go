@@ -248,12 +248,31 @@ func (b *DashBuilder) dashboard(tpl *DashboardTpl) (*Dashboard, error) {
 			}
 
 			elem := grouping.Elems[0]
-			if !tableAttrMap[ast.String(elem.Expr)] {
+			if !tableAttrMap[elem.Alias] {
 				tableQuery.Parts = append(tableQuery.Parts[:i], tableQuery.Parts[i+1:]...)
 			}
 		}
 
 		dash.TableQuery = tableQuery.String()
+	}
+
+	if len(dash.TableMetrics) > 0 {
+		columnMap, err := mql.ParseColumns(dash.TableQuery)
+		if err != nil {
+			return nil, err
+		}
+
+		for name, col := range dash.TableColumnMap {
+			expr, ok := columnMap[name]
+			if !ok {
+				delete(dash.TableColumnMap, name)
+				continue
+			}
+
+			if col.AggFunc == "" {
+				col.AggFunc = mql.TableFuncName(expr)
+			}
+		}
 	}
 
 	return dash, nil
@@ -307,6 +326,24 @@ func (b *DashBuilder) gridItem(tpl any) (GridItem, error) {
 		if err := tpl.Populate(gridItem); err != nil {
 			return nil, err
 		}
+
+		columnMap, err := mql.ParseColumns(gridItem.Params.Query)
+		if err != nil {
+			return nil, err
+		}
+
+		for name, col := range gridItem.Params.ColumnMap {
+			expr, ok := columnMap[name]
+			if !ok {
+				delete(gridItem.Params.ColumnMap, name)
+				continue
+			}
+
+			if col.AggFunc == "" {
+				col.AggFunc = mql.TableFuncName(expr)
+			}
+		}
+
 		return gridItem, nil
 
 	case *GridItemTpl:

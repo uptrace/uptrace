@@ -8,32 +8,34 @@ table:
       description: Total available RAM on all nodes
       type: gauge
       metrics:
-        - k8s.node.memory.available as $mem_available
+        - k8s_node_memory_available as $mem_available
       query:
-        - last(sum($mem_available))
+        - sum($mem_available)
       columns:
         sum($mem_available):
           unit: bytes
+          agg_func: last
 
     - title: FS available
       description: Total available filesystem on all nodes
       type: gauge
       metrics:
-        - k8s.node.filesystem.available as $fs_available
+        - k8s_node_filesystem_available as $fs_available
       query:
-        - last(sum($fs_available))
+        - sum($fs_available)
       columns:
         sum($fs_available):
           unit: bytes
+          agg_func: last
 
   metrics:
-    - k8s.node.cpu.utilization as $cpu_util
-    - k8s.node.memory.available as $mem_available
-    - k8s.node.filesystem.available as $fs_available
-    - k8s.node.memory.rss as $rss_mem
-    - k8s.node.memory.usage as $mem_usage
+    - k8s_node_cpu_utilization as $cpu_util
+    - k8s_node_memory_available as $mem_available
+    - k8s_node_filesystem_available as $fs_available
+    - k8s_node_memory_rss as $rss_mem
+    - k8s_node_memory_usage as $mem_usage
   query:
-    - group by k8s.node.name
+    - group by k8s_node_name
     - $cpu_util
     - $mem_usage
     - $rss_mem
@@ -56,30 +58,32 @@ grid_rows:
         description: Total available RAM on all nodes
         type: gauge
         metrics:
-          - k8s.node.memory.available as $mem_available
+          - k8s_node_memory_available as $mem_available
         query:
-          - last(sum($mem_available))
+          - sum($mem_available)
         columns:
           sum($mem_available):
             unit: bytes
+            agg_func: last
 
       - title: FS available
         description: Total available filesystem on all nodes
         type: gauge
         metrics:
-          - k8s.node.filesystem.available as $fs_available
+          - k8s_node_filesystem_available as $fs_available
         query:
-          - last(sum($fs_available))
+          - sum($fs_available)
         columns:
           sum($fs_available):
             unit: bytes
+            agg_func: last
 
   - title: General
     items:
       - title: CPU utilization
         chart: line
         metrics:
-          - k8s.node.cpu.utilization as $cpu_util
+          - k8s_node_cpu_utilization as $cpu_util
         query:
           - $cpu_util
         columns:
@@ -89,7 +93,7 @@ grid_rows:
       - title: RAM memory usage
         chart: line
         metrics:
-          - k8s.node.memory.usage as $usage
+          - k8s_node_memory_usage as $usage
         query:
           - $usage
         columns:
@@ -99,7 +103,7 @@ grid_rows:
       - title: RSS memory usage
         chart: line
         metrics:
-          - k8s.node.memory.rss as $rss_mem
+          - k8s_node_memory_rss as $rss_mem
         query:
           - $rss_mem
         columns:
@@ -109,7 +113,7 @@ grid_rows:
       - title: Filesystem available
         chart: line
         metrics:
-          - k8s.node.filesystem.available as $fs_available
+          - k8s_node_filesystem_available as $fs_available
         query:
           - $fs_available
         columns:
@@ -119,7 +123,7 @@ grid_rows:
       - title: RAM available
         chart: line
         metrics:
-          - k8s.node.memory.available as $mem_available
+          - k8s_node_memory_available as $mem_available
         query:
           - $mem_available
         columns:
@@ -129,7 +133,7 @@ grid_rows:
       - title: Network IO
         chart: line
         metrics:
-          - k8s.node.network.io as $io
+          - k8s_node_network_io as $io
         query:
           - per_min($io)
           - group by direction
@@ -140,13 +144,13 @@ grid_rows:
       - title: Page faults
         chart: line
         metrics:
-          - k8s.node.memory.page_faults as $page_faults
+          - k8s_node_memory_page_faults as $page_faults
         query:
           - delta($page_faults)
 
       - title: Major page faults
         chart: line
         metrics:
-          - k8s.node.memory.major_page_faults as $major_page_faults
+          - k8s_node_memory_major_page_faults as $major_page_faults
         query:
           - $major_page_faults

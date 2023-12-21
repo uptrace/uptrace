@@ -3,14 +3,14 @@ name: 'DB: PostgreSQL tables'
 
 table:
   metrics:
-    - postgresql.table.size as $size
-    - postgresql.rows as $rows
-    - postgresql.operations as $ops
-    - postgresql.blocks_read as $blocks_read
+    - postgresql_table_size as $size
+    - postgresql_rows as $rows
+    - postgresql_operations as $ops
+    - postgresql_blocks_read as $blocks_read
   query:
-    - group by host.name
-    - group by postgresql.database.name
-    - group by postgresql.table.name
+    - group by host_name
+    - group by postgresql_database_name
+    - group by postgresql_table_name
     - $size
     - $rows
     - per_min($ops) as ops
@@ -21,33 +21,33 @@ grid_rows:
     items:
       - title: Disk space used by the table
         metrics:
-          - postgresql.table.size as $size
+          - postgresql_table_size as $size
         query:
           - $size
 
       - title: Number of rows in the table
         metrics:
-          - postgresql.rows as $rows
+          - postgresql_rows as $rows
         query:
           - $rows group by state
         chart: stacked-bar
 
       - title: Number of db row operations
         metrics:
-          - postgresql.operations as $ops
+          - postgresql_operations as $ops
         query:
           - per_min($ops) as ops group by operation
         chart: stacked-bar
 
       - title: Number of blocks read
         metrics:
-          - postgresql.blocks_read as $blocks_read
+          - postgresql_blocks_read as $blocks_read
         query:
           - per_min($blocks_read) as blocks_read group by source
         chart: stacked-bar
 
       - title: Number of times the table has been manually vacuumed
         metrics:
-          - postgresql.table.vacuum.count as $vacuum_count
+          - postgresql_table_vacuum_count as $vacuum_count
         query:
           - $vacuum_count

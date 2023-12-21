@@ -7,13 +7,13 @@ table:
       description: Number of members in the consumer group
       type: gauge
       metrics:
-        - kafka.consumer_group.members as $members
+        - kafka_consumer_group_members as $members
       query:
         - $members
 
   metrics:
-    - kafka.consumer_group.offset as $offset
-    - kafka.consumer_group.lag as $lag
+    - kafka_consumer_group_offset as $offset
+    - kafka_consumer_group_lag as $lag
   query:
     - group by topic
     - group by partition
@@ -26,12 +26,12 @@ grid_rows:
     items:
       - title: Number of processed messages by the consumer group at the partition of the topic
         metrics:
-          - kafka.consumer_group.offset as $offset
+          - kafka_consumer_group_offset as $offset
         query:
           - per_min(delta($offset)) as processed
 
       - title: Lag of the consumer group at the partition of the topic
         metrics:
-          - kafka.consumer_group.lag as $lag
+          - kafka_consumer_group_lag as $lag
         query:
           - $lag

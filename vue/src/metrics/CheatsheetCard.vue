@@ -22,17 +22,17 @@
           >
         </QueryExample>
 
-        <QueryExample query="$hits{host.name=localhost} | $misses{host.name=localhost}">
-          <template #description>Filter timeseries by <code>host.name</code>.</template>
+        <QueryExample query="$hits{host_name=localhost} | $misses{host_name=localhost}">
+          <template #description>Filter timeseries by <code>host_name</code>.</template>
         </QueryExample>
 
-        <QueryExample query="$hits | $misses | where host.name = 'localhost'">
-          <template #description>Filter all timeseries at once by <code>host.name</code>.</template>
+        <QueryExample query="$hits | $misses | where host_name = 'localhost'">
+          <template #description>Filter all timeseries at once by <code>host_name</code>.</template>
         </QueryExample>
 
-        <QueryExample query="$hits | $misses | where host.name exists">
+        <QueryExample query="$hits | $misses | where host_name exists">
           <template #description
-            >Filter timeseries that have <code>host.name</code> attribute.</template
+            >Filter timeseries that have <code>host_name</code> attribute.</template
           >
         </QueryExample>
       </v-col>
@@ -40,7 +40,7 @@
       <v-col cols="6">
         <h2 class="mb-5 text-h5">Grouping and joining</h2>
 
-        <QueryExample query="$hits + $misses | group by host.name">
+        <QueryExample query="$hits + $misses | group by host_name">
           <template #description>
             Uptrace can automatically join timeseries with matching attributes, e.g. sum
             <code>$hits</code> and <code>$misses</code> metrics on each hostname.
@@ -59,13 +59,13 @@
           </template>
         </QueryExample>
 
-        <QueryExample query="$metric1 group by service.name | $metric2 group by host.name">
+        <QueryExample query="$metric1 group by service_name | $metric2 group by host_name">
           <template #description>
             Timeseries can have individual grouping if you don't need to join them.
           </template>
         </QueryExample>
 
-        <QueryExample query="$m1 + $m2 | group by $m1.host.name | group by $m2.host as host.name">
+        <QueryExample query="$m1 + $m2 group by host_name">
           <template #description>
             To join metrics with different attributes, use aliases in <code>group by</code>.
           </template>
@@ -115,11 +115,11 @@
           >
         </QueryExample>
 
-        <QueryExample query="avg($srv_duration) group by host.name">
+        <QueryExample query="avg($srv_duration) group by host_name">
           <template #description>Avg duration on each hostname.</template>
         </QueryExample>
 
-        <QueryExample query='avg($srv_duration{host.name~"api\d+$"})'>
+        <QueryExample query='avg($srv_duration{host_name~"api\d+$"})'>
           <template #description>Avg duration on hostnames matching the regexp.</template>
         </QueryExample>
 
@@ -145,10 +145,10 @@
           <template #description>Number of timeseries with the given values.</template>
         </QueryExample>
 
-        <QueryExample query="uniq($hits, host.name, service.name) as num_timeseries">
+        <QueryExample query="uniq($hits, host_name, service_name) as num_timeseries">
           <template #description
-            >Count the number of unique combinations of <code>host.name</code> and
-            <code>service.name</code>.</template
+            >Count the number of unique combinations of <code>host_name</code> and
+            <code>service_name</code>.</template
           >
         </QueryExample>
       </v-col>
@@ -173,7 +173,7 @@
           <template #description>Get the first/last time the metric received an update.</template>
         </QueryExample>
 
-        <QueryExample query="group by lower(service.name) as service">
+        <QueryExample query="group by lower(service_name) as service">
           <template #description
             >You can use <code>lower</code> and <code>upper</code> functions in groupings.</template
           >

@@ -91,7 +91,7 @@ import UnitPicker from '@/components/UnitPicker.vue'
 import LegendaryChart from '@/metrics/LegendaryChart.vue'
 
 // Misc
-import { updateColumnMap, MetricColumn } from '@/metrics/types'
+import { updateColumnMap, assignColors, emptyMetricColumn, MetricColumn } from '@/metrics/types'
 
 export default defineComponent({
   name: 'ExploreMetric',
@@ -173,7 +173,8 @@ export default defineComponent({
     watch(
       () => timeseries.columns,
       (columns) => {
-        updateColumnMap(columnMap.value, columns)
+        updateColumnMap(columnMap.value, columns, emptyMetricColumn)
+        assignColors(columnMap.value, columns)
       },
     )
 

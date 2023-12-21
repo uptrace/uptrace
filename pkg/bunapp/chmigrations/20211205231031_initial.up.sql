@@ -235,7 +235,7 @@ CREATE MATERIALIZED VIEW ?DB.metrics_uptrace_service_graph_client_duration_mv ?O
 TO ?DB.datapoint_minutes AS
 SELECT
   e.project_id,
-  'uptrace.service_graph.client_duration' AS metric,
+  'uptrace_service_graph_client_duration' AS metric,
   e.time,
   xxHash64(
     e.project_id,
@@ -254,13 +254,13 @@ SELECT
 
   arrayConcat(
     ['type', 'client', 'server'],
-    if(e.deployment_environment != '', ['deployment.environment'], []),
-    if(e.service_namespace != '', ['service.namespace'], [])
+    if(e.deployment_environment != '', ['deployment_environment'], []),
+    if(e.service_namespace != '', ['service_namespace'], [])
   ) AS all_keys,
   arrayConcat(
     ['type', 'client', 'server'],
-    if(e.deployment_environment != '', ['deployment.environment'], []),
-    if(e.service_namespace != '', ['service.namespace'], [])
+    if(e.deployment_environment != '', ['deployment_environment'], []),
+    if(e.service_namespace != '', ['service_namespace'], [])
    ) AS string_keys,
   arrayConcat(
     [e.type, e.client_name, e.server_name],
@@ -284,7 +284,7 @@ CREATE MATERIALIZED VIEW ?DB.metrics_uptrace_service_graph_server_duration_mv ?O
 TO ?DB.datapoint_minutes AS
 SELECT
   e.project_id,
-  'uptrace.service_graph.server_duration' AS metric,
+  'uptrace_service_graph_server_duration' AS metric,
   e.time,
   xxHash64(
     e.project_id,
@@ -303,13 +303,13 @@ SELECT
 
   arrayConcat(
     ['type', 'client', 'server'],
-    if(e.deployment_environment != '', ['deployment.environment'], []),
-    if(e.service_namespace != '', ['service.namespace'], [])
+    if(e.deployment_environment != '', ['deployment_environment'], []),
+    if(e.service_namespace != '', ['service_namespace'], [])
   ) AS all_keys,
   arrayConcat(
     ['type', 'client', 'server'],
-    if(e.deployment_environment != '', ['deployment.environment'], []),
-    if(e.service_namespace != '', ['service.namespace'], [])
+    if(e.deployment_environment != '', ['deployment_environment'], []),
+    if(e.service_namespace != '', ['service_namespace'], [])
    ) AS string_keys,
   arrayConcat(
     [e.type, e.client_name, e.server_name],
@@ -333,7 +333,7 @@ CREATE MATERIALIZED VIEW ?DB.metrics_uptrace_service_graph_failed_requests_mv ?O
 TO ?DB.datapoint_minutes AS
 SELECT
   e.project_id,
-  'uptrace.service_graph.failed_requests' AS metric,
+  'uptrace_service_graph_failed_requests' AS metric,
   e.time,
   xxHash64(
     e.project_id,
@@ -349,13 +349,13 @@ SELECT
 
   arrayConcat(
     ['type', 'client', 'server'],
-    if(e.deployment_environment != '', ['deployment.environment'], []),
-    if(e.service_namespace != '', ['service.namespace'], [])
+    if(e.deployment_environment != '', ['deployment_environment'], []),
+    if(e.service_namespace != '', ['service_namespace'], [])
   ) AS all_keys,
   arrayConcat(
     ['type', 'client', 'server'],
-    if(e.deployment_environment != '', ['deployment.environment'], []),
-    if(e.service_namespace != '', ['service.namespace'], [])
+    if(e.deployment_environment != '', ['deployment_environment'], []),
+    if(e.service_namespace != '', ['service_namespace'], [])
    ) AS string_keys,
   arrayConcat(
     [e.type, e.client_name, e.server_name],

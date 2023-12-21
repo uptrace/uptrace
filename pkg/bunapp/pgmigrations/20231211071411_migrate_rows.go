@@ -271,9 +271,9 @@ type DashGauge struct {
 	Description string `json:"description"`
 	Template    string `json:"template" bun:",nullzero"`
 
-	Metrics   []mql.MetricAlias                `json:"metrics"`
-	Query     string                           `json:"query"`
-	ColumnMap map[string]*metrics.MetricColumn `json:"columnMap" bun:",nullzero"`
+	Metrics   []mql.MetricAlias               `json:"metrics"`
+	Query     string                          `json:"query"`
+	ColumnMap map[string]*metrics.GaugeColumn `json:"columnMap" bun:",nullzero"`
 
 	GridQueryTemplate string                 `json:"gridQueryTemplate" bun:",nullzero"`
 	ValueMappings     []metrics.ValueMapping `json:"valueMappings" bun:",nullzero"`

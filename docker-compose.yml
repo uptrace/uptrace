@@ -155,6 +155,20 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
+  prometheus:
+    image: prom/prometheus:v2.36.2
+    restart: always
+    volumes:
+      - ./config/prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
@@ -173,3 +187,4 @@ volumes:
   ch4_data:
   pg_data:
   alertmanager_data:
+  prometheus_data:

@@ -14,8 +14,15 @@ export function duration(n: number | undefined | null, conf: Config = {}): strin
 
   let abs = Math.abs(n)
 
-  if (abs < 1) {
-    return formatNum(n * 1000, 0, conf) + 'ns'
+  if (abs < 1000) {
+    return formatNum(n, 0) + 'ns'
+  }
+
+  n /= 1000
+  abs = Math.abs(n)
+
+  if (abs < 100) {
+    return formatNum(n, 1, conf) + 'µs'
   }
   if (abs < 1000) {
     return formatNum(n, 0, conf) + 'µs'

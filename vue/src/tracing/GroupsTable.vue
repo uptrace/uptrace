@@ -69,7 +69,7 @@ import PagedSpansCardLazy from '@/tracing/PagedSpansCardLazy.vue'
 
 // Misc
 import { isSpanSystem, AttrKey } from '@/models/otel'
-import { updateColumnMap, MetricColumn } from '@/metrics/types'
+import { updateColumnMap, emptyMetricColumn, MetricColumn } from '@/metrics/types'
 
 export default defineComponent({
   name: 'GroupsTable',
@@ -214,7 +214,7 @@ export default defineComponent({
 
     const columnMap = computed((): Record<string, MetricColumn> => {
       const colMap: Record<string, MetricColumn> = {}
-      updateColumnMap(colMap, props.columns)
+      updateColumnMap(colMap, props.columns, emptyMetricColumn)
       return colMap
     })
 

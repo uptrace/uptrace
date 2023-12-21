@@ -8,32 +8,34 @@ table:
       description: Total available RAM on all nodes
       type: gauge
       metrics:
-        - container.memory.available as $mem_available
+        - container_memory_available as $mem_available
       query:
-        - last(sum($mem_available))
+        - sum($mem_available)
       columns:
         sum($mem_available):
           unit: bytes
+          agg_func: last
 
     - title: FS available
       description: Total available filesystem on all nodes
       type: gauge
       metrics:
-        - container.filesystem.available as $fs_available
+        - container_filesystem_available as $fs_available
       query:
-        - last(sum($fs_available))
+        - sum($fs_available)
       columns:
         sum($fs_available):
           unit: bytes
+          agg_func: last
 
   metrics:
-    - container.cpu.utilization as $cpu_util
-    - container.memory.available as $mem_available
-    - container.filesystem.available as $fs_available
-    - container.memory.rss as $rss_mem
-    - container.memory.usage as $mem_usage
+    - container_cpu_utilization as $cpu_util
+    - container_memory_available as $mem_available
+    - container_filesystem_available as $fs_available
+    - container_memory_rss as $rss_mem
+    - container_memory_usage as $mem_usage
   query:
-    - group by k8s.container.name
+    - group by k8s_container_name
     - $cpu_util
     - $mem_usage
     - $rss_mem
@@ -56,30 +58,32 @@ grid_rows:
         description: Total available RAM on all nodes
         type: gauge
         metrics:
-          - container.memory.available as $mem_available
+          - container_memory_available as $mem_available
         query:
-          - last(sum($mem_available))
+          - sum($mem_available)
         columns:
           sum($mem_available):
             unit: bytes
+            agg_func: last
 
       - title: FS available
         description: Total available filesystem on all nodes
         type: gauge
         metrics:
-          - container.filesystem.available as $fs_available
+          - container_filesystem_available as $fs_available
         query:
-          - last(sum($fs_available))
+          - sum($fs_available)
         columns:
           sum($fs_available):
             unit: bytes
+            agg_func: last
 
   - title: General
     items:
       - title: CPU utilization
         chart: line
         metrics:
-          - container.cpu.utilization as $cpu_util
+          - container_cpu_utilization as $cpu_util
         query:
           - $cpu_util
         columns:
@@ -89,7 +93,7 @@ grid_rows:
       - title: CPU time
         chart: line
         metrics:
-          - container.cpu.time as $cpu_time
+          - container_cpu_time as $cpu_time
         query:
           - per_min($cpu_time)
         columns:
@@ -99,7 +103,7 @@ grid_rows:
       - title: RAM memory usage
         chart: line
         metrics:
-          - container.memory.usage as $usage
+          - container_memory_usage as $usage
         query:
           - $usage
         columns:
@@ -109,7 +113,7 @@ grid_rows:
       - title: RSS memory usage
         chart: line
         metrics:
-          - container.memory.rss as $rss_mem
+          - container_memory_rss as $rss_mem
         query:
           - $rss_mem
         columns:
@@ -119,7 +123,7 @@ grid_rows:
       - title: RAM available
         chart: line
         metrics:
-          - container.memory.available as $mem_available
+          - container_memory_available as $mem_available
         query:
           - $mem_available
         columns:
@@ -129,7 +133,7 @@ grid_rows:
       - title: Memory working set
         chart: line
         metrics:
-          - container.memory.working_set as $working_set
+          - container_memory_working_set as $working_set
         query:
           - $working_set
         columns:
@@ -139,7 +143,7 @@ grid_rows:
       - title: Filesystem usage
         chart: line
         metrics:
-          - container.filesystem.usage as $usage
+          - container_filesystem_usage as $usage
         query:
           - $usage
         columns:
@@ -149,7 +153,7 @@ grid_rows:
       - title: Filesystem available
         chart: line
         metrics:
-          - container.filesystem.available as $fs_available
+          - container_filesystem_available as $fs_available
         query:
           - $fs_available
         columns:
@@ -159,13 +163,13 @@ grid_rows:
       - title: Page faults
         chart: line
         metrics:
-          - container.memory.page_faults as $page_faults
+          - container_memory_page_faults as $page_faults
         query:
           - delta($page_faults)
 
       - title: Major page faults
         chart: line
         metrics:
-          - container.memory.major_page_faults as $major_page_faults
+          - container_memory_major_page_faults as $major_page_faults
         query:
           - $major_page_faults

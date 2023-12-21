@@ -1,6 +1,7 @@
 package mql
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -9,38 +10,30 @@ import (
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
-const sep = '0'
-
 type Timeseries struct {
 	MetricName   string
 	NameTemplate string
-	Filters      []ast.Filter
-	Unit         string
+
+	Unit     string
+	Filters  []ast.Filter
+	Grouping []string
 
 	Attrs       Attrs
 	Annotations map[string]any
 
 	Value []float64
 	Time  []time.Time
-
-	Grouping []ast.NamedExpr
 }
 
-func newTimeseriesFrom(ts *Timeseries) Timeseries {
-	return Timeseries{
-		MetricName:   ts.MetricName,
-		NameTemplate: ts.NameTemplate,
-		Filters:      ts.Filters,
-		Unit:         ts.Unit,
+func (ts *Timeseries) DeepClone() *Timeseries {
+	clone := ts.Clone()
+	clone.Value = slices.Clone(ts.Value)
+	return clone
+}
 
-		Attrs:       ts.Attrs,
-		Annotations: ts.Annotations,
-
-		Value: make([]float64, len(ts.Value)),
-		Time:  ts.Time,
-
-		Grouping: ts.Grouping,
-	}
+func (ts *Timeseries) Clone() *Timeseries {
+	clone := *ts
+	return &clone
 }
 
 func (ts *Timeseries) Name() string {
@@ -92,22 +85,15 @@ func (ts *Timeseries) WhereQuery() string {
 	return unsafeconv.String(b)
 }
 
-func (ts *Timeseries) Clone() *Timeseries {
-	clone := *ts
-	return &clone
-}
-
 type TimeseriesFilter struct {
 	Metric string
 
-	AggFunc string
-	Attr    string
+	CHFunc string
+	Attr   string
 
-	Uniq      []string
-	TableFunc string
+	Uniq []string
 
-	Filters []ast.Filter
-	Where   [][]ast.Filter
-
-	Grouping []ast.NamedExpr
+	Filters  []ast.Filter
+	Where    [][]ast.Filter
+	Grouping ast.GroupingElems
 }

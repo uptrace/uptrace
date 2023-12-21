@@ -34,4 +34,5 @@ type Project struct {
 	PinnedAttrs         []string `yaml:"pinned_attrs"`
 	GroupByEnv          bool     `yaml:"group_by_env"`
 	GroupFuncsByService bool     `yaml:"group_funcs_by_service"`
+	PromCompat          bool     `yaml:"prom_compat"`
 }

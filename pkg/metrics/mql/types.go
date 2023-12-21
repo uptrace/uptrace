@@ -1,35 +1,48 @@
 package mql
 
-import "errors"
+import (
+	"errors"
 
-const (
-	AggMin   = "min"
-	AggMax   = "max"
-	AggSum   = "sum"
-	AggCount = "count"
-	AggAvg   = "avg"
-
-	AggP50 = "p50"
-	AggP75 = "p75"
-	AggP90 = "p90"
-	AggP95 = "p95"
-	AggP99 = "p99"
-
-	AggUniq = "uniq"
+	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 )
 
 const (
-	FuncDelta  = "delta"
-	FuncPerMin = "per_min"
-	FuncPerSec = "per_sec"
+	CHAggMin   = "min"
+	CHAggMax   = "max"
+	CHAggSum   = "sum"
+	CHAggCount = "count"
+	CHAggAvg   = "avg"
+
+	CHAggP50 = "p50"
+	CHAggP75 = "p75"
+	CHAggP90 = "p90"
+	CHAggP95 = "p95"
+	CHAggP99 = "p99"
+
+	CHAggUniq = "uniq"
 )
 
 const (
-	TableMin  = "min"
-	TableMax  = "max"
-	TableSum  = "sum"
-	TableAvg  = "avg"
-	TableLast = "last"
+	GoMapDelta  = "delta"
+	GoMapPerMin = "per_min"
+	GoMapPerSec = "per_sec"
+	GoMapRate   = "rate"
+	GoMapIrate  = "irate"
+)
+
+const (
+	GoAggMin = "min"
+	GoAggMax = "max"
+	GoAggAvg = "avg"
+	GoAggSum = "sum"
+)
+
+const (
+	TableFuncMin  = "min"
+	TableFuncMax  = "max"
+	TableFuncAvg  = "avg"
+	TableFuncSum  = "sum"
+	TableFuncLast = "last"
 )
 
 type MetricAlias struct {
@@ -51,32 +64,46 @@ func (m *MetricAlias) Validate() error {
 	return nil
 }
 
-func isAggFunc(name string) bool {
+func isCHFunc(name string) bool {
 	switch name {
-	case AggMin, AggMax, AggSum, AggCount, AggAvg,
-		AggP50, AggP75, AggP90, AggP95, AggP99,
-		AggUniq:
+	case CHAggMin, CHAggMax, CHAggSum, CHAggCount, CHAggAvg,
+		CHAggP50, CHAggP75, CHAggP90, CHAggP95, CHAggP99,
+		CHAggUniq:
 		return true
 	default:
 		return false
 	}
 }
 
-func isTableFunc(name string) bool {
+func isGoMapFunc(name string) bool {
 	switch name {
-	case TableMin, TableMax, TableSum,
-		TableAvg, TableLast:
+	case GoMapDelta, GoMapPerMin, GoMapPerSec:
 		return true
 	default:
 		return false
 	}
 }
 
-func isOpFunc(name string) bool {
-	switch name {
-	case FuncDelta, FuncPerMin, FuncPerSec:
-		return true
+func TableFuncName(expr ast.Expr) string {
+	fn, ok := expr.(*ast.FuncCall)
+	if !ok {
+		return TableFuncLast
+	}
+
+	switch fn.Func {
+	case CHAggMin, CHAggMax, CHAggAvg:
+		return fn.Func
+	case CHAggSum, CHAggCount:
+		return TableFuncSum
+	case CHAggP50, CHAggP75, CHAggP90, CHAggP95, CHAggP99:
+		return TableFuncAvg
+	case CHAggUniq:
+		return TableFuncLast
+	case GoMapDelta:
+		return TableFuncSum
+	case GoMapPerMin, GoMapPerSec:
+		return TableFuncAvg
 	default:
-		return false
+		return TableFuncLast
 	}
 }

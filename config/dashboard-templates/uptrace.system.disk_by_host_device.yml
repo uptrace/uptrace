@@ -7,9 +7,9 @@ table:
       description: Number of disks
       type: gauge
       metrics:
-        - system.disk.io as $disk_io
+        - system_disk_io as $disk_io
       query:
-        - uniq($disk_io, host.name, device) as num_device
+        - uniq($disk_io, host_name, device) as num_device
         - where device !~ "loop"
       template: ${num_device} devices
 
@@ -17,8 +17,8 @@ table:
       description: Average read size
       type: gauge
       metrics:
-        - system.disk.io as $disk_io
-        - system.disk.operations as $ops
+        - system_disk_io as $disk_io
+        - system_disk_operations as $ops
       query:
         - $disk_io{direction=read} / $ops{direction=read} as read_size
         - where device !~ "loop"
@@ -29,8 +29,8 @@ table:
       description: Average write size
       type: gauge
       metrics:
-        - system.disk.io as $disk_io
-        - system.disk.operations as $ops
+        - system_disk_io as $disk_io
+        - system_disk_operations as $ops
       query:
         - $disk_io{direction=write} / $ops{direction=write} as write_size
         - where device !~ "loop"
@@ -41,8 +41,8 @@ table:
       description: Average read latency
       type: gauge
       metrics:
-        - system.disk.operation_time as $op_time
-        - system.disk.operations as $ops
+        - system_disk_operation_time as $op_time
+        - system_disk_operations as $ops
       query:
         - $op_time{direction=read} / $ops{direction=read} as read_latency
         - where device !~ "loop"
@@ -53,8 +53,8 @@ table:
       description: Average write latency
       type: gauge
       metrics:
-        - system.disk.operation_time as $op_time
-        - system.disk.operations as $ops
+        - system_disk_operation_time as $op_time
+        - system_disk_operations as $ops
       query:
         - $op_time{direction=write} / $ops{direction=write} as write_latency
         - where device !~ "loop"
@@ -62,11 +62,11 @@ table:
         write_latency: { unit: seconds }
 
   metrics:
-    - system.disk.io as $disk_io
-    - system.disk.operations as $ops
-    - system.disk.operation_time as $op_time
+    - system_disk_io as $disk_io
+    - system_disk_operations as $ops
+    - system_disk_operation_time as $op_time
   query:
-    - group by host.name
+    - group by host_name
     - group by device
     - where device !~ "loop"
     - per_min($disk_io{direction=read}) as read_bytes
@@ -88,8 +88,8 @@ grid_rows:
         description: Average read size
         type: gauge
         metrics:
-          - system.disk.io as $disk_io
-          - system.disk.operations as $ops
+          - system_disk_io as $disk_io
+          - system_disk_operations as $ops
         query:
           - $disk_io{direction=read} / $ops{direction=read} as read_size
           - where device !~ "loop"
@@ -100,8 +100,8 @@ grid_rows:
         description: Average write size
         type: gauge
         metrics:
-          - system.disk.io as $disk_io
-          - system.disk.operations as $ops
+          - system_disk_io as $disk_io
+          - system_disk_operations as $ops
         query:
           - $disk_io{direction=write} / $ops{direction=write} as write_size
           - where device !~ "loop"
@@ -112,8 +112,8 @@ grid_rows:
         description: Average read latency
         type: gauge
         metrics:
-          - system.disk.operation_time as $op_time
-          - system.disk.operations as $ops
+          - system_disk_operation_time as $op_time
+          - system_disk_operations as $ops
         query:
           - $op_time{direction=read} / $ops{direction=read} as read_latency
           - where device !~ "loop"
@@ -124,8 +124,8 @@ grid_rows:
         description: Average write latency
         type: gauge
         metrics:
-          - system.disk.operation_time as $op_time
-          - system.disk.operations as $ops
+          - system_disk_operation_time as $op_time
+          - system_disk_operations as $ops
         query:
           - $op_time{direction=write} / $ops{direction=write} as write_latency
           - where device !~ "loop"
@@ -136,7 +136,7 @@ grid_rows:
     items:
       - title: Disk reads and writes
         metrics:
-          - system.disk.io as $disk_io
+          - system_disk_io as $disk_io
         query:
           - per_min($disk_io{direction=read}) as reads
           - per_min($disk_io{direction=write}) as writes
@@ -144,8 +144,8 @@ grid_rows:
 
       - title: Avg read/write latency
         metrics:
-          - system.disk.operations as $ops
-          - system.disk.operation_time as $op_time
+          - system_disk_operations as $ops
+          - system_disk_operation_time as $op_time
         query:
           - $op_time{direction=read} / $ops{direction=read} as read_latency
           - $op_time{direction=write} / $ops{direction=write} as write_latency
@@ -155,8 +155,8 @@ grid_rows:
 
       - title: Avg read/write size
         metrics:
-          - system.disk.io as $disk_io
-          - system.disk.operations as $ops
+          - system_disk_io as $disk_io
+          - system_disk_operations as $ops
         query:
           - $disk_io{direction=read} / $ops{direction=read} as read_size
           - $disk_io{direction=write} / $ops{direction=write} as write_size
@@ -167,7 +167,7 @@ grid_rows:
 
       - title: Disk read/write operations
         metrics:
-          - system.disk.operations as $ops
+          - system_disk_operations as $ops
         query:
           - per_min($ops{direction=read}) as reads
           - per_min($ops{direction=write}) as writes
@@ -175,29 +175,29 @@ grid_rows:
 
       - title: Disk pending operations
         metrics:
-          - system.disk.pending_operations as $pending_ops
+          - system_disk_pending_operations as $pending_ops
         query:
           - per_min($pending_ops)
 
       - title: Number of disk reads/writes merged into single physical disk access operations
         metrics:
-          - system.disk.merged as $merged
+          - system_disk_merged as $merged
         query:
           - per_min($merged)
 
       - title: Time disk spent activated
         metrics:
-          - system.disk.io_time as $disk_time
+          - system_disk_io_time as $disk_time
         query:
           - per_min($disk_time)
 
 monitors:
   - name: Disk pending operations
     metrics:
-      - system.disk.pending_operations as $pending_ops
+      - system_disk_pending_operations as $pending_ops
     query:
       - $pending_ops
-      - group by host.name, device
+      - group by host_name, device
     column: pending_ops
     max_allowed_value: 100
     check_num_point: 10

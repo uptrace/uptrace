@@ -4,13 +4,13 @@ name: 'AWS volumes'
 
 table:
   metrics:
-    - amazonaws.com.aws.ebs.volume_read_bytes as $read_bytes
-    - amazonaws.com.aws.ebs.volume_write_bytes as $write_bytes
-    - amazonaws.com.aws.ebs.volume_read_ops as $read_ops
-    - amazonaws.com.aws.ebs.volume_write_ops as $write_ops
-    - amazonaws.com.aws.ebs.volume_queue_length as $queue_length
+    - amazonaws_com_aws_ebs_volume_read_bytes as $read_bytes
+    - amazonaws_com_aws_ebs_volume_write_bytes as $write_bytes
+    - amazonaws_com_aws_ebs_volume_read_ops as $read_ops
+    - amazonaws_com_aws_ebs_volume_write_ops as $write_ops
+    - amazonaws_com_aws_ebs_volume_queue_length as $queue_length
   query:
-    - group by cloud.region
+    - group by cloud_region
     - group by volume_id
     - sum($read_bytes) / _seconds as read_bytes
     - sum($write_bytes) / _seconds as write_bytes
@@ -26,33 +26,33 @@ grid_rows:
     items:
       - title: Number of read bytes
         metrics:
-          - amazonaws.com.aws.ebs.volume_read_bytes as $read_bytes
+          - amazonaws_com_aws_ebs_volume_read_bytes as $read_bytes
         query:
           - sum($read_bytes) as read_bytes
 
       - title: Average read size
         metrics:
-          - amazonaws.com.aws.ebs.volume_read_bytes as $read_bytes
-          - amazonaws.com.aws.ebs.volume_read_ops as $read_ops
+          - amazonaws_com_aws_ebs_volume_read_bytes as $read_bytes
+          - amazonaws_com_aws_ebs_volume_read_ops as $read_ops
         query:
           - sum($read_bytes) / sum($read_ops) as read_size
 
       - title: Number of written bytes
         metrics:
-          - amazonaws.com.aws.ebs.volume_write_bytes as $write_bytes
+          - amazonaws_com_aws_ebs_volume_write_bytes as $write_bytes
         query:
           - sum($write_bytes) as write_bytes
 
       - title: Average write size
         metrics:
-          - amazonaws.com.aws.ebs.volume_write_bytes as $write_bytes
-          - amazonaws.com.aws.ebs.volume_write_ops as $write_ops
+          - amazonaws_com_aws_ebs_volume_write_bytes as $write_bytes
+          - amazonaws_com_aws_ebs_volume_write_ops as $write_ops
         query:
           - sum($write_bytes) / sum($write_ops) as write_size
 
       - title: Number of read ops
         metrics:
-          - amazonaws.com.aws.ebs.volume_read_ops as $read_ops
+          - amazonaws_com_aws_ebs_volume_read_ops as $read_ops
         query:
           - sum($read_ops) / _seconds as read_ops
         columns:
@@ -60,7 +60,7 @@ grid_rows:
 
       - title: Number of write ops
         metrics:
-          - amazonaws.com.aws.ebs.volume_write_ops as $write_ops
+          - amazonaws_com_aws_ebs_volume_write_ops as $write_ops
         query:
           - sum($write_ops) / _seconds as write_ops
         columns:
@@ -68,7 +68,7 @@ grid_rows:
 
       - title: Average read latency
         metrics:
-          - amazonaws.com.aws.ebs.volume_total_read_time as $total_read_time
+          - amazonaws_com_aws_ebs_volume_total_read_time as $total_read_time
         query:
           - avg($total_read_time) as read_latency
         columns:
@@ -76,7 +76,7 @@ grid_rows:
 
       - title: Average write latency
         metrics:
-          - amazonaws.com.aws.ebs.volume_total_write_time as $total_write_time
+          - amazonaws_com_aws_ebs_volume_total_write_time as $total_write_time
         query:
           - avg($total_write_time) as write_latency
         columns:
@@ -84,7 +84,7 @@ grid_rows:
 
       - title: Percentage of time spent idle
         metrics:
-          - amazonaws.com.aws.ebs.volume_idle_time as $idle_time
+          - amazonaws_com_aws_ebs_volume_idle_time as $idle_time
         query:
           - avg($idle_time) / _seconds as idle_time
         columns:
@@ -92,24 +92,32 @@ grid_rows:
 
       - title: Number of read and write operation requests waiting to be completed
         metrics:
-          - amazonaws.com.aws.ebs.volume_queue_length as $queue_length
+          - amazonaws_com_aws_ebs_volume_queue_length as $queue_length
         query:
           - avg($queue_length) as queue_length
 
       - title: Percentage of IOPS delivered of the total IOPS provisioned
         metrics:
-          - amazonaws.com.aws.ebs.volume_throughput_percentage as $throughput_percentage
+          - amazonaws_com_aws_ebs_volume_throughput_percentage as $throughput_percentage
         query:
-          - last(avg($throughput_percentage)) as throughput_percentage
+          - avg($throughput_percentage) as throughput_percentage
+        columns:
+          throughput_percentage:
+            unit: percents
+            agg_func: last
 
       - title: Amount of read and write operations (normalized to 256K) consumed
         metrics:
-          - amazonaws.com.aws.ebs.volume_consumed_read_write_ops as $consumed_read_write_ops
+          - amazonaws_com_aws_ebs_volume_consumed_read_write_ops as $consumed_read_write_ops
         query:
           - sum($consumed_read_write_ops) as consumed_read_write_ops
 
       - title: Percentage of I/O credits (for gp2) or throughput credits (for st1 and sc1) remaining
         metrics:
-          - amazonaws.com.aws.ebs.burst_balance as $burst_balance
+          - amazonaws_com_aws_ebs_burst_balance as $burst_balance
         query:
-          - last(avg($burst_balance)) as burst_balance
+          - avg($burst_balance) as burst_balance
+        columns:
+          burst_balance:
+            unit: percents
+            agg_func: last

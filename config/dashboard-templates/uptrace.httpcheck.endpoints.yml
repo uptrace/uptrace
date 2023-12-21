@@ -1,5 +1,4 @@
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/httpcheckreceiver/metadata.yaml
-
 schema: v2
 name: 'HTTP Check endpoints'
 force_update: true
@@ -11,18 +10,18 @@ table:
       type: gauge
       template: ${num_up} out of ${num_all}
       metrics:
-        - httpcheck.status as $status
+        - httpcheck_status as $status
       query:
-        - uniq($status{http.response.status_class="2xx"}) as num_all
-        - uniq($status{http.response.status_class="2xx", _value=1}) as num_up
+        - uniq($status{http_response_status_class="2xx"}) as num_all
+        - uniq($status{http_response_status_class="2xx", _value=1}) as num_up
 
   metrics:
-    - httpcheck.status as $status
-    - httpcheck.duration as $duration
+    - httpcheck_status as $status
+    - httpcheck_duration as $duration
   query:
-    - group by url.full
-    - group by host.name
-    - min($status{http.response.status_class="2xx"})
+    - group by url_full
+    - group by host_name
+    - min($status{http_response_status_class="2xx"})
     - avg($duration)
 
 grid_rows:
@@ -32,9 +31,9 @@ grid_rows:
         description: HTTP check status
         type: gauge
         metrics:
-          - httpcheck.status as $status
+          - httpcheck_status as $status
         query:
-          - $status{http.response.status_class="2xx"}
+          - $status{http_response_status_class="2xx"}
         value_mappings:
           - op: gte
             value: 1
@@ -52,36 +51,33 @@ grid_rows:
     items:
       - title: HTTP check result
         metrics:
-          - httpcheck.status as $status
+          - httpcheck_status as $status
         query:
           - $status
-          - group by http.response.status_code
+          - group by http_response_status_code
 
       - title: HTTP check duration
         metrics:
-          - httpcheck.duration as $duration
+          - httpcheck_duration as $duration
         query:
           - $duration
 
       - title: HTTP check by host
-        width: 6
-        height: 21
-        yAxis: 15
         type: table
         metrics:
-          - httpcheck.status as $status
+          - httpcheck_status as $status
         query:
           - $status
-          - group by host.name
+          - group by host_name
 
 monitors:
   - name: HTTP check is down
     metrics:
-      - httpcheck.status as $status
+      - httpcheck_status as $status
     query:
-      - group by url.full
-      - group by host.name
-      - $status{http.response.status_class="2xx"} as status_2xx
+      - group by url_full
+      - group by host_name
+      - $status{http_response_status_class="2xx"} as status_2xx
     column: status_2xx
     min_allowed_value: 1
     max_allowed_value: 1

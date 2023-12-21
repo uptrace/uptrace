@@ -34,12 +34,7 @@
     </v-hover>
 
     <template v-if="expanded">
-      <GridStackCard
-        :key="`${row.id}-${gridRow.resultId}`"
-        :items="gridItems"
-        :row-id="row.id"
-        :row-index="row.index"
-      >
+      <GridStackCard :items="gridItems" :row-id="row.id" :row-index="row.index">
         <template #item="{ attrs, on }">
           <slot name="item" v-bind="{ attrs, on: { ...on, change: gridRow.reload } }" />
         </template>

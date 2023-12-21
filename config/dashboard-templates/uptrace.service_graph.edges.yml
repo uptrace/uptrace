@@ -4,9 +4,9 @@ time_offset: -600000
 
 table:
   metrics:
-    - uptrace.service_graph.client_duration as $client_dur
-    - uptrace.service_graph.server_duration as $server_dur
-    - uptrace.service_graph.failed_requests as $failed_requests
+    - uptrace_service_graph_client_duration as $client_dur
+    - uptrace_service_graph_server_duration as $server_dur
+    - uptrace_service_graph_failed_requests as $failed_requests
   query:
     - group by type
     - group by client
@@ -23,14 +23,14 @@ grid_rows:
     items:
       - title: Requests per minute
         metrics:
-          - uptrace.service_graph.client_duration as $dur
+          - uptrace_service_graph_client_duration as $dur
         query:
           - per_min(count($dur)) as requests
 
       - title: Error rate
         metrics:
-          - uptrace.service_graph.client_duration as $dur
-          - uptrace.service_graph.failed_requests as $failed_requests
+          - uptrace_service_graph_client_duration as $dur
+          - uptrace_service_graph_failed_requests as $failed_requests
         query:
           - count($dur) / $failed_requests as error_rate
         columns:
@@ -38,18 +38,18 @@ grid_rows:
 
       - title: Avg duration
         metrics:
-          - uptrace.service_graph.client_duration as $dur
+          - uptrace_service_graph_client_duration as $dur
         query:
           - avg($dur)
 
       - title: Min duration
         metrics:
-          - uptrace.service_graph.client_duration as $dur
+          - uptrace_service_graph_client_duration as $dur
         query:
           - min($dur)
 
       - title: Max duration
         metrics:
-          - uptrace.service_graph.client_duration as $dur
+          - uptrace_service_graph_client_duration as $dur
         query:
           - max($dur)

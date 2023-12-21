@@ -13,7 +13,7 @@
 
     <ul class="mb-4">
       <li>
-        <code>service.name</code> is an attribute that represents the logical name of the service.
+        <code>service_name</code> is an attribute that represents the logical name of the service.
         Required.
       </li>
       <li>

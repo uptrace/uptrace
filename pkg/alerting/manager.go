@@ -142,10 +142,8 @@ func (m *Manager) monitor(ctx context.Context, monitor *org.MetricMonitor, timeL
 	var firing bool
 
 	var buf []byte
-	for i := range result.Timeseries {
-		ts := &result.Timeseries[i]
-
-		buf = ts.Attrs.Bytes(buf[:0])
+	for _, ts := range result.Timeseries {
+		buf = ts.Attrs.Bytes(buf[:0], nil)
 		attrsHash := xxhash.Sum64(buf)
 
 		alert, err := m.checkTimeseries(ctx, monitor, checker, ts, attrsHash)

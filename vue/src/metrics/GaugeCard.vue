@@ -25,7 +25,7 @@ import { formatGauge } from '@/metrics/use-gauges'
 import GridItemCard from '@/metrics/GridItemCard.vue'
 
 // Misc
-import { GaugeGridItem, StyledColumnInfo, ValueMapping, MappingOp } from '@/metrics/types'
+import { GaugeGridItem, StyledGaugeColumn, ValueMapping, MappingOp } from '@/metrics/types'
 import { numVerbose } from '@/util/fmt'
 
 export default defineComponent({
@@ -42,7 +42,7 @@ export default defineComponent({
       required: true,
     },
     columns: {
-      type: Array as PropType<StyledColumnInfo[]>,
+      type: Array as PropType<StyledGaugeColumn[]>,
       required: true,
     },
     values: {
@@ -82,18 +82,9 @@ export default defineComponent({
       return numVerbose(value)
     })
 
-    const color = computed(() => {
-      for (let col of props.columns) {
-        if (col.color) {
-          return col.color
-        }
-      }
-      return colors.blue.darken2
-    })
-
     const style = computed(() => {
       return {
-        'border-bottom-color': color.value,
+        'border-bottom-color': colors.blue.darken2,
       }
     })
 

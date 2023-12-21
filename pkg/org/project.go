@@ -15,12 +15,14 @@ import (
 type Project struct {
 	bun.BaseModel `bun:"projects,alias:p"`
 
-	ID                  uint32   `json:"id" bun:",pk,autoincrement"`
-	Name                string   `json:"name" bun:",nullzero"`
-	Token               string   `json:"token" bun:",nullzero"`
+	ID    uint32 `json:"id" bun:",pk,autoincrement"`
+	Name  string `json:"name" bun:",nullzero"`
+	Token string `json:"token" bun:",nullzero"`
+
 	PinnedAttrs         []string `json:"pinnedAttrs" bun:",array"`
 	GroupByEnv          bool     `json:"groupByEnv"`
 	GroupFuncsByService bool     `json:"groupFuncsByService"`
+	PromCompat          bool     `json:"promCompat"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`

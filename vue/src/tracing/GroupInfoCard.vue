@@ -19,29 +19,29 @@
       </v-col>
       <v-col cols="auto">
         <div class="grey--text font-weight-regular">Rate</div>
-        <div><NumValue :value="group.getMetric('per_min(.count)')" /> / min</div>
+        <div><NumValue :value="group.getMetric('per_min(_count)')" /> / min</div>
       </v-col>
       <v-col v-if="isSpan" cols="auto">
         <div class="grey--text font-weight-regular">Err rate</div>
         <div>
-          <PctValue :a="group.getMetric('.error_count')" :b="group.getMetric('.count')" />
+          <PctValue :a="group.getMetric('_error_count')" :b="group.getMetric('_count')" />
         </div>
       </v-col>
       <v-col v-if="isSpan" cols="auto">
         <div class="grey--text font-weight-regular">P50</div>
-        <div><DurationValue :value="group.getMetric('p50(.duration)')" /></div>
+        <div><DurationValue :value="group.getMetric('p50(_duration)')" /></div>
       </v-col>
       <v-col v-if="isSpan" cols="auto">
         <div class="grey--text font-weight-regular">P90</div>
-        <div><DurationValue :value="group.getMetric('p90(.duration)')" /></div>
+        <div><DurationValue :value="group.getMetric('p90(_duration)')" /></div>
       </v-col>
       <v-col v-if="isSpan" cols="auto">
         <div class="grey--text font-weight-regular">P99</div>
-        <div><DurationValue :value="group.getMetric('p99(.duration)')" /></div>
+        <div><DurationValue :value="group.getMetric('p99(_duration)')" /></div>
       </v-col>
       <v-col v-if="isSpan" cols="auto">
         <div class="grey--text font-weight-regular">Max</div>
-        <div><DurationValue :value="group.getMetric('max(.duration)')" /></div>
+        <div><DurationValue :value="group.getMetric('max(_duration)')" /></div>
       </v-col>
     </v-row>
     <v-row>

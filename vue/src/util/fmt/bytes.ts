@@ -14,8 +14,8 @@ export function bytes(n: any, conf: Config = {}): string {
   }
 
   for (let suffix of ['KB', 'MB', 'GB', 'TB', 'PB']) {
-    n /= 1000
-    abs /= 1000
+    n /= 1024
+    abs /= 1024
     if (abs < 10) {
       return formatNum(n, 2, conf) + suffix
     }
@@ -44,8 +44,8 @@ export function bytesShort(n: any, conf: Config = {}): string {
   }
 
   for (let suffix of ['KB', 'MB', 'GB', 'TB', 'PB']) {
-    n /= 1000
-    abs /= 1000
+    n /= 1024
+    abs /= 1024
     if (abs < 100) {
       return trimMantissa(n, 1, conf) + suffix
     }

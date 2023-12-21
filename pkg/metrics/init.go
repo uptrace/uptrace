@@ -152,6 +152,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
 		handler := NewPrometheusHandler(app, mp)
 
 		g.POST("/write", handler.Write)
+		g.POST("/read", handler.Read)
 	})
 }
 

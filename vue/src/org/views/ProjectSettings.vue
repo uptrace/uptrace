@@ -36,7 +36,7 @@
             </v-checkbox>
             <v-checkbox
               v-model="project.data.groupFuncsByService"
-              label="Group funcs spans by service.name attribute"
+              label="Group funcs spans by service_name attribute"
               :disabled="disabled"
               hide-details="auto"
             ></v-checkbox>

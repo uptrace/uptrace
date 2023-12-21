@@ -137,8 +137,8 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 		}
 	}
 
-	slices.SortFunc(items, func(a, b *AttrKeyItem) bool {
-		return org.CoreAttrLess(a.Value, b.Value)
+	slices.SortFunc(items, func(a, b *AttrKeyItem) int {
+		return org.CompareAttrs(a.Value, b.Value)
 	})
 
 	return httputil.JSON(w, bunrouter.H{
@@ -196,7 +196,7 @@ func (h *AttrHandler) selectAttrValues(
 ) (any, bool, error) {
 	const limit = 1000
 
-	tableName := datapointTableForWhere(&f.TimeFilter)
+	tableName := DatapointTableForWhere(&f.TimeFilter)
 	items := make([]AttrValueItem, 0)
 
 	if err := h.CH.NewSelect().

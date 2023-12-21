@@ -92,7 +92,8 @@
                   v-else
                   :loading="tableQuery.loading"
                   :items="tableQuery.items"
-                  :columns="tableQuery.columns"
+                  :agg-columns="tableQuery.aggColumns"
+                  :grouping-columns="tableQuery.groupingColumns"
                   :order="tableQuery.order"
                   :axios-params="tableQuery.axiosParams"
                   v-on="tableItem.listeners"

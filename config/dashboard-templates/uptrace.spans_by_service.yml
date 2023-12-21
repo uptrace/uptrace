@@ -3,11 +3,11 @@ name: 'Uptrace: spans by service'
 
 table:
   metrics:
-    - uptrace.tracing.spans as $spans
+    - uptrace_tracing_spans as $spans
   query:
-    - group by service.name
+    - group by service_name
     - per_min(count($spans)) as spans_per_min
-    - count($spans{.status_code='error'}) / count($spans) as error_rate
+    - count($spans{_status_code='error'}) / count($spans) as error_rate
     - p50($spans) as p50
     - p90($spans) as p90
     - p99($spans) as p99
@@ -20,64 +20,64 @@ grid_rows:
     items:
       - title: Number of spans
         metrics:
-          - uptrace.tracing.spans as $spans
+          - uptrace_tracing_spans as $spans
         query:
-          - per_min(count($spans)) as spans group by .status_code
+          - per_min(count($spans)) as spans group by _status_code
         chart: stacked-bar
 
       - title: Error rate
         metrics:
-          - uptrace.tracing.spans as $spans
+          - uptrace_tracing_spans as $spans
         query:
-          - count($spans{.status_code='error'}) / count($spans) as error_rate
+          - count($spans{_status_code='error'}) / count($spans) as error_rate
         columns:
           error_rate: { unit: utilization }
 
       - title: P50 span duration
         metrics:
-          - uptrace.tracing.spans as $spans
+          - uptrace_tracing_spans as $spans
         query:
           - p50($spans)
 
       - title: P75 span duration
         metrics:
-          - uptrace.tracing.spans as $spans
+          - uptrace_tracing_spans as $spans
         query:
           - p75($spans)
 
       - title: P90 span duration
         metrics:
-          - uptrace.tracing.spans as $spans
+          - uptrace_tracing_spans as $spans
         query:
           - p90($spans)
 
       - title: Max span duration
         metrics:
-          - uptrace.tracing.spans as $spans
+          - uptrace_tracing_spans as $spans
         query:
           - max($spans)
 
       - title: Span duration heatmap
         type: heatmap
         size: large
-        metric: uptrace.tracing.spans
+        metric: uptrace_tracing_spans
         unit: microseconds
 
       - title: Slowest groups
         type: table
         size: large
         metrics:
-          - uptrace.tracing.spans as $spans
+          - uptrace_tracing_spans as $spans
         query:
-          - group by .group_id
+          - group by _group_id
           - p50($spans)
 
       - title: Top errors
         type: table
         size: large
         metrics:
-          - uptrace.tracing.events as $events
+          - uptrace_tracing_events as $events
         query:
-          - group by .group_id
+          - group by _group_id
           - per_min($events)
-          - where .is_error = 1
+          - where _is_error = 1

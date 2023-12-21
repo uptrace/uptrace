@@ -7,15 +7,15 @@ table:
       description: Total number of network devices on all servers
       type: gauge
       metrics:
-        - system.network.io as $net_io
+        - system_network_io as $net_io
       query:
-        - uniq($net_io, host.name, device)
+        - uniq($net_io, host_name, device)
 
     - title: Transmit/sec
       description: Transmit bytes per minute from all servers
       type: gauge
       metrics:
-        - system.network.io as $net_io
+        - system_network_io as $net_io
       query:
         - per_sec($net_io{direction=transmit})
 
@@ -23,7 +23,7 @@ table:
       description: Receive bytes per minute from all servers
       type: gauge
       metrics:
-        - system.network.io as $net_io
+        - system_network_io as $net_io
       query:
         - per_sec($net_io{direction=receive})
 
@@ -31,7 +31,7 @@ table:
       description: Total number of errors
       type: gauge
       metrics:
-        - system.network.errors as $net_errors
+        - system_network_errors as $net_errors
       query:
         - sum($net_errors)
 
@@ -39,17 +39,19 @@ table:
       description: Total number of dropped packets
       type: gauge
       metrics:
-        - system.network.dropped as $packets_dropped
+        - system_network_dropped as $packets_dropped
       query:
         - sum($packets_dropped)
 
   metrics:
-    - system.network.io as $net_io
-    - system.network.dropped as $packets_dropped
-    - system.network.errors as $net_errors
+    - system_network_connections as $net_conns
+    - system_network_io as $net_io
+    - system_network_dropped as $packets_dropped
+    - system_network_errors as $net_errors
   query:
-    - group by host.name
+    - group by host_name
     - group by device
+    - $net_conns
     - per_sec($net_io{direction=transmit}) as transmit
     - per_sec($net_io{direction=receive}) as receive
     - per_sec($packets_dropped) as packets_dropped
@@ -64,36 +66,42 @@ table:
 grid_rows:
   - title: General
     items:
+      - title: Network connections
+        metrics:
+          - system_network_connections as $net_conns
+        query:
+          - $net_conns
+
       - title: Network dropped packets
         metrics:
-          - system.network.dropped as $packets_dropped
+          - system_network_dropped as $packets_dropped
         query:
           - per_sec($packets_dropped)
 
       - title: Network errors
         metrics:
-          - system.network.errors as $net_errors
+          - system_network_errors as $net_errors
         query:
           - per_sec($net_errors)
 
       - title: Network transmit/receive IO
         metrics:
-          - system.network.io as $net_io
+          - system_network_io as $net_io
         query:
           - per_sec($net_io) group by direction
         chart: stacked-area
 
       - title: Network transmit/receive packets
         metrics:
-          - system.network.packets as $net_packets
+          - system_network_packets as $net_packets
         query:
           - per_sec($net_packets) group by direction
         chart: stacked-bar
 
       - title: Avg transmit/receive packet size
         metrics:
-          - system.network.io as $net_io
-          - system.network.packets as $net_packets
+          - system_network_io as $net_io
+          - system_network_packets as $net_packets
         query:
           - $net_io / $net_packets as packet_size group by direction
         columns:
@@ -102,10 +110,10 @@ grid_rows:
 monitors:
   - name: Network errors
     metrics:
-      - system.network.errors as $net_errors
+      - system_network_errors as $net_errors
     query:
       - $net_errors
-      - group by host.name
+      - group by host_name
     column: net_errors
     max_allowed_value: 0
     check_num_point: 3

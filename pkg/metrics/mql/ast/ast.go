@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -21,14 +22,13 @@ func String(expr Expr) string {
 
 var (
 	_ Expr = (*ParenExpr)(nil)
-	_ Expr = (*Name)(nil)
+	_ Expr = (*MetricExpr)(nil)
 	_ Expr = (*BinaryExpr)(nil)
 	_ Expr = (*FuncCall)(nil)
 )
 
 type Selector struct {
-	Exprs    []NamedExpr
-	Grouping []NamedExpr
+	Expr NamedExpr
 }
 
 type NamedExpr struct {
@@ -54,12 +54,13 @@ func (e ParenExpr) AppendTemplate(b []byte) []byte {
 	return b
 }
 
-type Name struct {
-	Name    string
-	Filters []Filter
+type MetricExpr struct {
+	Name     string
+	Filters  []Filter
+	Grouping GroupingElems
 }
 
-func (n *Name) AppendString(b []byte) []byte {
+func (n *MetricExpr) AppendString(b []byte) []byte {
 	b = append(b, n.Name...)
 
 	if len(n.Filters) > 0 {
@@ -76,7 +77,7 @@ func (n *Name) AppendString(b []byte) []byte {
 	return b
 }
 
-func (n *Name) AppendTemplate(b []byte) []byte {
+func (n *MetricExpr) AppendTemplate(b []byte) []byte {
 	b = append(b, n.Name...)
 	b = append(b, "$$"...)
 	return b
@@ -153,37 +154,16 @@ func (n Number) Float64() float64 {
 	}
 }
 
-type SimpleFuncCall struct {
-	Func *Func
-	Arg  string
-}
-
-func (fn *SimpleFuncCall) AppendString(b []byte) []byte {
-	b = append(b, fn.Func.Name...)
-	b = append(b, '(')
-	b = append(b, fn.Arg...)
-	b = append(b, ')')
-	return b
-}
-
-func (fn *SimpleFuncCall) AppendTemplate(b []byte) []byte {
-	return fn.AppendString(b)
-}
-
 type FuncCall struct {
-	Func string
-	Args []Expr
+	Func     string
+	Arg      Expr
+	Grouping GroupingElems
 }
 
 func (fn *FuncCall) AppendString(b []byte) []byte {
 	b = append(b, fn.Func...)
 	b = append(b, '(')
-	for i, arg := range fn.Args {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-		b = arg.AppendString(b)
-	}
+	b = fn.Arg.AppendString(b)
 	b = append(b, ')')
 	return b
 }
@@ -191,18 +171,13 @@ func (fn *FuncCall) AppendString(b []byte) []byte {
 func (fn *FuncCall) AppendTemplate(b []byte) []byte {
 	b = append(b, fn.Func...)
 	b = append(b, '(')
-	for i, arg := range fn.Args {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-		b = arg.AppendTemplate(b)
-	}
+	b = fn.Arg.AppendTemplate(b)
 	b = append(b, ')')
 	return b
 }
 
 type UniqExpr struct {
-	Name  Name
+	Name  MetricExpr
 	Attrs []string
 }
 
@@ -252,7 +227,43 @@ func (e *BinaryExpr) AppendTemplate(b []byte) []byte {
 //------------------------------------------------------------------------------
 
 type Grouping struct {
-	Elems []NamedExpr
+	Elems []GroupingElem
+}
+
+type GroupingElems []GroupingElem
+
+func (els GroupingElems) Attrs() []string {
+	attrs := make([]string, len(els))
+	for i, el := range els {
+		attrs[i] = el.Alias
+	}
+	return attrs
+}
+
+type GroupingElem struct {
+	Func  string
+	Name  string
+	Alias string
+}
+
+func (g GroupingElem) String() string {
+	return unsafeconv.String(g.AppendString(nil))
+}
+
+func (g GroupingElem) AppendString(b []byte) []byte {
+	if g.Func != "" {
+		b = append(b, g.Func...)
+		b = append(b, '(')
+	}
+	b = append(b, g.Name...)
+	if g.Func != "" {
+		b = append(b, ')')
+	}
+	if g.Alias != "" {
+		b = append(b, " AS "...)
+		b = append(b, g.Alias...)
+	}
+	return b
 }
 
 //------------------------------------------------------------------------------
@@ -436,4 +447,25 @@ func clean(attrKey string) string {
 		return strings.TrimPrefix(attrKey, "span")
 	}
 	return attrKey
+}
+
+func applyGrouping(expr Expr, grouping []GroupingElem) {
+	switch expr := expr.(type) {
+	case *MetricExpr:
+		expr.Grouping = append(expr.Grouping, grouping...)
+	case *FuncCall:
+		applyGrouping(expr.Arg, grouping)
+		expr.Grouping = append(expr.Grouping, grouping...)
+	case *UniqExpr:
+		// nothing
+	case *BinaryExpr:
+		applyGrouping(expr.LHS, grouping)
+		applyGrouping(expr.RHS, grouping)
+	case ParenExpr:
+		applyGrouping(expr.Expr, grouping)
+	case Number:
+		// nothing
+	default:
+		panic(fmt.Errorf("unsupported expr: %T", expr))
+	}
 }

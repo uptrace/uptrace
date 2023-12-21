@@ -19,6 +19,23 @@ or less what we do when deploying major changes to Uptrace Cloud.
 The license is changed from BSL to AGPL v3.0 which is a license approved by Open Software
 Foundation.
 
+#### Breaking
+
+- ClickHouse database schema is changed.
+
+- Metric names and attributes are automatically changed to comply with Prometheus/Loki restrictions,
+  for example, `service.name` becomes `service_name`.
+
+- Upgraded to
+  [v1.21](https://github.com/open-telemetry/opentelemetry-specification/blob/main/schemas/1.21.0)
+  OpenTelemetry semantic conventions which introduced some breaking changes to attribute names. Most
+  notably:
+
+  - `http.method` is renamed to `http.request.method`.
+  - `http.status_code` is renamed to `http.response.status_code`.
+
+  Uptrace will automatically rename attributes, but you may need to update your favorite queries.
+
 #### Features
 
 - Added [service graphs](https://app.uptrace.dev/overview/1/service-graph?). Service Graphs provide
@@ -28,6 +45,9 @@ Foundation.
 - Added ability to group dashboard charts into rows.
 
 - Added support for [Prometheus remote write](https://uptrace.dev/get/ingest/prometheus.html).
+
+- Added ability to use Uptrace as a Prometheus datasource in Grafana for projects that have
+  `prom_compat` flag enabled.
 
 - Added [annotations](https://uptrace.dev/get/annotations.html) support.
 
@@ -51,16 +71,6 @@ Foundation.
 
 - There is now a single TLS config shared by HTTP and GRPC servers and defined in `listen.tls`
   section. The old configuration still works, but the first TLS config will be used.
-
-- Upgraded to
-  [v1.21](https://github.com/open-telemetry/opentelemetry-specification/blob/main/schemas/1.21.0)
-  OpenTelemetry semantic conventions which introduced some breaking changes to attribute names. Most
-  notably:
-
-  - `http.method` is renamed to `http.request.method`.
-  - `http.status_code` is renamed to `http.response.status_code`.
-
-  Uptrace will automatically rename attributes, but you may need to update your favorite queries.
 
 ## v1.5.2 - July 6 2023
 

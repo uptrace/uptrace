@@ -36,10 +36,10 @@ type Dashboard struct {
 	GridQuery    string          `json:"gridQuery" bun:",nullzero"`
 	GridMaxWidth int             `json:"gridMaxWidth" bun:",nullzero"`
 
-	TableMetrics   []mql.MetricAlias        `json:"tableMetrics" bun:",type:jsonb,nullzero"`
-	TableQuery     string                   `json:"tableQuery" bun:",nullzero"`
-	TableGrouping  []string                 `json:"tableGrouping" bun:",type:jsonb,nullzero"`
-	TableColumnMap map[string]*MetricColumn `json:"tableColumnMap" bun:",type:jsonb,nullzero"`
+	TableMetrics   []mql.MetricAlias       `json:"tableMetrics" bun:",type:jsonb,nullzero"`
+	TableQuery     string                  `json:"tableQuery" bun:",nullzero"`
+	TableGrouping  []string                `json:"tableGrouping" bun:",type:jsonb,nullzero"`
+	TableColumnMap map[string]*TableColumn `json:"tableColumnMap" bun:",type:jsonb,nullzero"`
 
 	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
 	UpdatedAt time.Time `json:"updatedAt" bun:",nullzero"`
@@ -90,7 +90,7 @@ func (d *Dashboard) validate() error {
 		}
 	}
 	if d.TableColumnMap == nil {
-		d.TableColumnMap = make(map[string]*MetricColumn)
+		d.TableColumnMap = make(map[string]*TableColumn)
 	}
 
 	if d.CreatedAt.IsZero() {
@@ -99,6 +99,23 @@ func (d *Dashboard) validate() error {
 		d.UpdatedAt = now
 	}
 
+	return nil
+}
+
+type TableColumn struct {
+	MetricColumn `yaml:",inline"`
+
+	AggFunc           string `json:"aggFunc" yaml:"agg_func,omitempty"`
+	SparklineDisabled bool   `json:"sparklineDisabled" yaml:"sparkline_disabled,omitempty"`
+}
+
+func (c *TableColumn) Validate() error {
+	if err := c.MetricColumn.Validate(); err != nil {
+		return err
+	}
+	if c.AggFunc == "" {
+		return errors.New("table column agg can't be empty")
+	}
 	return nil
 }
 

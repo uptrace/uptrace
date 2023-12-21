@@ -229,19 +229,18 @@ type AttrName struct {
 var attrNames = []AttrName{
 	{
 		Canonical: attrkey.DeploymentEnvironment,
-		Alts:      []string{"deployment_environment", "environment", "env"},
+		Alts:      []string{"environment", "env"},
 	},
-	{Canonical: attrkey.ServiceName, Alts: []string{"service_name", "service", "component"}},
-	{Canonical: attrkey.ServiceVersion, Alts: []string{"service_version"}},
-	{Canonical: attrkey.URLScheme, Alts: []string{"http.scheme", "http_scheme"}},
-	{Canonical: attrkey.URLFull, Alts: []string{"http.url", "http_url"}},
-	{Canonical: attrkey.URLPath, Alts: []string{"http.target", "http_target"}},
-	{Canonical: attrkey.HTTPRequestMethod, Alts: []string{"http.method"}},
-	{Canonical: attrkey.HTTPResponseStatusCode, Alts: []string{"http.status_code"}},
-	{Canonical: attrkey.DBSystem, Alts: []string{"db.type"}},
+	{Canonical: attrkey.ServiceName, Alts: []string{"service", "component"}},
+	{Canonical: attrkey.URLScheme, Alts: []string{"http_scheme"}},
+	{Canonical: attrkey.URLFull, Alts: []string{"http_url"}},
+	{Canonical: attrkey.URLPath, Alts: []string{"http_target"}},
+	{Canonical: attrkey.HTTPRequestMethod, Alts: []string{"http_method"}},
+	{Canonical: attrkey.HTTPResponseStatusCode, Alts: []string{"http_status_code"}},
+	{Canonical: attrkey.DBSystem, Alts: []string{"db_type"}},
 	{
 		Canonical: attrkey.LogSeverity,
-		Alts:      []string{"log_severity", "severity", "log.level", "error_severity", "level"},
+		Alts:      []string{"severity", "log_level", "error_severity", "level"},
 	},
 }
 

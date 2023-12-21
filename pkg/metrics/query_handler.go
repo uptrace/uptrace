@@ -1,9 +1,11 @@
 package metrics
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -48,7 +50,6 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 
 	var grouping []string
 
-outer_loop:
 	for _, part := range f.allParts {
 		if part.Error.Wrapped != nil {
 			continue
@@ -57,22 +58,11 @@ outer_loop:
 		switch value := part.AST.(type) {
 		case *ast.Grouping:
 			for _, elem := range value.Elems {
-				switch expr := elem.Expr.(type) {
-				case *ast.Name:
-					if strings.HasPrefix(expr.Name, "$") {
-						part.Error.Wrapped = errors.New("individual grouping is forbidden")
-						continue outer_loop
-					}
-				case *ast.SimpleFuncCall:
-					if strings.HasPrefix(expr.Arg, "$") {
-						part.Error.Wrapped = errors.New("individual grouping is forbidden")
-						continue outer_loop
-					}
-				default:
-					return fmt.Errorf("unsupported grouping expr: %T", expr)
+				if strings.HasPrefix(elem.Name, "$") {
+					part.Error.Wrapped = errors.New("individual grouping is forbidden")
+				} else {
+					grouping = append(grouping, elem.Alias)
 				}
-
-				grouping = append(grouping, elem.Alias)
 			}
 		}
 	}
@@ -82,7 +72,8 @@ outer_loop:
 		return err
 	}
 
-	tableName, groupingInterval := datapointTableForGrouping(&f.TimeFilter, org.GroupingIntervalLarge)
+	tableName, groupingInterval := DatapointTableForGrouping(
+		&f.TimeFilter, org.GroupingIntervalLarge)
 	engine := mql.NewEngine(NewCHStorage(ctx, h.CH, &CHStorageConfig{
 		ProjectID:  f.Project.ID,
 		TimeFilter: f.TimeFilter,
@@ -95,7 +86,7 @@ outer_loop:
 	}))
 	result := engine.Run(f.allParts)
 
-	columns, table := convertToTable(result.Timeseries, result.Columns)
+	columns, table := convertToTable(result.Timeseries, result.Metrics, f.TableAgg)
 	sortTable(ctx, h.App, columns, table, f)
 
 	if span := trace.SpanFromContext(ctx); span.IsRecording() {
@@ -134,34 +125,35 @@ outer_loop:
 }
 
 type ColumnInfo struct {
-	Name    string `json:"name"`
-	Unit    string `json:"unit"`
-	IsGroup bool   `json:"isGroup"`
+	Name      string `json:"name"`
+	Unit      string `json:"unit"`
+	IsGroup   bool   `json:"isGroup"`
+	TableFunc string `json:"tableFunc"`
 }
 
 func convertToTable(
-	timeseries []mql.Timeseries, columnNames []string,
+	timeseries []*mql.Timeseries, metrics []mql.MetricInfo, tableAgg map[string]string,
 ) ([]*ColumnInfo, []map[string]any) {
 	columnMap := make(map[string]*ColumnInfo)
 	var columns []*ColumnInfo
 
-	for _, columnName := range columnNames {
-		if strings.HasPrefix(columnName, "_") {
+	for i := range metrics {
+		metric := &metrics[i]
+		if strings.HasPrefix(metric.Name, "_") {
 			continue
 		}
 		col := &ColumnInfo{
-			Name: columnName,
+			Name:      metric.Name,
+			TableFunc: metric.TableFunc,
 		}
-		columnMap[columnName] = col
+		columnMap[metric.Name] = col
 		columns = append(columns, col)
 	}
 
 	rowMap := make(map[uint64]map[string]any)
 
 	var buf []byte
-	for i := range timeseries {
-		ts := &timeseries[i]
-
+	for _, ts := range timeseries {
 		col, ok := columnMap[ts.MetricName]
 		if !ok {
 			col := &ColumnInfo{
@@ -172,18 +164,18 @@ func convertToTable(
 		}
 		col.Unit = ts.Unit
 
-		for _, elem := range ts.Grouping {
-			if _, ok := columnMap[elem.Alias]; !ok {
+		for _, attrKey := range ts.Grouping {
+			if _, ok := columnMap[attrKey]; !ok {
 				col := &ColumnInfo{
-					Name:    elem.Alias,
+					Name:    attrKey,
 					IsGroup: true,
 				}
-				columnMap[elem.Alias] = col
+				columnMap[attrKey] = col
 				columns = append(columns, col)
 			}
 		}
 
-		buf = ts.Attrs.Bytes(buf[:0])
+		buf = ts.Attrs.Bytes(buf[:0], nil)
 		hash := xxh3.Hash(buf)
 
 		row, ok := rowMap[hash]
@@ -194,7 +186,7 @@ func convertToTable(
 			row["_name"] = ts.Attrs.String()
 			row["_query"] = ts.WhereQuery()
 
-			buf = ts.Attrs.Bytes(buf[:0])
+			buf = ts.Attrs.Bytes(buf[:0], nil)
 			row["_hash"] = strconv.FormatUint(xxh3.Hash(buf), 10)
 
 			for _, kv := range ts.Attrs {
@@ -215,7 +207,7 @@ func convertToTable(
 			}
 		}
 
-		value := ts.Value[0]
+		value := tableValue(ts.Value, tableAgg[col.Name])
 		if col.Unit == bunconv.UnitTime {
 			row[ts.MetricName] = value * 1000
 		} else {
@@ -261,22 +253,22 @@ func sortTable(
 	case nil:
 		return
 	case float64:
-		slices.SortFunc(table, func(a, b map[string]any) bool {
+		slices.SortFunc(table, func(a, b map[string]any) int {
 			v1, _ := a[f.SortBy].(float64)
 			v2, _ := b[f.SortBy].(float64)
 			if f.SortDesc {
-				return v1 > v2
+				return cmp.Compare(v2, v1)
 			}
-			return v1 < v2
+			return cmp.Compare(v1, v2)
 		})
 	case string:
-		slices.SortFunc(table, func(a, b map[string]any) bool {
+		slices.SortFunc(table, func(a, b map[string]any) int {
 			v1, _ := a[f.SortBy].(string)
 			v2, _ := b[f.SortBy].(string)
 			if f.SortDesc {
-				return strings.Compare(v1, v2) == 1
+				return strings.Compare(v2, v1)
 			}
-			return strings.Compare(v1, v2) == -1
+			return strings.Compare(v1, v2)
 		})
 	default:
 		app.Zap(ctx).Error("unsupported table value type",
@@ -318,14 +310,13 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	timeseries, timeCol, columnNames := h.selectTimeseries(ctx, f, metricMap)
+	timeseries, timeCol, metrics := h.selectTimeseries(ctx, f, metricMap)
 	jsonTimeseries := make([]Timeseries, len(timeseries))
 
 	columnMap := make(map[string]*ColumnInfo)
 	var columns []*ColumnInfo
 
-	for i := range timeseries {
-		src := &timeseries[i]
+	for i, src := range timeseries {
 		dest := &jsonTimeseries[i]
 
 		name := src.Name()
@@ -346,13 +337,15 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 		}
 	}
 
-	if len(timeseries) == 0 {
-		for _, colName := range columnNames {
-			columns = append(columns, &ColumnInfo{
-				Name: colName,
-				// no unit
-			})
+	for i := range metrics {
+		metric := &metrics[i]
+		if _, ok := columnMap[metric.Name]; ok {
+			continue
 		}
+		columns = append(columns, &ColumnInfo{
+			Name: metric.Name,
+			// no unit
+		})
 	}
 
 	return httputil.JSON(w, bunrouter.H{
@@ -365,8 +358,9 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 
 func (h *QueryHandler) selectTimeseries(
 	ctx context.Context, f *QueryFilter, metricMap map[string]*Metric,
-) ([]mql.Timeseries, []time.Time, []string) {
-	tableName, groupingInterval := datapointTableForGrouping(&f.TimeFilter, org.GroupingIntervalLarge)
+) ([]*mql.Timeseries, []time.Time, []mql.MetricInfo) {
+	tableName, groupingInterval := DatapointTableForGrouping(
+		&f.TimeFilter, org.GroupingIntervalLarge)
 	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
 		ProjectID:  f.Project.ID,
 		TimeFilter: f.TimeFilter,
@@ -378,7 +372,7 @@ func (h *QueryHandler) selectTimeseries(
 	engine := mql.NewEngine(storage)
 	result := engine.Run(f.allParts)
 	timeCol := bunutil.FillTime(nil, f.TimeGTE, f.TimeLT, groupingInterval)
-	return result.Timeseries, timeCol, result.Columns
+	return result.Timeseries, timeCol, result.Metrics
 }
 
 //------------------------------------------------------------------------------
@@ -407,7 +401,8 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	tableName, groupingInterval := datapointTableForGrouping(&f.TimeFilter, org.GroupingIntervalLarge)
+	tableName, groupingInterval := DatapointTableForGrouping(
+		&f.TimeFilter, org.GroupingIntervalLarge)
 	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
 		ProjectID:  f.Project.ID,
 		TimeFilter: f.TimeFilter,
@@ -420,7 +415,7 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 	engine := mql.NewEngine(storage)
 	result := engine.Run(f.allParts)
 
-	columns, table := convertToTable(result.Timeseries, result.Columns)
+	columns, table := convertToTable(result.Timeseries, result.Metrics, f.TableAgg)
 
 	var values map[string]any
 	if len(table) > 0 {
@@ -459,7 +454,8 @@ func (h *QueryHandler) Heatmap(w http.ResponseWriter, req bunrouter.Request) err
 func (h *QueryHandler) selectMetricHeatmap(
 	ctx context.Context, f *QueryFilter,
 ) (*histutil.Heatmap, error) {
-	tableName, groupingInterval := datapointTableForGrouping(&f.TimeFilter, org.GroupingIntervalLarge)
+	tableName, groupingInterval := DatapointTableForGrouping(
+		&f.TimeFilter, org.GroupingIntervalLarge)
 
 	q := h.CH.NewSelect().
 		ColumnExpr("quantilesBFloat16MergeState(0.5, 0.9, 0.99)(histogram) AS value").
@@ -513,4 +509,117 @@ func (h *QueryHandler) selectMetricHeatmap(
 	heatmap := histutil.BuildHeatmap(tdigestCol, timeCol)
 
 	return heatmap, nil
+}
+
+//------------------------------------------------------------------------------
+
+func tableValue(value []float64, aggFunc string) float64 {
+	switch aggFunc {
+	case mql.TableFuncMin:
+		return minTableValue(value)
+	case mql.TableFuncMax:
+		return maxTableValue(value)
+	case mql.TableFuncAvg:
+		return avgTableValue(value)
+	case mql.TableFuncSum:
+		return sumTableValue(value)
+	case "", mql.TableFuncLast:
+		return lastTableValue(value)
+	default:
+		return math.NaN()
+	}
+}
+
+func minTableValue(ns []float64) float64 {
+	min := math.MaxFloat64
+	for _, n := range ns {
+		if math.IsNaN(n) {
+			continue
+		}
+		if n < min {
+			min = n
+		}
+	}
+	if min != math.MaxFloat64 {
+		return min
+	}
+	return math.NaN()
+}
+
+func maxTableValue(ns []float64) float64 {
+	max := -math.MaxFloat64
+	for _, n := range ns {
+		if math.IsNaN(n) {
+			continue
+		}
+		if n > max {
+			max = n
+		}
+	}
+	if max != -math.MaxFloat64 {
+		return max
+	}
+	return math.NaN()
+}
+
+func lastTableValue(ns []float64) float64 {
+	if len(ns) >= 1 {
+		return ns[len(ns)-2]
+	}
+	if len(ns) >= 1 {
+		return ns[0]
+	}
+	return math.NaN()
+}
+
+func avgTableValue(ns []float64) float64 {
+	sum, count := sumCount(ns)
+	if count > 0 {
+		return sum / float64(count)
+	}
+	return math.NaN()
+}
+
+func sumTableValue(ns []float64) float64 {
+	sum, _ := sumCount(ns)
+	return sum
+}
+
+func sumCount(ns []float64) (float64, int) {
+	var sum float64
+	var count int
+	for _, n := range ns {
+		if !math.IsNaN(n) {
+			sum += n
+			count++
+		}
+	}
+	return sum, count
+}
+
+func deltaTableValue(value []float64) float64 {
+	for i, num := range value {
+		if !math.IsNaN(num) {
+			value = value[i:]
+			break
+		}
+	}
+
+	if len(value) == 0 {
+		return 0
+	}
+
+	prevNum := value[0]
+	value = value[1:]
+	var sum float64
+
+	for _, num := range value {
+		if math.IsNaN(num) || num <= prevNum {
+			continue
+		}
+		sum += num - prevNum
+		prevNum = num
+	}
+
+	return sum
 }

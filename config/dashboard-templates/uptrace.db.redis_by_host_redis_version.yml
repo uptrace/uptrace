@@ -3,14 +3,14 @@ name: 'DB: Redis'
 
 table:
   metrics:
-    - redis.commands as $cmds
-    - redis.db.keys as $db_keys
-    - redis.memory.rss as $rss
-    - redis.memory.fragmentation_ratio as $fragmentation
-    - redis.connections.rejected as $conns_rejected
+    - redis_commands as $cmds
+    - redis_db_keys as $db_keys
+    - redis_memory_rss as $rss
+    - redis_memory_fragmentation_ratio as $fragmentation
+    - redis_connections_rejected as $conns_rejected
   query:
-    - group by host.name
-    - group by redis.version
+    - group by host_name
+    - group by redis_version
     - $cmds
     - $rss
     - $db_keys
@@ -24,7 +24,7 @@ grid_rows:
         description: Number of keys in all Redis databases
         type: gauge
         metrics:
-          - redis.db.keys as $keys
+          - redis_db_keys as $keys
         query:
           - $keys
 
@@ -32,15 +32,15 @@ grid_rows:
         description: Number of processed commands
         type: gauge
         metrics:
-          - redis.commands as $cmds
+          - redis_commands as $cmds
         query:
           - $cmds
 
-      - title: RAM fragm.
+      - title: RAM fragm_
         description: RAM fragmentation ratio (RSS / allocated RAM)
         type: gauge
         metrics:
-          - redis.memory.fragmentation_ratio as $mem_frag
+          - redis_memory_fragmentation_ratio as $mem_frag
         query:
           - $mem_frag
         columns:
@@ -50,7 +50,7 @@ grid_rows:
         description: Incoming network traffic
         type: gauge
         metrics:
-          - redis.net.input as $input
+          - redis_net_input as $input
         query:
           - per_min($input)
 
@@ -58,7 +58,7 @@ grid_rows:
         description: Outgoing network traffic
         type: gauge
         metrics:
-          - redis.net.output as $output
+          - redis_net_output as $output
         query:
           - per_min($output)
 
@@ -66,26 +66,26 @@ grid_rows:
     items:
       - title: Fragmentation ratio
         metrics:
-          - redis.memory.fragmentation_ratio as $fragmentation
+          - redis_memory_fragmentation_ratio as $fragmentation
         query:
           - $fragmentation
 
       - title: Number of rejected connections
         metrics:
-          - redis.connections.rejected as $conns_rejected
+          - redis_connections_rejected as $conns_rejected
         query:
           - per_min($conns_rejected) as conns_rejected
 
       - title: Number of evicted keys
         metrics:
-          - redis.keys.evicted as $keys_evicted
+          - redis_keys_evicted as $keys_evicted
         query:
           - per_min($keys_evicted) as keys_evicted
 
       - title: Total number of keys and number of keys with a TTL
         metrics:
-          - redis.db.keys as $db_keys
-          - redis.db.expires as $db_expires
+          - redis_db_keys as $db_keys
+          - redis_db_expires as $db_expires
         query:
           - $db_keys
           - $db_expires
@@ -93,8 +93,8 @@ grid_rows:
 
       - title: Keyspace hit rate
         metrics:
-          - redis.keyspace.hits as $hits
-          - redis.keyspace.misses as $misses
+          - redis_keyspace_hits as $hits
+          - redis_keyspace_misses as $misses
         query:
           - per_min($hits) as hits
           - per_min($misses) as misses
@@ -104,22 +104,22 @@ grid_rows:
 
       - title: Number of processed commands
         metrics:
-          - redis.commands as $commands
+          - redis_commands as $commands
         query:
           - $commands
 
       - title: Biggest input and output client buffers
         metrics:
-          - redis.clients.max_input_buffer as $input
-          - redis.clients.max_output_buffer as $output
+          - redis_clients_max_input_buffer as $input
+          - redis_clients_max_output_buffer as $output
         query:
           - $input
           - $output
 
       - title: Number of bytes read and written from the network
         metrics:
-          - redis.net.input as $input
-          - redis.net.output as $output
+          - redis_net_input as $input
+          - redis_net_output as $output
         query:
           - per_min($input) as input_per_min
           - per_min($output) as output_per_min
@@ -130,7 +130,7 @@ grid_rows:
 
       - title: RSS memory
         metrics:
-          - redis.memory.rss as $rss
+          - redis_memory_rss as $rss
         query:
           - $rss
         columns:

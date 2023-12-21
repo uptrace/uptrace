@@ -11,6 +11,30 @@ import (
 
 const querySeparator = " | "
 
+func ParseColumns(queryStr string) (map[string]ast.Expr, error) {
+	query, err := ParseQueryError(queryStr)
+	if err != nil {
+		return nil, err
+	}
+
+	columnMap := make(map[string]ast.Expr)
+
+	for _, part := range query.Parts {
+		if part.Error.Wrapped != nil {
+			continue
+		}
+
+		sel, ok := part.AST.(*ast.Selector)
+		if !ok {
+			continue
+		}
+
+		columnMap[sel.Expr.Alias] = sel.Expr.Expr
+	}
+
+	return columnMap, nil
+}
+
 func ParseQueryError(query string) (*ParsedQuery, error) {
 	parsedQuery := ParseQuery(query)
 	for _, part := range parsedQuery.Parts {

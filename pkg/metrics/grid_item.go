@@ -78,18 +78,18 @@ func (item *BaseGridItem) Validate() error {
 
 	switch item.Type {
 	case GridItemHeatmap:
-		item.Width = 12
+		item.Width = 18
 		item.Height = 40
 	case GridItemGauge:
 		if item.Width == 0 {
-			item.Width = 2
+			item.Width = 3
 		}
 		if item.Height == 0 {
 			item.Height = 10
 		}
 	default:
 		if item.Width == 0 {
-			item.Width = 6
+			item.Width = 12
 		}
 		if item.Height == 0 {
 			item.Height = 28
@@ -414,7 +414,7 @@ func (c *GaugeGridItem) Validate() error {
 		}
 	}
 	if c.Params.ColumnMap == nil {
-		c.Params.ColumnMap = make(map[string]*MetricColumn)
+		c.Params.ColumnMap = make(map[string]*GaugeColumn)
 	}
 
 	return nil
@@ -429,12 +429,25 @@ func (c *GaugeGridItem) Metrics() []string {
 }
 
 type GaugeGridItemParams struct {
-	Metrics   []mql.MetricAlias        `json:"metrics"`
-	Query     string                   `json:"query"`
-	ColumnMap map[string]*MetricColumn `json:"columnMap" bun:",nullzero"`
+	Metrics   []mql.MetricAlias       `json:"metrics"`
+	Query     string                  `json:"query"`
+	ColumnMap map[string]*GaugeColumn `json:"columnMap" bun:",nullzero"`
 
 	Template      string         `json:"template" bun:",nullzero"`
 	ValueMappings []ValueMapping `json:"valueMappings" bun:",nullzero"`
+}
+
+type GaugeColumn struct {
+	Unit    string `json:"unit" yaml:"unit,omitempty"`
+	AggFunc string `json:"aggFunc" yaml:"agg_func,omitempty"`
+}
+
+func (c *GaugeColumn) Validate() error {
+	c.Unit = bunconv.NormUnit(c.Unit)
+	if c.AggFunc == "" {
+		return errors.New("gauge column agg can't be empty")
+	}
+	return nil
 }
 
 type ValueMapping struct {

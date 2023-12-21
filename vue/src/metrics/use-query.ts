@@ -266,13 +266,15 @@ export function useTableQuery(
     return data.value?.columns ?? []
   })
 
-  const styledColumns = computed((): StyledColumnInfo[] => {
-    const items = columns.value.map((col) => {
-      return {
-        ...col,
-        ...columnMap.value[col.name],
-      }
-    })
+  const aggColumns = computed((): StyledColumnInfo[] => {
+    const items = columns.value
+      .filter((col) => !col.isGroup)
+      .map((col) => {
+        return {
+          ...col,
+          ...columnMap.value[col.name],
+        }
+      })
 
     const colorSet = new Set(colorScheme)
 
@@ -347,7 +349,8 @@ export function useTableQuery(
 
     query,
     queryError,
-    columns: styledColumns,
+    columns,
+    aggColumns,
     groupingColumns,
   })
 }

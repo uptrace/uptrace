@@ -155,10 +155,13 @@ func (s *MetricsServiceServer) process(
 	defer p.close(ctx)
 
 	for _, rms := range req.ResourceMetrics {
-		resource := make(AttrMap, len(rms.Resource.Attributes))
-		otlpconv.ForEachKeyValue(rms.Resource.Attributes, func(key string, value any) {
-			resource[key] = fmt.Sprint(value)
-		})
+		var resource AttrMap
+		if rms.Resource != nil {
+			resource = make(AttrMap, len(rms.Resource.Attributes))
+			otlpconv.ForEachKeyValue(rms.Resource.Attributes, func(key string, value any) {
+				resource[key] = fmt.Sprint(value)
+			})
+		}
 
 		for _, sm := range rms.ScopeMetrics {
 			var scope AttrMap

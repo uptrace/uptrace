@@ -24,7 +24,7 @@
       </v-toolbar>
 
       <splitpanes class="default-theme" style="height: calc(100vh - 64px)">
-        <pane size="100">
+        <pane size="70">
           <splitpanes horizontal>
             <pane size="30" min-size="10">
               <v-container fluid class="mx-auto fill-height" style="max-width: 920px">
@@ -45,6 +45,9 @@
               </v-container>
             </pane>
           </splitpanes>
+        </pane>
+        <pane size="30">
+          <slot name="options" />
         </pane>
       </splitpanes>
     </v-card>
@@ -81,7 +84,7 @@ export default defineComponent({
     },
     maxWidth: {
       type: String,
-      default: '1400px',
+      default: '1700px',
     },
   },
 
@@ -91,15 +94,13 @@ export default defineComponent({
 
     const dashMan = useDashboardManager()
     function submit() {
-      dashMan
-        .updateTable({
-          tableMetrics: props.dashboard.tableMetrics,
-          tableQuery: props.dashboard.tableQuery,
-          tableColumnMap: props.dashboard.tableColumnMap,
-        })
-        .then((dash) => {
-          ctx.emit('saved', dash)
-        })
+      if (!form.value.validate()) {
+        return
+      }
+
+      dashMan.updateTable(props.dashboard).then((dash) => {
+        ctx.emit('saved', dash)
+      })
     }
 
     return {

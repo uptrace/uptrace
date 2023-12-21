@@ -25,7 +25,9 @@ type QueryFilter struct {
 	Metric []string
 	Alias  []string
 	Query  string
-	Search string
+
+	Search   string
+	TableAgg map[string]string
 
 	parsedQuery *mql.ParsedQuery
 	allParts    []*mql.QueryPart

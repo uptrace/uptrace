@@ -3,11 +3,11 @@ name: 'DB: clients by pool name'
 
 table:
   metrics:
-    - db.client.connections.usage as $usage
-    - db.client.connections.timeouts as $timeouts
-    - db.client.connections.use_time as $use_time
+    - db_client_connections_usage as $usage
+    - db_client_connections_timeouts as $timeouts
+    - db_client_connections_use_time as $use_time
   query:
-    - group by pool.name
+    - group by pool_name
     - $usage as conns
     - $usage{state='idle'} as idle
     - $timeouts
@@ -23,7 +23,7 @@ grid_rows:
     items:
       - title: Number of queries
         metrics:
-          - db.client.connections.use_time as $use_time
+          - db_client_connections_use_time as $use_time
         query:
           - per_min(count($use_time)) as queries group by status
         chart: stacked-bar
@@ -31,12 +31,12 @@ grid_rows:
       - title: Query heatmap
         type: heatmap
         size: large
-        metric: db.client.connections.use_time
+        metric: db_client_connections_use_time
         unit: milliseconds
 
       - title: Query percentiles
         metrics:
-          - db.client.connections.use_time as $use_time
+          - db_client_connections_use_time as $use_time
         query:
           - p50($use_time) as p50
           - p90($use_time) as p90
@@ -49,47 +49,47 @@ grid_rows:
 
       - title: Number of established connections
         metrics:
-          - db.client.connections.usage as $usage
-          - db.client.connections.max as $max
+          - db_client_connections_usage as $usage
+          - db_client_connections_max as $max
         query:
           - $usage
           - $max
 
       - title: Number of idle and used connections
         metrics:
-          - db.client.connections.usage as $usage
+          - db_client_connections_usage as $usage
         query:
           - $usage group by state
         chart: stacked-bar
 
       - title: Max and min number of idle open connections allowed
         metrics:
-          - db.client.connections.idle.max as $idle_max
-          - db.client.connections.idle.min as $idle_min
+          - db_client_connections_idle_max as $idle_max
+          - db_client_connections_idle_min as $idle_min
         query:
           - $idle_max
           - $idle_min
 
       - title: The number of pending requests for an open connection
         metrics:
-          - db.client.connections.pending_requests as $pending
+          - db_client_connections_pending_requests as $pending
         query:
           - $pending
 
       - title: Time it took to create a new connection
         type: heatmap
         size: large
-        metric: db.client.connections.create_time
+        metric: db_client_connections_create_time
         unit: milliseconds
 
       - title: P50 time it took to create a new connection
         metrics:
-          - db.client.connections.create_time as $create_time
+          - db_client_connections_create_time as $create_time
         query:
           - p50($create_time)
 
       - title: Max time it took to create a new connection
         metrics:
-          - db.client.connections.create_time as $create_time
+          - db_client_connections_create_time as $create_time
         query:
           - max($create_time)

@@ -7,7 +7,7 @@ table:
       description: Number of topics in the cluster
       type: gauge
       metrics:
-        - kafka.topic.partitions as $parts
+        - kafka_topic_partitions as $parts
       query:
         - uniq($parts, topic)
 
@@ -15,7 +15,7 @@ table:
       description: Consumer group lag
       type: gauge
       metrics:
-        - kafka.consumer_group.lag_sum as $lag
+        - kafka_consumer_group_lag_sum as $lag
       query:
         - sum($lag)
 
@@ -23,7 +23,7 @@ table:
       description: Number of brokers in the cluster
       type: gauge
       metrics:
-        - kafka.brokers as $brokers
+        - kafka_brokers as $brokers
       query:
         - $brokers
 
@@ -31,15 +31,15 @@ table:
       description: Number of members in the consumer group
       type: gauge
       metrics:
-        - kafka.consumer_group.members as $members
+        - kafka_consumer_group_members as $members
       query:
         - $members
 
   metrics:
-    - kafka.topic.partitions as $parts
-    - kafka.consumer_group.offset_sum as $offset
-    - kafka.consumer_group.lag_sum as $lag
-    - kafka.partition.replicas_in_sync as $replicas_in_sync
+    - kafka_topic_partitions as $parts
+    - kafka_consumer_group_offset_sum as $offset
+    - kafka_consumer_group_lag_sum as $lag
+    - kafka_partition_replicas_in_sync as $replicas_in_sync
   query:
     - group by topic
     - $parts
@@ -52,18 +52,18 @@ grid_rows:
     items:
       - title: Number of partitions in the topic
         metrics:
-          - kafka.topic.partitions as $parts
+          - kafka_topic_partitions as $parts
         query:
           - $parts
 
       - title: Number of processed messages across partitions of the topic
         metrics:
-          - kafka.consumer_group.offset_sum as $offset
+          - kafka_consumer_group_offset_sum as $offset
         query:
           - per_min(delta($offset)) as processed group by group
 
       - title: Consumer group lag across all partitions of the topic
         metrics:
-          - kafka.consumer_group.lag_sum as $lag
+          - kafka_consumer_group_lag_sum as $lag
         query:
           - $lag group by group

@@ -9,42 +9,44 @@ table:
       type: gauge
       template: ${num_running} of ${num_all}
       metrics:
-        - k8s.pod.phase as $phase
+        - k8s_pod_phase as $phase
       query:
-        - uniq($phase{_value=2}, k8s.pod.name) as num_running
-        - uniq($phase, k8s.pod.name) as num_all
+        - uniq($phase{_value=2}, k8s_pod_name) as num_running
+        - uniq($phase, k8s_pod_name) as num_all
 
     - title: Total RSS
       description: RSS usage on all pods
       type: gauge
       metrics:
-        - k8s.pod.memory.rss as $rss
+        - k8s_pod_memory_rss as $rss
       query:
-        - last(sum($rss))
+        - sum($rss)
       columns:
         sum($rss):
           unit: bytes
+          agg_func: last
 
     - title: Total FS
       description: Total filesystem usage on all nodes
       type: gauge
       metrics:
-        - k8s.pod.filesystem.usage as $usage
+        - k8s_pod_filesystem_usage as $usage
       query:
-        - last(sum($usage))
+        - sum($usage)
       columns:
         sum($usage):
           unit: bytes
+          agg_func: last
 
   metrics:
-    - k8s.pod.memory.rss as $rss_mem
-    - k8s.pod.memory.usage as $mem_usage
-    - k8s.pod.cpu.utilization as $cpu_util
-    - k8s.pod.filesystem.usage as $fs_usage
-    - k8s.pod.filesystem.capacity as $fs_capacity
+    - k8s_pod_memory_rss as $rss_mem
+    - k8s_pod_memory_usage as $mem_usage
+    - k8s_pod_cpu_utilization as $cpu_util
+    - k8s_pod_filesystem_usage as $fs_usage
+    - k8s_pod_filesystem_capacity as $fs_capacity
   query:
-    - group by k8s.namespace.name
-    - group by k8s.pod.name
+    - group by k8s_namespace_name
+    - group by k8s_pod_name
     - $cpu_util
     - $mem_usage
     - $rss_mem
@@ -70,38 +72,40 @@ grid_rows:
         type: gauge
         template: ${num_running} of ${num_all}
         metrics:
-          - k8s.pod.phase as $phase
+          - k8s_pod_phase as $phase
         query:
-          - uniq($phase{_value=2}, k8s.pod.name) as num_running
-          - uniq($phase, k8s.pod.name) as num_all
+          - uniq($phase{_value=2}, k8s_pod_name) as num_running
+          - uniq($phase, k8s_pod_name) as num_all
 
       - title: Total RSS
         description: RSS usage on all pods
         type: gauge
         metrics:
-          - k8s.pod.memory.rss as $rss
+          - k8s_pod_memory_rss as $rss
         query:
-          - last(sum($rss))
+          - sum($rss)
         columns:
           sum($rss):
             unit: bytes
+            agg_func: last
 
       - title: Total FS
         description: Total filesystem usage on all nodes
         type: gauge
         metrics:
-          - k8s.pod.filesystem.usage as $usage
+          - k8s_pod_filesystem_usage as $usage
         query:
-          - last(sum($usage))
+          - sum($usage)
         columns:
           sum($usage):
             unit: bytes
+            agg_func: last
 
   - title: General
     items:
       - title: CPU utilization
         metrics:
-          - k8s.pod.cpu.utilization as $utilization
+          - k8s_pod_cpu_utilization as $utilization
         query:
           - $utilization
         columns:
@@ -110,7 +114,7 @@ grid_rows:
 
       - title: RSS memory
         metrics:
-          - k8s.pod.memory.rss as $rss
+          - k8s_pod_memory_rss as $rss
         query:
           - $rss
         columns:
@@ -119,7 +123,7 @@ grid_rows:
 
       - title: RAM usage
         metrics:
-          - k8s.pod.memory.usage as $usage
+          - k8s_pod_memory_usage as $usage
         query:
           - $usage
         columns:
@@ -128,7 +132,7 @@ grid_rows:
 
       - title: Memory working set
         metrics:
-          - k8s.pod.memory.working_set as $working_set
+          - k8s_pod_memory_working_set as $working_set
         query:
           - $working_set
         columns:
@@ -137,13 +141,13 @@ grid_rows:
 
       - title: Memory major page faults
         metrics:
-          - k8s.pod.memory.major_page_faults as $major_page_faults
+          - k8s_pod_memory_major_page_faults as $major_page_faults
         query:
           - $major_page_faults
 
       - title: Memory page faults
         metrics:
-          - k8s.pod.memory.page_faults as $page_faults
+          - k8s_pod_memory_page_faults as $page_faults
         query:
           - delta($page_faults)
         columns:
@@ -157,7 +161,7 @@ grid_rows:
 
       - title: Filesystem available
         metrics:
-          - k8s.pod.filesystem.available as $available
+          - k8s_pod_filesystem_available as $available
         query:
           - $available
         columns:
@@ -166,7 +170,7 @@ grid_rows:
 
       - title: Filesystem usage
         metrics:
-          - k8s.pod.filesystem.usage as $usage
+          - k8s_pod_filesystem_usage as $usage
         query:
           - $usage
         columns:

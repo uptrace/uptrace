@@ -106,9 +106,6 @@ export default defineComponent({
         dashId: props.dashboard.id,
         dashKind: props.dashKind,
 
-        width: 2,
-        height: 0,
-
         type: GridItemType.Gauge,
         params: {
           metrics: [],

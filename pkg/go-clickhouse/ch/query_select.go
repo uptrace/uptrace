@@ -543,6 +543,20 @@ func (q *SelectQuery) appendWith(fmter chschema.Formatter, b []byte) (_ []byte, 
 	return b, nil
 }
 
+func (q *SelectQuery) Query(ctx context.Context) (*Rows, error) {
+	if q.err != nil {
+		return nil, q.err
+	}
+
+	queryBytes, err := q.AppendQuery(q.db.fmter, q.db.makeQueryBytes())
+	if err != nil {
+		return nil, err
+	}
+	query := internal.String(queryBytes)
+
+	return q.db.QueryContext(ctx, query)
+}
+
 func (q *SelectQuery) Scan(ctx context.Context, values ...any) error {
 	return q.scan(ctx, false, values...)
 }

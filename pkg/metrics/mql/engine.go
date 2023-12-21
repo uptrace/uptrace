@@ -2,69 +2,87 @@ package mql
 
 import (
 	"fmt"
+	"math"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
-	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
+	"github.com/zeebo/xxh3"
+	"go4.org/syncutil"
 )
 
 type Engine struct {
 	storage Storage
 
 	consts map[string]float64
-	vars   map[string][]Timeseries
+	vars   map[string][]*Timeseries
 	buf    []byte
 }
 
 type Storage interface {
 	Consts() map[string]float64
-	MakeTimeseries(f *TimeseriesFilter) []Timeseries
-	SelectTimeseries(f *TimeseriesFilter) ([]Timeseries, error)
+	MakeTimeseries(f *TimeseriesFilter) *Timeseries
+	SelectTimeseries(f *TimeseriesFilter) ([]*Timeseries, error)
 }
 
 func NewEngine(storage Storage) *Engine {
 	return &Engine{
 		storage: storage,
 		consts:  storage.Consts(),
-		vars:    make(map[string][]Timeseries),
+		vars:    make(map[string][]*Timeseries),
 	}
 }
 
 type Result struct {
-	Columns    []string
-	Timeseries []Timeseries
+	Metrics    []MetricInfo
+	Timeseries []*Timeseries
+}
+
+type MetricInfo struct {
+	Name      string
+	TableFunc string
 }
 
 func (e *Engine) Run(parts []*QueryPart) *Result {
 	exprs, timeseriesExprs := compile(parts)
+	var wg sync.WaitGroup
 
+	gate := syncutil.NewGate(2)
 	for _, expr := range timeseriesExprs {
-		f := &TimeseriesFilter{
-			Metric: expr.Metric,
+		expr := expr
 
-			AggFunc: expr.AggFunc,
-			Attr:    expr.Attr,
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
 
-			TableFunc: expr.TableFunc,
-			Uniq:      expr.Uniq,
+			f := &TimeseriesFilter{
+				Metric: expr.Metric,
 
-			Filters: expr.Filters,
-			Where:   expr.Where,
+				CHFunc: expr.CHFunc,
+				Attr:   expr.Attr,
 
-			Grouping: expr.Grouping,
-		}
+				Uniq:     expr.Uniq,
+				Filters:  expr.Filters,
+				Where:    expr.Where,
+				Grouping: expr.Grouping,
+			}
 
-		timeseries, err := e.storage.SelectTimeseries(f)
-		if err != nil {
-			expr.Part.Error.Wrapped = err
-			continue
-		}
+			gate.Start()
+			defer gate.Done()
 
-		expr.Timeseries = timeseries
+			timeseries, err := e.storage.SelectTimeseries(f)
+			if err != nil {
+				expr.Part.Error.Wrapped = err
+			} else {
+				expr.Timeseries = timeseries
+			}
+		}()
 	}
 
+	wg.Wait()
 	result := new(Result)
 
 	for _, expr := range exprs {
@@ -88,7 +106,10 @@ func (e *Engine) Run(parts []*QueryPart) *Result {
 		e.vars[metricName] = tmp
 
 		if !strings.HasPrefix(metricName, "_") {
-			result.Columns = append(result.Columns, metricName)
+			result.Metrics = append(result.Metrics, MetricInfo{
+				Name:      metricName,
+				TableFunc: TableFuncName(expr.AST),
+			})
 			result.Timeseries = append(result.Timeseries, tmp...)
 		}
 	}
@@ -96,9 +117,8 @@ func (e *Engine) Run(parts []*QueryPart) *Result {
 	return result
 }
 
-func updateTimeseries(timeseries []Timeseries, metricName, nameTemplate string, isAlias bool) {
-	for i := range timeseries {
-		ts := &timeseries[i]
+func updateTimeseries(timeseries []*Timeseries, metricName, nameTemplate string, isAlias bool) {
+	for _, ts := range timeseries {
 		ts.MetricName = metricName
 		ts.NameTemplate = nameTemplate
 		if isAlias {
@@ -107,34 +127,30 @@ func updateTimeseries(timeseries []Timeseries, metricName, nameTemplate string, 
 	}
 }
 
-func (e *Engine) eval(expr Expr) ([]Timeseries, error) {
+func (e *Engine) eval(expr Expr) ([]*Timeseries, error) {
 	switch expr := expr.(type) {
 	case *TimeseriesExpr:
 		return expr.Timeseries, nil
 	case *RefExpr:
-		if ts, ok := e.vars[expr.Name.Name]; ok {
-			clone := make([]Timeseries, len(ts))
-			copy(clone, ts)
-			return clone, nil
-		}
-
-		if num, ok := e.consts[expr.Name.Name]; ok {
-			timeseries := e.storage.MakeTimeseries(nil)
-			ts := &timeseries[0]
-			for i := range ts.Value {
-				ts.Value[i] = num
-			}
+		if timeseries, ok := e.vars[expr.Expr.Name]; ok {
 			return timeseries, nil
 		}
 
-		return nil, fmt.Errorf("can't resolve name %q", expr.Name)
+		if num, ok := e.consts[expr.Expr.Name]; ok {
+			ts := e.storage.MakeTimeseries(nil)
+			for i := range ts.Value {
+				ts.Value[i] = num
+			}
+			return []*Timeseries{ts}, nil
+		}
+
+		return nil, fmt.Errorf("can't resolve name %q", ast.String(expr.Expr))
 	case *BinaryExpr:
 		return e.binaryExpr(expr)
 	case ParenExpr:
 		return e.eval(expr.Expr)
 	case *ast.Number:
-		timeseries := e.storage.MakeTimeseries(nil)
-		ts := &timeseries[0]
+		ts := e.storage.MakeTimeseries(nil)
 
 		num, err := expr.ConvertValue(ts.Unit)
 		if err != nil {
@@ -145,7 +161,7 @@ func (e *Engine) eval(expr Expr) ([]Timeseries, error) {
 			ts.Value[i] = num
 		}
 
-		return timeseries, nil
+		return []*Timeseries{ts}, nil
 	case *FuncCall:
 		return e.callFunc(expr)
 	default:
@@ -155,8 +171,8 @@ func (e *Engine) eval(expr Expr) ([]Timeseries, error) {
 
 func (e *Engine) resolveNumber(expr Expr) Expr {
 	if ref, ok := expr.(*RefExpr); ok {
-		if num, ok := e.consts[ref.Name.Name]; ok {
-			return &ast.Number{
+		if num, ok := e.consts[ref.Expr.Name]; ok {
+			return ast.Number{
 				Text: strconv.FormatFloat(num, 'f', -1, 64),
 			}
 		}
@@ -164,7 +180,7 @@ func (e *Engine) resolveNumber(expr Expr) Expr {
 	return expr
 }
 
-func (e *Engine) binaryExpr(expr *BinaryExpr) ([]Timeseries, error) {
+func (e *Engine) binaryExpr(expr *BinaryExpr) ([]*Timeseries, error) {
 	lhs := e.resolveNumber(expr.LHS)
 	rhs := e.resolveNumber(expr.RHS)
 
@@ -252,8 +268,8 @@ func (e *Engine) binaryExpr(expr *BinaryExpr) ([]Timeseries, error) {
 }
 
 func (e *Engine) join(
-	lhs, rhs []Timeseries, op binaryOpFunc,
-) ([]Timeseries, error) {
+	lhs, rhs []*Timeseries, op binaryOpFunc,
+) ([]*Timeseries, error) {
 	if len(lhs) == 0 && len(rhs) == 0 {
 		return nil, nil
 	}
@@ -264,50 +280,103 @@ func (e *Engine) join(
 		return e.evalBinaryExprNumRight(lhs, 0, op)
 	}
 
-	if !groupingEqual(lhs[0].Grouping, rhs[0].Grouping) {
-		return nil, fmt.Errorf("can't join timeseries with different grouping")
+	lhsGrouping := lhs[0].Grouping
+	rhsGrouping := rhs[0].Grouping
+
+	if slices.Equal(lhsGrouping, rhsGrouping) {
+		return e.fullJoin(lhs, rhs, op, nil)
+	}
+	if len(lhsGrouping) > len(rhsGrouping) {
+		return e.oneToManyJoin(rhs, lhs, op, makeSet(rhsGrouping...), true)
+	}
+	return e.oneToManyJoin(lhs, rhs, op, makeSet(lhsGrouping...), false)
+}
+
+func (e *Engine) fullJoin(
+	lhs, rhs []*Timeseries, op binaryOpFunc, grouping map[string]struct{},
+) ([]*Timeseries, error) {
+	joined := make([]*Timeseries, 0, max(len(lhs), len(rhs)))
+	for _, ts := range lhs {
+		joined = append(joined, ts.DeepClone())
 	}
 
-	joined := make([]Timeseries, 0, max(len(lhs), len(rhs)))
-	joined = append(joined, lhs...)
+	m := e.makeTimeseriesMap(joined, grouping)
+	for _, rhsTs := range rhs {
+		e.buf = rhsTs.Attrs.Bytes(e.buf[:0], grouping)
+		hash := xxh3.Hash(e.buf)
 
-	m := e.makeTimeseriesMap(joined)
-	for i := range rhs {
-		ts2 := &rhs[i]
-
-		e.buf = ts2.Attrs.Bytes(e.buf[:0])
-		hash := xxhash.Sum64(e.buf)
-
-		ts1, ok := m[hash]
+		lhsTs, ok := m[hash]
 		if !ok {
-			joined = append(joined, newTimeseriesFrom(ts2))
-			ts1 = &joined[len(joined)-1]
+			lhsTs = rhsTs.DeepClone()
+			for i := range lhsTs.Value {
+				lhsTs.Value[i] = math.NaN()
+			}
+			joined = append(joined, lhsTs)
 		}
 
-		joinedValue := make([]float64, len(ts1.Value))
-		for i, v1 := range ts1.Value {
-			v2 := ts2.Value[i]
-			joinedValue[i] = op(v1, v2)
+		for i, v1 := range lhsTs.Value {
+			v2 := rhsTs.Value[i]
+			lhsTs.Value[i] = op(v1, v2)
 		}
-		ts1.Value = joinedValue
-		ts1.Unit = bunconv.UnitNone
+		lhsTs.Unit = bunconv.UnitNone
 	}
 
 	return joined, nil
 }
 
-func (e *Engine) makeTimeseriesMap(timeseries []Timeseries) map[uint64]*Timeseries {
+func (e *Engine) oneToManyJoin(
+	lhs, rhs []*Timeseries, op binaryOpFunc, grouping map[string]struct{}, swapArgs bool,
+) ([]*Timeseries, error) {
+	joined := make([]*Timeseries, 0, len(rhs))
+
+	m := e.makeTimeseriesMap(lhs, grouping)
+	for _, rhsTs := range rhs {
+		e.buf = rhsTs.Attrs.Bytes(e.buf[:0], grouping)
+		hash := xxh3.Hash(e.buf)
+
+		var lhsValue []float64
+		if lhsTs, ok := m[hash]; ok {
+			lhsValue = lhsTs.Value
+		} else {
+			lhsValue = make([]float64, len(rhsTs.Value))
+			for i := range lhsValue {
+				lhsValue[i] = math.NaN()
+			}
+		}
+
+		joinedTs := rhsTs.DeepClone()
+		joinedTs.Unit = bunconv.UnitNone
+		joined = append(joined, joinedTs)
+
+		if swapArgs {
+			for i, v1 := range lhsValue {
+				v2 := rhsTs.Value[i]
+				joinedTs.Value[i] = op(v2, v1)
+			}
+		} else {
+			for i, v1 := range lhsValue {
+				v2 := rhsTs.Value[i]
+				joinedTs.Value[i] = op(v1, v2)
+			}
+		}
+	}
+
+	return joined, nil
+}
+
+func (e *Engine) makeTimeseriesMap(
+	timeseries []*Timeseries, grouping map[string]struct{},
+) map[uint64]*Timeseries {
 	m := make(map[uint64]*Timeseries, len(timeseries))
-	for i := range timeseries {
-		ts := &timeseries[i]
-		e.buf = ts.Attrs.Bytes(e.buf[:0])
-		hash := xxhash.Sum64(e.buf)
+	for _, ts := range timeseries {
+		e.buf = ts.Attrs.Bytes(e.buf[:0], grouping)
+		hash := xxh3.Hash(e.buf)
 		m[hash] = ts
 	}
 	return m
 }
 
-func (e *Engine) binaryExprNum(lhs, rhs float64, op ast.BinaryOp) ([]Timeseries, error) {
+func (e *Engine) binaryExprNum(lhs, rhs float64, op ast.BinaryOp) ([]*Timeseries, error) {
 	switch op {
 	case "+":
 		return e.evalBinaryExprNum(lhs, rhs, addOp)
@@ -340,21 +409,20 @@ func (e *Engine) binaryExprNum(lhs, rhs float64, op ast.BinaryOp) ([]Timeseries,
 	}
 }
 
-func (e *Engine) evalBinaryExprNum(lhs, rhs float64, fn binaryOpFunc) ([]Timeseries, error) {
-	timeseries := e.storage.MakeTimeseries(new(TimeseriesFilter))
+func (e *Engine) evalBinaryExprNum(lhs, rhs float64, fn binaryOpFunc) ([]*Timeseries, error) {
+	ts := e.storage.MakeTimeseries(nil)
 
-	ts := &timeseries[0]
 	result := fn(lhs, rhs)
 	for i := range ts.Value {
 		ts.Value[i] = result
 	}
 
-	return timeseries, nil
+	return []*Timeseries{ts}, nil
 }
 
 func (e *Engine) binaryExprNumLeft(
-	lhs float64, rhs []Timeseries, op ast.BinaryOp,
-) ([]Timeseries, error) {
+	lhs float64, rhs []*Timeseries, op ast.BinaryOp,
+) ([]*Timeseries, error) {
 	switch op {
 	case "+":
 		return e.evalBinaryExprNumLeft(lhs, rhs, addOp)
@@ -388,18 +456,16 @@ func (e *Engine) binaryExprNumLeft(
 }
 
 func (e *Engine) evalBinaryExprNumLeft(
-	lhs float64, rhs []Timeseries, fn binaryOpFunc,
-) ([]Timeseries, error) {
-	joined := make([]Timeseries, 0, len(rhs))
+	lhs float64, rhs []*Timeseries, fn binaryOpFunc,
+) ([]*Timeseries, error) {
+	joined := make([]*Timeseries, 0, len(rhs))
 
-	for i := range rhs {
-		ts2 := &rhs[i]
+	for _, rhsTs := range rhs {
+		joinedTs := rhsTs.DeepClone()
+		joined = append(joined, joinedTs)
 
-		joined = append(joined, newTimeseriesFrom(ts2))
-		ts := &joined[len(joined)-1]
-
-		for i, v2 := range ts2.Value {
-			ts.Value[i] = fn(lhs, v2)
+		for i, v2 := range rhsTs.Value {
+			joinedTs.Value[i] = fn(lhs, v2)
 		}
 	}
 
@@ -407,8 +473,8 @@ func (e *Engine) evalBinaryExprNumLeft(
 }
 
 func (e *Engine) binaryExprNumRight(
-	lhs []Timeseries, rhs float64, op ast.BinaryOp,
-) ([]Timeseries, error) {
+	lhs []*Timeseries, rhs float64, op ast.BinaryOp,
+) ([]*Timeseries, error) {
 	switch op {
 	case "+":
 		return e.evalBinaryExprNumRight(lhs, rhs, addOp)
@@ -442,67 +508,130 @@ func (e *Engine) binaryExprNumRight(
 }
 
 func (e *Engine) evalBinaryExprNumRight(
-	lhs []Timeseries, rhs float64, fn binaryOpFunc,
-) ([]Timeseries, error) {
-	joined := make([]Timeseries, 0, len(lhs))
+	lhs []*Timeseries, rhs float64, fn binaryOpFunc,
+) ([]*Timeseries, error) {
+	joined := make([]*Timeseries, 0, len(lhs))
 
-	for i := range lhs {
-		ts1 := &lhs[i]
+	for _, lhsTs := range lhs {
+		joinedTs := lhsTs.DeepClone()
+		joined = append(joined, joinedTs)
 
-		joined = append(joined, newTimeseriesFrom(ts1))
-		ts := &joined[len(joined)-1]
-
-		for i, v1 := range ts1.Value {
-			ts.Value[i] = fn(v1, rhs)
+		for i, v1 := range lhsTs.Value {
+			joinedTs.Value[i] = fn(v1, rhs)
 		}
 	}
 
 	return joined, nil
 }
 
-func (e *Engine) callFunc(fn *FuncCall) ([]Timeseries, error) {
+func (e *Engine) callFunc(fn *FuncCall) ([]*Timeseries, error) {
 	switch fn.Func {
-	case FuncDelta:
-		return e.callSingleArgFunc(fn.Func, fn, deltaFunc)
-	case FuncPerMin:
-		return e.callSingleArgFunc(fn.Func, fn, perMinFunc)
-	case FuncPerSec:
-		return e.callSingleArgFunc(fn.Func, fn, perSecFunc)
+	case GoMapDelta:
+		return e.callMappingFunc(fn, deltaFunc)
+	case GoMapPerMin:
+		return e.callMappingFunc(fn, perMinFunc)
+	case GoMapPerSec, GoMapRate:
+		return e.callMappingFunc(fn, perSecFunc)
+	case GoMapIrate:
+		return e.callMappingFunc(fn, irateFunc)
+	case GoAggMin:
+		return e.callAggFunc(fn, minAgg)
+	case GoAggMax:
+		return e.callAggFunc(fn, maxAgg)
+	case GoAggAvg:
+		return e.callAggFunc(fn, avgAgg)
+	case GoAggSum:
+		return e.callAggFunc(fn, sumAgg)
 	default:
+		if isCHFunc(fn.Func) {
+			return nil, fmt.Errorf("func %q must be appied to a metric", fn.Func)
+		}
 		return nil, fmt.Errorf("unsupported func: %s", fn.Func)
 	}
 }
 
-func (e *Engine) callSingleArgFunc(
-	funcName string,
+func (e *Engine) callMappingFunc(
 	fn *FuncCall,
 	op FuncOp,
-) ([]Timeseries, error) {
-	if len(fn.Args) != 1 {
-		return nil, fmt.Errorf("%s func expects a single arg", funcName)
-	}
-
-	timeseries, err := e.eval(fn.Args[0])
+) ([]*Timeseries, error) {
+	timeseries, err := e.eval(fn.Arg)
 	if err != nil {
 		return nil, err
 	}
 
-	for i := range timeseries {
-		op(timeseries[i].Value, e.consts)
+	for _, ts := range timeseries {
+		op(ts.Value, e.consts)
 	}
 
 	return timeseries, nil
 }
 
-func groupingEqual(lhs, rhs []ast.NamedExpr) bool {
-	if len(lhs) != len(rhs) {
-		return false
+func (e *Engine) callAggFunc(fn *FuncCall, op aggFunc) ([]*Timeseries, error) {
+	timeseries, err := e.eval(fn.Arg)
+	if err != nil {
+		return nil, err
 	}
-	for i, lhsExpr := range lhs {
-		rhsExpr := rhs[i]
-		if lhsExpr.Alias != rhsExpr.Alias {
-			return false
+
+	if len(timeseries) == 0 {
+		return timeseries, nil
+	}
+
+	if len(fn.Grouping) == 0 {
+		ts := e.aggTimeseriesAlloc(timeseries, op)
+		ts.Attrs = nil
+		ts.Grouping = nil
+		return []*Timeseries{ts}, nil
+	}
+
+	m := make(map[uint64][]*Timeseries)
+	var hashes []uint64
+
+	grouping := makeSet(fn.Grouping...)
+	for _, ts := range timeseries {
+		e.buf = ts.Attrs.Bytes(e.buf[:0], grouping)
+		hash := xxh3.Hash(e.buf)
+
+		if _, ok := m[hash]; !ok {
+			hashes = append(hashes, hash)
 		}
+		m[hash] = append(m[hash], ts)
 	}
-	return true
+
+	result := make([]*Timeseries, 0, len(m))
+	for _, hash := range hashes {
+		ts := e.aggTimeseriesAlloc(m[hash], op)
+		ts.Attrs = ts.Attrs.Pick(grouping)
+		ts.Grouping = fn.Grouping
+		result = append(result, ts)
+	}
+	return result, nil
+}
+
+func (e *Engine) aggTimeseriesAlloc(
+	timeseries []*Timeseries,
+	fn aggFunc,
+) *Timeseries {
+	if len(timeseries) == 1 {
+		return timeseries[0].Clone()
+	}
+
+	ts := timeseries[0].DeepClone()
+
+	tmp := make([]float64, len(timeseries))
+	for i := 0; i < len(ts.Value); i++ {
+		for j, ts := range timeseries {
+			tmp[j] = ts.Value[i]
+		}
+		ts.Value[i] = fn(tmp)
+	}
+
+	return ts
+}
+
+func makeSet(slice ...string) map[string]struct{} {
+	m := make(map[string]struct{}, len(slice))
+	for _, el := range slice {
+		m[el] = struct{}{}
+	}
+	return m
 }

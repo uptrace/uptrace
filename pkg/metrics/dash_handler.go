@@ -135,14 +135,16 @@ func (h *DashHandler) UpdateTable(w http.ResponseWriter, req bunrouter.Request) 
 	dash := dashFromContext(ctx)
 
 	var in struct {
-		TableMetrics   []mql.MetricAlias        `json:"tableMetrics"`
-		TableQuery     string                   `json:"tableQuery"`
-		TableColumnMap map[string]*MetricColumn `json:"tableColumnMap"`
+		Name           string                  `json:"name"`
+		TableMetrics   []mql.MetricAlias       `json:"tableMetrics"`
+		TableQuery     string                  `json:"tableQuery"`
+		TableColumnMap map[string]*TableColumn `json:"tableColumnMap"`
 	}
 	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
 		return err
 	}
 
+	dash.Name = in.Name
 	dash.TableMetrics = in.TableMetrics
 	dash.TableQuery = in.TableQuery
 	dash.TableColumnMap = in.TableColumnMap
@@ -153,7 +155,14 @@ func (h *DashHandler) UpdateTable(w http.ResponseWriter, req bunrouter.Request) 
 	}
 
 	if _, err := h.PG.NewUpdate().
-		Column("table_metrics", "table_query", "table_grouping", "table_column_map", "updated_at").
+		Column(
+			"name",
+			"table_metrics",
+			"table_query",
+			"table_grouping",
+			"table_column_map",
+			"updated_at",
+		).
 		Model(dash).
 		Where("id = ?", dash.ID).
 		Returning("*").
@@ -296,7 +305,7 @@ func resetGridLayout(gridItems []GridItem, force bool) error {
 		}
 
 		// Should be after the Validate call which defines Width and Height.
-		if xAxis+base.Width > 12 {
+		if xAxis+base.Width > 24 {
 			yAxis += rowHeight
 			xAxis = 0
 			rowHeight = 0

@@ -8,7 +8,7 @@ table:
     - phpfpm_process_last_request_cpu as $cpu
     - phpfpm_process_last_request_memory as $memory
   query:
-    - group by host.name
+    - group by host_name
     - group by pool
     - group by child
     - per_min($requests)

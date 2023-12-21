@@ -4,53 +4,63 @@ name: 'AWS EC2 EBS metrics'
 
 table:
   metrics:
-    - amazonaws.com.aws.ec2.ebs_read_bytes as $read_bytes
-    - amazonaws.com.aws.ec2.ebs_write_bytes as $write_bytes
-    - amazonaws.com.aws.ec2.ebsio_balance as $ebsio_balance
-    - amazonaws.com.aws.ec2.ebs_byte_balance as $ebs_byte_balance
+    - amazonaws_com_aws_ec2_ebs_read_bytes as $read_bytes
+    - amazonaws_com_aws_ec2_ebs_write_bytes as $write_bytes
+    - amazonaws_com_aws_ec2_ebsio_balance as $ebsio_balance
+    - amazonaws_com_aws_ec2_ebs_byte_balance as $ebs_byte_balance
   query:
-    - group by cloud.region
+    - group by cloud_region
     - group by instance_id
-    - last(sum($read_bytes)) / _seconds as read_bytes_per_sec
-    - last(sum($write_bytes)) / _seconds as write_bytes_per_sec
-    - last(avg($ebsio_balance)) as ebsio_balance
-    - last(avg($ebs_byte_balance)) as ebs_byte_balance
+    - sum($read_bytes) / _seconds as read_bytes_per_sec
+    - sum($write_bytes) / _seconds as write_bytes_per_sec
+    - avg($ebsio_balance) as ebsio_balance
+    - avg($ebs_byte_balance) as ebs_byte_balance
   columns:
-    read_ops: { unit: '{op/sec}' }
-    write_ops: { unit: '{op/sec}' }
+    read_bytes_per_sec:
+      unit: bytes
+      agg_func: last
+    write_bytes_per_sec:
+      unit: bytes
+      agg_func: last
+    ebsio_balance:
+      unit: percents
+      agg_func: last
+    ebs_byte_balance:
+      unit: percents
+      agg_func: last
 
 grid_rows:
   - title: General
     items:
       - title: Number of read bytes
         metrics:
-          - amazonaws.com.aws.ec2.ebs_read_bytes as $read_bytes
+          - amazonaws_com_aws_ec2_ebs_read_bytes as $read_bytes
         query:
           - sum($read_bytes) as read_bytes
 
       - title: Average read size
         metrics:
-          - amazonaws.com.aws.ebs.volume_read_bytes as $read_bytes
-          - amazonaws.com.aws.ec2.ebs_read_ops as $read_ops
+          - amazonaws_com_aws_ebs_volume_read_bytes as $read_bytes
+          - amazonaws_com_aws_ec2_ebs_read_ops as $read_ops
         query:
           - sum($read_bytes) / sum($read_ops) as read_size
 
       - title: Number of written bytes
         metrics:
-          - amazonaws.com.aws.ec2.ebs_write_bytes as $write_bytes
+          - amazonaws_com_aws_ec2_ebs_write_bytes as $write_bytes
         query:
           - sum($write_bytes) as write_bytes
 
       - title: Average write size
         metrics:
-          - amazonaws.com.aws.ec2.ebs_write_bytes as $write_bytes
-          - amazonaws.com.aws.ec2.ebs_write_ops as $write_ops
+          - amazonaws_com_aws_ec2_ebs_write_bytes as $write_bytes
+          - amazonaws_com_aws_ec2_ebs_write_ops as $write_ops
         query:
           - sum($write_bytes) / sum($write_ops) as write_size
 
       - title: Number of read ops
         metrics:
-          - amazonaws.com.aws.ebs.volume_read_ops as $read_ops
+          - amazonaws_com_aws_ebs_volume_read_ops as $read_ops
         query:
           - sum($read_ops) / _seconds as read_ops
         columns:
@@ -58,7 +68,7 @@ grid_rows:
 
       - title: Number of write ops
         metrics:
-          - amazonaws.com.aws.ebs.volume_write_ops as $write_ops
+          - amazonaws_com_aws_ebs_volume_write_ops as $write_ops
         query:
           - sum($write_ops) / _seconds as write_ops
         columns:
@@ -66,7 +76,7 @@ grid_rows:
 
       - title: Number of write ops
         metrics:
-          - amazonaws.com.aws.ebs.volume_write_ops as $write_ops
+          - amazonaws_com_aws_ebs_volume_write_ops as $write_ops
         query:
           - sum($write_ops) / _seconds as write_ops
         columns:
@@ -74,24 +84,24 @@ grid_rows:
 
       - title: Percentage of I/O credits remaining in the burst bucket
         metrics:
-          - amazonaws.com.aws.ec2.ebsio_balance as $ebsio_balance
+          - amazonaws_com_aws_ec2_ebsio_balance as $ebsio_balance
         query:
           - avg($ebsio_balance) as ebsio_balance
 
       - title: Percentage of throughput credits remaining in the burst bucket
         metrics:
-          - amazonaws.com.aws.ec2.ebs_byte_balance as $ebs_byte_balance
+          - amazonaws_com_aws_ec2_ebs_byte_balance as $ebs_byte_balance
         query:
           - avg($ebs_byte_balance) as ebs_byte_balance
 
       - title: Percentage of I/O credits remaining in the burst bucket
         metrics:
-          - amazonaws.com.aws.ec2.ebsio_balance as $ebsio_balance
+          - amazonaws_com_aws_ec2_ebsio_balance as $ebsio_balance
         query:
           - avg($ebsio_balance) as ebsio_balance
 
       - title: Percentage of throughput credits remaining in the burst bucket
         metrics:
-          - amazonaws.com.aws.ec2.ebs_byte_balance as $ebs_byte_balance
+          - amazonaws_com_aws_ec2_ebs_byte_balance as $ebs_byte_balance
         query:
           - avg($ebs_byte_balance) as ebs_byte_balance

@@ -2,11 +2,13 @@ package tracing
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
@@ -35,13 +37,14 @@ func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request)
 	}
 
 	parts := []string{
-		".count",
-		"per_min(.count)",
+		attrkey.SpanCount,
+		attrkey.SpanCountPerMin,
 	}
 	if !f.isEventSystem() {
+
 		parts = append(parts,
-			".error_count",
-			"{p50, p90, p99, max}(.duration)",
+			attrkey.SpanErrorCount,
+			fmt.Sprintf("{p50, p90, p99, max}(%s)", attrkey.SpanDuration),
 		)
 	}
 	f.parts = tql.ParseQuery(strings.Join(parts, " | "))
