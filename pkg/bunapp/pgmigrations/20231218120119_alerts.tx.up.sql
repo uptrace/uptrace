@@ -42,26 +42,26 @@ CREATE UNIQUE INDEX alerts_project_id_dedup_hash_unq ON alerts (project_id, dedu
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
-  CREATE TYPE public.alert_status_enum AS ENUM (
-    'open',
-    'closed'
-  );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+DROP TYPE IF EXISTS public.alert_status_enum;
 
 --bun:split
 
-DO $$ BEGIN
-  CREATE TYPE public.alert_event_name_enum AS ENUM (
-    'created',
-    'status-changed',
-    'recurring'
-  );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+CREATE TYPE public.alert_status_enum AS ENUM (
+  'open',
+  'closed'
+);
+
+--bun:split
+
+DROP TYPE IF EXISTS public.alert_event_name_enum;
+
+--bun:split
+
+CREATE TYPE public.alert_event_name_enum AS ENUM (
+  'created',
+  'status-changed',
+  'recurring'
+);
 
 --bun:split
 

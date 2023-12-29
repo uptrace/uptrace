@@ -1,13 +1,9 @@
-DO $$ BEGIN
   CREATE TYPE public.achiev_name_enum AS ENUM (
     'configure-tracing',
     'configure-metrics',
     'install-collector',
     'create-metric-monitor'
   );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
 
 --bun:split
 

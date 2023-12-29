@@ -42,16 +42,12 @@ ON grid_rows (dash_id);
 
 --bun:split
 
-DO $$ BEGIN
-  CREATE TYPE public.grid_item_type_enum AS ENUM (
-    'chart',
-    'table',
-    'heatmap',
-    'gauge'
-  );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
+CREATE TYPE public.grid_item_type_enum AS ENUM (
+  'chart',
+  'table',
+  'heatmap',
+  'gauge'
+);
 
 --bun:split
 

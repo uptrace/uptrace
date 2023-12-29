@@ -26,15 +26,11 @@ ON dashboards (project_id, template_id);
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
   CREATE TYPE public.grid_column_type_enum AS ENUM (
     'chart',
     'table',
     'heatmap'
   );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
 
 --bun:split
 
@@ -74,14 +70,10 @@ ON dash_grid_columns (project_id);
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
   CREATE TYPE public.dash_kind_enum AS ENUM (
     'grid',
     'table'
   );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
 
 --bun:split
 
@@ -115,7 +107,6 @@ ON dash_gauges (dash_id);
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
   CREATE TYPE public.metric_instrument_enum AS ENUM (
     'gauge',
     'additive',
@@ -123,9 +114,6 @@ DO $$ BEGIN
     'histogram',
     'summary'
   );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
 
 --bun:split
 

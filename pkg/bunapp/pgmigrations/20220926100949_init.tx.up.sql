@@ -92,7 +92,6 @@ CREATE TABLE pinned_facets (
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
   CREATE TYPE public.monitor_state_enum AS ENUM (
     'active',
     'paused',
@@ -100,20 +99,13 @@ DO $$ BEGIN
     'no-data',
     'failed'
   );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
 
 --bun:split
 
-DO $$ BEGIN
   CREATE TYPE public.monitor_type_enum AS ENUM (
     'metric',
     'error'
   );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
 
 --bun:split
 
@@ -136,28 +128,20 @@ CREATE TABLE monitors (
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
   CREATE TYPE public.notif_channel_type_enum AS ENUM (
     'slack',
     'webhook',
     'alertmanager'
   );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
 
 --bun:split
 
-DO $$ BEGIN
   CREATE TYPE public.notif_channel_state_enum AS ENUM (
     'draft',
     'delivering',
     'paused',
     'disabled'
   );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
 
 --bun:split
 
@@ -183,38 +167,26 @@ CREATE TABLE monitor_channels (
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
   CREATE TYPE public.trackable_model_enum AS ENUM (
     'Span',
     'SpanGroup',
     'Project',
     'MetricMonitor'
   );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
 
 --bun:split
 
-DO $$ BEGIN
   CREATE TYPE public.alert_state_enum AS ENUM (
     'open',
     'closed'
   );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
 
 --bun:split
 
-DO $$ BEGIN
   CREATE TYPE public.alert_type_enum AS ENUM (
     'error',
     'metric'
   );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
 
 --bun:split
 
@@ -257,15 +229,11 @@ CREATE UNIQUE INDEX alerts_project_id_dedup_hash_unq ON alerts (project_id, dedu
 --==============================================================================
 --bun:split
 
-DO $$ BEGIN
   CREATE TYPE public.alert_event_name_enum AS ENUM (
     'created',
     'state-changed',
     'recurring'
   );
-EXCEPTION
-  WHEN duplicate_object THEN NULL;
-END $$;
 
 --bun:split
 
