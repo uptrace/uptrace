@@ -17,7 +17,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
-	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 	"github.com/uptrace/uptrace/pkg/uuid"
@@ -30,12 +29,12 @@ const tempoDefaultPeriod = time.Hour
 var jsonMarshaler = &jsonpb.Marshaler{}
 
 type TempoHandler struct {
-	org.BaseGrafanaHandler
+	BaseGrafanaHandler
 }
 
 func NewTempoHandler(app *bunapp.App) *TempoHandler {
 	return &TempoHandler{
-		BaseGrafanaHandler: org.BaseGrafanaHandler{
+		BaseGrafanaHandler: BaseGrafanaHandler{
 			App: app,
 		},
 	}

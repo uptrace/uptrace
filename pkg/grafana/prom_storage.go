@@ -79,9 +79,21 @@ func (pq *promQuerier) Select(
 		TimeLT:  time.Unix(hints.End/1000, 0),
 	}
 
-	tableName, _ := metrics.DatapointTableForGrouping(tf, nil)
+	step := time.Duration(hints.Step) * time.Millisecond
+	step = max(15*time.Second, step)
+
+	var tableName string
+	if step >= time.Hour {
+		tableName = metrics.TableDatapointHours
+		tf.Round(time.Hour)
+	} else {
+		tableName = metrics.TableDatapointMinutes
+		tf.Round(time.Minute)
+	}
+
 	chQuery := pq.CH.NewSelect().
-		ColumnExpr("d.metric, d.attrs_hash, d.instrument, d.time").
+		ColumnExpr("d.metric, d.attrs_hash, d.instrument").
+		ColumnExpr("toStartOfInterval(d.time, INTERVAL ? second) AS time_start", step.Seconds()).
 		ColumnExpr(
 			"multiIf("+
 				"d.instrument = 'counter', sumWithOverflow(d.sum), "+
@@ -89,18 +101,16 @@ func (pq *promQuerier) Select(
 				"-1) AS value",
 		).
 		TableExpr("? AS d", ch.Name(tableName)).
+		Where("d.project_id = ?", pq.projectID).
 		Where("d.time >= ?", tf.TimeGTE).
 		Where("d.time <= ?", tf.TimeLT).
-		GroupExpr("d.metric, d.attrs_hash, d.time, d.instrument").
-		OrderExpr("d.metric, d.attrs_hash, d.time").
-		Limit(1e6)
+		GroupExpr("d.metric, d.attrs_hash, time_start, d.instrument").
+		OrderExpr("d.metric, d.attrs_hash, time_start").
+		Limit(100_000)
 
 	chQuery.ColumnExpr("any(d.string_keys)").
 		ColumnExpr("any(d.string_values)")
 
-	if pq.projectID != 0 {
-		chQuery = chQuery.Where("d.project_id = ?", pq.projectID)
-	}
 	if err := compilePromMatchers(chQuery, matchers); err != nil {
 		return &promSeriesSet{err: err}
 	}
@@ -167,6 +177,7 @@ func (pq *promQuerier) Series(
 		DistinctOn("d.metric, d.attrs_hash").
 		ColumnExpr("d.metric").
 		TableExpr("? AS d", ch.Name(tableName)).
+		Where("d.project_id = ?", pq.projectID).
 		Where("d.time >= ?", tf.TimeGTE).
 		Where("d.time <= ?", tf.TimeLT).
 		OrderExpr("d.metric, d.attrs_hash").
@@ -175,9 +186,6 @@ func (pq *promQuerier) Series(
 	chQuery.ColumnExpr("d.string_keys").
 		ColumnExpr("d.string_values")
 
-	if pq.projectID != 0 {
-		chQuery = chQuery.Where("d.project_id = ?", pq.projectID)
-	}
 	if err := compilePromMatchers(chQuery, matchers); err != nil {
 		return nil, err
 	}

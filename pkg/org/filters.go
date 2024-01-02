@@ -124,13 +124,8 @@ func (f *TimeFilter) GroupingInterval() time.Duration {
 }
 
 func (f *TimeFilter) Round(d time.Duration) {
-	f.TimeGTE, f.TimeLT = roundBounds(f.TimeGTE, f.TimeLT, d)
-}
-
-func roundBounds(gte, lt time.Time, prec time.Duration) (time.Time, time.Time) {
-	gte = ceilTime(gte, prec)
-	lt = ceilTime(lt, prec)
-	return gte, lt
+	f.TimeGTE = f.TimeGTE.Truncate(d)
+	f.TimeLT = ceilTime(f.TimeLT, d)
 }
 
 func ceilTime(t time.Time, d time.Duration) time.Time {

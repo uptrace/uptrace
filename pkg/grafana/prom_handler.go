@@ -22,14 +22,14 @@ import (
 )
 
 type PromHandler struct {
-	org.BaseGrafanaHandler
+	BaseGrafanaHandler
 
 	promqlEngine *promql.Engine
 }
 
 func NewPromHandler(app *bunapp.App) *PromHandler {
 	return &PromHandler{
-		BaseGrafanaHandler: org.BaseGrafanaHandler{
+		BaseGrafanaHandler: BaseGrafanaHandler{
 			App: app,
 		},
 
@@ -292,6 +292,25 @@ func (h *PromHandler) QueryInstant(w http.ResponseWriter, req bunrouter.Request)
 	}
 
 	return nil
+}
+
+func (h *PromHandler) EnablePromCompat(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
+	return func(w http.ResponseWriter, req bunrouter.Request) error {
+		ctx := req.Context()
+		project := org.ProjectFromContext(ctx)
+
+		if !project.PromCompat {
+			if _, err := h.PG.NewUpdate().
+				Model(project).
+				Set("prom_compat = TRUE").
+				Where("id = ?", project.ID).
+				Exec(ctx); err != nil {
+				return err
+			}
+		}
+
+		return next(w, req)
+	}
 }
 
 func promQueryOpts(r *http.Request) (promql.QueryOpts, error) {

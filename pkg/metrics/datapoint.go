@@ -10,6 +10,11 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
+const (
+	TableDatapointMinutes = "datapoint_minutes"
+	TableDatapointHours   = "datapoint_hours"
+)
+
 type Datapoint struct {
 	ch.CHModel `ch:"datapoint_minutes,insert:datapoint_minutes_buffer,alias:m"`
 
@@ -67,9 +72,9 @@ func DatapointTableForGrouping(
 func datapointTable(tableResolution time.Duration) string {
 	switch tableResolution {
 	case time.Minute:
-		return "datapoint_minutes"
+		return TableDatapointMinutes
 	case time.Hour:
-		return "datapoint_hours"
+		return TableDatapointHours
 	}
 	panic("not reached")
 }

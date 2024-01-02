@@ -42,7 +42,11 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 	router.WithGroup("/api/prometheus", func(g *bunrouter.Group) {
 		promHandler := NewPromHandler(app)
 
-		g = g.Use(promHandler.CheckProjectAccess, promErrorHandler)
+		g = g.Use(
+			promHandler.CheckProjectAccess,
+			promHandler.EnablePromCompat,
+			promErrorHandler,
+		)
 
 		g.GET("/api/v1/metadata", promHandler.Metadata)
 		g.GET("/api/v1/labels", promHandler.LabelNames)

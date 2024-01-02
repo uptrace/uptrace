@@ -1,10 +1,11 @@
-package org
+package grafana
 
 import (
 	"net/http"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/org"
 )
 
 type BaseGrafanaHandler struct {
@@ -22,27 +23,20 @@ func (h *BaseGrafanaHandler) Echo(w http.ResponseWriter, req bunrouter.Request) 
 }
 
 func (h *BaseGrafanaHandler) CheckProjectAccess(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
-	middleware := NewMiddleware(h.App)
-	userAndProject := middleware.UserAndProject(next)
-
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
 
-		dsn, err := DSNFromRequest(req, "x-scope-orgid")
-		if err != nil {
-			if projectID := req.Params().ByName("project_id"); projectID != "" {
-				return userAndProject(w, req)
-			}
-			return err
-		}
-
-		project, err := SelectProjectByDSN(ctx, h.App, dsn)
+		dsn, err := org.DSNFromRequest(req, "x-scope-orgid")
 		if err != nil {
 			return err
 		}
 
-		ctx = ContextWithProject(ctx, project)
+		project, err := org.SelectProjectByDSN(ctx, h.App, dsn)
+		if err != nil {
+			return err
+		}
 
+		ctx = org.ContextWithProject(ctx, project)
 		return next(w, req.WithContext(ctx))
 	}
 }
