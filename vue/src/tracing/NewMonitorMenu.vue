@@ -58,7 +58,7 @@ export default defineComponent({
 
     const menuItems = computed(() => {
       if (isLogSystem(...props.systems)) {
-        const metricName = 'uptrace.tracing.logs'
+        const metricName = 'uptrace_tracing_logs'
         return [
           {
             title: 'Monitor number of logs',
@@ -68,7 +68,7 @@ export default defineComponent({
       }
 
       if (isEventSystem(...props.systems)) {
-        const metricName = 'uptrace.tracing.events'
+        const metricName = 'uptrace_tracing_events'
         return [
           {
             title: 'Monitor number of events',
@@ -77,7 +77,7 @@ export default defineComponent({
         ]
       }
 
-      const metricName = 'uptrace.tracing.spans'
+      const metricName = 'uptrace_tracing_spans'
       return [
         {
           title: 'Monitor number of spans',

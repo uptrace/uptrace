@@ -62,8 +62,8 @@ func (d *Dashboard) validate() error {
 
 	if d.TableMetrics == nil {
 		d.TableMetrics = make([]mql.MetricAlias, 0)
-	} else if len(d.TableMetrics) > 6 {
-		return errors.New("you can't use more than 6 metrics in a single table")
+	} else if len(d.TableMetrics) > 10 {
+		return errors.New("you can't use more than 10 metrics in a single table")
 	}
 
 	if d.TableQuery != "" {

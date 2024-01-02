@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/segmentio/encoding/json"
@@ -13,6 +12,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/bunutil"
+	"github.com/uptrace/uptrace/pkg/chquery"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"github.com/uptrace/uptrace/pkg/org"
@@ -24,10 +24,9 @@ type CHStorageConfig struct {
 
 	ProjectID uint32
 	MetricMap map[string]*Metric
-	Search    string
+	Search    []chquery.Token
 
 	TableName        string
-	TableMode        bool
 	GroupingInterval time.Duration
 }
 
@@ -108,16 +107,28 @@ func (s *CHStorage) compileQuery(metric *Metric, f *mql.TimeseriesFilter) (*ch.S
 		Where("d.time < ?", s.conf.TimeLT).
 		GroupExpr("d.metric")
 
-	if s.conf.Search != "" {
-		values := strings.Split(s.conf.Search, "|")
-		q = q.WhereGroup(" AND ", func(q *ch.SelectQuery) *ch.SelectQuery {
-			for _, elem := range f.Grouping {
-				chExpr := CHExpr(elem.Name)
-				q = q.WhereOr("multiSearchAnyCaseInsensitiveUTF8(?, ?) != 0",
-					chExpr, ch.Array(values))
+	if len(s.conf.Search) > 0 && len(f.Grouping) > 0 {
+		var b []byte
+		b = append(b, "concatWithSeparator(' '"...)
+		for _, elem := range f.Grouping {
+			b = append(b, ", "...)
+			b = AppendCHExpr(b, elem.Name)
+		}
+		b = append(b, ')')
+		chExpr := ch.Safe(b)
+
+		for _, token := range s.conf.Search {
+			switch token.ID {
+			case chquery.INCLUDE_TOKEN:
+				q = q.Where("multiSearchAnyCaseInsensitiveUTF8(?, ?) != 0",
+					chExpr, ch.Array(token.Values))
+			case chquery.EXCLUDE_TOKEN:
+				q = q.Where("NOT multiSearchAnyCaseInsensitiveUTF8(?, ?) != 0",
+					chExpr, ch.Array(token.Values))
+			case chquery.REGEXP_TOKEN:
+				q = q.Where("match(?, ?)", chExpr, token.Values[0])
 			}
-			return q
-		})
+		}
 	}
 
 	subq, err := s.subquery(q, metric, f)

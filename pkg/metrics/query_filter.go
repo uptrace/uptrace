@@ -10,6 +10,7 @@ import (
 	"github.com/uptrace/bunrouter"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/chquery"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
@@ -26,8 +27,9 @@ type QueryFilter struct {
 	Alias  []string
 	Query  string
 
-	Search   string
-	TableAgg map[string]string
+	Search       string
+	searchTokens []chquery.Token `urlstruct:"-"`
+	TableAgg     map[string]string
 
 	parsedQuery *mql.ParsedQuery
 	allParts    []*mql.QueryPart
@@ -62,11 +64,19 @@ func (f *QueryFilter) UnmarshalValues(ctx context.Context, values url.Values) (e
 	if len(f.Metric) == 0 {
 		return errors.New("at least one metric is required")
 	}
-	if len(f.Metric) > 6 {
-		return errors.New("at most 6 metrics are allowed")
+	if len(f.Metric) > 10 {
+		return errors.New("at most 10 metrics are allowed")
 	}
 	if len(f.Metric) != len(f.Alias) {
 		return fmt.Errorf("got %d metrics and %d aliases", len(f.Metric), len(f.Alias))
+	}
+
+	if f.Search != "" {
+		tokens, err := chquery.Parse(f.Search)
+		if err != nil {
+			return err
+		}
+		f.searchTokens = tokens
 	}
 
 	f.parsedQuery = mql.ParseQuery(f.Query)

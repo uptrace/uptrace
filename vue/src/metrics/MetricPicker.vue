@@ -21,6 +21,7 @@
           auto-select-first
           label="Select a metric..."
           :rules="rules.name"
+          hide-details="auto"
           :disabled="disabled"
           solo
           flat
@@ -61,6 +62,7 @@
           v-model="metricAlias"
           placeholder="short_alias"
           :rules="rules.alias"
+          hide-details="auto"
           prefix="$"
           solo
           flat

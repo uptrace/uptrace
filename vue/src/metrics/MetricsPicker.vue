@@ -68,12 +68,11 @@
           :value="metric"
           :active-metrics="value"
           :query="uql.query"
-          class="mb-n8"
           @click:apply="updateMetric(metric, $event)"
           @click:remove="removeMetric(i, metric)"
         />
         <MetricPicker
-          v-if="activeMetrics.length < 6"
+          v-if="activeMetrics.length < 10"
           :loading="metrics.loading"
           :metrics="metrics.items"
           :active-metrics="value"

@@ -104,9 +104,13 @@ export default defineComponent({
       type: Object as PropType<Record<string, any>>,
       required: true,
     },
+    searchInput: {
+      type: String,
+      default: '',
+    },
   },
 
-  setup(props) {
+  setup(props, ctx) {
     props.dateRange.roundUp()
     const { route } = useRouter()
     const tableColumns = shallowRef<string[]>([])
@@ -145,6 +149,11 @@ export default defineComponent({
         props.systems.parseQueryParams(queryParams)
         props.uql.parseQueryParams(queryParams)
         spans.order.parseQueryParams(queryParams)
+
+        const search = queryParams.string('search')
+        if (search) {
+          ctx.emit('update:search-input', search)
+        }
       },
       toQuery() {
         const queryParams: Record<string, any> = {
@@ -152,6 +161,9 @@ export default defineComponent({
           ...props.systems.queryParams(),
           ...props.uql.queryParams(),
           ...spans.order.queryParams(),
+        }
+        if (props.searchInput) {
+          queryParams.search = props.searchInput
         }
         return queryParams
       },

@@ -81,9 +81,13 @@ export default defineComponent({
       type: Object as PropType<Record<string, any>>,
       required: true,
     },
+    searchInput: {
+      type: String,
+      default: '',
+    },
   },
 
-  setup(props) {
+  setup(props, ctx) {
     props.dateRange.roundUp()
 
     const groups = useGroups(() => {
@@ -145,6 +149,11 @@ export default defineComponent({
         } else {
           plottedColumns.value = undefined // accompanied with watchEffect
         }
+
+        const search = queryParams.string('search')
+        if (search) {
+          ctx.emit('update:search-input', search)
+        }
       },
       toQuery() {
         const queryParams: Record<string, any> = {
@@ -155,6 +164,9 @@ export default defineComponent({
         }
         if (plottedColumns.value) {
           queryParams.column = plottedColumns.value.length ? plottedColumns.value : null
+        }
+        if (props.searchInput) {
+          queryParams.search = props.searchInput
         }
         return queryParams
       },

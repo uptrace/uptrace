@@ -114,9 +114,13 @@ export default defineComponent({
       type: Object as PropType<Record<string, any>>,
       required: true,
     },
+    searchInput: {
+      type: String,
+      default: '',
+    },
   },
 
-  setup(props) {
+  setup(props, ctx) {
     const route = useRoute()
     const eventBus = new EventBus()
     const pageGroups = shallowRef<TimeseriesGroup[]>([])
@@ -144,14 +148,23 @@ export default defineComponent({
         props.systems.parseQueryParams(queryParams)
         props.uql.parseQueryParams(queryParams)
         order.parseQueryParams(queryParams)
+
+        const search = queryParams.string('search')
+        if (search) {
+          ctx.emit('update:search-input', search)
+        }
       },
       toQuery() {
-        return {
+        const queryParams: Record<string, any> = {
           ...props.dateRange.queryParams(),
           ...props.systems.queryParams(),
           ...props.uql.queryParams(),
           ...order.queryParams(),
         }
+        if (props.searchInput) {
+          queryParams.search = props.searchInput
+        }
+        return queryParams
       },
     })
 

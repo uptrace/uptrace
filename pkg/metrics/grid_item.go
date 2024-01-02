@@ -193,8 +193,8 @@ func (c *ChartGridItem) Validate() error {
 	if len(c.Params.Metrics) == 0 {
 		return fmt.Errorf("at least one metric is required")
 	}
-	if len(c.Params.Metrics) > 6 {
-		return errors.New("at most 6 metrics are allowed")
+	if len(c.Params.Metrics) > 10 {
+		return errors.New("at most 10 metrics are allowed")
 	}
 	for _, metric := range c.Params.Metrics {
 		if err := metric.Validate(); err != nil {
@@ -271,8 +271,8 @@ func (item *TableGridItem) Validate() error {
 	if len(item.Params.Metrics) == 0 {
 		return fmt.Errorf("at least one metric is required")
 	}
-	if len(item.Params.Metrics) > 6 {
-		return errors.New("at most 6 metrics are allowed")
+	if len(item.Params.Metrics) > 10 {
+		return errors.New("at most 10 metrics are allowed")
 	}
 	for _, metric := range item.Params.Metrics {
 		if err := metric.Validate(); err != nil {
@@ -392,8 +392,8 @@ func (c *GaugeGridItem) Validate() error {
 	if len(c.Params.Metrics) == 0 {
 		return fmt.Errorf("at least one metric is required")
 	}
-	if len(c.Params.Metrics) > 6 {
-		return errors.New("at most 6 metrics are allowed")
+	if len(c.Params.Metrics) > 10 {
+		return errors.New("at most 10 metrics are allowed")
 	}
 	for _, metric := range c.Params.Metrics {
 		if err := metric.Validate(); err != nil {

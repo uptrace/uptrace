@@ -50,17 +50,7 @@
               {{ dashboard.name }}
             </v-toolbar-title>
 
-            <v-text-field
-              v-model="tableQuery.searchInput"
-              placeholder="Quick search: option1|option2"
-              prepend-inner-icon="mdi-magnify"
-              clearable
-              outlined
-              dense
-              hide-details="auto"
-              class="ml-8"
-              style="max-width: 300px"
-            />
+            <QuickSearch v-model="tableQuery.searchInput" class="ml-8" />
 
             <v-spacer />
 
@@ -177,6 +167,7 @@ import DashGridForTableRow from '@/metrics/DashGridForTableRow.vue'
 import ApiErrorCard from '@/components/ApiErrorCard.vue'
 import GridStackCard from '@/metrics/GridStackCard.vue'
 import GridItemAny from '@/metrics/GridItemAny.vue'
+import QuickSearch from '@/components/QuickSearch.vue'
 
 // Misc
 import { AttrKey } from '@/models/otel'
@@ -193,6 +184,7 @@ export default defineComponent({
     ApiErrorCard,
     GridStackCard,
     GridItemAny,
+    QuickSearch,
   },
 
   props: {

@@ -78,11 +78,10 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 		ProjectID:  f.Project.ID,
 		TimeFilter: f.TimeFilter,
 		MetricMap:  metricMap,
-		Search:     f.Search,
+		Search:     f.searchTokens,
 
 		TableName:        tableName,
 		GroupingInterval: groupingInterval,
-		TableMode:        true,
 	}))
 	result := engine.Run(f.allParts)
 
@@ -410,7 +409,6 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 
 		TableName:        tableName,
 		GroupingInterval: groupingInterval,
-		TableMode:        true,
 	})
 	engine := mql.NewEngine(storage)
 	result := engine.Run(f.allParts)

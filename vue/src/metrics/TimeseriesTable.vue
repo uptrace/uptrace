@@ -39,8 +39,15 @@
             <td v-else :key="attrKey">{{ item[attrKey] }}</td>
           </template>
 
-          <td v-for="col in aggColumns" :key="col.name" class="text-subtitle-2">
-            <div class="d-flex align-center">
+          <td v-for="col in aggColumns" :key="col.name">
+            <DateValue v-if="col.unit === Unit.Time" :value="item[col.name]" />
+            <NumValue
+              v-else-if="col.sparklineDisabled"
+              :value="item[col.name] || 0"
+              :unit="col.unit"
+              class="text-subtitle-2"
+            />
+            <div v-else class="d-flex align-center text-subtitle-2">
               <SparklineChart
                 :name="col.name"
                 :line="(metrics[col.name] && metrics[col.name].value) || emptyValue"

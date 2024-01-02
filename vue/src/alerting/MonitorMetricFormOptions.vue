@@ -31,18 +31,6 @@
     <v-row>
       <v-col>
         <SinglePanel title="Trigger conditions" expanded>
-          <PanelSection title="Grouping interval">
-            <v-select
-              v-model="monitor.params.groupingInterval"
-              :items="groupingIntervalItems"
-              hint="Use larger grouping interval for infrequently updated metrics"
-              persistent-hint
-              filled
-              dense
-              hide-details="auto"
-            />
-          </PanelSection>
-
           <PanelSection title="Check the last">
             <v-select
               v-model="monitor.params.checkNumPoint"
@@ -108,6 +96,7 @@
             v-model="monitor.notifyEveryoneByEmail"
             label="Notify everyone by email"
             hide-details="auto"
+            class="mt-0 mb-4"
           />
 
           <PanelSection title="Notification channels, e.g. Slack, Telegram, etc.">

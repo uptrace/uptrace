@@ -61,18 +61,10 @@
           :systems="systems"
           :uql="uql"
           :axios-params="axiosParams"
+          :search-input.sync="searchInput"
         >
           <template slot="search-filter">
-            <v-text-field
-              v-model="searchInput"
-              placeholder="Quick search: option1|option2"
-              prepend-inner-icon="mdi-magnify"
-              clearable
-              outlined
-              dense
-              hide-details="auto"
-              style="max-width: 300px"
-            />
+            <QuickSearch v-model="searchInput" />
           </template>
         </router-view>
       </v-container>
@@ -101,6 +93,7 @@ import SystemGroupPicker from '@/tracing/system/SystemGroupPicker.vue'
 import SavedViews from '@/tracing/views/SavedViews.vue'
 import UptraceQuery from '@/components/UptraceQuery.vue'
 import SpanQueryBuilder from '@/tracing/query/SpanQueryBuilder.vue'
+import QuickSearch from '@/components/QuickSearch.vue'
 
 // Misc
 import { SystemName, AttrKey } from '@/models/otel'
@@ -115,6 +108,7 @@ export default defineComponent({
     SavedViews,
     UptraceQuery,
     SpanQueryBuilder,
+    QuickSearch,
   },
 
   props: {
@@ -145,12 +139,15 @@ export default defineComponent({
     const systemItems = shallowRef<System[]>([])
 
     const axiosParams = computed(() => {
-      return {
+      const params: Record<string, any> = {
         ...props.dateRange.axiosParams(),
         ...systems.axiosParams(),
         ...uql.axiosParams(),
-        search: debouncedSearchInput.value,
       }
+      if (debouncedSearchInput.value) {
+        params.search = debouncedSearchInput.value
+      }
+      return params
     })
 
     const spanListName = computed(() => {

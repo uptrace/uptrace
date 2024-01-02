@@ -1,5 +1,4 @@
 import { shallowRef, computed, watch, proxyRefs } from 'vue'
-import { refDebounced } from '@vueuse/core'
 
 // Composables
 import { useRoute } from '@/use/router'
@@ -27,8 +26,6 @@ interface ExploreConfig {
 }
 
 export function useGroups(axiosParamsSource: AxiosParamsSource, conf: ExploreConfig = {}) {
-  const searchInput = shallowRef('')
-  const debouncedSearchInput = refDebounced(searchInput, 600)
   const route = useRoute()
   const hasMore = shallowRef(false)
   const order = useOrder()
@@ -45,7 +42,6 @@ export function useGroups(axiosParamsSource: AxiosParamsSource, conf: ExploreCon
     const params: Record<string, any> = {
       ...axiosParams.value,
       ...order.axiosParams,
-      search: debouncedSearchInput.value,
     }
 
     const { projectId } = route.value.params
@@ -106,7 +102,6 @@ export function useGroups(axiosParamsSource: AxiosParamsSource, conf: ExploreCon
     order,
     axiosParams: lastAxiosParams,
 
-    searchInput,
     items: groups,
     hasMore,
 

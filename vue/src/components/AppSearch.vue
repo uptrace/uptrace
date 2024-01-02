@@ -27,10 +27,6 @@ import { defineComponent, shallowRef, nextTick } from 'vue'
 
 // Composables
 import { useRouterOnly } from '@/use/router'
-import { createQueryEditor } from '@/use/uql'
-
-// Misc
-import { AttrKey } from '@/models/otel'
 
 const TRACE_ID_RE = /^([0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
 
@@ -68,6 +64,7 @@ export default defineComponent({
 
       const str = searchInput.value.trim()
       searchInput.value = ''
+      hideSearch()
 
       if (TRACE_ID_RE.test(str)) {
         router.push({
@@ -77,15 +74,11 @@ export default defineComponent({
         return
       }
 
-      const query = createQueryEditor()
-        .exploreAttr(AttrKey.spanGroupId)
-        .where(AttrKey.displayName, 'contains', str)
-        .toString()
       router
         .push({
           name: 'SpanGroupList',
           query: {
-            query,
+            search: str,
           },
         })
         .catch(() => {})

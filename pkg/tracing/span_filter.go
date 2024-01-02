@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/chquery"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
@@ -24,13 +24,13 @@ type SpanFilter struct {
 	urlstruct.Pager
 	SystemFilter
 
-	Query  string
-	Search string
+	Query string
 
-	// For stats explorer.
+	Search       string
+	searchTokens []chquery.Token `urlstruct:"-"`
+
 	Column []string
 
-	// For attrs suggestions.
 	AttrKey     string
 	SearchInput string
 
@@ -42,6 +42,14 @@ func DecodeSpanFilter(app *bunapp.App, req bunrouter.Request) (*SpanFilter, erro
 
 	if err := bunapp.UnmarshalValues(req, f); err != nil {
 		return nil, err
+	}
+
+	if f.Search != "" {
+		tokens, err := chquery.Parse(f.Search)
+		if err != nil {
+			return nil, err
+		}
+		f.searchTokens = tokens
 	}
 
 	project := org.ProjectFromContext(req.Context())
@@ -86,10 +94,19 @@ func isNumColumn(v any) bool {
 }
 
 func (f *SpanFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
-	if f.Search != "" {
-		values := strings.Split(f.Search, "|")
-		q = q.Where("multiSearchAnyCaseInsensitiveUTF8(s.display_name, ?) != 0", ch.Array(values))
+	for _, token := range f.searchTokens {
+		switch token.ID {
+		case chquery.INCLUDE_TOKEN:
+			q = q.Where("multiSearchAnyCaseInsensitiveUTF8(s.display_name, ?) > 0",
+				ch.Array(token.Values))
+		case chquery.EXCLUDE_TOKEN:
+			q = q.Where("NOT multiSearchAnyCaseInsensitiveUTF8(s.display_name, ?) > 0",
+				ch.Array(token.Values))
+		case chquery.REGEXP_TOKEN:
+			q = q.Where("match(s.display_name, ?)", token.Values[0])
+		}
 	}
+
 	return f.SystemFilter.whereClause(q)
 }
 
