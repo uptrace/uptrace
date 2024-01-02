@@ -13,6 +13,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/org"
+	"go.uber.org/zap"
 
 	"github.com/prometheus/prometheus/model/histogram"
 	promlabels "github.com/prometheus/prometheus/model/labels"
@@ -24,7 +25,7 @@ import (
 )
 
 type PromStorage struct {
-	*bunapp.App
+	app *bunapp.App
 
 	projectID uint32
 	logger    *otelzap.Logger
@@ -32,7 +33,7 @@ type PromStorage struct {
 
 func NewPromStorage(app *bunapp.App, projectID uint32) *PromStorage {
 	return &PromStorage{
-		App:       app,
+		app:       app,
 		projectID: projectID,
 		logger:    app.Logger,
 	}
@@ -91,7 +92,7 @@ func (pq *promQuerier) Select(
 		tf.Round(time.Minute)
 	}
 
-	chQuery := pq.CH.NewSelect().
+	chQuery := pq.app.CH.NewSelect().
 		ColumnExpr("d.metric, d.attrs_hash, d.instrument").
 		ColumnExpr("toStartOfInterval(d.time, INTERVAL ? second) AS time_start", step.Seconds()).
 		ColumnExpr(
@@ -144,6 +145,13 @@ func (pq *promQuerier) Select(
 		}
 
 		if lastSeries.metric != metric || lastSeries.attrsHash != attrsHash {
+			if len(keys) != len(values) {
+				pq.app.Zap(ctx).Error("keys and values length does not match",
+					zap.Strings("keys", keys),
+					zap.Strings("values", values))
+				continue
+			}
+
 			lastSeries = &promSeries{
 				metric:    metric,
 				attrsHash: attrsHash,
@@ -173,7 +181,7 @@ func (pq *promQuerier) Series(
 	}
 
 	tableName := metrics.DatapointTableForWhere(tf)
-	chQuery := pq.CH.NewSelect().
+	chQuery := pq.app.CH.NewSelect().
 		DistinctOn("d.metric, d.attrs_hash").
 		ColumnExpr("d.metric").
 		TableExpr("? AS d", ch.Name(tableName)).
