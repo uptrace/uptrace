@@ -22,9 +22,11 @@ func initSpanMetrics(ctx context.Context, app *bunapp.App) error {
 	conf := app.Config()
 	for i := range conf.MetricsFromSpans {
 		metric := &conf.MetricsFromSpans[i]
+
 		if metric.Name == "" {
 			return fmt.Errorf("metric name can't be empty")
 		}
+
 		if err := createSpanMetric(ctx, app, metric); err != nil {
 			return fmt.Errorf("createSpanMetric %q failed: %w", metric.Name, err)
 		}

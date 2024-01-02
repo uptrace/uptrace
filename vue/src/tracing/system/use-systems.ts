@@ -32,7 +32,7 @@ export type UseSystems = ReturnType<typeof useSystems>
 export function useSystems(params: () => Record<string, any>) {
   const route = useRoute()
 
-  const { loading, data } = useWatchAxios(() => {
+  const { status, loading, data } = useWatchAxios(() => {
     const { projectId } = route.value.params
     return {
       url: `/internal/v1/tracing/${projectId}/systems`,
@@ -103,6 +103,7 @@ export function useSystems(params: () => Record<string, any>) {
   }
 
   return proxyRefs({
+    status,
     loading,
 
     items: systems,

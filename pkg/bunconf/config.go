@@ -125,6 +125,7 @@ func expandEnv(conf string) string {
 func fixUpConfig(conf *Config) {
 	for i := range conf.MetricsFromSpans {
 		metric := &conf.MetricsFromSpans[i]
+		metric.Name = strings.ReplaceAll(metric.Name, ".", "_")
 		metric.Value = cleanAttrName(metric.Value)
 		for i, attr := range metric.Attrs {
 			metric.Attrs[i] = cleanAttrName(attr)
@@ -138,8 +139,9 @@ func fixUpConfig(conf *Config) {
 
 func cleanAttrName(attrKey string) string {
 	if strings.HasPrefix(attrKey, "span.") {
-		return strings.TrimPrefix(attrKey, "span")
+		attrKey = strings.TrimPrefix(attrKey, "span")
 	}
+	attrKey = strings.ReplaceAll(attrKey, ".", "_")
 	return attrKey
 }
 

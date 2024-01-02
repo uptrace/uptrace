@@ -2,6 +2,7 @@ package alerting
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/url"
@@ -17,6 +18,9 @@ func notifyBySlackHandler(ctx context.Context, eventID, channelID uint64) error 
 
 	alert, err := selectAlertWithEvent(ctx, app, eventID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
 		return err
 	}
 	baseAlert := alert.Base()

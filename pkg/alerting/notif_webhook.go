@@ -3,6 +3,7 @@ package alerting
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,6 +20,9 @@ func notifyByWebhookHandler(ctx context.Context, eventID, channelID uint64) erro
 
 	alert, err := selectAlertWithEvent(ctx, app, eventID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
 		return err
 	}
 	baseAlert := alert.Base()

@@ -3,6 +3,7 @@ package alerting
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -83,6 +84,9 @@ func notifyByTelegramHandler(ctx context.Context, eventID, channelID uint64) err
 
 	alert, err := selectAlertWithEvent(ctx, app, eventID)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil
+		}
 		return err
 	}
 	baseAlert := alert.Base()
