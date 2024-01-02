@@ -54,12 +54,14 @@ projects:
     token: project1_secret_token
     pinned_attrs:
       - service
-      - host.name
-      - deployment.environment
+      - host_name
+      - deployment_environment
     # Group spans by deployment.environment attribute.
     group_by_env: false
     # Group funcs spans by service.name attribute.
     group_funcs_by_service: false
+    # Enable prom_compat if you want to use the project as a Prometheus datasource in Grafana.
+    prom_compat: true
 
   # Other projects can be used to monitor your applications.
   # To monitor micro-services or multiple related services, use a single project.
@@ -68,12 +70,13 @@ projects:
     token: project2_secret_token
     pinned_attrs:
       - service
-      - host.name
-      - deployment.environment
+      - host_name
+      - deployment_environment
     # Group spans by deployment.environment attribute.
     group_by_env: false
     # Group funcs spans by service.name attribute.
     group_funcs_by_service: false
+    prom_compat: true
 
 ##
 ## Create metrics from spans and events.
@@ -98,7 +101,7 @@ metrics_from_spans:
     description: Events count (excluding spans)
     instrument: counter
     unit: 1
-    value: .count
+    value: _count
     attrs:
       - _system
       - _group_id

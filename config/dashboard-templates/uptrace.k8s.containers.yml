@@ -1,6 +1,5 @@
 schema: v2
 name: 'K8s: containers'
-force: true
 
 table:
   grid_items:

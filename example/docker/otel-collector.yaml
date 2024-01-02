@@ -46,13 +46,6 @@ receivers:
           scrape_interval: 10s
           static_configs:
             - targets: ['0.0.0.0:8888']
-  prometheus/node_exporter:
-    config:
-      scrape_configs:
-        - job_name: node_exporter
-          scrape_interval: 15s
-          static_configs:
-            - targets: ['host.docker.internal:9100']
 
 processors:
   resourcedetection:
@@ -96,7 +89,7 @@ service:
       processors: [batch]
       exporters: [otlp/uptrace]
     metrics/prom:
-      receivers: [prometheus/otelcol, prometheus/node_exporter]
+      receivers: [prometheus/otelcol]
       processors: [batch]
       exporters: [prometheusremotewrite/uptrace]
 

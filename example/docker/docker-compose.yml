@@ -12,7 +12,7 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - ch_data0:/var/lib/clickhouse
+      - ch_data1:/var/lib/clickhouse
     ports:
       - '8123:8123'
       - '9000:9000'
@@ -31,12 +31,12 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - 'pg_data1:/var/lib/postgresql/data/pgdata'
+      - 'pg_data2:/var/lib/postgresql/data/pgdata'
     ports:
       - '5432:5432'
 
   uptrace:
-    image: 'uptrace/uptrace:1.6.0-rc.4'
+    image: 'uptrace/uptrace:1.6.0-rc.8'
     #image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:
@@ -80,6 +80,20 @@ services:
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 
+  prometheus:
+    image: prom/prometheus:v2.36.2
+    restart: always
+    volumes:
+      - ../../config/prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
   node_exporter:
     image: quay.io/prometheus/node-exporter:latest
     container_name: node_exporter
@@ -92,5 +106,6 @@ services:
       - '/:/host:ro,rslave'
 
 volumes:
-  ch_data0:
-  pg_data1:
+  ch_data1:
+  pg_data2:
+  prometheus_data:

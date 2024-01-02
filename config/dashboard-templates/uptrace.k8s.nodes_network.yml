@@ -1,6 +1,5 @@
 schema: v2
 name: 'K8s: Nodes network'
-force: true
 
 table:
   metrics:

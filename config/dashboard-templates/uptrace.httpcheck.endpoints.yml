@@ -1,7 +1,6 @@
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/httpcheckreceiver/metadata.yaml
 schema: v2
 name: 'HTTP Check endpoints'
-force_update: true
 
 table:
   grid_items:
