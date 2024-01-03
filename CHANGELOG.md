@@ -2,7 +2,7 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
-## v1.6.0 UNRELEASED
+## v1.6.0 - January 3 2024
 
 This release is partially backwards incompatible with v1.5. PostgreSQL database will be migrated
 automatically preserving your settings and dashboards, but you will need to reset the ClickHouse
