@@ -40,34 +40,37 @@
       <v-col cols="6">
         <h2 class="mb-5 text-h5">Grouping and joining</h2>
 
-        <QueryExample query="$hits + $misses | group by host_name">
+        <QueryExample query="$hits + $misses group by service_name, host_name">
           <template #description>
-            Uptrace can automatically join timeseries with matching attributes, e.g. sum
-            <code>$hits</code> and <code>$misses</code> metrics on each hostname.
+            One-to-one join by matching attributes with expr-wide grouping.
           </template>
         </QueryExample>
 
+        <QueryExample query="sum($cpu_secs by (mode)) / sum($cpu_secs) as cpu_util">
+          <template #description>One-to-many join with individual grouping.</template>
+        </QueryExample>
+
+        <QueryExample query="sum(irate($cpu_secs by (mode, cpu)) by (mode))">
+          <template #description
+            >Different grouping for <code>irate</code> and <code>sum</code> functions.</template
+          >
+        </QueryExample>
+
         <QueryExample query='$cpu_time{cpu="0",mode="idle"} as cpu0_idle_time'>
-          <template #description>Give timeseries a shorter name (alias).</template>
+          <template #description>Timeseries can have an alias.</template>
         </QueryExample>
 
         <QueryExample
-          query="$cache{type=hits} as _hits | $cache{type=misses} as _misses | _hits + _misses as total"
+          query='$cache{type="hits"} as _hits | $cache{type="misses"} as _misses | _misses / (_hits + _misses) as hit_rate'
         >
           <template #description>
             Join timeseries using the aliases. Underscored aliases are not displayed.
           </template>
         </QueryExample>
 
-        <QueryExample query="$metric1 group by service_name | $metric2 group by host_name">
+        <QueryExample query="$m1 by (hostname as host) + $m2 by (host_name as host)">
           <template #description>
-            Timeseries can have individual grouping if you don't need to join them.
-          </template>
-        </QueryExample>
-
-        <QueryExample query="$m1 + $m2 group by host_name">
-          <template #description>
-            To join metrics with different attributes, use aliases in <code>group by</code>.
+            To rename attributes, specify aliases in grouping expressions.
           </template>
         </QueryExample>
       </v-col>
@@ -139,17 +142,24 @@
           <template #description>Count the number of timeseries.</template>
         </QueryExample>
 
-        <QueryExample
-          query="uniq($status{_value=1}) as num_up | uniq($status{_value=0}) as num_down"
-        >
-          <template #description>Number of timeseries with the given values.</template>
-        </QueryExample>
-
         <QueryExample query="uniq($hits, host_name, service_name) as num_timeseries">
           <template #description
             >Count the number of unique combinations of <code>host_name</code> and
             <code>service_name</code>.</template
           >
+        </QueryExample>
+
+        <QueryExample query="uniq($hits by (service_name), host_name) as num_timeseries">
+          <template #description
+            >Count the number of unique <code>host_name</code> for each
+            <code>service_name</code>.</template
+          >
+        </QueryExample>
+
+        <QueryExample
+          query="uniq($status{_value=1}) as num_up | uniq($status{_value=0}) as num_down"
+        >
+          <template #description>Number of timeseries with the given values.</template>
         </QueryExample>
       </v-col>
 

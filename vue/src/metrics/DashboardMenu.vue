@@ -90,7 +90,6 @@ import { defineComponent, shallowRef, reactive, PropType } from 'vue'
 
 // Composables
 import { useConfirm } from '@/use/confirm'
-import { useRouterOnly } from '@/use/router'
 import { useDashboardManager } from '@/metrics/use-dashboards'
 
 // Components
@@ -112,7 +111,6 @@ export default defineComponent({
 
   setup(props, ctx) {
     const confirm = useConfirm()
-    const router = useRouterOnly()
 
     const menu = shallowRef(false)
     const newDialog = shallowRef(false)
@@ -127,8 +125,7 @@ export default defineComponent({
 
     function cloneDashboard() {
       dashMan.clone(props.dashboard).then((dash) => {
-        ctx.emit('created')
-        router.push({ name: 'DashboardShow', params: { dashId: String(dash.id) } })
+        ctx.emit('created', dash)
       })
     }
 
