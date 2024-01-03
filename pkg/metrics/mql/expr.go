@@ -6,21 +6,15 @@ import (
 )
 
 type NamedExpr struct {
-	Part  *QueryPart
-	AST   ast.Expr
-	Expr  Expr
-	Alias string
-}
-
-func (e *NamedExpr) String() string {
-	if e.Alias != "" {
-		return e.Alias
-	}
-	return unsafeconv.String(e.AST.AppendString(nil))
+	Part     *QueryPart
+	AST      ast.Expr
+	Expr     Expr
+	HasAlias bool
+	Alias    string
 }
 
 func (e *NamedExpr) NameTemplate() string {
-	if e.Alias != "" {
+	if e.HasAlias {
 		return e.Alias + "$$"
 	}
 	return unsafeconv.String(e.AST.AppendTemplate(nil))

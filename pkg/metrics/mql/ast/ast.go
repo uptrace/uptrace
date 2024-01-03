@@ -16,24 +16,61 @@ type Expr interface {
 	AppendTemplate(b []byte) []byte
 }
 
-func String(expr Expr) string {
-	return unsafeconv.String(expr.AppendString(nil))
-}
-
 var (
 	_ Expr = (*ParenExpr)(nil)
 	_ Expr = (*MetricExpr)(nil)
 	_ Expr = (*BinaryExpr)(nil)
 	_ Expr = (*FuncCall)(nil)
+	_ Expr = (*Number)(nil)
+)
+
+func String(expr Expr) string {
+	return unsafeconv.String(expr.AppendString(nil))
+}
+
+type QueryPart interface {
+	fmt.Stringer
+}
+
+var (
+	_ QueryPart = (*Selector)(nil)
+	_ QueryPart = (*Grouping)(nil)
+	_ QueryPart = (*Where)(nil)
 )
 
 type Selector struct {
 	Expr NamedExpr
 }
 
+func (sel *Selector) String() string {
+	var b []byte
+	b = sel.Expr.AppendString(b)
+	return unsafeconv.String(b)
+}
+
 type NamedExpr struct {
-	Expr  Expr
-	Alias string
+	Expr     Expr
+	HasAlias bool
+	Alias    string
+}
+
+func (e *NamedExpr) AppendString(b []byte) []byte {
+	b = e.Expr.AppendString(b)
+	if e.HasAlias {
+		b = append(b, " as "...)
+		b = append(b, e.Alias...)
+	}
+	return b
+}
+
+func defaultAliasForExpr(expr Expr) string {
+	switch expr := expr.(type) {
+	case *MetricExpr:
+		if len(expr.Filters) == 0 && strings.HasPrefix(expr.Name, "$") {
+			return strings.TrimPrefix(expr.Name, "$")
+		}
+	}
+	return String(expr)
 }
 
 type ParenExpr struct {
@@ -69,9 +106,15 @@ func (n *MetricExpr) AppendString(b []byte) []byte {
 			if i > 0 {
 				b = append(b, ',')
 			}
-			b = n.Filters[i].AppendString(b)
+			b = n.Filters[i].AppendString(b, false)
 		}
 		b = append(b, '}')
+	}
+
+	if len(n.Grouping) > 0 {
+		b = append(b, " by ("...)
+		b = n.Grouping.AppendString(b)
+		b = append(b, ')')
 	}
 
 	return b
@@ -227,10 +270,27 @@ func (e *BinaryExpr) AppendTemplate(b []byte) []byte {
 //------------------------------------------------------------------------------
 
 type Grouping struct {
-	Elems []GroupingElem
+	Elems GroupingElems
+}
+
+func (g *Grouping) String() string {
+	var b []byte
+	b = append(b, "group by "...)
+	b = g.Elems.AppendString(b)
+	return unsafeconv.String(b)
 }
 
 type GroupingElems []GroupingElem
+
+func (els GroupingElems) AppendString(b []byte) []byte {
+	for i := range els {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = els[i].AppendString(b)
+	}
+	return b
+}
 
 func (els GroupingElems) Attrs() []string {
 	attrs := make([]string, len(els))
@@ -241,13 +301,10 @@ func (els GroupingElems) Attrs() []string {
 }
 
 type GroupingElem struct {
-	Func  string
-	Name  string
-	Alias string
-}
-
-func (g GroupingElem) String() string {
-	return unsafeconv.String(g.AppendString(nil))
+	Func     string
+	Name     string
+	HasAlias bool
+	Alias    string
 }
 
 func (g GroupingElem) AppendString(b []byte) []byte {
@@ -259,17 +316,49 @@ func (g GroupingElem) AppendString(b []byte) []byte {
 	if g.Func != "" {
 		b = append(b, ')')
 	}
-	if g.Alias != "" {
-		b = append(b, " AS "...)
+	if g.HasAlias {
+		b = append(b, " as "...)
 		b = append(b, g.Alias...)
 	}
 	return b
 }
 
+func defaultAliasForGrouping(elem *GroupingElem) string {
+	b := elem.AppendString(nil)
+	return unsafeconv.String(b)
+}
+
 //------------------------------------------------------------------------------
 
 type Where struct {
-	Filters []Filter
+	Filters Filters
+}
+
+func (w *Where) String() string {
+	var b []byte
+	b = append(b, "where "...)
+	b = w.Filters.AppendString(b)
+	return unsafeconv.String(b)
+}
+
+type Filters []Filter
+
+func (filters Filters) AppendString(b []byte) []byte {
+	for i := range filters {
+		f := &filters[i]
+
+		if i > 0 {
+			b = append(b, ' ')
+			if f.BoolOp != "" {
+				b = append(b, f.BoolOp...)
+			} else {
+				b = append(b, BoolAnd...)
+			}
+			b = append(b, ' ')
+		}
+		b = f.AppendString(b, true)
+	}
+	return b
 }
 
 type FilterOp string
@@ -309,22 +398,24 @@ type Value interface {
 	AppendString(b []byte) []byte
 }
 
-func (f *Filter) String() string {
-	b := make([]byte, 0, 100)
-	b = f.AppendString(b)
-	return unsafeconv.String(b)
-}
-
-func (f *Filter) AppendString(b []byte) []byte {
+func (f *Filter) AppendString(b []byte, spaceAround bool) []byte {
 	b = append(b, f.LHS...)
 
 	switch f.Op {
 	case FilterEqual, FilterNotEqual, FilterRegexp, FilterNotRegexp:
+		if spaceAround {
+			b = append(b, ' ')
+		}
 		b = append(b, f.Op...)
+		if spaceAround && f.RHS != nil {
+			b = append(b, ' ')
+		}
 	default:
 		b = append(b, ' ')
 		b = append(b, f.Op...)
-		b = append(b, ' ')
+		if f.RHS != nil {
+			b = append(b, ' ')
+		}
 	}
 
 	if f.RHS != nil {
@@ -339,9 +430,6 @@ type StringValue struct {
 }
 
 func (v StringValue) AppendString(b []byte) []byte {
-	if IsIdent(v.Text) {
-		return append(b, v.Text...)
-	}
 	return strconv.AppendQuote(b, v.Text)
 }
 
@@ -355,11 +443,7 @@ func (v StringValues) AppendString(b []byte) []byte {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		if IsIdent(text) {
-			b = append(b, text...)
-		} else {
-			b = strconv.AppendQuote(b, text)
-		}
+		b = strconv.AppendQuote(b, text)
 	}
 	b = append(b, ')')
 	return b

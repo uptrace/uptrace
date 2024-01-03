@@ -92,8 +92,7 @@ func migrateDashboard(ctx context.Context, tx bun.Tx, dashID uint64) error {
 						Query:     gauge.Query,
 						ColumnMap: gauge.ColumnMap,
 
-						Template:      gauge.Template,
-						ValueMappings: gauge.ValueMappings,
+						Template: gauge.Template,
 					},
 				},
 
@@ -155,8 +154,7 @@ func migrateDashboard(ctx context.Context, tx bun.Tx, dashID uint64) error {
 						Query:     gauge.Query,
 						ColumnMap: gauge.ColumnMap,
 
-						Template:      gauge.Template,
-						ValueMappings: gauge.ValueMappings,
+						Template: gauge.Template,
 					},
 				},
 
@@ -275,8 +273,7 @@ type DashGauge struct {
 	Query     string                          `json:"query"`
 	ColumnMap map[string]*metrics.GaugeColumn `json:"columnMap" bun:",nullzero"`
 
-	GridQueryTemplate string                 `json:"gridQueryTemplate" bun:",nullzero"`
-	ValueMappings     []metrics.ValueMapping `json:"valueMappings" bun:",nullzero"`
+	GridQueryTemplate string `json:"gridQueryTemplate" bun:",nullzero"`
 
 	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
 	UpdatedAt time.Time `json:"updatedAt" bun:",nullzero"`

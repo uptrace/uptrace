@@ -96,8 +96,8 @@ func (e *Engine) Run(parts []*QueryPart) *Result {
 			continue
 		}
 
-		metricName := expr.String()
-		updateTimeseries(tmp, metricName, expr.NameTemplate(), expr.Alias != "")
+		metricName := expr.Alias
+		updateTimeseries(tmp, metricName, expr.NameTemplate(), expr.HasAlias)
 
 		if _, ok := e.vars[metricName]; ok {
 			expr.Part.Error.Wrapped = fmt.Errorf("column %q already exists", metricName)
@@ -117,11 +117,11 @@ func (e *Engine) Run(parts []*QueryPart) *Result {
 	return result
 }
 
-func updateTimeseries(timeseries []*Timeseries, metricName, nameTemplate string, isAlias bool) {
+func updateTimeseries(timeseries []*Timeseries, metricName, nameTemplate string, hasAlias bool) {
 	for _, ts := range timeseries {
 		ts.MetricName = metricName
 		ts.NameTemplate = nameTemplate
-		if isAlias {
+		if hasAlias {
 			ts.Filters = nil
 		}
 	}

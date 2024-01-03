@@ -52,7 +52,7 @@ func buildName(template string, filters []ast.Filter, attrs Attrs) string {
 		if i > 0 {
 			b = append(b, ',')
 		}
-		b = filters[i].AppendString(b)
+		b = filters[i].AppendString(b, false)
 	}
 
 	if len(attrs) > 0 {

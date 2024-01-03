@@ -31,10 +31,11 @@ func compile(parts []*QueryPart) ([]NamedExpr, []*TimeseriesExpr) {
 			}
 
 			c.exprs = append(c.exprs, NamedExpr{
-				Part:  part,
-				AST:   value.Expr.Expr,
-				Expr:  sel,
-				Alias: value.Expr.Alias,
+				Part:     part,
+				AST:      value.Expr.Expr,
+				Expr:     sel,
+				HasAlias: value.Expr.HasAlias,
+				Alias:    value.Expr.Alias,
 			})
 		case *ast.Where, *ast.Grouping:
 			// see below

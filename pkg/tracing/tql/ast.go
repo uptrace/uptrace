@@ -10,29 +10,8 @@ import (
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
-type Where struct {
-	Filters []Filter
-}
-
-type Selector struct {
-	Columns []Column
-}
-
-type Grouping struct {
-	Columns []Column
-}
-
-type Column struct {
-	Value Expr
-	Alias string
-}
-
 type Expr interface {
 	AppendString([]byte) []byte
-}
-
-func String(expr Expr) string {
-	return unsafeconv.String(expr.AppendString(nil))
 }
 
 var (
@@ -42,6 +21,83 @@ var (
 	_ Expr = (*BinaryExpr)(nil)
 	_ Expr = (*ParenExpr)(nil)
 )
+
+func String(expr Expr) string {
+	return unsafeconv.String(expr.AppendString(nil))
+}
+
+type AST interface {
+	fmt.Stringer
+}
+
+type Selector struct {
+	Columns
+}
+
+func (sel *Selector) String() string {
+	var b []byte
+	b = sel.Columns.AppendString(b)
+	return unsafeconv.String(b)
+}
+
+type Grouping struct {
+	Columns
+}
+
+func (g *Grouping) String() string {
+	var b []byte
+	b = append(b, "group by "...)
+	b = g.Columns.AppendString(b)
+	return unsafeconv.String(b)
+}
+
+type Columns []Column
+
+func (cols Columns) AppendString(b []byte) []byte {
+	for i := range cols {
+		col := &cols[i]
+
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = col.AppendString(b)
+	}
+	return b
+}
+
+type Column struct {
+	Value Expr
+	Alias string
+}
+
+func (col *Column) AppendString(b []byte) []byte {
+	b = col.Value.AppendString(b)
+	if col.Alias != "" {
+		b = append(b, " AS "...)
+		b = append(b, col.Alias...)
+	}
+	return b
+}
+
+type Where struct {
+	Filters []Filter
+}
+
+func (w *Where) String() string {
+	var b []byte
+	b = append(b, "where "...)
+	for i := range w.Filters {
+		f := &w.Filters[i]
+
+		if i > 0 {
+			b = append(b, ' ')
+			b = append(b, f.BoolOp...)
+			b = append(b, ' ')
+		}
+		b = f.AppendString(b)
+	}
+	return unsafeconv.String(b)
+}
 
 type ParenExpr struct {
 	Expr
@@ -100,6 +156,17 @@ type Filter struct {
 	RHS    Value
 }
 
+func (f *Filter) AppendString(b []byte) []byte {
+	b = f.LHS.AppendString(b)
+	b = append(b, ' ')
+	b = append(b, f.Op...)
+	if f.RHS != nil {
+		b = append(b, ' ')
+		b = f.RHS.AppendString(b)
+	}
+	return b
+}
+
 type BoolOp string
 
 const (
@@ -132,6 +199,7 @@ const (
 
 type Value interface {
 	fmt.Stringer
+	AppendString([]byte) []byte
 	Values() []string
 }
 
@@ -176,6 +244,10 @@ func (v StringValue) String() string {
 	return v.Text
 }
 
+func (v StringValue) AppendString(b []byte) []byte {
+	return strconv.AppendQuote(b, v.Text)
+}
+
 func (v StringValue) Values() []string {
 	return []string{v.Text}
 }
@@ -186,6 +258,18 @@ type StringValues struct {
 
 func (v StringValues) String() string {
 	return strings.Join(v.Strings, "|")
+}
+
+func (v StringValues) AppendString(b []byte) []byte {
+	b = append(b, '(')
+	for i, text := range v.Strings {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = strconv.AppendQuote(b, text)
+	}
+	b = append(b, ')')
+	return b
 }
 
 func (v StringValues) Values() []string {

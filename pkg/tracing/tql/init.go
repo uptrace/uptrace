@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func ParsePart(s string) (any, error) {
+func ParsePart(s string) (AST, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return nil, nil

@@ -3,12 +3,11 @@ package ast
 import (
 	"errors"
 	"fmt"
-	"strings"
 )
 
 var errAlias = errors.New("alias is required (AS alias)")
 
-func (p *queryParser) parseQuery() (any, error) {
+func (p *queryParser) parseQuery() (QueryPart, error) {
 
 	{
 		var where []Filter
@@ -237,11 +236,16 @@ func (p *queryParser) filters() ([]Filter, error) {
 
 	for i := range filters {
 		f := &filters[i]
+
+		if alias, _ := SplitAliasName(f.LHS); alias != "" {
+			return nil, fmt.Errorf("filters can't reference other metrics: %s", alias)
+		}
+
 		switch f.Op {
 		case FilterEqual, FilterNotEqual, FilterRegexp, FilterNotRegexp, FilterIn:
 			// ok
 		default:
-			return nil, fmt.Errorf("only =, !=, ~, and !~ are allowed inside curly brackets")
+			return nil, fmt.Errorf(`only =, !=, ~, !~, and "in" are allowed inside curly brackets`)
 		}
 	}
 
@@ -313,6 +317,14 @@ func (p *queryParser) where() ([]Filter, error) {
 				break
 			}
 			return nil, errBacktrack
+		}
+	}
+
+	for i := range filters {
+		f := &filters[i]
+
+		if alias, _ := SplitAliasName(f.LHS); alias != "" {
+			return nil, fmt.Errorf("where can't reference other metrics: %s", alias)
 		}
 	}
 
@@ -649,6 +661,28 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 
 	{
 		_pos1 := p.Pos()
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "="
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r2_i0_group_end
+			}
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "="
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r2_i0_group_end
+			}
+		}
+		return FilterEqual, nil
+	r2_i0_group_end:
+	}
+
+	{
+		_pos1 := p.Pos()
 		// '!' '='
 		{
 			{
@@ -656,7 +690,7 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 				_match := _tok.Text == "!"
 				if !_match {
 					p.ResetPos(_pos1)
-					goto r2_i0_alt1
+					goto r3_i0_alt1
 				}
 			}
 			{
@@ -664,13 +698,13 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 				_match := _tok.Text == "="
 				if !_match {
 					p.ResetPos(_pos1)
-					goto r2_i0_alt1
+					goto r3_i0_alt1
 				}
 			}
-			goto r2_i0_has_match
+			goto r3_i0_has_match
 		}
 
-	r2_i0_alt1:
+	r3_i0_alt1:
 		// '<' '>'
 		{
 			{
@@ -678,7 +712,7 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 				_match := _tok.Text == "<"
 				if !_match {
 					p.ResetPos(_pos1)
-					goto r2_i0_group_end
+					goto r3_i0_group_end
 				}
 			}
 			{
@@ -686,14 +720,14 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 				_match := _tok.Text == ">"
 				if !_match {
 					p.ResetPos(_pos1)
-					goto r2_i0_group_end
+					goto r3_i0_group_end
 				}
 			}
 		}
 
-	r2_i0_has_match:
+	r3_i0_has_match:
 		return FilterNotEqual, nil
-	r2_i0_group_end:
+	r3_i0_group_end:
 	}
 
 	{
@@ -703,7 +737,7 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 			_match := _tok.Text == "!"
 			if !_match {
 				p.ResetPos(_pos1)
-				goto r3_i0_group_end
+				goto r4_i0_group_end
 			}
 		}
 		{
@@ -711,11 +745,11 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 			_match := _tok.Text == "~"
 			if !_match {
 				p.ResetPos(_pos1)
-				goto r3_i0_group_end
+				goto r4_i0_group_end
 			}
 		}
 		return FilterNotRegexp, nil
-	r3_i0_group_end:
+	r4_i0_group_end:
 	}
 
 	{
@@ -725,7 +759,7 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 			_match := _tok.Text == "<"
 			if !_match {
 				p.ResetPos(_pos1)
-				goto r4_i0_group_end
+				goto r5_i0_group_end
 			}
 		}
 		{
@@ -733,11 +767,11 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 			_match := _tok.Text == "="
 			if !_match {
 				p.ResetPos(_pos1)
-				goto r4_i0_group_end
+				goto r5_i0_group_end
 			}
 		}
 		return FilterLTE, nil
-	r4_i0_group_end:
+	r5_i0_group_end:
 	}
 
 	{
@@ -747,7 +781,7 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 			_match := _tok.Text == ">"
 			if !_match {
 				p.ResetPos(_pos1)
-				goto r5_i0_group_end
+				goto r6_i0_group_end
 			}
 		}
 		{
@@ -755,32 +789,10 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 			_match := _tok.Text == "="
 			if !_match {
 				p.ResetPos(_pos1)
-				goto r5_i0_group_end
+				goto r6_i0_group_end
 			}
 		}
 		return FilterGTE, nil
-	r5_i0_group_end:
-	}
-
-	{
-		_pos1 := p.Pos()
-		{
-			_tok := p.NextToken()
-			_match := _tok.Text == "="
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r6_i0_group_end
-			}
-		}
-		{
-			_tok := p.NextToken()
-			_match := _tok.Text == "~"
-			if !_match {
-				p.ResetPos(_pos1)
-				goto r6_i0_group_end
-			}
-		}
-		return FilterRegexp, nil
 	r6_i0_group_end:
 	}
 
@@ -788,7 +800,7 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 		_pos1 := p.Pos()
 		{
 			_tok := p.NextToken()
-			_match := _tok.Text == "~"
+			_match := _tok.Text == "="
 			if !_match {
 				p.ResetPos(_pos1)
 				goto r7_i0_group_end
@@ -796,7 +808,7 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 		}
 		{
 			_tok := p.NextToken()
-			_match := _tok.Text == "="
+			_match := _tok.Text == "~"
 			if !_match {
 				p.ResetPos(_pos1)
 				goto r7_i0_group_end
@@ -804,6 +816,28 @@ func (p *queryParser) filterOp() (FilterOp, error) {
 		}
 		return FilterRegexp, nil
 	r7_i0_group_end:
+	}
+
+	{
+		_pos1 := p.Pos()
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "~"
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r8_i0_group_end
+			}
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "="
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r8_i0_group_end
+			}
+		}
+		return FilterRegexp, nil
+	r8_i0_group_end:
 	}
 
 	var t *Token
@@ -1125,8 +1159,9 @@ func (p *queryParser) namedExpr() (NamedExpr, error) {
 			}
 		}
 		return NamedExpr{
-			Expr:  expr,
-			Alias: alias,
+			Expr:     expr,
+			HasAlias: true,
+			Alias:    alias,
 		}, nil
 	i0_group_end:
 	}
@@ -1144,16 +1179,9 @@ func (p *queryParser) namedExpr() (NamedExpr, error) {
 			return NamedExpr{}, errBacktrack
 		}
 	}
-	var alias string
-	if name, ok := expr.(*MetricExpr); ok {
-		if len(name.Filters) == 0 && strings.HasPrefix(name.Name, "$") {
-			alias = strings.TrimPrefix(name.Name, "$")
-		}
-	}
-
 	return NamedExpr{
 		Expr:  expr,
-		Alias: alias,
+		Alias: defaultAliasForExpr(expr),
 	}, nil
 }
 
@@ -2099,6 +2127,14 @@ func (p *queryParser) grouping1() ([]GroupingElem, error) {
 		}
 	}
 
+	for i := range grouping {
+		el := &grouping[i]
+
+		if alias, _ := SplitAliasName(el.Name); alias != "" {
+			return nil, fmt.Errorf("group by can't reference other metrics: %s", alias)
+		}
+	}
+
 	return grouping, nil
 }
 
@@ -2134,6 +2170,7 @@ func (p *queryParser) groupingElem() (GroupingElem, error) {
 			}
 		}
 		{
+			groupingExpr.HasAlias = true
 			groupingExpr.Alias = alias
 			return groupingExpr, nil
 		}
@@ -2153,7 +2190,7 @@ func (p *queryParser) groupingElem() (GroupingElem, error) {
 			return GroupingElem{}, errBacktrack
 		}
 	}
-	groupingExpr.Alias = groupingExpr.String()
+	groupingExpr.Alias = defaultAliasForGrouping(&groupingExpr)
 	return groupingExpr, nil
 }
 

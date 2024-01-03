@@ -38,18 +38,25 @@ Foundation.
 
 #### Features
 
-- Added [service graphs](https://app.uptrace.dev/overview/1/service-graph?). Service Graphs provide
-  a visual representation of service interactions, dependencies, and performance metrics. Service
+- Added [service graphs](https://app.uptrace.dev/overview/1/service-graph). Service Graphs provide a
+  visual representation of service interactions, dependencies, and performance metrics. Service
   graphs are built by analyzing span relationships and require certain span attributes.
 
-- Added ability to group dashboard charts into rows.
+- Added ability to group dashboard charts into rows, for example, charts can be grouped by category
+  such as CPU, RAM, Network metrics.
 
-- Added support for [Prometheus remote write](https://uptrace.dev/get/ingest/prometheus.html).
+- Added support for [Prometheus remote write](https://uptrace.dev/get/ingest/prometheus.html), which
+  allows Prometheus to send its collected metrics data directly to a long-term storage solution such
+  as Uptrace.
 
-- Added ability to use Uptrace as a Prometheus datasource in Grafana for projects that have
-  `prom_compat` flag enabled.
+- Added ability to use Uptrace as a
+  [Prometheus datasource in Grafana](https://uptrace.dev/get/grafana.html). Uptrace uses the
+  original Prometheus engine so all Prometheus queries should be supported and you should be able to
+  use existing Grafana dashboards with the Uptrace data source.
 
-- Added [annotations](https://uptrace.dev/get/annotations.html) support.
+- Added [chart annotations](https://uptrace.dev/get/annotations.html) support. Annotations are
+  labels or notes added to a chart to provide additional information or context. Annotations help
+  clarify the data presented in the chart and help the viewer understand key points or trends.
 
 #### Improvements
 

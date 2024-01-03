@@ -8,7 +8,7 @@ var errAlias = errors.New("alias is required (AS alias)")
 
 func (p *queryParser) trace(name, rule string) {}
 
-func (p *queryParser) parseQuery() (any, error) {
+func (p *queryParser) parseQuery() (AST, error) {
 	// if-match: "where" filters EOF
 
 	{
