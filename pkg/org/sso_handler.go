@@ -49,7 +49,7 @@ func NewSSOHandler(app *bunapp.App, router *bunrouter.Group) *SSOHandler {
 		methods = append(methods, &SSOMethod{
 			ID:          oidcConf.ID,
 			DisplayName: oidcConf.DisplayName,
-			RedirectURL: conf.SiteURL(fmt.Sprintf("/internal/v1/sso/%s/start", oidcConf.ID)),
+			RedirectURL: conf.SiteURL("/internal/v1/sso/%s/start", oidcConf.ID),
 		})
 
 		router.GET(fmt.Sprintf("/%s/start", oidcConf.ID), handler.Start)
