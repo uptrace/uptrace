@@ -18,7 +18,6 @@
 import { defineComponent, PropType } from 'vue'
 
 // Composables
-import { provideForceReload } from '@/use/force-reload'
 import { useDateRangeFrom, UseDateRange } from '@/use/date-range'
 
 // Components
@@ -47,7 +46,6 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
-    provideForceReload()
     const internalDateRange = useDateRangeFrom(props.dateRange)
     return { internalDateRange }
   },

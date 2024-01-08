@@ -74,9 +74,13 @@ export function durationShort(n: number | undefined | null, conf: Config = {}): 
 
   let abs = Math.abs(n)
 
-  if (abs < 1) {
-    return trimMantissa(n * 1000, 0, conf) + 'ns'
+  if (abs < 1000) {
+    return trimMantissa(n, 0, conf) + 'ns'
   }
+
+  n /= 1000
+  abs = Math.abs(n)
+
   if (abs < 1000) {
     return trimMantissa(n, 0, conf) + 'µs'
   }

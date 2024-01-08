@@ -3,7 +3,7 @@ import { shallowRef, computed, proxyRefs, watch, onBeforeUnmount, getCurrentInst
 
 // Composables
 import { useRoute, Values } from '@/use/router'
-import { injectForceReload } from '@/use/force-reload'
+import { provideForceReload, injectForceReload } from '@/use/force-reload'
 
 // Misc
 import {
@@ -367,6 +367,7 @@ export function useDateRange(conf: Config = {}) {
 }
 
 export function useDateRangeFrom(other: UseDateRange | undefined) {
+  provideForceReload()
   const dateRange = useDateRange()
   if (other) {
     dateRange.syncWith(other)

@@ -125,7 +125,7 @@ func (h *KinesisHandler) initDatapointFromAWS(
 ) error {
 	attrs := make(AttrMap, len(src.Dimensions)+4)
 	for key, value := range src.Dimensions {
-		key = attrkey.Clean(key)
+		key = attrkey.Underscore(key)
 		if key == "" {
 			continue
 		}
@@ -139,7 +139,7 @@ func (h *KinesisHandler) initDatapointFromAWS(
 		attrs[attrkey.CloudRegion] = src.Region
 	}
 	if src.MetricStreamName != "" {
-		attrs["aws.metric_stream_name"] = src.MetricStreamName
+		attrs["metric_stream_name"] = src.MetricStreamName
 	}
 
 	dest.ProjectID = project.ID

@@ -134,6 +134,9 @@ export default defineComponent({
       () => props.requiredAttrs,
       (grouping) => {
         activeAttrKeys.value = grouping
+        if (grouping.length) {
+          attrFilterEnabled.value = true
+        }
       },
       { immediate: true },
     )

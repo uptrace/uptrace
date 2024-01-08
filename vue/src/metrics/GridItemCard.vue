@@ -17,58 +17,56 @@
         </v-tooltip>
       </v-toolbar-title>
 
-      <v-toolbar-items>
-        <v-menu v-model="menu" offset-y>
-          <template #activator="{ on: onMenu, attrs }">
-            <v-btn
-              :loading="gridItemMan.pending"
-              icon
-              :disabled="readonly"
-              v-bind="attrs"
-              v-on="onMenu"
-            >
-              <v-icon>mdi-dots-vertical</v-icon>
-            </v-btn>
-          </template>
-          <v-list>
-            <v-list-item v-if="expandable" @click="dialog = true">
-              <v-list-item-icon>
-                <v-icon>mdi-eye</v-icon>
-              </v-list-item-icon>
-              <v-list-item-content>
-                <v-list-item-title>View</v-list-item-title>
-              </v-list-item-content>
-            </v-list-item>
+      <v-menu v-model="menu" offset-y>
+        <template #activator="{ on: onMenu, attrs }">
+          <v-btn
+            :loading="gridItemMan.pending"
+            icon
+            :disabled="readonly"
+            v-bind="attrs"
+            v-on="onMenu"
+          >
+            <v-icon>mdi-dots-vertical</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item v-if="expandable" @click="dialog = true">
+            <v-list-item-icon>
+              <v-icon>mdi-eye</v-icon>
+            </v-list-item-icon>
+            <v-list-item-content>
+              <v-list-item-title>View</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
 
-            <v-list-item @click="$emit('click:edit', gridItem)">
-              <v-list-item-icon>
-                <v-icon>mdi-pencil</v-icon>
-              </v-list-item-icon>
-              <v-list-item-content>
-                <v-list-item-title>Edit</v-list-item-title>
-              </v-list-item-content>
-            </v-list-item>
+          <v-list-item @click="$emit('click:edit', gridItem)">
+            <v-list-item-icon>
+              <v-icon>mdi-pencil</v-icon>
+            </v-list-item-icon>
+            <v-list-item-content>
+              <v-list-item-title>Edit</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
 
-            <v-list-item v-if="routeForNewMonitor" :to="routeForNewMonitor">
-              <v-list-item-icon>
-                <v-icon>mdi-radar</v-icon>
-              </v-list-item-icon>
-              <v-list-item-content>
-                <v-list-item-title>Monitor</v-list-item-title>
-              </v-list-item-content>
-            </v-list-item>
+          <v-list-item v-if="routeForNewMonitor" :to="routeForNewMonitor">
+            <v-list-item-icon>
+              <v-icon>mdi-radar</v-icon>
+            </v-list-item-icon>
+            <v-list-item-content>
+              <v-list-item-title>Monitor</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
 
-            <v-list-item @click="del">
-              <v-list-item-icon>
-                <v-icon>mdi-delete</v-icon>
-              </v-list-item-icon>
-              <v-list-item-content>
-                <v-list-item-title>Delete</v-list-item-title>
-              </v-list-item-content>
-            </v-list-item>
-          </v-list>
-        </v-menu>
-      </v-toolbar-items>
+          <v-list-item @click="del">
+            <v-list-item-icon>
+              <v-icon>mdi-delete</v-icon>
+            </v-list-item-icon>
+            <v-list-item-content>
+              <v-list-item-title>Delete</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </v-toolbar>
 
     <slot

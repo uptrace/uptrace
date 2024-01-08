@@ -28,7 +28,6 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
-import { provideForceReload } from '@/use/force-reload'
 import { useDateRangeFrom, UseDateRange } from '@/use/date-range'
 
 // Components
@@ -69,7 +68,6 @@ export default defineComponent({
   },
 
   setup(props) {
-    provideForceReload()
     const internalDateRange = useDateRangeFrom(props.dateRange)
     const attrs = computed(() => {
       return {

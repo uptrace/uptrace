@@ -561,11 +561,11 @@ func maxTableValue(ns []float64) float64 {
 }
 
 func lastTableValue(ns []float64) float64 {
-	if len(ns) >= 1 {
-		return ns[len(ns)-2]
-	}
-	if len(ns) >= 1 {
-		return ns[0]
+	for i := len(ns) - 1; i >= 0; i-- {
+		n := ns[i]
+		if !math.IsNaN(n) {
+			return n
+		}
 	}
 	return math.NaN()
 }
