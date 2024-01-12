@@ -7,13 +7,20 @@
 
           <ol class="mb-4">
             <li class="mb-1">
-              Add <a href="https://t.me/UptraceBot" target="_blank">@UptraceBot</a> to the Telegram
-              channel where you want to receive notifications.
+              <a
+                href="https://sendpulse.com/knowledge-base/chatbot/telegram/create-telegram-chatbot"
+                target="_blank"
+                >Create</a
+              >
+              a new Telegram bot and configure <code>telegram.bot_token</code> in the config.
+            </li>
+            <li class="mb-1">
+              Add the created bot to the Telegram channel where you want to receive notifications.
             </li>
             <li>
               Get the channel's <code>chat.id</code> by adding
-              <a href="https://t.me/raw_data_bot" target="_blank">@RawDataBot</a> and running
-              <code>/start</code>.
+              <a href="https://t.me/username_to_id_bot" target="_blank">@username_to_id_bot</a> to
+              the channel.
             </li>
           </ol>
 

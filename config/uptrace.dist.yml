@@ -207,9 +207,9 @@ spans:
 metrics:
   # List of attributes to drop for being noisy.
   drop_attrs:
-    - telemetry.sdk.language
-    - telemetry.sdk.name
-    - telemetry.sdk.version
+    - telemetry_sdk_language
+    - telemetry_sdk_name
+    - telemetry_sdk_version
 
   # The size of the Go chan used to buffer incoming measures.
   # If the buffer is full, Uptrace starts to drop measures.
@@ -256,6 +256,16 @@ uptrace_go:
   #   cert_file: config/tls/uptrace.crt
   #   key_file: config/tls/uptrace.key
   #   insecure_skip_verify: true
+
+##
+## Token for the Telegram bot that will be sending notifications to Telegram channels.
+## Required if you are planning to use Telegram for notifications.
+##
+## To create a new bot, follow this guide:
+## https://sendpulse.com/knowledge-base/chatbot/telegram/create-telegram-chatbot
+##
+telegram:
+  bot_token: ''
 
 ##
 ## Logging configuration.

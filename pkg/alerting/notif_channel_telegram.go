@@ -45,11 +45,15 @@ func (c *TelegramNotifChannel) Base() *BaseNotifChannel {
 }
 
 func (c *TelegramNotifChannel) TelegramBot(app *bunapp.App) (*tgbotapi.BotAPI, error) {
+	conf := app.Config()
+	if conf.Telegram.BotToken == "" {
+		return nil, errors.New("telegram.bot_token is empty")
+	}
 	if c.Params.ChatID == 0 {
 		return nil, errors.New("chat id can't be empty")
 	}
 
-	bot, err := tgbotapi.NewBotAPI(app.Config().Telegram.BotToken)
+	bot, err := tgbotapi.NewBotAPI(conf.Telegram.BotToken)
 	if err != nil {
 		return nil, err
 	}
@@ -76,11 +80,6 @@ func SelectTelegramNotifChannel(
 
 func notifyByTelegramHandler(ctx context.Context, eventID, channelID uint64) error {
 	app := bunapp.AppFromContext(ctx)
-
-	if app.Config().Telegram.BotToken == "" {
-		app.Logger.Error("telegram.bot_token is empty")
-		return nil
-	}
 
 	alert, err := selectAlertWithEvent(ctx, app, eventID)
 	if err != nil {
