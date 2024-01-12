@@ -64,7 +64,7 @@ processors:
 
 exporters:
   otlp/uptrace:
-    endpoint: host.docker.internal:14317
+    endpoint: http://host.docker.internal:14317
     tls:
       insecure: true
     headers: { 'uptrace-dsn': 'http://project1_secret_token@localhost:14317/1' }

@@ -97,31 +97,35 @@ type MetricExpr struct {
 	Grouping GroupingElems
 }
 
-func (n *MetricExpr) AppendString(b []byte) []byte {
-	b = append(b, n.Name...)
+func (me *MetricExpr) AppendString(b []byte) []byte {
+	b = append(b, me.Name...)
 
-	if len(n.Filters) > 0 {
+	if len(me.Filters) > 0 {
 		b = append(b, '{')
-		for i := range n.Filters {
+		for i := range me.Filters {
 			if i > 0 {
 				b = append(b, ',')
 			}
-			b = n.Filters[i].AppendString(b, false)
+			b = me.Filters[i].AppendString(b, false)
 		}
 		b = append(b, '}')
 	}
 
-	if len(n.Grouping) > 0 {
+	if len(me.Grouping) > 0 {
 		b = append(b, " by ("...)
-		b = n.Grouping.AppendString(b)
+		b = me.Grouping.AppendString(b)
 		b = append(b, ')')
 	}
 
 	return b
 }
 
-func (n *MetricExpr) AppendTemplate(b []byte) []byte {
-	b = append(b, n.Name...)
+func (me *MetricExpr) AppendTemplate(b []byte) []byte {
+	if len(me.Filters) == 0 && strings.HasPrefix(me.Name, "$") {
+		b = append(b, me.Name[1:]...)
+	} else {
+		b = append(b, me.Name...)
+	}
 	b = append(b, "$$"...)
 	return b
 }

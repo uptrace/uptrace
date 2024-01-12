@@ -74,7 +74,9 @@ func (h *PrometheusHandler) handleTimeseries(
 		if metricName == "" {
 			continue
 		}
-		isCumCounter = false
+		if project.PromCompat {
+			isCumCounter = false
+		}
 
 		attrs := make(AttrMap, len(ts.Labels))
 		for _, l := range ts.Labels {

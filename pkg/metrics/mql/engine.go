@@ -131,7 +131,7 @@ func (e *Engine) eval(expr Expr) ([]*Timeseries, error) {
 	switch expr := expr.(type) {
 	case *TimeseriesExpr:
 		return expr.Timeseries, nil
-	case *RefExpr:
+	case RefExpr:
 		if timeseries, ok := e.vars[expr.Expr.Name]; ok {
 			return timeseries, nil
 		}
@@ -149,7 +149,7 @@ func (e *Engine) eval(expr Expr) ([]*Timeseries, error) {
 		return e.binaryExpr(expr)
 	case ParenExpr:
 		return e.eval(expr.Expr)
-	case *ast.Number:
+	case ast.Number:
 		ts := e.storage.MakeTimeseries(nil)
 
 		num, err := expr.ConvertValue(ts.Unit)
@@ -170,7 +170,7 @@ func (e *Engine) eval(expr Expr) ([]*Timeseries, error) {
 }
 
 func (e *Engine) resolveNumber(expr Expr) Expr {
-	if ref, ok := expr.(*RefExpr); ok {
+	if ref, ok := expr.(RefExpr); ok {
 		if num, ok := e.consts[ref.Expr.Name]; ok {
 			return ast.Number{
 				Text: strconv.FormatFloat(num, 'f', -1, 64),
@@ -185,8 +185,8 @@ func (e *Engine) binaryExpr(expr *BinaryExpr) ([]*Timeseries, error) {
 	rhs := e.resolveNumber(expr.RHS)
 
 	{
-		lhsNum, lhsOK := lhs.(*ast.Number)
-		rhsNum, rhsOK := rhs.(*ast.Number)
+		lhsNum, lhsOK := lhs.(ast.Number)
+		rhsNum, rhsOK := rhs.(ast.Number)
 
 		if lhsOK && rhsOK {
 			return e.binaryExprNum(lhsNum.Float64(), rhsNum.Float64(), expr.Op)
