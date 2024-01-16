@@ -273,6 +273,10 @@ func validateProjects(projects []Project) error {
 		if seen[project.Token] {
 			return fmt.Errorf("project %d has a duplicated token %q", project.ID, project.Token)
 		}
+
+		for i, attr := range project.PinnedAttrs {
+			project.PinnedAttrs[i] = strings.ReplaceAll(attr, ".", "_")
+		}
 	}
 
 	return nil
