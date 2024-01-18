@@ -50,7 +50,6 @@
               <v-tabs>
                 <v-tab :to="{ name: 'DashboardTable' }" exact-path>Table</v-tab>
                 <v-tab :to="{ name: 'DashboardGrid' }" exact-path>Grid</v-tab>
-                <v-tab :to="{ name: 'DashboardYaml' }" exact-path>YAML</v-tab>
                 <v-tab :to="{ name: 'DashboardHelp' }" exact-path>Help</v-tab>
               </v-tabs>
             </v-col>

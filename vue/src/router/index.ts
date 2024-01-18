@@ -50,7 +50,6 @@ import Dashboard from '@/metrics/views/Dashboard.vue'
 import DashboardLoading from '@/metrics/views/DashboardLoading.vue'
 import DashboardTable from '@/metrics/views/DashboardTable.vue'
 import DashboardGrid from '@/metrics/views/DashboardGrid.vue'
-import DashboardYaml from '@/metrics/views/DashboardYaml.vue'
 import DashboardHelp from '@/metrics/views/DashboardHelp.vue'
 
 import Login from '@/views/Login.vue'
@@ -313,11 +312,6 @@ const routes: RouteConfig[] = [
             path: 'grid',
             name: 'DashboardGrid',
             components: { tab: DashboardGrid },
-          },
-          {
-            path: 'yaml',
-            name: 'DashboardYaml',
-            components: { tab: DashboardYaml },
           },
           {
             path: 'help',

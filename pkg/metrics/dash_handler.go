@@ -508,9 +508,9 @@ func (h *DashHandler) dashboardTpl(req bunrouter.Request) (*DashboardTpl, error)
 	return tpl, nil
 }
 
-func (h *DashHandler) FromYAML(w http.ResponseWriter, req bunrouter.Request) error {
+func (h *DashHandler) CreateFromYAML(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
-	dash := dashFromContext(ctx)
+	project := org.ProjectFromContext(ctx)
 
 	tpl := new(DashboardTpl)
 
@@ -522,19 +522,21 @@ func (h *DashHandler) FromYAML(w http.ResponseWriter, req bunrouter.Request) err
 	// Template id can't be set by a client.
 	tpl.ID = ""
 
-	builder := NewDashBuilder(dash.ProjectID, nil)
+	builder := NewDashBuilder(project.ID, nil)
 
 	if err := builder.Build(tpl); err != nil {
 		return err
 	}
 
 	if err := h.PG.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		return builder.Save(ctx, tx, dash, false)
+		return builder.Save(ctx, tx, nil, false)
 	}); err != nil {
 		return err
 	}
 
-	return nil
+	return httputil.JSON(w, bunrouter.H{
+		"dashboard": builder.dash,
+	})
 }
 
 func (h *DashHandler) Pin(w http.ResponseWriter, req bunrouter.Request) error {
