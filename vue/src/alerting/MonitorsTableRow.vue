@@ -48,12 +48,31 @@
       <v-btn :loading="monitorMan.pending" icon title="Delete monitor" @click.stop="deleteMonitor"
         ><v-icon>mdi-delete-outline</v-icon></v-btn
       >
+      <v-menu v-model="menu" offset-y>
+        <template #activator="{ on: onMenu, attrs }">
+          <v-btn icon v-bind="attrs" v-on="onMenu">
+            <v-icon>mdi-dots-vertical</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item @click="openMonitorDialog(monitor)">
+            <v-list-item-icon>
+              <v-icon>mdi-eye</v-icon>
+            </v-list-item-icon>
+            <v-list-item-content>
+              <v-list-item-title>View Yaml</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </td>
+
+    <MonitorYamlDialog v-if="dialog" v-model="dialog" :monitor="activeMonitor" />
   </tr>
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
 import { useConfirm } from '@/use/confirm'
@@ -63,13 +82,14 @@ import { AlertStatus } from '@/alerting/use-alerts'
 // Components
 import MonitorTypeIcon from '@/alerting/MonitorTypeIcon.vue'
 import MonitorStateAvatar from '@/alerting/MonitorStateAvatar.vue'
+import MonitorYamlDialog from '@/alerting/MonitorYamlDialog.vue'
 
 // Misc
 import { Monitor, MonitorType, MonitorState } from '@/alerting/types'
 
 export default defineComponent({
   name: 'MonitorsTableRow',
-  components: { MonitorTypeIcon, MonitorStateAvatar },
+  components: { MonitorTypeIcon, MonitorStateAvatar, MonitorYamlDialog },
 
   props: {
     monitor: {
@@ -79,6 +99,9 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
+    const menu = shallowRef(false)
+    const activeMonitor = shallowRef<Monitor>()
+    const dialog = shallowRef(false)
     const confirm = useConfirm()
     const monitorMan = useMonitorManager()
 
@@ -120,10 +143,18 @@ export default defineComponent({
         .catch(() => {})
     }
 
+    function openMonitorDialog(monitor: Monitor) {
+      activeMonitor.value = monitor
+      dialog.value = true
+    }
+
     return {
       MonitorType,
       MonitorState,
 
+      menu,
+      dialog,
+      activeMonitor,
       routeForMonitor,
       routeForOpenAlerts,
       routeForClosedAlerts,
@@ -132,6 +163,7 @@ export default defineComponent({
       activateMonitor,
       pauseMonitor,
       deleteMonitor,
+      openMonitorDialog,
     }
   },
 })

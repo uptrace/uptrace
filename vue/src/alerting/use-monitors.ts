@@ -135,6 +135,15 @@ export function useMonitorManager() {
     })
   }
 
+  function createMonitorFromYaml(yaml: string) {
+    const { projectId } = route.value.params
+    const url = `/internal/v1/projects/${projectId}/monitors/yaml`
+
+    return request({ method: 'POST', url, data: yaml }).then((resp) => {
+      return resp.data.monitors as Monitor[]
+    })
+  }
+
   function activate(monitor: Monitor) {
     monitor.state = MonitorState.Active
     return updateState(monitor)
@@ -169,6 +178,8 @@ export function useMonitorManager() {
 
     createErrorMonitor,
     updateErrorMonitor,
+
+    createMonitorFromYaml,
 
     del,
     pause,
@@ -227,6 +238,29 @@ export function useErrorMonitor() {
 export function routeForMonitor(monitor: Monitor) {
   return {
     name: monitor.type === MonitorType.Metric ? 'MonitorMetricShow' : 'MonitorErrorShow',
-    params: { monitorId: monitor.id },
+    params: { monitorId: String(monitor.id) },
   }
+}
+
+export function useYamlMonitor(monitorId: number) {
+  const route = useRoute()
+
+  const { status, loading, data, reload } = useWatchAxios(() => {
+    const { projectId } = route.value.params
+    return {
+      url: `/internal/v1/projects/${projectId}/monitors/${monitorId}/yaml`,
+    }
+  })
+
+  const yaml = computed(() => {
+    return data.value ?? ''
+  })
+
+  return proxyRefs({
+    status,
+    loading,
+    reload,
+
+    data: yaml,
+  })
 }
