@@ -111,6 +111,13 @@ func (f *NullFloat64) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
+func (f NullFloat64) MarshalYAML() (interface{}, error) {
+	if !f.Valid {
+		return nil, nil
+	}
+	return f.Float64, nil
+}
+
 //------------------------------------------------------------------------------
 
 type Params struct {

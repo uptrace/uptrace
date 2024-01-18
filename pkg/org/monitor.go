@@ -113,6 +113,9 @@ func (m *MetricMonitor) Validate() error {
 	if m.Params.Column == "" {
 		return errors.New("column can't be empty")
 	}
+	if m.Params.TimeOffset > 300*unixtime.MillisOf(time.Minute) {
+		return errors.New("time offset can't can't be larger 300 minutes")
+	}
 
 	if m.Params.CheckNumPoint == 0 {
 		m.Params.CheckNumPoint = 5

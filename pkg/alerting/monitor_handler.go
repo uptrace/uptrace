@@ -1,6 +1,7 @@
 package alerting
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
@@ -19,6 +20,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
+	"gopkg.in/yaml.v3"
 )
 
 type MonitorFilter struct {
@@ -173,6 +175,46 @@ func (h *MonitorHandler) Show(w http.ResponseWriter, req bunrouter.Request) erro
 	return httputil.JSON(w, bunrouter.H{
 		"monitor": monitor,
 	})
+}
+
+func (h *MonitorHandler) ShowYAML(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	monitor := monitorFromContext(ctx)
+	base := monitor.Base()
+
+	var out map[string]any
+	switch monitor := monitor.(type) {
+	case *org.MetricMonitor:
+		tpl := metrics.NewMetricMonitorTpl(monitor)
+		out = map[string]any{
+			"monitors": []*metrics.MetricMonitorTpl{tpl},
+		}
+	case *org.ErrorMonitor:
+		tpl := metrics.NewErrorMonitorTpl(monitor)
+		out = map[string]any{
+			"monitors": []*metrics.ErrorMonitorTpl{tpl},
+		}
+	default:
+		panic(fmt.Errorf("unsupported monitor type: %T", monitor))
+	}
+
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+
+	if err := enc.Encode(out); err != nil {
+		return err
+	}
+
+	header := w.Header()
+	header.Set("Content-Disposition", fmt.Sprintf("attachment; filename=monitor_%d.yml", base.ID))
+	header.Set("Content-Type", "text/yaml")
+	if _, err := w.Write(buf.Bytes()); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (h *MonitorHandler) selectChannelIDs(ctx context.Context, monitorID uint64) ([]uint64, error) {
@@ -433,6 +475,81 @@ func (h *MonitorHandler) insertMonitorChannels(
 		}
 	}
 	return nil
+}
+
+func (h *MonitorHandler) CreateMonitorFromYAML(
+	w http.ResponseWriter, req bunrouter.Request,
+) error {
+	ctx := req.Context()
+	project := org.ProjectFromContext(ctx)
+	user := org.UserFromContext(ctx)
+
+	var in struct {
+		Monitors []*metrics.MonitorTpl `yaml:"monitors"`
+	}
+	dec := yaml.NewDecoder(req.Body)
+	if err := dec.Decode(&in); err != nil {
+		return err
+	}
+
+	if len(in.Monitors) == 0 {
+		return errors.New("YAML does not contain any monitors")
+	}
+
+	monitors := make([]org.Monitor, 0, len(in.Monitors))
+	var hasMetricMonitor bool
+
+	for _, monitorTpl := range in.Monitors {
+		switch tpl := monitorTpl.Value.(type) {
+		case *metrics.MetricMonitorTpl:
+			monitor := org.NewMetricMonitor()
+
+			if err := tpl.Populate(monitor); err != nil {
+				return err
+			}
+			monitor.ProjectID = project.ID
+
+			if err := monitor.Validate(); err != nil {
+				return err
+			}
+
+			monitors = append(monitors, monitor)
+			hasMetricMonitor = true
+		case *metrics.ErrorMonitorTpl:
+			monitor := org.NewErrorMonitor()
+
+			if err := tpl.Populate(monitor); err != nil {
+				return err
+			}
+			monitor.ProjectID = project.ID
+
+			if err := monitor.Validate(); err != nil {
+				return err
+			}
+
+			monitors = append(monitors, monitor)
+		default:
+			panic(fmt.Errorf("unsupported monitor type: %T", tpl))
+		}
+	}
+
+	for _, monitor := range monitors {
+		if err := org.InsertMonitor(ctx, h.App.PG, monitor); err != nil {
+			return err
+		}
+	}
+
+	if hasMetricMonitor {
+		org.CreateAchievementOnce(ctx, h.App, &org.Achievement{
+			UserID:    user.ID,
+			ProjectID: project.ID,
+			Name:      org.AchievCreateMetricMonitor,
+		})
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"monitors": monitors,
+	})
 }
 
 func (h *MonitorHandler) Delete(w http.ResponseWriter, req bunrouter.Request) error {

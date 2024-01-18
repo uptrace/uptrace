@@ -64,3 +64,7 @@ func (ms *Millis) UnmarshalYAML(value *yaml.Node) error {
 	*ms = got
 	return nil
 }
+
+func (ms Millis) MarshalYAML() (interface{}, error) {
+	return ms.Duration(), nil
+}
