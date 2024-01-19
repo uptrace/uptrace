@@ -94,6 +94,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
 
 			g.POST("", dashHandler.Create)
 			g.GET("", dashHandler.List)
+			g.POST("/yaml", dashHandler.CreateFromYAML)
 
 			g = g.NewGroup("/:dash_id").Use(middleware.Dashboard)
 
@@ -103,7 +104,6 @@ func initRoutes(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
 			g.PUT("", dashHandler.Update)
 			g.PUT("/table", dashHandler.UpdateTable)
 			g.PUT("/grid", dashHandler.UpdateGrid)
-			g.PUT("/yaml", dashHandler.FromYAML)
 			g.PUT("/reset", dashHandler.Reset)
 			g.DELETE("", dashHandler.Delete)
 			g.PUT("/pinned", dashHandler.Pin)

@@ -211,11 +211,13 @@ export function useDashboardManager() {
     return request({ method: 'PUT', url, data: dash })
   }
 
-  function updateYaml(data: string) {
-    const { projectId, dashId } = route.value.params
-    const url = `/internal/v1/metrics/${projectId}/dashboards/${dashId}/yaml`
+  function createYaml(data: string) {
+    const { projectId } = route.value.params
+    const url = `/internal/v1/metrics/${projectId}/dashboards/yaml`
 
-    return request({ method: 'PUT', url, data })
+    return request({ method: 'POST', url, data }).then((resp) => {
+      return resp.data.dashboard as Dashboard
+    })
   }
 
   function clone(dash: Dashboard) {
@@ -257,7 +259,7 @@ export function useDashboardManager() {
     update,
     updateTable,
     updateGrid,
-    updateYaml,
+    createYaml,
     clone,
     reset,
     pin,
