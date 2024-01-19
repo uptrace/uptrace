@@ -354,7 +354,7 @@ func (b *DashBuilder) gridItem(tpl any) (GridItem, error) {
 	}
 }
 
-func (b *DashBuilder) monitor(tpl *MonitorTpl) (*org.MetricMonitor, error) {
+func (b *DashBuilder) monitor(tpl *MetricMonitorTpl) (*org.MetricMonitor, error) {
 	monitor := org.NewMetricMonitor()
 	if err := tpl.Populate(monitor); err != nil {
 		return nil, err

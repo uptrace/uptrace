@@ -41,6 +41,7 @@ func initRouter(ctx context.Context, app *bunapp.App) {
 
 			g.GET("", monitorHandler.List)
 
+			g.POST("/yaml", monitorHandler.CreateMonitorFromYAML)
 			g.POST("/metric", monitorHandler.CreateMetricMonitor)
 			g.POST("/error", monitorHandler.CreateErrorMonitor)
 
@@ -48,6 +49,7 @@ func initRouter(ctx context.Context, app *bunapp.App) {
 				Use(middleware.Monitor)
 
 			g.GET("", monitorHandler.Show)
+			g.GET("/yaml", monitorHandler.ShowYAML)
 			g.DELETE("", monitorHandler.Delete)
 
 			g.PUT("/metric", monitorHandler.UpdateMetricMonitor)
