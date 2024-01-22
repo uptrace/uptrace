@@ -292,6 +292,8 @@ type Timeseries struct {
 }
 
 func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) error {
+	const limit = 1000
+
 	ctx := req.Context()
 
 	f := new(QueryFilter)
@@ -314,8 +316,13 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 	}
 
 	timeseries, timeCol, metrics := h.selectTimeseries(ctx, f, metricMap)
-	jsonTimeseries := make([]Timeseries, len(timeseries))
+	var hasMore bool
+	if len(timeseries) > limit {
+		timeseries = timeseries[:limit]
+		hasMore = true
+	}
 
+	jsonTimeseries := make([]Timeseries, len(timeseries))
 	columnMap := make(map[string]*ColumnInfo)
 	var columns []*ColumnInfo
 
@@ -356,6 +363,7 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 		"timeseries": jsonTimeseries,
 		"time":       timeCol,
 		"columns":    columns,
+		"hasMore":    hasMore,
 	})
 }
 

@@ -181,7 +181,7 @@ AS SELECT
   max(max) AS max,
   sum(sum) AS sum,
   sum(count) AS count,
-  anyLast(gauge) AS value,
+  anyLast(gauge) AS gauge,
   quantilesBFloat16MergeState(0.5)(histogram) AS histogram,
 
   any(string_keys) AS string_keys,
