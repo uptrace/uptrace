@@ -18,7 +18,7 @@ table:
       metrics:
         - system_memory_usage as $mem_usage
       query:
-        - $mem_usage
+        - sum($mem_usage)
 
     - title: Free RAM
       description: Free RAM across all nodes
@@ -26,7 +26,7 @@ table:
       metrics:
         - system_memory_usage as $mem_usage
       query:
-        - $mem_usage{state=free} as free
+        - sum($mem_usage{state=free}) as free
 
     - title: Mem_ util
       description: Memory utilization across all nodes
@@ -34,7 +34,7 @@ table:
       metrics:
         - system_memory_usage as $mem_usage
       query:
-        - $mem_usage{state!=free} / $mem_usage as mem_util
+        - sum($mem_usage{state!=free}) / sum($mem_usage) as mem_util
       columns:
         mem_util: { unit: utilization }
 
@@ -52,11 +52,11 @@ table:
     - system_memory_usage as $mem_usage
   query:
     - group by host_name
-    - $load_avg_15m / uniq($cpu_time, cpu) as cpu_util
-    - $cpu_time{state=idle} / $cpu_time as cpu_idle_time
-    - $cpu_time{state=wait} / $cpu_time as cpu_wait_time
-    - $mem_usage{state!=free} / $mem_usage as mem_util
-    - $mem_usage{state=used} as mem_used
+    - avg($load_avg_15m) / uniq($cpu_time, cpu) as cpu_util
+    - sum($cpu_time{state="idle"}) / sum($cpu_time) as cpu_idle_time
+    - sum($cpu_time{state="wait"}) / sum($cpu_time) as cpu_wait_time
+    - sum($mem_usage{state!="free"}) / sum($mem_usage) as mem_util
+    - sum($mem_usage{state="used"}) as mem_used
   columns:
     cpu_util: { unit: utilization }
     cpu_idle_time: { unit: utilization }
@@ -72,8 +72,8 @@ grid_rows:
           - system_cpu_load_average_1m as $load_avg_1m
           - system_cpu_time as $cpu_time
         query:
-          - $load_avg_1m
-          - $load_avg_1m / uniq($cpu_time, cpu) as cpu_util
+          - avg($load_avg_1m)
+          - avg($load_avg_1m) / uniq($cpu_time, cpu) as cpu_util
         columns:
           cpu_util: { unit: utilization }
 
@@ -82,8 +82,8 @@ grid_rows:
           - system_cpu_load_average_5m as $load_avg_5m
           - system_cpu_time as $cpu_time
         query:
-          - $load_avg_5m
-          - $load_avg_5m / uniq($cpu_time, cpu) as cpu_util
+          - avg($load_avg_5m)
+          - avg($load_avg_5m) / uniq($cpu_time, cpu) as cpu_util
         columns:
           cpu_util: { unit: utilization }
 
@@ -92,8 +92,8 @@ grid_rows:
           - system_cpu_load_average_15m as $load_avg_15m
           - system_cpu_time as $cpu_time
         query:
-          - $load_avg_15m
-          - $load_avg_15m / uniq($cpu_time, cpu) as cpu_util
+          - avg($load_avg_15m)
+          - avg($load_avg_15m) / uniq($cpu_time, cpu) as cpu_util
         columns:
           cpu_util: { unit: utilization }
 
@@ -101,7 +101,7 @@ grid_rows:
         metrics:
           - system_cpu_time as $cpu_time
         query:
-          - per_min($cpu_time) as cpu_time group by state
+          - per_min(sum($cpu_time)) as cpu_time group by state
         chart: stacked-area
 
       - title: CPU wait time
@@ -111,7 +111,7 @@ grid_rows:
         metrics:
           - system_cpu_time as $cpu_time
         query:
-          - $cpu_time{state=wait} / $cpu_time as cpu_wait
+          - sum($cpu_time{state="wait"}) / sum($cpu_time) as cpu_wait
         columns:
           cpu_wait: { unit: utilization }
 
@@ -119,7 +119,7 @@ grid_rows:
         metrics:
           - system_cpu_time as $cpu_time
         query:
-          - $cpu_time{state=idle} / $cpu_time as cpu_wait
+          - sum($cpu_time{state="idle"}) / sum($cpu_time) as cpu_wait
         columns:
           cpu_wait: { unit: utilization }
 
@@ -127,7 +127,7 @@ grid_rows:
         metrics:
           - system_memory_usage as $mem_usage
         query:
-          - $mem_usage{state!=free} / $mem_usage as mem_util
+          - sum($mem_usage{state!="free"}) / sum($mem_usage) as mem_util
         columns:
           mem_util: { unit: utilization }
 
@@ -135,7 +135,7 @@ grid_rows:
         metrics:
           - system_memory_usage as $mem_usage
         query:
-          - $mem_usage group by state
+          - sum($mem_usage) group by state
         columns:
           mem_usage: { unit: bytes }
         chart: stacked-area
@@ -144,7 +144,7 @@ grid_rows:
         metrics:
           - system_paging_usage as $paging
         query:
-          - $paging{state!=free} / $paging as swap_util
+          - sum($paging{state!="free"}) / sum($paging) as swap_util
         columns:
           swap_util: { unit: utilization }
 
@@ -152,7 +152,7 @@ grid_rows:
         metrics:
           - system_paging_usage as $paging
         query:
-          - $paging group by state
+          - sum($paging) group by state
         columns:
           paging: { unit: bytes }
         chart: stacked-area
@@ -161,21 +161,21 @@ grid_rows:
         metrics:
           - system_paging_operations as $page_ops
         query:
-          - per_min($page_ops) as page_ops group by direction
+          - per_min(sum($page_ops)) as page_ops group by direction
         chart: stacked-area
 
       - title: Number of page faults
         metrics:
           - system_paging_faults as $page_faults
         query:
-          - per_min($page_faults) as page_faults group by type
+          - per_min(sum($page_faults)) as page_faults group by type
         chart: stacked-area
 
       - title: Network connections
         metrics:
           - system_network_connections as $net_conns
         query:
-          - $net_conns
+          - sum($net_conns)
 
 monitors:
   - name: CPU usage
@@ -183,7 +183,7 @@ monitors:
       - system_cpu_load_average_15m as $load_avg_15m
       - system_cpu_time as $cpu_time
     query:
-      - $load_avg_15m / uniq($cpu_time, cpu) as cpu_util
+      - avg($load_avg_15m) / uniq($cpu_time, cpu) as cpu_util
       - group by host_name
     column: cpu_util
     column_unit: utilization

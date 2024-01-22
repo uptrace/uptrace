@@ -8,9 +8,9 @@ table:
   query:
     - group by k8s_node_name
     - group by interface
-    - per_min($io{direction=receive}) as net_receive
-    - per_min($io{direction=transmit}) as net_transmit
-    - per_min($errors)
+    - per_min(sum($io{direction=receive})) as net_receive
+    - per_min(sum($io{direction=transmit})) as net_transmit
+    - per_min(sum($errors))
   columns:
     net_receive:
       unit: bytes
@@ -25,15 +25,13 @@ grid_rows:
         metrics:
           - k8s_node_network_io as $io
         query:
-          - per_min($io)
-          - group by direction
+          - per_min(sum($io)) as io_per_min group by direction
         columns:
-          per_min($io):
-            unit: bytes
+          io_per_min: { unit: bytes }
 
       - title: Network errors
         chart: line
         metrics:
           - k8s_node_network_errors as $errors
         query:
-          - per_min($errors)
+          - per_min(sum($errors))

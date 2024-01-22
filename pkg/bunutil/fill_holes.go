@@ -2,6 +2,9 @@ package bunutil
 
 import (
 	"time"
+
+	"github.com/uptrace/uptrace/pkg/unixtime"
+	"golang.org/x/exp/constraints"
 )
 
 func FillHoles(m map[string]any, gte, lt time.Time, interval time.Duration) {
@@ -73,6 +76,35 @@ func Fill[T any](
 	return filled
 }
 
+func FillUnixNum[T constraints.Integer | constraints.Float](
+	values []T,
+	timeCol []unixtime.Seconds,
+	value float64,
+	gte, lt time.Time,
+	interval time.Duration,
+) []float64 {
+	numItem := numItem(gte, lt, interval)
+	filled := make([]float64, numItem)
+	for i := range filled {
+		filled[i] = value
+	}
+
+	if len(values) != len(timeCol) {
+		return filled
+	}
+
+	for i, num := range values {
+		period := int64(timeCol[i]) - gte.Unix()
+		index := int(float64(period) / interval.Seconds())
+		if index < 0 || index >= numItem {
+			continue
+		}
+		filled[index] = float64(num)
+	}
+
+	return filled
+}
+
 func FillTime(
 	timeCol []time.Time,
 	gte, lt time.Time,
@@ -86,6 +118,23 @@ func FillTime(
 	filled := make([]time.Time, numItem)
 	for i := range filled {
 		filled[i] = gte.Add(time.Duration(i) * interval)
+	}
+	return filled
+}
+
+func FillUnixTime(
+	timeCol []unixtime.Seconds,
+	gte, lt time.Time,
+	interval time.Duration,
+) []unixtime.Seconds {
+	numItem := numItem(gte, lt, interval)
+	if len(timeCol) == numItem {
+		return timeCol
+	}
+
+	filled := make([]unixtime.Seconds, numItem)
+	for i := range filled {
+		filled[i] = unixtime.Seconds(gte.Add(time.Duration(i) * interval).Unix())
 	}
 	return filled
 }

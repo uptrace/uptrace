@@ -9,7 +9,7 @@ table:
       metrics:
         - kafka_brokers as $brokers
       query:
-        - $brokers
+        - sum($brokers)
 
     - title: Consumers
       description: Number of members in the consumer group
@@ -17,7 +17,7 @@ table:
       metrics:
         - kafka_consumer_group_members as $members
       query:
-        - $members
+        - sum($members)
 
   metrics:
     - kafka_partition_current_offset as $current_offset
@@ -25,8 +25,8 @@ table:
   query:
     - group by topic
     - group by partition
-    - per_min(delta($current_offset)) as processed
-    - $replicas_in_sync
+    - sum(irate($current_offset)) as processed
+    - sum($replicas_in_sync)
 
 grid_rows:
   - title: General
@@ -35,19 +35,19 @@ grid_rows:
         metrics:
           - kafka_partition_current_offset as $current_offset
         query:
-          - per_min(delta($current_offset)) as processed
+          - irate($current_offset) as processed
 
       - title: Number of available (unpruned) messages in the partition
         metrics:
           - kafka_partition_oldest_offset as $oldest_offset
           - kafka_partition_current_offset as $current_offset
         query:
-          - $current_offset - $oldest_offset as messages
+          - avg($current_offset) - avg($oldest_offset) as messages
 
       - title: Number of replicas for the partition of the topic
         metrics:
           - kafka_partition_replicas as $replicas_total
           - kafka_partition_replicas_in_sync as $replicas_in_sync
         query:
-          - $replicas_total
-          - $replicas_in_sync
+          - sum($replicas_total)
+          - sum($replicas_in_sync)

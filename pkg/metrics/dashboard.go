@@ -114,10 +114,12 @@ func (c *TableColumn) Validate() error {
 		return err
 	}
 	if c.AggFunc == "" {
-		return errors.New("table column agg can't be empty")
+		c.AggFunc = mql.TableFuncMedian
 	}
 	return nil
 }
+
+//------------------------------------------------------------------------------
 
 func SelectDashboard(ctx context.Context, app *bunapp.App, id uint64) (*Dashboard, error) {
 	dash := new(Dashboard)

@@ -13,8 +13,8 @@ table:
     - group by postgresql_table_name
     - $size
     - $rows
-    - per_min($ops) as ops
-    - per_min($blocks_read) as blocks_read
+    - per_min(sum($ops)) as ops
+    - per_min(sum($blocks_read)) as blocks_read
 
 grid_rows:
   - title: General
@@ -23,31 +23,31 @@ grid_rows:
         metrics:
           - postgresql_table_size as $size
         query:
-          - $size
+          - sum($size)
 
       - title: Number of rows in the table
         metrics:
           - postgresql_rows as $rows
         query:
-          - $rows group by state
+          - sum($rows) group by state
         chart: stacked-bar
 
       - title: Number of db row operations
         metrics:
           - postgresql_operations as $ops
         query:
-          - per_min($ops) as ops group by operation
+          - per_min(sum($ops)) as ops group by operation
         chart: stacked-bar
 
       - title: Number of blocks read
         metrics:
           - postgresql_blocks_read as $blocks_read
         query:
-          - per_min($blocks_read) as blocks_read group by source
+          - per_min(sum($blocks_read)) as blocks_read group by source
         chart: stacked-bar
 
       - title: Number of times the table has been manually vacuumed
         metrics:
           - postgresql_table_vacuum_count as $vacuum_count
         query:
-          - $vacuum_count
+          - sum($vacuum_count)

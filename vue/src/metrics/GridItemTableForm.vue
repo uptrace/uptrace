@@ -65,39 +65,30 @@
     </template>
     <template #options>
       <v-container fluid>
-        <v-row>
-          <v-col>
-            <SinglePanel title="Chart options" expanded>
-              <v-text-field
-                v-model="gridItem.title"
-                label="Chart title"
-                filled
-                dense
-                :rules="rules.title"
-              />
+        <SinglePanel title="Chart options" expanded>
+          <v-text-field
+            v-model="gridItem.title"
+            label="Chart title"
+            filled
+            dense
+            :rules="rules.title"
+          />
 
-              <v-text-field
-                v-model="gridItem.description"
-                label="Optional description or memo"
-                filled
-                dense
-              />
+          <v-text-field
+            v-model="gridItem.description"
+            label="Optional description or memo"
+            filled
+            dense
+          />
 
-              <PanelSection title="Items per page">
-                <v-slider
-                  v-model="gridItem.params.itemsPerPage"
-                  min="3"
-                  max="20"
-                  hide-details="auto"
-                >
-                  <template #prepend>{{ gridItem.params.itemsPerPage }}</template>
-                </v-slider>
-              </PanelSection>
+          <PanelSection title="Items per page">
+            <v-slider v-model="gridItem.params.itemsPerPage" min="3" max="20" hide-details="auto">
+              <template #prepend>{{ gridItem.params.itemsPerPage }}</template>
+            </v-slider>
+          </PanelSection>
 
-              <v-checkbox v-model="gridItem.params.denseTable" label="Dense table" />
-            </SinglePanel>
-          </v-col>
-        </v-row>
+          <v-checkbox v-model="gridItem.params.denseTable" label="Dense table" />
+        </SinglePanel>
       </v-container>
     </template>
   </GridItemFormPanes>

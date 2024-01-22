@@ -3,12 +3,13 @@ package pgmigrations
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/uptrace/bun"
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
+	"github.com/uptrace/uptrace/pkg/org"
 )
 
 func init() {
@@ -22,19 +23,11 @@ func init() {
 		}
 
 		for _, dash := range dashboards {
-			for i := range dash.TableMetrics {
-				metric := &dash.TableMetrics[i]
-				metric.Name = updateMetricName(metric.Name)
-			}
-			dash.TableQuery = updateMetricQuery(dash.TableQuery)
-
-			for i, grouping := range dash.TableGrouping {
-				dash.TableGrouping[i] = strings.ReplaceAll(grouping, ".", "_")
-			}
+			dash.TableQuery = addDefaultAgg(ctx, dash.TableQuery)
 
 			if _, err := db.NewUpdate().
 				Model(dash).
-				Column("table_metrics", "table_query", "table_grouping").
+				Column("table_query").
 				Where("id = ?", dash.ID).
 				Exec(ctx); err != nil {
 				return err
@@ -51,11 +44,7 @@ func init() {
 		}
 
 		for _, item := range charts {
-			for i := range item.Params.Metrics {
-				metric := &item.Params.Metrics[i]
-				metric.Name = updateMetricName(metric.Name)
-			}
-			item.Params.Query = updateMetricQuery(item.Params.Query)
+			item.Params.Query = addDefaultAgg(ctx, item.Params.Query)
 
 			if _, err := db.NewUpdate().
 				Model(item).
@@ -76,11 +65,7 @@ func init() {
 		}
 
 		for _, item := range tables {
-			for i := range item.Params.Metrics {
-				metric := &item.Params.Metrics[i]
-				metric.Name = updateMetricName(metric.Name)
-			}
-			item.Params.Query = updateMetricQuery(item.Params.Query)
+			item.Params.Query = addDefaultAgg(ctx, item.Params.Query)
 
 			if _, err := db.NewUpdate().
 				Model(item).
@@ -101,8 +86,7 @@ func init() {
 		}
 
 		for _, item := range heatmaps {
-			item.Params.Metric = updateMetricName(item.Params.Metric)
-			item.Params.Query = updateMetricQuery(item.Params.Query)
+			item.Params.Query = addDefaultAgg(ctx, item.Params.Query)
 
 			if _, err := db.NewUpdate().
 				Model(item).
@@ -123,11 +107,28 @@ func init() {
 		}
 
 		for _, item := range gauges {
-			for i := range item.Params.Metrics {
-				metric := &item.Params.Metrics[i]
-				metric.Name = updateMetricName(metric.Name)
+			item.Params.Query = addDefaultAgg(ctx, item.Params.Query)
+
+			if _, err := db.NewUpdate().
+				Model(item).
+				Column("params").
+				Where("id = ?", item.ID).
+				Exec(ctx); err != nil {
+				return err
 			}
-			item.Params.Query = updateMetricQuery(item.Params.Query)
+		}
+
+		var monitors []*org.MetricMonitor
+
+		if err := db.NewSelect().
+			Model(&monitors).
+			Where("type = ?", org.MonitorMetric).
+			Scan(ctx); err != nil {
+			return err
+		}
+
+		for _, item := range monitors {
+			item.Params.Query = addDefaultAgg(ctx, item.Params.Query)
 
 			if _, err := db.NewUpdate().
 				Model(item).
@@ -145,11 +146,7 @@ func init() {
 	})
 }
 
-func updateMetricName(name string) string {
-	return strings.ReplaceAll(name, ".", "_")
-}
-
-func updateMetricQuery(queryStr string) string {
+func addDefaultAgg(ctx context.Context, queryStr string) string {
 	query, err := mql.ParseQueryError(queryStr)
 	if err != nil {
 		return queryStr
@@ -158,63 +155,86 @@ func updateMetricQuery(queryStr string) string {
 	for _, part := range query.Parts {
 		switch expr := part.AST.(type) {
 		case *ast.Selector:
-			expr.Expr.Expr = renameMetricAttrs(expr.Expr.Expr)
+			expr.Expr.Expr = addCHAggExpr(ctx, expr.Expr.Expr, nil)
 			part.Query = expr.String()
-		case *ast.Where:
-			for i := range expr.Filters {
-				f := &expr.Filters[i]
-				f.LHS = strings.ReplaceAll(f.LHS, ".", "_")
-			}
-			part.Query = expr.String()
-		case *ast.Grouping:
-			for i := range expr.Elems {
-				elem := &expr.Elems[i]
-				elem.Name = strings.ReplaceAll(elem.Name, ".", "_")
-			}
-			part.Query = expr.String()
-		default:
-			panic(fmt.Errorf("unsupported: %T", expr))
 		}
 	}
 
 	return query.String()
 }
 
-func renameMetricAttrs(expr ast.Expr) ast.Expr {
+func addCHAggExpr(
+	ctx context.Context, expr ast.Expr, parent ast.Expr,
+) ast.Expr {
 	switch expr := expr.(type) {
 	case *ast.MetricExpr:
-		expr.Name = strings.ReplaceAll(expr.Name, ".", "_")
-		for i := range expr.Filters {
-			f := &expr.Filters[i]
-			f.LHS = strings.ReplaceAll(f.LHS, ".", "_")
+		fn, ok := parent.(*ast.FuncCall)
+		if !ok {
+			return wrapExpr(ctx, expr)
 		}
-		for i := range expr.Grouping {
-			elem := &expr.Grouping[i]
-			elem.Name = strings.ReplaceAll(elem.Name, ".", "_")
+
+		if !isCHFunc(fn.Func) {
+			return wrapExpr(ctx, expr)
 		}
+
 		return expr
 	case *ast.FuncCall:
-		expr.Arg = renameMetricAttrs(expr.Arg)
+		expr.Arg = addCHAggExpr(ctx, expr.Arg, expr)
 		return expr
 	case *ast.BinaryExpr:
-		expr.LHS = renameMetricAttrs(expr.LHS)
-		expr.RHS = renameMetricAttrs(expr.RHS)
+		expr.LHS = addCHAggExpr(ctx, expr.LHS, expr)
+		expr.RHS = addCHAggExpr(ctx, expr.RHS, expr)
 		return expr
 	case *ast.ParenExpr:
-		expr.Expr = renameMetricAttrs(expr.Expr)
+		expr.Expr = addCHAggExpr(ctx, expr.Expr, expr)
 		return expr
 	case ast.ParenExpr:
-		expr.Expr = renameMetricAttrs(expr.Expr)
+		expr.Expr = addCHAggExpr(ctx, expr.Expr, expr)
 		return expr
 	case *ast.UniqExpr:
-		renameMetricAttrs(expr.Name)
-		for i, attr := range expr.Attrs {
-			expr.Attrs[i] = strings.ReplaceAll(attr, ".", "_")
-		}
+		addCHAggExpr(ctx, expr.Name, expr)
 		return expr
 	case ast.Number:
 		return expr
 	default:
 		return expr
+	}
+}
+
+func wrapExpr(ctx context.Context, expr *ast.MetricExpr) ast.Expr {
+	chAgg := defaultCHAgg(ctx, expr.Name)
+	return &ast.FuncCall{
+		Func: chAgg,
+		Arg:  expr,
+	}
+}
+
+func defaultCHAgg(ctx context.Context, metric string) string {
+	app := bunapp.AppFromContext(ctx)
+
+	var instrument metrics.Instrument
+	if err := app.CH.NewSelect().
+		TableExpr(metrics.TableDatapointHours).
+		ColumnExpr("instrument").
+		Where("metric = ?", metric).
+		Limit(1).
+		Scan(ctx, &instrument); err != nil {
+		return "sum"
+	}
+
+	if instrument == metrics.InstrumentGauge {
+		return "avg"
+	}
+	return "sum"
+}
+
+func isCHFunc(name string) bool {
+	switch name {
+	case mql.CHAggMin, mql.CHAggMax, mql.CHAggSum, mql.CHAggAvg, mql.CHAggMedian,
+		mql.CHAggP50, mql.CHAggP75, mql.CHAggP90, mql.CHAggP95, mql.CHAggP99, mql.CHAggCount,
+		mql.CHAggUniq:
+		return true
+	default:
+		return false
 	}
 }

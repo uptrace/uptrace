@@ -18,8 +18,8 @@ table:
     - group by topic
     - group by partition
     - group by group
-    - per_min(delta($offset)) as processed
-    - $lag
+    - sum(irate($offset)) as processed
+    - avg($lag) as log
 
 grid_rows:
   - title: General
@@ -28,10 +28,10 @@ grid_rows:
         metrics:
           - kafka_consumer_group_offset as $offset
         query:
-          - per_min(delta($offset)) as processed
+          - irate($offset) as processed
 
       - title: Lag of the consumer group at the partition of the topic
         metrics:
           - kafka_consumer_group_lag as $lag
         query:
-          - $lag
+          - avg($lag)

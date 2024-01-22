@@ -73,7 +73,7 @@ import ForceReloadBtn from '@/components/ForceReloadBtn.vue'
 import { ChartGridItem } from '@/metrics/types'
 
 export default defineComponent({
-  name: 'GridItemFormDialog',
+  name: 'GridItemFormPanes',
   components: {
     Splitpanes,
     Pane,
@@ -81,10 +81,6 @@ export default defineComponent({
   },
 
   props: {
-    dialog: {
-      type: Boolean,
-      default: false,
-    },
     gridItem: {
       type: Object as PropType<ChartGridItem>,
       required: true,

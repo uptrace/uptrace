@@ -11,7 +11,7 @@ table:
     - $usage as conns
     - $usage{state='idle'} as idle
     - $timeouts
-    - per_min(count($use_time)) as queries
+    - per_min(count($use_time)) as queries_per_min
     - avg($use_time) as avg_timing
   columns:
     avg_timing: { unit: milliseconds }
@@ -30,7 +30,6 @@ grid_rows:
 
       - title: Query heatmap
         type: heatmap
-        size: large
         metric: db_client_connections_use_time
         unit: milliseconds
 
@@ -52,14 +51,14 @@ grid_rows:
           - db_client_connections_usage as $usage
           - db_client_connections_max as $max
         query:
-          - $usage
-          - $max
+          - sum($usage)
+          - sum($max)
 
       - title: Number of idle and used connections
         metrics:
           - db_client_connections_usage as $usage
         query:
-          - $usage group by state
+          - sum($usage) group by state
         chart: stacked-bar
 
       - title: Max and min number of idle open connections allowed
@@ -67,18 +66,17 @@ grid_rows:
           - db_client_connections_idle_max as $idle_max
           - db_client_connections_idle_min as $idle_min
         query:
-          - $idle_max
-          - $idle_min
+          - sum($idle_max)
+          - sum($idle_min)
 
       - title: The number of pending requests for an open connection
         metrics:
           - db_client_connections_pending_requests as $pending
         query:
-          - $pending
+          - sum($pending)
 
       - title: Time it took to create a new connection
         type: heatmap
-        size: large
         metric: db_client_connections_create_time
         unit: milliseconds
 

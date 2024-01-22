@@ -14,6 +14,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/unixtime"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -211,20 +212,17 @@ func (m *Manager) selectTimeseries(
 	metricMap map[string]*metrics.Metric,
 	timeLT time.Time,
 ) (*mql.Result, error) {
-
-	storageConf := &metrics.CHStorageConfig{
-		ProjectID:        monitor.ProjectID,
-		MetricMap:        metricMap,
-		TableName:        "datapoint_minutes",
-		GroupingInterval: time.Minute,
-	}
-	storageConf.TimeFilter = org.TimeFilter{
-		TimeGTE: timeLT.Add(-noDataMinutesThreshold * time.Minute),
-		TimeLT:  timeLT,
-	}
-
-	storage := metrics.NewCHStorage(ctx, m.app.CH, storageConf)
-	engine := mql.NewEngine(storage)
+	storage := metrics.NewCHStorage(ctx, m.app.CH, &metrics.CHStorageConfig{
+		ProjectID: monitor.ProjectID,
+		MetricMap: metricMap,
+		TableName: "datapoint_minutes",
+	})
+	engine := mql.NewEngine(
+		storage,
+		unixtime.ToSeconds(timeLT.Add(-noDataMinutesThreshold*time.Minute)),
+		unixtime.ToSeconds(timeLT),
+		time.Minute,
+	)
 
 	query := mql.ParseQuery(monitor.Params.Query)
 	result := engine.Run(query.Parts)
@@ -280,7 +278,7 @@ func (m *Manager) checkTimeseries(
 		return nil, nil
 	}
 
-	alertTime := ts.Time[len(ts.Time)-checkRes.FiringFor]
+	alertTime := ts.Time[len(ts.Time)-checkRes.FiringFor].Time()
 
 	if alert != nil && alertTime.Sub(alert.Event.CreatedAt) < 8*time.Hour {
 		// There is already a recent closed alert. Reuse it instead of creating one.
@@ -345,14 +343,14 @@ func (m *Manager) checkOpenAlert(
 
 	if checkRes.Firing == 0 && checkRes.FiringFor == 0 {
 		alert.Params.NormalValue = ts.Value[len(ts.Value)-checkNumPoint]
-		tm := ts.Time[len(ts.Time)-checkNumPoint]
+		tm := ts.Time[len(ts.Time)-checkNumPoint].Time()
 		if err := m.closeAlert(ctx, alert, tm); err != nil {
 			return nil, err
 		}
 		return alert, nil
 	}
 
-	tm := ts.Time[len(ts.Time)-1]
+	tm := ts.Time[len(ts.Time)-1].Time()
 	if checkRes.FiringFor == checkNumPoint && tm.Sub(alert.Event.CreatedAt) >= time.Hour {
 		// Remind only when the timeseries is fully firing.
 		// Otherwise, chances are we will remind about a timeseries that is about to recover.

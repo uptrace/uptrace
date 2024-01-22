@@ -8,11 +8,11 @@ table:
     - process_runtime_jvm_gc_duration as $gc_dur
     - process_runtime_jvm_system_cpu_utilization as $cpu_util
   query:
-    - $mem_usage
-    - $usage_after_last_gc
-    - avg($gc_dur)
+    - sum($mem_usage) as mem_usage
+    - sum($usage_after_last_gc) as usage_after_last_gc
+    - avg($gc_dur) as gc_dur
     - per_min(count($gc_dur)) as num_gc
-    - $cpu_util
+    - avg($cpu_util) as cpu_util
     - group by host_name
   columns:
     cpu_util: { unit: utilization }
@@ -24,34 +24,34 @@ grid_rows:
         metrics:
           - process_runtime_jvm_threads_count as $threads_count
         query:
-          - $threads_count
+          - sum($threads_count)
 
       - title: Memory used by pool
         metrics:
           - process_runtime_jvm_memory_usage as $mem_usage
         query:
-          - $mem_usage group by pool
+          - sum($mem_usage) group by pool
         chart: stacked-bar
 
       - title: Memory used by type
         metrics:
           - process_runtime_jvm_memory_usage as $mem_usage
         query:
-          - $mem_usage group by type
+          - sum($mem_usage) group by type
         chart: stacked-bar
 
       - title: Memory used after the last garbage collection
         metrics:
           - process_runtime_jvm_memory_usage_after_last_gc as $usage_after_last_gc
         query:
-          - $usage_after_last_gc group by pool, type
+          - sum($usage_after_last_gc) group by pool, type
         chart: stacked-bar
 
       - title: Recent cpu utilization for the process
         metrics:
           - process_runtime_jvm_cpu_utilization as $cpu_util
         query:
-          - $cpu_util
+          - avg($cpu_util) as cpu_util
         columns:
           cpu_util: { unit: utilization }
 
@@ -59,7 +59,7 @@ grid_rows:
         metrics:
           - process_runtime_jvm_system_cpu_utilization as $cpu_util
         query:
-          - $cpu_util
+          - avg($cpu_util) as cpu_util
         columns:
           cpu_util: { unit: utilization }
 
@@ -67,72 +67,72 @@ grid_rows:
         metrics:
           - process_runtime_jvm_system_cpu_load_1m as $cpu_load_1m
         query:
-          - $cpu_load_1m
+          - avg($cpu_load_1m)
 
       - title: Memory commited
         metrics:
           - process_runtime_jvm_memory_committed as $mem_committed
         query:
-          - $mem_committed group by pool, type
+          - sum($mem_committed) group by pool, type
         chart: stacked-bar
 
       - title: Initial memory requested
         metrics:
           - process_runtime_jvm_memory_init as $mem_init
         query:
-          - $mem_init group by pool, type
+          - sum($mem_init) group by pool, type
         chart: stacked-bar
 
       - title: Max obtainable memory
         metrics:
           - process_runtime_jvm_memory_limit as $mem_limit
         query:
-          - $mem_limit group by pool, type
+          - sum($mem_limit) group by pool, type
         chart: stacked-bar
 
       - title: Number of buffers
         metrics:
           - process_runtime_jvm_buffer_count as $buf_count
         query:
-          - $buf_count group by pool
+          - sum($buf_count) group by pool
         chart: stacked-bar
 
       - title: Capacity of the buffers
         metrics:
           - process_runtime_jvm_buffer_limit as $buf_limit
         query:
-          - $buf_limit group by pool
+          - sum($buf_limit) group by pool
         chart: stacked-bar
 
       - title: Memory that the JVM is using
         metrics:
           - process_runtime_jvm_buffer_usage as $buf_usage
         query:
-          - $buf_usage group by pool
+          - sum($buf_usage) group by pool
         chart: stacked-bar
 
       - title: Total number of classes currently loaded
         metrics:
           - process_runtime_jvm_classes_current_loaded as $classes_loaded
         query:
-          - $classes_loaded
+          - sum($classes_loaded)
 
       - title: Number of classes loaded
         metrics:
           - process_runtime_jvm_classes_loaded as $loaded
         query:
-          - per_min($loaded)
+          - per_min(sum($loaded))
 
       - title: Number of classes unloaded
         metrics:
           - process_runtime_jvm_classes_unloaded as $unloaded
         query:
-          - per_min($unloaded)
+          - per_min(sum($unloaded))
 
       - title: Number of open/max files
         metrics:
           - process_files_max as $max
           - process_files_open as $open
         query:
-          - $max
-          - $open
+          - max($max)
+          - avg($open)

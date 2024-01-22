@@ -32,7 +32,7 @@ grid_rows:
         metrics:
           - httpcheck_status as $status
         query:
-          - $status{http_response_status_class="2xx"}
+          - sum($status{http_response_status_class="2xx"})
         value_mappings:
           - op: gte
             value: 1
@@ -52,31 +52,29 @@ grid_rows:
         metrics:
           - httpcheck_status as $status
         query:
-          - $status
-          - group by http_response_status_code
+          - $status group by http_response_status_code
 
       - title: HTTP check duration
         metrics:
           - httpcheck_duration as $duration
         query:
-          - $duration
+          - avg($duration)
 
       - title: HTTP check by host
         type: table
         metrics:
           - httpcheck_status as $status
         query:
-          - $status
-          - group by host_name
+          - $status group by host_name
 
 monitors:
   - name: HTTP check is down
     metrics:
       - httpcheck_status as $status
     query:
+      - sum($status{http_response_status_class="2xx"}) as status_2xx
       - group by url_full
       - group by host_name
-      - $status{http_response_status_class="2xx"} as status_2xx
     column: status_2xx
     min_allowed_value: 1
     max_allowed_value: 1

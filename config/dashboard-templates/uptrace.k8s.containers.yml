@@ -9,11 +9,9 @@ table:
       metrics:
         - container_memory_available as $mem_available
       query:
-        - sum($mem_available)
+        - sum($mem_available) as mem_available
       columns:
-        sum($mem_available):
-          unit: bytes
-          agg_func: last
+        mem_available: { unit: bytes }
 
     - title: FS available
       description: Total available filesystem on all nodes
@@ -21,11 +19,9 @@ table:
       metrics:
         - container_filesystem_available as $fs_available
       query:
-        - sum($fs_available)
+        - sum($fs_available) as fs_available
       columns:
-        sum($fs_available):
-          unit: bytes
-          agg_func: last
+        fs_available: { unit: bytes }
 
   metrics:
     - container_cpu_utilization as $cpu_util
@@ -94,9 +90,9 @@ grid_rows:
         metrics:
           - container_cpu_time as $cpu_time
         query:
-          - per_min($cpu_time)
+          - per_min(sum($cpu_time)) as cpu_time
         columns:
-          per_min($cpu_time):
+          cpu_time:
             unit: seconds
 
       - title: RAM memory usage

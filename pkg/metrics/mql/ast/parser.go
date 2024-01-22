@@ -3,6 +3,9 @@ package ast
 import (
 	"errors"
 	"fmt"
+	"time"
+
+	"github.com/xhit/go-str2duration/v2"
 )
 
 var errAlias = errors.New("alias is required (AS alias)")
@@ -1316,7 +1319,7 @@ func (p *queryParser) term() (Expr, error) {
 	}
 
 	{
-		var metricExpr MetricExpr
+		var metricExpr *MetricExpr
 		_pos1 := p.Pos()
 		{
 			var _err error
@@ -1330,7 +1333,7 @@ func (p *queryParser) term() (Expr, error) {
 				goto r3_i0_group_end
 			}
 		}
-		return &metricExpr, nil
+		return metricExpr, nil
 	r3_i0_group_end:
 	}
 
@@ -1364,22 +1367,71 @@ func (p *queryParser) term() (Expr, error) {
 	return ParenExpr{Expr: expr}, nil
 }
 
-func (p *queryParser) metricExpr() (MetricExpr, error) {
+func (p *queryParser) metricExpr() (*MetricExpr, error) {
 
-	var metricExpr1 MetricExpr
+	var metricExpr1 *MetricExpr
 
 	{
 		var _err error
 		metricExpr1, _err = p.metricExpr1()
 		if _err != nil && _err != errBacktrack {
-			return MetricExpr{}, _err
+			return nil, _err
 		}
 		_match := _err == nil
 		if !_match {
-			return MetricExpr{}, errBacktrack
+			return nil, errBacktrack
 		}
 	}
 	{
+	}
+
+	{
+		var rollupWindow time.Duration
+		_pos1 := p.Pos()
+		{
+			var _err error
+			rollupWindow, _err = p.rollupWindow()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r1_i0_group_end
+			}
+		}
+		metricExpr1.RollupWindow = rollupWindow
+	r1_i0_group_end:
+	}
+
+	{
+		var t *Token
+		_pos1 := p.Pos()
+		{
+			_tok := p.NextToken()
+			_match := len(_tok.Text) == 6 && (_tok.Text[0] == 'o' || _tok.Text[0] == 'O') && (_tok.Text[1] == 'f' || _tok.Text[1] == 'F') && (_tok.Text[2] == 'f' || _tok.Text[2] == 'F') && (_tok.Text[3] == 's' || _tok.Text[3] == 'S') && (_tok.Text[4] == 'e' || _tok.Text[4] == 'E') && (_tok.Text[5] == 't' || _tok.Text[5] == 'T')
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r2_i0_group_end
+			}
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.ID == DURATION_TOKEN
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r2_i0_group_end
+			}
+			t = _tok
+		}
+		{
+			offset, err := str2duration.ParseDuration(t.Text)
+			if err != nil {
+				return nil, fmt.Errorf("invalid offset: %w", err)
+			}
+			metricExpr1.Offset = offset
+		}
+	r2_i0_group_end:
 	}
 
 	{
@@ -1389,22 +1441,22 @@ func (p *queryParser) metricExpr() (MetricExpr, error) {
 			var _err error
 			inlineGrouping, _err = p.inlineGrouping()
 			if _err != nil && _err != errBacktrack {
-				return MetricExpr{}, _err
+				return nil, _err
 			}
 			_match := _err == nil
 			if !_match {
 				p.ResetPos(_pos1)
-				goto r1_i0_group_end
+				goto r3_i0_group_end
 			}
 		}
 		metricExpr1.Grouping = inlineGrouping
-	r1_i0_group_end:
+	r3_i0_group_end:
 	}
 
 	return metricExpr1, nil
 }
 
-func (p *queryParser) metricExpr1() (MetricExpr, error) {
+func (p *queryParser) metricExpr1() (*MetricExpr, error) {
 
 	{
 		var filters []Filter
@@ -1432,7 +1484,7 @@ func (p *queryParser) metricExpr1() (MetricExpr, error) {
 			var _err error
 			filters, _err = p.filters()
 			if _err != nil && _err != errBacktrack {
-				return MetricExpr{}, _err
+				return nil, _err
 			}
 			_match := _err == nil
 			if !_match {
@@ -1451,7 +1503,7 @@ func (p *queryParser) metricExpr1() (MetricExpr, error) {
 				goto i0_group_end
 			}
 		}
-		return MetricExpr{
+		return &MetricExpr{
 			Name:    name.Text,
 			Filters: filters,
 		}, nil
@@ -1488,7 +1540,7 @@ func (p *queryParser) metricExpr1() (MetricExpr, error) {
 				goto r1_i0_group_end
 			}
 		}
-		return MetricExpr{
+		return &MetricExpr{
 			Name: name.Text,
 		}, nil
 	r1_i0_group_end:
@@ -1500,13 +1552,42 @@ func (p *queryParser) metricExpr1() (MetricExpr, error) {
 		_tok := p.NextToken()
 		_match := _tok.ID == IDENT_TOKEN
 		if !_match {
-			return MetricExpr{}, errBacktrack
+			return nil, errBacktrack
 		}
 		name = _tok
 	}
-	return MetricExpr{
+	return &MetricExpr{
 		Name: name.Text,
 	}, nil
+}
+
+func (p *queryParser) rollupWindow() (time.Duration, error) {
+
+	var t *Token
+
+	{
+		_tok := p.NextToken()
+		_match := _tok.Text == "["
+		if !_match {
+			return 0, errBacktrack
+		}
+	}
+	{
+		_tok := p.NextToken()
+		_match := _tok.ID == DURATION_TOKEN
+		if !_match {
+			return 0, errBacktrack
+		}
+		t = _tok
+	}
+	{
+		_tok := p.NextToken()
+		_match := _tok.Text == "]"
+		if !_match {
+			return 0, errBacktrack
+		}
+	}
+	return str2duration.ParseDuration(t.Text)
 }
 
 func (p *queryParser) number() (Number, error) {
@@ -1706,7 +1787,7 @@ func (p *queryParser) alias() (string, error) {
 func (p *queryParser) uniq() (*UniqExpr, error) {
 
 	{
-		var metricExpr MetricExpr
+		var metricExpr *MetricExpr
 		_pos1 := p.Pos()
 		{
 			_tok := p.NextToken()
@@ -1741,7 +1822,7 @@ func (p *queryParser) uniq() (*UniqExpr, error) {
 			_match := _tok.Text == ")"
 			if !_match {
 				p.ResetPos(_pos1)
-				metricExpr = MetricExpr{}
+				metricExpr = nil
 				goto i0_group_end
 			}
 		}
@@ -1758,7 +1839,7 @@ func (p *queryParser) uniq() (*UniqExpr, error) {
 	}
 
 	var idents []string
-	var metricExpr MetricExpr
+	var metricExpr *MetricExpr
 
 	{
 		_tok := p.NextToken()
@@ -1833,11 +1914,25 @@ func (p *queryParser) funcCall() (*FuncCall, error) {
 			fn = _tok
 		}
 		{
+			var _err error
+			inlineGrouping, _err = p.inlineGrouping()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				fn = nil
+				goto i0_group_end
+			}
+		}
+		{
 			_tok := p.NextToken()
 			_match := _tok.Text == "("
 			if !_match {
 				p.ResetPos(_pos1)
 				fn = nil
+				inlineGrouping = nil
 				goto i0_group_end
 			}
 		}
@@ -1851,7 +1946,63 @@ func (p *queryParser) funcCall() (*FuncCall, error) {
 			if !_match {
 				p.ResetPos(_pos1)
 				fn = nil
+				inlineGrouping = nil
 				goto i0_group_end
+			}
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == ")"
+			if !_match {
+				p.ResetPos(_pos1)
+				fn = nil
+				inlineGrouping = nil
+				expr = nil
+				goto i0_group_end
+			}
+		}
+		return &FuncCall{
+			Func:     fn.Text,
+			Arg:      expr,
+			Grouping: inlineGrouping,
+		}, nil
+	i0_group_end:
+	}
+
+	{
+		var expr Expr
+		var fn *Token
+		var inlineGrouping []GroupingElem
+		_pos1 := p.Pos()
+		{
+			_tok := p.NextToken()
+			_match := _tok.ID == IDENT_TOKEN
+			if !_match {
+				p.ResetPos(_pos1)
+				goto r1_i0_group_end
+			}
+			fn = _tok
+		}
+		{
+			_tok := p.NextToken()
+			_match := _tok.Text == "("
+			if !_match {
+				p.ResetPos(_pos1)
+				fn = nil
+				goto r1_i0_group_end
+			}
+		}
+		{
+			var _err error
+			expr, _err = p.expr()
+			if _err != nil && _err != errBacktrack {
+				return nil, _err
+			}
+			_match := _err == nil
+			if !_match {
+				p.ResetPos(_pos1)
+				fn = nil
+				goto r1_i0_group_end
 			}
 		}
 		{
@@ -1865,7 +2016,7 @@ func (p *queryParser) funcCall() (*FuncCall, error) {
 				p.ResetPos(_pos1)
 				fn = nil
 				expr = nil
-				goto i0_group_end
+				goto r1_i0_group_end
 			}
 		}
 		{
@@ -1876,7 +2027,7 @@ func (p *queryParser) funcCall() (*FuncCall, error) {
 				fn = nil
 				expr = nil
 				inlineGrouping = nil
-				goto i0_group_end
+				goto r1_i0_group_end
 			}
 		}
 		return &FuncCall{
@@ -1884,7 +2035,7 @@ func (p *queryParser) funcCall() (*FuncCall, error) {
 			Arg:      expr,
 			Grouping: inlineGrouping,
 		}, nil
-	i0_group_end:
+	r1_i0_group_end:
 	}
 
 	var expr Expr
@@ -2029,8 +2180,6 @@ func (p *queryParser) grouping() ([]GroupingElem, error) {
 
 func (p *queryParser) inlineGrouping() ([]GroupingElem, error) {
 
-	var grouping1 []GroupingElem
-
 	{
 		_tok := p.NextToken()
 		_match := len(_tok.Text) == 2 && (_tok.Text[0] == 'b' || _tok.Text[0] == 'B') && (_tok.Text[1] == 'y' || _tok.Text[1] == 'Y')
@@ -2038,6 +2187,12 @@ func (p *queryParser) inlineGrouping() ([]GroupingElem, error) {
 			return nil, errBacktrack
 		}
 	}
+	if tok := p.PeekToken(); tok.Text != "(" {
+		return nil, fmt.Errorf(`wanted "(" after "by", got %q`, tok.Text)
+	}
+
+	var grouping1 []GroupingElem
+
 	{
 		_tok := p.NextToken()
 		_match := _tok.Text == "("

@@ -10,20 +10,13 @@ table:
   query:
     - group by instance
     - group by job
-    - sum(irate($cpu_secs{mode!="idle"} by (cpu, mode))) / sum(irate($cpu_secs by (cpu, mode))) as
-      cpu_util
-    - $mem_free
-    - $swap_total - $swap_free as swap_used
+    - sum(irate($cpu_secs{mode!="idle"})) / sum(irate($cpu_secs)) as cpu_util
+    - sum($mem_free) as mem_free
+    - sum($swap_total) - sum($swap_free) as swap_used
   columns:
-    cpu_util:
-      unit: utilization
-      agg_func: last
-    mem_free:
-      unit: bytes
-      agg_func: last
-    swap_used:
-      unit: bytes
-      agg_func: last
+    cpu_util: { unit: utilization }
+    mem_free: { unit: bytes }
+    swap_used: { unit: bytes }
 
 grid_rows:
   - title: Gauges
@@ -33,12 +26,9 @@ grid_rows:
         metrics:
           - node_cpu_seconds_total as $cpu_secs
         query:
-          - sum(irate($cpu_secs{mode!="idle"} by (cpu, mode))) / sum(irate($cpu_secs by (cpu,
-            mode))) as cpu_util
+          - sum(irate($cpu_secs{mode!="idle"})) / sum(irate($cpu_secs)) as cpu_util
         columns:
-          cpu_util:
-            unit: utilization
-            agg_func: last
+          cpu_util: { unit: utilization }
 
       - title: 5m sys load
         type: gauge
@@ -46,11 +36,9 @@ grid_rows:
           - node_load5 as $load5
           - node_cpu_seconds_total as $cpu_secs
         query:
-          - avg($load5) / sum(irate($cpu_secs by (cpu, mode)))
+          - avg($load5) / sum(irate($cpu_secs)) as sys_load
         columns:
-          avg($load5) / sum(irate($cpu_secs)):
-            unit: utilization
-            agg_func: last
+          sys_load: { unit: utilization }
 
       - title: 15m sys load
         type: gauge
@@ -58,22 +46,18 @@ grid_rows:
           - node_load15 as $load
           - node_cpu_seconds_total as $cpu_secs
         query:
-          - avg($load) / sum(irate($cpu_secs by (cpu, mode)))
+          - avg($load) / sum(irate($cpu_secs)) as sys_load
         columns:
-          avg($load) / sum(irate($cpu_secs)):
-            unit: utilization
-            agg_func: last
+          sys_load: { unit: utilization }
 
       - title: RAM
         type: gauge
         metrics:
           - node_memory_MemTotal_bytes as $total
         query:
-          - $total
+          - sum($total) as total
         columns:
-          total:
-            unit: bytes
-            agg_func: last
+          total: { unit: bytes }
 
       - title: RAM used
         type: gauge
@@ -81,11 +65,9 @@ grid_rows:
           - node_memory_MemTotal_bytes as $total
           - node_memory_MemFree_bytes as $free
         query:
-          - ($total - $free) / $total as ram_util
+          - (sum($total) - sum($free)) / sum($total) as ram_util
         columns:
-          ram_util:
-            unit: utilization
-            agg_func: last
+          ram_util: { unit: utilization }
 
       - title: Root FS used
         type: gauge
@@ -93,12 +75,10 @@ grid_rows:
           - node_filesystem_avail_bytes as $avail_bytes
           - node_filesystem_size_bytes as $size_bytes
         query:
-          - 1 - $avail_bytes{mountpoint="/",fstype!="rootfs"} /
-            $size_bytes{mountpoint="/",fstype!="rootfs"} as fs_used
+          - 1 - sum(avail_bytes{mountpoint="/",fstype!="rootfs"}) /
+            sum($size_bytes{mountpoint="/",fstype!="rootfs"}) as fs_used
         columns:
-          fs_used:
-            unit: utilization
-            agg_func: last
+          fs_used: { unit: utilization }
 
       - title: Uptime
         type: gauge
@@ -106,43 +86,36 @@ grid_rows:
           - node_time_seconds as $node_time
           - node_boot_time_seconds as $boot_time
         query:
-          - $node_time - $boot_time as uptime
+          - sum($node_time) - sum($boot_time) as uptime
         columns:
-          uptime:
-            unit: seconds
-            agg_func: last
+          uptime: { unit: seconds }
 
-  - title: Row title
+  - title: Generic
     items:
       - title: CPU utilization
         metrics:
           - node_cpu_seconds_total as $cpu_secs
         query:
-          - sum(irate($cpu_secs{mode!="idle"} by (cpu, mode))) / sum(irate($cpu_secs by (cpu,
-            mode))) as cpu_util
+          - sum(irate($cpu_secs{mode!="idle"})) / sum(irate($cpu_secs)) as cpu_util
         columns:
-          cpu_util:
-            unit: utilization
+          cpu_util: { unit: utilization }
 
       - title: CPU by mode
         chart: stacked-area
         metrics:
           - node_cpu_seconds_total as $cpu_secs
         query:
-          - sum(irate($cpu_secs by (cpu, mode)) by (mode)) / sum(irate($cpu_secs by (cpu, mode))) as
-            cpu_util
+          - sum(irate($cpu_secs) by (mode)) / sum(irate($cpu_secs)) as cpu_util
         columns:
-          cpu_util:
-            unit: utilization
+          cpu_util: { unit: utilization }
 
       - title: RAM free
         metrics:
           - node_memory_MemFree_bytes as $mem_free
         query:
-          - $mem_free
+          - sum($mem_free) as mem_free
         columns:
-          mem_free:
-            unit: bytes
+          mem_free: { unit: bytes }
 
       - title: RAM cached + buffer
         chart: area
@@ -151,10 +124,9 @@ grid_rows:
           - node_memory_Buffers_bytes as $mem_buffers
           - node_memory_SReclaimable_bytes as $mem_reclaimable
         query:
-          - $mem_cached + $mem_buffers + $mem_reclaimable as mem_cached_buffer
+          - sum($mem_cached) + sum($mem_buffers) + sum($mem_reclaimable) as mem_cached_buffer
         columns:
-          mem_cached_buffer:
-            unit: bytes
+          mem_cached_buffer: { unit: bytes }
 
       - title: Swap used
         chart: area
@@ -162,7 +134,6 @@ grid_rows:
           - node_memory_SwapTotal_bytes as $swap_total
           - node_memory_SwapFree_bytes as $swap_free
         query:
-          - $swap_total - $swap_free as swap_used
+          - sum($swap_total) - sum($swap_free) as swap_used
         columns:
-          swap_used:
-            unit: bytes
+          swap_used: { unit: bytes }

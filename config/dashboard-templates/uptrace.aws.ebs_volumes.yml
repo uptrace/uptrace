@@ -102,9 +102,7 @@ grid_rows:
         query:
           - avg($throughput_percentage) as throughput_percentage
         columns:
-          throughput_percentage:
-            unit: percents
-            agg_func: last
+          throughput_percentage: { unit: percents }
 
       - title: Amount of read and write operations (normalized to 256K) consumed
         metrics:
@@ -118,6 +116,4 @@ grid_rows:
         query:
           - avg($burst_balance) as burst_balance
         columns:
-          burst_balance:
-            unit: percents
-            agg_func: last
+          burst_balance: { unit: percents }

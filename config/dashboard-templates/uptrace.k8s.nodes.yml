@@ -9,11 +9,9 @@ table:
       metrics:
         - k8s_node_memory_available as $mem_available
       query:
-        - sum($mem_available)
+        - sum($mem_available) as mem_available
       columns:
-        sum($mem_available):
-          unit: bytes
-          agg_func: last
+        mem_available: { unit: bytes }
 
     - title: FS available
       description: Total available filesystem on all nodes
@@ -21,11 +19,9 @@ table:
       metrics:
         - k8s_node_filesystem_available as $fs_available
       query:
-        - sum($fs_available)
+        - sum($fs_available) as fs_available
       columns:
-        sum($fs_available):
-          unit: bytes
-          agg_func: last
+        fs_available: { unit: bytes }
 
   metrics:
     - k8s_node_cpu_utilization as $cpu_util
@@ -35,19 +31,19 @@ table:
     - k8s_node_memory_usage as $mem_usage
   query:
     - group by k8s_node_name
-    - $cpu_util
-    - $mem_usage
-    - $rss_mem
-    - $mem_available
-    - $fs_available
+    - avg($cpu_util)
+    - sum($mem_usage) as mem_usage
+    - sum($rss_mem) as rss_mem
+    - sum($mem_available) as mem_available
+    - sum($fs_available) as fs_available
   columns:
-    fs_available:
-      unit: bytes
-    mem_available:
-      unit: bytes
     mem_usage:
       unit: bytes
     rss_mem:
+      unit: bytes
+    mem_available:
+      unit: bytes
+    fs_available:
       unit: bytes
 
 grid_rows:
@@ -59,11 +55,9 @@ grid_rows:
         metrics:
           - k8s_node_memory_available as $mem_available
         query:
-          - sum($mem_available)
+          - sum($mem_available) as mem_available
         columns:
-          sum($mem_available):
-            unit: bytes
-            agg_func: last
+          mem_available: { unit: bytes }
 
       - title: FS available
         description: Total available filesystem on all nodes
@@ -71,85 +65,75 @@ grid_rows:
         metrics:
           - k8s_node_filesystem_available as $fs_available
         query:
-          - sum($fs_available)
+          - sum($fs_available) as fs_available
         columns:
-          sum($fs_available):
-            unit: bytes
-            agg_func: last
+          fs_available: { unit: bytes }
 
   - title: General
     items:
       - title: CPU utilization
-        chart: line
         metrics:
           - k8s_node_cpu_utilization as $cpu_util
         query:
-          - $cpu_util
+          - avg($cpu_util) as cpu_util
         columns:
-          cpu_util:
-            unit: utilization
+          cpu_util: { unit: utilization }
 
       - title: RAM memory usage
         chart: line
         metrics:
           - k8s_node_memory_usage as $usage
         query:
-          - $usage
+          - sum($usage) as usage
         columns:
-          usage:
-            unit: bytes
+          usage: { unit: bytes }
 
       - title: RSS memory usage
         chart: line
         metrics:
           - k8s_node_memory_rss as $rss_mem
         query:
-          - $rss_mem
+          - sum($rss_mem) as rss_mem
         columns:
-          rss_mem:
-            unit: bytes
+          rss_mem: { unit: bytes }
 
       - title: Filesystem available
         chart: line
         metrics:
           - k8s_node_filesystem_available as $fs_available
         query:
-          - $fs_available
+          - sum($fs_available) as fs_available
         columns:
-          fs_available:
-            unit: bytes
+          fs_available: { unit: bytes }
 
       - title: RAM available
         chart: line
         metrics:
           - k8s_node_memory_available as $mem_available
         query:
-          - $mem_available
+          - sum($mem_available) as mem_available
         columns:
-          mem_available:
-            unit: bytes
+          mem_available: { unit: bytes }
 
       - title: Network IO
         chart: line
         metrics:
           - k8s_node_network_io as $io
         query:
-          - per_min($io)
-          - group by direction
+          - per_min(sum(io)) as io_per_min group by direction
         columns:
-          per_min($io):
-            unit: bytes
+          io_per_min: { unit: bytes }
 
       - title: Page faults
         chart: line
         metrics:
           - k8s_node_memory_page_faults as $page_faults
         query:
-          - delta($page_faults)
+          - sum(delta($page_faults))
 
       - title: Major page faults
         chart: line
         metrics:
           - k8s_node_memory_major_page_faults as $major_page_faults
         query:
-          - $major_page_faults
+          - sum($major_page_faults)

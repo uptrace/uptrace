@@ -25,7 +25,7 @@ table:
       metrics:
         - kafka_brokers as $brokers
       query:
-        - $brokers
+        - sum($brokers)
 
     - title: Consumers
       description: Number of members in the consumer group
@@ -33,7 +33,7 @@ table:
       metrics:
         - kafka_consumer_group_members as $members
       query:
-        - $members
+        - sum($members)
 
   metrics:
     - kafka_topic_partitions as $parts
@@ -42,10 +42,10 @@ table:
     - kafka_partition_replicas_in_sync as $replicas_in_sync
   query:
     - group by topic
-    - $parts
-    - per_min(delta($offset)) as processed
-    - $lag
-    - $replicas_in_sync
+    - sum($parts)
+    - sum(irate($offset)) as processed
+    - sum($lag)
+    - sum($replicas_in_sync)
 
 grid_rows:
   - title: General
@@ -54,16 +54,16 @@ grid_rows:
         metrics:
           - kafka_topic_partitions as $parts
         query:
-          - $parts
+          - sum($parts)
 
       - title: Number of processed messages across partitions of the topic
         metrics:
           - kafka_consumer_group_offset_sum as $offset
         query:
-          - per_min(delta($offset)) as processed group by group
+          - irate($offset) as processed group by group
 
       - title: Consumer group lag across all partitions of the topic
         metrics:
           - kafka_consumer_group_lag_sum as $lag
         query:
-          - $lag group by group
+          - avg($lag) group by group

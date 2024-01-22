@@ -28,6 +28,9 @@ func compile(parts []*QueryPart) ([]NamedExpr, []*TimeseriesExpr) {
 
 			for _, ts := range c.timeseries[pos:] {
 				ts.Part = part
+				if ts.CHFunc == "" {
+					ts.CHFunc = CHAggNone
+				}
 			}
 
 			c.exprs = append(c.exprs, NamedExpr{
@@ -55,7 +58,7 @@ func compile(parts []*QueryPart) ([]NamedExpr, []*TimeseriesExpr) {
 				part.Query = "where " + part.Query
 			}
 
-			if err := c.where(expr); err != nil {
+			if err := c.applyGlobalWhere(expr); err != nil {
 				part.Error.Wrapped = err
 			}
 		case *ast.Grouping:
@@ -92,7 +95,7 @@ func (c *compiler) panickySelector(expr ast.Expr) Expr {
 	case *ast.MetricExpr:
 		if !strings.HasPrefix(expr.Name, "$") {
 			return RefExpr{
-				Expr: expr,
+				Name: expr.Name,
 			}
 		}
 		return c.metricExpr(expr)
@@ -126,10 +129,12 @@ func (c *compiler) panickySelector(expr ast.Expr) Expr {
 func (c *compiler) metricExpr(expr *ast.MetricExpr) *TimeseriesExpr {
 	metric, attr := ast.SplitAliasName(expr.Name)
 	ts := &TimeseriesExpr{
-		Metric:   metric,
-		Attr:     attr,
-		Filters:  expr.Filters,
-		Grouping: expr.Grouping,
+		Metric:       metric,
+		RollupWindow: expr.RollupWindow,
+		Offset:       expr.Offset,
+		Attr:         attr,
+		Filters:      expr.Filters,
+		Grouping:     expr.Grouping,
 	}
 	c.timeseries = append(c.timeseries, ts)
 	return ts
@@ -161,49 +166,22 @@ func (c *compiler) funcCall(fn *ast.FuncCall) Expr {
 }
 
 func (c *compiler) uniqExpr(uq *ast.UniqExpr) *TimeseriesExpr {
-	expr := c.metricExpr(&uq.Name)
+	expr := c.metricExpr(uq.Name)
 	expr.CHFunc = CHAggUniq
 	expr.Uniq = uq.Attrs
 	return expr
 }
 
-func (c *compiler) where(expr *ast.Where) error {
-	var alias string
-
+func (c *compiler) applyGlobalWhere(expr *ast.Where) error {
 	for i := range expr.Filters {
 		filter := &expr.Filters[i]
-
-		var filterAlias string
-		filterAlias, filter.LHS = ast.SplitAliasName(filter.LHS)
-
-		if i == 0 {
-			filterAlias = alias
-			continue
-		}
-
-		if filterAlias != alias {
-			return fmt.Errorf("where must reference a single metric: %q != %q", filterAlias, alias)
+		if alias, _ := ast.SplitAliasName(filter.LHS); alias != "" {
+			return fmt.Errorf("global where can't reference a metric: %s", alias)
 		}
 	}
-
-	if alias == "" {
-		for _, ts := range c.timeseries {
-			ts.Where = append(ts.Where, expr.Filters)
-		}
-		return nil
-	}
-
-	var found bool
 
 	for _, ts := range c.timeseries {
-		if ts.Metric == alias {
-			ts.Where = append(ts.Where, expr.Filters)
-			found = true
-		}
-	}
-
-	if !found {
-		return fmt.Errorf("can't find metric with alias %q", alias)
+		ts.Where = append(ts.Where, expr.Filters)
 	}
 	return nil
 }

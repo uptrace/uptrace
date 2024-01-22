@@ -9,7 +9,7 @@ table:
       metrics:
         - postgresql_database_count as $db_count
       query:
-        - $db_count
+        - sum($db_count)
 
     - title: Size of dbs
       description: Databases disk usage
@@ -17,7 +17,7 @@ table:
       metrics:
         - postgresql_db_size as $db_size
       query:
-        - $db_size
+        - sum($db_size)
 
     - title: Number of tables
       description: Number of user tables in all databases
@@ -25,7 +25,7 @@ table:
       metrics:
         - postgresql_table_count as $table_count
       query:
-        - $table_count
+        - sum($table_count)
 
     - title: Connections
       description: Number of backends (connections)
@@ -34,8 +34,8 @@ table:
         - postgresql_backends as $backends
         - postgresql_connection_max as $max_conns
       query:
-        - $backends
-        - $max_conns
+        - sum($backends) as backends
+        - sum($max_conns) as max_conns
       template: ${backends} of ${max_conns}
 
   metrics:
@@ -47,11 +47,11 @@ table:
   query:
     - group by host_name
     - group by postgresql_database_name
-    - $db_size
-    - $table_count
-    - $backends
-    - $commits
-    - $rollbacks
+    - sum($db_size) as db_size
+    - sum($table_count) as table_count
+    - sum($backends) as backends
+    - sum($commits) as commits
+    - sum($rollbacks) as rollbacks
   columns:
     db_size: { unit: bytes }
 
@@ -62,20 +62,20 @@ grid_rows:
         metrics:
           - postgresql_backends as $backends
         query:
-          - $backends
+          - sum($backends)
 
       - title: Number of blocks read
         metrics:
           - postgresql_blocks_read as $blocks_read
         query:
-          - per_min($blocks_read) as blocks_read group by source
+          - per_min(sum($blocks_read)) as blocks_read group by source
         chart: stacked-bar
 
       - title: Database disk usage
         metrics:
           - postgresql_db_size as $db_size
         query:
-          - $db_size
+          - sum($db_size) as db_size
         columns:
           db_size: { unit: bytes }
 
@@ -83,24 +83,24 @@ grid_rows:
         metrics:
           - postgresql_rows as $rows
         query:
-          - $rows group by state
+          - sum($rows) group by state
         chart: stacked-bar
 
       - title: Number of commits
         metrics:
           - postgresql_commits as $commits
         query:
-          - $commits
+          - sum($commits)
 
       - title: Number of rollbacks
         metrics:
           - postgresql_rollbacks as $rollbacks
         query:
-          - $rollbacks
+          - sum($rollbacks)
 
       - title: Number of db row operations
         metrics:
           - postgresql_operations as $ops
         query:
-          - per_min($ops) as ops group by operation
+          - per_min(sum($ops)) as ops group by operation
         chart: stacked-bar

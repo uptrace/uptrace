@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
+	"github.com/uptrace/uptrace/pkg/unixtime"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
@@ -22,7 +23,7 @@ type Timeseries struct {
 	Annotations map[string]any
 
 	Value []float64
-	Time  []time.Time
+	Time  []unixtime.Seconds
 }
 
 func (ts *Timeseries) DeepClone() *Timeseries {
@@ -87,6 +88,10 @@ func (ts *Timeseries) WhereQuery() string {
 
 type TimeseriesFilter struct {
 	Metric string
+
+	TimeGTE  time.Time
+	TimeLT   time.Time
+	Interval time.Duration
 
 	CHFunc string
 	Attr   string

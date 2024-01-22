@@ -11,10 +11,10 @@ table:
     - group by cluster
     - group by bdb
     - group by node
-    - $mem_used
-    - $clients
-    - per_min(delta($evicted_keys)) as evicted_keys
-    - $mem_frag
+    - sum($mem_used) as mem_used
+    - sum($clients) as client
+    - sum(irate($evicted_keys)) as evicted_keys
+    - avg($mem_frag) as mem_frag
   columns:
     mem_used: { unit: bytes }
     mem_frag: { unit: utilization }
@@ -28,9 +28,8 @@ grid_rows:
         metrics:
           - redis_used_memory as $mem_used
         query:
-          - $mem_used
-        columns:
-          mem_used: { unit: bytes }
+          - sum($mem_used) as mem_used
+        columns: { mem_used: { unit: bytes } }
 
       - title: RAM Fragm.
         description: Memory fragmentation ratio
@@ -38,9 +37,8 @@ grid_rows:
         metrics:
           - redis_mem_fragmentation_ratio as $fragmentation
         query:
-          - $fragmentation
-        columns:
-          fragmentation: { unit: utilization }
+          - avg($fragmentation) as fragmentation
+        columns: { fragmentation: { unit: utilization } }
 
       - title: CPU usage
         description: Shard process CPU usage
@@ -48,7 +46,7 @@ grid_rows:
         metrics:
           - redis_process_cpu_usage_percent as $cpu_usage
         query:
-          - $cpu_usage
+          - avg($cpu_usage) as cpu_usage
         template: ${cpu_usage}%
 
       - title: Clients
@@ -57,7 +55,7 @@ grid_rows:
         metrics:
           - redis_connected_clients as $clients
         query:
-          - $clients
+          - sum($clients)
 
       - title: Slaves
         description: Number of connected slaves
@@ -65,7 +63,7 @@ grid_rows:
         metrics:
           - redis_connected_slaves as $slaves
         query:
-          - $slaves
+          - sum($slaves)
 
       - title: DB Keys
         description: Total key count in the DB
@@ -73,7 +71,7 @@ grid_rows:
         metrics:
           - redis_db_keys as $db_keys
         query:
-          - $db_keys
+          - sum($db_keys)
 
       - title: Defrag
         description: Automatic memory defragmentation current aggressiveness (% cpu)
@@ -81,7 +79,7 @@ grid_rows:
         metrics:
           - redis_active_defrag_running as $defrag
         query:
-          - $defrag
+          - avg($defrag)
 
   - title: General
     items:
@@ -89,7 +87,7 @@ grid_rows:
         metrics:
           - redis_used_memory as $mem_used
         query:
-          - $mem_used
+          - sum($mem_used) as mem_used
         columns:
           mem_used: { unit: bytes }
 
@@ -97,7 +95,7 @@ grid_rows:
         metrics:
           - redis_used_memory_rss as $rss
         query:
-          - $rss
+          - sum($rss) as rss
         columns:
           rss: { unit: bytes }
 
@@ -105,7 +103,7 @@ grid_rows:
         metrics:
           - redis_mem_fragmentation_ratio as $fragmentation
         query:
-          - $fragmentation
+          - avg($fragmentation) as fragmentation
         columns:
           fragmentation: { unit: utilization }
 
@@ -113,15 +111,15 @@ grid_rows:
         metrics:
           - redis_process_cpu_usage_percent as $cpu_usage
         query:
-          - $cpu_usage
+          - avg($cpu_usage)
 
       - title: Keyspace read hits and misses
         metrics:
           - redis_keyspace_read_hits as $hits
           - redis_keyspace_read_misses as $misses
         query:
-          - per_min(delta($hits)) as hits
-          - per_min(delta($misses)) as misses
+          - sum(irate($hits)) as hits
+          - sum(irate($misses)) as misses
           - hits / (hits + misses) as hit_rate
         columns:
           hit_rate: { unit: utilization }
@@ -130,37 +128,37 @@ grid_rows:
         metrics:
           - redis_db_keys as $db_keys
         query:
-          - $db_keys
+          - sum($db_keys)
 
       - title: DB evicted keys
         metrics:
           - redis_evicted_keys as $evicted_keys
         query:
-          - per_min(delta($evicted_keys)) as evicted_keys
+          - sum(irate($evicted_keys)) as evicted_keys
 
       - title: DB expired keys
         metrics:
           - redis_expired_keys as $expired_keys
         query:
-          - per_min(delta($expired_keys)) as expired_keys
+          - sum(irate($expired_keys)) as expired_keys
 
       - title: Number of keys that were trimmed in the current or last resharding process
         metrics:
           - redis_keys_trimmed as $trimmed_keys
         query:
-          - $trimmed_keys
+          - sum($trimmed_keys)
 
       - title: Total number of processed commands
         metrics:
           - redis_total_commands_processed as $cmds
         query:
-          - per_min(delta($cmds)) as cmds
+          - sum(irate($cmds)) as cmds
 
       - title: Number of bytes received by the shard
         metrics:
           - redis_total_net_input_bytes as $input
         query:
-          - per_min(delta($input)) as input
+          - sum(irate($input)) as input
         columns:
           input: { unit: bytes }
 
@@ -168,6 +166,6 @@ grid_rows:
         metrics:
           - redis_total_net_output_bytes as $output
         query:
-          - per_min(delta($output)) as output
+          - sum(irate($output)) as output
         columns:
           output: { unit: bytes }

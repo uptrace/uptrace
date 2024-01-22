@@ -47,6 +47,5 @@ grid_rows:
 
       - title: RPC heatmap
         type: heatmap
-        size: large
         metric: rpc_client_duration
         unit: milliseconds

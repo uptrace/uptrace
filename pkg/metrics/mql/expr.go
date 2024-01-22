@@ -1,6 +1,8 @@
 package mql
 
 import (
+	"time"
+
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
@@ -31,7 +33,9 @@ var (
 )
 
 type TimeseriesExpr struct {
-	Metric string
+	Metric       string
+	RollupWindow time.Duration
+	Offset       time.Duration
 
 	CHFunc string
 	Attr   string
@@ -59,7 +63,7 @@ type BinaryExpr struct {
 }
 
 type RefExpr struct {
-	Expr *ast.MetricExpr
+	Name string
 }
 
 type ParenExpr struct {

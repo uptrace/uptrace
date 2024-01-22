@@ -10,8 +10,8 @@ table:
     - group by postgresql_database_name
     - group by postgresql_table_name
     - group by postgresql_index_name
-    - $index_size
-    - per_min($index_scans)
+    - sum($index_size) as index_size
+    - per_min(sum($index_scans)) as index_scans
 
 grid_rows:
   - title: General
@@ -20,10 +20,10 @@ grid_rows:
         metrics:
           - postgresql_index_scans as $index_scans
         query:
-          - per_min($index_scans)
+          - per_min(sum($index_scans))
 
       - title: Index size
         metrics:
           - postgresql_index_size as $index_size
         query:
-          - $index_size
+          - sum($index_size)

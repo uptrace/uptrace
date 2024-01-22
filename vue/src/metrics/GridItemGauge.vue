@@ -44,7 +44,7 @@ export default defineComponent({
     const { where } = injectQueryStore()
     const gaugeQuery = useGaugeQuery(
       () => {
-        if (!props.gridItem.params.metrics.length) {
+        if (!props.gridItem.params.metrics.length || !props.gridItem.params.query) {
           return { _: undefined }
         }
 

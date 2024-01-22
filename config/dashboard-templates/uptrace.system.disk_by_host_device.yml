@@ -20,7 +20,7 @@ table:
         - system_disk_io as $disk_io
         - system_disk_operations as $ops
       query:
-        - $disk_io{direction=read} / $ops{direction=read} as read_size
+        - sum($disk_io{direction=read}) / sum($ops{direction=read}) as read_size
         - where device !~ "loop"
       columns:
         read_size: { unit: bytes }
@@ -32,7 +32,7 @@ table:
         - system_disk_io as $disk_io
         - system_disk_operations as $ops
       query:
-        - $disk_io{direction=write} / $ops{direction=write} as write_size
+        - sum($disk_io{direction=write}) / sum($ops{direction=write}) as write_size
         - where device !~ "loop"
       columns:
         write_size: { unit: bytes }
@@ -44,7 +44,7 @@ table:
         - system_disk_operation_time as $op_time
         - system_disk_operations as $ops
       query:
-        - $op_time{direction=read} / $ops{direction=read} as read_latency
+        - sum($op_time{direction=read}) / sum($ops{direction=read}) as read_latency
         - where device !~ "loop"
       columns:
         read_latency: { unit: seconds }
@@ -56,7 +56,7 @@ table:
         - system_disk_operation_time as $op_time
         - system_disk_operations as $ops
       query:
-        - $op_time{direction=write} / $ops{direction=write} as write_latency
+        - sum($op_time{direction=write}) / sum($ops{direction=write}) as write_latency
         - where device !~ "loop"
       columns:
         write_latency: { unit: seconds }
@@ -69,12 +69,12 @@ table:
     - group by host_name
     - group by device
     - where device !~ "loop"
-    - per_min($disk_io{direction=read}) as read_bytes
-    - per_min($disk_io{direction=write}) as written_bytes
-    - per_min($ops{direction=read}) as reads
-    - per_min($ops{direction=write}) as writes
-    - $op_time{direction=read} / $ops{direction=read} as read_latency
-    - $op_time{direction=write} / $ops{direction=write} as write_latency
+    - per_min(sum($disk_io{direction=read})) as read_bytes
+    - per_min(sum($disk_io{direction=write})) as written_bytes
+    - per_min(sum($ops{direction=read})) as reads
+    - per_min(sum($ops{direction=write})) as writes
+    - sum($op_time{direction=read}) / sum($ops{direction=read}) as read_latency
+    - sum($op_time{direction=write}) / sum($ops{direction=write}) as write_latency
   columns:
     reads: { unit: none }
     writes: { unit: none }
@@ -91,7 +91,7 @@ grid_rows:
           - system_disk_io as $disk_io
           - system_disk_operations as $ops
         query:
-          - $disk_io{direction=read} / $ops{direction=read} as read_size
+          - sum($disk_io{direction=read}) / sum($ops{direction=read}) as read_size
           - where device !~ "loop"
         columns:
           read_size: { unit: bytes }
@@ -103,7 +103,7 @@ grid_rows:
           - system_disk_io as $disk_io
           - system_disk_operations as $ops
         query:
-          - $disk_io{direction=write} / $ops{direction=write} as write_size
+          - sum($disk_io{direction=write}) / sum($ops{direction=write}) as write_size
           - where device !~ "loop"
         columns:
           write_size: { unit: bytes }
@@ -115,7 +115,7 @@ grid_rows:
           - system_disk_operation_time as $op_time
           - system_disk_operations as $ops
         query:
-          - $op_time{direction=read} / $ops{direction=read} as read_latency
+          - sum($op_time{direction=read}) / sum($ops{direction=read}) as read_latency
           - where device !~ "loop"
         columns:
           read_latency: { unit: seconds }
@@ -127,7 +127,7 @@ grid_rows:
           - system_disk_operation_time as $op_time
           - system_disk_operations as $ops
         query:
-          - $op_time{direction=write} / $ops{direction=write} as write_latency
+          - sum($op_time{direction=write}) / sum($ops{direction=write}) as write_latency
           - where device !~ "loop"
         columns:
           write_latency: { unit: seconds }
@@ -138,8 +138,8 @@ grid_rows:
         metrics:
           - system_disk_io as $disk_io
         query:
-          - per_min($disk_io{direction=read}) as reads
-          - per_min($disk_io{direction=write}) as writes
+          - per_min(sum($disk_io{direction=read})) as reads
+          - per_min(sum($disk_io{direction=write})) as writes
         chart: stacked-bar
 
       - title: Avg read/write latency
@@ -147,8 +147,8 @@ grid_rows:
           - system_disk_operations as $ops
           - system_disk_operation_time as $op_time
         query:
-          - $op_time{direction=read} / $ops{direction=read} as read_latency
-          - $op_time{direction=write} / $ops{direction=write} as write_latency
+          - sum($op_time{direction=read}) / sum($ops{direction=read}) as read_latency
+          - sum($op_time{direction=write}) / sum($ops{direction=write}) as write_latency
         columns:
           read_latency: { unit: seconds }
           write_latency: { unit: seconds }
@@ -158,8 +158,8 @@ grid_rows:
           - system_disk_io as $disk_io
           - system_disk_operations as $ops
         query:
-          - $disk_io{direction=read} / $ops{direction=read} as read_size
-          - $disk_io{direction=write} / $ops{direction=write} as write_size
+          - sum($disk_io{direction=read}) / sum($ops{direction=read}) as read_size
+          - sum($disk_io{direction=write}) / sum($ops{direction=write}) as write_size
         columns:
           read_size: { unit: bytes }
           write_size: { unit: bytes }
@@ -169,34 +169,34 @@ grid_rows:
         metrics:
           - system_disk_operations as $ops
         query:
-          - per_min($ops{direction=read}) as reads
-          - per_min($ops{direction=write}) as writes
+          - per_min(sum($ops{direction=read})) as reads
+          - per_min(sum($ops{direction=write})) as writes
         chart: stacked-bar
 
       - title: Disk pending operations
         metrics:
           - system_disk_pending_operations as $pending_ops
         query:
-          - per_min($pending_ops)
+          - per_min(sum($pending_ops))
 
       - title: Number of disk reads/writes merged into single physical disk access operations
         metrics:
           - system_disk_merged as $merged
         query:
-          - per_min($merged)
+          - per_min(sum($merged))
 
       - title: Time disk spent activated
         metrics:
           - system_disk_io_time as $disk_time
         query:
-          - per_min($disk_time)
+          - per_min(sum($disk_time))
 
 monitors:
   - name: Disk pending operations
     metrics:
       - system_disk_pending_operations as $pending_ops
     query:
-      - $pending_ops
+      - sum($pending_ops)
       - group by host_name, device
     column: pending_ops
     max_allowed_value: 100

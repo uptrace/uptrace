@@ -50,6 +50,7 @@ require (
 	github.com/vmihailenco/taskq/v4 v4.0.0-beta.4
 	github.com/wk8/go-ordered-map/v2 v2.1.8
 	github.com/wneessen/go-mail v0.4.0
+	github.com/xhit/go-str2duration/v2 v2.1.0
 	github.com/zeebo/xxh3 v1.0.2
 	github.com/zyedidia/generic v1.2.1
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.45.0

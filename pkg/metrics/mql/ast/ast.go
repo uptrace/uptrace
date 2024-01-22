@@ -8,6 +8,7 @@ import (
 
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
+	"github.com/xhit/go-str2duration/v2"
 	"golang.org/x/exp/slices"
 )
 
@@ -92,9 +93,11 @@ func (e ParenExpr) AppendTemplate(b []byte) []byte {
 }
 
 type MetricExpr struct {
-	Name     string
-	Filters  []Filter
-	Grouping GroupingElems
+	Name         string
+	Filters      []Filter
+	RollupWindow time.Duration
+	Offset       time.Duration
+	Grouping     GroupingElems
 }
 
 func (me *MetricExpr) AppendString(b []byte) []byte {
@@ -111,10 +114,21 @@ func (me *MetricExpr) AppendString(b []byte) []byte {
 		b = append(b, '}')
 	}
 
+	if me.RollupWindow != 0 {
+		b = append(b, '[')
+		b = append(b, str2duration.String(me.RollupWindow)...)
+		b = append(b, ']')
+	}
+
 	if len(me.Grouping) > 0 {
 		b = append(b, " by ("...)
 		b = me.Grouping.AppendString(b)
 		b = append(b, ')')
+	}
+
+	if me.Offset != 0 {
+		b = append(b, " offset "...)
+		b = append(b, str2duration.String(me.Offset)...)
 	}
 
 	return b
@@ -127,6 +141,12 @@ func (me *MetricExpr) AppendTemplate(b []byte) []byte {
 		b = append(b, me.Name...)
 	}
 	b = append(b, "$$"...)
+
+	if me.Offset != 0 {
+		b = append(b, " offset "...)
+		b = append(b, str2duration.String(me.Offset)...)
+	}
+
 	return b
 }
 
@@ -211,6 +231,11 @@ func (fn *FuncCall) AppendString(b []byte) []byte {
 	b = append(b, fn.Func...)
 	b = append(b, '(')
 	b = fn.Arg.AppendString(b)
+	if len(fn.Grouping) > 0 {
+		b = append(b, " by ("...)
+		b = fn.Grouping.AppendString(b)
+		b = append(b, ')')
+	}
 	b = append(b, ')')
 	return b
 }
@@ -224,7 +249,7 @@ func (fn *FuncCall) AppendTemplate(b []byte) []byte {
 }
 
 type UniqExpr struct {
-	Name  MetricExpr
+	Name  *MetricExpr
 	Attrs []string
 }
 
@@ -243,7 +268,14 @@ func (uq *UniqExpr) AppendString(b []byte) []byte {
 }
 
 func (uq *UniqExpr) AppendTemplate(b []byte) []byte {
-	return uq.AppendString(b)
+	b = append(b, "uniq("...)
+	b = uq.Name.AppendTemplate(b)
+	for _, attr := range uq.Attrs {
+		b = append(b, ", "...)
+		b = append(b, attr...)
+	}
+	b = append(b, ')')
+	return b
 }
 
 type BinaryExpr struct {

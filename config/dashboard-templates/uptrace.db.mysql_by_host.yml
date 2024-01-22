@@ -9,8 +9,8 @@ table:
   query:
     - group by host_name
     - $pool_usage
-    - per_min($row_ops{operation='inserted'}) as inserted
-    - per_min($pool_ops) as pool_ops
+    - per_min(sum($row_ops{operation='inserted'})) as inserted
+    - per_min(sum($pool_ops)) as pool_ops
   columns:
     pool_size: { unit: bytes }
 
@@ -21,7 +21,7 @@ grid_rows:
         metrics:
           - mysql_buffer_pool_usage as $pool_usage
         query:
-          - $pool_usage group by status
+          - sum($pool_usage) group by status
         columns:
           pool_usage: { unit: bytes }
         chart: stacked-area
@@ -30,75 +30,75 @@ grid_rows:
         metrics:
           - mysql_row_operations as $row_ops
         query:
-          - per_min($row_ops) as row_ops group by operation
+          - per_min(sum($row_ops)) as row_ops group by operation
         chart: stacked-bar
 
       - title: Number of operations on the InnoDB buffer pool
         metrics:
           - mysql_buffer_pool_operation as $pool_ops
         query:
-          - per_min($pool_ops) as pool_ops group by operation
+          - per_min(sum($pool_ops)) as pool_ops group by operation
         chart: stacked-bar
 
       - title: Number of InnoDB page operations
         metrics:
           - mysql_page_operations as $page_ops
         query:
-          - per_min($page_ops) as page_ops group by operation
+          - per_min(sum($page_ops)) as page_ops group by operation
         chart: stacked-bar
 
       - title: Number of InnoDB log operations
         metrics:
           - mysql_log_operations as $log_ops
         query:
-          - per_min($log_ops) as log_ops group by operation
+          - per_min(sum($log_ops)) as log_ops group by operation
         chart: stacked-bar
 
       - title: Number of MySQL locks
         metrics:
           - mysql_locks as $locks
         query:
-          - per_min($locks) as locks group by kind
+          - per_min(sum($locks)) as locks group by kind
         chart: stacked-bar
 
       - title: Number of InnoDB row locks
         metrics:
           - mysql_row_locks as $row_locks
         query:
-          - per_min($row_locks) as row_locks group by kind
+          - per_min(sum($row_locks)) as row_locks group by kind
         chart: stacked-bar
 
       - title: Number of MySQL sorts
         metrics:
           - mysql_sorts as $sorts
         query:
-          - per_min($sorts) as sorts group by kind
+          - per_min(sum($sorts)) as sorts group by kind
         chart: stacked-bar
 
       - title: Number of writes to the InnoDB doublewrite buffer
         metrics:
           - mysql_double_writes as $double_writes
         query:
-          - per_min($double_writes) as double_writes group by kind
+          - per_min(sum($double_writes)) as double_writes group by kind
         chart: stacked-bar
 
       - title: Number of times each type of command has been executed
         metrics:
           - mysql_commands as $cmds
         query:
-          - per_min($cmds) as cmds group by command
+          - per_min(sum($cmds)) as cmds group by command
         chart: stacked-bar
 
       - title: Number of requests to various MySQL handlers
         metrics:
           - mysql_handlers as $handlers
         query:
-          - per_min($handlers) as handlers group by kind
+          - per_min(sum($handlers)) as handlers group by kind
         chart: stacked-bar
 
       - title: State of MySQL threads
         metrics:
           - mysql_threads as $threads
         query:
-          - $threads group by kind
+          - sum($threads) group by kind
         chart: stacked-bar

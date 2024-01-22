@@ -1,6 +1,6 @@
 schema: v2
 name: 'Uptrace: service graph'
-time_offset: -600000
+time_offset: -1m
 
 table:
   metrics:
@@ -11,10 +11,10 @@ table:
     - group by type
     - group by client
     - group by server
-    - per_min(count($client_dur)) as requests
+    - per_min(count($server_dur)) as requests
     - avg($client_dur) as client_dur
     - avg($server_dur) as server_dur
-    - $failed_requests / count($client_dur) as error_rate
+    - sum($failed_requests) / count($client_dur) as error_rate
   columns:
     error_rate: { unit: utilization }
 
@@ -32,7 +32,7 @@ grid_rows:
           - uptrace_service_graph_client_duration as $dur
           - uptrace_service_graph_failed_requests as $failed_requests
         query:
-          - count($dur) / $failed_requests as error_rate
+          - count($dur) / sum($failed_requests) as error_rate
         columns:
           error_rate: { unit: utilization }
 

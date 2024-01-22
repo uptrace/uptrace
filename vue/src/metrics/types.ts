@@ -113,6 +113,7 @@ export interface ChartGridItemParams {
   query: string
   columnMap: Record<string, MetricColumn>
   timeseriesMap: Record<string, TimeseriesStyle>
+  connectNulls: boolean
   legend: ChartLegend
 }
 
@@ -293,7 +294,7 @@ export function emptyMetricColumn(): MetricColumn {
 
 export interface GaugeColumn {
   unit: string
-  aggFunc: TableAggFunc
+  aggFunc: TableFunc
 }
 
 export interface StyledGaugeColumn extends ColumnInfo, GaugeColumn {}
@@ -301,36 +302,40 @@ export interface StyledGaugeColumn extends ColumnInfo, GaugeColumn {}
 export function emptyGaugeColumn(): GaugeColumn {
   return {
     unit: '',
-    aggFunc: TableAggFunc.Last,
+    aggFunc: TableFunc.Median,
   }
 }
 
 export interface TableColumn extends MetricColumn {
-  aggFunc: TableAggFunc
+  aggFunc: TableFunc
   sparklineDisabled: boolean
 }
 
-export enum TableAggFunc {
-  Last = 'last',
-  Avg = 'avg',
+export enum TableFunc {
   Min = 'min',
   Max = 'max',
   Sum = 'sum',
+  Avg = 'avg',
+  AvgZero = 'avg_zero',
+  Median = 'median',
+  Last = 'last',
 }
 
-export const aggFuncItems = [
-  { text: 'Last value', value: TableAggFunc.Last },
-  { text: 'Avg value', value: TableAggFunc.Avg },
-  { text: 'Min value', value: TableAggFunc.Min },
-  { text: 'Max value', value: TableAggFunc.Max },
-  { text: 'Sum of values', value: TableAggFunc.Sum },
+export const tableFuncItems = [
+  { text: 'Median value', value: TableFunc.Median },
+  { text: 'Min value', value: TableFunc.Min },
+  { text: 'Max value', value: TableFunc.Max },
+  { text: 'Sum of values', value: TableFunc.Sum },
+  { text: 'Avg value', value: TableFunc.Avg },
+  { text: 'Avg value after zeroing NANs', value: TableFunc.AvgZero },
+  { text: 'Last value', value: TableFunc.Last },
 ]
 
 export function emptyTableColumn(): TableColumn {
   return {
     unit: '',
     color: '',
-    aggFunc: TableAggFunc.Last,
+    aggFunc: TableFunc.Median,
     sparklineDisabled: false,
   }
 }

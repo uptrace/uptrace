@@ -1,6 +1,8 @@
 # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using_cloudwatch_ebs.html
+
 schema: v2
 name: 'AWS EC2 EBS metrics'
+min_interval: 5m
 
 table:
   metrics:
@@ -16,18 +18,10 @@ table:
     - avg($ebsio_balance) as ebsio_balance
     - avg($ebs_byte_balance) as ebs_byte_balance
   columns:
-    read_bytes_per_sec:
-      unit: bytes
-      agg_func: last
-    write_bytes_per_sec:
-      unit: bytes
-      agg_func: last
-    ebsio_balance:
-      unit: percents
-      agg_func: last
-    ebs_byte_balance:
-      unit: percents
-      agg_func: last
+    read_bytes_per_sec: { unit: bytes }
+    write_bytes_per_sec: { unit: bytes }
+    ebsio_balance: { unit: percents }
+    ebs_byte_balance: { unit: percents }
 
 grid_rows:
   - title: General

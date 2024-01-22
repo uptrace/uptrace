@@ -10,10 +10,12 @@ table:
     - count($spans{_status_code='error'}) / count($spans) as error_rate
     - p50($spans) as p50
     - p90($spans) as p90
-    - p99($spans) as p99
+    - p50($spans) - p50($spans offset 24h) as p50_diff
     - max($spans) as max
   columns:
     error_rate: { unit: utilization }
+    p50_diff: { unit: us, agg_func: max }
+    max: { unit: us, agg_func: max, sparkline_disabled: true }
 
 grid_rows:
   - title: General
@@ -39,6 +41,14 @@ grid_rows:
         query:
           - p50($spans)
 
+      - title: Change in p50 duration during the last 24h
+        metrics:
+          - uptrace_tracing_spans as $spans
+        query:
+          - p50($spans) - p50($spans offset 24h) as diff
+        columns:
+          diff: { unit: us }
+
       - title: P75 span duration
         metrics:
           - uptrace_tracing_spans as $spans
@@ -59,6 +69,5 @@ grid_rows:
 
       - title: Span duration heatmap
         type: heatmap
-        size: large
         metric: uptrace_tracing_spans
         unit: microseconds

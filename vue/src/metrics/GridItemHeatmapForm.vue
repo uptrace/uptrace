@@ -81,35 +81,31 @@
     </template>
     <template #options>
       <v-container fluid>
-        <v-row>
-          <v-col>
-            <SinglePanel title="Chart options" expanded>
-              <v-text-field
-                v-model="gridItem.title"
-                label="Chart title"
-                filled
-                dense
-                :rules="rules.title"
-              />
+        <SinglePanel title="Chart options" expanded>
+          <v-text-field
+            v-model="gridItem.title"
+            label="Chart title"
+            filled
+            dense
+            :rules="rules.title"
+          />
 
-              <v-text-field
-                v-model="gridItem.description"
-                label="Optional description or memo"
-                filled
-                dense
-              />
+          <v-text-field
+            v-model="gridItem.description"
+            label="Optional description or memo"
+            filled
+            dense
+          />
 
-              <v-select
-                v-model="gridItem.params.unit"
-                label="Metric unit"
-                :items="unitItems"
-                filled
-                dense
-                hide-details="auto"
-              ></v-select>
-            </SinglePanel>
-          </v-col>
-        </v-row>
+          <v-select
+            v-model="gridItem.params.unit"
+            label="Metric unit"
+            :items="unitItems"
+            filled
+            dense
+            hide-details="auto"
+          ></v-select>
+        </SinglePanel>
       </v-container>
     </template>
   </GridItemFormPanes>
@@ -120,7 +116,7 @@ import { defineComponent, computed, watch, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
-import { useUql } from '@/use/uql'
+import { useUql, joinQuery, injectQueryStore } from '@/use/uql'
 import { useMetrics, useActiveMetrics } from '@/metrics/use-metrics'
 import { useHeatmapQuery } from '@/metrics/use-query'
 
@@ -154,6 +150,7 @@ export default defineComponent({
     const rules = { metric: [requiredRule], title: [requiredRule] }
 
     const uql = useUql()
+    const { where } = injectQueryStore()
     const activeMetrics = useActiveMetrics(
       computed(() => {
         if (!props.gridItem.params.metric) {
@@ -163,6 +160,7 @@ export default defineComponent({
           {
             name: props.gridItem.params.metric,
             alias: props.gridItem.params.metric,
+            query: joinQuery([props.gridItem.params.query, where.value]),
           },
         ]
       }),

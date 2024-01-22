@@ -9,7 +9,7 @@ table:
       metrics:
         - hikaricp_connections as $connections
       query:
-        - $connections
+        - sum($connections)
     - title: Slowest query
       description: Maximum query duration
       type: gauge
@@ -29,10 +29,10 @@ table:
     - group by deployment_environment
     - group by host_name
     - group by application
-    - $conns
+    - sum($conns)
     - per_min(count($usage)) as queries_per_min
     - avg($usage) as query_dur
-    - $active_conns
+    - sum($active_conns)
   columns:
     query_dur:
       unit: milliseconds
@@ -46,7 +46,7 @@ grid_rows:
         metrics:
           - hikaricp_connections as $connections
         query:
-          - $connections
+          - sum($connections)
 
       - title: Slowest query
         description: Maximum query duration
@@ -62,14 +62,12 @@ grid_rows:
   - title: General
     items:
       - title: Number of queries per minute
-        chart: area
         metrics:
           - hikaricp_connections_usage as $usage
         query:
           - per_min(count($usage))
 
       - title: Avg query duration
-        chart: area
         metrics:
           - hikaricp_connections_usage as $usage
         query:
@@ -79,63 +77,55 @@ grid_rows:
             unit: milliseconds
 
       - title: Established connections
-        chart: stacked-area
         metrics:
-          - hikaricp_connections as $connections
+          - sum(hikaricp_connections) as $connections
         query:
-          - $connections
+          - sum($connections)
 
       - title: Maximum duration of connection creation
-        chart: stacked-area
         metrics:
           - hikaricp_connections_creation_max as $max
         query:
-          - $max
+          - max($max)
         columns:
           max:
             unit: milliseconds
 
       - title: Pending connections
-        chart: stacked-area
         metrics:
           - hikaricp_connections_pending as $pending
         query:
-          - $pending
+          - sum($pending)
 
       - title: Number of max connections
-        chart: stacked-area
         metrics:
-          - hikaricp_connections_max as $max
+          - hikaricp_connections_max as $max_conns
         query:
-          - $max
+          - max($max_conns)
 
       - title: Idle (unused) connections
-        chart: stacked-area
         metrics:
-          - hikaricp_connections_idle as $idle
+          - hikaricp_connections_idle as $idle_conns
         query:
-          - $idle
+          - sum($idle_conns)
 
       - title: Active (in-use) connections
-        chart: stacked-area
         metrics:
-          - hikaricp_connections_active as $active
+          - hikaricp_connections_active as $active_conns
         query:
-          - $active
+          - sum($active_conns)
 
       - title: Number of min connections
-        chart: stacked-area
         metrics:
-          - hikaricp_connections_min as $min
+          - hikaricp_connections_min as $min_conns
         query:
-          - $min
+          - min($min_conns)
 
       - title: Max connection usage duration
-        chart: stacked-area
         metrics:
-          - hikaricp_connections_usage_max as $max
+          - hikaricp_connections_usage_max as $max_usage
         query:
-          - $max
+          - max($max_usage)
         columns:
           max:
             unit: milliseconds
@@ -143,9 +133,9 @@ grid_rows:
       - title: Max time taken to acquire database connection
         chart: stacked-area
         metrics:
-          - hikaricp_connections_acquire_max as $max
+          - hikaricp_connections_acquire_max as $acquire
         query:
-          - $max
+          - max($acquire)
         columns:
           max:
             unit: milliseconds

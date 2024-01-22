@@ -39,9 +39,8 @@ table:
       metrics:
         - node_cpu_idle as $cpu_idle
       query:
-        - 1 - $cpu_idle as cpu_usage
-      columns:
-        cpu_usage: { unit: utilization }
+        - 1 - avg($cpu_idle) as cpu_usage
+      columns: { cpu_usage: { unit: utilization } }
 
     - title: Used RAM
       description: Memory used by shard (in bigredis this includes flash)
@@ -49,9 +48,8 @@ table:
       metrics:
         - redis_used_memory as $used_mem
       query:
-        - $used_mem
-      columns:
-        used_mem: { unit: bytes }
+        - sum($used_mem) as used_mem
+      columns: { used_mem: { unit: bytes } }
 
     - title: Avail. RAM
       description: Available RAM in node (bytes) without taking into account overbooking
@@ -59,9 +57,8 @@ table:
       metrics:
         - node_available_memory_no_overbooking as $available_mem
       query:
-        - $available_mem
-      columns:
-        available_mem: { unit: bytes }
+        - sum($available_mem) as available_mem
+      columns: { available_mem: { unit: bytes } }
 
     - title: Requests rate
       description: Request rate handled by endpoints on nodes
@@ -69,7 +66,7 @@ table:
       metrics:
         - node_total_req as $req
       query:
-        - $req
+        - sum($req) as req
       template: ${req}/sec
 
   metrics:
@@ -82,12 +79,12 @@ table:
   query:
     - group by cluster
     - group by node
-    - 1 - $cpu_idle as cpu_usage
-    - $mem_available
-    - $conns
-    - $requests
-    - $ingress
-    - $egress
+    - 1 - avg($cpu_idle) as cpu_usage
+    - sum($mem_available) as mem_available
+    - sum($conns) as conns
+    - sum($requests) as requests
+    - sum($ingress) as ingress
+    - sum($egress) as egress
   columns:
     cpu_usage: { unit: utilization }
     mem_available: { unit: bytes }
@@ -101,17 +98,15 @@ grid_rows:
         metrics:
           - redis_used_memory as $used_mem
         query:
-          - $used_mem
-        columns:
-          used_mem: { unit: bytes }
+          - sum($used_mem) as used_mem
+        columns: { used_mem: { unit: bytes } }
 
       - title: Available memory
         metrics:
           - node_available_memory_no_overbooking as $available_mem
         query:
-          - $available_mem
-        columns:
-          available_mem: { unit: bytes }
+          - sum($available_mem) as available_mem
+        columns: { available_mem: { unit: bytes } }
 
       # listener_total_req
       # listener_egress_bytes
@@ -120,7 +115,7 @@ grid_rows:
         metrics:
           - node_cpu_idle as $cpu_idle
         query:
-          - 1 - $cpu_idle as cpu_usage
+          - 1 - avg($cpu_idle) as cpu_usage
         columns:
           cpu_usage: { unit: utilization }
 
@@ -128,26 +123,24 @@ grid_rows:
         metrics:
           - node_conns as $conns
         query:
-          - $conns
+          - sum($conns)
 
       - title: Number of requests
         metrics:
           - node_total_req as $req
         query:
-          - $req
+          - sum($req)
 
       - title: Ingress bytes
         metrics:
           - node_ingress_bytes as $ingress
         query:
-          - $ingress
-        columns:
-          ingress: { unit: bytes }
+          - sum($ingress)
+        columns: { ingress: { unit: bytes } }
 
       - title: Egress bytes
         metrics:
           - node_egress_bytes as $egress
         query:
-          - $egress
-        columns:
-          egress: { unit: bytes }
+          - sum($egress)
+        columns: { egress: { unit: bytes } }

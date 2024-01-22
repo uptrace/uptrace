@@ -3,7 +3,50 @@ package mql
 import (
 	"math"
 	"slices"
+	"time"
+
+	"github.com/uptrace/uptrace/pkg/unixtime"
+	"gonum.org/v1/gonum/stat"
 )
+
+const (
+	CHAggNone = "_"
+
+	CHAggMin    = "min"
+	CHAggMax    = "max"
+	CHAggSum    = "sum"
+	CHAggAvg    = "avg"
+	CHAggMedian = "median"
+
+	CHAggUniq = "uniq"
+
+	// Histograms only.
+	CHAggCount = "count"
+	CHAggP50   = "p50"
+	CHAggP75   = "p75"
+	CHAggP90   = "p90"
+	CHAggP95   = "p95"
+	CHAggP99   = "p99"
+)
+
+const (
+	GoAggMin    = "min"
+	GoAggMax    = "max"
+	GoAggSum    = "sum"
+	GoAggAvg    = "avg"
+	GoAggMedian = "median"
+)
+
+const (
+	TableFuncMin    = "min"
+	TableFuncMax    = "max"
+	TableFuncSum    = "sum"
+	TableFuncAvg    = "avg"
+	TableFuncMedian = "median"
+	TableFuncLast   = "last"
+)
+
+//------------------------------------------------------------------------------
 
 type binaryOpFunc func(v1, v2 float64) float64
 
@@ -130,73 +173,326 @@ func orOp(v1, v2 float64) float64 {
 
 //------------------------------------------------------------------------------
 
-type FuncOp func(value []float64, consts map[string]float64)
+const (
+	TransformPerMin = "per_min"
+	TransformPerSec = "per_sec"
+	TransformAbs    = "abs"
+	TransformCeil   = "ceil"
+	TransformFloor  = "floor"
+	TransformTrunc  = "trunc"
+	TransformCos    = "cos"
+	TransformCosh   = "cosh"
+	TransformAcos   = "acos"
+	TransformAcosh  = "acosh"
+	TransformSin    = "sin"
+	TransformSinh   = "sinh"
+	TransformAsin   = "asin"
+	TransformAsinh  = "asinh"
+	TransformTan    = "tan"
+	TransformTanh   = "tanh"
+	TransformAtan   = "atan"
+	TransformAtanh  = "atanh"
+	TransformExp    = "exp"
+	TransformExp2   = "exp2"
+	TransformLog    = "log"
+	TransformLog2   = "log2"
+	TransformLog10  = "log10"
+	TransformLn     = "ln"
+)
 
-func deltaFunc(value []float64, consts map[string]float64) {
+type transformFunc func(value []float64)
+
+func (e *Engine) perMinTransform(value []float64) {
+	minutes := e.interval.Minutes()
 	for i, num := range value {
-		if math.IsNaN(num) {
-			value[i] = 0
+		value[i] = num / minutes
+	}
+}
+
+func (e *Engine) perSecTransform(value []float64) {
+	seconds := e.interval.Seconds()
+	for i, num := range value {
+		value[i] = num / seconds
+	}
+}
+
+func absTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Abs(num)
+	}
+}
+
+func ceilTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Ceil(num)
+	}
+}
+
+func floorTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Floor(num)
+	}
+}
+
+func truncTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Trunc(num)
+	}
+}
+
+func cosTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Cos(num)
+	}
+}
+
+func coshTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Cosh(num)
+	}
+}
+
+func acosTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Acos(num)
+	}
+}
+
+func acoshTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Acosh(num)
+	}
+}
+
+func sinTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Sin(num)
+	}
+}
+
+func sinhTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Sinh(num)
+	}
+}
+
+func asinTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Asin(num)
+	}
+}
+
+func asinhTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Asinh(num)
+	}
+}
+
+func tanTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Tan(num)
+	}
+}
+
+func tanhTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Tanh(num)
+	}
+}
+
+func atanTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Atan(num)
+	}
+}
+
+func atanhTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Atanh(num)
+	}
+}
+
+func expTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Exp(num)
+	}
+}
+
+func exp2Transform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Exp2(num)
+	}
+}
+
+func logTransform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Log(num)
+	}
+}
+
+func log2Transform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Log2(num)
+	}
+}
+
+func log10Transform(value []float64) {
+	for i, num := range value {
+		value[i] = math.Log10(num)
+	}
+}
+
+//------------------------------------------------------------------------------
+
+const (
+	RollupIncrease       = "increase"
+	RollupDelta          = "delta"
+	RollupRate           = "rate"
+	RollupIRate          = "irate"
+	RollupMinOverTime    = "min_over_time"
+	RollupMaxOverTime    = "max_over_time"
+	RollupSumOverTime    = "sum_over_time"
+	RollupAvgOverTime    = "avg_over_time"
+	RollupMedianOverTime = "median_over_time"
+)
+
+type rollupFunc func(dest, src []float64, tm []unixtime.Seconds, window time.Duration)
+
+func (e *Engine) increaseRollup(
+	dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration,
+) {
+	rateWindow := max(windowDur, 5*e.interval, minRateWindow)
+	rateRollup(dest, src, timeSlice, rateWindow)
+
+	windowSeconds := windowDur.Seconds()
+	for i, currValue := range dest {
+		dest[i] = currValue * windowSeconds
+	}
+}
+
+func rateRollup(dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration) {
+	windowSeconds := unixtime.Seconds(windowDur.Seconds())
+	for i, currValue := range src {
+		if math.IsNaN(currValue) {
+			dest[i] = math.NaN()
 			continue
 		}
-		value = value[i:]
-		break
-	}
+		currTime := timeSlice[i]
 
-	if len(value) == 1 { // table mode
-		return
-	}
-
-	prevNum := value[0]
-	value[0] = 0
-	value = value[1:]
-
-	for i, num := range value {
-		if math.IsNaN(num) {
-			value[i] = 0
-			continue
+		{
+			before := currTime - windowSeconds
+			prevValue, prevTime := prevPoint(src[:i], timeSlice[:i], currValue, before)
+			if prevTime > 0 {
+				dest[i] = (currValue - prevValue) / float64(currTime-prevTime)
+				continue
+			}
 		}
 
-		if delta := num - prevNum; delta >= 0 {
-			value[i] = delta
-		} else {
-			value[i] = 0
+		{
+			after := currTime + windowSeconds
+			nextValue, nextTime := nextPoint(src[i+1:], timeSlice[i+1:], currValue, after)
+			if nextTime > 0 {
+				dest[i] = (nextValue - currValue) / float64(nextTime-currTime)
+				continue
+			}
 		}
-		prevNum = num
+
+		dest[i] = 0
 	}
 }
 
-func perMinFunc(value []float64, consts map[string]float64) {
-	period, ok := consts["_minutes"]
-	if !ok {
-		return
+func prevPoint(
+	src []float64,
+	timeSlice []unixtime.Seconds,
+	currValue float64,
+	before unixtime.Seconds,
+) (float64, unixtime.Seconds) {
+	lastValue := currValue
+	var lastTime unixtime.Seconds
+	for i := len(src) - 1; i >= 0; i-- {
+		pointValue := src[i]
+		pointTime := timeSlice[i]
+
+		if math.IsNaN(pointValue) || pointValue > lastValue {
+			// Counter reset.
+			return lastValue, lastTime
+		}
+
+		if pointTime <= before {
+			return pointValue, pointTime
+		}
+		lastValue = pointValue
+		lastTime = pointTime
 	}
-	for i, num := range value {
-		value[i] = num / period
+	return lastValue, lastTime
+}
+
+func nextPoint(
+	src []float64,
+	timeSlice []unixtime.Seconds,
+	currValue float64,
+	after unixtime.Seconds,
+) (float64, unixtime.Seconds) {
+	lastValue := currValue
+	var lastTime unixtime.Seconds
+	for i, pointValue := range src {
+		pointTime := timeSlice[i]
+
+		if math.IsNaN(pointValue) || pointValue < lastValue {
+			// Counter reset.
+			return lastValue, lastTime
+		}
+
+		if pointTime >= after {
+			return pointValue, pointTime
+		}
+		lastValue = pointValue
+		lastTime = pointTime
+	}
+	return lastValue, lastTime
+}
+
+func minRollup(dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration) {
+	overTime(dest, src, timeSlice, windowDur, minAgg)
+}
+
+func maxRollup(dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration) {
+	overTime(dest, src, timeSlice, windowDur, maxAgg)
+}
+
+func sumRollup(dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration) {
+	overTime(dest, src, timeSlice, windowDur, sumAgg)
+}
+
+func avgRollup(dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration) {
+	overTime(dest, src, timeSlice, windowDur, avgAgg)
+}
+
+func medianRollup(dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration) {
+	overTime(dest, src, timeSlice, windowDur, Median)
+}
+
+func overTime(
+	dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration, fn aggFunc,
+) {
+	windowSeconds := unixtime.Seconds(windowDur.Seconds())
+	for i := len(timeSlice) - 1; i >= 0; i-- {
+		currTime := timeSlice[i]
+		window := window(src[:i+1], timeSlice[:i+1], currTime-windowSeconds)
+		dest[i] = fn(window)
 	}
 }
 
-func perSecFunc(value []float64, consts map[string]float64) {
-	period, ok := consts["_seconds"]
-	if !ok {
-		return
+func window(
+	src []float64, timeSlice []unixtime.Seconds, wantedTime unixtime.Seconds,
+) []float64 {
+	for i := len(timeSlice) - 2; i >= 0; i-- {
+		currTime := timeSlice[i]
+		if currTime <= wantedTime {
+			return src[i:]
+		}
 	}
-	for i, num := range value {
-		value[i] = num / period
-	}
-}
-
-func irateFunc(value []float64, consts map[string]float64) {
-	deltaFunc(value, consts)
-	perSecFunc(value, consts)
-}
-
-func noop(value []float64, consts map[string]float64) {}
-
-func nan(f float64) float64 {
-	if math.IsNaN(f) {
-		return 0
-	}
-	return f
+	return src
 }
 
 //------------------------------------------------------------------------------
@@ -211,14 +507,14 @@ func maxAgg(value []float64) float64 {
 	return slices.Max(value)
 }
 
-func avgAgg(value []float64) float64 {
-	sum, count := sumCount(value)
-	return sum / float64(count)
-}
-
 func sumAgg(value []float64) float64 {
 	sum, _ := sumCount(value)
 	return sum
+}
+
+func avgAgg(value []float64) float64 {
+	sum, count := sumCount(value)
+	return sum / float64(count)
 }
 
 func sumCount(value []float64) (sum float64, count int) {
@@ -229,4 +525,27 @@ func sumCount(value []float64) (sum float64, count int) {
 		}
 	}
 	return sum, count
+}
+
+func Median(value []float64) float64 {
+	value = slices.Clone(value)
+
+	// Zero nans because stat.Quantile does not support them.
+	for i, num := range value {
+		if math.IsNaN(num) {
+			value[i] = 0
+		}
+	}
+
+	slices.Sort(value)
+	return stat.Quantile(0.5, stat.Empirical, value, nil)
+}
+
+//------------------------------------------------------------------------------
+
+func nan(f float64) float64 {
+	if math.IsNaN(f) {
+		return 0
+	}
+	return f
 }

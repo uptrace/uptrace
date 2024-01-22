@@ -421,6 +421,9 @@ func (tpl *GaugeGridItemTpl) Populate(item *GaugeGridItem) error {
 	item.Params.Query = mql.JoinQuery(tpl.Query)
 	item.Params.ColumnMap = tpl.Columns
 
+	item.Params.Template = tpl.Template
+	item.Params.ValueMappings = item.Params.ValueMappings
+
 	return nil
 }
 

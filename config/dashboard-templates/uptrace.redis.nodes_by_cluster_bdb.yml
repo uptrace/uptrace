@@ -11,11 +11,11 @@ table:
   query:
     - group by cluster
     - group by bdb
-    - $mem_used
-    - $conns
-    - $req
-    - $ingress
-    - $egress
+    - sum($mem_used) as mem_used
+    - sum($conns) as conns
+    - sum($req) as req
+    - sum($ingress) as ingress
+    - sum($egress) as egress
   columns:
     mem_used: { unit: bytes }
     ingress: { unit: bytes }
@@ -30,7 +30,7 @@ grid_rows:
         metrics:
           - bdb_used_memory as $mem_used
         query:
-          - $mem_used
+          - sum($mem_used) as mem_used
         columns:
           mem_used: { unit: bytes }
 
@@ -40,7 +40,7 @@ grid_rows:
         metrics:
           - bdb_memory_limit as $mem_limit
         query:
-          - $mem_limit
+          - avg($mem_limit) as mem_limit
         columns:
           mem_limit: { unit: bytes }
 
@@ -50,7 +50,7 @@ grid_rows:
         metrics:
           - bdb_no_of_keys as $num_key
         query:
-          - $num_key
+          - sum($num_key)
 
       - title: Requests rate
         description: Rate of all requests on DB (ops/sec)
@@ -58,7 +58,7 @@ grid_rows:
         metrics:
           - bdb_total_req as $req
         query:
-          - $req
+          - sum($req) as req
         template: ${req}/sec
 
       - title: Ingress
@@ -67,7 +67,7 @@ grid_rows:
         metrics:
           - bdb_ingress_bytes as $ingress
         query:
-          - $ingress
+          - sum($ingress) as ingress
         columns:
           ingress: { unit: bytes }
         template: ${ingress}/sec
@@ -78,7 +78,7 @@ grid_rows:
         metrics:
           - bdb_egress_bytes as $egress
         query:
-          - $egress
+          - sum($egress) as egress
         columns:
           egress: { unit: bytes }
         template: ${egress}/sec
@@ -89,7 +89,7 @@ grid_rows:
         metrics:
           - bdb_mem_frag_ratio as $mem_frag
         query:
-          - $mem_frag
+          - avg($mem_frag) as mem_frag
         columns:
           mem_frag: { unit: utilization }
 
@@ -99,7 +99,7 @@ grid_rows:
         metrics:
           - bdb_used_memory as $mem_used
         query:
-          - $mem_used
+          - sum($mem_used) as mem_used
         columns:
           mem_used: { unit: bytes }
 
@@ -107,27 +107,27 @@ grid_rows:
         metrics:
           - bdb_conns as $conns
         query:
-          - $conns
+          - sum($conns)
 
       - title: Number of requests
         metrics:
           - bdb_total_req as $req
         query:
-          - $req
+          - sum($req)
 
       - title: Average latency or read/write operations
         metrics:
           - bdb_avg_read_latency as $read_latency
           - bdb_avg_write_latency as $write_latency
         query:
-          - $read_latency
-          - $write_latency
+          - avg($read_latency) as read_latency
+          - avg($write_latency) as write_latency
 
       - title: Ingress bytes
         metrics:
           - bdb_ingress_bytes as $ingress
         query:
-          - $ingress
+          - sum($ingress) as ingress
         columns:
           ingress: { unit: bytes }
 
@@ -135,7 +135,7 @@ grid_rows:
         metrics:
           - bdb_egress_bytes as $egress
         query:
-          - $egress
+          - sum($egress) as egress
         columns:
           egress: { unit: bytes }
 
@@ -143,13 +143,13 @@ grid_rows:
         metrics:
           - redis_evicted_keys as $evicted_keys
         query:
-          - per_min(delta($evicted_keys)) as evicted_keys
+          - sum(irate($evicted_keys)) as evicted_keys
 
       - title: RAM fragmentation ratio (RSS / allocated RAM)
         metrics:
           - bdb_mem_frag_ratio as $mem_frag
         query:
-          - $mem_frag
+          - avg($mem_frag) as mem_grag
         columns:
           mem_frag: { unit: utilization }
 
@@ -157,6 +157,6 @@ grid_rows:
         metrics:
           - bdb_mem_size_lua as $lua_mem
         query:
-          - $lua_mem
+          - sum($lua_mem) as lua_mem
         columns:
           lua_mem: { unit: bytes }

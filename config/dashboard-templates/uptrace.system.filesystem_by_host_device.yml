@@ -19,7 +19,7 @@ table:
       metrics:
         - system_filesystem_usage as $fs_usage
       query:
-        - $fs_usage{state="used"} / $fs_usage as fs_util
+        - sum($fs_usage{state="used"}) / sum($fs_usage) as fs_util
         - where device !~ "loop"
       columns:
         fs_util: { unit: utilization }
@@ -30,7 +30,7 @@ table:
       metrics:
         - system_filesystem_inodes_usage as $inodes
       query:
-        - $inodes{state="used"} / $inodes as inodes_util
+        - sum($inodes{state="used"}) / sum($inodes) as inodes_util
         - where device !~ "loop"
       columns:
         inodes_util: { unit: utilization }
@@ -41,7 +41,7 @@ table:
       metrics:
         - system_filesystem_usage as $fs_usage
       query:
-        - $fs_usage
+        - sum($fs_usage)
         - where device !~ "loop"
 
     - title: Free space
@@ -50,7 +50,7 @@ table:
       metrics:
         - system_filesystem_usage as $fs_usage
       query:
-        - $fs_usage{state="free"}
+        - sum($fs_usage{state="free"})
         - where device !~ "loop"
 
   metrics:
@@ -61,10 +61,10 @@ table:
     - group by device
     - group by mountpoint
     - where device !~ "loop"
-    - $fs_usage{state="used"} / $fs_usage as fs_util
-    - $inodes{state="used"} / $inodes as inodes_util
-    - $fs_usage{state=used} as used_space
-    - $fs_usage{state=free} as free_space
+    - sum($fs_usage{state="used"}) / sum($fs_usage) as fs_util
+    - sum($inodes{state="used"}) / sum($inodes) as inodes_util
+    - sum($fs_usage{state=used}) as used_space
+    - sum($fs_usage{state=free}) as free_space
   columns:
     fs_util: { unit: utilization }
     inodes_util: { unit: utilization }
@@ -76,7 +76,7 @@ grid_rows:
         metrics:
           - system_filesystem_usage as $fs_usage
         query:
-          - $fs_usage{state="used"} / $fs_usage as fs_util
+          - sum($fs_usage{state="used"}) / sum($fs_usage) as fs_util
         columns:
           fs_util: { unit: utilization }
 
@@ -84,7 +84,7 @@ grid_rows:
         metrics:
           - system_filesystem_usage as $fs_usage
         query:
-          - $fs_usage group by state
+          - sum($fs_usage) as fs_usage group by state
         columns:
           fs_usage: { unit: bytes }
         chart: stacked-area
@@ -93,7 +93,7 @@ grid_rows:
         metrics:
           - system_filesystem_inodes_usage as $inodes
         query:
-          - $inodes{state="used"} / $inodes as inode_util
+          - sum($inodes{state="used"}) / sum($inodes) as inode_util
         columns:
           fs_util: { unit: utilization }
 
@@ -101,7 +101,7 @@ grid_rows:
         metrics:
           - system_filesystem_inodes_usage as $inodes
         query:
-          - $inodes group by state
+          - sum($inodes) group by state
         chart: stacked-bar
 
 monitors:
@@ -109,7 +109,7 @@ monitors:
     metrics:
       - system_filesystem_usage as $fs_usage
     query:
-      - $fs_usage{state='used'} / $fs_usage as fs_util
+      - sum($fs_usage{state='used'}) / sum($fs_usage) as fs_util
       - group by host_name, device, mountpoint
       - where device !~ "loop"
     column: fs_util

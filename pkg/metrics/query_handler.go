@@ -28,6 +28,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/unixtime"
 )
 
 type QueryHandler struct {
@@ -74,15 +75,18 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 
 	tableName, groupingInterval := DatapointTableForGrouping(
 		&f.TimeFilter, org.GroupingIntervalLarge)
-	engine := mql.NewEngine(NewCHStorage(ctx, h.CH, &CHStorageConfig{
-		ProjectID:  f.Project.ID,
-		TimeFilter: f.TimeFilter,
-		MetricMap:  metricMap,
-		Search:     f.searchTokens,
-
-		TableName:        tableName,
-		GroupingInterval: groupingInterval,
-	}))
+	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
+		ProjectID: f.Project.ID,
+		MetricMap: metricMap,
+		Search:    f.searchTokens,
+		TableName: tableName,
+	})
+	engine := mql.NewEngine(
+		storage,
+		unixtime.ToSeconds(f.TimeGTE),
+		unixtime.ToSeconds(f.TimeLT),
+		groupingInterval,
+	)
 	result := engine.Run(f.allParts)
 
 	columns, table := convertToTable(result.Timeseries, result.Metrics, f.TableAgg)
@@ -361,14 +365,16 @@ func (h *QueryHandler) selectTimeseries(
 	tableName, groupingInterval := DatapointTableForGrouping(
 		&f.TimeFilter, org.GroupingIntervalLarge)
 	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
-		ProjectID:  f.Project.ID,
-		TimeFilter: f.TimeFilter,
-		MetricMap:  metricMap,
-
-		TableName:        tableName,
-		GroupingInterval: groupingInterval,
+		ProjectID: f.Project.ID,
+		MetricMap: metricMap,
+		TableName: tableName,
 	})
-	engine := mql.NewEngine(storage)
+	engine := mql.NewEngine(
+		storage,
+		unixtime.ToSeconds(f.TimeGTE),
+		unixtime.ToSeconds(f.TimeLT),
+		groupingInterval,
+	)
 	result := engine.Run(f.allParts)
 	timeCol := bunutil.FillTime(nil, f.TimeGTE, f.TimeLT, groupingInterval)
 	return result.Timeseries, timeCol, result.Metrics
@@ -403,14 +409,16 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 	tableName, groupingInterval := DatapointTableForGrouping(
 		&f.TimeFilter, org.GroupingIntervalLarge)
 	storage := NewCHStorage(ctx, h.CH, &CHStorageConfig{
-		ProjectID:  f.Project.ID,
-		TimeFilter: f.TimeFilter,
-		MetricMap:  metricMap,
-
-		TableName:        tableName,
-		GroupingInterval: groupingInterval,
+		ProjectID: f.Project.ID,
+		MetricMap: metricMap,
+		TableName: tableName,
 	})
-	engine := mql.NewEngine(storage)
+	engine := mql.NewEngine(
+		storage,
+		unixtime.ToSeconds(f.TimeGTE),
+		unixtime.ToSeconds(f.TimeLT),
+		groupingInterval,
+	)
 	result := engine.Run(f.allParts)
 
 	columns, table := convertToTable(result.Timeseries, result.Metrics, f.TableAgg)

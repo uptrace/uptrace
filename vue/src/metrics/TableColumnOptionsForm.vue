@@ -39,7 +39,7 @@
     <PanelSection title="Table value">
       <v-select
         v-model="column.aggFunc"
-        :items="aggFuncItems"
+        :items="tableFuncItems"
         dense
         filled
         required
@@ -60,7 +60,7 @@ import PanelSection from '@/components/PanelSection.vue'
 import UnitSelect from '@/metrics/UnitSelect.vue'
 
 // Misc
-import { aggFuncItems, TableColumn } from '@/metrics/types'
+import { tableFuncItems, TableColumn } from '@/metrics/types'
 import { requiredRule } from '@/util/validation'
 
 export default defineComponent({
@@ -77,7 +77,7 @@ export default defineComponent({
   setup(props) {
     const dialog = shallowRef(false)
     const rules = { aggFunc: [requiredRule] }
-    return { dialog, rules, aggFuncItems }
+    return { dialog, rules, tableFuncItems }
   },
 })
 </script>

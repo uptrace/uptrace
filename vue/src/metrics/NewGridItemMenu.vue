@@ -131,6 +131,7 @@ export default defineComponent({
           query: '',
           columnMap: {},
           timeseriesMap: {},
+          connectNulls: false,
           legend: defaultChartLegend(),
         },
       })

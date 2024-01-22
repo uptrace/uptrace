@@ -1,6 +1,8 @@
 # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/viewing_metrics_with_cloudwatch.html
+
 schema: v2
 name: 'AWS instances'
+min_interval: 5m
 
 table:
   grid_items:
@@ -128,29 +130,21 @@ grid_rows:
           - cloudwatch_aws_ec2_status_check_failed as $status_check_failed
         query:
           - avg($status_check_failed) as status_check_failed
-        columns:
-          status_check_failed: { agg_func: last }
 
       - title: Status of system status check
         metrics:
           - cloudwatch_aws_ec2_status_check_failed_system as $status_check_failed_system
         query:
           - avg($status_check_failed_system) as status_check_failed_system
-        columns:
-          status_check_failed_system: { agg_func: last }
 
       - title: Status of instance status check
         metrics:
           - cloudwatch_aws_ec2_status_check_failed_instance as $status_check_failed_instance
         query:
           - avg($status_check_failed_instance) as status_check_failed_instance
-        columns:
-          status_check_failed_instance: { agg_func: last }
 
       - title: Number of times the Metadata was accessed without a token
         metrics:
           - cloudwatch_aws_ec2_metadata_no_token as $metadata_no_token
         query:
           - avg($metadata_no_token) as metadata_no_token
-        columns:
-          metadata_no_token: { agg_func: last }

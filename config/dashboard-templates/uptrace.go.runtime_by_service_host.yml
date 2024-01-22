@@ -37,7 +37,7 @@ table:
       metrics:
         - process_runtime_go_mem_heap_inuse as $mem_in_use
       query:
-        - $mem_in_use
+        - sum($mem_in_use) as mem_in_use
       columns:
         mem_in_use: { unit: bytes }
 
@@ -47,7 +47,7 @@ table:
       metrics:
         - process_runtime_go_mem_heap_objects as $heap_objects
       query:
-        - $heap_objects
+        - sum($heap_objects)
 
   metrics:
     - process_runtime_go_gc_pause_ns as $gc_pause
@@ -58,9 +58,9 @@ table:
     - group by service_name
     - group by host_name
     - max($gc_pause) as max_gc_pause
-    - $mem_in_use
-    - $heap_objects
-    - $goroutines
+    - sum($mem_in_use)
+    - sum($heap_objects)
+    - sum($goroutines)
   columns:
     max_gc_pause: { unit: nanoseconds }
 
@@ -79,13 +79,13 @@ grid_rows:
         metrics:
           - process_runtime_go_gc_count as $gc_count
         query:
-          - per_min($gc_count) as gc_count
+          - per_min(sum($gc_count)) as gc_count
 
       - title: Heap memory in use
         metrics:
           - process_runtime_go_mem_heap_inuse as $mem_in_use
         query:
-          - $mem_in_use
+          - sum($mem_in_use) as mem_in_use
         columns:
           mem_in_use: { unit: bytes }
 
@@ -93,7 +93,7 @@ grid_rows:
         metrics:
           - process_runtime_go_mem_heap_alloc as $heap_alloc
         query:
-          - $heap_alloc
+          - sum($heap_alloc) as heap_alloc
         columns:
           heap_alloc: { unit: bytes }
 
@@ -101,7 +101,7 @@ grid_rows:
         metrics:
           - process_runtime_go_mem_heap_sys as $heap_sys
         query:
-          - $heap_sys
+          - sum($heap_sys) as heap_sys
         columns:
           heap_sys: { unit: bytes }
 
@@ -109,16 +109,16 @@ grid_rows:
         metrics:
           - process_runtime_go_mem_heap_objects as $heap_objects
         query:
-          - $heap_objects
+          - sum($heap_objects) as heap_objects
 
       - title: Goroutines
         metrics:
           - process_runtime_go_goroutines as $goroutines
         query:
-          - $goroutines
+          - sum($goroutines)
 
       - title: cgo calls
         metrics:
           - process_runtime_go_cgo_calls as $cgo_calls
         query:
-          - per_min(delta($cgo_calls)) as cgo_calls
+          - per_min(sum(delta($cgo_calls))) as cgo_calls

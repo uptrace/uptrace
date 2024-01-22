@@ -52,93 +52,82 @@
     </template>
     <template #options>
       <v-container fluid>
-        <v-row>
-          <v-col>
-            <SinglePanel title="Chart options" expanded>
-              <v-text-field
-                v-model="gridItem.title"
-                label="Chart title"
-                filled
-                dense
-                :rules="rules.title"
-              />
+        <SinglePanel title="Chart options" expanded>
+          <v-text-field
+            v-model="gridItem.title"
+            label="Chart title"
+            filled
+            dense
+            :rules="rules.title"
+          />
 
-              <v-text-field
-                v-model="gridItem.description"
-                label="Optional description or memo"
-                filled
-                dense
-              />
-            </SinglePanel>
-          </v-col>
-        </v-row>
+          <v-text-field
+            v-model="gridItem.description"
+            label="Optional description or memo"
+            filled
+            dense
+          />
+        </SinglePanel>
 
-        <v-row>
-          <v-col>
-            <SinglePanel title="Gauge" expanded>
-              <PanelSection title="Format string to customize gauge text">
-                <v-text-field
-                  v-model="gridItem.params.template"
-                  placeholder="${num_db_up} dbs up out of ${num_db_total)}"
-                  hint=""
-                  persistent-hint
-                  filled
-                  dense
-                  clearable
-                  hide-details="auto"
+        <SinglePanel title="Gauge" expanded>
+          <PanelSection title="Format string to customize gauge text">
+            <v-text-field
+              v-model="gridItem.params.template"
+              placeholder="${num_db_up} dbs up out of ${num_db_total)}"
+              hint=""
+              persistent-hint
+              filled
+              dense
+              clearable
+              hide-details="auto"
+            />
+          </PanelSection>
+
+          <GaugeValuesTable
+            v-if="activeMetrics.length"
+            :loading="gaugeQuery.loading"
+            :columns="gaugeQuery.styledColumns"
+            :values="gaugeQuery.values"
+            class="mb-4"
+          ></GaugeValuesTable>
+        </SinglePanel>
+
+        <SinglePanel
+          v-for="col in gaugeQuery.columns"
+          :key="col.name"
+          :title="`${col.name} column`"
+          expanded
+        >
+          <GaugeColumnOptionsForm :column="gridItem.params.columnMap[col.name]" />
+        </SinglePanel>
+
+        <SinglePanel title="Value mappings" expanded>
+          <p>Use mappings to assign text and color to specific values, for example:</p>
+
+          <ul class="mb-4">
+            <li>0 &rarr; down (red)</li>
+            <li>1 &rarr; up (green)</li>
+          </ul>
+
+          <v-dialog v-model="mappingsDialog" max-width="800">
+            <template #activator="{ on, attrs }">
+              <v-btn block v-bind="attrs" v-on="on">Configure</v-btn>
+            </template>
+
+            <v-card>
+              <v-toolbar color="light-blue lighten-5" flat>
+                <v-toolbar-title>Value mappings</v-toolbar-title>
+              </v-toolbar>
+
+              <div class="pa-4">
+                <ValueMappingsForm
+                  v-model="gridItem.params.valueMappings"
+                  @click:close="mappingsDialog = false"
                 />
-              </PanelSection>
-
-              <GaugeValuesTable
-                v-if="activeMetrics.length"
-                :loading="gaugeQuery.loading"
-                :columns="gaugeQuery.styledColumns"
-                :values="gaugeQuery.values"
-                class="mb-4"
-              ></GaugeValuesTable>
-            </SinglePanel>
-          </v-col>
-        </v-row>
-
-        <v-row v-for="col in gaugeQuery.columns" :key="col.name">
-          <v-col>
-            <SinglePanel :title="col.name" expanded>
-              <GaugeColumnOptionsForm :column="gridItem.params.columnMap[col.name]" />
-            </SinglePanel>
-          </v-col>
-        </v-row>
-
-        <v-row>
-          <v-col>
-            <SinglePanel title="Value mappings" expanded>
-              <p>Use mappings to assign text and color to specific values, for example:</p>
-
-              <ul class="mb-4">
-                <li>0 &rarr; down (red)</li>
-                <li>1 &rarr; up (green)</li>
-              </ul>
-
-              <v-dialog v-model="mappingsDialog" max-width="800">
-                <template #activator="{ on, attrs }">
-                  <v-btn block v-bind="attrs" v-on="on">Configure</v-btn>
-                </template>
-
-                <v-card>
-                  <v-toolbar color="light-blue lighten-5" flat>
-                    <v-toolbar-title>Value mappings</v-toolbar-title>
-                  </v-toolbar>
-
-                  <div class="pa-4">
-                    <ValueMappingsForm
-                      v-model="gridItem.params.valueMappings"
-                      @click:close="mappingsDialog = false"
-                    />
-                  </div>
-                </v-card>
-              </v-dialog>
-            </SinglePanel>
-          </v-col>
-        </v-row>
+              </div>
+            </v-card>
+          </v-dialog>
+        </SinglePanel>
       </v-container>
     </template>
   </GridItemFormPanes>
@@ -149,7 +138,7 @@ import { defineComponent, shallowRef, computed, watch, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
-import { useUql } from '@/use/uql'
+import { useUql, joinQuery, injectQueryStore } from '@/use/uql'
 import { useActiveMetrics } from '@/metrics/use-metrics'
 import { formatGauge, useGaugeQuery } from '@/metrics/use-gauges'
 
@@ -204,13 +193,10 @@ export default defineComponent({
     const uql = useUql()
     const activeMetrics = useActiveMetrics(computed(() => props.gridItem.params.metrics))
 
+    const { where } = injectQueryStore()
     const gaugeQuery = useGaugeQuery(
       () => {
-        if (
-          !props.gridItem ||
-          !props.gridItem.params.metrics.length ||
-          !props.gridItem.params.query
-        ) {
+        if (!props.gridItem.params.metrics.length || !props.gridItem.params.query) {
           return { _: undefined }
         }
 
@@ -218,7 +204,7 @@ export default defineComponent({
           ...props.dateRange.axiosParams(),
           metric: props.gridItem.params.metrics.map((m) => m.name),
           alias: props.gridItem.params.metrics.map((m) => m.alias),
-          query: props.gridItem.params.query,
+          query: joinQuery([props.gridItem.params.query, where.value]),
         }
       },
       computed(() => props.gridItem.params.columnMap),

@@ -64,90 +64,88 @@
     </template>
     <template #options>
       <v-container fluid>
-        <v-row>
-          <v-col>
-            <SinglePanel title="Chart options" expanded>
-              <v-text-field
-                v-model="gridItem.title"
-                label="Chart title"
-                filled
-                dense
-                :rules="rules.title"
-              />
+        <SinglePanel title="Chart options" expanded>
+          <v-text-field
+            v-model="gridItem.title"
+            label="Chart title"
+            filled
+            dense
+            :rules="rules.title"
+          />
 
-              <v-text-field
-                v-model="gridItem.description"
-                label="Optional description or memo"
-                filled
-                dense
-              />
+          <v-text-field
+            v-model="gridItem.description"
+            label="Optional description or memo"
+            filled
+            dense
+          />
 
-              <v-select
-                v-model="gridItem.params.chartKind"
-                :items="chartKindItems"
-                label="Chart type"
-                filled
-                dense
-              ></v-select>
-            </SinglePanel>
-          </v-col>
-        </v-row>
+          <v-select
+            v-model="gridItem.params.chartKind"
+            :items="chartKindItems"
+            label="Chart type"
+            filled
+            dense
+          ></v-select>
 
-        <v-row>
-          <v-col>
-            <SinglePanel title="Legend" expanded>
-              <PanelSection title="Legend type" class="mb-4">
-                <v-btn-toggle
-                  v-model="gridItem.params.legend.type"
-                  color="deep-purple-accent-3"
-                  group
-                  dense
-                  mandatory
-                >
-                  <v-btn :value="LegendType.None">None</v-btn>
-                  <v-btn :value="LegendType.Table">Table</v-btn>
-                  <v-btn :value="LegendType.List">List</v-btn>
-                </v-btn-toggle>
-              </PanelSection>
+          <v-checkbox
+            v-model="gridItem.params.connectNulls"
+            label="Connect the line across null points"
+          />
+        </SinglePanel>
 
-              <PanelSection title="Legend placement">
-                <v-btn-toggle
-                  v-model="gridItem.params.legend.placement"
-                  color="deep-purple-accent-3"
-                  group
-                  dense
-                  mandatory
-                >
-                  <v-btn :value="LegendPlacement.Right">Right</v-btn>
-                  <v-btn :value="LegendPlacement.Bottom">Bottom</v-btn>
-                </v-btn-toggle>
-              </PanelSection>
+        <SinglePanel title="Legend" expanded>
+          <PanelSection title="Legend type" class="mb-4">
+            <v-btn-toggle
+              v-model="gridItem.params.legend.type"
+              color="deep-purple-accent-3"
+              group
+              dense
+              mandatory
+            >
+              <v-btn :value="LegendType.None">None</v-btn>
+              <v-btn :value="LegendType.Table">Table</v-btn>
+              <v-btn :value="LegendType.List">List</v-btn>
+            </v-btn-toggle>
+          </PanelSection>
 
-              <PanelSection title="Legend values">
-                <v-select
-                  v-model="gridItem.params.legend.values"
-                  multiple
-                  :items="legendValueItems"
-                  filled
-                  dense
-                  hide-details="auto"
-                  style="width: 200px"
-                />
-              </PanelSection>
-            </SinglePanel>
-          </v-col>
-        </v-row>
+          <PanelSection title="Legend placement">
+            <v-btn-toggle
+              v-model="gridItem.params.legend.placement"
+              color="deep-purple-accent-3"
+              group
+              dense
+              mandatory
+            >
+              <v-btn :value="LegendPlacement.Right">Right</v-btn>
+              <v-btn :value="LegendPlacement.Bottom">Bottom</v-btn>
+            </v-btn-toggle>
+          </PanelSection>
 
-        <v-row v-for="ts in styledTimeseries" :key="ts.id">
-          <v-col>
-            <SinglePanel :title="ts.name" expanded>
-              <TimeseriesStyleForm
-                :chart-kind="gridItem.params.chartKind"
-                :timeseries-style="getTimeseriesStyle(ts)"
-              />
-            </SinglePanel>
-          </v-col>
-        </v-row>
+          <PanelSection title="Legend values">
+            <v-select
+              v-model="gridItem.params.legend.values"
+              multiple
+              :items="legendValueItems"
+              filled
+              dense
+              hide-details="auto"
+              style="width: 200px"
+            />
+          </PanelSection>
+        </SinglePanel>
+
+        <SinglePanel
+          v-for="ts in styledTimeseries"
+          :key="ts.id"
+          :title="`${ts.name} colum`"
+          expanded
+        >
+          <TimeseriesStyleForm
+            :chart-kind="gridItem.params.chartKind"
+            :timeseries-style="getTimeseriesStyle(ts)"
+          />
+        </SinglePanel>
       </v-container>
     </template>
   </GridItemFormPanes>
@@ -158,7 +156,7 @@ import { defineComponent, shallowRef, set, computed, watch, PropType } from 'vue
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
-import { useUql } from '@/use/uql'
+import { useUql, joinQuery, injectQueryStore } from '@/use/uql'
 import { useActiveMetrics } from '@/metrics/use-metrics'
 import { useTimeseries, useStyledTimeseries } from '@/metrics/use-query'
 
@@ -240,6 +238,7 @@ export default defineComponent({
 
     const activeMetrics = useActiveMetrics(computed(() => props.gridItem.params.metrics))
 
+    const { where } = injectQueryStore()
     const timeseries = useTimeseries(() => {
       if (!props.gridItem.params.metrics.length || !props.gridItem.params.query) {
         return undefined
@@ -249,7 +248,7 @@ export default defineComponent({
         ...props.dateRange.axiosParams(),
         metric: props.gridItem.params.metrics.map((m) => m.name),
         alias: props.gridItem.params.metrics.map((m) => m.alias),
-        query: props.gridItem.params.query,
+        query: joinQuery([props.gridItem.params.query, where.value]),
       }
     })
 

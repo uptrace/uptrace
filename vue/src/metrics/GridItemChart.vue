@@ -4,9 +4,10 @@
     :resolved="timeseries.status.isResolved()"
     :timeseries="styledTimeseries"
     :time="timeseries.time"
-    :chart-kind="gridItem.params.chartKind"
-    :legend="legend"
     :height="height"
+    :chart-kind="gridItem.params.chartKind"
+    :connect-nulls="gridItem.params.connectNulls"
+    :legend="legend"
   />
 </template>
 

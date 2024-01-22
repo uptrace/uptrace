@@ -6,45 +6,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 )
 
-const (
-	CHAggMin   = "min"
-	CHAggMax   = "max"
-	CHAggSum   = "sum"
-	CHAggCount = "count"
-	CHAggAvg   = "avg"
-
-	CHAggP50 = "p50"
-	CHAggP75 = "p75"
-	CHAggP90 = "p90"
-	CHAggP95 = "p95"
-	CHAggP99 = "p99"
-
-	CHAggUniq = "uniq"
-)
-
-const (
-	GoMapDelta  = "delta"
-	GoMapPerMin = "per_min"
-	GoMapPerSec = "per_sec"
-	GoMapRate   = "rate"
-	GoMapIrate  = "irate"
-)
-
-const (
-	GoAggMin = "min"
-	GoAggMax = "max"
-	GoAggAvg = "avg"
-	GoAggSum = "sum"
-)
-
-const (
-	TableFuncMin  = "min"
-	TableFuncMax  = "max"
-	TableFuncAvg  = "avg"
-	TableFuncSum  = "sum"
-	TableFuncLast = "last"
-)
-
 type MetricAlias struct {
 	Name  string `yaml:"name" json:"name"`
 	Alias string `yaml:"alias" json:"alias"`
@@ -75,35 +36,20 @@ func isCHFunc(name string) bool {
 	}
 }
 
-func isGoMapFunc(name string) bool {
-	switch name {
-	case GoMapDelta, GoMapPerMin, GoMapPerSec:
-		return true
-	default:
-		return false
-	}
-}
-
 func TableFuncName(expr ast.Expr) string {
 	fn, ok := expr.(*ast.FuncCall)
 	if !ok {
-		return TableFuncLast
+		return TableFuncMedian
 	}
 
 	switch fn.Func {
-	case CHAggMin, CHAggMax, CHAggAvg:
+	case CHAggMin, CHAggMax:
 		return fn.Func
-	case CHAggSum, CHAggCount:
+	case CHAggCount:
 		return TableFuncSum
-	case CHAggP50, CHAggP75, CHAggP90, CHAggP95, CHAggP99:
-		return TableFuncAvg
-	case CHAggUniq:
-		return TableFuncLast
-	case GoMapDelta:
+	case RollupIncrease, RollupDelta:
 		return TableFuncSum
-	case GoMapPerMin, GoMapPerSec:
-		return TableFuncAvg
 	default:
-		return TableFuncLast
+		return TableFuncMedian
 	}
 }

@@ -19,11 +19,9 @@ table:
       metrics:
         - k8s_pod_memory_rss as $rss
       query:
-        - sum($rss)
+        - sum($rss) as rss
       columns:
-        sum($rss):
-          unit: bytes
-          agg_func: last
+        rss: { unit: bytes }
 
     - title: Total FS
       description: Total filesystem usage on all nodes
@@ -31,11 +29,9 @@ table:
       metrics:
         - k8s_pod_filesystem_usage as $usage
       query:
-        - sum($usage)
+        - sum($usage) as usage
       columns:
-        sum($usage):
-          unit: bytes
-          agg_func: last
+        usage: { unit: bytes }
 
   metrics:
     - k8s_pod_memory_rss as $rss_mem
@@ -46,22 +42,17 @@ table:
   query:
     - group by k8s_namespace_name
     - group by k8s_pod_name
-    - $cpu_util
-    - $mem_usage
-    - $rss_mem
-    - $fs_usage
-    - $fs_usage / $fs_capacity as fs_util
+    - avg($cpu_util) as cpu_util
+    - sum($mem_usage) as mem_usage
+    - sum($rss_mem) as rss_mem
+    - sum($fs_usage) as fs_usage
+    - sum($fs_usage) / sum($fs_capacity) as fs_util
   columns:
-    cpu_util:
-      unit: utilization
-    fs_usage:
-      unit: bytes
-    fs_util:
-      unit: utilization
-    mem_usage:
-      unit: bytes
-    rss_mem:
-      unit: bytes
+    cpu_util: { unit: utilization }
+    mem_usage: { unit: bytes }
+    rss_mem: { unit: bytes }
+    fs_usage: { unit: bytes }
+    fs_util: { unit: utilization }
 
 grid_rows:
   - title: Gauges
@@ -82,11 +73,9 @@ grid_rows:
         metrics:
           - k8s_pod_memory_rss as $rss
         query:
-          - sum($rss)
+          - sum($rss) as rss
         columns:
-          sum($rss):
-            unit: bytes
-            agg_func: last
+          rss: { unit: bytes }
 
       - title: Total FS
         description: Total filesystem usage on all nodes
@@ -94,11 +83,9 @@ grid_rows:
         metrics:
           - k8s_pod_filesystem_usage as $usage
         query:
-          - sum($usage)
+          - sum($usage) as usage
         columns:
-          sum($usage):
-            unit: bytes
-            agg_func: last
+          usage: { unit: bytes }
 
   - title: General
     items:
@@ -106,72 +93,58 @@ grid_rows:
         metrics:
           - k8s_pod_cpu_utilization as $utilization
         query:
-          - $utilization
+          - avg($utilization) as cpu_util
         columns:
-          utilization:
-            unit: utilization
+          cpu_util: { unit: utilization }
 
       - title: RSS memory
         metrics:
           - k8s_pod_memory_rss as $rss
         query:
-          - $rss
+          - sum($rss) as rss
         columns:
-          rss:
-            unit: bytes
+          rss: { unit: bytes }
 
       - title: RAM usage
         metrics:
           - k8s_pod_memory_usage as $usage
         query:
-          - $usage
+          - sum($usage) as usage
         columns:
-          usage:
-            unit: bytes
+          usage: { unit: bytes }
 
       - title: Memory working set
         metrics:
           - k8s_pod_memory_working_set as $working_set
         query:
-          - $working_set
+          - sum($working_set) as working_set
         columns:
-          working_set:
-            unit: bytes
+          working_set: { unit: bytes }
 
       - title: Memory major page faults
         metrics:
           - k8s_pod_memory_major_page_faults as $major_page_faults
         query:
-          - $major_page_faults
+          - sum($major_page_faults)
 
       - title: Memory page faults
         metrics:
           - k8s_pod_memory_page_faults as $page_faults
         query:
-          - delta($page_faults)
-        columns:
-          delta($page_faults):
-            color: '#5470c6'
-        legend:
-          type: list
-          placement: bottom
-          values:
-            - avg
+          - sum(delta($page_faults)) as page_faulrs
 
       - title: Filesystem available
         metrics:
           - k8s_pod_filesystem_available as $available
         query:
-          - $available
+          - sum($available) as available
         columns:
-          available:
-            unit: bytes
+          available: { unit: bytes }
 
       - title: Filesystem usage
         metrics:
           - k8s_pod_filesystem_usage as $usage
         query:
-          - $usage
+          - sum($usage) as usage
         columns:
-          usage:
-            unit: bytes
+          usage: { unit: bytes }

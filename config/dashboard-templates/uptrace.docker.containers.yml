@@ -5,6 +5,7 @@ name: 'Docker: containers'
 table:
   metrics:
     - container_cpu_percent as $cpu_percent
+    - container_cpu_utilization as $cpu_util
     - container_memory_percent as $mem_percent
     - container_memory_usage_total as $mem_usage
     - container_memory_swap as $swap
@@ -12,14 +13,16 @@ table:
     - container_network_io_usage_tx_bytes as $tx_bytes
   query:
     - group by container_name
-    - $cpu_percent
-    - $mem_percent
-    - $mem_usage
-    - $swap
-    - per_sec($rx_bytes)
-    - per_sec($tx_bytes)
+    - avg($cpu_percent) as cpu_percent
+    - avg($cpu_util) as cpu_util
+    - avg($mem_percent) as mem_percent
+    - sum($mem_usage)
+    - sum($swap)
+    - per_sec(sum($rx_bytes))
+    - per_sec(sum($tx_bytes))
   columns:
     cpu_percent: { unit: percents }
+    cpu_util: { unit: utilization }
     mem_percent: { unit: percents }
 
 grid_rows:
@@ -29,7 +32,7 @@ grid_rows:
         metrics:
           - container_cpu_percent as $cpu_percent
         query:
-          - $cpu_percent
+          - avg($cpu_percent) as cpu_percent
         columns:
           cpu_percent: { unit: percents }
 
@@ -37,7 +40,7 @@ grid_rows:
         metrics:
           - container_memory_percent as $mem_percent
         query:
-          - $mem_percent
+          - avg($mem_percent) as mem_percent
         columns:
           mem_percent: { unit: percents }
 
@@ -45,7 +48,7 @@ grid_rows:
         metrics:
           - container_memory_usage_total as $mem_usage
         query:
-          - $mem_usage
+          - sum($mem_usage)
 
       - title: Memory used by the processes of this control group
         description:
@@ -54,7 +57,7 @@ grid_rows:
         metrics:
           - container_memory_cache as $mem_cache
         query:
-          - $mem_cache
+          - sum($mem_cache)
 
       - title: RSS memory
         description:
@@ -63,40 +66,40 @@ grid_rows:
         metrics:
           - container_memory_rss as $rss
         query:
-          - $rss
+          - sum($rss)
 
       - title: Number of bytes of anonymous transparent hugepages
         metrics:
           - container_memory_rss_huge as $rss_huge
         query:
-          - $rss_huge
+          - sum($rss_huge)
 
       - title: Bytes that are waiting to get written back to the disk
         metrics:
           - container_memory_dirty as $mem_dirty
         query:
-          - $mem_dirty
+          - sum($mem_dirty)
 
       - title: Bytes of file/anon cache that are queued for syncing to disk
         metrics:
           - container_memory_writeback as $writeback
         query:
-          - $writeback
+          - sum($writeback)
 
       - title: Swap memory
         metrics:
           - container_memory_swap as $swap
         query:
-          - $swap
+          - sum($swap)
 
       - title: Network bytes/sec received
         metrics:
           - container_network_io_usage_rx_bytes as $rx_bytes
         query:
-          - per_sec($rx_bytes)
+          - per_sec(sum($rx_bytes))
 
       - title: Network bytes/sec sent
         metrics:
           - container_network_io_usage_tx_bytes as $tx_bytes
         query:
-          - per_sec($tx_bytes)
+          - per_sec(sum($tx_bytes))

@@ -11,11 +11,11 @@ table:
   query:
     - group by host_name
     - group by redis_version
-    - $cmds
-    - $rss
-    - $db_keys
-    - $fragmentation
-    - per_min($conns_rejected) as conns_rejected
+    - sum($cmds)
+    - sum($rss)
+    - sum($db_keys)
+    - avg($fragmentation)
+    - per_min(sum($conns_rejected)) as conns_rejected
 
 grid_rows:
   - title: Gauges
@@ -26,7 +26,7 @@ grid_rows:
         metrics:
           - redis_db_keys as $keys
         query:
-          - $keys
+          - sum($keys)
 
       - title: Commands
         description: Number of processed commands
@@ -34,7 +34,7 @@ grid_rows:
         metrics:
           - redis_commands as $cmds
         query:
-          - $cmds
+          - sum($cmds)
 
       - title: RAM fragm_
         description: RAM fragmentation ratio (RSS / allocated RAM)
@@ -42,7 +42,7 @@ grid_rows:
         metrics:
           - redis_memory_fragmentation_ratio as $mem_frag
         query:
-          - $mem_frag
+          - avg($mem_frag) as mem_frag
         columns:
           mem_frag: { unit: utilization }
 
@@ -52,7 +52,7 @@ grid_rows:
         metrics:
           - redis_net_input as $input
         query:
-          - per_min($input)
+          - per_min(sum($input))
 
       - title: Egress/min
         description: Outgoing network traffic
@@ -60,7 +60,7 @@ grid_rows:
         metrics:
           - redis_net_output as $output
         query:
-          - per_min($output)
+          - per_min(sum($output))
 
   - title: General
     items:
@@ -68,27 +68,27 @@ grid_rows:
         metrics:
           - redis_memory_fragmentation_ratio as $fragmentation
         query:
-          - $fragmentation
+          - avg($fragmentation)
 
       - title: Number of rejected connections
         metrics:
           - redis_connections_rejected as $conns_rejected
         query:
-          - per_min($conns_rejected) as conns_rejected
+          - per_min(sum($conns_rejected)) as conns_rejected
 
       - title: Number of evicted keys
         metrics:
           - redis_keys_evicted as $keys_evicted
         query:
-          - per_min($keys_evicted) as keys_evicted
+          - per_min(sum($keys_evicted)) as keys_evicted
 
       - title: Total number of keys and number of keys with a TTL
         metrics:
           - redis_db_keys as $db_keys
           - redis_db_expires as $db_expires
         query:
-          - $db_keys
-          - $db_expires
+          - sum($db_keys)
+          - sum($db_expires)
         chart: bar
 
       - title: Keyspace hit rate
@@ -96,8 +96,8 @@ grid_rows:
           - redis_keyspace_hits as $hits
           - redis_keyspace_misses as $misses
         query:
-          - per_min($hits) as hits
-          - per_min($misses) as misses
+          - per_min(sum($hits)) as hits
+          - per_min(sum($misses)) as misses
           - hits / (hits + misses) as hit_rate
         columns:
           hit_rate: { unit: utilization }
@@ -106,23 +106,23 @@ grid_rows:
         metrics:
           - redis_commands as $commands
         query:
-          - $commands
+          - sum($commands)
 
       - title: Biggest input and output client buffers
         metrics:
           - redis_clients_max_input_buffer as $input
           - redis_clients_max_output_buffer as $output
         query:
-          - $input
-          - $output
+          - sum($input)
+          - sum($output)
 
       - title: Number of bytes read and written from the network
         metrics:
           - redis_net_input as $input
           - redis_net_output as $output
         query:
-          - per_min($input) as input_per_min
-          - per_min($output) as output_per_min
+          - per_min(sum($input)) as input_per_min
+          - per_min(sum($output)) as output_per_min
         columns:
           input_per_min: { unit: bytes }
           output_per_min: { unit: bytes }
@@ -132,6 +132,6 @@ grid_rows:
         metrics:
           - redis_memory_rss as $rss
         query:
-          - $rss
+          - sum($rss) as rss
         columns:
           rss: { unit: bytes }

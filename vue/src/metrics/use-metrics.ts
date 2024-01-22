@@ -1,3 +1,4 @@
+import { snakeCase } from 'lodash-es'
 import { shallowRef, computed, watch, proxyRefs, ShallowRef } from 'vue'
 import { refDebounced } from '@vueuse/core'
 
@@ -165,10 +166,11 @@ export function defaultMetricQuery(instrument: Instrument, alias: string) {
     case Instrument.Deleted:
       return ''
     case Instrument.Gauge:
+      return `avg(${alias})`
     case Instrument.Additive:
-      return alias
+      return `sum(${alias})`
     case Instrument.Counter:
-      return `per_min(${alias})`
+      return `per_min(sum(${alias}))`
     case Instrument.Histogram:
       return `avg(${alias}) | per_min(count(${alias}))`
     case Instrument.Summary:
@@ -185,14 +187,13 @@ export function defaultMetricAlias(metricName: string): string {
   if (i >= 0) {
     metricName = metricName.slice(i + 1)
     if (metricName.length < 20) {
-      return metricName
+      return snakeCase(metricName)
     }
   }
 
   i = metricName.lastIndexOf('_')
   if (i >= 0) {
-    return metricName.slice(i + 1)
+    metricName = metricName.slice(i + 1)
   }
-
-  return metricName
+  return snakeCase(metricName)
 }
