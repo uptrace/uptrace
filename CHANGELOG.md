@@ -2,6 +2,32 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
+## v1.6.2 - January 22 2024
+
+Starting from this release, Uptrace returns all timeseries when a query doesn't contain an
+aggregation:
+
+```shell
+# Returns all timeseries grouped by the _hash.
+$metric_name
+
+# Returns a single timeseries.
+sum($metric_name)
+```
+
+As a result, Uptrace is now mostly compatible with the Prometheus query language, for example, the
+following PromQL expressions are also valid in Uptrace:
+
+- `increase($metric_name)` and `delta($metric_name)`
+- `rate($metric_name[5m])` and `irate($metric_name[5m])`
+- `avg_over_time($go_goroutines[5m])`
+- `avg by (foo)(sum by(foo, bar)($metric_name))`
+- `$metric_name offset 1w`
+- Math between series with automatic many-to-one/one-to-many vector matching, for example,
+  `sum($mem by (type)) / sum($mem) as mem`.
+
+See [documentation](https://uptrace.dev/get/promql-compat.html) for more details.
+
 ## v1.6.0 - January 3 2024
 
 This release is partially backwards incompatible with v1.5. PostgreSQL database will be migrated
