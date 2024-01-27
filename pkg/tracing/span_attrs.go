@@ -237,6 +237,7 @@ var attrNames = []AttrName{
 	{Canonical: attrkey.URLPath, Alts: []string{"http_target"}},
 	{Canonical: attrkey.HTTPRequestMethod, Alts: []string{"http_method"}},
 	{Canonical: attrkey.HTTPResponseStatusCode, Alts: []string{"http_status_code"}},
+	{Canonical: attrkey.HTTPResponseStatusClass, Alts: []string{"http_status_class"}},
 	{Canonical: attrkey.DBSystem, Alts: []string{"db_type"}},
 	{
 		Canonical: attrkey.LogSeverity,

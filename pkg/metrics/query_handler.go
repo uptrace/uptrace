@@ -472,14 +472,14 @@ func (h *QueryHandler) selectMetricHeatmap(
 		&f.TimeFilter, org.GroupingIntervalLarge)
 
 	q := h.CH.NewSelect().
-		ColumnExpr("quantilesBFloat16MergeState(0.5, 0.9, 0.99)(histogram) AS value").
-		ColumnExpr("toStartOfInterval(time, INTERVAL ? minute) AS time_",
+		ColumnExpr("quantilesBFloat16MergeState(0.5, 0.9, 0.99)(d.histogram) AS value").
+		ColumnExpr("toStartOfInterval(d.time, INTERVAL ? minute) AS time_",
 			groupingInterval.Minutes()).
-		TableExpr("?", ch.Name(tableName)).
-		Where("project_id = ?", f.Project.ID).
-		Where("metric = ?", f.Metric[0]).
-		Where("time >= ?", f.TimeGTE).
-		Where("time < ?", f.TimeLT).
+		TableExpr("? AS d", ch.Name(tableName)).
+		Where("d.project_id = ?", f.Project.ID).
+		Where("d.metric = ?", f.Metric[0]).
+		Where("d.time >= ?", f.TimeGTE).
+		Where("d.time < ?", f.TimeLT).
 		GroupExpr("time_").
 		OrderExpr("time_").
 		Limit(10000)
@@ -528,15 +528,29 @@ func (h *QueryHandler) selectMetricHeatmap(
 //------------------------------------------------------------------------------
 
 func tableValue(value []float64, aggFunc string) float64 {
+	const zeroSuffix = "_zero"
+
+	if strings.HasSuffix(aggFunc, zeroSuffix) {
+		aggFunc = strings.TrimSuffix(aggFunc, zeroSuffix)
+
+		for i, num := range value {
+			if !isNum(num) {
+				value[i] = 0
+			}
+		}
+	}
+
 	switch aggFunc {
 	case mql.TableFuncMin:
 		return minTableValue(value)
 	case mql.TableFuncMax:
 		return maxTableValue(value)
-	case mql.TableFuncAvg:
-		return avgTableValue(value)
 	case mql.TableFuncSum:
 		return sumTableValue(value)
+	case mql.TableFuncAvg:
+		return avgTableValue(value)
+	case mql.TableFuncMedian:
+		return mql.Median(value)
 	case "", mql.TableFuncLast:
 		return lastTableValue(value)
 	default:
@@ -544,14 +558,11 @@ func tableValue(value []float64, aggFunc string) float64 {
 	}
 }
 
-func minTableValue(ns []float64) float64 {
+func minTableValue(nums []float64) float64 {
 	min := math.MaxFloat64
-	for _, n := range ns {
-		if math.IsNaN(n) {
-			continue
-		}
-		if n < min {
-			min = n
+	for _, num := range nums {
+		if isNum(num) && num < min {
+			min = num
 		}
 	}
 	if min != math.MaxFloat64 {
@@ -560,14 +571,11 @@ func minTableValue(ns []float64) float64 {
 	return math.NaN()
 }
 
-func maxTableValue(ns []float64) float64 {
+func maxTableValue(nums []float64) float64 {
 	max := -math.MaxFloat64
-	for _, n := range ns {
-		if math.IsNaN(n) {
-			continue
-		}
-		if n > max {
-			max = n
+	for _, num := range nums {
+		if isNum(num) && num > max {
+			max = num
 		}
 	}
 	if max != -math.MaxFloat64 {
@@ -576,64 +584,41 @@ func maxTableValue(ns []float64) float64 {
 	return math.NaN()
 }
 
-func lastTableValue(ns []float64) float64 {
-	for i := len(ns) - 1; i >= 0; i-- {
-		n := ns[i]
-		if !math.IsNaN(n) {
-			return n
+func lastTableValue(nums []float64) float64 {
+	for i := len(nums) - 1; i >= 0; i-- {
+		num := nums[i]
+		if isNum(num) {
+			return num
 		}
 	}
 	return math.NaN()
 }
 
-func avgTableValue(ns []float64) float64 {
-	sum, count := sumCount(ns)
+func avgTableValue(nums []float64) float64 {
+	sum, count := sumCount(nums)
 	if count > 0 {
 		return sum / float64(count)
 	}
 	return math.NaN()
 }
 
-func sumTableValue(ns []float64) float64 {
-	sum, _ := sumCount(ns)
+func sumTableValue(nums []float64) float64 {
+	sum, _ := sumCount(nums)
 	return sum
 }
 
-func sumCount(ns []float64) (float64, int) {
+func sumCount(nums []float64) (float64, int) {
 	var sum float64
 	var count int
-	for _, n := range ns {
-		if !math.IsNaN(n) {
-			sum += n
+	for _, num := range nums {
+		if isNum(num) {
+			sum += num
 			count++
 		}
 	}
 	return sum, count
 }
 
-func deltaTableValue(value []float64) float64 {
-	for i, num := range value {
-		if !math.IsNaN(num) {
-			value = value[i:]
-			break
-		}
-	}
-
-	if len(value) == 0 {
-		return 0
-	}
-
-	prevNum := value[0]
-	value = value[1:]
-	var sum float64
-
-	for _, num := range value {
-		if math.IsNaN(num) || num <= prevNum {
-			continue
-		}
-		sum += num - prevNum
-		prevNum = num
-	}
-
-	return sum
+func isNum(f float64) bool {
+	return !math.IsNaN(f) && !math.IsInf(f, 0)
 }

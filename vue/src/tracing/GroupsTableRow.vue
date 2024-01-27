@@ -20,7 +20,6 @@
           :time="timeseries.time"
           :unit="col.unit"
           :color="columnMap[col.name].color"
-          :group="group._id"
           class="mr-2"
         />
         <NumValue :value="group[col.name]" :name="col.name" :unit="col.unit" />

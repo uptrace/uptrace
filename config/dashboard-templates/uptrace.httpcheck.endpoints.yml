@@ -20,8 +20,11 @@ table:
   query:
     - group by url_full
     - group by host_name
-    - min($status{http_response_status_class="2xx"})
+    - sum($status{http_response_status_class="2xx"}) as status_2xx
+    - sum($status{http_response_status_class="2xx"}) / sum($status) as availability
     - avg($duration)
+  columns:
+    availability: { unit: utilization, agg_func: avg }
 
 grid_rows:
   - title: Gauges
@@ -45,6 +48,15 @@ grid_rows:
           - op: any
             text: UNKNOWN
             color: gray
+      - title: Availability
+        description: HTTP endpoint availability
+        type: gauge
+        metrics:
+          - httpcheck_status as $status
+        query:
+          - sum($status{http_response_status_class="2xx"}) / sum($status) as availability
+        columns:
+          availability: { unit: utilization, agg_func: avg }
 
   - title: General
     items:

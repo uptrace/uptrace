@@ -2,9 +2,10 @@
   <v-menu v-model="menu" offset-y>
     <template #activator="{ on, attrs }">
       <v-btn
-        :elevation="0"
         :disabled="disabled"
         :color="color"
+        :elevation="elevation"
+        :outlined="outlined"
         class="text-none"
         :class="targetClass"
         v-bind="attrs"
@@ -66,6 +67,14 @@ export default defineComponent({
     color: {
       type: String,
       default: 'grey lighten-4',
+    },
+    elevation: {
+      type: Number,
+      default: 0,
+    },
+    outlined: {
+      type: Boolean,
+      default: false,
     },
     targetClass: {
       type: String,

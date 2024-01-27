@@ -40,7 +40,6 @@ export function createFormatter(unit: string): Formatter {
     case Unit.Nanoseconds:
       return duration
     case Unit.Microseconds:
-      return duration
       return (val: any, ...args: any[]) => {
         return duration(adjustNumber(val, 1e3), ...args)
       }
@@ -88,18 +87,18 @@ export function createShortFormatter(unit: Unit | string | Formatter): Formatter
     case Unit.Time:
       return datetime
     case Unit.Nanoseconds:
-      return (val: any, ...args: any[]) => {
-        return durationShort(adjustNumber(val, 0.001), ...args)
-      }
-    case Unit.Microseconds:
       return durationShort
-    case Unit.Milliseconds:
+    case Unit.Microseconds:
       return (val: any, ...args: any[]) => {
         return durationShort(adjustNumber(val, 1e3), ...args)
       }
-    case Unit.Seconds:
+    case Unit.Milliseconds:
       return (val: any, ...args: any[]) => {
         return durationShort(adjustNumber(val, 1e6), ...args)
+      }
+    case Unit.Seconds:
+      return (val: any, ...args: any[]) => {
+        return durationShort(adjustNumber(val, 1e9), ...args)
       }
     case Unit.Bytes:
       return bytesShort

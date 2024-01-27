@@ -93,10 +93,6 @@ export function createTooltipFormatter(
     const rows = []
 
     for (let p of params) {
-      if (p.seriesName.startsWith('_')) {
-        continue
-      }
-
       const value = p.value[p.encode.y[0]]
       if (value === null) {
         continue

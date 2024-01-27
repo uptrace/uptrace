@@ -422,7 +422,7 @@ func (tpl *GaugeGridItemTpl) Populate(item *GaugeGridItem) error {
 	item.Params.ColumnMap = tpl.Columns
 
 	item.Params.Template = tpl.Template
-	item.Params.ValueMappings = item.Params.ValueMappings
+	item.Params.ValueMappings = tpl.ValueMappings
 
 	return nil
 }

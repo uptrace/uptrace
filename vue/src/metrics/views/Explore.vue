@@ -44,9 +44,7 @@
               >
                 <template #item="{ item }">
                   <v-list-item-action class="my-0 mr-4">
-                    <v-simple-checkbox
-                      :value="activeAttrKeys.includes(item.value)"
-                    ></v-simple-checkbox>
+                    <v-checkbox :input-value="activeAttrKeys.includes(item.value)"></v-checkbox>
                   </v-list-item-action>
                   <v-list-item-content>
                     <v-list-item-title>

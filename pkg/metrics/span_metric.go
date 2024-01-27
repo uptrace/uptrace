@@ -139,7 +139,9 @@ func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMet
 	case InstrumentHistogram:
 		q = q.ColumnExpr("count() AS count").
 			ColumnExpr("sum(?) AS sum", valueExpr).
-			ColumnExpr("quantilesBFloat16State(0.5)(toFloat32(?)) AS histogram", valueExpr)
+			ColumnExpr("quantilesBFloat16State(0.5)(toFloat32(?)) AS histogram", valueExpr).
+			ColumnExpr("min(toFloat64(?)) AS min", valueExpr).
+			ColumnExpr("max(toFloat64(?)) AS max", valueExpr)
 	default:
 		return fmt.Errorf("unsupported instrument: %q", metric.Instrument)
 	}

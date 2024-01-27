@@ -114,8 +114,7 @@
             >
               <template #item="{ item }">
                 <v-list-item-action class="my-0 mr-4">
-                  <v-simple-checkbox :value="monitor.channelIds.includes(item.id)">
-                  </v-simple-checkbox>
+                  <v-checkbox :input-value="monitor.channelIds.includes(item.id)"> </v-checkbox>
                 </v-list-item-action>
                 <v-list-item-content>
                   <v-list-item-title>{{ item.name }} ({{ item.type }})</v-list-item-title>

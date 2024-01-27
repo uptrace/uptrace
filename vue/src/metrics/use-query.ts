@@ -18,6 +18,7 @@ import {
   StyledTimeseries,
   TimeseriesStyle,
   MetricColumn,
+  TableColumn,
   ColumnInfo,
   StyledColumnInfo,
   TableRowData,
@@ -213,7 +214,7 @@ export type UseTableQuery = ReturnType<typeof useTableQuery>
 
 export function useTableQuery(
   axiosParamsSource: AxiosParamsSource,
-  columnMap: Ref<Record<string, MetricColumn>>,
+  columnMap: Ref<Record<string, TableColumn>>,
 ) {
   const route = useRoute()
   const order = useOrder()
@@ -231,10 +232,17 @@ export function useTableQuery(
       return axiosParams.value
     }
 
+    const tableAgg: Record<string, string> = {}
+    for (let colName in columnMap.value) {
+      const col = columnMap.value[colName]
+      tableAgg[colName] = col.aggFunc
+    }
+
     const params: Record<string, any> = {
       ...axiosParams.value,
       ...order.axiosParams,
       search: debouncedSearchInput.value,
+      table_agg: tableAgg,
     }
 
     const { projectId } = route.value.params

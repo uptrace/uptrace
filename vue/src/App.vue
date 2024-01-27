@@ -25,7 +25,7 @@
                 <v-tab :to="{ name: 'Overview' }">Overview</v-tab>
                 <v-tab :to="{ name: 'SpanGroupList' }">Traces & Logs</v-tab>
                 <v-tab :to="{ name: 'DashboardList' }">Dashboards</v-tab>
-                <v-tab :to="{ name: 'Alerting' }">Alerts</v-tab>
+                <v-tab :to="{ name: 'Alerting' }">Alerting</v-tab>
               </template>
               <v-tab v-else-if="user.isAuth" :to="{ name: 'UserProfile' }">Profile</v-tab>
               <v-tab v-else :to="{ name: 'Login' }">Login</v-tab>

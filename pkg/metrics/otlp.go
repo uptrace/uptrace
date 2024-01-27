@@ -382,10 +382,30 @@ func (p *otlpProcessor) otlpExpHistogram(
 
 		dest := p.otlpNextDatapoint(
 			scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
+
 		if isDelta {
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
 			dest.Histogram = hist
+
+			if dp.Min != nil && dp.Max != nil {
+				dest.Min = dp.GetMin()
+				dest.Max = dp.GetMax()
+			} else {
+				avg := dest.Sum / float64(dest.Count)
+				min, max := avg, avg
+				for key := range hist {
+					mean := float64(key.Float32())
+					if mean < min {
+						min = mean
+					}
+					if mean > max {
+						max = mean
+					}
+				}
+				dest.Min = min
+				dest.Max = max
+			}
 		} else {
 			dest.StartTimeUnixNano = dp.StartTimeUnixNano
 			dest.CumPoint = &ExpHistogramPoint{
@@ -394,6 +414,7 @@ func (p *otlpProcessor) otlpExpHistogram(
 				Histogram: hist,
 			}
 		}
+
 		p.enqueue(ctx, dest)
 	}
 }

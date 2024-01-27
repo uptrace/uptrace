@@ -92,7 +92,7 @@
       <v-list-item ripple @click="resetDashboard()">
         <v-list-item-content>
           <v-list-item-title>
-            {{ dashboard.templateId ? 'Reset dashboard' : 'Reset grid layout' }}
+            {{ dashboard.templateId ? 'Reset dashboard from template' : 'Reset grid layout' }}
           </v-list-item-title>
         </v-list-item-content>
       </v-list-item>
