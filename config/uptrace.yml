@@ -254,7 +254,7 @@ uptrace_go:
   # Enabled by default.
   #disabled: true
 
-  # Defaults to the first projects.
+  # Defaults to the first project.
   #dsn: http://project1_secret_token@localhost:4318?grpc=4317
 
   #tls:

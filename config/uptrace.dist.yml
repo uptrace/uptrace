@@ -251,7 +251,12 @@ service_graph:
 ## Uptrace sends internal telemetry here. Defaults to listen.grpc.addr.
 ##
 uptrace_go:
+  # Enabled by default.
+  #disabled: true
+
+  # Defaults to the first project.
   # dsn: http://project1_secret_token@localhost:14317/1
+
   # tls:
   #   cert_file: config/tls/uptrace.crt
   #   key_file: config/tls/uptrace.key
