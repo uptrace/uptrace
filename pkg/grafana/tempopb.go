@@ -39,10 +39,8 @@ func newTempopbTrace(app *bunapp.App, traceID uuid.UUID, spans []*tracing.Span) 
 	}
 }
 
-var tempoResourceKeys = []string{attrkey.ServiceName, attrkey.HostName}
-
 func tempoResourceSpans(s *tracing.Span, backlink *commonpb.KeyValue) *tracepb.ResourceSpans {
-	resource, attributes := tempoResourceAndAttributes(s.Attrs, tempoResourceKeys)
+	resource, attributes := tempoResourceAndAttributes(s.Attrs)
 	attributes = append(attributes, backlink)
 
 	tracepbSpan := newTracepbSpan(s)
@@ -55,16 +53,9 @@ func tempoResourceSpans(s *tracing.Span, backlink *commonpb.KeyValue) *tracepb.R
 			Attributes: resource,
 		},
 
-		// ScopeSpans: []*tracepb.ScopeSpans{{
-		// 	Scope: nil,
-		// 	Spans: tracepbSpans,
-		// }},
-
-		// InstrumentationLibrarySpans field is deprecated in favor of ScopeSpans.
-		// It will be removed eventually.
-		InstrumentationLibrarySpans: []*tracepb.InstrumentationLibrarySpans{{
-			InstrumentationLibrary: &commonpb.InstrumentationLibrary{},
-			Spans:                  tracepbSpans,
+		ScopeSpans: []*tracepb.ScopeSpans{{
+			Scope: nil,
+			Spans: tracepbSpans,
 		}},
 	}
 }
@@ -152,15 +143,8 @@ func tempoSpanKind(s string) tracepb.Span_SpanKind {
 	}
 }
 
-func tempoResourceAndAttributes(
-	m tracing.AttrMap, resourceKeys []string,
-) (resource, attrs []*commonpb.KeyValue) {
-	isResource := make(map[string]bool, len(resourceKeys))
-	for _, k := range resourceKeys {
-		isResource[k] = true
-	}
-
-	resource = make([]*commonpb.KeyValue, 0, len(resourceKeys))
+func tempoResourceAndAttributes(m tracing.AttrMap) (resource, attrs []*commonpb.KeyValue) {
+	resource = make([]*commonpb.KeyValue, 0)
 	attrs = make([]*commonpb.KeyValue, 0, len(m))
 
 	for k, v := range m {
@@ -169,12 +153,18 @@ func tempoResourceAndAttributes(
 			continue
 		}
 
-		if isResource[k] {
+		switch k {
+		case attrkey.ServiceName:
 			resource = append(resource, &commonpb.KeyValue{
-				Key:   k,
+				Key:   "service.name",
 				Value: av,
 			})
-		} else {
+		case attrkey.HostName:
+			resource = append(resource, &commonpb.KeyValue{
+				Key:   "host.name",
+				Value: av,
+			})
+		default:
 			attrs = append(attrs, &commonpb.KeyValue{
 				Key:   k,
 				Value: av,

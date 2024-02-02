@@ -30,13 +30,17 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 
 		g.GET("/ready", tempoHandler.Ready)
 		g.GET("/api/echo", tempoHandler.Echo)
+		g.GET("/api/status/buildinfo", tempoHandler.BuildInfo)
 
 		g.GET("/api/traces/:trace_id", tempoHandler.QueryTrace)
 		g.GET("/api/traces/:trace_id/json", tempoHandler.QueryTraceJSON)
 
-		g.GET("/api/search/tags", tempoHandler.Tags)
-		g.GET("/api/search/tag/:tag/values", tempoHandler.TagValues)
+		//g.GET("/api/search/tags", tempoHandler.Tags)
+		//g.GET("/api/search/tag/:tag/values", tempoHandler.TagValues)
 		g.GET("/api/search", tempoHandler.Search)
+
+		g.GET("/api/v2/search/tags", tempoHandler.Tags)
+		g.GET("/api/v2/search/tag/:tag/values", tempoHandler.TagValues)
 	})
 
 	router.WithGroup("/api/prometheus", func(g *bunrouter.Group) {

@@ -62,7 +62,7 @@ export default defineComponent({
         return [
           {
             title: 'Monitor number of logs',
-            route: routeFor(metricName, 'per_min($logs)'),
+            route: routeFor(metricName, 'per_min(sum($logs))'),
           },
         ]
       }
@@ -72,7 +72,7 @@ export default defineComponent({
         return [
           {
             title: 'Monitor number of events',
-            route: routeFor(metricName, 'per_min($events)'),
+            route: routeFor(metricName, 'per_min(sum($events))'),
           },
         ]
       }
@@ -85,7 +85,7 @@ export default defineComponent({
         },
         {
           title: 'Monitor number of failed spans',
-          route: routeFor(metricName, 'per_min(count($spans{.status_code="error"}))'),
+          route: routeFor(metricName, 'per_min(count($spans{_status_code="error"}))'),
         },
         {
           title: 'Monitor error rate',

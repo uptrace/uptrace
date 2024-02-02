@@ -192,7 +192,10 @@ var (
 	indexedAttrSet = listToSet(indexedAttrs)
 )
 
-func IsIndexedAttr(key string) bool {
-	_, ok := indexedAttrSet[key]
+func IsIndexedAttr(attrKey string) bool {
+	if strings.HasPrefix(attrKey, "_") {
+		return true
+	}
+	_, ok := indexedAttrSet[attrKey]
 	return ok
 }

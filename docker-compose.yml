@@ -145,7 +145,7 @@ services:
     command: start-dev
 
   grafana:
-    image: grafana/grafana:9.5.3
+    image: grafana/grafana:10.3.1
     restart: on-failure
     volumes:
       - ./config/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml

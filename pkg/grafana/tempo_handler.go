@@ -7,20 +7,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-logfmt/logfmt"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
+	"github.com/grafana/tempo/pkg/traceql"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/go-clickhouse/ch/chschema"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 	"github.com/uptrace/uptrace/pkg/uuid"
-	"go.uber.org/zap"
 )
 
 const projectIDHeaderKey = "uptrace-project-id"
@@ -38,6 +37,10 @@ func NewTempoHandler(app *bunapp.App) *TempoHandler {
 			App: app,
 		},
 	}
+}
+
+func (h *TempoHandler) BuildInfo(w http.ResponseWriter, req bunrouter.Request) error {
+	return httputil.JSON(w, bunrouter.H{})
 }
 
 func (h *TempoHandler) QueryTrace(w http.ResponseWriter, req bunrouter.Request) error {
@@ -92,46 +95,70 @@ func (h *TempoHandler) queryTrace(
 	}
 }
 
+type Scope struct {
+	Name string   `json:"name"`
+	Tags []string `json:"tags"`
+}
+
 func (h *TempoHandler) Tags(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
-
-	q := tracing.NewSpanIndexQuery(h.App).
-		Distinct().
-		ColumnExpr("arrayJoin(all_keys) AS key").
-		Where("time >= ?", time.Now().Add(-tempoDefaultPeriod)).
-		OrderExpr("key ASC")
-
-	if projectID := h.tempoProjectID(req); projectID != 0 {
-		q = q.Where("project_id = ?", projectID)
-	}
+	project := org.ProjectFromContext(ctx)
 
 	keys := make([]string, 0)
 
-	if err := q.ScanColumns(ctx, &keys); err != nil {
+	if err := tracing.NewSpanIndexQuery(h.App).
+		Distinct().
+		ColumnExpr("arrayJoin(all_keys) AS key").
+		Where("project_id = ?", project.ID).
+		Where("time >= ?", time.Now().Add(-tempoDefaultPeriod)).
+		OrderExpr("key ASC").
+		ScanColumns(ctx, &keys); err != nil {
 		return err
 	}
 
+	scopes := []Scope{
+		{
+			Name: "span",
+			Tags: keys,
+		},
+		{
+			Name: "resource",
+			Tags: []string{},
+		},
+		{
+			Name: "intrinsic",
+			Tags: []string{},
+		},
+	}
+
 	return httputil.JSON(w, bunrouter.H{
-		"tagNames": keys,
+		"scopes": scopes,
 	})
+}
+
+type TagValue struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }
 
 func (h *TempoHandler) TagValues(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
-	tag := tempoAttrKey(req.Param("tag"))
+	project := org.ProjectFromContext(ctx)
 
-	chExpr := tracing.AppendCHAttr(nil, tql.Attr{Name: tag})
+	tag := tempoAttrKey(req.Param("tag"))
+	tagCHExpr := tempoCHExpr(tag)
+
 	q := tracing.NewSpanIndexQuery(h.App).
 		Distinct().
-		ColumnExpr("toString(?) AS value", ch.Safe(chExpr)).
+		ColumnExpr("toString(?) AS value", tagCHExpr).
+		Where("project_id = ?", project.ID).
 		Where("time >= ?", time.Now().Add(-tempoDefaultPeriod)).
 		OrderExpr("value ASC").
 		Limit(1000)
 
-	if projectID := h.tempoProjectID(req); projectID != 0 {
-		q = q.Where("project_id = ?", projectID)
-	}
-	if !tracing.IsIndexedAttr(tag) {
+	if tracing.IsIndexedAttr(tag) {
+		q = q.Where("?0 != defaultValueOfArgumentType(?0)", tagCHExpr)
+	} else {
 		q = q.Where("has(all_keys, ?)", tag)
 	}
 
@@ -141,8 +168,16 @@ func (h *TempoHandler) TagValues(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
+	tagValues := make([]TagValue, len(values))
+	for i, value := range values {
+		tagValues[i] = TagValue{
+			Type:  "string",
+			Value: value,
+		}
+	}
+
 	return httputil.JSON(w, bunrouter.H{
-		"tagValues": values,
+		"tagValues": tagValues,
 	})
 }
 
@@ -154,20 +189,48 @@ type TempoSearchParams struct {
 	MinDuration time.Duration `urlstruct:"minDuration"`
 	MaxDuration time.Duration `urlstruct:"maxDuration"`
 
-	Tags  string // logfmt
+	Q     string
 	Limit int
 }
 
-type TempoSearchItem struct {
-	TraceID           uuid.UUID `json:"traceID"`
-	RootServiceName   string    `json:"rootServiceName" ch:",lc"`
-	RootTraceName     string    `json:"rootTraceName" ch:",lc"`
-	StartTimeUnixNano int64     `json:"startTimeUnixNano,string"`
-	DurationMs        float64   `json:"durationMs"`
+type TempoSearchTrace struct {
+	TraceID           uuid.UUID            `json:"traceID"`
+	RootServiceName   string               `json:"rootServiceName" ch:",lc"`
+	RootTraceName     string               `json:"rootTraceName" ch:",lc"`
+	StartTimeUnixNano int64                `json:"startTimeUnixNano,string"`
+	DurationMs        float64              `json:"durationMs"`
+	SpanSets          []TempoSearchSpanSet `json:"spanSets"`
+}
+
+type TempoSearchSpanSet struct {
+	Matched int               `json:"matched"`
+	Spans   []TempoSearchSpan `json:"spans"`
+}
+
+type TempoSearchSpan struct {
+	SpanID            string            `json:"spanID"`
+	StartTimeUnixNano int64             `json:"startTimeUnixNano,string"`
+	DurationNanos     int64             `json:"durationNanos"`
+	Attributes        []TempoSearchAttr `json:"attributes"`
+}
+
+type TempoSearchAttr struct {
+	Key   string               `json:"key"`
+	Value TempoSearchAttrValue `json:"value"`
+}
+
+type TempoSearchAttrValue struct {
+	StringValue string `json:"stringValue"`
+}
+
+type TraceSpanID struct {
+	TraceID uuid.UUID
+	ID      uint64
 }
 
 func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
+	project := org.ProjectFromContext(ctx)
 
 	f := new(TempoSearchParams)
 	if err := bunapp.UnmarshalValues(req, f); err != nil {
@@ -182,18 +245,13 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 	}
 
 	q := tracing.NewSpanIndexQuery(h.App).
+		DistinctOn("trace_id").
 		ColumnExpr("trace_id").
-		ColumnExpr("service_name AS root_service_name").
-		ColumnExpr("display_name AS root_trace_name").
-		ColumnExpr("toInt64(toUnixTimestamp(time) * 1e9) AS start_time_unix_nano").
-		ColumnExpr("duration / 1e6 AS duration_ms").
+		ColumnExpr("id").
+		Where("project_id = ?", project.ID).
 		Where("time >= ?", f.Start).
-		Where("parent_id = 0").
 		Limit(f.Limit)
 
-	if projectID := h.tempoProjectID(req); projectID != 0 {
-		q = q.Where("project_id = ?", projectID)
-	}
 	if !f.End.IsZero() {
 		q = q.Where("time <= ?", f.End)
 	}
@@ -204,29 +262,81 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 		q = q.Where("duration <= ?", int64(f.MaxDuration))
 	}
 
-	if f.Tags != "" {
-		d := logfmt.NewDecoder(strings.NewReader(f.Tags))
-		for d.ScanRecord() {
-			for d.ScanKeyval() {
-				key := tempoAttrKey(string(d.Key()))
-				value := string(d.Value())
-
-				var b []byte
-				b = tracing.AppendCHAttr(b, tql.Attr{Name: key})
-				b = append(b, " = "...)
-				b = chschema.AppendString(b, value)
-				q = q.Where(string(b))
-			}
-		}
-		if err := d.Err(); err != nil {
-			return err
-		}
+	_, fetchReq, err := traceql.NewEngine().Compile(f.Q)
+	if err != nil {
+		return err
 	}
 
-	traces := make([]TempoSearchItem, 0)
-
-	if err := q.Scan(ctx, &traces); err != nil {
+	if err := applyTraceql(q, fetchReq); err != nil {
 		return err
+	}
+
+	found := make([]*TraceSpanID, 0)
+	if err := q.Scan(ctx, &found); err != nil {
+		return err
+	}
+
+	traces := make([]*TempoSearchTrace, 0, len(found))
+
+	for _, item := range found {
+		var data []*tracing.SpanData
+
+		if err := h.CH.NewSelect().
+			DistinctOn("id").
+			ColumnExpr("trace_id, id, parent_id, time, data").
+			Model(&data).
+			Column("data").
+			Where("trace_id = ?", item.TraceID).
+			Where("id = ? OR parent_id = 0", item.ID).
+			Limit(2).
+			Scan(ctx); err != nil {
+			return err
+		}
+
+		var root, span *tracing.Span
+		for _, data := range data {
+			dest := new(tracing.Span)
+			if err := data.Decode(dest); err != nil {
+				return err
+			}
+
+			if dest.ParentID == 0 {
+				root = dest
+			}
+			if dest.ID == item.ID {
+				span = dest
+			}
+		}
+
+		if root == nil || span == nil {
+			continue
+		}
+
+		attrs := make([]TempoSearchAttr, 0, len(span.Attrs))
+		for key, val := range span.Attrs {
+			attrs = append(attrs, TempoSearchAttr{
+				Key:   key,
+				Value: TempoSearchAttrValue{StringValue: fmt.Sprint(val)},
+			})
+		}
+
+		traces = append(traces, &TempoSearchTrace{
+			TraceID:           root.TraceID,
+			RootServiceName:   root.Attrs.Text(attrkey.ServiceName),
+			RootTraceName:     root.DisplayName,
+			StartTimeUnixNano: root.Time.UnixNano(),
+			DurationMs:        float64(root.Duration) / float64(time.Millisecond),
+
+			SpanSets: []TempoSearchSpanSet{{
+				Matched: 1,
+				Spans: []TempoSearchSpan{{
+					SpanID:            strconv.FormatUint(span.ID, 10),
+					StartTimeUnixNano: span.Time.UnixNano(),
+					DurationNanos:     int64(span.Duration),
+					Attributes:        attrs,
+				}},
+			}},
+		})
 	}
 
 	return httputil.JSON(w, bunrouter.H{
@@ -239,24 +349,182 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 	})
 }
 
-func (h *TempoHandler) tempoProjectID(req bunrouter.Request) uint32 {
-	s := req.Header.Get(projectIDHeaderKey)
-	if s == "" {
-		return 0
-	}
-	projectID, err := strconv.ParseInt(s, 10, 32)
-	if err != nil {
-		h.Zap(req.Context()).Error("can't parse project id", zap.Error(err))
-		return 0
-	}
-	return uint32(projectID)
+func tempoCHExpr(attrKey string) ch.Safe {
+	return ch.Safe(tracing.AppendCHAttr(nil, tql.Attr{Name: attrKey}))
 }
 
-func tempoAttrKey(key string) string {
-	switch key {
+func tempoAttrKey(attrKey string) string {
+	switch attrKey {
 	case "name":
-		return attrkey.DisplayName
+		return attrkey.SpanName
+	case "status":
+		return attrkey.SpanStatusCode
+	case "statusMessage":
+		return attrkey.SpanStatusMessage
+	case "kind":
+		return attrkey.SpanKind
+	}
+
+	switch {
+	case strings.HasPrefix(attrKey, "span."):
+		attrKey = strings.TrimPrefix(attrKey, "span.")
+	case strings.HasPrefix(attrKey, "resource."):
+		attrKey = strings.TrimPrefix(attrKey, "resource.")
+	}
+
+	return attrkey.Clean(attrKey)
+}
+
+//------------------------------------------------------------------------------
+
+func applyTraceql(q *ch.SelectQuery, fetchReq *traceql.FetchSpansRequest) error {
+	if fetchReq.StartTimeUnixNanos != 0 {
+		q = q.Where("time >= ?", fetchReq.StartTimeUnixNanos)
+	}
+	if fetchReq.StartTimeUnixNanos != 0 {
+		q = q.Where("time <= ?", fetchReq.EndTimeUnixNanos)
+	}
+	for i := range fetchReq.Conditions {
+		cond := &fetchReq.Conditions[i]
+
+		filter, err := convTraceqlCondition(q, cond)
+		if err != nil {
+			return err
+		}
+
+		if filter == nil {
+			continue
+		}
+
+		b, err := tracing.AppendFilter(*filter, 0)
+		if err != nil {
+			return err
+		}
+		q = q.Where(string(b))
+	}
+
+	return nil
+}
+
+func convTraceqlCondition(q *ch.SelectQuery, cond *traceql.Condition) (*tql.Filter, error) {
+	expr := tempoFilterExpr(cond)
+	if expr == nil {
+		return nil, nil
+	}
+
+	value := tempoFilterValue(cond)
+	if value == nil {
+		return nil, nil
+	}
+
+	filterOp := tempoFilterOp(cond)
+	if filterOp == "" {
+		return nil, nil
+	}
+
+	return &tql.Filter{
+		LHS: expr,
+		Op:  filterOp,
+		RHS: value,
+	}, nil
+}
+
+func tempoFilterExpr(cond *traceql.Condition) tql.Expr {
+	attrKey := tempoAttrName(&cond.Attribute)
+	return tql.Attr{Name: attrKey}
+}
+
+func tempoAttrName(attr *traceql.Attribute) string {
+	switch attr.Intrinsic {
+	case traceql.IntrinsicDuration:
+		return attrkey.SpanDuration
+	case traceql.IntrinsicName:
+		return attrkey.SpanName
+	case traceql.IntrinsicStatus:
+		return attrkey.SpanStatusCode
+	case traceql.IntrinsicStatusMessage:
+		return attrkey.SpanStatusMessage
+	case traceql.IntrinsicKind:
+		return attrkey.SpanKind
+	}
+	return attrkey.Clean(attr.Name)
+}
+
+func tempoFilterValue(cond *traceql.Condition) tql.Value {
+	if len(cond.Operands) == 0 {
+		return nil
+	}
+
+	if len(cond.Operands) == 1 {
+		return _tempoFilterValue(&cond.Operands[0])
+	}
+
+	value := tql.StringValues{}
+	for i := range cond.Operands {
+		tmp := _tempoFilterValue(&cond.Operands[i])
+		value.Strings = append(value.Strings, tmp.String())
+	}
+	return value
+}
+
+func _tempoFilterValue(static *traceql.Static) tql.Value {
+	switch static.Type {
+	case traceql.TypeInt:
+		return tql.NumberValue{
+			Kind: tql.NumberUnitless,
+			Text: strconv.Itoa(static.N),
+		}
+	case traceql.TypeFloat:
+		return tql.NumberValue{
+			Kind: tql.NumberUnitless,
+			Text: strconv.FormatFloat(static.F, 'f', -1, 64),
+		}
+	case traceql.TypeString:
+		return tql.StringValue{Text: static.S}
+	case traceql.TypeBoolean:
+		return tql.NumberValue{
+			Kind: tql.NumberUnitless,
+			Text: strconv.FormatBool(static.B),
+		}
+	case traceql.TypeDuration:
+		return tql.NumberValue{
+			Kind: tql.NumberDuration,
+			Text: static.D.String(),
+		}
+	case traceql.TypeStatus:
+		return tql.StringValue{Text: static.Status.String()}
+	case traceql.TypeKind:
+		return tql.StringValue{Text: static.Kind.String()}
 	default:
-		return key
+		return nil
+	}
+}
+
+func tempoFilterOp(cond *traceql.Condition) tql.FilterOp {
+	switch cond.Op {
+	case traceql.OpEqual:
+		if len(cond.Operands) > 1 {
+			return tql.FilterIn
+		}
+		return tql.FilterEqual
+	case traceql.OpNotEqual:
+		if len(cond.Operands) > 1 {
+			return tql.FilterNotIn
+		}
+		return tql.FilterNotEqual
+	case traceql.OpRegex:
+		return tql.FilterRegexp
+	case traceql.OpNotRegex:
+		return tql.FilterNotRegexp
+	case traceql.OpGreater:
+		return ">"
+	case traceql.OpGreaterEqual:
+		return ">="
+	case traceql.OpLess:
+		return "<"
+	case traceql.OpLessEqual:
+		return "<="
+	default:
+		return ""
 	}
 }
