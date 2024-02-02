@@ -35,4 +35,5 @@ type Project struct {
 	GroupByEnv          bool     `yaml:"group_by_env"`
 	GroupFuncsByService bool     `yaml:"group_funcs_by_service"`
 	PromCompat          bool     `yaml:"prom_compat"`
+	ForceSpanName       bool     `yaml:"force_span_name"`
 }

@@ -402,6 +402,7 @@ func loadInitialData(ctx context.Context, app *bunapp.App) error {
 			GroupByEnv:          src.GroupByEnv,
 			GroupFuncsByService: src.GroupFuncsByService,
 			PromCompat:          src.PromCompat,
+			ForceSpanName:       src.ForceSpanName,
 		}
 		if err := dest.Init(); err != nil {
 			return err
@@ -428,6 +429,7 @@ func createProject(ctx context.Context, app *bunapp.App, project *org.Project) e
 		Set("group_by_env = EXCLUDED.group_by_env").
 		Set("group_funcs_by_service = EXCLUDED.group_funcs_by_service").
 		Set("prom_compat = EXCLUDED.prom_compat").
+		Set("force_span_name = EXCLUDED.force_span_name").
 		Set("updated_at = EXCLUDED.updated_at").
 		Returning("*").
 		Exec(ctx); err != nil {
