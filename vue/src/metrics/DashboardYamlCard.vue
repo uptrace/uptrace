@@ -28,7 +28,9 @@
 import { defineComponent, PropType } from 'vue'
 
 // Composables
+import { useRoute } from '@/use/router'
 import { useYamlDashboard } from '@/metrics/use-dashboards'
+import { injectForceReload } from '@/use/force-reload'
 
 // Misc
 import { Dashboard } from '@/metrics/types'
@@ -43,8 +45,22 @@ export default defineComponent({
     },
   },
 
-  setup() {
-    const dash = useYamlDashboard()
+  setup(props) {
+    const route = useRoute()
+    const forceReload = injectForceReload()
+
+    const dash = useYamlDashboard(() => {
+      if (!props.dashboard.id) {
+        return
+      }
+
+      const { projectId } = route.value.params
+      return {
+        url: `/internal/v1/metrics/${projectId}/dashboards/${props.dashboard.id}/yaml`,
+        params: forceReload.params,
+      }
+    })
+
     return { dash }
   },
 })

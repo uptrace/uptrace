@@ -5,11 +5,11 @@
       :loading="dashMan.pending"
       icon
       title="Unpin dashboard"
-      @click="unpinDashboard"
+      @click.stop="unpinDashboard"
     >
-      <v-icon color="green darken-2">mdi-pin</v-icon>
+      <v-icon color="green darken-1">mdi-pin</v-icon>
     </v-btn>
-    <v-btn v-else :loading="dashMan.pending" icon title="Pin dashboard" @click="pinDashboard">
+    <v-btn v-else :loading="dashMan.pending" icon title="Pin dashboard" @click.stop="pinDashboard">
       <v-icon>mdi-pin-outline</v-icon>
     </v-btn>
   </span>
@@ -49,7 +49,12 @@ export default defineComponent({
       })
     }
 
-    return { dashMan, pinDashboard, unpinDashboard }
+    return {
+      dashMan,
+
+      pinDashboard,
+      unpinDashboard,
+    }
   },
 })
 </script>

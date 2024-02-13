@@ -46,6 +46,7 @@ import MetricsExplore from '@/metrics/views/Explore.vue'
 import MetricsHelp from '@/metrics/views/Help.vue'
 import MetricsCheatsheet from '@/metrics/views/Cheatsheet.vue'
 
+import DashboardList from '@/metrics/views/DashboardList.vue'
 import Dashboard from '@/metrics/views/Dashboard.vue'
 import DashboardLoading from '@/metrics/views/DashboardLoading.vue'
 import DashboardTable from '@/metrics/views/DashboardTable.vue'
@@ -292,7 +293,7 @@ const routes: RouteConfig[] = [
       {
         path: '',
         name: 'DashboardList',
-        components: { metrics: Dashboard },
+        components: { metrics: DashboardList },
       },
       {
         path: ':dashId(\\d+)',
