@@ -2,9 +2,10 @@ import { omit, mergeWith } from 'lodash-es'
 import { ref, reactive, computed, watch, proxyRefs } from 'vue'
 
 // Composables
+import { useOrder } from '@/use/order'
 import { useRoute } from '@/use/router'
 import { useAxios } from '@/use/axios'
-import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
+import { useWatchAxios, AxiosRequestSource, AxiosParamsSource } from '@/use/watch-axios'
 import { injectForceReload } from '@/use/force-reload'
 
 // Misc
@@ -20,25 +21,34 @@ import {
 
 export type UseDashboards = ReturnType<typeof useDashboards>
 
-export function useDashboards() {
+export function useDashboards(axiosParamsSource: AxiosParamsSource | undefined = undefined) {
   const route = useRoute()
   const forceReload = injectForceReload()
+  const order = useOrder()
   const dashboards = ref<Dashboard[]>([])
 
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId } = route.value.params
+    const axiosParams = axiosParamsSource ? axiosParamsSource() : {}
+
+    const params: Record<string, any> = {
+      ...forceReload.params,
+      ...order.axiosParams,
+      ...axiosParams,
+    }
+
     return {
       url: `/internal/v1/metrics/${projectId}/dashboards`,
-      params: forceReload.params,
+      params,
     }
-  })
-
-  const isEmpty = computed((): boolean => {
-    return status.value.hasData() && !dashboards.value.length
   })
 
   const active = computed((): Dashboard | undefined => {
     return dashboards.value.find((d) => String(d.id) === route.value.params.dashId)
+  })
+
+  const isEmpty = computed((): boolean => {
+    return status.value.hasData() && !dashboards.value.length
   })
 
   watch(
@@ -53,8 +63,8 @@ export function useDashboards() {
     loading,
     isEmpty,
     items: dashboards,
-
     active,
+    order,
 
     reload,
   })
@@ -150,17 +160,8 @@ export function useDashboard() {
   })
 }
 
-export function useYamlDashboard() {
-  const route = useRoute()
-  const forceReload = injectForceReload()
-
-  const { status, loading, data, reload } = useWatchAxios(() => {
-    const { projectId, dashId } = route.value.params
-    return {
-      url: `/internal/v1/metrics/${projectId}/dashboards/${dashId}/yaml`,
-      params: forceReload.params,
-    }
-  })
+export function useYamlDashboard(reqSource: AxiosRequestSource) {
+  const { status, loading, data, reload } = useWatchAxios(reqSource)
 
   const yaml = computed(() => {
     return data.value ?? ''
