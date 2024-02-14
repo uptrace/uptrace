@@ -42,5 +42,5 @@ export function useStorage<T>(key: string | Ref<string>, defValue: T | null = nu
     { immediate: true, flush: 'sync' },
   )
 
-  return { item }
+  return item
 }

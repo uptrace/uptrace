@@ -43,10 +43,6 @@ export function useDashboards(axiosParamsSource: AxiosParamsSource | undefined =
     }
   })
 
-  const active = computed((): Dashboard | undefined => {
-    return dashboards.value.find((d) => String(d.id) === route.value.params.dashId)
-  })
-
   const isEmpty = computed((): boolean => {
     return status.value.hasData() && !dashboards.value.length
   })
@@ -63,7 +59,6 @@ export function useDashboards(axiosParamsSource: AxiosParamsSource | undefined =
     loading,
     isEmpty,
     items: dashboards,
-    active,
     order,
 
     reload,

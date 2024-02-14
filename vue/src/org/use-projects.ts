@@ -16,7 +16,7 @@ export interface Project {
 
 export function useProject() {
   const { route } = useRouter()
-  const { item: lastProjectId } = useStorage('useProject:lastProjectId', 0)
+  const lastProjectId = useStorage('useProject:lastProjectId', 0)
 
   const { data } = useWatchAxios(() => {
     const { projectId } = route.value.params
