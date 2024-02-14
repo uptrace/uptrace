@@ -32,7 +32,7 @@
                 dashboard.reload()
                 dashboards.reload()
               "
-              @deleted="dashboards.reload()"
+              @deleted="$router.push({ name: 'DashboardList' })"
             />
             <DashPinBtn v-if="dashboard.data" :dashboard="dashboard.data" @update="onPinDash" />
           </v-col>
