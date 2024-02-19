@@ -377,14 +377,31 @@ func (h *DashHandler) Delete(w http.ResponseWriter, req bunrouter.Request) error
 
 func (h *DashHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
-	project := org.ProjectFromContext(ctx)
 
-	dashboards := make([]*Dashboard, 0)
+	f := new(DashFilter)
+	if err := DecodeDashFilter(req, f); err != nil {
+		return err
+	}
+
+	type DashboardOut struct {
+		bun.BaseModel `bun:"dashboards,alias:d"`
+
+		ID         uint64 `json:"id" bun:",pk,autoincrement"`
+		ProjectID  uint32 `json:"projectId"`
+		TemplateID string `json:"templateId" bun:",nullzero"`
+
+		Name   string `json:"name"`
+		Pinned bool   `json:"pinned"`
+
+		CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
+		UpdatedAt time.Time `json:"updatedAt" bun:",nullzero"`
+	}
+	dashboards := make([]*DashboardOut, 0)
 
 	if err := h.PG.NewSelect().
 		Model(&dashboards).
-		Where("project_id = ?", project.ID).
-		OrderExpr("pinned DESC, name ASC").
+		Apply(f.WhereClause).
+		Apply(f.PGOrder).
 		Limit(1000).
 		Scan(ctx); err != nil {
 		return err

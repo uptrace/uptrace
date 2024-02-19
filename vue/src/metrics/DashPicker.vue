@@ -1,6 +1,6 @@
 <template>
   <v-autocomplete
-    :value="value"
+    :value="activeDashId"
     :items="filteredItems"
     item-value="id"
     item-text="name"
@@ -40,10 +40,6 @@ export default defineComponent({
   name: 'DashPicker',
 
   props: {
-    value: {
-      type: Number,
-      default: undefined,
-    },
     items: {
       type: Array as PropType<Dashboard[]>,
       required: true,
@@ -55,7 +51,7 @@ export default defineComponent({
     const route = useRoute()
     const searchInput = shallowRef('')
 
-    const { item: lastDashId } = useStorage<number>(
+    const lastDashId = useStorage<number>(
       computed(() => {
         const projectId = route.value.params.projectId ?? 0
         return `last-dashboard:${projectId}`
@@ -75,18 +71,24 @@ export default defineComponent({
       return fuzzyFilter(props.items, searchInput.value, { key: 'name' })
     })
 
+    const activeDashId = computed(() => {
+      if (!route.value.params.dashId) {
+        return 0
+      }
+      return parseInt(route.value.params.dashId)
+    })
+
     watchEffect(
       () => {
         if (!props.items.length) {
           return
         }
-
-        if (!props.value) {
+        if (!activeDashId.value) {
           redirectToLast()
           return
         }
 
-        const index = props.items.findIndex((d) => d.id === props.value)
+        const index = props.items.findIndex((d) => d.id === activeDashId.value)
         if (index === -1) {
           redirectToLast()
           return
@@ -96,7 +98,7 @@ export default defineComponent({
     )
 
     watch(
-      () => props.value,
+      activeDashId,
       (dashId) => {
         if (dashId) {
           lastDashId.value = dashId
@@ -128,7 +130,7 @@ export default defineComponent({
       })
     }
 
-    return { searchInput, filteredItems, onChange }
+    return { searchInput, activeDashId, filteredItems, onChange }
   },
 })
 </script>

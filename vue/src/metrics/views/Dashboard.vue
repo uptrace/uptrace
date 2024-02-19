@@ -18,11 +18,9 @@
 
         <v-row align="center">
           <v-col cols="auto">
-            <DashPicker
-              :loading="dashboards.loading"
-              :value="dashboards.active?.id"
-              :items="dashboards.items"
-            />
+            <v-col cols="auto">
+              <DashPicker :loading="dashboards.loading" :items="dashboards.items" />
+            </v-col>
           </v-col>
           <v-col v-if="dashboard.data" cols="auto">
             <DashboardMenu
@@ -32,7 +30,7 @@
                 dashboard.reload()
                 dashboards.reload()
               "
-              @deleted="dashboards.reload()"
+              @deleted="$router.push({ name: 'DashboardList' })"
             />
             <DashPinBtn v-if="dashboard.data" :dashboard="dashboard.data" @update="onPinDash" />
           </v-col>
