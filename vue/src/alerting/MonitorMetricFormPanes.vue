@@ -7,6 +7,10 @@
         <v-spacer />
 
         <v-col cols="auto">
+          <v-btn v-if="monitor.id" text class="mr-2" @click="$emit('click:cancel', monitor)">
+            Cancel
+          </v-btn>
+
           <v-btn :loading="monitorMan.pending" color="primary" @click="submit()">
             {{ monitor.id ? 'Update' : 'Create' }}
           </v-btn>
@@ -51,10 +55,11 @@ import 'splitpanes/dist/splitpanes.css'
 import { defineComponent, shallowRef, PropType } from 'vue'
 
 // Composables
+import { useProject } from '@/org/use-projects'
 import { useMonitorManager } from '@/alerting/use-monitors'
 
 // Misc
-import { MetricMonitor } from '@/alerting/types'
+import { MetricMonitor, Monitor } from '@/alerting/types'
 
 export default defineComponent({
   name: 'MonitorMetricFormPanes',
@@ -78,14 +83,15 @@ export default defineComponent({
     const form = shallowRef()
     const isValid = shallowRef(false)
 
+    const project = useProject()
     const monitorMan = useMonitorManager()
     function submit() {
       if (!form.value.validate()) {
         return
       }
 
-      save().then(() => {
-        ctx.emit('saved')
+      save().then((monitor: Monitor) => {
+        ctx.emit('saved', monitor)
       })
     }
     function save() {
@@ -99,6 +105,7 @@ export default defineComponent({
       form,
       isValid,
 
+      project,
       monitorMan,
       submit,
     }

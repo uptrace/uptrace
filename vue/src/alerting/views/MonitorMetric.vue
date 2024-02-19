@@ -36,7 +36,7 @@ import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import MonitorMetricForm from '@/alerting/MonitorMetricForm.vue'
 
 // Misc
-import { emptyMetricMonitor, MetricMonitor } from '@/alerting/types'
+import { emptyMetricMonitor, Monitor, MetricMonitor } from '@/alerting/types'
 
 export default defineComponent({
   name: 'MonitorMetric',
@@ -146,14 +146,14 @@ export default defineComponent({
       })
     }
 
-    function onSave() {
-      redirectToMonitors()
+    function onSave(monitor: Monitor) {
+      redirectToMonitors(monitor)
     }
-    function onCancel() {
-      redirectToMonitors()
+    function onCancel(monitor: Monitor) {
+      redirectToMonitors(monitor)
     }
-    function redirectToMonitors() {
-      router.push({ name: 'MonitorList' })
+    function redirectToMonitors(monitor: Monitor) {
+      router.push({ name: 'MonitorList', query: { q: 'monitor:' + monitor.id } })
     }
 
     return {

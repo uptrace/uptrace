@@ -2,19 +2,19 @@
   <div>
     <v-menu v-model="menu" offset-y>
       <template #activator="{ on, attrs }">
-        <v-btn color="primary" dark v-bind="attrs" v-on="on">
-          Create monitor
+        <v-btn color="primary" v-bind="attrs" v-on="on">
+          New monitor
           <v-icon right>mdi-menu-down</v-icon>
         </v-btn>
       </template>
       <v-list>
         <v-list-item :to="{ name: 'MonitorMetricNew' }">
           <v-list-item-icon><v-icon>mdi-chart-line</v-icon></v-list-item-icon>
-          <v-list-item-title>Create metrics monitor</v-list-item-title>
+          <v-list-item-title>New metrics monitor</v-list-item-title>
         </v-list-item>
         <v-list-item :to="{ name: 'MonitorErrorNew' }">
           <v-list-item-icon><v-icon>mdi-bug-outline</v-icon></v-list-item-icon>
-          <v-list-item-title>Create errors monitor</v-list-item-title>
+          <v-list-item-title>New errors monitor</v-list-item-title>
         </v-list-item>
         <v-list-item @click="dialog = true">
           <v-list-item-icon><v-icon>mdi-code-string</v-icon></v-list-item-icon>
