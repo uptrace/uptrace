@@ -18,7 +18,7 @@ go_mod_tidy:
 	  echo "go mod tidy in $${dir}"; \
 	  (cd "$${dir}" && \
 	    go get -u ./... && \
-	    go mod tidy -compat=1.20); \
+	    go mod tidy -compat=1.22); \
 	done
 
 .PHONY: uptrace
