@@ -1,6 +1,6 @@
 module github.com/uptrace/go-clickhouse/chdebug
 
-go 1.18
+go 1.22
 
 replace github.com/uptrace/go-clickhouse => ./..
 

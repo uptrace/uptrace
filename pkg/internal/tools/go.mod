@@ -1,6 +1,6 @@
 module github.com/uptrace/uptrace/pkg/internal/tools
 
-go 1.18
+go 1.22
 
 require github.com/tcnksm/ghr v0.14.0
 

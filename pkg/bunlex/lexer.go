@@ -1,6 +1,9 @@
 package bunlex
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Lexer struct {
 	s string
@@ -136,6 +139,39 @@ loop:
 	return string(buf), syntaxError(l.s[pos:], "missing %q at the end of a string", quote)
 }
 
+func (l *Lexer) ReadQuoted(quote byte) (string, error) {
+	i := strings.IndexByte(l.s[l.i:], quote) + 1
+	if i == -1 {
+		return "", syntaxError(l.s[l.i-1:], "missing %q at the end of a string", quote)
+	}
+
+	s := l.s[l.i-1 : l.i+i]
+	if strings.IndexByte(s, '\\') == -1 {
+		l.i += i
+		return s, nil
+	}
+
+	return l.readQuoted(quote)
+}
+
+func (l *Lexer) readQuoted(quote byte) (string, error) {
+	pos := l.i - 1
+
+	for l.Valid() {
+		c := l.NextByte()
+
+		switch c {
+		case '\\':
+			l.Advance()
+		case quote:
+			return string(l.s[pos:l.i]), nil
+		}
+	}
+
+	err := syntaxError(l.s[pos:], "missing %q at the end of a string", quote)
+	return string(l.s[pos:]), err
+}
+
 func (l *Lexer) ReadQuotedSQL(quote byte) (string, error) {
 	pos := l.i - 1
 
@@ -194,6 +230,29 @@ func (l *Lexer) Number() string {
 
 	s := l.s[start:l.Pos()]
 	return s
+}
+
+func (l *Lexer) Group(start, end byte) string {
+	startPos := l.Pos()
+
+	var level int
+	for l.Valid() {
+		c := l.NextByte()
+		switch c {
+		case '"', '\'':
+			_, _ = l.ReadQuoted(c)
+		case start:
+			level++
+		case end:
+			if level == 0 {
+				return l.s[startPos-1 : l.Pos()]
+			}
+			level--
+		}
+	}
+
+	l.i = startPos
+	return ""
 }
 
 //------------------------------------------------------------------------------

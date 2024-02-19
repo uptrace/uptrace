@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/bunlex"
+	"github.com/uptrace/uptrace/pkg/bunutil"
+	"github.com/xhit/go-str2duration/v2"
 )
 
+//go:generate stringer -type=TokenID
 type TokenID int8
 
 const (
@@ -22,7 +24,7 @@ const (
 	BYTES_TOKEN
 )
 
-var eofToken = &Token{ID: EOF_TOKEN}
+var eofToken = &Token{ID: EOF_TOKEN, Text: "EOF"}
 
 var errBacktrack = errors.New("backtrack")
 
@@ -49,11 +51,10 @@ type lexer struct {
 	pos    int
 }
 
-func newLexer(s string) *lexer {
+func newLexer() *lexer {
 	lex := &lexer{
 		tokens: make([]Token, 0, 32),
 	}
-	lex.Reset(s)
 	return lex
 }
 
@@ -111,6 +112,10 @@ func (l *lexer) readToken() (*Token, error) {
 		return l.quotedValue(c)
 	case '_', '$', '.':
 		return l.ident(l.lex.Pos() - 1)
+	case '{':
+		return l.tryJSON(), nil
+	case '-': // Don't handle '+' for simplicity.
+		return l.number(c), nil
 	}
 
 	if bunlex.IsWhitespace(c) {
@@ -118,14 +123,33 @@ func (l *lexer) readToken() (*Token, error) {
 	}
 
 	if bunlex.IsDigit(c) {
-		l.lex.Rewind()
-		return l.number(), nil
+		return l.number(c), nil
 	}
 	if bunlex.IsAlpha(c) {
 		return l.ident(l.lex.Pos() - 1)
 	}
 
 	return l.charToken(BYTE_TOKEN), nil
+}
+
+func (l *lexer) tryJSON() *Token {
+	start := l.lex.Pos() - 1
+
+	group := l.lex.Group('{', '}')
+	switch group {
+	case "":
+		return l.charToken(BYTE_TOKEN)
+	case "{}":
+		l.lex.SetPos(start + 1)
+		return l.charToken(BYTE_TOKEN)
+	}
+
+	if _, ok := bunutil.IsJSON(group); ok {
+		return l.token(VALUE_TOKEN, group, start)
+	}
+
+	l.lex.SetPos(start + 1)
+	return l.charToken(BYTE_TOKEN)
 }
 
 func (l *lexer) charToken(id TokenID) *Token {
@@ -142,17 +166,20 @@ func (l *lexer) quotedValue(end byte) (*Token, error) {
 	return l.token(VALUE_TOKEN, s, start), nil
 }
 
-func (l *lexer) number() *Token {
-	start := l.lex.Pos()
+func (l *lexer) number(ch byte) *Token {
+	start := l.lex.Pos() - 1
 	s, _ := l.lex.ReadSepFunc(start, l.isWordBoundary)
-	if _, err := time.ParseDuration(s); err == nil {
+	if s == "-" {
+		return l.token(BYTE_TOKEN, s, start)
+	}
+	if _, err := strconv.ParseFloat(s, 64); err == nil {
+		return l.token(NUMBER_TOKEN, s, start)
+	}
+	if _, err := str2duration.ParseDuration(s); err == nil {
 		return l.token(DURATION_TOKEN, s, start)
 	}
 	if _, err := bunconv.ParseBytes(s); err == nil {
 		return l.token(BYTES_TOKEN, s, start)
-	}
-	if _, err := strconv.ParseFloat(s, 64); err == nil {
-		return l.token(NUMBER_TOKEN, s, start)
 	}
 	return l.token(VALUE_TOKEN, s, start)
 }
@@ -164,7 +191,7 @@ func (l *lexer) isWordBoundary(c byte) bool {
 
 	switch c {
 	case '+', '-', '/', '%', '*', '=', '<', '>', '!',
-		'(', ')', '{', '}', ',', '|':
+		'(', ')', '{', '}', '[', ']', ',', '|':
 		return true
 	default:
 		return false

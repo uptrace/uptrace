@@ -11,7 +11,10 @@ func Parse(s string) (any, error) {
 	}
 
 	p := &queryParser{
-		lexer: newLexer(s),
+		lexer: newLexer(),
+	}
+	if err := p.lexer.Reset(s); err != nil {
+		return nil, err
 	}
 
 	expr, err := p.parseQuery()

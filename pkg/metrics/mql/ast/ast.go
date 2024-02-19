@@ -2,6 +2,7 @@ package ast
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -9,7 +10,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"github.com/xhit/go-str2duration/v2"
-	"golang.org/x/exp/slices"
 )
 
 type Expr interface {
