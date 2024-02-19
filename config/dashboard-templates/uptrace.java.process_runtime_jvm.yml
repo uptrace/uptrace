@@ -2,20 +2,20 @@ schema: v2
 name: 'Java: JVM runtime'
 
 table:
-  metrics:
-    - process_runtime_jvm_memory_usage as $mem_usage
-    - process_runtime_jvm_memory_usage_after_last_gc as $usage_after_last_gc
-    - process_runtime_jvm_gc_duration as $gc_dur
-    - process_runtime_jvm_system_cpu_utilization as $cpu_util
-  query:
-    - sum($mem_usage) as mem_usage
-    - sum($usage_after_last_gc) as usage_after_last_gc
-    - avg($gc_dur) as gc_dur
-    - per_min(count($gc_dur)) as num_gc
-    - avg($cpu_util) as cpu_util
-    - group by host_name
-  columns:
-    cpu_util: { unit: utilization }
+  - metrics:
+      - process_runtime_jvm_memory_usage as $mem_usage
+      - process_runtime_jvm_memory_usage_after_last_gc as $usage_after_last_gc
+      - process_runtime_jvm_gc_duration as $gc_dur
+      - process_runtime_jvm_system_cpu_utilization as $cpu_util
+    query:
+      - sum($mem_usage) as mem_usage
+      - sum($usage_after_last_gc) as usage_after_last_gc
+      - avg($gc_dur) as gc_dur
+      - per_min(count($gc_dur)) as num_gc
+      - avg($cpu_util) as cpu_util
+      - group by host_name
+    columns:
+      cpu_util: { unit: utilization }
 
 grid_rows:
   - title: General

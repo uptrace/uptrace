@@ -1,0 +1,150 @@
+schema: v2
+name: 'K8s: Pods'
+
+table_grid_items:
+  - title: Running pods
+    description: Number of pods
+    type: gauge
+    template: ${num_running} of ${num_all}
+    metrics:
+      - k8s_pod_phase as $phase
+    query:
+      - uniq($phase{_value=2}, k8s_pod_name) as num_running
+      - uniq($phase, k8s_pod_name) as num_all
+
+  - title: Total RSS
+    description: RSS usage on all pods
+    type: gauge
+    metrics:
+      - k8s_pod_memory_rss as $rss
+    query:
+      - sum($rss) as rss
+    columns:
+      rss: { unit: bytes }
+
+  - title: Total FS
+    description: Total filesystem usage on all nodes
+    type: gauge
+    metrics:
+      - k8s_pod_filesystem_usage as $usage
+    query:
+      - sum($usage) as usage
+    columns:
+      usage: { unit: bytes }
+
+table:
+  - metrics:
+      - k8s_pod_memory_rss as $rss_mem
+      - k8s_pod_memory_usage as $mem_usage
+      - k8s_pod_cpu_utilization as $cpu_util
+      - k8s_pod_filesystem_usage as $fs_usage
+      - k8s_pod_filesystem_capacity as $fs_capacity
+    query:
+      - group by k8s_namespace_name
+      - group by k8s_pod_name
+      - avg($cpu_util) as cpu_util
+      - sum($mem_usage) as mem_usage
+      - sum($rss_mem) as rss_mem
+      - sum($fs_usage) as fs_usage
+      - sum($fs_usage) / sum($fs_capacity) as fs_util
+    columns:
+      cpu_util: { unit: utilization }
+      mem_usage: { unit: bytes }
+      rss_mem: { unit: bytes }
+      fs_usage: { unit: bytes }
+      fs_util: { unit: utilization }
+
+grid_rows:
+  - title: Gauges
+    items:
+      - title: Running pods
+        description: Number of pods
+        type: gauge
+        template: ${num_running} of ${num_all}
+        metrics:
+          - k8s_pod_phase as $phase
+        query:
+          - uniq($phase{_value=2}, k8s_pod_name) as num_running
+          - uniq($phase, k8s_pod_name) as num_all
+
+      - title: Total RSS
+        description: RSS usage on all pods
+        type: gauge
+        metrics:
+          - k8s_pod_memory_rss as $rss
+        query:
+          - sum($rss) as rss
+        columns:
+          rss: { unit: bytes }
+
+      - title: Total FS
+        description: Total filesystem usage on all nodes
+        type: gauge
+        metrics:
+          - k8s_pod_filesystem_usage as $usage
+        query:
+          - sum($usage) as usage
+        columns:
+          usage: { unit: bytes }
+
+  - title: General
+    items:
+      - title: CPU utilization
+        metrics:
+          - k8s_pod_cpu_utilization as $utilization
+        query:
+          - avg($utilization) as cpu_util
+        columns:
+          cpu_util: { unit: utilization }
+
+      - title: RSS memory
+        metrics:
+          - k8s_pod_memory_rss as $rss
+        query:
+          - sum($rss) as rss
+        columns:
+          rss: { unit: bytes }
+
+      - title: RAM usage
+        metrics:
+          - k8s_pod_memory_usage as $usage
+        query:
+          - sum($usage) as usage
+        columns:
+          usage: { unit: bytes }
+
+      - title: Memory working set
+        metrics:
+          - k8s_pod_memory_working_set as $working_set
+        query:
+          - sum($working_set) as working_set
+        columns:
+          working_set: { unit: bytes }
+
+      - title: Memory major page faults
+        metrics:
+          - k8s_pod_memory_major_page_faults as $major_page_faults
+        query:
+          - sum($major_page_faults)
+
+      - title: Memory page faults
+        metrics:
+          - k8s_pod_memory_page_faults as $page_faults
+        query:
+          - sum(delta($page_faults)) as page_faulrs
+
+      - title: Filesystem available
+        metrics:
+          - k8s_pod_filesystem_available as $available
+        query:
+          - sum($available) as available
+        columns:
+          available: { unit: bytes }
+
+      - title: Filesystem usage
+        metrics:
+          - k8s_pod_filesystem_usage as $usage
+        query:
+          - sum($usage) as usage
+        columns:
+          usage: { unit: bytes }

@@ -1,0 +1,42 @@
+schema: v2
+name: 'Uptrace Billing'
+
+table:
+  - metrics:
+      - uptrace_billing_sampled_bytes as $sampled_bytes
+      - uptrace_billing_sampled_spans as $sampled_spans
+      - uptrace_billing_dropped_spans as $dropped_spans
+      - uptrace_billing_timeseries as $timeseries
+    query:
+      - group by project_id
+      - per_min(sum($sampled_bytes)) as sampled_bytes
+      - per_min(sum($sampled_spans)) as sampled_spans
+      - per_min(sum($dropped_spans)) as dropped_spans
+      - sum($timeseries) as timeseries
+
+grid_rows:
+  - title: General
+    items:
+      - title: Sampled bytes
+        metrics:
+          - uptrace_billing_sampled_bytes as $sampled_bytes
+        query:
+          - per_min(sum($sampled_bytes)) as sampled_bytes
+
+      - title: Timeseries
+        metrics:
+          - uptrace_billing_timeseries as $timeseries
+        query:
+          - sum($timeseries) as timeseries
+
+      - title: Sampled spans
+        metrics:
+          - uptrace_billing_sampled_spans as $sampled_spans
+        query:
+          - per_min(sum($sampled_spans)) as sampled_spans
+
+      - title: Dropped spans
+        metrics:
+          - uptrace_billing_dropped_spans as $dropped_spans
+        query:
+          - per_min(sum($dropped_spans)) as dropped_spans

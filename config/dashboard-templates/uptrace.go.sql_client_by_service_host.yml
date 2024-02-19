@@ -2,19 +2,19 @@ schema: v2
 name: 'Go: SQL client'
 
 table:
-  metrics:
-    - go_sql_query_timing as $query_timing
-    - go_sql_connections_open as $conns_open
-  query:
-    - group by service_name
-    - group by host_name
-    - per_min(count($query_timing)) as queries
-    - p90($query_timing) as timing_p90
-    - p99($query_timing) as timing_p99
-    - sum($conns_open)
-  columns:
-    timing_p90: { unit: milliseconds }
-    timing_p99: { unit: milliseconds }
+  - metrics:
+      - go_sql_query_timing as $query_timing
+      - go_sql_connections_open as $conns_open
+    query:
+      - group by service_name
+      - group by host_name
+      - per_min(count($query_timing)) as queries
+      - p90($query_timing) as timing_p90
+      - p99($query_timing) as timing_p99
+      - sum($conns_open)
+    columns:
+      timing_p90: { unit: milliseconds }
+      timing_p99: { unit: milliseconds }
 
 grid_rows:
   - title: General

@@ -343,13 +343,9 @@ func (h *DashHandler) resetFromTemplate(ctx context.Context, dash *Dashboard) er
 		return err
 	}
 
-	builder := NewDashBuilder(dash.ProjectID, metricMap)
+	builder := NewDashBuilder(tpl, dash.ProjectID, metricMap)
 
-	if err := builder.Build(tpl); err != nil {
-		return err
-	}
-
-	if err := builder.Validate(); err != nil {
+	if err := builder.Build(); err != nil {
 		return err
 	}
 
@@ -539,9 +535,9 @@ func (h *DashHandler) CreateFromYAML(w http.ResponseWriter, req bunrouter.Reques
 	// Template id can't be set by a client.
 	tpl.ID = ""
 
-	builder := NewDashBuilder(project.ID, nil)
+	builder := NewDashBuilder(tpl, project.ID, nil)
 
-	if err := builder.Build(tpl); err != nil {
+	if err := builder.Build(); err != nil {
 		return err
 	}
 

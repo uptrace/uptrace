@@ -1,41 +1,41 @@
 schema: v2
-name: 'DB: HikariCP pool'
+name: 'HikariCP: Pool'
+
+table_grid_items:
+  - title: Connections
+    description: Average number of connections on each app
+    type: gauge
+    metrics:
+      - hikaricp_connections as $connections
+    query:
+      - sum($connections)
+  - title: Slowest query
+    description: Maximum query duration
+    type: gauge
+    metrics:
+      - hikaricp_connections_usage as $usage
+    query:
+      - max($usage)
+    columns:
+      max($usage):
+        unit: milliseconds
 
 table:
-  grid_items:
-    - title: Connections
-      description: Average number of connections on each app
-      type: gauge
-      metrics:
-        - hikaricp_connections as $connections
-      query:
-        - sum($connections)
-    - title: Slowest query
-      description: Maximum query duration
-      type: gauge
-      metrics:
-        - hikaricp_connections_usage as $usage
-      query:
-        - max($usage)
-      columns:
-        max($usage):
-          unit: milliseconds
-
-  metrics:
-    - hikaricp_connections as $conns
-    - hikaricp_connections_usage as $usage
-    - hikaricp_connections_active as $active_conns
-  query:
-    - group by deployment_environment
-    - group by host_name
-    - group by application
-    - sum($conns)
-    - per_min(count($usage)) as queries_per_min
-    - avg($usage) as query_dur
-    - sum($active_conns)
-  columns:
-    query_dur:
-      unit: milliseconds
+  - metrics:
+      - hikaricp_connections as $conns
+      - hikaricp_connections_usage as $usage
+      - hikaricp_connections_active as $active_conns
+    query:
+      - group by deployment_environment
+      - group by host_name
+      - group by application
+      - sum($conns)
+      - per_min(count($usage)) as queries_per_min
+      - avg($usage) as query_dur
+      - sum($active_conns)
+    columns:
+      query_dur:
+        unit: milliseconds
 
 grid_rows:
   - title: Gauges
@@ -97,7 +97,7 @@ grid_rows:
         query:
           - sum($pending)
 
-      - title: Number of max connections
+      - title: Max number of connections
         metrics:
           - hikaricp_connections_max as $max_conns
         query:
@@ -115,7 +115,7 @@ grid_rows:
         query:
           - sum($active_conns)
 
-      - title: Number of min connections
+      - title: Min number of connections
         metrics:
           - hikaricp_connections_min as $min_conns
         query:

@@ -31,10 +31,12 @@ type Dashboard struct {
 	Name   string `json:"name"`
 	Pinned bool   `json:"pinned"`
 
-	MinInterval  unixtime.Millis `json:"minInterval"`
-	TimeOffset   unixtime.Millis `json:"timeOffset"`
-	GridQuery    string          `json:"gridQuery" bun:",nullzero"`
-	GridMaxWidth int             `json:"gridMaxWidth" bun:",nullzero"`
+	MinInterval       unixtime.Millis `json:"minInterval"`
+	TimeOffset        unixtime.Millis `json:"timeOffset"`
+	TooltipsConnected bool            `json:"tooltipsConnected"`
+
+	GridQuery    string `json:"gridQuery" bun:",nullzero"`
+	GridMaxWidth int    `json:"gridMaxWidth" bun:",nullzero"`
 
 	TableMetrics   []mql.MetricAlias       `json:"tableMetrics" bun:",type:jsonb,nullzero"`
 	TableQuery     string                  `json:"tableQuery" bun:",nullzero"`

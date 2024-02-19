@@ -1,29 +1,35 @@
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/dockerstatsreceiver/metadata.yaml
 schema: v2
-name: 'Docker: containers'
+name: 'Docker: Containers'
+
+if:
+  - metric: container_cpu_utilization
+    instrumentation: otelcol/dockerstatsreceiver
+  - metric: container_cpu_percent
+    instrumentation: otelcol/dockerstatsreceiver
 
 table:
-  metrics:
-    - container_cpu_percent as $cpu_percent
-    - container_cpu_utilization as $cpu_util
-    - container_memory_percent as $mem_percent
-    - container_memory_usage_total as $mem_usage
-    - container_memory_swap as $swap
-    - container_network_io_usage_rx_bytes as $rx_bytes
-    - container_network_io_usage_tx_bytes as $tx_bytes
-  query:
-    - group by container_name
-    - avg($cpu_percent) as cpu_percent
-    - avg($cpu_util) as cpu_util
-    - avg($mem_percent) as mem_percent
-    - sum($mem_usage)
-    - sum($swap)
-    - per_sec(sum($rx_bytes))
-    - per_sec(sum($tx_bytes))
-  columns:
-    cpu_percent: { unit: percents }
-    cpu_util: { unit: utilization }
-    mem_percent: { unit: percents }
+  - metrics:
+      - container_cpu_percent as $cpu_percent
+      - container_cpu_utilization as $cpu_util
+      - container_memory_percent as $mem_percent
+      - container_memory_usage_total as $mem_usage
+      - container_memory_swap as $swap
+      - container_network_io_usage_rx_bytes as $rx_bytes
+      - container_network_io_usage_tx_bytes as $tx_bytes
+    query:
+      - group by container_name
+      - avg($cpu_percent) as cpu_percent
+      - avg($cpu_util) as cpu_util
+      - avg($mem_percent) as mem_percent
+      - sum($mem_usage)
+      - sum($swap)
+      - per_sec(sum($rx_bytes))
+      - per_sec(sum($tx_bytes))
+    columns:
+      cpu_percent: { unit: percents }
+      cpu_util: { unit: percents }
+      mem_percent: { unit: percents }
 
 grid_rows:
   - title: General

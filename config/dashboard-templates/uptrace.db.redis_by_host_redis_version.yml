@@ -1,21 +1,21 @@
 schema: v2
-name: 'DB: Redis'
+name: 'Redis'
 
 table:
-  metrics:
-    - redis_commands as $cmds
-    - redis_db_keys as $db_keys
-    - redis_memory_rss as $rss
-    - redis_memory_fragmentation_ratio as $fragmentation
-    - redis_connections_rejected as $conns_rejected
-  query:
-    - group by host_name
-    - group by redis_version
-    - sum($cmds)
-    - sum($rss)
-    - sum($db_keys)
-    - avg($fragmentation)
-    - per_min(sum($conns_rejected)) as conns_rejected
+  - metrics:
+      - redis_commands as $cmds
+      - redis_db_keys as $db_keys
+      - redis_memory_rss as $rss
+      - redis_memory_fragmentation_ratio as $fragmentation
+      - redis_connections_rejected as $conns_rejected
+    query:
+      - group by host_name
+      - group by redis_version
+      - sum($cmds)
+      - sum($rss)
+      - sum($db_keys)
+      - avg($fragmentation)
+      - per_min(sum($conns_rejected)) as conns_rejected
 
 grid_rows:
   - title: Gauges

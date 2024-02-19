@@ -1,0 +1,24 @@
+schema: v2
+name: '.NET: All'
+
+table:
+  - metrics:
+      - process_runtime_dotnet_gc_heap_size as $heap_size
+      - process_runtime_dotnet_gc_duration as $gc_duration
+      - process_runtime_dotnet_thread_pool_completed_items_count as $pool_completed_items
+      - process_runtime_dotnet_monitor_lock_contention_count as $lock_contention_count
+    query:
+      - group by service_environment
+      - group by service_name
+      - sum($heap_size) as heap_size
+      - per_min(sum($pool_completed_items)) as pool_completed_items
+      - per_min(sum($lock_contention_count)) as lock_contention_count
+      - per_min(sum($gc_duration)) as gc_duration
+    columns:
+      gc_duration: { unit: nanoseconds, agg_func: max }
+
+include_grid_rows:
+  - uptrace.dotnet.20.gc
+  - uptrace.dotnet.30.runtime
+  - uptrace.dotnet.40.thread_pool
+  - uptrace.dotnet.50.jit

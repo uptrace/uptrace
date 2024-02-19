@@ -1,68 +1,68 @@
 schema: v2
 name: 'Go: Runtime'
 
+table_grid_items:
+  - title: Host count
+    description: Number of distinct host_name
+    type: gauge
+    metrics:
+      - process_runtime_go_goroutines as $goroutines
+    query:
+      - uniq($goroutines, host_name) as num_host
+    template: ${num_host} hosts
+
+  - title: Service count
+    description: Number of distinct service_name
+    type: gauge
+    metrics:
+      - process_runtime_go_goroutines as $goroutines
+    query:
+      - uniq($goroutines, service_name) as num_service
+    template: ${num_service} services
+
+  - title: Max GC pause
+    description: Max garbage collector pause
+    type: gauge
+    metrics:
+      - process_runtime_go_gc_pause_ns as $gc_pause
+    query:
+      - max($gc_pause) as max_gc_pause
+    columns:
+      max_gc_pause: { unit: nanoseconds }
+
+  - title: Heap in use
+    description: Total heap memory in use
+    type: gauge
+    metrics:
+      - process_runtime_go_mem_heap_inuse as $mem_in_use
+    query:
+      - sum($mem_in_use) as mem_in_use
+    columns:
+      mem_in_use: { unit: bytes }
+
+  - title: Heap objects
+    description: Total heap live objects
+    type: gauge
+    metrics:
+      - process_runtime_go_mem_heap_objects as $heap_objects
+    query:
+      - sum($heap_objects)
+
 table:
-  grid_items:
-    - title: Number of hosts
-      description: Number of host_name
-      type: gauge
-      metrics:
-        - process_runtime_go_goroutines as $goroutines
-      query:
-        - uniq($goroutines, host_name) as num_host
-      template: ${num_host} hosts
-
-    - title: Number of services
-      description: Number of service_name
-      type: gauge
-      metrics:
-        - process_runtime_go_goroutines as $goroutines
-      query:
-        - uniq($goroutines, service_name) as num_service
-      template: ${num_service} services
-
-    - title: Max GC pause
-      description: Max garbage collector pause
-      type: gauge
-      metrics:
-        - process_runtime_go_gc_pause_ns as $gc_pause
-      query:
-        - max($gc_pause) as max_gc_pause
-      columns:
-        max_gc_pause: { unit: nanoseconds }
-
-    - title: Total heap in use
-      description: Total heap memory in use
-      type: gauge
-      metrics:
-        - process_runtime_go_mem_heap_inuse as $mem_in_use
-      query:
-        - sum($mem_in_use) as mem_in_use
-      columns:
-        mem_in_use: { unit: bytes }
-
-    - title: Total heap objects
-      description: Total heap live objects
-      type: gauge
-      metrics:
-        - process_runtime_go_mem_heap_objects as $heap_objects
-      query:
-        - sum($heap_objects)
-
-  metrics:
-    - process_runtime_go_gc_pause_ns as $gc_pause
-    - process_runtime_go_mem_heap_inuse as $mem_in_use
-    - process_runtime_go_mem_heap_objects as $heap_objects
-    - process_runtime_go_goroutines as $goroutines
-  query:
-    - group by service_name
-    - group by host_name
-    - max($gc_pause) as max_gc_pause
-    - sum($mem_in_use)
-    - sum($heap_objects)
-    - sum($goroutines)
-  columns:
-    max_gc_pause: { unit: nanoseconds }
+  - metrics:
+      - process_runtime_go_gc_pause_ns as $gc_pause
+      - process_runtime_go_mem_heap_inuse as $mem_in_use
+      - process_runtime_go_mem_heap_objects as $heap_objects
+      - process_runtime_go_goroutines as $goroutines
+    query:
+      - group by service_name
+      - group by host_name
+      - max($gc_pause) as max_gc_pause
+      - sum($mem_in_use)
+      - sum($heap_objects)
+      - sum($goroutines)
+    columns:
+      max_gc_pause: { unit: nanoseconds }
 
 grid_rows:
   - title: General

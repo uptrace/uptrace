@@ -1,0 +1,80 @@
+schema: v2
+name: 'Kafka: Topics'
+
+table_grid_items:
+  - title: Topics
+    description: Number of topics in the cluster
+    type: gauge
+    metrics:
+      - kafka_topic_partitions as $parts
+    query:
+      - uniq($parts, topic)
+
+  - title: Consumers lag
+    description: Consumer group lag
+    type: gauge
+    metrics:
+      - kafka_consumer_group_lag_sum as $lag
+    query:
+      - sum($lag)
+
+  - title: Brokers
+    description: Number of brokers in the cluster
+    type: gauge
+    metrics:
+      - kafka_brokers as $brokers
+    query:
+      - sum($brokers)
+
+  - title: Consumers
+    description: Number of members in the consumer group
+    type: gauge
+    metrics:
+      - kafka_consumer_group_members as $members
+    query:
+      - sum($members)
+
+table:
+  - metrics:
+      - kafka_topic_partitions as $parts
+      - kafka_consumer_group_offset_sum as $offset
+      - kafka_consumer_group_lag_sum as $lag
+      - kafka_partition_replicas_in_sync as $replicas_in_sync
+    query:
+      - group by topic
+      - sum($parts)
+      - sum(irate($offset)) as processed
+      - sum($lag)
+      - sum($replicas_in_sync)
+
+grid_rows:
+  - title: General
+    items:
+      - title: Number of partitions in the topic
+        metrics:
+          - kafka_topic_partitions as $parts
+        query:
+          - sum($parts)
+
+      - title: Number of processed messages across partitions of the topic
+        metrics:
+          - kafka_consumer_group_offset_sum as $offset
+        query:
+          - irate($offset) as processed group by group
+
+      - title: Consumer group lag across all partitions of the topic
+        metrics:
+          - kafka_consumer_group_lag_sum as $lag
+        query:
+          - avg($lag) group by group
+
+monitors:
+  - name: Kafka consumer lag
+    metrics:
+      - kafka_consumer_group_lag_sum as $lag_sum
+    query:
+      - max($lag_sum) as lag_sum
+      - group by topic
+    column: lag_sum
+    max_allowed_value: 1000
+    check_num_point: 5

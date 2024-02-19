@@ -29,43 +29,89 @@ func readDashboardTemplates() ([]*DashboardTpl, error) {
 			continue
 		}
 
-		data, err := fs.ReadFile(fsys, entry.Name())
+		dash, err := readDashboardTemplate(fsys, entry.Name())
 		if err != nil {
 			return nil, err
 		}
 
-		id := strings.TrimSuffix(entry.Name(), ".yml")
-		tpl := new(DashboardTpl)
-
-		dec := yaml.NewDecoder(bytes.NewReader(data))
-		//dec.KnownFields(false)
-		if err := dec.Decode(tpl); err != nil {
-			return nil, fmt.Errorf("invalid %q dashboard: %w", id, err)
-		}
-
-		tpl.ID = id
-		dashboards = append(dashboards, tpl)
+		dashboards = append(dashboards, dash)
 	}
 
 	return dashboards, nil
 }
 
+func readDashboardTemplate(fsys fs.FS, name string) (*DashboardTpl, error) {
+	const ext = ".yml"
+
+	data, err := fs.ReadFile(fsys, name)
+	if err != nil {
+		return nil, err
+	}
+
+	dashID := strings.TrimSuffix(name, ext)
+	tpl := new(DashboardTpl)
+
+	dec := yaml.NewDecoder(bytes.NewReader(data))
+	//dec.KnownFields(false)
+	if err := dec.Decode(tpl); err != nil {
+		return nil, fmt.Errorf("invalid %q dashboard: %w", dashID, err)
+	}
+
+	for _, fileName := range tpl.IncludeGridRows {
+		temp, err := readDashboardTemplate(fsys, fileName+ext)
+		if err != nil {
+			return nil, err
+		}
+		tpl.GridRows = append(tpl.GridRows, temp.GridRows...)
+	}
+
+	tpl.ID = dashID
+	return tpl, nil
+}
+
 type DashboardTpl struct {
 	Schema string `yaml:"schema"`
 
-	ID         string          `yaml:"id"`
-	Name       string          `yaml:"name"`
-	TimeOffset unixtime.Millis `yaml:"time_offset,omitempty"`
+	ID   string          `yaml:"id"`
+	If   []MetricMatcher `yaml:"if,omitempty"`
+	Name string          `yaml:"name"`
 
-	Table struct {
-		GridItems []*GridItemTpl          `yaml:"grid_items,omitempty"`
-		Metrics   []string                `yaml:"metrics"`
-		Query     []string                `yaml:"query"`
-		Columns   map[string]*TableColumn `yaml:"columns,omitempty"`
-	} `yaml:"table"`
+	MinInterval unixtime.Millis `yaml:"min_interval,omitempty"`
+	TimeOffset  unixtime.Millis `yaml:"time_offset,omitempty"`
+	GridQuery   string          `yaml:"grid_query,omitempty"`
 
-	GridRows []*GridRowTpl       `yaml:"grid_rows"`
-	Monitors []*MetricMonitorTpl `yaml:"monitors,omitempty"`
+	TableGridItems []*GridItemTpl `yaml:"table_grid_items,omitempty"`
+	Table          []DashTableTpl `yaml:"table"`
+
+	IncludeGridRows []string            `yaml:"include_grid_rows,omitempty"`
+	GridRows        []*GridRowTpl       `yaml:"grid_rows"`
+	Monitors        []*MetricMonitorTpl `yaml:"monitors,omitempty"`
+}
+
+type DashTableTpl struct {
+	If      []MetricMatcher         `yaml:"if,omitempty"`
+	Metrics []string                `yaml:"metrics"`
+	Query   []string                `yaml:"query"`
+	Columns map[string]*TableColumn `yaml:"columns,omitempty"`
+}
+
+func (tpl *DashTableTpl) Populate(dash *Dashboard) error {
+	metrics, err := parseMetrics(tpl.Metrics)
+	if err != nil {
+		return err
+	}
+
+	dash.TableMetrics = metrics
+	dash.TableQuery = mql.JoinQuery(tpl.Query)
+	dash.TableColumnMap = tpl.Columns
+
+	return nil
+}
+
+type MetricMatcher struct {
+	Metric          string `yaml:"metric"`
+	Instrumentation string `yaml:"instrumentation"`
+	State           string `yaml:"state"`
 }
 
 func NewDashboardTpl(
@@ -81,17 +127,19 @@ func NewDashboardTpl(
 		tpl.ID = fmt.Sprintf("project_%d.dashboard_%d", dash.ProjectID, dash.ID)
 	}
 
-	tpl.Table.GridItems = make([]*GridItemTpl, len(tableItems))
+	tpl.TableGridItems = make([]*GridItemTpl, len(tableItems))
 	for i, item := range tableItems {
-		tpl.Table.GridItems[i] = NewGridItemTpl(item)
+		tpl.TableGridItems[i] = NewGridItemTpl(item)
 	}
 
-	tpl.Table.Metrics = make([]string, len(dash.TableMetrics))
+	tpl.Table = make([]DashTableTpl, 1)
+	table := &tpl.Table[0]
+	table.Metrics = make([]string, len(dash.TableMetrics))
 	for i, metric := range dash.TableMetrics {
-		tpl.Table.Metrics[i] = metric.String()
+		table.Metrics[i] = metric.String()
 	}
-	tpl.Table.Query = mql.SplitQuery(dash.TableQuery)
-	tpl.Table.Columns = dash.TableColumnMap
+	table.Query = mql.SplitQuery(dash.TableQuery)
+	table.Columns = dash.TableColumnMap
 
 	tpl.GridRows = make([]*GridRowTpl, len(gridRows))
 	for i, row := range gridRows {
@@ -109,17 +157,12 @@ func (tpl *DashboardTpl) Populate(dash *Dashboard) error {
 		return fmt.Errorf("template id does not match: got %q, has %q", tpl.ID, dash.TemplateID)
 	}
 
-	metrics, err := parseMetrics(tpl.Table.Metrics)
-	if err != nil {
-		return err
-	}
-
 	dash.TemplateID = tpl.ID
 	dash.Name = tpl.Name
+
+	dash.MinInterval = tpl.MinInterval
 	dash.TimeOffset = tpl.TimeOffset
-	dash.TableMetrics = metrics
-	dash.TableQuery = mql.JoinQuery(tpl.Table.Query)
-	dash.TableColumnMap = tpl.Table.Columns
+	dash.GridQuery = tpl.GridQuery
 
 	return nil
 }
@@ -142,7 +185,6 @@ func NewGridRowTpl(row *GridRow) *GridRowTpl {
 
 func (tpl *GridRowTpl) Populate(row *GridRow) error {
 	row.Title = tpl.Title
-	row.Expanded = true
 	return nil
 }
 

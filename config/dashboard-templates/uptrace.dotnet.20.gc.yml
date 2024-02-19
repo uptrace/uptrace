@@ -1,0 +1,63 @@
+schema: v2
+name: '.NET: GC'
+
+table:
+  - metrics:
+      - process_runtime_dotnet_gc_heap_size as $heap_size
+      - process_runtime_dotnet_gc_heap_fragmentation_size as $heap_fragm_size
+      - process_runtime_dotnet_gc_collections_count as $gc_count
+      - process_runtime_dotnet_gc_duration as $gc_duration
+    query:
+      - group by service_environment
+      - group by service_name
+      - sum($heap_size) as heap_size
+      - sum($heap_fragm_size) as heap_fragm_size
+      - per_min(sum($gc_count)) as gc_count
+      - per_min(sum($gc_duration)) as gc_duration
+    columns:
+      gc_duration: { unit: nanoseconds, agg_func: max }
+
+grid_rows:
+  - title: Garbage collector
+    items:
+      - title: Heap size
+        metrics:
+          - process_runtime_dotnet_gc_heap_size as $heap_size
+        query:
+          - sum($heap_size) as heap_size
+
+      - title: Heap fragmentation size
+        metrics:
+          - process_runtime_dotnet_gc_heap_fragmentation_size as $heap_fragm_size
+        query:
+          - sum($heap_fragm_size) as heap_fragm_size
+
+      - title: Committed virtual memory for the heap
+        metrics:
+          - process_runtime_dotnet_gc_committed_memory_size as $commited_mem
+        query:
+          - sum($commited_mem) as commited_mem
+
+      - title: Number of garbage collections
+        metrics:
+          - process_runtime_dotnet_gc_collections_count as $gc_count
+        query:
+          - per_min(sum($gc_count)) as gc_count
+
+      - title: Garbage collection duration
+        metrics:
+          - process_runtime_dotnet_gc_duration as $gc_duration
+        query:
+          - per_min(sum($gc_duration)) as gc_duration
+
+      - title: GC allocation size
+        metrics:
+          - process_runtime_dotnet_gc_allocations_size as $alloc_size
+        query:
+          - per_min(sum($alloc_size)) as alloc_size
+
+      - title: Size of objects in heap
+        metrics:
+          - process_runtime_dotnet_gc_objects_size as $objects_size
+        query:
+          - sum($objects_size) as objects_size

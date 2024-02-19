@@ -1,30 +1,30 @@
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/httpcheckreceiver/metadata.yaml
 schema: v2
-name: 'HTTP Check endpoints'
+name: 'HTTP Check: Endpoints'
+
+table_grid_items:
+  - title: Successful checks
+    description: Number of successful check out of all check
+    type: gauge
+    template: ${num_up} out of ${num_all}
+    metrics:
+      - httpcheck_status as $status
+    query:
+      - uniq($status{http_response_status_class="2xx"}) as num_all
+      - uniq($status{http_response_status_class="2xx", _value=1}) as num_up
 
 table:
-  grid_items:
-    - title: Successful checks
-      description: Number of successful check out of all check
-      type: gauge
-      template: ${num_up} out of ${num_all}
-      metrics:
-        - httpcheck_status as $status
-      query:
-        - uniq($status{http_response_status_class="2xx"}) as num_all
-        - uniq($status{http_response_status_class="2xx", _value=1}) as num_up
-
-  metrics:
-    - httpcheck_status as $status
-    - httpcheck_duration as $duration
-  query:
-    - group by url_full
-    - group by host_name
-    - sum($status{http_response_status_class="2xx"}) as status_2xx
-    - sum($status{http_response_status_class="2xx"}) / sum($status) as availability
-    - avg($duration)
-  columns:
-    availability: { unit: utilization, agg_func: avg }
+  - metrics:
+      - httpcheck_status as $status
+      - httpcheck_duration as $duration
+    query:
+      - group by url_full
+      - group by host_name
+      - sum($status{http_response_status_class="2xx"}) as status_2xx
+      - sum($status{http_response_status_class="2xx"}) / sum($status) as availability
+      - avg($duration)
+    columns:
+      availability: { unit: utilization, agg_func: avg }
 
 grid_rows:
   - title: Gauges

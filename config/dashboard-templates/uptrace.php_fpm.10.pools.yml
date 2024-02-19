@@ -1,0 +1,75 @@
+schema: v2
+name: 'PHP-FPM: Pools'
+
+table:
+  - metrics:
+      - phpfpm_accepted_connections as $connections
+      - phpfpm_listen_queue as $listen_queue
+      - phpfpm_slow_requests as $slow_requests
+      - phpfpm_max_children_reached as $max_children_reached
+      - phpfpm_total_processes as $processes
+    query:
+      - group by host_name
+      - group by pool
+      - per_min(sum($connections)) as requests
+      - sum($listen_queue)
+      - per_min(sum($slow_requests)) as slow_requests
+      - per_min(sum($max_children_reached)) as max_children_reached
+      - sum($processes)
+
+grid_rows:
+  - title: General
+    items:
+      - title: Number of requests accepted by the pool
+        metrics:
+          - phpfpm_accepted_connections as $connections
+        query:
+          - per_min(sum($connections)) as requests
+
+      - title: Number of requests in the queue of pending connections
+        metrics:
+          - phpfpm_listen_queue as $listen_queue
+        query:
+          - sum($listen_queue)
+
+      - title: Max number of requests in the queue of pending connections since FPM has started
+        metrics:
+          - phpfpm_max_listen_queue as $max_listen_queue
+        query:
+          - sum($max_listen_queue)
+
+      - title: Size of the socket queue of pending connections
+        metrics:
+          - phpfpm_listen_queue_length as $listen_queue_len
+        query:
+          - sum($listen_queue_len)
+
+      - title: Number of requests that exceeded request_slowlog_timeout
+        metrics:
+          - phpfpm_slow_requests as $slow_requests
+        query:
+          - per_min(sum($slow_requests)) as slow_requests
+
+      - title: Number of times the process limit has been reached
+        description:
+          Number of times, the process limit has been reached, when pm tries to start more children
+          (works only for pm 'dynamic' and 'ondemand')
+        metrics:
+          - phpfpm_max_children_reached as $max_children_reached
+        query:
+          - per_min(sum($max_children_reached)) as max_children_reached
+
+      - title: Number of active and idle processes
+        metrics:
+          - phpfpm_active_processes as $active_processes
+          - phpfpm_idle_processes as $idle_processes
+        query:
+          - sum($active_processes)
+          - sum($idle_processes)
+        chart: stacked-bar
+
+      - title: Max number of active processes since FPM has started
+        metrics:
+          - phpfpm_max_active_processes as $processes
+        query:
+          - sum($processes)

@@ -1,0 +1,37 @@
+schema: v2
+name: '.NET: Thread pool'
+
+table:
+  - metrics:
+      - process_runtime_dotnet_thread_pool_threads_count as $threads_count
+      - process_runtime_dotnet_thread_pool_queue_length as $queue_length
+      - process_runtime_dotnet_thread_pool_completed_items_count as $completed_items
+    query:
+      - group by service_environment
+      - group by service_name
+      - per_min(sum($completed_items)) as completed_items
+      - sum($queue_length) as queue_length
+      - sum($threads_count) as threads_count
+    columns:
+      gc_duration: { unit: nanoseconds, agg_func: max }
+
+grid_rows:
+  - title: Garbage collector
+    items:
+      - title: Completed items count
+        metrics:
+          - process_runtime_dotnet_thread_pool_completed_items_count as $completed_items
+        query:
+          - per_min(sum($completed_items)) as completed_items
+
+      - title: Queue length
+        metrics:
+          - process_runtime_dotnet_thread_pool_queue_length as $queue_length
+        query:
+          - sum($queue_length) as queue_length
+
+      - title: Threads count
+        metrics:
+          - process_runtime_dotnet_thread_pool_threads_count as $threads_count
+        query:
+          - sum($threads_count) as threads_count

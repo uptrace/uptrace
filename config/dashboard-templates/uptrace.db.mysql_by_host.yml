@@ -1,18 +1,18 @@
 schema: v2
-name: 'DB: MySQL'
+name: 'MySQL'
 
 table:
-  metrics:
-    - mysql_buffer_pool_usage as $pool_usage
-    - mysql_row_operations as $row_ops
-    - mysql_buffer_pool_operations as $pool_ops
-  query:
-    - group by host_name
-    - $pool_usage
-    - per_min(sum($row_ops{operation='inserted'})) as inserted
-    - per_min(sum($pool_ops)) as pool_ops
-  columns:
-    pool_size: { unit: bytes }
+  - metrics:
+      - mysql_buffer_pool_usage as $pool_usage
+      - mysql_row_operations as $row_ops
+      - mysql_buffer_pool_operations as $pool_ops
+    query:
+      - group by host_name
+      - $pool_usage
+      - per_min(sum($row_ops{operation='inserted'})) as inserted
+      - per_min(sum($pool_ops)) as pool_ops
+    columns:
+      pool_size: { unit: bytes }
 
 grid_rows:
   - title: General

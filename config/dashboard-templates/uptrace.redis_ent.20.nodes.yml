@@ -1,0 +1,146 @@
+schema: v2
+name: 'Redis Enterprise: Nodes'
+
+table_grid_items:
+  - title: Nodes up
+    description: Number of connected nodes out of total
+    type: gauge
+    metrics:
+      - node_up as $node_up
+    query:
+      - sum($node_up) as up
+      - count($node_up) as total
+    template: ${up} of ${total}
+
+  - title: DBs up
+    description: Number of databases up and running out of total
+    type: gauge
+    metrics:
+      - bdb_up as $bdb_up
+    query:
+      - sum($bdb_up) as up
+      - count($bdb_up) as total
+    template: ${up} of ${total}
+
+  - title: Shards up
+    description: Number of shards up and running out of total
+    type: gauge
+    metrics:
+      - redis_up as $redis_up
+    query:
+      - sum($redis_up) as up
+      - count($redis_up) as total
+    template: ${up} of ${total}
+
+  - title: CPU usage
+    description: CPU usage
+    type: gauge
+    metrics:
+      - node_cpu_idle as $cpu_idle
+    query:
+      - 1 - avg($cpu_idle) as cpu_usage
+    columns: { cpu_usage: { unit: utilization } }
+
+  - title: Used RAM
+    description: Memory used by shard (in bigredis this includes flash)
+    type: gauge
+    metrics:
+      - redis_used_memory as $used_mem
+    query:
+      - sum($used_mem) as used_mem
+    columns: { used_mem: { unit: bytes } }
+
+  - title: Avail. RAM
+    description: Available RAM in node (bytes) without taking into account overbooking
+    type: gauge
+    metrics:
+      - node_available_memory_no_overbooking as $available_mem
+    query:
+      - sum($available_mem) as available_mem
+    columns: { available_mem: { unit: bytes } }
+
+  - title: Requests rate
+    description: Request rate handled by endpoints on nodes
+    type: gauge
+    metrics:
+      - node_total_req as $req
+    query:
+      - sum($req) as req
+    template: ${req}/sec
+
+table:
+  - metrics:
+      - node_cpu_idle as $cpu_idle
+      - node_available_memory as $mem_available
+      - node_conns as $conns
+      - node_total_req as $requests
+      - node_ingress_bytes as $ingress
+      - node_egress_bytes as $egress
+    query:
+      - group by cluster
+      - group by node
+      - 1 - avg($cpu_idle) as cpu_usage
+      - sum($mem_available) as mem_available
+      - sum($conns) as conns
+      - sum($requests) as requests
+      - sum($ingress) as ingress
+      - sum($egress) as egress
+    columns:
+      cpu_usage: { unit: utilization }
+      mem_available: { unit: bytes }
+      ingress: { unit: bytes }
+      egress: { unit: bytes }
+
+grid_rows:
+  - title: General
+    items:
+      - title: Redis used memory
+        metrics:
+          - redis_used_memory as $used_mem
+        query:
+          - sum($used_mem) as used_mem
+        columns: { used_mem: { unit: bytes } }
+
+      - title: Available memory
+        metrics:
+          - node_available_memory_no_overbooking as $available_mem
+        query:
+          - sum($available_mem) as available_mem
+        columns: { available_mem: { unit: bytes } }
+
+      # listener_total_req
+      # listener_egress_bytes
+
+      - title: CPU usage
+        metrics:
+          - node_cpu_idle as $cpu_idle
+        query:
+          - 1 - avg($cpu_idle) as cpu_usage
+        columns:
+          cpu_usage: { unit: utilization }
+
+      - title: Number of connections
+        metrics:
+          - node_conns as $conns
+        query:
+          - sum($conns)
+
+      - title: Number of requests
+        metrics:
+          - node_total_req as $req
+        query:
+          - sum($req)
+
+      - title: Ingress bytes
+        metrics:
+          - node_ingress_bytes as $ingress
+        query:
+          - sum($ingress)
+        columns: { ingress: { unit: bytes } }
+
+      - title: Egress bytes
+        metrics:
+          - node_egress_bytes as $egress
+        query:
+          - sum($egress)
+        columns: { egress: { unit: bytes } }

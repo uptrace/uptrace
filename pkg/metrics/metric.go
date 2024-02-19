@@ -31,7 +31,10 @@ type Metric struct {
 	Description string     `json:"description"`
 	Instrument  Instrument `json:"instrument"`
 	Unit        string     `json:"unit" bun:",nullzero"`
-	AttrKeys    []string   `json:"attrKeys" bun:",array"`
+
+	AttrKeys           []string `json:"attrKeys" bun:",array"`
+	OtelLibraryName    string   `json:"otelLibraryName" bun:",nullzero"`
+	OtelLibraryVersion string   `json:"otelLibraryVersion" bun:",nullzero"`
 
 	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
 	UpdatedAt time.Time `json:"updatedAt" bun:",nullzero"`

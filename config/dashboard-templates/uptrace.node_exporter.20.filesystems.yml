@@ -1,0 +1,97 @@
+schema: v2
+name: 'Node exporter: Filesystems'
+
+table:
+  - metrics:
+      - node_filesystem_avail_bytes as $avail_space
+      - node_filesystem_size_bytes as $size
+      - node_filesystem_files_free as $files_free
+      - node_filesystem_files as $files
+    query:
+      - group by instance
+      - group by job
+      - group by device
+      - group by mountpoint
+      - sum($size) as size
+      - sum($files) as files
+      - sum($files_free) as files_free
+      - sum($avail_space) as avail_space
+    columns:
+      size: { unit: bytes, sparkline_disabled: true }
+      files: { sparkline_disabled: true }
+      files_free: { sparkline_disabled: true }
+      avail_space: { unit: bytes }
+
+grid_rows:
+  - title: Gauges
+    items:
+      - title: Filesystem size
+        type: gauge
+        metrics:
+          - node_filesystem_size_bytes as $size
+        query:
+          - sum($size) as size
+        columns:
+          size: { unit: bytes }
+
+      - title: Device error?
+        type: gauge
+        metrics:
+          - node_filesystem_device_error as $error
+        query:
+          - sum($error) as error
+        value_mappings:
+          - op: eq
+            value: '0'
+            text: 'No'
+            color: '#4CAF50'
+          - op: eq
+            value: '1'
+            text: 'Yes'
+            color: '#F44336'
+
+      - title: Readonly?
+        type: gauge
+        metrics:
+          - node_filesystem_readonly as $readonly
+        query:
+          - sum($readonly) as readonly
+        value_mappings:
+          - op: eq
+            value: '0'
+            text: 'No'
+            color: '#212121'
+          - op: eq
+            value: '1'
+            text: 'Yes'
+            color: '#212121'
+
+  - title: Generic
+    items:
+      - title: Available bytes
+        metrics:
+          - node_filesystem_avail_bytes as $avail
+        query:
+          - sum($avail) as avail
+        columns:
+          avail: { unit: bytes }
+
+      - title: Free bytes
+        metrics:
+          - node_filesystem_free_bytes as $free
+        query:
+          - sum($free) as free
+        columns:
+          free: { unit: bytes }
+
+      - title: Number of files
+        metrics:
+          - node_filesystem_files as $files
+        query:
+          - sum($files)
+
+      - title: Files free
+        metrics:
+          - node_filesystem_files_free as $free
+        query:
+          - sum($free)

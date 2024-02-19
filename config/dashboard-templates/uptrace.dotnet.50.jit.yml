@@ -1,0 +1,35 @@
+schema: v2
+name: '.NET: JIT'
+
+table:
+  - metrics:
+      - process_runtime_dotnet_jit_compilation_time as $compilation_time
+      - process_runtime_dotnet_jit_methods_compiled_count as $compiled_methods
+      - process_runtime_dotnet_jit_il_compiled_size as $il_compiled_size
+    query:
+      - group by service_environment
+      - group by service_name
+      - per_min(sum($compilation_time)) as compilation_time
+      - per_min(sum($compiled_methods)) as compiled_methods
+      - per_min(sum($il_compiled_size)) as il_compiled_size
+
+grid_rows:
+  - title: JIT
+    items:
+      - title: JIT compilation time
+        metrics:
+          - process_runtime_dotnet_jit_compilation_time as $compilation_time
+        query:
+          - per_min(sum($compilation_time)) as compilation_time
+
+      - title: Compiled methods
+        metrics:
+          - process_runtime_dotnet_jit_methods_compiled_count as $compiled_methods
+        query:
+          - per_min(sum($compiled_methods)) as compiled_methods
+
+      - title: Intermediate language size
+        metrics:
+          - process_runtime_dotnet_jit_il_compiled_size as $il_compiled_size
+        query:
+          - per_min(sum($il_compiled_size)) as il_compiled_size

@@ -87,9 +87,18 @@ func (s *DashSyncer) createDashboards(ctx context.Context, projectID uint32) err
 			continue
 		}
 
-		builder := NewDashBuilder(projectID, metricMap)
+		if !evalMetricConditions(metricMap, tpl.If) {
+			if existingDash != nil {
+				if err := DeleteDashboard(ctx, s.app.PG, existingDash.ID); err != nil {
+					s.app.Zap(ctx).Error("DeleteDashboard failed", zap.Error(err))
+				}
+			}
+			continue
+		}
 
-		if err := builder.Build(tpl); err != nil {
+		builder := NewDashBuilder(tpl, projectID, metricMap)
+
+		if err := builder.Build(); err != nil {
 			return fmt.Errorf("building dashboard %s failed: %w", tpl.ID, err)
 		}
 
@@ -132,9 +141,32 @@ func (s *DashSyncer) isDashChanged(ctx context.Context, dash *Dashboard) bool {
 	return false
 }
 
+func evalMetricConditions(metricMap map[string]*Metric, matchers []MetricMatcher) bool {
+	for i := range matchers {
+		matcher := &matchers[i]
+		if !evalMetricCondition(metricMap[matcher.Metric], matcher) {
+			return false
+		}
+	}
+	return true
+}
+
+func evalMetricCondition(metric *Metric, matcher *MetricMatcher) bool {
+	found := metric != nil && metric.OtelLibraryName == matcher.Instrumentation
+	switch matcher.State {
+	case "", "present":
+		return found
+	case "absent":
+		return !found
+	default:
+		panic(fmt.Errorf("unsupported metric matcher state: %q", matcher.State))
+	}
+}
+
 //------------------------------------------------------------------------------
 
 type DashBuilder struct {
+	tpl       *DashboardTpl
 	projectID uint32
 	metricMap map[string]*Metric
 
@@ -144,21 +176,24 @@ type DashBuilder struct {
 	monitors   []*org.MetricMonitor
 }
 
-func NewDashBuilder(projectID uint32, metricMap map[string]*Metric) *DashBuilder {
+func NewDashBuilder(
+	tpl *DashboardTpl, projectID uint32, metricMap map[string]*Metric,
+) *DashBuilder {
 	return &DashBuilder{
+		tpl:       tpl,
 		projectID: projectID,
 		metricMap: metricMap,
 	}
 }
 
-func (b *DashBuilder) Build(tpl *DashboardTpl) error {
-	dash, err := b.dashboard(tpl)
+func (b *DashBuilder) Build() error {
+	dash, err := b.dashboard(b.tpl)
 	if err != nil {
 		return fmt.Errorf("invalid dashboard: %w", err)
 	}
 	b.dash = dash
 
-	for _, tpl := range tpl.Table.GridItems {
+	for _, tpl := range b.tpl.TableGridItems {
 		gridItem, err := b.gridItem(tpl.Value)
 		if err != nil {
 			return fmt.Errorf("invalid table item: %w", err)
@@ -168,7 +203,7 @@ func (b *DashBuilder) Build(tpl *DashboardTpl) error {
 		}
 	}
 
-	for _, tpl := range tpl.GridRows {
+	for _, tpl := range b.tpl.GridRows {
 		gridRow, err := b.gridRow(tpl)
 		if err != nil {
 			return fmt.Errorf("invalid grid row: %w", err)
@@ -178,7 +213,7 @@ func (b *DashBuilder) Build(tpl *DashboardTpl) error {
 		}
 	}
 
-	for _, tpl := range tpl.Monitors {
+	for _, tpl := range b.tpl.Monitors {
 		monitor, err := b.monitor(tpl)
 		if err != nil {
 			return fmt.Errorf("invalid monitor: %w", err)
@@ -193,10 +228,21 @@ func (b *DashBuilder) Build(tpl *DashboardTpl) error {
 
 func (b *DashBuilder) dashboard(tpl *DashboardTpl) (*Dashboard, error) {
 	dash := &Dashboard{
-		ProjectID: b.projectID,
+		ProjectID:         b.projectID,
+		TooltipsConnected: true,
 	}
 	if err := tpl.Populate(dash); err != nil {
 		return nil, err
+	}
+
+	for i := range tpl.Table {
+		table := &tpl.Table[i]
+		if evalMetricConditions(b.metricMap, table.If) {
+			if err := table.Populate(dash); err != nil {
+				return nil, err
+			}
+			break
+		}
 	}
 
 	if b.metricMap != nil {
@@ -456,10 +502,16 @@ func (b *DashBuilder) Save(
 		}
 	}
 
-	for _, gridRow := range b.gridRows {
+	for i, gridRow := range b.gridRows {
 		gridRow.DashID = b.dash.ID
+		gridRow.Expanded = true
+		gridRow.Index = i
 		gridRow.CreatedAt = now
 		gridRow.UpdatedAt = now
+
+		if err := gridRow.Validate(); err != nil {
+			return err
+		}
 
 		if err := InsertGridRow(ctx, tx, gridRow); err != nil {
 			return err

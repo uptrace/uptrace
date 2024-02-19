@@ -1,0 +1,53 @@
+schema: v2
+name: 'PostgreSQL: BGWriter'
+
+table:
+  - metrics:
+      - postgresql_bgwriter_buffers_allocated as $buf_allocated
+      - postgresql_bgwriter_buffers_writes as $buf_writes
+      - postgresql_bgwriter_checkpoint_count as $checkpoint_count
+      - postgresql_bgwriter_duration as $bgwriter_dur
+    query:
+      - group by host_name
+      - per_min(sum($buf_allocated))
+      - per_min(sum($buf_writes))
+      - per_min(sum($checkpoint_count))
+      - per_min(sum($bgwriter_dur))
+
+grid_rows:
+  - title: General
+    items:
+      - title: Number of buffers allocated
+        metrics:
+          - postgresql_bgwriter_buffers_allocated as $buf_allocated
+        query:
+          - per_min(sum($buf_allocated))
+
+      - title: Number of buffers written
+        metrics:
+          - postgresql_bgwriter_buffers_writes as $buf_writes
+        query:
+          - per_min(sum($buf_writes)) as buf_writes group by source
+        chart: stacked-bar
+
+      - title: Number of checkpoints performed
+        metrics:
+          - postgresql_bgwriter_checkpoint_count as $checkpoint_count
+        query:
+          - per_min(sum($checkpoint_count)) group by type
+        chart: stacked-bar
+
+      - title: Total time spent writing and syncing files to disk by checkpoints
+        metrics:
+          - postgresql_bgwriter_duration as $bgwriter_dur
+        query:
+          - per_min(sum($bgwriter_dur)) group by type
+        chart: stacked-bar
+
+      - title:
+          Number of times the background writer stopped a cleaning scan because it had written too
+          many buffers
+        metrics:
+          - postgresql_bgwriter_maxwritten as $bgwriter_maxwritten
+        query:
+          - per_min(sum($bgwriter_maxwritten))

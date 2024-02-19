@@ -1,0 +1,139 @@
+schema: v2
+name: 'K8s: Nodes'
+
+table_grid_items:
+  - title: Available RAM
+    description: Total available RAM on all nodes
+    type: gauge
+    metrics:
+      - k8s_node_memory_available as $mem_available
+    query:
+      - sum($mem_available) as mem_available
+    columns:
+      mem_available: { unit: bytes }
+
+  - title: FS available
+    description: Total available filesystem on all nodes
+    type: gauge
+    metrics:
+      - k8s_node_filesystem_available as $fs_available
+    query:
+      - sum($fs_available) as fs_available
+    columns:
+      fs_available: { unit: bytes }
+
+table:
+  - metrics:
+      - k8s_node_cpu_utilization as $cpu_util
+      - k8s_node_memory_available as $mem_available
+      - k8s_node_filesystem_available as $fs_available
+      - k8s_node_memory_rss as $rss_mem
+      - k8s_node_memory_usage as $mem_usage
+    query:
+      - group by k8s_node_name
+      - avg($cpu_util)
+      - sum($mem_usage) as mem_usage
+      - sum($rss_mem) as rss_mem
+      - sum($mem_available) as mem_available
+      - sum($fs_available) as fs_available
+    columns:
+      mem_usage:
+        unit: bytes
+      rss_mem:
+        unit: bytes
+      mem_available:
+        unit: bytes
+      fs_available:
+        unit: bytes
+
+grid_rows:
+  - title: Gauges
+    items:
+      - title: Available RAM
+        description: Total available RAM on all nodes
+        type: gauge
+        metrics:
+          - k8s_node_memory_available as $mem_available
+        query:
+          - sum($mem_available) as mem_available
+        columns:
+          mem_available: { unit: bytes }
+
+      - title: FS available
+        description: Total available filesystem on all nodes
+        type: gauge
+        metrics:
+          - k8s_node_filesystem_available as $fs_available
+        query:
+          - sum($fs_available) as fs_available
+        columns:
+          fs_available: { unit: bytes }
+
+  - title: General
+    items:
+      - title: CPU utilization
+        metrics:
+          - k8s_node_cpu_utilization as $cpu_util
+        query:
+          - avg($cpu_util) as cpu_util
+        columns:
+          cpu_util: { unit: utilization }
+
+      - title: RAM memory usage
+        chart: line
+        metrics:
+          - k8s_node_memory_usage as $usage
+        query:
+          - sum($usage) as usage
+        columns:
+          usage: { unit: bytes }
+
+      - title: RSS memory usage
+        chart: line
+        metrics:
+          - k8s_node_memory_rss as $rss_mem
+        query:
+          - sum($rss_mem) as rss_mem
+        columns:
+          rss_mem: { unit: bytes }
+
+      - title: Filesystem available
+        chart: line
+        metrics:
+          - k8s_node_filesystem_available as $fs_available
+        query:
+          - sum($fs_available) as fs_available
+        columns:
+          fs_available: { unit: bytes }
+
+      - title: RAM available
+        chart: line
+        metrics:
+          - k8s_node_memory_available as $mem_available
+        query:
+          - sum($mem_available) as mem_available
+        columns:
+          mem_available: { unit: bytes }
+
+      - title: Network IO
+        chart: line
+        metrics:
+          - k8s_node_network_io as $io
+        query:
+          - per_min(sum(io)) as io_per_min group by direction
+        columns:
+          io_per_min: { unit: bytes }
+
+      - title: Page faults
+        chart: line
+        metrics:
+          - k8s_node_memory_page_faults as $page_faults
+        query:
+          - sum(delta($page_faults))
+
+      - title: Major page faults
+        chart: line
+        metrics:
+          - k8s_node_memory_major_page_faults as $major_page_faults
+        query:
+          - sum($major_page_faults)

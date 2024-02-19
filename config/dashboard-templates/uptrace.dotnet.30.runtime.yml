@@ -1,0 +1,45 @@
+schema: v2
+name: '.NET: Runtime'
+
+table:
+  - metrics:
+      - process_runtime_dotnet_exceptions_count as $exceptions_count
+      - process_runtime_dotnet_monitor_lock_contention_count as $lock_contention_count
+      - process_runtime_dotnet_assemblies_count as $assemblies_count
+      - process_runtime_dotnet_timer_count as $timer_count
+    query:
+      - group by service_environment
+      - group by service_name
+      - per_min(sum($exceptions_count)) as exceptions_count
+      - per_min(sum($lock_contention_count)) as lock_contention_count
+      - sum($assemblies_count) as assemblies_count
+      - sum($timer_count) as timer_count
+    columns:
+      gc_duration: { unit: nanoseconds, agg_func: max }
+
+grid_rows:
+  - title: Runtime
+    items:
+      - title: Exceptions count
+        metrics:
+          - process_runtime_dotnet_exceptions_count as $exceptions_count
+        query:
+          - per_min(sum($exceptions_count)) as exceptions_count
+
+      - title: Locks
+        metrics:
+          - process_runtime_dotnet_monitor_lock_contention_count as $lock_contention_count
+        query:
+          - per_min(sum($lock_contention_count)) as lock_contention_count
+
+      - title: Assemblies count
+        metrics:
+          - process_runtime_dotnet_assemblies_count as $assemblies_count
+        query:
+          - sum($assemblies_count) as assemblies_count
+
+      - title: Timer count
+        metrics:
+          - process_runtime_dotnet_timer_count as $timer_count
+        query:
+          - sum($timer_count) as timer_count

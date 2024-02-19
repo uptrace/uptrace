@@ -1,22 +1,22 @@
 schema: v2
-name: 'DB: clients by pool name'
+name: 'DB: clients'
 
 table:
-  metrics:
-    - db_client_connections_usage as $usage
-    - db_client_connections_timeouts as $timeouts
-    - db_client_connections_use_time as $use_time
-  query:
-    - group by pool_name
-    - $usage as conns
-    - $usage{state='idle'} as idle
-    - $timeouts
-    - per_min(count($use_time)) as queries_per_min
-    - avg($use_time) as avg_timing
-  columns:
-    avg_timing: { unit: milliseconds }
-    conns: { unit: '' }
-    idle: { unit: '' }
+  - metrics:
+      - db_client_connections_usage as $usage
+      - db_client_connections_timeouts as $timeouts
+      - db_client_connections_use_time as $use_time
+    query:
+      - group by pool_name
+      - sum($usage) as conns
+      - sum($usage{state='idle'}) as idle
+      - sum($timeouts) as timeouts
+      - per_min(count($use_time)) as queries_per_min
+      - avg($use_time) as avg_timing
+    columns:
+      avg_timing: { unit: milliseconds }
+      conns: { unit: '' }
+      idle: { unit: '' }
 
 grid_rows:
   - title: General

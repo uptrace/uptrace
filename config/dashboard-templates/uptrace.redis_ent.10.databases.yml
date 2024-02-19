@@ -1,0 +1,162 @@
+schema: v2
+name: 'Redis Enterprise: Databases'
+
+table:
+  - metrics:
+      - bdb_used_memory as $mem_used
+      - bdb_conns as $conns
+      - bdb_total_req as $req
+      - bdb_ingress_bytes as $ingress
+      - bdb_egress_bytes as $egress
+    query:
+      - group by cluster
+      - group by bdb
+      - sum($mem_used) as mem_used
+      - sum($conns) as conns
+      - sum($req) as req
+      - sum($ingress) as ingress
+      - sum($egress) as egress
+    columns:
+      mem_used: { unit: bytes }
+      ingress: { unit: bytes }
+      egress: { unit: bytes }
+
+grid_rows:
+  - title: Gauges
+    items:
+      - title: Used RAM
+        description: Memory used by db (in bigredis this includes flash)
+        type: gauge
+        metrics:
+          - bdb_used_memory as $mem_used
+        query:
+          - sum($mem_used) as mem_used
+        columns:
+          mem_used: { unit: bytes }
+
+      - title: RAM limit
+        description: Configured RAM limit for the database
+        type: gauge
+        metrics:
+          - bdb_memory_limit as $mem_limit
+        query:
+          - avg($mem_limit) as mem_limit
+        columns:
+          mem_limit: { unit: bytes }
+
+      - title: Number of keys
+        description: Number of keys in DB
+        type: gauge
+        metrics:
+          - bdb_no_of_keys as $num_key
+        query:
+          - sum($num_key)
+
+      - title: Requests rate
+        description: Rate of all requests on DB (ops/sec)
+        type: gauge
+        metrics:
+          - bdb_total_req as $req
+        query:
+          - sum($req) as req
+        template: ${req}/sec
+
+      - title: Ingress
+        description: Incoming network traffic to DB
+        type: gauge
+        metrics:
+          - bdb_ingress_bytes as $ingress
+        query:
+          - sum($ingress) as ingress
+        columns:
+          ingress: { unit: bytes }
+        template: ${ingress}/sec
+
+      - title: Egress
+        description: Outgoing network traffic to DB
+        type: gauge
+        metrics:
+          - bdb_egress_bytes as $egress
+        query:
+          - sum($egress) as egress
+        columns:
+          egress: { unit: bytes }
+        template: ${egress}/sec
+
+      - title: RAM Fragm.
+        description: RAM fragmentation ratio (RSS / allocated RAM)
+        type: gauge
+        metrics:
+          - bdb_mem_frag_ratio as $mem_frag
+        query:
+          - avg($mem_frag) as mem_frag
+        columns:
+          mem_frag: { unit: utilization }
+
+  - title: General
+    items:
+      - title: Used memory
+        metrics:
+          - bdb_used_memory as $mem_used
+        query:
+          - sum($mem_used) as mem_used
+        columns:
+          mem_used: { unit: bytes }
+
+      - title: Number of client connections
+        metrics:
+          - bdb_conns as $conns
+        query:
+          - sum($conns)
+
+      - title: Number of requests
+        metrics:
+          - bdb_total_req as $req
+        query:
+          - sum($req)
+
+      - title: Average latency or read/write operations
+        metrics:
+          - bdb_avg_read_latency as $read_latency
+          - bdb_avg_write_latency as $write_latency
+        query:
+          - avg($read_latency) as read_latency
+          - avg($write_latency) as write_latency
+
+      - title: Ingress bytes
+        metrics:
+          - bdb_ingress_bytes as $ingress
+        query:
+          - sum($ingress) as ingress
+        columns:
+          ingress: { unit: bytes }
+
+      - title: Egress bytes
+        metrics:
+          - bdb_egress_bytes as $egress
+        query:
+          - sum($egress) as egress
+        columns:
+          egress: { unit: bytes }
+
+      - title: Number of evicted keys
+        metrics:
+          - redis_evicted_keys as $evicted_keys
+        query:
+          - sum(irate($evicted_keys)) as evicted_keys
+
+      - title: RAM fragmentation ratio (RSS / allocated RAM)
+        metrics:
+          - bdb_mem_frag_ratio as $mem_frag
+        query:
+          - avg($mem_frag) as mem_grag
+        columns:
+          mem_frag: { unit: utilization }
+
+      - title: Redis lua scripting heap size
+        metrics:
+          - bdb_mem_size_lua as $lua_mem
+        query:
+          - sum($lua_mem) as lua_mem
+        columns:
+          lua_mem: { unit: bytes }

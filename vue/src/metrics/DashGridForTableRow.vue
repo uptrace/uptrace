@@ -41,7 +41,7 @@
           Grid dashboards are used together with table dashboards. Each row in the table dashboard
           leads to the same grid dashboard filtered by <code>group by</code> attributes from the
           table row, for example,
-          <code>where host_name = ${host} and service_name = ${service}.</code>.
+          <code>where host.name = ${host} and service.name = ${service}.</code>.
         </v-col>
       </v-row>
 
@@ -63,6 +63,7 @@ import { defineComponent, computed, PropType } from 'vue'
 // Composables
 import { useDateRangeFrom, UseDateRange } from '@/use/date-range'
 import { joinQuery } from '@/use/uql'
+import { useAnnotations } from '@/org/use-annotations'
 
 // Components
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
@@ -104,6 +105,12 @@ export default defineComponent({
 
   setup(props) {
     const internalDateRange = useDateRangeFrom(props.dateRange)
+
+    useAnnotations(() => {
+      return {
+        ...internalDateRange.axiosParams(),
+      }
+    })
 
     const gridQuery = computed(() => {
       const ss = []
