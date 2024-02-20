@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@mdi/font": "^7.0.96",
-    "@sentry/vue": "^7.47.0",
     "@vueuse/core": "10.6.1",
     "axios": "1.6.2",
     "axios-retry": "3.9.1",
