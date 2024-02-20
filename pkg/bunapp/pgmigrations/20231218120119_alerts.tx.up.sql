@@ -28,11 +28,6 @@ CREATE TABLE alerts (
 
 --bun:split
 
-CREATE INDEX alerts_project_id_tsv_idx ON alerts
-USING GIN (project_id, tsv);
-
---bun:split
-
 CREATE INDEX alerts_monitor_id_idx ON alerts (monitor_id);
 
 --bun:split
