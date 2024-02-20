@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -26,8 +28,12 @@ import (
 type MonitorFilter struct {
 	*bunapp.App
 	urlstruct.Pager
+	org.OrderByMixin
+
+	Q string
 
 	ProjectID uint32
+	MonitorID uint64
 	State     string
 }
 
@@ -42,12 +48,22 @@ func decodeMonitorFilter(app *bunapp.App, req bunrouter.Request) (*MonitorFilter
 		return nil, err
 	}
 
+	if err := f.extractParamsFromQuery(); err != nil {
+		return nil, err
+	}
+
 	return f, nil
 }
 
 func (f *MonitorFilter) whereClause(q *bun.SelectQuery) *bun.SelectQuery {
 	q = q.Where("project_id = ?", f.ProjectID)
 
+	if f.MonitorID != 0 {
+		q = q.Where("id = ?", f.MonitorID)
+	}
+	if f.Q != "" {
+		q = q.Where("word_similarity(?, name) >= 0.3", f.Q)
+	}
 	if f.State != "" {
 		q = q.Where("state = ?", f.State)
 	}
@@ -61,6 +77,54 @@ func (f *MonitorFilter) UnmarshalValues(ctx context.Context, values url.Values) 
 	if err := f.Pager.UnmarshalValues(ctx, values); err != nil {
 		return err
 	}
+	if err := f.OrderByMixin.UnmarshalValues(ctx, values); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (f *MonitorFilter) PGOrder(q *bun.SelectQuery) *bun.SelectQuery {
+	if f.SortBy == "" {
+		return q
+	}
+
+	var sortBy string
+
+	switch f.SortBy {
+	case "name", "type", "state":
+		sortBy = f.SortBy
+	default:
+		sortBy = "updated_at"
+	}
+
+	return q.OrderExpr("? ? NULLS LAST", bun.Ident(sortBy), bun.Safe(f.SortDir()))
+}
+
+func (f *MonitorFilter) extractParamsFromQuery() error {
+	parts := strings.Split(f.Q, " ")
+
+	for i, part := range parts {
+		ss := strings.Split(part, ":")
+
+		if len(ss) != 2 {
+			continue
+		}
+
+		switch ss[0] {
+		case "monitor":
+			monitorID, err := strconv.ParseUint(ss[1], 10, 64)
+			if err != nil {
+				return err
+			}
+
+			f.MonitorID = monitorID
+
+			parts = append(parts[:i], parts[i+1:]...)
+		}
+	}
+
+	f.Q = strings.Join(parts, " ")
+
 	return nil
 }
 
@@ -92,13 +156,14 @@ func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 
 	var monitors []*MonitorOut
 
-	if err := h.PG.NewSelect().
+	count, err := h.PG.NewSelect().
 		Model(&monitors).
 		Apply(f.whereClause).
-		OrderExpr("created_at DESC").
+		Apply(f.PGOrder).
 		Limit(f.Pager.GetLimit()).
 		Offset(f.Pager.GetOffset()).
-		Scan(ctx); err != nil {
+		ScanAndCount(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -114,6 +179,7 @@ func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 	return httputil.JSON(w, bunrouter.H{
 		"monitors": monitors,
 		"states":   states,
+		"count":    count,
 	})
 }
 

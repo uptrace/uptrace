@@ -1,7 +1,9 @@
-import { computed, watch, ref, proxyRefs } from 'vue'
+import { computed, shallowRef, watch, ref, proxyRefs } from 'vue'
+import { refDebounced } from '@/use/ref-debounced'
 
 // Composables
-import { useRoute } from '@/use/router'
+import { useOrder } from '@/use/order'
+import { useRoute, Values } from '@/use/router'
 import { useAxios } from '@/use/axios'
 import { useWatchAxios } from '@/use/watch-axios'
 import { usePager } from '@/use/pager'
@@ -9,11 +11,6 @@ import { injectForceReload } from '@/use/force-reload'
 
 // Misc
 import { Monitor, MonitorType, MonitorState, MetricMonitor, ErrorMonitor } from '@/alerting/types'
-
-export interface StateCount {
-  state: string
-  count: number
-}
 
 export function createEmptyErrorMonitor(): ErrorMonitor {
   return {
@@ -39,24 +36,39 @@ export function createEmptyErrorMonitor(): ErrorMonitor {
   }
 }
 
+export interface StateCount {
+  state: string
+  count: number
+}
+
 export type UseMonitors = ReturnType<typeof useMonitors>
 
 export function useMonitors() {
   const route = useRoute()
   const forceReload = injectForceReload()
   const pager = usePager()
+  const order = useOrder()
+  const searchInput = shallowRef('')
+  const debouncedSearchInput = refDebounced(searchInput, 600)
 
   const stateFilter = ref<MonitorState | undefined>()
 
   const { status, loading, data, reload } = useWatchAxios(() => {
     const { projectId } = route.value.params
+    const params: Record<string, any> = {
+      ...forceReload.params,
+      ...pager.axiosParams(),
+      state: stateFilter.value ?? null,
+      ...order.axiosParams,
+    }
+
+    if (debouncedSearchInput.value) {
+      params.q = debouncedSearchInput.value
+    }
+
     return {
       url: `/internal/v1/projects/${projectId}/monitors`,
-      params: {
-        ...forceReload.params,
-        ...pager.axiosParams,
-        state: stateFilter.value ?? null,
-      },
+      params,
     }
   })
 
@@ -69,12 +81,24 @@ export function useMonitors() {
   })
 
   const count = computed(() => {
-    let count = 0
-    for (let state of states.value) {
-      count += state.count
-    }
-    return count
+    return data.value?.count ?? 0
   })
+
+  function queryParams() {
+    const queryParams: Record<string, any> = {
+      q: debouncedSearchInput.value,
+      ...order.queryParams(),
+    }
+
+    return queryParams
+  }
+
+  function parseQueryParams(queryParams: Values) {
+    searchInput.value = queryParams.string('q')
+    debouncedSearchInput.flush()
+
+    order.parseQueryParams(queryParams)
+  }
 
   watch(count, (count) => {
     pager.numItem = count
@@ -87,10 +111,14 @@ export function useMonitors() {
     loading,
 
     items: monitors,
+    searchInput,
+    order,
     count,
     states,
     stateFilter,
 
+    queryParams,
+    parseQueryParams,
     reload,
   })
 }

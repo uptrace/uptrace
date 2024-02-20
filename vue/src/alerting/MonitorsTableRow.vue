@@ -42,12 +42,12 @@
         <v-icon>mdi-play</v-icon>
       </v-btn>
 
-      <v-btn :to="routeForMonitor(monitor)" icon title="Edit monitor" @click.stop
-        ><v-icon>mdi-pencil-outline</v-icon></v-btn
-      >
-      <v-btn :loading="monitorMan.pending" icon title="Delete monitor" @click.stop="deleteMonitor"
-        ><v-icon>mdi-delete-outline</v-icon></v-btn
-      >
+      <v-btn :to="routeForMonitor(monitor)" icon title="Edit monitor" @click.stop>
+        <v-icon>mdi-pencil-outline</v-icon>
+      </v-btn>
+      <v-btn :loading="monitorMan.pending" icon title="Delete monitor" @click.stop="deleteMonitor">
+        <v-icon>mdi-delete-outline</v-icon>
+      </v-btn>
       <v-menu v-model="menu" offset-y>
         <template #activator="{ on: onMenu, attrs }">
           <v-btn icon v-bind="attrs" v-on="onMenu">
