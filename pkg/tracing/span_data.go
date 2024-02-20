@@ -8,7 +8,7 @@ import (
 
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/uuid"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/vmihailenco/msgpack/v5"
 )
 
@@ -17,9 +17,9 @@ type SpanData struct {
 
 	Type      string `ch:",lc"`
 	ProjectID uint32
-	TraceID   uuid.UUID
-	ID        uint64
-	ParentID  uint64
+	TraceID   idgen.TraceID
+	ID        idgen.SpanID
+	ParentID  idgen.SpanID
 	Time      time.Time `ch:"type:DateTime64(6)"`
 	Data      []byte
 }
@@ -105,7 +105,7 @@ func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
 }
 
 func SelectTraceSpans(
-	ctx context.Context, app *bunapp.App, traceID uuid.UUID,
+	ctx context.Context, app *bunapp.App, traceID idgen.TraceID,
 ) ([]*Span, bool, error) {
 	const limit = 10000
 

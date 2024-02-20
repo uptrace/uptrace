@@ -1,6 +1,9 @@
 package attrkey
 
 const (
+	AlertType   = "alert_type"
+	AlertStatus = "alert_status"
+
 	SpanSystem  = "_system"
 	SpanGroupID = "_group_id"
 

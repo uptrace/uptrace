@@ -79,8 +79,8 @@ func (p *Pager) GetLimit() int {
 		}
 		return p.DefaultLimit
 	}
-	if p.Limit > p.maxLimit() {
-		return p.maxLimit()
+	if maxLimit := p.maxLimit(); p.Limit > maxLimit {
+		return maxLimit
 	}
 	return p.Limit
 }
@@ -89,8 +89,8 @@ func (p *Pager) GetOffset() int {
 	if p == nil {
 		return 0
 	}
-	if p.Offset > p.maxOffset() {
-		return p.maxOffset()
+	if maxOffset := p.maxOffset(); p.Offset > maxOffset {
+		return maxOffset
 	}
 	return p.Offset
 }

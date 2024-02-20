@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -91,7 +91,7 @@ type vectorLogProcessor struct {
 }
 
 func (p *vectorLogProcessor) spanFromVector(ctx context.Context, span *Span, params AttrMap) {
-	span.ID = rand.Uint64()
+	span.ID = idgen.RandSpanID()
 	span.Kind = InternalSpanKind
 	span.EventName = otelEventLog
 	span.StatusCode = OKStatusCode

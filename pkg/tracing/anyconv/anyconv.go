@@ -7,16 +7,7 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
-	"github.com/uptrace/uptrace/pkg/uuid"
 )
-
-func UUID(v any) uuid.UUID {
-	var uuid uuid.UUID
-	if s, ok := v.(string); ok {
-		_ = uuid.UnmarshalText([]byte(s))
-	}
-	return uuid
-}
 
 func Time(v any) time.Time {
 	switch v := v.(type) {

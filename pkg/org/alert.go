@@ -11,9 +11,9 @@ import (
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/pgquery"
 	"github.com/uptrace/uptrace/pkg/utf8util"
-	"github.com/uptrace/uptrace/pkg/uuid"
 )
 
 type AlertType string
@@ -34,18 +34,17 @@ type BaseAlert struct {
 	ID        uint64 `json:"id" bun:",pk,autoincrement"`
 	ProjectID uint32 `json:"projectId"`
 
-	MonitorID      uint64         `json:"monitorId" bun:",nullzero"`
-	TrackableModel TrackableModel `json:"trackableModel" bun:",nullzero"`
-	TrackableID    uint64         `json:"trackableId,string" bun:",nullzero"`
-
-	Type    AlertType   `json:"type"`
 	EventID uint64      `json:"-" bun:",nullzero"`
 	Event   *AlertEvent `json:"-" bun:"rel:belongs-to,join:event_id=id"`
 
 	Name      string            `json:"name"`
-	DedupHash uint64            `json:"-"`
 	Attrs     map[string]string `json:"attrs"`
 	AttrsHash uint64            `json:"-"`
+
+	Type AlertType `json:"type"`
+
+	SpanGroupID uint64 `json:"spanGroupId,string" bun:",nullzero"`
+	MonitorID   uint64 `json:"monitorId" bun:",nullzero"`
 
 	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
 }
@@ -89,9 +88,9 @@ func (a *BaseAlert) MarshalJSON() ([]byte, error) {
 }
 
 type ErrorAlertParams struct {
-	TraceID   uuid.UUID `json:"traceId"`
-	SpanID    uint64    `json:"spanId,string"`
-	SpanCount uint64    `json:"spanCount"`
+	TraceID   idgen.TraceID `json:"traceId"`
+	SpanID    idgen.SpanID  `json:"spanId"`
+	SpanCount uint64        `json:"spanCount"`
 }
 
 func (p *ErrorAlertParams) Clone() *ErrorAlertParams {

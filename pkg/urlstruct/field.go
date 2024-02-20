@@ -10,7 +10,10 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
+
 	"github.com/vmihailenco/tagparser"
+
+	"github.com/uptrace/uptrace/pkg/idgen"
 )
 
 type Field struct {
@@ -47,6 +50,8 @@ var (
 	nullInt64Type            = reflect.TypeOf((*sql.NullInt64)(nil)).Elem()
 	nullFloat64Type          = reflect.TypeOf((*sql.NullFloat64)(nil)).Elem()
 	nullStringType           = reflect.TypeOf((*sql.NullString)(nil)).Elem()
+	traceIDType              = reflect.TypeOf((*idgen.TraceID)(nil)).Elem()
+	spanIDType               = reflect.TypeFor[idgen.SpanID]()
 	mapStringStringType      = reflect.TypeOf((*map[string]string)(nil)).Elem()
 	mapStringStringSliceType = reflect.TypeOf((*map[string][]string)(nil)).Elem()
 )
@@ -76,6 +81,10 @@ func scanner(typ reflect.Type) scannerFunc {
 		return scanNullFloat64
 	case nullStringType:
 		return scanNullString
+	case traceIDType:
+		return scanTraceID
+	case spanIDType:
+		return scanSpanID
 	case mapStringStringType:
 		return scanMapStringString
 	case mapStringStringSliceType:
@@ -96,6 +105,7 @@ func scanner(typ reflect.Type) scannerFunc {
 	case reflect.String:
 		return scanString
 	}
+
 	return nil
 }
 
@@ -216,7 +226,7 @@ func scanString(v reflect.Value, values []string) error {
 }
 
 func scanTime(v reflect.Value, values []string) error {
-	tm, err := ParseTime(values[0])
+	tm, err := parseTime(values[0])
 	if err != nil {
 		return err
 	}
@@ -224,7 +234,7 @@ func scanTime(v reflect.Value, values []string) error {
 	return nil
 }
 
-func ParseTime(s string) (time.Time, error) {
+func parseTime(s string) (time.Time, error) {
 	n, err := strconv.ParseInt(s, 10, 64)
 	if err == nil {
 		return time.Unix(n, 0), nil
@@ -263,6 +273,24 @@ func ParseDuration(s string) (time.Duration, error) {
 	}
 
 	return time.ParseDuration(s)
+}
+
+func scanTraceID(v reflect.Value, values []string) error {
+	u, err := idgen.ParseTraceID(values[0])
+	if err != nil {
+		return err
+	}
+	v.Addr().SetBytes(u[:])
+	return nil
+}
+
+func scanSpanID(v reflect.Value, values []string) error {
+	id, err := idgen.ParseSpanID(values[0])
+	if err != nil {
+		return err
+	}
+	v.SetUint(uint64(id))
+	return nil
 }
 
 func scanNullBool(v reflect.Value, values []string) error {
@@ -366,17 +394,17 @@ func scanMapStringString(v reflect.Value, values []string) error {
 	m := make(map[string]string, len(values)/3)
 
 	var key string
-	for _, s := range values {
+	for _, value := range values {
 		if key == "" {
-			key = s
+			key = value
 			continue
 		}
-		if s == "" {
+		if value == endOfValues {
 			key = ""
 			continue
 		}
 		if _, ok := m[key]; !ok {
-			m[key] = s
+			m[key] = value
 		}
 	}
 
@@ -385,19 +413,33 @@ func scanMapStringString(v reflect.Value, values []string) error {
 }
 
 func scanMapStringStringSlice(v reflect.Value, values []string) error {
+	if len(values) == 1 {
+		s := values[0]
+		if s == "" {
+			v.Set(reflect.New(mapStringStringSliceType).Elem())
+			return nil
+		}
+		var m map[string][]string
+		if err := json.Unmarshal([]byte(s), &m); err != nil {
+			return err
+		}
+		v.Set(reflect.ValueOf(m))
+		return nil
+	}
+
 	m := make(map[string][]string, len(values)/3)
 
 	var key string
-	for _, s := range values {
+	for _, value := range values {
 		if key == "" {
-			key = s
+			key = value
 			continue
 		}
-		if s == "" {
+		if value == endOfValues {
 			key = ""
 			continue
 		}
-		m[key] = append(m[key], s)
+		m[key] = append(m[key], value)
 	}
 
 	v.Set(reflect.ValueOf(m))

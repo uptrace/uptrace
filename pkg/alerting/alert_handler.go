@@ -8,17 +8,13 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"go.uber.org/zap"
 	"golang.org/x/exp/maps"
-)
-
-const (
-	facetKeyStatus = "alert.status"
-	facetKeyType   = "alert.type"
 )
 
 type AlertHandler struct {
@@ -194,7 +190,7 @@ func selectAlertFacets(
 		return nil, err
 	}
 
-	delete(facetMap, facetKeyType)
+	delete(facetMap, attrkey.AlertType)
 
 	statusFacet, err := selectAlertStatusFacet(ctx, app, f)
 	if err != nil {
@@ -303,7 +299,7 @@ func selectAlertStatusFacet(
 	if err := app.PG.NewSelect().
 		Model((*org.BaseAlert)(nil)).
 		Join("JOIN alert_events AS event ON event.id = a.event_id").
-		ColumnExpr("? AS key", facetKeyStatus).
+		ColumnExpr("? AS key", attrkey.AlertStatus).
 		ColumnExpr("event.status AS value").
 		ColumnExpr("count(*) AS count").
 		Apply(f.WhereClause).
@@ -315,14 +311,14 @@ func selectAlertStatusFacet(
 
 	if len(items) > 0 && !hasOpenStatus(items) {
 		items = append(items, &org.FacetItem{
-			Key:   facetKeyStatus,
+			Key:   attrkey.AlertStatus,
 			Value: string(org.AlertStatusOpen),
 			Count: 0,
 		})
 	}
 
 	return &org.Facet{
-		Key:   facetKeyStatus,
+		Key:   attrkey.AlertStatus,
 		Items: items,
 	}, nil
 }
@@ -347,7 +343,7 @@ func selectAlertTypeFacet(
 	if err := app.PG.NewSelect().
 		Model((*org.BaseAlert)(nil)).
 		Join("JOIN alert_events AS event ON event.id = a.event_id").
-		ColumnExpr("? AS key", facetKeyType).
+		ColumnExpr("? AS key", attrkey.AlertType).
 		ColumnExpr("type AS value").
 		ColumnExpr("count(*) AS count").
 		Apply(f.WhereClause).
@@ -358,7 +354,7 @@ func selectAlertTypeFacet(
 	}
 
 	return &org.Facet{
-		Key:   facetKeyType,
+		Key:   attrkey.AlertType,
 		Items: items,
 	}, nil
 }

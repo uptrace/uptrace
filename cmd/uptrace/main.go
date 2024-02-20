@@ -270,15 +270,6 @@ func runPGMigrations(ctx context.Context, app *bunapp.App) error {
 		return err
 	}
 
-	missing, err := migrator.MissingMigrations(ctx)
-	if err != nil {
-		return err
-	}
-	if len(missing) > 0 {
-		return fmt.Errorf("PostgreSQL database schema was changed; " +
-			"run `uptrace pg reset` to reset the database (all data will be lost)")
-	}
-
 	group, err := migrator.Migrate(ctx)
 	if err != nil {
 		return err
@@ -317,15 +308,6 @@ func runCHMigrations(ctx context.Context, app *bunapp.App) error {
 
 	if err := migrator.Init(ctx); err != nil {
 		return err
-	}
-
-	missing, err := migrator.MissingMigrations(ctx)
-	if err != nil {
-		return err
-	}
-	if len(missing) > 0 {
-		return fmt.Errorf("ClickHouse database schema was changed; " +
-			"run `uptrace ch reset` to reset the database (all data will be lost)")
 	}
 
 	group, err := migrator.Migrate(ctx)

@@ -2,11 +2,10 @@ package tracing
 
 import (
 	"errors"
-	"math/rand"
 	"strings"
 	"time"
 
-	"github.com/uptrace/uptrace/pkg/uuid"
+	"github.com/uptrace/uptrace/pkg/idgen"
 )
 
 const (
@@ -23,10 +22,10 @@ const (
 )
 
 type Span struct {
-	ID         uint64    `json:"id,string" msgpack:"-" ch:"id"`
-	ParentID   uint64    `json:"parentId,string,omitempty" msgpack:"-"`
-	TraceID    uuid.UUID `json:"traceId" msgpack:"-" ch:"type:UUID"`
-	Standalone bool      `json:"standalone,omitempty" ch:"-"`
+	ID         idgen.SpanID  `json:"id" msgpack:"-" ch:"id"`
+	ParentID   idgen.SpanID  `json:"parentId,omitempty" msgpack:"-"`
+	TraceID    idgen.TraceID `json:"traceId" msgpack:"-" ch:"type:UUID"`
+	Standalone bool          `json:"standalone,omitempty" ch:"-"`
 
 	ProjectID uint32 `json:"projectId" msgpack:"-"`
 	Type      string `json:"-" msgpack:"-" ch:",lc"`
@@ -67,9 +66,9 @@ type SpanEvent struct {
 }
 
 type SpanLink struct {
-	TraceID uuid.UUID `json:"traceId"`
-	SpanID  uint64    `json:"spanId"`
-	Attrs   AttrMap   `json:"attrs"`
+	TraceID idgen.TraceID `json:"traceId"`
+	SpanID  idgen.SpanID  `json:"spanId"`
+	Attrs   AttrMap       `json:"attrs"`
 }
 
 func (s *Span) EventOrSpanName() string {
@@ -197,7 +196,7 @@ func minTime(a, b time.Time) time.Time {
 
 func buildSpanTree(spans []*Span) (*Span, int) {
 	var root *Span
-	m := make(map[uint64]*Span, len(spans))
+	m := make(map[idgen.SpanID]*Span, len(spans))
 
 	for _, s := range spans {
 		if s.IsEvent() {
@@ -246,7 +245,7 @@ func buildSpanTree(spans []*Span) (*Span, int) {
 
 func newFakeRoot(sample *Span) *Span {
 	span := &Span{
-		ID:      rand.Uint64(),
+		ID:      idgen.RandSpanID(),
 		TraceID: sample.TraceID,
 
 		ProjectID: sample.ProjectID,

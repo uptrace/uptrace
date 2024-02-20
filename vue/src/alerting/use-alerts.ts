@@ -16,14 +16,14 @@ interface BaseAlert {
   projectId: number
 
   name: string
-  status: AlertStatus
   attrs: Record<string, string>
 
-  trackableId: string
-  trackableModel: string
-
   type: AlertType
+  status: AlertStatus
   params: unknown
+
+  spanGroupId: number
+  monitorId: number
 
   time: string
   createdAt: string

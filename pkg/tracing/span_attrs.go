@@ -1,11 +1,8 @@
 package tracing
 
 import (
-	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"io"
-	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +14,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/bunutil"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/logparser"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
@@ -24,7 +22,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/utf8util"
-	"github.com/uptrace/uptrace/pkg/uuid"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
@@ -67,14 +64,14 @@ func processAttrs(ctx *spanContext, span *Span) {
 	}
 
 	if span.TraceID.IsZero() {
-		span.TraceID = uuid.Rand()
+		span.TraceID = idgen.RandTraceID()
 		span.ID = 0
 		span.ParentID = 0
 		span.Standalone = true
 	}
 	if !span.Standalone {
 		if span.ID == 0 {
-			span.ID = rand.Uint64()
+			span.ID = idgen.RandSpanID()
 		}
 	}
 	if span.Time.IsZero() {
@@ -183,7 +180,7 @@ func populateSpanFromParams(span *Span, params AttrMap) {
 				continue
 			}
 
-			traceID, err := uuid.Parse(value)
+			traceID, err := idgen.ParseTraceID(value)
 			if err != nil {
 				continue
 			}
@@ -203,7 +200,7 @@ func populateSpanFromParams(span *Span, params AttrMap) {
 				continue
 			}
 
-			spanID, err := parseSpanID(value)
+			spanID, err := idgen.ParseSpanID(value)
 			if err != nil {
 				continue
 			}
@@ -318,8 +315,8 @@ loop:
 
 func newSpanLink(link *tracepb.Span_Link) *SpanLink {
 	return &SpanLink{
-		TraceID: otlpTraceID(link.TraceId),
-		SpanID:  otlpSpanID(link.SpanId),
+		TraceID: idgen.TraceIDFromBytes(link.TraceId),
+		SpanID:  idgen.SpanIDFromBytes(link.SpanId),
 		Attrs:   otlpconv.Map(link.Attributes),
 	}
 }
@@ -465,7 +462,7 @@ func initEventFromHostSpan(dest *Span, event *SpanEvent, hostSpan *Span) {
 
 	dest.ProjectID = hostSpan.ProjectID
 	dest.TraceID = hostSpan.TraceID
-	dest.ID = rand.Uint64()
+	dest.ID = idgen.RandSpanID()
 	dest.ParentID = hostSpan.ID
 
 	dest.Name = hostSpan.Name
@@ -655,13 +652,4 @@ func join(s1, s2 string) string {
 		return s1 + " " + s2
 	}
 	return s2
-}
-
-func parseSpanID(s string) (uint64, error) {
-	if len(s) == 16 {
-		if b, err := hex.DecodeString(s); err == nil {
-			return binary.BigEndian.Uint64(b), nil
-		}
-	}
-	return strconv.ParseUint(s, 10, 64)
 }

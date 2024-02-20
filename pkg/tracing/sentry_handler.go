@@ -16,9 +16,9 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
-	"github.com/uptrace/uptrace/pkg/uuid"
 	"go.uber.org/zap"
 )
 
@@ -63,7 +63,7 @@ func (h *SentryHandler) Store(w http.ResponseWriter, req bunrouter.Request) erro
 func (h *SentryHandler) processEvent(
 	ctx context.Context, project *org.Project, event *SentryEvent,
 ) error {
-	traceID, err := uuid.Parse(event.EventID)
+	traceID, err := idgen.ParseTraceID(event.EventID)
 	if err != nil {
 		return err
 	}
@@ -377,12 +377,12 @@ func (h *SentryHandler) processTransaction(
 	}
 	delete(event.Contexts, "trace")
 
-	traceID, err := uuid.Parse(getString(trace, "trace_id"))
+	traceID, err := idgen.ParseTraceID(getString(trace, "trace_id"))
 	if err != nil {
 		return err
 	}
 
-	spanID, err := parseSpanID(getString(trace, "span_id"))
+	spanID, err := idgen.ParseSpanID(getString(trace, "span_id"))
 	if err != nil {
 		return err
 	}
@@ -398,19 +398,19 @@ func (h *SentryHandler) processTransaction(
 		dest.ProjectID = span.ProjectID
 		dest.Attrs = span.Attrs.Clone()
 
-		traceID, err := uuid.Parse(src.TraceID)
+		traceID, err := idgen.ParseTraceID(src.TraceID)
 		if err != nil {
 			return err
 		}
 		dest.TraceID = traceID
 
-		spanID, err := parseSpanID(src.SpanID)
+		spanID, err := idgen.ParseSpanID(src.SpanID)
 		if err != nil {
 			return err
 		}
 		dest.ID = spanID
 
-		parentSpanID, err := parseSpanID(src.ParentSpanID)
+		parentSpanID, err := idgen.ParseSpanID(src.ParentSpanID)
 		if err != nil {
 			return err
 		}

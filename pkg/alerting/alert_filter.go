@@ -8,6 +8,7 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
@@ -37,11 +38,11 @@ func DecodeAlertFilter(req bunrouter.Request, f *AlertFilter) error {
 		return err
 	}
 
-	f.Status = f.Attrs[facetKeyStatus]
-	delete(f.Attrs, facetKeyStatus)
+	f.Status = f.Attrs[attrkey.AlertStatus]
+	delete(f.Attrs, attrkey.AlertStatus)
 
-	f.Type = f.Attrs[facetKeyType]
-	delete(f.Attrs, facetKeyType)
+	f.Type = f.Attrs[attrkey.AlertType]
+	delete(f.Attrs, attrkey.AlertType)
 
 	return nil
 }

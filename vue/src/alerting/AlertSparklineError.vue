@@ -34,15 +34,6 @@ export default defineComponent({
 
   setup(props) {
     const dateRange = useDateRange()
-
-    const timeseries = useGroupTimeseries(() => {
-      return {
-        ...dateRange.axiosParams(),
-        query: `group by ${AttrKey.spanGroupId} | ${AttrKey.spanCountPerMin} | where ${AttrKey.spanGroupId} = ${props.alert.trackableId}`,
-        column: AttrKey.spanCountPerMin,
-      }
-    })
-
     watch(
       () => props.alert.updatedAt,
       (updatedAt) => {
@@ -50,6 +41,14 @@ export default defineComponent({
       },
       { immediate: true },
     )
+
+    const timeseries = useGroupTimeseries(() => {
+      return {
+        ...dateRange.axiosParams(),
+        query: `group by ${AttrKey.spanGroupId} | ${AttrKey.spanCountPerMin} | where ${AttrKey.spanGroupId} = ${props.alert.spanGroupId}`,
+        column: AttrKey.spanCountPerMin,
+      }
+    })
 
     return { AttrKey, timeseries }
   },

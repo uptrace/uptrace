@@ -299,22 +299,18 @@ func selectMatchingAlert(
 	return app.PG.NewSelect().
 		Model(dest).
 		ExcludeColumn().
-		Relation("Event", func(q *bun.SelectQuery) *bun.SelectQuery {
-			return q.ExcludeColumn("params")
-		}).
-		ColumnExpr("event.params").
+		Relation("Event").
 		Where("a.type = ?", alert.Type).
 		Where("a.attrs_hash = ?", alert.AttrsHash).
 		Where("event.id IS NOT NULL").
 		OrderExpr("event.created_at DESC").
 		Limit(1).
 		Apply(func(q *bun.SelectQuery) *bun.SelectQuery {
+			if alert.SpanGroupID != 0 {
+				q = q.Where("a.span_group_id = ?", alert.SpanGroupID)
+			}
 			if alert.MonitorID != 0 {
 				q = q.Where("a.monitor_id = ?", alert.MonitorID)
-			}
-			if alert.TrackableModel != "" && alert.TrackableID != 0 {
-				q = q.Where("a.trackable_model = ?", alert.TrackableModel).
-					Where("a.trackable_id = ?", alert.TrackableID)
 			}
 			return q
 		}).

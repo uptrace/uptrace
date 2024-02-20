@@ -14,8 +14,8 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/uuid"
 )
 
 type ZipkinHandler struct {
@@ -110,7 +110,7 @@ func initSpanFromZipkin(dest *Span, src *ZipkinSpan) error {
 		}
 	}
 
-	dest.TraceID, err = uuid.Parse(src.TraceID)
+	dest.TraceID, err = idgen.ParseTraceID(src.TraceID)
 	if err != nil {
 		return err
 	}
@@ -150,13 +150,13 @@ func initSpanFromZipkin(dest *Span, src *ZipkinSpan) error {
 	return nil
 }
 
-func parseZipkinID(s string) (uint64, error) {
+func parseZipkinID(s string) (idgen.SpanID, error) {
 	var buf [8]byte
 	_, err := hex.Decode(buf[:], []byte(s))
 	if err != nil {
 		return 0, err
 	}
-	return binary.LittleEndian.Uint64(buf[:]), nil
+	return idgen.SpanID(binary.LittleEndian.Uint64(buf[:])), nil
 }
 
 func parseZipkinKind(s string) string {

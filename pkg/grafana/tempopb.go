@@ -12,12 +12,12 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/tracing"
-	"github.com/uptrace/uptrace/pkg/uuid"
 	"go.uber.org/zap"
 )
 
-func newTempopbTrace(app *bunapp.App, traceID uuid.UUID, spans []*tracing.Span) *tempopb.Trace {
+func newTempopbTrace(app *bunapp.App, traceID idgen.TraceID, spans []*tracing.Span) *tempopb.Trace {
 	backlink := &commonpb.KeyValue{
 		Key: "uptrace.url",
 		Value: &commonpb.AnyValue{
@@ -109,9 +109,9 @@ func newTracepbSpanLink(l *tracing.SpanLink) *tracepb.Span_Link {
 	}
 }
 
-func tempoSpanID(n uint64) []byte {
+func tempoSpanID(id idgen.SpanID) []byte {
 	b := make([]byte, 8)
-	binary.LittleEndian.PutUint64(b, n)
+	binary.LittleEndian.PutUint64(b, uint64(id))
 	return b
 }
 

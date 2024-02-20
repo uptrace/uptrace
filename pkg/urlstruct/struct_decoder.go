@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+const endOfValues = "\000"
+
 type structDecoder struct {
 	v     reflect.Value
 	sinfo *StructInfo
@@ -41,7 +43,7 @@ func (d *structDecoder) Decode(ctx context.Context, values url.Values) error {
 			}
 			mapValues = append(mapValues, key)
 			mapValues = append(mapValues, values...)
-			mapValues = append(mapValues, "")
+			mapValues = append(mapValues, endOfValues)
 			maps[name] = mapValues
 			continue
 		}

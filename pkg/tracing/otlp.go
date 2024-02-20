@@ -1,22 +1,17 @@
 package tracing
 
 import (
-	"encoding/base64"
-	"encoding/binary"
-	"encoding/hex"
 	"time"
 
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
-	"github.com/uptrace/uptrace/pkg/uuid"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
-	"go.uber.org/zap"
 )
 
 func initSpanFromOTLP(dest *Span, resource AttrMap, src *tracepb.Span) {
-	dest.ID = otlpSpanID(src.SpanId)
-	dest.ParentID = otlpSpanID(src.ParentSpanId)
-	dest.TraceID = otlpTraceID(src.TraceId)
+	dest.ID = idgen.SpanIDFromBytes(src.SpanId)
+	dest.ParentID = idgen.SpanIDFromBytes(src.ParentSpanId)
+	dest.TraceID = idgen.TraceIDFromBytes(src.TraceId)
 	dest.Name = src.Name
 	dest.Kind = otlpSpanKind(src.Kind)
 
@@ -58,65 +53,6 @@ func newSpanFromOTLPEvent(src *tracepb.Span_Event) *SpanEvent {
 	})
 
 	return dest
-}
-
-func otlpSpanID(b []byte) uint64 {
-	switch len(b) {
-	case 0:
-		return 0
-	case 8:
-		return binary.BigEndian.Uint64(b)
-	case 12:
-		// continue below
-	default:
-		otelzap.L().Error("otlpSpanID failed", zap.Int("length", len(b)))
-		return 0
-	}
-
-	s := base64.RawStdEncoding.EncodeToString(b)
-	b, err := hex.DecodeString(s)
-	if err != nil {
-		otelzap.L().Error("otlpSpanID failed", zap.Error(err))
-		return 0
-	}
-
-	if len(b) == 8 {
-		return binary.BigEndian.Uint64(b)
-	}
-
-	otelzap.L().Error("otlpSpanID failed", zap.Int("length", len(b)))
-	return 0
-}
-
-func otlpTraceID(b []byte) uuid.UUID {
-	switch len(b) {
-	case 0:
-		return uuid.UUID{}
-	case 16:
-		u, err := uuid.FromBytes(b)
-		if err != nil {
-			otelzap.L().Error("otlpTraceID failed", zap.Error(err))
-		}
-		return u
-	case 24:
-		// continue below
-	default:
-		otelzap.L().Error("otlpTraceID failed", zap.Int("length", len(b)))
-		return uuid.UUID{}
-	}
-
-	s := base64.RawStdEncoding.EncodeToString(b)
-	b, err := hex.DecodeString(s)
-	if err != nil {
-		otelzap.L().Error("otlpTraceID failed", zap.Error(err))
-		return uuid.UUID{}
-	}
-
-	u, err := uuid.FromBytes(b)
-	if err != nil {
-		otelzap.L().Error("otlpTraceID failed", zap.Error(err))
-	}
-	return u
 }
 
 func otlpSpanKind(kind tracepb.Span_SpanKind) string {

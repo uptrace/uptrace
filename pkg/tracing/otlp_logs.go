@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"slices"
 	"strconv"
@@ -16,6 +15,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
@@ -182,10 +182,10 @@ type otlpLogProcessor struct {
 func (p *otlpLogProcessor) processLogRecord(resource AttrMap, lr *logspb.LogRecord) *Span {
 	span := new(Span)
 
-	span.ID = rand.Uint64()
-	span.ParentID = otlpSpanID(lr.SpanId)
+	span.ID = idgen.RandSpanID()
+	span.ParentID = idgen.SpanIDFromBytes(lr.SpanId)
 	if lr.TraceId != nil {
-		span.TraceID = otlpTraceID(lr.TraceId)
+		span.TraceID = idgen.TraceIDFromBytes(lr.TraceId)
 	}
 
 	span.EventName = otelEventLog

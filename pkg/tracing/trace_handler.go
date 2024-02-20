@@ -3,14 +3,13 @@ package tracing
 import (
 	"cmp"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
-	"github.com/uptrace/uptrace/pkg/uuid"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"golang.org/x/exp/slices"
 )
 
@@ -27,7 +26,7 @@ func NewTraceHandler(app *bunapp.App) *TraceHandler {
 func (h *TraceHandler) FindTrace(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	traceID, err := uuid.Parse(req.URL.Query().Get("trace_id"))
+	traceID, err := idgen.ParseTraceID(req.URL.Query().Get("trace_id"))
 	if err != nil {
 		return err
 	}
@@ -43,7 +42,7 @@ func (h *TraceHandler) FindTrace(w http.ResponseWriter, req bunrouter.Request) e
 		"span": bunrouter.H{
 			"projectId":  span.ProjectID,
 			"traceId":    span.TraceID,
-			"id":         strconv.FormatUint(span.ID, 10),
+			"id":         span.ID.String(),
 			"standalone": span.Standalone,
 		},
 	})
@@ -52,7 +51,7 @@ func (h *TraceHandler) FindTrace(w http.ResponseWriter, req bunrouter.Request) e
 func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	traceID, err := uuid.Parse(req.Param("trace_id"))
+	traceID, err := idgen.ParseTraceID(req.Param("trace_id"))
 	if err != nil {
 		return err
 	}
@@ -70,7 +69,7 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 	traceInfo := NewTraceInfo(root)
 
 	if rootSpanIDStr := req.URL.Query().Get("root_span_id"); rootSpanIDStr != "" {
-		rootSpanID, err := parseSpanID(rootSpanIDStr)
+		rootSpanID, err := idgen.ParseSpanID(rootSpanIDStr)
 		if err != nil {
 			return err
 		}
@@ -118,12 +117,12 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 func (h *TraceHandler) ShowSpan(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	traceID, err := uuid.Parse(req.Param("trace_id"))
+	traceID, err := idgen.ParseTraceID(req.Param("trace_id"))
 	if err != nil {
 		return err
 	}
 
-	spanID, err := req.Params().Uint64("span_id")
+	spanID, err := idgen.ParseSpanID(req.Param("span_id"))
 	if err != nil {
 		return err
 	}
@@ -144,7 +143,7 @@ func (h *TraceHandler) ShowSpan(w http.ResponseWriter, req bunrouter.Request) er
 //------------------------------------------------------------------------------
 
 type TraceInfo struct {
-	ID       uuid.UUID     `json:"id"`
+	ID       idgen.TraceID `json:"id"`
 	Time     time.Time     `json:"time"`
 	Duration time.Duration `json:"duration"`
 }

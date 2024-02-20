@@ -8,19 +8,24 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
-	"github.com/uptrace/uptrace/pkg/uuid"
 )
 
 func createErrorAlertHandler(
 	ctx context.Context,
 	projectID uint32,
 	groupID uint64,
-	traceID uuid.UUID,
-	spanID uint64,
+	traceID idgen.TraceID,
+	spanID idgen.SpanID,
 ) error {
 	app := bunapp.AppFromContext(ctx)
+
+	project, err := org.SelectProject(ctx, app, projectID)
+	if err != nil {
+		return err
+	}
 
 	span := &tracing.Span{
 		ProjectID: projectID,
@@ -37,14 +42,11 @@ func createErrorAlertHandler(
 	baseAlert := &org.BaseAlert{
 		ProjectID: projectID,
 
-		Name:      span.DisplayName,
-		DedupHash: groupID,
-		Attrs:     alertAttrs(span),
+		Name:  span.DisplayName,
+		Attrs: alertAttrs(project, span),
 
-		TrackableModel: org.ModelSpanGroup,
-		TrackableID:    groupID,
-
-		Type: org.AlertError,
+		Type:        org.AlertError,
+		SpanGroupID: groupID,
 	}
 
 	alert, err := selectErrorAlert(ctx, app, baseAlert)
@@ -111,22 +113,22 @@ func createErrorAlertHandler(
 	})
 }
 
-func alertAttrs(span *tracing.Span) map[string]string {
+func alertAttrs(project *org.Project, span *tracing.Span) map[string]string {
 	attrs := make(map[string]string)
 
-	if str, _ := span.Attrs[attrkey.ServiceName].(string); str != "" {
-		attrs[attrkey.ServiceName] = str
+	if project.GroupByEnv {
+		if str, _ := span.Attrs[attrkey.DeploymentEnvironment].(string); str != "" {
+			attrs[attrkey.DeploymentEnvironment] = str
+		}
 	}
-	if str, _ := span.Attrs[attrkey.ServiceVersion].(string); str != "" {
-		attrs[attrkey.ServiceVersion] = str
-	}
-	if str, _ := span.Attrs[attrkey.DeploymentEnvironment].(string); str != "" {
-		attrs[attrkey.DeploymentEnvironment] = str
+
+	if !span.IsEvent() {
+		attrs[attrkey.SpanKind] = span.Kind
 	}
 
 	switch span.Type {
 	case tracing.SpanTypeHTTP:
-		addSpanAttrs(attrs, span, attrkey.HTTPRequestMethod)
+		addSpanAttrs(attrs, span, attrkey.HTTPRequestMethod, attrkey.HTTPRoute)
 	case tracing.SpanTypeDB:
 		addSpanAttrs(attrs, span,
 			attrkey.DBSystem,
@@ -137,6 +139,12 @@ func alertAttrs(span *tracing.Span) map[string]string {
 		addSpanAttrs(attrs, span, attrkey.RPCSystem, attrkey.RPCService, attrkey.RPCMethod)
 	case tracing.SpanTypeMessaging:
 		addSpanAttrs(attrs, span, attrkey.MessagingSystem)
+	case tracing.SpanTypeFuncs:
+		if project.GroupFuncsByService {
+			if str, _ := span.Attrs[attrkey.ServiceName].(string); str != "" {
+				attrs[attrkey.ServiceName] = str
+			}
+		}
 	case tracing.EventTypeLog:
 		addSpanAttrs(attrs, span, attrkey.LogSeverity, attrkey.ExceptionType)
 	}

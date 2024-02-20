@@ -11,7 +11,7 @@ import (
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/uuid"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/zyedidia/generic/list"
 	"go.uber.org/zap"
 )
@@ -225,7 +225,7 @@ func edgeTypeFromSpanType(spanType string) EdgeType {
 	}
 }
 
-func (p *ServiceGraphProcessor) store(traceID uuid.UUID) *ServiceGraphStore {
+func (p *ServiceGraphProcessor) store(traceID idgen.TraceID) *ServiceGraphStore {
 	hash := xxhash.Sum64(traceID[:])
 	return p.storeShards[hash%uint64(len(p.storeShards))]
 }
@@ -286,8 +286,8 @@ type ServiceGraphStore struct {
 }
 
 type ServiceGraphEdgeKey struct {
-	TraceID uuid.UUID
-	SpanID  uint64
+	TraceID idgen.TraceID
+	SpanID  idgen.SpanID
 }
 
 type ServiceGraphEdgeNode struct {

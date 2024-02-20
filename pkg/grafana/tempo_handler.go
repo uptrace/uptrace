@@ -16,10 +16,10 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
-	"github.com/uptrace/uptrace/pkg/uuid"
 )
 
 const projectIDHeaderKey = "uptrace-project-id"
@@ -60,7 +60,7 @@ func (h *TempoHandler) queryTrace(
 ) error {
 	ctx := req.Context()
 
-	traceID, err := uuid.Parse(req.Param("trace_id"))
+	traceID, err := idgen.ParseTraceID(req.Param("trace_id"))
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ type TempoSearchParams struct {
 }
 
 type TempoSearchTrace struct {
-	TraceID           uuid.UUID            `json:"traceID"`
+	TraceID           idgen.TraceID        `json:"traceID"`
 	RootServiceName   string               `json:"rootServiceName" ch:",lc"`
 	RootTraceName     string               `json:"rootTraceName" ch:",lc"`
 	StartTimeUnixNano int64                `json:"startTimeUnixNano,string"`
@@ -208,7 +208,7 @@ type TempoSearchSpanSet struct {
 }
 
 type TempoSearchSpan struct {
-	SpanID            string            `json:"spanID"`
+	SpanID            idgen.SpanID      `json:"spanID"`
 	StartTimeUnixNano int64             `json:"startTimeUnixNano,string"`
 	DurationNanos     int64             `json:"durationNanos"`
 	Attributes        []TempoSearchAttr `json:"attributes"`
@@ -224,8 +224,8 @@ type TempoSearchAttrValue struct {
 }
 
 type TraceSpanID struct {
-	TraceID uuid.UUID
-	ID      uint64
+	TraceID idgen.TraceID
+	ID      idgen.SpanID
 }
 
 func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) error {
@@ -330,7 +330,7 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 			SpanSets: []TempoSearchSpanSet{{
 				Matched: 1,
 				Spans: []TempoSearchSpan{{
-					SpanID:            strconv.FormatUint(span.ID, 10),
+					SpanID:            span.ID,
 					StartTimeUnixNano: span.Time.UnixNano(),
 					DurationNanos:     int64(span.Duration),
 					Attributes:        attrs,

@@ -91,7 +91,7 @@ func (v Values) Time(name string) (time.Time, error) {
 	if s == "" {
 		return time.Time{}, nil
 	}
-	return ParseTime(s)
+	return parseTime(s)
 }
 
 func (v Values) MaybeTime(name string) time.Time {
