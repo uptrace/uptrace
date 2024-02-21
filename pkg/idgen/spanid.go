@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"strconv"
+
+	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
 func ParseSpanID(s string) (SpanID, error) {
@@ -63,7 +65,13 @@ func RandSpanID() SpanID {
 type SpanID uint64
 
 func (id SpanID) String() string {
-	return strconv.FormatUint(uint64(id), 10)
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, uint64(id))
+
+	h := make([]byte, hex.EncodedLen(len(b)))
+	n := hex.Encode(h, b)
+
+	return unsafeconv.String(b[:n])
 }
 
 func (id SpanID) IsZero() bool {

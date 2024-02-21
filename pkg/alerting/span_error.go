@@ -55,15 +55,17 @@ func createErrorAlertHandler(
 	}
 
 	if alert == nil {
-		baseAlert.Event = new(org.AlertEvent)
-		alert = NewErrorAlertBase(baseAlert)
+		alert = &ErrorAlert{
+			BaseAlert: *baseAlert,
+			Event:     new(ErrorAlertEvent),
+		}
 
 		alert.Event.Status = org.AlertStatusOpen
 		alert.Event.Time = span.Time
 
-		alert.Params.TraceID = traceID
-		alert.Params.SpanID = spanID
-		alert.Params.SpanCount = 1
+		alert.Event.Params.TraceID = traceID
+		alert.Event.Params.SpanID = spanID
+		alert.Event.Params.SpanCount = 1
 
 		return createAlert(ctx, app, alert)
 	}
@@ -73,20 +75,19 @@ func createErrorAlertHandler(
 		return err
 	}
 
-	spanCountThreshold := nextSpanCountThreshold(alert.Params.SpanCount)
-	triggered := spanCount >= spanCountThreshold || alert.Event.Status == org.AlertStatusClosed
+	spanCountThreshold := nextSpanCountThreshold(alert.Event.Params.SpanCount)
 
-	alert.Params.TraceID = traceID
-	alert.Params.SpanID = spanID
-	alert.Params.SpanCount = spanCount
+	alert.Name = span.DisplayName
+	alert.Event.Time = span.Time
+	alert.Event.Params.TraceID = traceID
+	alert.Event.Params.SpanID = spanID
+	alert.Event.Params.SpanCount = spanCount
 
-	if !triggered {
-		// Update the alert so it is not deleted.
+	if !shouldNotifyOnError(alert, spanCountThreshold) {
 		if _, err := app.PG.NewUpdate().
 			Model(alert.Event).
-			Set("params = ?", alert.Params).
-			Set("time = ?", span.Time).
-			Set("created_at = ?", span.Time).
+			Set("params = ?", alert.Event.Params).
+			Set("time = ?", alert.Event.Time).
 			Where("id = ?", alert.Event.ID).
 			Exec(ctx); err != nil {
 			return err
@@ -94,23 +95,46 @@ func createErrorAlertHandler(
 		return nil
 	}
 
-	return createAlertEvent(ctx, app, alert, func(tx bun.Tx) error {
+	return tryAlertInTx(ctx, app, alert, func(tx bun.Tx) error {
 		event := alert.Event.Clone()
-		event.Name = org.AlertEventRecurring
-		event.Status = org.AlertStatusOpen
-		event.Time = span.Time
-		event.CreatedAt = span.Time
+		baseEvent := event.Base()
+		baseEvent.Name = org.AlertEventRecurring
+		baseEvent.Status = org.AlertStatusOpen
+		baseEvent.Time = span.Time
+		baseEvent.CreatedAt = span.Time
 
 		if err := org.InsertAlertEvent(ctx, tx, event); err != nil {
 			return err
 		}
-
-		if err := updateAlertEvent(ctx, tx, alert.Base(), event); err != nil {
+		if err := updateAlertEvent(ctx, tx, alert, event); err != nil {
 			return err
 		}
-
 		return nil
 	})
+}
+
+func shouldNotifyOnError(alert *ErrorAlert, spanCountThreshold int64) bool {
+	if alert.Event.Status == org.AlertStatusClosed {
+		return true
+	}
+
+	elapsed := alert.Event.Time.Sub(alert.Event.CreatedAt)
+
+	if elapsed >= 10*time.Minute && alert.Event.Params.SpanCount >= spanCountThreshold {
+		return true
+	}
+
+	var elapsedThreshold time.Duration
+	if time.Since(alert.CreatedAt) >= 72*time.Hour {
+		elapsedThreshold = 7 * 24 * time.Hour // 1 week
+	} else {
+		elapsedThreshold = 24 * time.Hour
+	}
+	if elapsed >= elapsedThreshold {
+		return true
+	}
+
+	return false
 }
 
 func alertAttrs(project *org.Project, span *tracing.Span) map[string]string {
@@ -172,11 +196,11 @@ func addSpanAttrs(attrs map[string]string, span *tracing.Span, keys ...string) {
 
 func countAlertSpans(
 	ctx context.Context, app *bunapp.App, alert *ErrorAlert, span *tracing.Span,
-) (uint64, error) {
+) (int64, error) {
 	timeGTE := alert.CreatedAt
 	timeLT := time.Now().Add(-time.Minute).Truncate(time.Minute)
 
-	var spanCount uint64
+	var spanCount int64
 
 	if err := tracing.NewSpanIndexQuery(app).
 		ColumnExpr("toUInt64(sum(s.count))").
@@ -203,9 +227,9 @@ func selectErrorAlert(
 	return dest, nil
 }
 
-func nextSpanCountThreshold(n uint64) uint64 {
+func nextSpanCountThreshold(n int64) int64 {
 	if n < 1e6 {
-		next := uint64(100)
+		next := int64(100)
 		for {
 			if next > n {
 				return next
@@ -214,7 +238,7 @@ func nextSpanCountThreshold(n uint64) uint64 {
 		}
 	}
 
-	next := uint64(2e6)
+	next := int64(2e6)
 	for {
 		if next > n {
 			return next

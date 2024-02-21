@@ -14,78 +14,98 @@ import (
 	"github.com/uptrace/uptrace/pkg/madalarm"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/unixtime"
+	"github.com/xhit/go-str2duration/v2"
 	"go.uber.org/zap"
 )
-
-const maxRecentAlertDuration = 8 * time.Hour
 
 var (
 	_ org.Alert = (*ErrorAlert)(nil)
 	_ org.Alert = (*MetricAlert)(nil)
 )
 
-type ErrorAlert struct {
-	*org.BaseAlert `bun:",inherit"`
+var (
+	_ org.AlertEvent = (*ErrorAlertEvent)(nil)
+	_ org.AlertEvent = (*MetricAlertEvent)(nil)
+)
 
-	Params org.ErrorAlertParams `json:"params" bun:",scanonly"`
+type ErrorAlert struct {
+	org.BaseAlert `bun:",inherit"`
+
+	Event *ErrorAlertEvent `json:"-" bun:"rel:belongs-to,join:event_id=id"`
 }
 
 func NewErrorAlert() *ErrorAlert {
-	return NewErrorAlertBase(org.NewBaseAlert(org.AlertError))
-}
-
-func NewErrorAlertBase(base *org.BaseAlert) *ErrorAlert {
-	alert := &ErrorAlert{
-		BaseAlert: base,
+	return &ErrorAlert{
+		Event: new(ErrorAlertEvent),
 	}
-	alert.BaseAlert.Event.Params.Any = &alert.Params
-	return alert
 }
-
 func (a *ErrorAlert) Base() *org.BaseAlert {
-	return a.BaseAlert
+	return &a.BaseAlert
 }
 
-func (a *ErrorAlert) Summary() string {
-	if a.Params.SpanCount > 1 {
-		return fmt.Sprintf("The error has %d occurrences", a.Params.SpanCount)
-	}
-	return "A new error has just occurred"
+func (a *ErrorAlert) GetEvent() org.AlertEvent {
+	return a.Event
+}
+
+func (a *ErrorAlert) SetEvent(event org.AlertEvent) {
+	a.EventID = event.Base().ID
+	a.Event = event.(*ErrorAlertEvent)
+}
+
+type ErrorAlertEvent struct {
+	org.BaseAlertEvent `bun:",inherit"`
+
+	Params org.ErrorAlertParams `json:"params" bun:"type:jsonb,nullzero"`
+}
+
+func (e *ErrorAlertEvent) Base() *org.BaseAlertEvent {
+	return &e.BaseAlertEvent
+}
+
+func (e *ErrorAlertEvent) Clone() org.AlertEvent {
+	clone := *e
+	clone.ID = 0
+	clone.UserID = 0
+	return &clone
 }
 
 type MetricAlert struct {
-	*org.BaseAlert `bun:",inherit"`
+	org.BaseAlert `bun:",inherit"`
 
-	Params MetricAlertParams `json:"params" bun:",scanonly"`
+	Event *MetricAlertEvent `json:"-" bun:"rel:belongs-to,join:event_id=id"`
 }
 
 func NewMetricAlert() *MetricAlert {
-	return NewMetricAlertBase(org.NewBaseAlert(org.AlertMetric))
-}
-
-func NewMetricAlertBase(base *org.BaseAlert) *MetricAlert {
-	alert := &MetricAlert{
-		BaseAlert: base,
+	return &MetricAlert{
+		Event: new(MetricAlertEvent),
 	}
-	alert.BaseAlert.Event.Params.Any = &alert.Params
-	return alert
 }
 
 func (a *MetricAlert) Base() *org.BaseAlert {
-	return a.BaseAlert
+	return &a.BaseAlert
+}
+
+func (a *MetricAlert) GetEvent() org.AlertEvent {
+	return a.Event
+}
+
+func (a *MetricAlert) SetEvent(event org.AlertEvent) {
+	a.EventID = event.Base().ID
+	a.Event = event.(*MetricAlertEvent)
 }
 
 func (a *MetricAlert) ShortSummary() string {
-	bounds := a.Params.Bounds
-	unit := a.Params.Monitor.ColumnUnit
+	bounds := a.Event.Params.Bounds
+	unit := a.Event.Params.Monitor.ColumnUnit
 
-	switch a.Params.Firing {
+	switch a.Event.Params.Firing {
 	case -1:
-		current := bunconv.Format(a.Params.CurrentValue, unit)
+		current := bunconv.Format(a.Event.Params.CurrentValue, unit)
 		min := bunconv.Format(bounds.Min.Float64, unit)
 		return fmt.Sprintf("%s is smaller than %s", current, min)
 	case 1:
-		current := bunconv.Format(a.Params.CurrentValue, unit)
+		current := bunconv.Format(a.Event.Params.CurrentValue, unit)
 		max := bunconv.Format(bounds.Max.Float64, unit)
 		return fmt.Sprintf("%s is greater than %s", current, max)
 	default:
@@ -94,31 +114,29 @@ func (a *MetricAlert) ShortSummary() string {
 }
 
 func (a *MetricAlert) LongSummary(sep string) string {
-	bounds := a.Params.Bounds
-	unit := a.Params.Monitor.ColumnUnit
+	bounds := a.Event.Params.Bounds
+	unit := a.Event.Params.Monitor.ColumnUnit
 	min := formatNull(bounds.Min, unit, "-Inf")
 	max := formatNull(bounds.Max, unit, "+Inf")
 
 	var msg []string
-
 	msg = append(msg, fmt.Sprintf(
 		"You specified that value should be between %s and %s.",
 		min, max,
 	))
 
 	var symbol string
-	switch a.Params.Firing {
+	switch a.Event.Params.Firing {
 	case -1:
 		symbol = "smaller"
 	case 1:
 		symbol = "greater"
 	}
 
-	currentValue := bunconv.Format(a.Params.CurrentValue, unit)
-	currentValueVerbose := bunconv.FormatFloatVerbose(a.Params.CurrentValue)
-	duration := bunconv.ShortDuration(
-		time.Duration(a.Params.NumPointFiring) * time.Minute,
-	)
+	currentValue := bunconv.Format(a.Event.Params.CurrentValue, unit)
+	currentValueVerbose := bunconv.FormatFloatVerbose(a.Event.Params.CurrentValue)
+	groupingInterval := a.Event.Params.Monitor.GroupingInterval.Duration()
+	duration := str2duration.String(time.Duration(a.Event.Params.NumPointFiring) * groupingInterval)
 	msg = append(msg, fmt.Sprintf(
 		"The actual value of %s (%s) has been %s than this range for at least %s.",
 		currentValue, currentValueVerbose, symbol, duration,
@@ -134,24 +152,59 @@ func formatNull(v bunutil.NullFloat64, unit string, nullValue string) string {
 	return bunconv.Format(v.Float64, unit)
 }
 
+type MetricAlertEvent struct {
+	org.BaseAlertEvent `bun:",inherit"`
+
+	Params MetricAlertParams `json:"params" bun:"type:jsonb,nullzero"`
+}
+
+func (e *MetricAlertEvent) Base() *org.BaseAlertEvent {
+	return &e.BaseAlertEvent
+}
+
+func (e *MetricAlertEvent) Clone() org.AlertEvent {
+	clone := *e
+	clone.ID = 0
+	clone.UserID = 0
+	return &clone
+}
+
 type MetricAlertParams struct {
 	Firing       int     `json:"firing"`
 	InitialValue float64 `json:"initialValue"`
 	CurrentValue float64 `json:"currentValue"`
 	NormalValue  float64 `json:"normalValue"`
 
-	NumPointFiring int             `json:"numPointFiring"`
-	Bounds         madalarm.Bounds `json:"bounds"`
+	NumPointFiring int    `json:"numPointFiring"`
+	WhereQuery     string `json:"whereQuery"`
+
+	Bounds madalarm.Bounds `json:"bounds"`
 
 	Monitor struct {
-		Metrics    []mql.MetricAlias `json:"metrics"`
-		Query      string            `json:"query"`
-		Column     string            `json:"column"`
-		ColumnUnit string            `json:"columnUnit"`
+		Metrics          []mql.MetricAlias `json:"metrics"`
+		Query            string            `json:"query"`
+		Column           string            `json:"column"`
+		ColumnUnit       string            `json:"columnUnit"`
+		GroupingInterval unixtime.Millis   `json:"groupingInterval"`
 	} `json:"monitor"`
 }
 
-func (params *MetricAlertParams) Update(checkRes *madalarm.CheckResult) {
+func (params *MetricAlertParams) Update(
+	monitor *org.MetricMonitor, checkRes *madalarm.CheckResult,
+) {
+	params.UpdateMonitor(monitor)
+	params.UpdateCheckResult(checkRes)
+}
+
+func (params *MetricAlertParams) UpdateMonitor(monitor *org.MetricMonitor) {
+	params.Monitor.Metrics = monitor.Params.Metrics
+	params.Monitor.Query = monitor.Params.Query
+	params.Monitor.Column = monitor.Params.Column
+	params.Monitor.ColumnUnit = monitor.Params.ColumnUnit
+	//params.Monitor.GroupingInterval = monitor.Params.GroupingInterval
+}
+
+func (params *MetricAlertParams) UpdateCheckResult(checkRes *madalarm.CheckResult) {
 	params.Firing = checkRes.Firing
 	params.InitialValue = checkRes.FirstValue
 	params.CurrentValue = checkRes.FirstValue
@@ -161,7 +214,7 @@ func (params *MetricAlertParams) Update(checkRes *madalarm.CheckResult) {
 }
 
 func selectAlertWithEvent(ctx context.Context, app *bunapp.App, eventID uint64) (org.Alert, error) {
-	event := new(org.AlertEvent)
+	event := new(org.BaseAlertEvent)
 
 	if err := app.PG.NewSelect().
 		Model(event).
@@ -208,61 +261,46 @@ func SelectBaseAlert(ctx context.Context, app *bunapp.App, alertID uint64) (*org
 }
 
 func decodeAlert(base *org.BaseAlert) (org.Alert, error) {
+	if base.Event == nil {
+		return nil, errors.New("alert event can't be nil")
+	}
+
 	switch base.Type {
 	case org.AlertError:
-		alert := &ErrorAlert{
-			BaseAlert: base,
-		}
-		if err := base.Event.Params.Decode(&alert.Params); err != nil {
+		alert := NewErrorAlert()
+		alert.BaseAlert = *base
+		alert.Event.BaseAlertEvent = *base.Event
+		if err := base.Event.Params.Decode(&alert.Event.Params); err != nil {
 			return nil, err
 		}
 		return alert, nil
 	case org.AlertMetric:
-		alert := &MetricAlert{
-			BaseAlert: base,
-		}
-		if err := base.Event.Params.Decode(&alert.Params); err != nil {
+		alert := NewMetricAlert()
+		alert.BaseAlert = *base
+		alert.Event.BaseAlertEvent = *base.Event
+		if err := base.Event.Params.Decode(&alert.Event.Params); err != nil {
 			return nil, err
 		}
 		return alert, nil
 	default:
-		return nil, fmt.Errorf("unknown alert type: %s", base.Type)
+		return nil, fmt.Errorf("unsupported alert type: %s", base.Type)
 	}
 }
 
-func changeAlertStatus(
-	ctx context.Context,
-	app *bunapp.App,
-	alert org.Alert,
-	status org.AlertStatus,
-	userID uint64,
-) error {
-	return createAlertEvent(ctx, app, alert, func(tx bun.Tx) error {
-		baseAlert := alert.Base()
-
-		event := baseAlert.Event.Clone()
-		event.UserID = userID
-		event.Name = org.AlertEventStatusChanged
-		event.Status = status
-
-		if err := org.InsertAlertEvent(ctx, tx, event); err != nil {
-			return err
-		}
-
-		if err := updateAlertEvent(ctx, tx, baseAlert, event); err != nil {
-			return err
-		}
-
-		return nil
-	})
-}
-
 func updateAlertEvent(
-	ctx context.Context, db bun.IDB, baseAlert *org.BaseAlert, event *org.AlertEvent,
+	ctx context.Context, db bun.IDB, alert org.Alert, event org.AlertEvent,
 ) error {
+	baseAlert := alert.Base()
+	baseEvent := event.Base()
+
+	if baseEvent.ID == 0 {
+		return errors.New("event id can't be zero")
+	}
+
 	res, err := db.NewUpdate().
-		Model(baseAlert).
-		Set("event_id = ?", event.ID).
+		Model(alert).
+		Set("name = ?", baseAlert.Name).
+		Set("event_id = ?", baseEvent.ID).
 		Where("id = ?", baseAlert.ID).
 		Apply(func(q *bun.UpdateQuery) *bun.UpdateQuery {
 			if baseAlert.EventID != 0 {
@@ -284,9 +322,7 @@ func updateAlertEvent(
 		return errors.New("transaction conflict")
 	}
 
-	baseAlert.EventID = event.ID
-	baseAlert.Event = event
-
+	alert.SetEvent(event)
 	return nil
 }
 
@@ -320,33 +356,34 @@ func selectMatchingAlert(
 func createAlert(ctx context.Context, app *bunapp.App, alert org.Alert) error {
 	baseAlert := alert.Base()
 
-	event := baseAlert.Event
-	event.ProjectID = baseAlert.ProjectID
+	event := alert.GetEvent()
+	baseEvent := event.Base()
+	baseEvent.ProjectID = baseAlert.ProjectID
 
-	switch event.Name {
+	switch baseEvent.Name {
 	case "":
-		event.Name = org.AlertEventCreated
+		baseEvent.Name = org.AlertEventCreated
 	case org.AlertEventCreated:
 		// okay
 	default:
-		return fmt.Errorf("unexpected event name: %q", event.Name)
+		return fmt.Errorf("unexpected event name: %q", baseEvent.Name)
 	}
 
-	return createAlertEvent(ctx, app, alert, func(tx bun.Tx) error {
-		inserted, err := org.InsertAlert(ctx, app, tx, baseAlert)
+	return tryAlertInTx(ctx, app, alert, func(tx bun.Tx) error {
+		inserted, err := org.InsertAlert(ctx, app, tx, alert)
 		if err != nil {
 			return err
 		}
 		if !inserted {
-			return nil
+			return errors.New("transaction conflict")
 		}
 
-		event.AlertID = baseAlert.ID
+		baseEvent.AlertID = baseAlert.ID
 		if err := org.InsertAlertEvent(ctx, tx, event); err != nil {
 			return err
 		}
 
-		if err := updateAlertEvent(ctx, tx, baseAlert, event); err != nil {
+		if err := updateAlertEvent(ctx, tx, alert, event); err != nil {
 			return err
 		}
 
@@ -354,13 +391,22 @@ func createAlert(ctx context.Context, app *bunapp.App, alert org.Alert) error {
 	})
 }
 
-func createAlertEvent(
+func tryAlertInTx(
 	ctx context.Context, app *bunapp.App, alert org.Alert, fn func(tx bun.Tx) error,
 ) error {
 	if err := app.PG.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		return fn(tx)
 	}); err != nil {
 		return err
+	}
+
+	if alert.Muted() {
+		return nil
+	}
+
+	baseAlert := alert.Base()
+	if baseAlert.EventID == 0 {
+		return errors.New("alert's event id can't be zero")
 	}
 
 	switch alert := alert.(type) {
@@ -375,6 +421,6 @@ func createAlertEvent(
 		}
 		return nil
 	default:
-		return fmt.Errorf("unknown alert type: %T", alert)
+		return fmt.Errorf("unsupported alert type: %T", alert)
 	}
 }

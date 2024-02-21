@@ -124,8 +124,8 @@ func (n *EmailNotifier) notifyOnErrorAlert(
 
 	span := &tracing.Span{
 		ProjectID: alert.ProjectID,
-		TraceID:   alert.Params.TraceID,
-		ID:        alert.Params.SpanID,
+		TraceID:   alert.Event.Params.TraceID,
+		ID:        alert.Event.Params.SpanID,
 	}
 	if err := tracing.SelectSpan(ctx, app, span); err != nil {
 		if err == sql.ErrNoRows {

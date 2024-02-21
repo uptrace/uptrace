@@ -28,11 +28,11 @@ require (
 	github.com/segmentio/encoding v0.4.0
 	github.com/slack-go/slack v0.12.4
 	github.com/stretchr/testify v1.8.4
-	github.com/uptrace/bun v1.1.17
-	github.com/uptrace/bun/dialect/pgdialect v1.1.17
-	github.com/uptrace/bun/driver/pgdriver v1.1.17
-	github.com/uptrace/bun/extra/bundebug v1.1.17
-	github.com/uptrace/bun/extra/bunotel v1.1.17
+	github.com/uptrace/bun v1.1.18-0.20240129120547-ed6ed74d5379
+	github.com/uptrace/bun/dialect/pgdialect v1.1.18-0.20240129120547-ed6ed74d5379
+	github.com/uptrace/bun/driver/pgdriver v1.1.18-0.20240129120547-ed6ed74d5379
+	github.com/uptrace/bun/extra/bundebug v1.1.18-0.20240129120547-ed6ed74d5379
+	github.com/uptrace/bun/extra/bunotel v1.1.18-0.20240129120547-ed6ed74d5379
 	github.com/uptrace/bunrouter v1.0.21
 	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.21
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.21

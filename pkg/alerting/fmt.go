@@ -9,6 +9,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/utf8util"
+	"github.com/xhit/go-str2duration/v2"
 )
 
 var emailErrorFormatter = NewAlertFormatter(
@@ -186,15 +187,15 @@ func (f *AlertFormatter) Format(project *org.Project, alert org.Alert) string {
 
 	switch alert := alert.(type) {
 	case *ErrorAlert:
-		params["spanCount"] = alert.Params.SpanCount
+		params["spanCount"] = alert.Event.Params.SpanCount
 	case *MetricAlert:
 		params["shortSummary"] = alert.ShortSummary()
 		params["longSummary"] = alert.LongSummary(f.breakLine)
-		params["duration"] = bunconv.ShortDuration(alert.Event.CreatedAt.Sub(alert.Event.Time))
+		params["duration"] = str2duration.String(alert.Event.CreatedAt.Sub(alert.Event.Time))
 
 		if alert.Event.Status == org.AlertStatusClosed {
-			unit := alert.Params.Monitor.ColumnUnit
-			params["normalValue"] = bunconv.Format(alert.Params.NormalValue, unit)
+			unit := alert.Event.Params.Monitor.ColumnUnit
+			params["normalValue"] = bunconv.Format(alert.Event.Params.NormalValue, unit)
 		}
 	}
 

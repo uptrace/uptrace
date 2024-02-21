@@ -126,13 +126,22 @@ func (h *AlertHandler) changeAlertStatus(
 		return nil
 	}
 
-	if err := changeAlertStatus(
-		ctx,
-		h.App,
-		alert,
-		status,
-		userID,
-	); err != nil {
+	if err := tryAlertInTx(ctx, h.App, alert, func(tx bun.Tx) error {
+		event := alert.GetEvent().Clone()
+		baseEvent := event.Base()
+		baseEvent.UserID = userID
+		baseEvent.Name = org.AlertEventStatusChanged
+		baseEvent.Status = status
+
+		if err := org.InsertAlertEvent(ctx, tx, event); err != nil {
+			return err
+		}
+		if err := updateAlertEvent(ctx, tx, alert, event); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
 		return err
 	}
 

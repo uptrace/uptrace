@@ -445,19 +445,26 @@ func (app *App) WithGlobalLock(ctx context.Context, fn func() error) error {
 //------------------------------------------------------------------------------
 
 type localStorage struct {
-	cache *cache.Cache[string, struct{}]
+	mu    sync.Mutex
+	cache *cache.Cache[string, time.Time]
 }
 
 func newLocalStorage() *localStorage {
 	return &localStorage{
-		cache: cache.New[string, struct{}](10000),
+		cache: cache.New[string, time.Time](10000),
 	}
 }
 
 func (s *localStorage) Exists(ctx context.Context, key string) bool {
-	if _, ok := s.cache.Get(key); ok {
+	now := time.Now()
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if tm, ok := s.cache.Get(key); ok && now.Sub(tm) < 24*time.Hour {
 		return true
 	}
-	s.cache.Put(key, struct{}{})
+
+	s.cache.Put(key, now)
 	return false
 }

@@ -118,7 +118,7 @@ export default defineComponent({
         name: 'AlertList',
         query: {
           q: 'monitor:' + props.monitor.id,
-          'attrs.alert.status': status,
+          'attrs.alert_status': status,
         },
       }
     }

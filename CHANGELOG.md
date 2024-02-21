@@ -2,6 +2,30 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
+## v1.7.0 - UNRELEASED
+
+This release is backwards compatible with v1.6. If you're upgrading from an older version, please
+upgrade to the v1.6.x first.
+
+#### Features
+
+- App navigation is reworked using the navigation drawer.
+- Added a list of dashboards.
+- Uptrace now provides quick access to dashboards that have the same prefix. You may need to reset
+  your existing dashboards to benefit from this.
+- You can now search over monitors.
+- Added pre-built dashboards for .NET system metrics reported by OpenTelemetry.
+
+#### Changed
+
+- Trace and span ids are now hex-encoded.
+
+#### Fixed
+
+- Updated Tempo API to the latest version. You should be able to use
+  [Tempo integration](https://uptrace.dev/get/grafana.html#tempo-traces) with the recent Grafana
+  version.
+
 ## v1.6.2 - January 22 2024
 
 Starting from this release, Uptrace returns all timeseries when a query doesn't contain an

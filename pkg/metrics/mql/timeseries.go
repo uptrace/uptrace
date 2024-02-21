@@ -1,6 +1,7 @@
 package mql
 
 import (
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -35,6 +36,18 @@ func (ts *Timeseries) DeepClone() *Timeseries {
 func (ts *Timeseries) Clone() *Timeseries {
 	clone := *ts
 	return &clone
+}
+
+func (ts *Timeseries) TrimNaNLeft() {
+	var index int
+	for i, n := range ts.Value {
+		if !math.IsNaN(n) {
+			break
+		}
+		index = i
+	}
+	ts.Value = ts.Value[index:]
+	ts.Time = ts.Time[index:]
 }
 
 func (ts *Timeseries) Name() string {

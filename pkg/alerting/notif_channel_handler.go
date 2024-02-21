@@ -456,14 +456,15 @@ func (h *NotifChannelHandler) sendWebhookTestMsg(
 	ctx context.Context, project *org.Project, channel *WebhookNotifChannel,
 ) error {
 	alert := &MetricAlert{
-		BaseAlert: &org.BaseAlert{
+		BaseAlert: org.BaseAlert{
 			ID:        123,
 			ProjectID: project.ID,
 			Name:      "Test message",
 			Type:      org.AlertMetric,
 			CreatedAt: time.Now(),
-
-			Event: &org.AlertEvent{
+		},
+		Event: &MetricAlertEvent{
+			BaseAlertEvent: org.BaseAlertEvent{
 				ID:        uint64(time.Now().UnixNano()),
 				Name:      org.AlertEventCreated,
 				Status:    org.AlertStatusOpen,

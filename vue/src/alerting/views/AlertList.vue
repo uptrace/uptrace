@@ -134,7 +134,7 @@ export default defineComponent({
     useSyncQueryParams({
       fromQuery(queryParams) {
         if (queryParams.empty()) {
-          queryParams.setDefault('attrs.alert.status', 'open')
+          queryParams.setDefault('attrs.alert_status', 'open')
         }
 
         queryParams.setDefault('sort_by', 'updated_at')

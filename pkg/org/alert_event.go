@@ -3,6 +3,7 @@ package org
 import (
 	"context"
 	"errors"
+	"runtime/debug"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -24,13 +25,19 @@ const (
 	AlertEventRecurring     AlertEventName = "recurring"
 )
 
-type AlertEvent struct {
+type AlertEvent interface {
+	Validate() error
+	Base() *BaseAlertEvent
+	Clone() AlertEvent
+}
+
+type BaseAlertEvent struct {
 	bun.BaseModel `bun:"alert_events,alias:e"`
 
 	ID uint64 `bun:",pk,autoincrement"`
 
 	UserID uint64 `bun:",nullzero"`
-	User   *User  `bun:"-"`
+	User   *User  `bun:"rel:belongs-to,join:user_id=id"`
 
 	ProjectID uint32
 	AlertID   uint64
@@ -38,36 +45,28 @@ type AlertEvent struct {
 
 	Name   AlertEventName
 	Status AlertStatus
-	Params bunutil.Params `bun:"type:jsonb,nullzero"`
+	Params bunutil.Params `bun:"type:jsonb,nullzero"` // immutable
 
 	Time      time.Time `bun:",nullzero"`
 	CreatedAt time.Time `bun:",nullzero"`
 }
 
-func (e *AlertEvent) Clone() *AlertEvent {
-	clone := *e
-	clone.ID = 0
-	return &clone
-}
-
-func (e *AlertEvent) Validate() error {
+func (e *BaseAlertEvent) Validate() error {
 	if e.ProjectID == 0 {
-		return errors.New("event project id can't be zero")
+		return errors.New("alert event project id can't be zero")
 	}
 	if e.AlertID == 0 {
 		return errors.New("event alert id can't be zero")
 	}
 	if e.Name == "" {
-		return errors.New("event name can't be empty")
+		return errors.New("alert event name can't be empty")
 	}
 	if e.Status == "" {
-		return errors.New("event status can't be empty")
-	}
-	if e.Params.Any == nil {
-		return errors.New("event params can't be nil")
+		debug.PrintStack()
+		return errors.New("alert event status can't be empty")
 	}
 	if e.Time.IsZero() {
-		return errors.New("event time can't be zero")
+		return errors.New("alert event time can't be zero")
 	}
 	if e.CreatedAt.IsZero() {
 		e.CreatedAt = e.Time
@@ -75,7 +74,7 @@ func (e *AlertEvent) Validate() error {
 	return nil
 }
 
-func InsertAlertEvent(ctx context.Context, db bun.IDB, event *AlertEvent) error {
+func InsertAlertEvent(ctx context.Context, db bun.IDB, event AlertEvent) error {
 	if err := event.Validate(); err != nil {
 		return err
 	}

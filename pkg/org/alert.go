@@ -25,7 +25,10 @@ const (
 
 type Alert interface {
 	Base() *BaseAlert
+	GetEvent() AlertEvent
+	SetEvent(event AlertEvent)
 	URL() string
+	Muted() bool
 }
 
 type BaseAlert struct {
@@ -34,8 +37,8 @@ type BaseAlert struct {
 	ID        uint64 `json:"id" bun:",pk,autoincrement"`
 	ProjectID uint32 `json:"projectId"`
 
-	EventID uint64      `json:"-" bun:",nullzero"`
-	Event   *AlertEvent `json:"-" bun:"rel:belongs-to,join:event_id=id"`
+	EventID uint64          `json:"-" bun:",nullzero"`
+	Event   *BaseAlertEvent `json:"-" bun:"rel:belongs-to,join:event_id=id"`
 
 	Name      string            `json:"name"`
 	Attrs     map[string]string `json:"attrs"`
@@ -46,18 +49,23 @@ type BaseAlert struct {
 	SpanGroupID uint64 `json:"spanGroupId,string" bun:",nullzero"`
 	MonitorID   uint64 `json:"monitorId" bun:",nullzero"`
 
-	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
+	CreatedAt  time.Time `json:"createdAt" bun:",nullzero"`
+	MutedUntil time.Time `json:"mutedUntil" bun:",nullzero"`
 }
 
 func NewBaseAlert(alertType AlertType) *BaseAlert {
 	return &BaseAlert{
 		Type:  alertType,
-		Event: new(AlertEvent),
+		Event: new(BaseAlertEvent),
 	}
 }
 
 func (a *BaseAlert) URL() string {
 	return fmt.Sprintf("/alerting/%d/alerts/%d", a.ProjectID, a.ID)
+}
+
+func (a *BaseAlert) Muted() bool {
+	return !a.MutedUntil.IsZero() && a.MutedUntil.After(time.Now())
 }
 
 var _ json.Marshaler = (*BaseAlert)(nil)
@@ -90,7 +98,7 @@ func (a *BaseAlert) MarshalJSON() ([]byte, error) {
 type ErrorAlertParams struct {
 	TraceID   idgen.TraceID `json:"traceId"`
 	SpanID    idgen.SpanID  `json:"spanId"`
-	SpanCount uint64        `json:"spanCount"`
+	SpanCount int64         `json:"spanCount"`
 }
 
 func (p *ErrorAlertParams) Clone() *ErrorAlertParams {
@@ -98,28 +106,29 @@ func (p *ErrorAlertParams) Clone() *ErrorAlertParams {
 	return &clone
 }
 
-func InsertAlert(ctx context.Context, app *bunapp.App, db bun.IDB, a *BaseAlert) (bool, error) {
-	if a.ProjectID == 0 {
-		return false, errors.New("project id can't be zero")
+func InsertAlert(ctx context.Context, app *bunapp.App, db bun.IDB, alert Alert) (bool, error) {
+	base := alert.Base()
+	if base.ProjectID == 0 {
+		return false, errors.New("alert project id can't be zero")
 	}
-	if a.Name == "" {
-		return false, errors.New("name can't be empty")
+	if base.Name == "" {
+		return false, errors.New("alert name can't be empty")
 	}
-	if a.Type == "" {
-		return false, errors.New("type can't be empty")
+	if base.Type == "" {
+		return false, errors.New("alert type can't be empty")
 	}
 
-	a.Name = utf8util.Trunc(a.Name, 1000)
+	base.Name = utf8util.Trunc(base.Name, 1000)
 
 	b := pgquery.NewTSBuilder()
-	b.AddTitle(a.Name)
+	b.AddTitle(base.Name)
 
-	for k, v := range a.Attrs {
+	for k, v := range base.Attrs {
 		b.AddAttr(k, v)
 	}
 
 	res, err := db.NewInsert().
-		Model(a).
+		Model(alert).
 		Value("tsv", "setweight(to_tsvector('english', ?), 'A') || "+
 			"setweight(to_tsvector('english', ?), 'B') || "+
 			"array_to_tsvector(?)",

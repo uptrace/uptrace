@@ -16,8 +16,8 @@ func scheduleNotifyOnErrorAlert(
 ) error {
 	span := &tracing.Span{
 		ProjectID: alert.ProjectID,
-		TraceID:   alert.Params.TraceID,
-		ID:        alert.Params.SpanID,
+		TraceID:   alert.Event.Params.TraceID,
+		ID:        alert.Event.Params.SpanID,
 	}
 	if err := tracing.SelectSpan(ctx, app, span); err != nil {
 		return err
@@ -55,7 +55,7 @@ func selectErrorMonitors(
 		Where("state = ?", org.MonitorActive).
 		Limit(100)
 
-	if alert.Params.SpanCount > 0 {
+	if alert.Event.Params.SpanCount > 0 {
 		q = q.Where("(params->>'notifyOnRecurringErrors')::boolean")
 	} else {
 		q = q.Where("(params->>'notifyOnNewErrors')::boolean")
@@ -99,7 +99,7 @@ func scheduleNotifyByEmailOnErrorAlert(
 			app,
 			monitor.Base(),
 			func(q *bun.SelectQuery) *bun.SelectQuery {
-				if alert.Params.SpanCount > 0 {
+				if alert.Event.Params.SpanCount > 0 {
 					return q.Where("up IS NULL OR up.notify_on_recurring_errors")
 				}
 				return q.Where("up IS NULL OR up.notify_on_new_errors")
