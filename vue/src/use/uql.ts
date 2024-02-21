@@ -149,6 +149,97 @@ export function formatParts(parts: QueryPart[]): string {
     .join(QUERY_PART_SEP)
 }
 
+//------------------------------------------------------------------------------
+
+export function createQueryEditor(query = '') {
+  return new QueryEditor(query)
+}
+
+export class QueryEditor {
+  parts: string[]
+
+  constructor(query = '') {
+    this.parts = splitQuery(query)
+  }
+
+  toString() {
+    return joinQuery(this.parts)
+  }
+
+  exploreAttr(column: string, isSpan = false) {
+    return this.add(exploreAttr(column, isSpan))
+  }
+
+  add(query: string) {
+    for (let otherPart of splitQuery(query)) {
+      const i = this.parts.findIndex((part) => part === otherPart)
+      if (i === -1) {
+        this.parts.push(otherPart)
+      }
+    }
+    return this
+  }
+
+  where(column: string, op?: string, value?: any) {
+    if (op === undefined) {
+      return this.replaceOrPush(
+        new RegExp(`^where\\s+${escapeRe(column)}$`, 'i'),
+        `where ${column}`,
+      )
+    }
+    if (value === undefined) {
+      return this.replaceOrPush(
+        new RegExp(`^where\\s+${escapeRe(column)}\\s+${op}$`, 'i'),
+        `where ${column} ${op}`,
+      )
+    }
+    return this.replaceOrPush(
+      new RegExp(`^where\\s+${escapeRe(column)}\\s+${op}\\s+.+$`, 'i'),
+      `where ${column} ${op} ${quote(value)}`,
+    )
+  }
+
+  replaceOrPush(re: RegExp, query: string) {
+    if (!this.replace(re, query)) {
+      this.parts.push(query)
+    }
+    return this
+  }
+
+  replaceOrUnshift(re: RegExp, query: string) {
+    if (!this.replace(re, query)) {
+      this.parts.unshift(query)
+    }
+    return this
+  }
+
+  replace(re: RegExp, query: string) {
+    const i = this.parts.findIndex((part) => re.test(part))
+    if (i >= 0) {
+      this.parts[i] = query
+      return true
+    }
+    return false
+  }
+
+  filter(fn: (part: string) => boolean) {
+    this.parts = this.parts.filter(fn)
+    return this
+  }
+
+  groupBy(column: string) {
+    return this.add(`group by ${column}`)
+  }
+
+  resetGroupBy(column = '') {
+    this.filter((part) => !/^group by /i.test(part))
+    if (column) {
+      this.groupBy(column)
+    }
+    return this
+  }
+}
+
 export function splitQuery(query: string): string[] {
   return query
     .split(QUERY_PART_SEP)
@@ -165,100 +256,6 @@ export function joinQuery(parts: string[]): string {
       return part.trim()
     })
     .join(QUERY_PART_SEP)
-}
-
-//------------------------------------------------------------------------------
-
-export function createQueryEditor(query = '') {
-  return new QueryEditor(query)
-}
-
-export class QueryEditor {
-  parts: QueryPart[]
-
-  constructor(s: any = '') {
-    this.parts = parseParts(s)
-  }
-
-  toString() {
-    return formatParts(this.parts)
-  }
-
-  exploreAttr(column: string, isSpan = false) {
-    return this.add(exploreAttr(column, isSpan))
-  }
-
-  add(query: string) {
-    for (let part of parseParts(query)) {
-      const i = this.parts.findIndex((p) => p.query === part.query)
-      if (i === -1) {
-        this.parts.push(part)
-      }
-    }
-    return this
-  }
-
-  where(column: string, op: string, value?: any) {
-    if (value === undefined) {
-      return this.replaceOrPush(
-        new RegExp(`^where\\s+${escapeRe(column)}\\s+${op}$`, 'i'),
-        `where ${column} ${op}`,
-      )
-    }
-    return this.replaceOrPush(
-      new RegExp(`^where\\s+${escapeRe(column)}\\s+${op}\\s+.+$`, 'i'),
-      `where ${column} ${op} ${quote(value)}`,
-    )
-  }
-
-  replace(re: RegExp, query: string) {
-    const part = this.parts.find((part) => re.test(part.query))
-    if (part) {
-      part.query = query
-      return true
-    }
-    return false
-  }
-
-  replaceOrPush(re: RegExp, query: string) {
-    if (!this.replace(re, query)) {
-      this.parts.push(createQueryPart(query))
-    }
-    return this
-  }
-
-  replaceOrUnshift(re: RegExp, query: string) {
-    if (!this.replace(re, query)) {
-      this.parts.unshift(createQueryPart(query))
-    }
-    return this
-  }
-
-  remove(s: string | RegExp) {
-    let index: number
-
-    if (typeof s === 'string') {
-      index = this.parts.findIndex((part) => part.query === s)
-    } else {
-      index = this.parts.findIndex((part) => s.test(part.query))
-    }
-
-    if (index >= 0) {
-      this.parts.splice(index, 1)
-    }
-  }
-
-  groupBy(column: string) {
-    return this.add(`group by ${column}`)
-  }
-
-  resetGroupBy(column = '') {
-    this.remove(/^group by /i)
-    if (column) {
-      this.add(`group by ${column}`)
-    }
-    return this
-  }
 }
 
 export function buildWhere(column: string, op: string, value?: any) {

@@ -4,28 +4,21 @@
     hint="Select some metrics and use Aggregate button to plot something..."
     :disabled="disabled"
   >
-    <MetricsAggMenu v-if="showAgg" :metrics="metrics" :uql="uql" :disabled="disabled" />
-    <DashGroupingMenu
-      v-if="showGroupBy"
-      :uql="uql"
-      :attr-keys="keysDs.values"
-      :disabled="disabled"
-    />
-    <MetricsWhereMenu
-      v-if="showMetricsWhere"
-      :metrics="metrics"
-      :uql="uql"
-      :axios-params="axiosParams"
-      :disabled="disabled"
-    />
-    <DashWhereBtn v-if="showDashWhere" :uql="uql" :axios-params="axiosParams" />
+    <div class="d-flex align-center">
+      <MetricsAggMenu v-if="showAgg" :metrics="metrics" :uql="uql" :disabled="disabled" />
+      <DashGroupingMenu
+        v-if="showGroupBy"
+        :uql="uql"
+        :attr-keys="keysDs.values"
+        :disabled="disabled"
+      />
+      <DashWhereBtn v-if="showDashWhere" :uql="uql" :axios-params="axiosParams" />
 
-    <v-divider vertical class="mx-2" />
-
-    <QueryHelpDialog />
-    <v-btn text class="v-btn--filter" @click="uql.rawMode = !uql.rawMode">{{
-      uql.rawMode ? 'Cancel' : 'Edit'
-    }}</v-btn>
+      <QueryHelpDialog />
+      <v-btn text class="v-btn--filter" @click="uql.rawMode = !uql.rawMode">{{
+        uql.rawMode ? 'Cancel' : 'Edit'
+      }}</v-btn>
+    </div>
   </UptraceQuery>
 </template>
 
@@ -43,7 +36,6 @@ import { ActiveMetric } from '@/metrics/types'
 import UptraceQuery from '@/components/UptraceQuery.vue'
 import DashGroupingMenu from '@/metrics/query/DashGroupingMenu.vue'
 import DashWhereBtn from '@/metrics/query/DashWhereBtn.vue'
-import MetricsWhereMenu from '@/metrics/query/MetricsWhereMenu.vue'
 import MetricsAggMenu from '@/metrics/query/MetricsAggMenu.vue'
 import QueryHelpDialog from '@/metrics/query/QueryHelpDialog.vue'
 
@@ -54,7 +46,6 @@ export default defineComponent({
     DashGroupingMenu,
     MetricsAggMenu,
     DashWhereBtn,
-    MetricsWhereMenu,
     QueryHelpDialog,
   },
 
@@ -84,10 +75,6 @@ export default defineComponent({
       default: false,
     },
     showDashWhere: {
-      type: Boolean,
-      default: false,
-    },
-    showMetricsWhere: {
       type: Boolean,
       default: false,
     },

@@ -1,14 +1,14 @@
 <template>
   <v-container :fluid="$vuetify.breakpoint.lgAndDown">
-    <v-row v-if="activeMetrics.length" dense>
+    <v-row v-if="dashboard.tableMetrics.length" dense>
       <v-col>
         <v-card outlined rounded="lg" class="py-2 px-4">
-          <MetricsQueryBuilder
+          <DashQueryBuilder
             :date-range="dateRange"
-            :metrics="activeMetrics"
+            :metrics="dashboard.tableMetrics.map((m) => m.name)"
             :uql="uql"
-            show-dash-where
-          />
+          >
+          </DashQueryBuilder>
         </v-card>
       </v-col>
     </v-row>
@@ -154,12 +154,11 @@ import { useSyncQueryParams } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { useRoute } from '@/use/router'
 import { useDataSource } from '@/use/datasource'
-import { useUql, createQueryEditor } from '@/use/uql'
-import { useActiveMetrics } from '@/metrics/use-metrics'
+import { useUql, joinQuery, createQueryEditor } from '@/use/uql'
 import { useTableQuery } from '@/metrics/use-query'
 
 // Components
-import MetricsQueryBuilder from '@/metrics/query/MetricsQueryBuilder.vue'
+import DashQueryBuilder from '@/metrics/query/DashQueryBuilder.vue'
 import GroupingToggle from '@/metrics/query/GroupingToggle.vue'
 import TimeseriesTable from '@/metrics/TimeseriesTable.vue'
 import DashTableFormDialog from '@/metrics/DashTableFormDialog.vue'
@@ -176,7 +175,7 @@ import { Dashboard, DashKind, GridRow, GridItem, TableRowData } from '@/metrics/
 export default defineComponent({
   name: 'DashboardTable',
   components: {
-    MetricsQueryBuilder,
+    DashQueryBuilder,
     GroupingToggle,
     TimeseriesTable,
     DashTableFormDialog,
@@ -213,9 +212,27 @@ export default defineComponent({
   setup(props, ctx) {
     const route = useRoute()
     const dialog = shallowRef(false)
-    const uql = useUql()
 
-    const activeMetrics = useActiveMetrics(computed(() => props.dashboard.tableMetrics))
+    const re = /^(where|group\s+by)\s+/i
+    const baseQuery = computed(() => {
+      return createQueryEditor(props.dashboard.tableQuery)
+        .filter((part) => !re.test(part))
+        .toString()
+    })
+    const editableQuery = computed(() => {
+      return createQueryEditor(props.dashboard.tableQuery)
+        .filter((part) => re.test(part))
+        .toString()
+    })
+
+    const uql = useUql()
+    watch(
+      editableQuery,
+      (query) => {
+        uql.query = query
+      },
+      { immediate: true },
+    )
 
     const tableQuery = useTableQuery(
       () => {
@@ -228,16 +245,25 @@ export default defineComponent({
           time_offset: props.dashboard.timeOffset,
           metric: props.dashboard.tableMetrics.map((m) => m.name),
           alias: props.dashboard.tableMetrics.map((m) => m.alias),
-          query: uql.query,
+          query: joinQuery([uql.query, baseQuery.value]),
           min_interval: props.dashboard.minInterval,
         }
       },
       computed(() => props.dashboard.tableColumnMap),
     )
+    watch(
+      () => tableQuery.query,
+      (query) => {
+        if (query) {
+          uql.setQueryInfo(query)
+        }
+      },
+      { immediate: true },
+    )
 
     useSyncQueryParams({
       fromQuery(queryParams) {
-        queryParams.setDefault('query', props.dashboard.tableQuery)
+        queryParams.setDefault('query', editableQuery.value)
 
         props.dateRange.parseQueryParams(queryParams)
         tableQuery.order.parseQueryParams(queryParams)
@@ -251,25 +277,6 @@ export default defineComponent({
         }
       },
     })
-
-    // Update the query when the dashboard is updated.
-    watch(
-      () => props.dashboard.tableQuery,
-      (tableQuery) => {
-        uql.query = tableQuery
-      },
-      { immediate: true },
-    )
-
-    watch(
-      () => tableQuery.query,
-      (query) => {
-        if (query) {
-          uql.setQueryInfo(query)
-        }
-      },
-      { immediate: true },
-    )
 
     const attrKeysDs = useDataSource(() => {
       if (!props.dashboard.tableMetrics.length) {
@@ -317,7 +324,6 @@ export default defineComponent({
       dialog,
 
       uql,
-      activeMetrics,
       tableQuery,
 
       attrKeysDs,

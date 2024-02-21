@@ -232,7 +232,7 @@ export default defineComponent({
       const re = new RegExp(`^where\\s+${escapeRe(attr)}\\s+(=|in|like|not\\s+like)\\s+`, 'i')
 
       if (!value.length) {
-        editor.remove(re)
+        editor.filter((part) => !re.test(part))
         props.uql.query = editor.toString()
         return
       }

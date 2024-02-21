@@ -1,8 +1,8 @@
 <template>
-  <span>
+  <div>
     <v-btn text class="v-btn--filter" @click="drawer = !drawer">
       <v-icon left>mdi-filter</v-icon>
-      <span>Where</span>
+      <span>Filters</span>
     </v-btn>
 
     <v-navigation-drawer
@@ -43,13 +43,13 @@
       </v-system-bar>
 
       <FacetList
-        component="metrics"
+        component="tracing"
         :uql="uql"
         :axios-params="facetParams"
         @input="drawer = $event"
       />
     </v-navigation-drawer>
-  </span>
+  </div>
 </template>
 
 <script lang="ts">
@@ -63,7 +63,7 @@ import { UseUql } from '@/use/uql'
 import FacetList from '@/components/facet/FacetList.vue'
 
 export default defineComponent({
-  name: 'DashWhereBtn',
+  name: 'WhereSidebarBtn',
   components: { FacetList },
 
   props: {
@@ -103,11 +103,10 @@ export default defineComponent({
     }
 
     return {
-      facetParams,
-
       drawer,
       width,
       temporary,
+      facetParams,
 
       onClickOutside,
       closeConditional,

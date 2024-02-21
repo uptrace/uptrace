@@ -109,7 +109,7 @@ export class Lexer {
     if (isWhitespace(ch)) {
       return this.nextToken()
     }
-    if (isAlpha(ch)) {
+    if (ch === '_' || isAlpha(ch)) {
       return this.ident(this.i - 1)
     }
     if (isDigit(ch)) {

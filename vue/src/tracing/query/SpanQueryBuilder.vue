@@ -1,9 +1,6 @@
 <template>
   <div class="d-flex">
-    <v-btn text class="v-btn--filter" @click="drawer = true">
-      <v-icon small class="mr-1">mdi-page-layout-sidebar-left</v-icon>
-      <span>Filters</span>
-    </v-btn>
+    <WhereSidebarBtn :uql="uql" :axios-params="axiosParams" />
     <SearchFilterMenu :systems="systems" :uql="uql" />
     <DurationFilterMenu v-if="systems.isSpan" :uql="uql" />
     <AttrFilterMenu
@@ -19,25 +16,6 @@
     <QueryHelpDialog />
     <v-btn text class="v-btn--filter" @click="$emit('click:reset')">Reset</v-btn>
     <v-btn text class="v-btn--filter" @click="uql.rawMode = true">Edit</v-btn>
-
-    <v-navigation-drawer
-      v-model="drawer"
-      v-click-outside="{
-        handler: onClickOutside,
-        closeConditional,
-      }"
-      app
-      temporary
-      stateless
-      width="500"
-    >
-      <FacetList
-        component="tracing"
-        :uql="uql"
-        :axios-params="facetParams"
-        @input="drawer = $event"
-      />
-    </v-navigation-drawer>
   </div>
 </template>
 
@@ -45,7 +23,6 @@
 import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
 // Composables
-import { AxiosParams } from '@/use/axios'
 import { UseSystems } from '@/tracing/system/use-systems'
 import { UseUql } from '@/use/uql'
 
@@ -55,7 +32,7 @@ import DurationFilterMenu from '@/tracing/query/DurationFilterMenu.vue'
 import AttrFilterMenu from '@/tracing/query/AttrFilterMenu.vue'
 import AdvancedMenu from '@/tracing/query/AdvancedMenu.vue'
 import QueryHelpDialog from '@/tracing/query/QueryHelpDialog.vue'
-import FacetList from '@/components/facet/FacetList.vue'
+import WhereSidebarBtn from '@/tracing/query/WhereSidebarBtn.vue'
 
 // Misc
 import { AttrKey } from '@/models/otel'
@@ -68,7 +45,7 @@ export default defineComponent({
     AttrFilterMenu,
     AdvancedMenu,
     QueryHelpDialog,
-    FacetList,
+    WhereSidebarBtn,
   },
 
   props: {
@@ -81,7 +58,7 @@ export default defineComponent({
       required: true,
     },
     axiosParams: {
-      type: Object as PropType<AxiosParams>,
+      type: Object,
       required: true,
     },
     aggDisabled: {

@@ -136,7 +136,7 @@ export default defineComponent({
         )
 
         if (!values.length) {
-          editor.remove(re)
+          editor.filter((part) => !re.test(part))
           props.uql.query = editor.toString()
           return
         }

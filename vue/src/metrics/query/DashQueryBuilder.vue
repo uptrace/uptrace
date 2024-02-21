@@ -2,7 +2,6 @@
   <UptraceQuery :uql="uql">
     <DashWhereBtn :uql="uql" :axios-params="axiosParams" />
 
-    <v-divider vertical class="mx-2" />
     <v-btn text class="v-btn--filter" @click="uql.rawMode = !uql.rawMode">{{
       uql.rawMode ? 'Cancel' : 'Edit'
     }}</v-btn>

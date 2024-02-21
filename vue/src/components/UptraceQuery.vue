@@ -1,19 +1,17 @@
 <template>
   <div class="uptrace-query text-truncate">
-    <v-row no-gutters align="center" style="margin-bottom: 1px">
+    <v-row v-if="$slots.default" no-gutters align="center" style="margin-bottom: 1px">
       <v-col>
-        <div class="d-flex filters">
-          <slot />
-        </div>
+        <slot />
       </v-col>
 
       <v-col cols="auto">
-        <slot name="actions" />
+        <slot name="prepend-actions" />
       </v-col>
     </v-row>
 
     <template v-if="uql.rawMode">
-      <v-row align="center" no-gutters>
+      <v-row no-gutters align="center">
         <v-col>
           <v-textarea
             v-model="query"
@@ -32,7 +30,7 @@
         </v-col>
       </v-row>
       <v-row no-gutters class="mt-1">
-        <v-col class="text-caption grey--text text--darken-2">
+        <v-col cols="auto" class="text-caption grey--text text--darken-2">
           Press ENTER to apply and ESC to cancel
         </v-col>
         <v-spacer />
@@ -44,71 +42,92 @@
     </template>
 
     <v-row v-else-if="!uql.parts.length" no-gutters align="center">
-      <v-col class="mb-1 px-2 text-body-2">
+      <v-col class="my-1 px-2 text-body-2">
         <div v-if="disabled" class="text--disabled">The query is empty...</div>
         <div v-else class="text--secondary cursor-pointer" @click="uql.rawMode = true">
-          Click to edit the query...
+          {{ hint }}
         </div>
       </v-col>
     </v-row>
 
     <v-row v-else no-gutters align="center">
-      <v-col class="d-flex flex-wrap align-start">
-        <div v-for="part in uql.parts" :key="part.id" class="mr-2 mb-1 d-flex text-truncate">
-          <v-text-field
-            v-if="part.id === partEditor.partId"
-            v-model="partEditor.query"
-            v-autowidth="{ minWidth: '200px', maxWidth: 580 }"
-            :error-messages="part.error"
-            outlined
-            dense
-            hide-details="auto"
-            autofocus
-            style="max-width: 600px"
-            @keyup.enter.stop.prevent
-            @keydown.enter.stop.prevent="partEditor.applyEdits(part)"
-            @keydown.esc.stop.prevent="partEditor.cancelEdits(part)"
-            @blur="partEditor.applyEdits(part)"
-          />
-          <UptraceQueryChip
-            v-else
-            :key="part.id"
-            :query="part.query"
-            :error="part.error"
-            :disabled="part.disabled || disabled"
-            deletable
-            class="mr-2 mb-1"
-            @click:edit="partEditor.startEditing(part)"
-            @click:delete="uql.removePart(part)"
-          />
-        </div>
+      <v-col>
+        <draggable v-model="uql.parts" handle=".draggable-handle" class="d-flex flex-wrap">
+          <div v-for="part in uql.parts" :key="part.id" class="mr-1 mb-1 d-flex text-truncate">
+            <v-text-field
+              v-if="part.id === partEditor.partId"
+              v-model="partEditor.query"
+              v-autowidth="{ minWidth: 200, maxWidth: 580 }"
+              :error-messages="part.error"
+              outlined
+              dense
+              hide-details="auto"
+              autofocus
+              style="max-width: 600px"
+              @keyup.enter.stop.prevent
+              @keydown.enter.stop.prevent="partEditor.applyEdits(part)"
+              @keydown.esc.stop.prevent="partEditor.cancelEdits(part)"
+              @blur="partEditor.applyEdits(part)"
+            />
+            <template v-else>
+              <v-icon
+                title="Drag and drop to change order"
+                class="d-block draggable-handle"
+                style="margin-top: 2px; margin-right: -1px"
+                >mdi-drag</v-icon
+              >
+              <UptraceQueryChip
+                :key="part.id"
+                :query="part.query"
+                :error="part.error"
+                :disabled="part.disabled || disabled"
+                deletable
+                class="mr-2 mb-1"
+                @click:edit="partEditor.startEditing(part)"
+                @click:delete="uql.removePart(part)"
+              />
+            </template>
+          </div>
 
-        <v-btn v-if="!partEditor.editing" depressed small class="py-4" @click="partEditor.add">
-          <v-icon left>mdi-plus</v-icon>
-          <span>Add query</span>
-        </v-btn>
+          <v-btn
+            v-if="!partEditor.editing"
+            key="add-btn"
+            depressed
+            small
+            class="py-4"
+            @click="partEditor.add"
+          >
+            <v-icon left>mdi-plus</v-icon>
+            <span>Add expr</span>
+          </v-btn>
+        </draggable>
       </v-col>
     </v-row>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed, watch, proxyRefs, PropType } from 'vue'
+import { defineComponent, shallowRef, watch, computed, proxyRefs, PropType } from 'vue'
 
 // Composables
 import { createQueryPart, QueryPart, UseUql } from '@/use/uql'
 
 // Components
+import draggable from 'vuedraggable'
 import UptraceQueryChip from '@/components/UptraceQueryChip.vue'
 
 export default defineComponent({
   name: 'UptraceQuery',
-  components: { UptraceQueryChip },
+  components: { draggable, UptraceQueryChip },
 
   props: {
     uql: {
       type: Object as PropType<UseUql>,
       required: true,
+    },
+    hint: {
+      type: String,
+      default: 'Click to edit the query...',
     },
     disabled: {
       type: Boolean,
@@ -116,7 +135,7 @@ export default defineComponent({
     },
   },
 
-  setup(props) {
+  setup(props, ctx) {
     const query = shallowRef('')
 
     watch(
@@ -139,6 +158,8 @@ export default defineComponent({
       props.uql.rawMode = false
       if (save) {
         props.uql.query = query.value
+      } else {
+        query.value = props.uql.query
       }
     }
 
@@ -201,17 +222,14 @@ function usePartEditor(uql: UseUql) {
 </script>
 
 <style lang="scss" scoped>
+.draggable-handle {
+  cursor: move;
+}
+
 .v-chip ::v-deep .v-icon {
   font-size: 20px;
   width: 20px;
   height: 20px;
-}
-
-.uptrace-query ::v-deep .v-divider--vertical {
-  min-height: 80% !important;
-  height: 80% !important;
-  max-height: 80% !important;
-  align-self: center !important;
 }
 </style>
 

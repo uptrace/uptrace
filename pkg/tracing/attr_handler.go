@@ -140,7 +140,7 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 	q = q.ColumnExpr("? AS value", ch.Safe(chExpr)).
 		GroupExpr("value").
 		ColumnExpr("count() AS count")
-	if !strings.HasPrefix(f.AttrKey, ".") {
+	if !strings.HasPrefix(f.AttrKey, "_") {
 		q = q.Where("has(s.all_keys, ?)", attr.Name)
 	}
 	if f.SearchInput != "" {

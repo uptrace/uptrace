@@ -236,14 +236,9 @@ export default defineComponent({
           return 'err%'
       }
 
-      let m = name.match(/^([0-9a-z]+)\(\.duration\)$/)
+      let m = name.match(/^([0-9a-z]+)\(_duration\)$/)
       if (m) {
         return m[1]
-      }
-
-      const spanPrefix = 'span.'
-      if (name.startsWith(spanPrefix)) {
-        name = name.slice(spanPrefix.length)
       }
 
       m = name.match(/^(\w+)_per_(\w+)$/)
