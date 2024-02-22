@@ -3,10 +3,11 @@ import VueRouter, { RouteConfig, NavigationGuard } from 'vue-router'
 
 // Composables
 import { useUser } from '@/org/use-users'
-import { useProject } from '@/org/use-projects'
 
 import NotFoundPage from '@/org/views/NotFoundPage.vue'
+import Project from '@/org/views/Project.vue'
 import ProjectSettings from '@/org/views/ProjectSettings.vue'
+import ProjectDsn from '@/org/views/ProjectDsn.vue'
 
 import Alerting from '@/alerting/views/Alerting.vue'
 import AlertList from '@/alerting/views/AlertList.vue'
@@ -81,9 +82,20 @@ const routes: RouteConfig[] = [
     component: TracingHelp,
   },
   {
-    name: 'ProjectShow',
     path: '/projects/:projectId(\\d+)',
-    component: ProjectSettings,
+    component: Project,
+    children: [
+      {
+        name: 'ProjectShow',
+        path: '',
+        components: { tab: ProjectSettings },
+      },
+      {
+        name: 'ProjectDsn',
+        path: 'dsn',
+        components: { tab: ProjectDsn },
+      },
+    ],
   },
 
   {
@@ -368,10 +380,8 @@ function redirectToProject(routeName: string): NavigationGuard {
     const user = useUser()
     await user.getOrLoad()
 
-    const project = useProject()
-
     for (let p of user.projects) {
-      if (p.id === project.lastProjectId) {
+      if (p.id === user.lastProjectId) {
         next({ name: routeName, params: { projectId: String(p.id) } })
         return
       }

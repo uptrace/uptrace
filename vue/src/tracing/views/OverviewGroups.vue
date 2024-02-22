@@ -1,31 +1,37 @@
 <template>
-  <v-card outlined rounded="lg">
-    <v-toolbar flat color="light-blue lighten-5">
-      <v-toolbar-title>{{ system }} groups</v-toolbar-title>
-      <v-spacer />
-      <v-btn :to="groupListRoute" small class="primary">View groups</v-btn>
-    </v-toolbar>
+  <v-container :fluid="$vuetify.breakpoint.lgAndDown">
+    <v-row>
+      <v-col>
+        <v-card outlined rounded="lg">
+          <v-toolbar flat color="light-blue lighten-5">
+            <v-toolbar-title>{{ system }} groups</v-toolbar-title>
+            <v-spacer />
+            <v-btn :to="groupListRoute" small class="primary">View groups</v-btn>
+          </v-toolbar>
 
-    <v-container fluid>
-      <v-row>
-        <v-col>
-          <ApiErrorCard v-if="groups.error" :error="groups.error" />
-          <PagedGroupsCard
-            v-else
-            :date-range="dateRange"
-            :systems="[system]"
-            :loading="groups.loading"
-            :groups="groups.items"
-            :columns="groups.columns"
-            :plottable-columns="groups.plottableColumns"
-            :plotted-columns="[AttrKey.spanCountPerMin]"
-            :order="groups.order"
-            :axios-params="groups.axiosParams"
-          />
-        </v-col>
-      </v-row>
-    </v-container>
-  </v-card>
+          <v-container fluid>
+            <v-row>
+              <v-col>
+                <ApiErrorCard v-if="groups.error" :error="groups.error" />
+                <PagedGroupsCard
+                  v-else
+                  :date-range="dateRange"
+                  :systems="[system]"
+                  :loading="groups.loading"
+                  :groups="groups.items"
+                  :columns="groups.columns"
+                  :plottable-columns="groups.plottableColumns"
+                  :plotted-columns="[AttrKey.spanCountPerMin]"
+                  :order="groups.order"
+                  :axios-params="groups.axiosParams"
+                />
+              </v-col>
+            </v-row>
+          </v-container>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script lang="ts">

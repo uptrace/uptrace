@@ -1,36 +1,37 @@
 <template>
-  <div class="text-no-wrap">
-    <v-btn
-      icon
-      :disabled="!dateRange.hasPrevPeriod"
-      title="Previous period"
-      @click="dateRange.prevPeriod"
-    >
-      <v-icon class="small">mdi-chevron-left</v-icon>
-    </v-btn>
+  <div class="d-flex align-center justify-end flex-wrap">
+    <div class="d-flex align-center flex-nowrap">
+      <v-btn
+        icon
+        :disabled="!dateRange.hasPrevPeriod"
+        title="Previous period"
+        @click="dateRange.prevPeriod"
+      >
+        <v-icon class="small">mdi-chevron-left</v-icon>
+      </v-btn>
 
-    <DateRangePickerMenu :date-range="dateRange" />
-    <PeriodPickerMenu
-      :value="dateRange.duration"
-      :periods="periods"
-      @input="dateRange.changeDuration($event)"
-    />
+      <DateRangePickerMenu :date-range="dateRange" />
+      <PeriodPickerMenu
+        :value="dateRange.duration"
+        :periods="periods"
+        @input="dateRange.changeDuration($event)"
+      />
 
-    <v-btn
-      icon
-      :disabled="!dateRange.hasNextPeriod"
-      title="Next period"
-      @click="dateRange.nextPeriod"
-    >
-      <v-icon class="small">mdi-chevron-right</v-icon>
-    </v-btn>
+      <v-btn
+        icon
+        :disabled="!dateRange.hasNextPeriod"
+        title="Next period"
+        @click="dateRange.nextPeriod"
+      >
+        <v-icon class="small">mdi-chevron-right</v-icon>
+      </v-btn>
+    </div>
 
-    <v-btn small outlined class="ml-2" @click="dateRange.reload">
-      <v-icon small left>mdi-refresh</v-icon>
-      <span>Reload</span>
+    <v-btn :loading="forceReload.loading" icon @click="dateRange.reload">
+      <v-icon>mdi-refresh</v-icon>
     </v-btn>
     <v-btn v-if="!dateRange.isNow" small outlined class="ml-2" @click="dateRange.reloadNow">
-      <span>Now</span>
+      <span>Reset</span>
     </v-btn>
   </div>
 </template>
@@ -40,6 +41,7 @@ import { defineComponent, computed, watchEffect, onMounted, PropType } from 'vue
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
+import { injectForceReload } from '@/use/force-reload'
 
 // Components
 import PeriodPickerMenu from '@/components/date/PeriodPickerMenu.vue'
@@ -69,6 +71,8 @@ export default defineComponent({
   },
 
   setup(props) {
+    const forceReload = injectForceReload()
+
     const periods = computed(() => {
       return periodsForDays(props.rangeDays)
     })
@@ -88,7 +92,7 @@ export default defineComponent({
       })
     })
 
-    return { periods }
+    return { forceReload, periods }
   },
 })
 </script>

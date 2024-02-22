@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid>
+  <v-container :fluid="$vuetify.breakpoint.lgAndDown">
     <v-row v-if="!serviceGraph.status.hasData()">
       <v-col>
         <v-skeleton-loader type="card" loading></v-skeleton-loader>
@@ -42,6 +42,21 @@
               dense
               hide-details="auto"
             >
+              <template #item="{ item }">
+                <v-list-item-action>
+                  <v-checkbox :input-value="activeEdgeTypes.includes(item.value)"></v-checkbox>
+                </v-list-item-action>
+                <v-list-item-content>
+                  <v-list-item-title>
+                    <div v-html="item.text"></div>
+                  </v-list-item-title>
+                </v-list-item-content>
+                <v-list-item-action>
+                  <v-list-item-action-text>
+                    <NumValue :value="item.count" />
+                  </v-list-item-action-text>
+                </v-list-item-action>
+              </template>
             </v-select>
           </v-col>
         </v-row>
@@ -92,7 +107,7 @@
               v-model="errorRateRange"
               :min="minErrorRate"
               :max="maxErrorRate"
-              :step="0.001"
+              :step="errorRateStep"
               hide-details
             >
             </v-range-slider>
@@ -361,7 +376,7 @@ export default defineComponent({
       }
       return 0
     })
-    const maxErrorRate = computed(() => {
+    const _maxErrorRate = computed(() => {
       let max = 0
       for (let edge of serviceGraph.edges) {
         if (edge.errorRate > max) {
@@ -369,6 +384,17 @@ export default defineComponent({
         }
       }
       return max
+    })
+    const errorRateStep = computed(() => {
+      const delta = _maxErrorRate.value - minErrorRate.value
+      if (delta >= 0.1) {
+        return 0.01
+      }
+      return 0.001
+    })
+    const maxErrorRate = computed(() => {
+      const prec = 1 / errorRateStep.value
+      return Math.round((_maxErrorRate.value + Number.EPSILON) * prec) / prec
     })
     watch(
       () => [minErrorRate.value, maxErrorRate.value],
@@ -404,7 +430,7 @@ export default defineComponent({
 
     function tracingGroupsRouteForNode(node: ServiceGraphNode) {
       const routeQuery: Record<string, any> = {}
-      const query = createQueryEditor(where.value).exploreAttr(AttrKey.spanGroupId, true)
+      const query = createQueryEditor(where.value).exploreAttr(AttrKey.spanGroupId)
 
       if (node.attr === AttrKey.spanSystem) {
         routeQuery.system = node.name
@@ -431,7 +457,7 @@ export default defineComponent({
 
       const routeQuery: Record<string, any> = {}
       const query = createQueryEditor()
-        .exploreAttr(AttrKey.spanGroupId, true)
+        .exploreAttr(AttrKey.spanGroupId)
         .add(where.value)
         .where(AttrKey.serviceName, '=', link.clientName)
 
@@ -589,6 +615,7 @@ export default defineComponent({
       errorRateRange,
       minErrorRate,
       maxErrorRate,
+      errorRateStep,
 
       tracingGroupsRoute,
       monitorMenuItems,

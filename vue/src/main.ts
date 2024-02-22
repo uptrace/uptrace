@@ -13,6 +13,7 @@ import '@/plugins/axios'
 import '@/plugins/prism'
 import '@/plugins/global'
 import vuetify from '@/plugins/vuetify'
+import '@/plugins/portal'
 
 Vue.config.productionTip = false
 

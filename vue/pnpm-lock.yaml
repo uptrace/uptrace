@@ -47,6 +47,9 @@ dependencies:
   numbro:
     specifier: 2.4.0
     version: 2.4.0
+  portal-vue:
+    specifier: 2.1.7
+    version: 2.1.7
   prismjs:
     specifier: 1.29.0
     version: 1.29.0
@@ -6271,6 +6274,14 @@ packages:
     resolution: {integrity: sha512-t6rVkO1CcKvffvOJJu/zMo70VIcQSR6w3AmIhfHGvmk4vHbNe6zHgomB0aWFAPZWM9JBVWBM0efJv9DBiRoSTA==}
     dependencies:
       bignumber.js: 8.1.1
+    dev: false
+
+  /portal-vue/2.1.7(vue@2.7.15):
+    resolution: {integrity: sha512-+yCno2oB3xA7irTt0EU5Ezw22L2J51uKAacE/6hMPMoO/mx3h4rXFkkBkT4GFsMDv/vEe8TNKC3ujJJ0PTwb6g==}
+    peerDependencies:
+      vue: ^2.5.18
+    dependencies:
+      vue: 2.7.15
     dev: false
 
   /nwsapi@2.2.4:

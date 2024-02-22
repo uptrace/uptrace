@@ -1,23 +1,14 @@
 <template>
   <div>
+    <portal to="navigation">
+      <v-tabs :key="$route.fullPath" background-color="transparent">
+        <v-tab :to="{ name: 'DashboardList' }" exact-path>Dashboards</v-tab>
+        <v-tab :to="{ name: 'MetricsExplore' }" exact-path>Explore Metrics</v-tab>
+      </v-tabs>
+    </portal>
+
     <HelpCard v-if="metrics.noData" :loading="metrics.loading" show-reload />
-
-    <template v-else>
-      <div class="border">
-        <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pb-0">
-          <v-row align="end" no-gutters>
-            <v-col>
-              <v-tabs :key="$route.fullPath" background-color="transparent">
-                <v-tab :to="{ name: 'DashboardList' }" exact-path>Dashboards</v-tab>
-                <v-tab :to="{ name: 'MetricsExplore' }" exact-path>Metrics</v-tab>
-              </v-tabs>
-            </v-col>
-          </v-row>
-        </v-container>
-      </div>
-
-      <router-view name="metrics" :date-range="dateRange" />
-    </template>
+    <router-view v-else name="metrics" :date-range="dateRange" />
   </div>
 </template>
 

@@ -1,9 +1,10 @@
-import { computed, proxyRefs, watch, Ref } from 'vue'
+import { computed, proxyRefs, Ref } from 'vue'
 
 // Composables
-import { useStorage } from '@/use/local-storage'
-import { useRouter } from '@/use/router'
+import { injectForceReload } from '@/use/force-reload'
+import { useUser } from '@/org/use-users'
 import { useWatchAxios } from '@/use/watch-axios'
+import { useGlobalStore } from '@/use/store'
 
 export interface Project {
   id: number
@@ -14,15 +15,14 @@ export interface Project {
   token: string
 }
 
-export function useProject() {
-  const { route } = useRouter()
-  const lastProjectId = useStorage('useProject:lastProjectId', 0)
+export const useProject = useGlobalStore('useProject', () => {
+  const user = useUser()
+  const forceReload = injectForceReload()
 
-  const { data } = useWatchAxios(() => {
-    const { projectId } = route.value.params
-    return {
-      url: `/internal/v1/projects/${projectId}`,
-    }
+  const { status, loading, data, reload } = useWatchAxios(() => {
+    const projectId = user.activeProjectId
+    const url = `/internal/v1/projects/${projectId}`
+    return { url, params: forceReload.params }
   })
 
   const project = computed((): Project | undefined => {
@@ -37,19 +37,16 @@ export function useProject() {
     return project.value?.pinnedAttrs ?? []
   })
 
-  watch(project, (project) => {
-    if (project) {
-      lastProjectId.value = project.id
-    }
-  })
-
   return proxyRefs({
+    status,
+    loading,
+    reload,
+
     data: project,
     dsn,
     pinnedAttrs,
-    lastProjectId,
   })
-}
+})
 
 export function useDsn(dsn: Ref<string>) {
   const url = computed(() => {

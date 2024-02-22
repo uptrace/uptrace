@@ -1,14 +1,17 @@
 <template>
   <div>
+    <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="py-1">
+      <slot name="breadcrumbs" />
+    </v-container>
+
     <PageToolbar :fluid="$vuetify.breakpoint.lgAndDown">
       <v-toolbar-title>Alerts</v-toolbar-title>
-
       <v-spacer />
 
-      <ForceReloadBtn />
+      <ForceReloadBtn small />
     </PageToolbar>
 
-    <v-container :fluid="!$vuetify.breakpoint.xlOnly">
+    <v-container :fluid="$vuetify.breakpoint.lgAndDown">
       <v-row>
         <v-col cols="4" md="3">
           <AlertsSidebar :faceted-search="facetedSearch" :facets="alerts.facets" />
@@ -16,37 +19,30 @@
 
         <v-col cols="8" md="9">
           <v-simple-table v-if="alerts.items.length" class="border-bottom">
-            <tbody>
+            <thead>
               <tr>
                 <td>
                   <AlertSelection :selection="selection" @change="alerts.reload()" />
                 </td>
                 <td class="d-flex align-center justify-end">
-                  <AlertOrderPicker
-                    v-if="alerts.items.length"
-                    v-model="alerts.order.column"
-                    style="max-width: 200px"
-                  />
+                  <AlertOrderPicker v-model="alerts.order.column" style="max-width: 200px" />
                 </td>
               </tr>
-            </tbody>
+            </thead>
           </v-simple-table>
 
           <AlertsTable
             :loading="alerts.loading"
             :alerts="alerts.items"
             :order="alerts.order"
-            :pager="alerts.pager"
             @click:alert="showAlert($event)"
             @click:chip="facetedSearch.select"
           >
             <template #prepend-column="{ alert }">
-              <td class="pr-0" @click.stop="selection.toggle(alert)">
+              <td class="pr-0">
                 <v-checkbox
-                  v-model="selection.alertIds"
-                  :value="alert.id"
-                  multiple
-                  @click.stop.prevent
+                  :input-value="selection.alertIds.includes(alert.id)"
+                  @click.stop="selection.toggle(alert)"
                 ></v-checkbox>
               </td>
             </template>
@@ -102,11 +98,10 @@ export default defineComponent({
 
   setup() {
     useTitle('Alerts')
+    const forceReload = injectForceReload()
 
     const dialog = shallowRef(false)
     const activeAlertId = shallowRef<number>()
-
-    const forceReload = injectForceReload()
 
     const pager = usePager()
     const facetedSearch = useFacetedSearch()

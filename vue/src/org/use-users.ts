@@ -1,47 +1,54 @@
-import { computed, proxyRefs } from 'vue'
+import { computed, proxyRefs, shallowReactive } from 'vue'
 
 import router from '@/router'
 
 // Composables
+import { useStorage } from '@/use/local-storage'
 import { useRoute } from '@/use/router'
-import { defineStore } from '@/use/store'
+import { useGlobalStore } from '@/use/store'
 import { useAxios } from '@/use/axios'
 import { useWatchAxios } from '@/use/watch-axios'
 import { Project } from '@/org/use-projects'
 
 export interface User {
+  id: number
   name: string
   email: string
   avatar: string
 }
 
-export const useUser = defineStore(() => {
+export const useUser = useGlobalStore('useUser', () => {
   const route = useRoute()
   const { loading, data, request } = useAxios()
 
-  const user = computed((): User | undefined => {
-    return data.value?.user
+  const user = computed((): User => {
+    return shallowReactive(data.value?.user ?? { id: 0, name: 'Guest', budget: 0 })
   })
 
   const isAuth = computed((): boolean => {
-    return user.value !== undefined
+    return Boolean(user.value.id)
   })
 
   const projects = computed((): Project[] => {
     return data.value?.projects ?? []
   })
 
-  const activeProject = computed((): Project | undefined => {
-    const projectId = parseInt(route.value.params.projectId)
-    if (!projectId) {
-      return
+  const lastProjectId = useStorage(
+    computed(() => `last-project-id:${user.value.id}`),
+    0,
+  )
+  const activeProjectId = computed(() => {
+    if (route.value.params.projectId) {
+      return parseInt(route.value.params.projectId)
     }
-    for (let p of projects.value) {
-      if (p.id === projectId) {
-        return p
-      }
+    if (!lastProjectId.value) {
+      return projects.value[0]?.id
     }
-    return undefined
+    const found = projects.value.find((p) => p.id === lastProjectId.value)
+    if (found) {
+      return found.id
+    }
+    return projects.value[0]?.id
   })
 
   let req: Promise<any>
@@ -73,7 +80,8 @@ export const useUser = defineStore(() => {
     current: user,
     isAuth,
     projects,
-    activeProject,
+    lastProjectId,
+    activeProjectId,
 
     reload,
     getOrLoad,
