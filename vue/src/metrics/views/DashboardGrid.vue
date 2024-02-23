@@ -1,12 +1,24 @@
 <template>
-  <DashGrid
-    :date-range="dateRange"
-    :dashboard="dashboard"
-    :grid-rows="gridRows"
-    :grid-metrics="gridMetrics"
-    :grid-query="gridQuery"
-    @change="$emit('change', $event)"
-  />
+  <div>
+    <portal to="dashboard-actions">
+      <v-col cols="auto">
+        <NewGridItemMenu
+          :date-range="dateRange"
+          :dashboard="dashboard"
+          :dash-kind="DashKind.Grid"
+          @change="$emit('change', $event)"
+        />
+      </v-col>
+    </portal>
+    <DashGrid
+      :date-range="dateRange"
+      :dashboard="dashboard"
+      :grid-rows="gridRows"
+      :grid-metrics="gridMetrics"
+      :grid-query="gridQuery"
+      @change="$emit('change', $event)"
+    />
+  </div>
 </template>
 
 <script lang="ts">
@@ -17,14 +29,15 @@ import { useSyncQueryParams } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 
 // Components
+import NewGridItemMenu from '@/metrics/NewGridItemMenu.vue'
 import DashGrid from '@/metrics/DashGrid.vue'
 
 // Misc
-import { Dashboard, GridRow } from '@/metrics/types'
+import { Dashboard, DashKind, GridRow } from '@/metrics/types'
 
 export default defineComponent({
   name: 'DashboardGrid',
-  components: { DashGrid },
+  components: { NewGridItemMenu, DashGrid },
 
   props: {
     dateRange: {
@@ -67,7 +80,7 @@ export default defineComponent({
       },
     })
 
-    return {}
+    return { DashKind }
   },
 })
 </script>

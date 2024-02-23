@@ -1,35 +1,31 @@
 <template>
   <div>
-    <div class="border-bottom">
-      <v-container :fluid="!$vuetify.breakpoint.xlOnly" class="py-0">
-        <v-toolbar flat color="transparent" height="auto">
-          <v-breadcrumbs large :items="breadcrumbs" divider=">" class="px-0"></v-breadcrumbs>
+    <portal to="navigation">
+      <v-tabs :key="$route.fullPath" background-color="transparent">
+        <v-tab :to="{ name: 'AlertList' }">Alerts</v-tab>
+        <v-tab :to="{ name: 'MonitorList' }">Monitors</v-tab>
+        <v-tab :to="{ name: 'NotifChannelList' }">Channels</v-tab>
+        <v-tab :to="{ name: 'NotifChannelEmail' }">Email notifications</v-tab>
+        <v-tab :to="{ name: 'AnnotationList' }">Annotations</v-tab>
 
-          <template #extension>
-            <v-tabs :key="$route.fullPath" background-color="transparent">
-              <v-tab :to="{ name: 'AlertList' }">Alerts</v-tab>
-              <v-tab :to="{ name: 'MonitorList' }">Monitors</v-tab>
-              <v-tab :to="{ name: 'NotifChannelList' }">Channels</v-tab>
-              <v-tab :to="{ name: 'NotifChannelEmail' }">Email notifications</v-tab>
-              <v-tab :to="{ name: 'AnnotationList' }">Annotations</v-tab>
+        <v-btn
+          small
+          plain
+          href="https://uptrace.dev/get/alerting.html"
+          target="_blank"
+          class="ml-10 align-self-center"
+        >
+          <span>Documentation</span>
+          <v-icon small class="ml-1">mdi-open-in-new</v-icon>
+        </v-btn>
+      </v-tabs>
+    </portal>
 
-              <v-btn
-                small
-                plain
-                href="https://uptrace.dev/get/alerting.html"
-                target="_blank"
-                class="ml-10 align-self-center"
-              >
-                <span>Documentation</span>
-                <v-icon small class="ml-1">mdi-open-in-new</v-icon>
-              </v-btn>
-            </v-tabs>
-          </template>
-        </v-toolbar>
-      </v-container>
-    </div>
-
-    <router-view name="alerting" />
+    <router-view name="alerting">
+      <template #breadcrumbs>
+        <v-breadcrumbs large :items="breadcrumbs" divider=">" class="px-1"></v-breadcrumbs>
+      </template>
+    </router-view>
   </div>
 </template>
 

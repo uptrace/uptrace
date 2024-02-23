@@ -1,5 +1,14 @@
 <template>
   <div>
+    <portal to="navigation">
+      <SystemGroupPicker
+        :loading="systems.loading"
+        :value="systems.activeSystems"
+        :systems="systems.items"
+        @update:systems="systemItems = $event"
+      />
+    </portal>
+
     <TracingPlaceholder v-if="systems.dataHint" :date-range="dateRange" :systems="systems" />
 
     <template v-else>
@@ -11,14 +20,6 @@
                 v-model="systems.activeSystems"
                 :loading="systems.loading"
                 :systems="systemItems"
-              />
-            </v-col>
-            <v-col cols="auto">
-              <SystemGroupPicker
-                :loading="systems.loading"
-                :value="systems.activeSystems"
-                :systems="systems.items"
-                @update:systems="systemItems = $event"
               />
             </v-col>
 

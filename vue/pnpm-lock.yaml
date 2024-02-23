@@ -47,6 +47,9 @@ dependencies:
   numbro:
     specifier: 2.4.0
     version: 2.4.0
+  portal-vue:
+    specifier: 2.1.7
+    version: 2.1.7(vue@2.7.15)
   prismjs:
     specifier: 1.29.0
     version: 1.29.0
@@ -6549,6 +6552,14 @@ packages:
     dependencies:
       find-up: 4.1.0
     dev: true
+
+  /portal-vue@2.1.7(vue@2.7.15):
+    resolution: {integrity: sha512-+yCno2oB3xA7irTt0EU5Ezw22L2J51uKAacE/6hMPMoO/mx3h4rXFkkBkT4GFsMDv/vEe8TNKC3ujJJ0PTwb6g==}
+    peerDependencies:
+      vue: ^2.5.18
+    dependencies:
+      vue: 2.7.15
+    dev: false
 
   /portfinder@1.0.32:
     resolution: {integrity: sha512-on2ZJVVDXRADWE6jnQaX0ioEylzgBpQk8r55NE4wjXW1ZxO+BgDlY6DXwj20i0V8eB4SenDQ00WEaxfiIQPcxg==}

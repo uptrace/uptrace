@@ -1,5 +1,16 @@
 <template>
   <v-container :fluid="$vuetify.breakpoint.lgAndDown">
+    <portal to="dashboard-actions">
+      <v-col cols="auto">
+        <NewGridItemMenu
+          :date-range="dateRange"
+          :dashboard="dashboard"
+          :dash-kind="DashKind.Table"
+          @change="$emit('change', $event)"
+        />
+      </v-col>
+    </portal>
+
     <v-row v-if="dashboard.tableMetrics.length" dense>
       <v-col>
         <v-card outlined rounded="lg" class="py-2 px-4">
@@ -159,6 +170,7 @@ import { useTableQuery } from '@/metrics/use-query'
 
 // Components
 import DashQueryBuilder from '@/metrics/query/DashQueryBuilder.vue'
+import NewGridItemMenu from '@/metrics/NewGridItemMenu.vue'
 import GroupingToggle from '@/metrics/query/GroupingToggle.vue'
 import TimeseriesTable from '@/metrics/TimeseriesTable.vue'
 import DashTableFormDialog from '@/metrics/DashTableFormDialog.vue'
@@ -176,6 +188,7 @@ export default defineComponent({
   name: 'DashboardTable',
   components: {
     DashQueryBuilder,
+    NewGridItemMenu,
     GroupingToggle,
     TimeseriesTable,
     DashTableFormDialog,

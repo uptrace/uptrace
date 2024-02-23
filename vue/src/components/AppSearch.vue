@@ -1,7 +1,7 @@
 <template>
   <div>
     <v-text-field
-      v-if="value || $vuetify.breakpoint.lgAndUp"
+      v-if="value"
       ref="textField"
       v-model="searchInput"
       prepend-inner-icon="mdi-magnify"
@@ -10,7 +10,7 @@
       flat
       solo
       background-color="grey lighten-4"
-      style="width: 280px"
+      style="width: 360px"
       @keyup.enter="submit"
       @keyup.esc="hideSearch"
       @blur="hideSearch"

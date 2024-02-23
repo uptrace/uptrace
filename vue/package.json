@@ -24,6 +24,7 @@
     "lodash-es": "4.17.21",
     "markdown-it": "13.0.2",
     "numbro": "2.4.0",
+    "portal-vue": "2.1.7",
     "prismjs": "1.29.0",
     "querystring-es3": "0.2.1",
     "roboto-fontface": "0.10.0",

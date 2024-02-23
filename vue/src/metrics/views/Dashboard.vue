@@ -16,11 +16,9 @@
       <v-container :fluid="$vuetify.breakpoint.lgAndDown">
         <v-progress-linear v-if="dashboard.loading" top absolute indeterminate></v-progress-linear>
 
-        <v-row align="center">
+        <v-row align="center" dense>
           <v-col cols="auto">
-            <v-col cols="auto">
-              <DashPicker :loading="dashboards.loading" :items="dashboards.items" />
-            </v-col>
+            <DashPicker :loading="dashboards.loading" :items="dashboards.items" />
           </v-col>
           <v-col v-if="dashboard.data" cols="auto">
             <DashboardMenu
@@ -32,18 +30,22 @@
               "
               @deleted="$router.push({ name: 'DashboardList' })"
             />
-            <DashPinBtn v-if="dashboard.data" :dashboard="dashboard.data" @update="onPinDash" />
+            <DashPinBtn :dashboard="dashboard.data" @update="onPinDash" />
+          </v-col>
+          <v-col v-if="dashboard.data" cols="auto">
+            <RelatedDashboardsTabs
+              :dashboard="dashboard.data"
+              :dashboards="dashboards.items"
+              class="ml-2"
+            />
           </v-col>
           <v-spacer />
-          <v-col cols="auto">
-            <DateRangePicker :date-range="dateRange" :range-days="90" />
-          </v-col>
         </v-row>
       </v-container>
 
       <div class="border">
         <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="py-0">
-          <v-row align="center" justify="space-between" no-gutters>
+          <v-row align="center">
             <v-col v-if="$route.params.dashId" cols="auto">
               <v-tabs>
                 <v-tab :to="{ name: 'DashboardTable' }" exact-path>Table</v-tab>
@@ -51,19 +53,16 @@
                 <v-tab :to="{ name: 'DashboardHelp' }" exact-path>Help</v-tab>
               </v-tabs>
             </v-col>
-            <v-col v-if="dashboard.data && dashKind" cols="auto">
-              <NewGridItemMenu
-                :date-range="dateRange"
-                :dashboard="dashboard.data"
-                :dash-kind="dashKind"
-                @change="dashboard.reload()"
-              />
+            <v-spacer />
+            <portal-target name="dashboard-actions"></portal-target>
+            <v-col cols="auto">
+              <DateRangePicker :date-range="dateRange" :range-days="90" />
             </v-col>
           </v-row>
         </v-container>
       </div>
 
-      <v-card flat min-height="calc(100vh - 342px)" color="grey lighten-5">
+      <v-card flat min-height="calc(100vh - 242px)" color="grey lighten-5">
         <router-view
           v-if="dashboard.data"
           name="tab"
@@ -99,10 +98,10 @@ import DashPicker from '@/metrics/DashPicker.vue'
 import DashboardMenu from '@/metrics/DashboardMenu.vue'
 import DashPinBtn from '@/metrics/DashPinBtn.vue'
 import DashboardForm from '@/metrics/DashboardForm.vue'
-import NewGridItemMenu from '@/metrics/NewGridItemMenu.vue'
+import RelatedDashboardsTabs from '@/metrics/RelatedDashboardsTabs.vue'
 
 // Misc
-import { Dashboard, DashKind } from '@/metrics/types'
+import { Dashboard } from '@/metrics/types'
 
 export default defineComponent({
   name: 'Dashboard',
@@ -112,7 +111,7 @@ export default defineComponent({
     DashboardMenu,
     DashPinBtn,
     DashboardForm,
-    NewGridItemMenu,
+    RelatedDashboardsTabs,
   },
 
   props: {
@@ -159,17 +158,6 @@ export default defineComponent({
       },
     )
 
-    const dashKind = computed(() => {
-      switch (route.value.name) {
-        case 'DashboardTable':
-          return DashKind.Table
-        case 'DashboardGrid':
-          return DashKind.Grid
-        default:
-          return undefined
-      }
-    })
-
     function onCreateDashboard(dash: Dashboard) {
       dashboards.reload().then(() => {
         router.replace({ name: 'DashboardShow', params: { dashId: String(dash.id) } })
@@ -184,7 +172,6 @@ export default defineComponent({
     return {
       dashboards,
       dashboard,
-      dashKind,
 
       onCreateDashboard,
       onPinDash,

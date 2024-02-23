@@ -7,7 +7,7 @@
 
       <v-spacer />
 
-      <ForceReloadBtn v-if="showReload" />
+      <ForceReloadBtn v-if="showReload" small />
     </PageToolbar>
 
     <v-container fluid class="mb-6 px-4 py-6">

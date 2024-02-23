@@ -1,31 +1,43 @@
 <template>
-  <v-card outlined rounded="lg">
-    <v-toolbar flat color="light-blue lighten-5">
-      <v-toolbar-title>{{ attr }} overview</v-toolbar-title>
-      <v-spacer />
-      <v-btn :to="groupListRoute" small class="primary">View groups</v-btn>
-    </v-toolbar>
+  <v-container :fluid="$vuetify.breakpoint.lgAndDown">
+    <v-row v-if="attr === AttrKey.spanSystem">
+      <v-col>
+        <SystemQuickMetrics :loading="!systems.status.hasData()" :systems="systems.items" />
+      </v-col>
+    </v-row>
 
-    <v-container fluid>
-      <v-row>
-        <v-col>
-          <ApiErrorCard v-if="groups.error" :error="groups.error" />
-          <PagedGroupsCard
-            v-else
-            :date-range="dateRange"
-            :systems="systems.activeSystems"
-            :loading="groups.loading"
-            :groups="groups.items"
-            :columns="groups.columns"
-            :plottable-columns="groups.plottableColumns"
-            :plotted-columns="plottedColumns"
-            :order="groups.order"
-            :axios-params="groups.axiosParams"
-          />
-        </v-col>
-      </v-row>
-    </v-container>
-  </v-card>
+    <v-row>
+      <v-col>
+        <v-card outlined rounded="lg">
+          <v-toolbar flat color="light-blue lighten-5">
+            <v-toolbar-title>{{ attr }} overview</v-toolbar-title>
+            <v-spacer />
+            <v-btn :to="groupListRoute" small class="primary">View groups</v-btn>
+          </v-toolbar>
+
+          <v-container fluid>
+            <v-row>
+              <v-col>
+                <ApiErrorCard v-if="groups.error" :error="groups.error" />
+                <PagedGroupsCard
+                  v-else
+                  :date-range="dateRange"
+                  :systems="systems.activeSystems"
+                  :loading="groups.loading"
+                  :groups="groups.items"
+                  :columns="groups.columns"
+                  :plottable-columns="groups.plottableColumns"
+                  :plotted-columns="plottedColumns"
+                  :order="groups.order"
+                  :axios-params="groups.axiosParams"
+                />
+              </v-col>
+            </v-row>
+          </v-container>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script lang="ts">
@@ -40,6 +52,7 @@ import { UseSystems } from '@/tracing/system/use-systems'
 
 // Components
 import ApiErrorCard from '@/components/ApiErrorCard.vue'
+import SystemQuickMetrics from '@/tracing/system/SystemQuickMetrics.vue'
 import PagedGroupsCard from '@/tracing/PagedGroupsCard.vue'
 
 // Misc
@@ -47,7 +60,7 @@ import { AttrKey } from '@/models/otel'
 
 export default defineComponent({
   name: 'OverviewAttr',
-  components: { ApiErrorCard, PagedGroupsCard },
+  components: { ApiErrorCard, SystemQuickMetrics, PagedGroupsCard },
 
   props: {
     dateRange: {

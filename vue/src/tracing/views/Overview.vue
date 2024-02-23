@@ -1,5 +1,51 @@
 <template>
   <div>
+    <portal to="navigation">
+      <v-tabs :key="$route.fullPath" background-color="transparent">
+        <v-tab
+          :to="{ name: 'SystemOverview', query: pick($route.query, 'system', 'query') }"
+          exact-path
+        >
+          Systems
+        </v-tab>
+        <v-tab
+          :to="{ name: 'ServiceGraph', query: pick($route.query, 'system', 'query') }"
+          exact-path
+        >
+          Graph
+        </v-tab>
+        <v-tab
+          :to="{ name: 'SlowestGroups', query: pick($route.query, 'system', 'query') }"
+          exact-path
+          >Slowest</v-tab
+        >
+        <v-tab
+          v-for="system in chosenSystems"
+          :key="system.name"
+          :to="{
+            name: 'SystemGroupList',
+            params: { system: system.name },
+            query: pick($route.query, 'system', 'query'),
+          }"
+          exact-path
+        >
+          {{ system.name }} ({{ system.groupCount }})
+        </v-tab>
+        <v-tab
+          v-for="attr in project.pinnedAttrs"
+          :key="attr"
+          :to="{
+            name: 'AttrOverview',
+            params: { attr },
+            query: pick($route.query, 'system', 'query'),
+          }"
+          exact-path
+          >{{ attr }}</v-tab
+        >
+        <PinnedAttrsMenu v-if="project.canMaintainProject" :date-range="dateRange" />
+      </v-tabs>
+    </portal>
+
     <TracingPlaceholder v-if="systems.dataHint" :date-range="dateRange" :systems="systems" />
 
     <template v-else>
@@ -32,49 +78,6 @@
         <DateRangePicker :date-range="dateRange" :range-days="90" />
       </PageToolbar>
 
-      <div class="border-bottom">
-        <div class="grey lighten-5">
-          <v-container fluid class="mb-2">
-            <SystemQuickMetrics :loading="systems.loading" :systems="systems.items" />
-          </v-container>
-
-          <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pb-0">
-            <v-tabs background-color="transparent">
-              <v-tab :to="{ name: 'SystemOverview', query: pick($route.query, 'system', 'query') }"
-                >Systems</v-tab
-              >
-              <v-tab :to="{ name: 'ServiceGraph', query: pick($route.query, 'system', 'query') }">
-                Service graph
-              </v-tab>
-              <v-tab
-                v-for="system in chosenSystems"
-                :key="system.name"
-                :to="{
-                  name: 'SystemGroupList',
-                  params: { system: system.name },
-                  query: pick($route.query, 'system', 'query'),
-                }"
-              >
-                {{ system.name }} ({{ system.groupCount }})
-              </v-tab>
-              <v-tab :to="{ name: 'SlowestGroups', query: pick($route.query, 'system', 'query') }"
-                >Slowest</v-tab
-              >
-              <v-tab
-                v-for="attr in project.pinnedAttrs"
-                :key="attr"
-                :to="{
-                  name: 'AttrOverview',
-                  params: { attr },
-                  query: pick($route.query, 'system', 'query'),
-                }"
-                >{{ attr }}</v-tab
-              >
-            </v-tabs>
-          </v-container>
-        </div>
-      </div>
-
       <v-container :fluid="$vuetify.breakpoint.lgAndDown">
         <v-row>
           <v-col>
@@ -103,7 +106,6 @@ import TracingPlaceholder from '@/tracing/TracingPlaceholder.vue'
 import DateRangePicker from '@/components/date/DateRangePicker.vue'
 import SystemPicker from '@/tracing/system/SystemPicker.vue'
 import QuickSpanFilter from '@/tracing/query/QuickSpanFilter.vue'
-import SystemQuickMetrics from '@/tracing/system/SystemQuickMetrics.vue'
 
 // Misc
 import { isSpanSystem, isErrorSystem, SystemName, AttrKey } from '@/models/otel'
@@ -121,7 +123,6 @@ export default defineComponent({
     DateRangePicker,
     SystemPicker,
     QuickSpanFilter,
-    SystemQuickMetrics,
   },
 
   props: {

@@ -1,11 +1,15 @@
 <template>
   <div>
+    <v-container fluid class="py-1">
+      <slot name="breadcrumbs" />
+    </v-container>
+
     <PageToolbar :fluid="$vuetify.breakpoint.lgAndDown">
       <v-toolbar-title>Notification Channels</v-toolbar-title>
 
       <v-spacer />
 
-      <ForceReloadBtn />
+      <ForceReloadBtn small />
     </PageToolbar>
 
     <v-container :fluid="$vuetify.breakpoint.lgAndDown">
