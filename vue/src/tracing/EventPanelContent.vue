@@ -12,7 +12,7 @@
       </v-col>
 
       <v-col cols="auto">
-        <v-btn v-if="groupRoute" depressed small :to="groupRoute" exact class="ml-2"
+        <v-btn v-if="spanListRoute" depressed small :to="spanListRoute" exact class="ml-2"
           >View group</v-btn
         >
         <NewMonitorMenu
@@ -27,7 +27,7 @@
       </v-col>
     </v-row>
 
-    <v-row v-if="event.groupId">
+    <v-row v-if="percentiles.status.hasData()">
       <v-col>
         <EventRateChart
           :loading="percentiles.loading"
@@ -59,20 +59,20 @@ import { useRouter } from '@/use/router'
 import { UseDateRange } from '@/use/date-range'
 import { usePercentiles } from '@/tracing/use-percentiles'
 import { createQueryEditor } from '@/use/uql'
-import { Annotation } from '@/org/use-annotations'
 
 // Components
 import EventRateChart from '@/components/EventRateChart.vue'
-import NewMonitorMenu from '@/tracing/NewMonitorMenu.vue'
 import SpanAttrs from '@/tracing/SpanAttrs.vue'
+import NewMonitorMenu from '@/tracing/NewMonitorMenu.vue'
 
 // Misc
-import { AttrKey } from '@/models/otel'
 import { SpanEvent } from '@/models/span'
+import { AttrKey } from '@/models/otel'
+import { Annotation } from '@/org/types'
 
 export default defineComponent({
   name: 'EventPanelContent',
-  components: { EventRateChart, NewMonitorMenu, SpanAttrs },
+  components: { EventRateChart, SpanAttrs, NewMonitorMenu },
 
   props: {
     dateRange: {
@@ -96,6 +96,7 @@ export default defineComponent({
       if (!props.event.groupId) {
         return undefined
       }
+
       const { projectId } = route.value.params
       return {
         url: `/internal/v1/tracing/${projectId}/percentiles`,
@@ -107,7 +108,7 @@ export default defineComponent({
       }
     })
 
-    const groupRoute = computed(() => {
+    const spanListRoute = computed(() => {
       if (!props.event.groupId) {
         return undefined
       }
@@ -117,7 +118,7 @@ export default defineComponent({
           ...props.dateRange.queryParams(),
           system: props.event.system,
           query: createQueryEditor()
-            .exploreAttr(AttrKey.spanGroupId)
+            .exploreAttr(AttrKey.spanGroupId, true)
             .where(AttrKey.spanGroupId, '=', props.event.groupId)
             .toString(),
         },
@@ -128,7 +129,7 @@ export default defineComponent({
       AttrKey,
 
       percentiles,
-      groupRoute,
+      spanListRoute,
     }
   },
 })

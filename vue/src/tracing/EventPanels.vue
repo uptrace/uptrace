@@ -4,11 +4,32 @@
       <v-expansion-panel-header class="user-select-text">
         <span>
           <DateValue :value="event.time" format="time" class="mr-5 text-caption" />
-          <span>{{ event.name }}</span>
+
+          <v-btn v-if="event.span" icon @click.stop="$emit('click:span', event.span)">
+            <v-icon>mdi-link</v-icon>
+          </v-btn>
+
+          <span class="text-subtitle-1">{{ event.name }}</span>
+          <template v-if="event.span">
+            <span class="mx-2"> &bull; </span>
+            <span class="text-subtitle-1">{{ event.span.displayName }}</span>
+          </template>
         </span>
       </v-expansion-panel-header>
       <v-expansion-panel-content v-if="hasAttrs(event)">
-        <EventPanelContent :date-range="dateRange" :event="event" :annotations="annotations" />
+        <EventPanelContent :date-range="dateRange" :event="event" :annotations="annotations">
+          <template #append-action>
+            <v-btn
+              v-if="event.span"
+              depressed
+              small
+              class="ml-2"
+              @click="$emit('click:span', event.span)"
+            >
+              Go to span
+            </v-btn>
+          </template>
+        </EventPanelContent>
       </v-expansion-panel-content>
     </v-expansion-panel>
   </v-expansion-panels>
@@ -19,13 +40,11 @@ import { defineComponent, shallowRef, watch, PropType } from 'vue'
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
-import { Annotation } from '@/org/use-annotations'
 
 // Components
 import EventPanelContent from '@/tracing/EventPanelContent.vue'
 
 // Misc
-import { AttrKey } from '@/models/otel'
 import { SpanEvent } from '@/models/span'
 
 export default defineComponent({
@@ -46,7 +65,7 @@ export default defineComponent({
       default: false,
     },
     annotations: {
-      type: Array as PropType<Annotation[]>,
+      type: Array,
       default: () => [],
     },
   },
@@ -70,7 +89,7 @@ export default defineComponent({
       return Boolean(event.attrs && Object.keys(event.attrs).length)
     }
 
-    return { AttrKey, panels, hasAttrs }
+    return { panels, hasAttrs }
   },
 })
 </script>

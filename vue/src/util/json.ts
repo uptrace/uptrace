@@ -1,9 +1,20 @@
-export function parseJson(s: string): any {
-  if (!isJson(s)) {
+export function parseJson(value: any): any {
+  if (!value) {
+    return false
+  }
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    return value
+  }
+  if (typeof value !== 'string') {
     return undefined
   }
+
+  if (!isJson(value)) {
+    return undefined
+  }
+
   try {
-    return JSON.parse(s)
+    return JSON.parse(value)
   } catch (_) {
     return undefined
   }
@@ -20,5 +31,5 @@ export function isJson(value: string): boolean {
 }
 
 export function prettyPrint(v: any): string {
-  return JSON.stringify(v, null, 4)
+  return JSON.stringify(v, null, 2)
 }

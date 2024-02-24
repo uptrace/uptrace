@@ -4,6 +4,7 @@ export interface Prefix {
 }
 
 export const OTHER_PREFIX = 'other'
+const sep = '_'
 
 export function buildPrefixes(keys: string[]) {
   const prefixMap = new Map<string, string[]>()
@@ -30,7 +31,7 @@ export function buildPrefixes(keys: string[]) {
 function addKey(prefixMap: Map<string, string[]>, key: string) {
   let prefix = key
   while (true) {
-    const i = prefix.lastIndexOf('.')
+    const i = prefix.lastIndexOf(sep)
     if (i === -1) {
       return
     }
@@ -53,7 +54,7 @@ function compactPrefixMap(prefixMap: Map<string, string[]>, threshold = 1) {
       if (otherPrefix === prefix) {
         return
       }
-      if (!otherPrefix.startsWith(prefix + '.')) {
+      if (!otherPrefix.startsWith(prefix + sep)) {
         return
       }
 

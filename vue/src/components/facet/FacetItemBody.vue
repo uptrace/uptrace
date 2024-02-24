@@ -5,11 +5,16 @@
     </div>
 
     <v-list v-else dense class="py-0">
-      <v-list-item v-for="item in pagedItems" :key="item.value" @click="toggleOne(item.value)">
+      <v-list-item
+        v-for="item in pagedItems"
+        :key="item.value"
+        class="px-1"
+        @click="toggleOne(String(item.value))"
+      >
         <v-list-item-action class="my-0 mr-4">
           <v-checkbox
-            :input-value="values.includes(item.value)"
-            @click.stop="toggle(item.value)"
+            :input-value="values.includes(String(item.value))"
+            @click.stop="toggle(String(item.value))"
           ></v-checkbox>
         </v-list-item-action>
         <v-list-item-content class="text-truncate">

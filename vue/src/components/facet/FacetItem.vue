@@ -6,43 +6,45 @@
       indeterminate
       class="mx-4"
     ></v-progress-linear>
+
     <div class="pa-3">
-      <v-row no-gutters align="center">
-        <v-col :cols="hasSearch ? 'auto' : 12">
+      <v-row dense align="center">
+        <v-col>
           <div class="cursor-pointer" @click="expandedInternal = !expandedInternal">
             <v-icon class="mr-1">{{
               expandedInternal ? 'mdi-chevron-down' : 'mdi-chevron-up'
             }}</v-icon>
             <span class="text-subtitle-2">{{ attr }}</span>
-            <span>
-              <v-btn
-                v-if="pinned"
-                :loading="pending"
-                icon
-                small
-                title="Unpin attribute"
-                class="ml-1"
-                @click.stop.prevent="$emit('click:unpin')"
-              >
-                <v-icon size="20" color="green darken-2">mdi-pin</v-icon>
-              </v-btn>
-              <v-btn
-                v-else
-                :loading="pending"
-                icon
-                small
-                title="Pin attribute to the top"
-                class="ml-1"
-                @click.stop.prevent="$emit('click:pin')"
-              >
-                <v-icon size="20">mdi-pin-outline</v-icon>
-              </v-btn>
-            </span>
+            <v-btn
+              v-if="pinned"
+              :loading="pending"
+              icon
+              small
+              title="Unpin attribute"
+              class="ml-1"
+              @click.stop.prevent="$emit('click:unpin')"
+            >
+              <v-icon size="20" color="green darken-1">mdi-pin</v-icon>
+            </v-btn>
+            <v-btn
+              v-else
+              :loading="pending"
+              icon
+              small
+              title="Pin attribute to the top"
+              class="ml-1"
+              @click.stop.prevent="$emit('click:pin')"
+            >
+              <v-icon size="20">mdi-pin-outline</v-icon>
+            </v-btn>
           </div>
         </v-col>
-        <v-col class="pl-4">
+      </v-row>
+
+      <v-row v-if="showSearch" dense>
+        <v-col>
           <v-text-field
-            v-if="hasSearch"
+            v-if="showSearch"
             v-model="values.searchInput"
             :loading="values.loading"
             prepend-inner-icon="mdi-magnify"
@@ -54,10 +56,10 @@
         </v-col>
       </v-row>
 
-      <v-row v-if="values.searchInput" no-gutters class="mt-1">
+      <v-row v-if="values.searchInput" dense class="mt-1">
         <v-col>
           <v-list dense>
-            <v-list-item @click="$emit('update:filter', likeFilter)">
+            <v-list-item class="px-1" @click="$emit('update:filter', likeFilter)">
               <v-list-item-icon class="mr-4">
                 <v-icon>mdi-magnify</v-icon>
               </v-list-item-icon>
@@ -65,7 +67,7 @@
                 <v-list-item-title>{{ filterString(likeFilter) }}</v-list-item-title>
               </v-list-item-content>
             </v-list-item>
-            <v-list-item @click="$emit('update:filter', notLikeFilter)">
+            <v-list-item class="px-1" @click="$emit('update:filter', notLikeFilter)">
               <v-list-item-icon class="mr-4">
                 <v-icon>mdi-magnify</v-icon>
               </v-list-item-icon>
@@ -77,13 +79,12 @@
         </v-col>
       </v-row>
 
-      <v-row v-if="expandedInternal" no-gutters class="mt-1">
+      <v-row v-if="expandedInternal" dense>
         <v-col>
           <FacetItemBody
             :value="value"
-            :items="values.items"
+            :items="values.filteredItems"
             :search-query.sync="values.searchInput"
-            show-search
             @input="$emit('input', $event)"
             @click:close="$emit('click:close')"
           >
@@ -162,7 +163,7 @@ export default defineComponent({
       }
     })
 
-    const hasSearch = computed(() => {
+    const showSearch = computed(() => {
       return expandedInternal.value && (values.items.length > 10 || values.searchInput)
     })
 
@@ -189,7 +190,7 @@ export default defineComponent({
     return {
       expandedInternal,
       values,
-      hasSearch,
+      showSearch,
 
       likeFilter,
       notLikeFilter,

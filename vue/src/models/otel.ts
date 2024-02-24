@@ -36,11 +36,11 @@ export enum AttrKey {
   httpStatusCode = 'http_status_code',
 
   rpcMethod = 'rpc_method',
-  dbStatement = 'db_statement',
-  dbStatementPretty = '_db_statement_pretty',
+
+  dbSystem = 'db_system',
   dbOperation = 'db_operation',
+  dbStatement = 'db_statement',
   dbSqlTable = 'db_sql_table',
-  dbSqlTables = 'db_sql_tables',
 
   exceptionType = 'exception_type',
   exceptionMessage = 'exception_message',

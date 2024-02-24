@@ -97,6 +97,7 @@ export default defineComponent({
     function itemExpanded(item: Item, index: number): boolean {
       switch (props.category) {
         case Category.All:
+          return index < 5
         case Category.Pinned:
           return index < 3
         default:

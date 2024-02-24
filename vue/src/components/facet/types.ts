@@ -3,6 +3,7 @@ export enum Category {
   Pinned = 'pinned',
   Found = 'found',
   Other = 'other',
+  Otel = 'otel',
 }
 
 export interface Item {

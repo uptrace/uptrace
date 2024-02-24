@@ -12,14 +12,25 @@
     </v-btn>
 
     <v-chip
-      v-for="(chip, i) in chips"
+      v-if="traceId"
+      :to="traceRoute"
+      title="View trace"
+      color="light-blue lighten-5"
+      label
+      small
+    >
+      {{ traceId }}
+    </v-chip>
+
+    <v-chip
+      v-for="chip in chips"
       :key="chip.key"
       color="light-blue lighten-5"
       label
       small
+      class="ml-1"
+      :class="{ 'cursor-default': !clickable }"
       :title="`${chip.key}: ${chip.value}`"
-      class="mb-1"
-      :class="{ 'ml-1': i > 0, 'cursor-default': !clickable }"
       @click.stop="$emit('click:chip', chip)"
     >
       {{ chip.text }}
@@ -36,8 +47,8 @@
 import { defineComponent, computed, PropType } from 'vue'
 
 // Misc
-import { AttrKey } from '@/models/otel'
-import { AttrMap, Span } from '@/models/span'
+import { isEventSystem, AttrKey } from '@/models/otel'
+import { AttrMap, Span, SpanEvent } from '@/models/span'
 
 export interface SpanChip {
   key: string
@@ -68,16 +79,50 @@ export default defineComponent({
   },
 
   setup(props) {
-    const events = computed(() => {
+    const traceId = computed(() => {
+      if (props.traceMode) {
+        return ''
+      }
+      if (props.span.standalone) {
+        return ''
+      }
+      return props.span.traceId.slice(-6)
+    })
+    const traceRoute = computed(() => {
+      if (!traceId.value) {
+        return ''
+      }
+      return {
+        name: 'TraceShow',
+        params: {
+          traceId: props.span.traceId,
+        },
+        query: {
+          span: isEventSystem(props.span.system) ? props.span.parentId : props.span.id,
+        },
+      }
+    })
+
+    const events = computed((): SpanEvent[] => {
       return props.span?.events ?? []
     })
 
     const chips = computed(() => {
       const chips: SpanChip[] = []
 
+      const env = props.span.attrs[AttrKey.deploymentEnvironment]
+      if (env) {
+        chips.push({ key: AttrKey.deploymentEnvironment, value: env, text: env })
+      }
+
       const service = props.span.attrs[AttrKey.serviceName]
       if (service) {
         chips.push({ key: AttrKey.serviceName, value: service, text: service })
+      }
+
+      // Add kind to distinguish `client` and `server` spans.
+      if (props.span.kind !== 'internal') {
+        chips.push({ key: AttrKey.spanKind, value: props.span.kind, text: props.span.kind })
       }
 
       if (props.traceMode) {
@@ -92,7 +137,15 @@ export default defineComponent({
       return chips
     })
 
-    return { AttrKey, events, chips }
+    return {
+      AttrKey,
+
+      traceId,
+      traceRoute,
+
+      events,
+      chips,
+    }
   },
 })
 

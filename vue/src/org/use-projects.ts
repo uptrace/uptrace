@@ -12,6 +12,7 @@ export interface Project {
   groupByEnv: boolean
   groupFuncsByService: boolean
   pinnedAttrs: string[]
+  largeAttrs: string[]
   token: string
 }
 
@@ -37,6 +38,10 @@ export const useProject = useGlobalStore('useProject', () => {
     return project.value?.pinnedAttrs ?? []
   })
 
+  const largeAttrs = computed(() => {
+    return project.value?.largeAttrs ?? []
+  })
+
   return proxyRefs({
     status,
     loading,
@@ -45,6 +50,7 @@ export const useProject = useGlobalStore('useProject', () => {
     data: project,
     dsn,
     pinnedAttrs,
+    largeAttrs,
   })
 })
 

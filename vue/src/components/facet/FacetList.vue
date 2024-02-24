@@ -115,31 +115,56 @@ export default defineComponent({
 
       const { projectId } = route.value.params
       return {
-        url: `/internal/v1/${props.component}/${projectId}/attr-keys?kind=text`,
+        url: `/internal/v1/${props.component}/${projectId}/attr-keys`,
         params: props.axiosParams,
       }
     })
 
+    const attrKeys = computed(() => {
+      return attrs.items.filter((item) => {
+        if (!item.value.startsWith('.')) {
+          return true
+        }
+        return (
+          [
+            AttrKey.spanSystem,
+            AttrKey.spanGroupId,
+            AttrKey.spanName,
+            AttrKey.spanEventName,
+            AttrKey.spanKind,
+            AttrKey.spanStatusCode,
+            AttrKey.spanStatusMessage,
+          ].indexOf(item.value as AttrKey) >= 0
+        )
+      })
+    })
+
     const categories = computed((): Record<string, Item[]> => {
       if (searchInput.value) {
-        const items = fuzzyFilter(attrs.items, searchInput.value, { key: 'text' })
+        const items = fuzzyFilter(attrKeys.value, searchInput.value, { key: 'text' })
         return { [Category.Found]: items }
       }
 
-      if (attrs.items.length <= 10) {
-        return { [Category.All]: attrs.items }
+      if (attrKeys.value.length <= 10) {
+        return { [Category.All]: attrKeys.value }
       }
 
       const categories: Record<string, Item[]> = {}
       const pinnedCategory = []
+      const otherCategory = []
 
-      for (let item of attrs.items) {
+      for (let item of attrKeys.value) {
         if (item.pinned) {
           pinnedCategory.push(item)
           continue
         }
 
         const categoryName = attrCategory(item.value)
+        if (!categoryName) {
+          otherCategory.push(item)
+          continue
+        }
+
         let category = categories[categoryName]
         if (!category) {
           category = []
@@ -148,8 +173,19 @@ export default defineComponent({
         category.push(item)
       }
 
+      for (let categoryName in categories) {
+        const items = categories[categoryName]
+        if (items.length === 1) {
+          delete categories[categoryName]
+          otherCategory.push(items[0])
+        }
+      }
+
       if (pinnedCategory.length) {
         categories[Category.Pinned] = pinnedCategory
+      }
+      if (otherCategory.length) {
+        categories[Category.Other] = otherCategory
       }
 
       return categories
@@ -211,11 +247,15 @@ export default defineComponent({
           return AttrKey.service
       }
 
-      const index = attr.indexOf('.')
+      if (attr.startsWith('_')) {
+        return Category.Otel
+      }
+
+      const index = attr.indexOf('_')
       if (index >= 0) {
         return attr.slice(0, index)
       }
-      return Category.Other
+      return ''
     }
 
     function hasActiveFilters(items: Item[]): boolean {

@@ -120,7 +120,7 @@ export default defineComponent({
         },
         {
           value: 'db',
-          attrs: [AttrKey.dbOperation, AttrKey.dbSqlTables, AttrKey.dbStatement],
+          attrs: [AttrKey.dbOperation, AttrKey.dbSqlTable, AttrKey.dbStatement],
           system: SystemName.DbAll,
         },
       ]
