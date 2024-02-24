@@ -4,7 +4,6 @@ import { computed, proxyRefs, Ref } from 'vue'
 import { injectForceReload } from '@/use/force-reload'
 import { useUser } from '@/org/use-users'
 import { useWatchAxios } from '@/use/watch-axios'
-import { useGlobalStore } from '@/use/store'
 
 export interface Project {
   id: number
@@ -15,7 +14,7 @@ export interface Project {
   token: string
 }
 
-export const useProject = useGlobalStore('useProject', () => {
+export function useProject() {
   const user = useUser()
   const forceReload = injectForceReload()
 
@@ -46,7 +45,7 @@ export const useProject = useGlobalStore('useProject', () => {
     dsn,
     pinnedAttrs,
   })
-})
+}
 
 export function useDsn(dsn: Ref<string>) {
   const url = computed(() => {
