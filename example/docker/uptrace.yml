@@ -82,7 +82,7 @@ projects:
 ## Create metrics from spans and events.
 ##
 metrics_from_spans:
-  - name: uptrace.tracing.spans
+  - name: uptrace_tracing_spans
     description: Spans duration (excluding events)
     instrument: histogram
     unit: microseconds
