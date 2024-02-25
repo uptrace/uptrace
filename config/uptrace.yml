@@ -280,7 +280,7 @@ logging:
   # Valid values: DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL.
   level: INFO
 
-# Secret key that is used to sign JWT tokens etc.
+# Secret key that is used to sign JWT tokens, etc.
 secret_key: 102c1a557c314fc28198acd017960843
 
 # Enable to log HTTP requests and database queries.
