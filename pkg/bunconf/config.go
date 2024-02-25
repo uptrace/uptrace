@@ -350,6 +350,7 @@ type Config struct {
 
 	SMTPMailer struct {
 		Enabled  bool              `yaml:"enabled"`
+		Protocol string            `yaml:"protocol"`
 		Host     string            `yaml:"host"`
 		Port     int               `yaml:"port"`
 		AuthType mail.SMTPAuthType `yaml:"auth_type"`

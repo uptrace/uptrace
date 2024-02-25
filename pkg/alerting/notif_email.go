@@ -42,14 +42,36 @@ func NewEmailNotifier(app *bunapp.App) *EmailNotifier {
 		}
 	}
 
-	client, err := mail.NewClient(
-		conf.Host,
-		mail.WithPort(conf.Port),
+	options := []mail.Option{
 		mail.WithSMTPAuth(conf.AuthType),
 		mail.WithUsername(conf.Username),
 		mail.WithPassword(conf.Password),
-		mail.WithTLSPolicy(mail.TLSOpportunistic),
-	)
+	}
+
+	switch conf.Protocol {
+	case "smtp":
+		options = append(options,
+			mail.WithTLSPortPolicy(mail.NoTLS),
+			mail.WithPort(conf.Port),
+		)
+	case "smtps":
+		options = append(options,
+			mail.WithTLSPortPolicy(mail.TLSMandatory),
+			mail.WithSSLPort(false),
+			mail.WithPort(conf.Port),
+		)
+	case "starttls", "":
+		options = append(options,
+			mail.WithTLSPortPolicy(mail.TLSOpportunistic),
+		)
+	default:
+		app.Logger.Error("mail.NewClient unknown protocol", zap.String("protocol", conf.Protocol))
+		return &EmailNotifier{
+			disabled: true,
+		}
+	}
+
+	client, err := mail.NewClient(conf.Host, options...)
 	if err != nil {
 		app.Logger.Error("mail.NewClient failed", zap.Error(err))
 		return &EmailNotifier{
