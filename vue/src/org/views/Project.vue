@@ -41,7 +41,7 @@ export default defineComponent({
     )
 
     const breadcrumbs = computed(() => {
-      const ss: any[] = []
+      const ss: any[] = [{ text: 'Projects' }]
 
       if (project.data) {
         ss.push({ text: project.data.name })

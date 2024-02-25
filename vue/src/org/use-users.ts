@@ -5,7 +5,7 @@ import router from '@/router'
 // Composables
 import { useStorage } from '@/use/local-storage'
 import { useRoute } from '@/use/router'
-import { useGlobalStore } from '@/use/store'
+import { defineStore } from '@/use/store'
 import { useAxios } from '@/use/axios'
 import { useWatchAxios } from '@/use/watch-axios'
 import { Project } from '@/org/use-projects'
@@ -17,7 +17,7 @@ export interface User {
   avatar: string
 }
 
-export const useUser = useGlobalStore('useUser', () => {
+export const useUser = defineStore(() => {
   const route = useRoute()
   const { loading, data, request } = useAxios()
 
