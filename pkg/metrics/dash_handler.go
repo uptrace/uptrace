@@ -552,6 +552,32 @@ func (h *DashHandler) CreateFromYAML(w http.ResponseWriter, req bunrouter.Reques
 	})
 }
 
+func (h *DashHandler) UpdateYAML(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+	dash := dashFromContext(ctx)
+
+	tpl := new(DashboardTpl)
+
+	dec := yaml.NewDecoder(req.Body)
+	if err := dec.Decode(tpl); err != nil {
+		return err
+	}
+
+	builder := NewDashBuilder(tpl, dash.ProjectID, nil)
+
+	if err := builder.Build(); err != nil {
+		return err
+	}
+
+	if err := h.PG.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		return builder.Save(ctx, tx, dash, false)
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (h *DashHandler) Pin(w http.ResponseWriter, req bunrouter.Request) error {
 	return h.updatePinned(w, req, true)
 }

@@ -2,7 +2,7 @@
   <v-menu v-model="menu" offset-y>
     <template #activator="{ on }">
       <v-btn :loading="dashMan.pending" icon v-on="on">
-        <v-icon>mdi-menu</v-icon>
+        <v-icon>mdi-dots-vertical</v-icon>
       </v-btn>
     </template>
 
@@ -51,6 +51,26 @@
         />
       </v-dialog>
 
+      <v-dialog v-model="editYamlDialog" max-width="800px">
+        <template #activator="{ on }">
+          <v-list-item ripple v-on="on">
+            <v-list-item-content>
+              <v-list-item-title>Edit YAML</v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+        </template>
+
+        <DashboardEditYamlForm
+          v-if="editYamlDialog"
+          :dashboard="dashboard"
+          @updated="
+            editYamlDialog = false
+            $emit('updated', $event)
+          "
+          @click:cancel="editYamlDialog = false"
+        />
+      </v-dialog>
+
       <v-list-item ripple @click="cloneDashboard()">
         <v-list-item-content>
           <v-list-item-title>Clone</v-list-item-title>
@@ -77,13 +97,14 @@ import { useDashboardManager } from '@/metrics/use-dashboards'
 // Components
 import DashboardForm from '@/metrics/DashboardForm.vue'
 import DashboardYamlCard from '@/metrics/DashboardYamlCard.vue'
+import DashboardEditYamlForm from '@/metrics/DashboardEditYamlForm.vue'
 
 // Misc
 import { Dashboard } from '@/metrics/types'
 
 export default defineComponent({
   name: 'DashboardMenu',
-  components: { DashboardForm, DashboardYamlCard },
+  components: { DashboardForm, DashboardYamlCard, DashboardEditYamlForm },
 
   props: {
     dashboard: {
@@ -97,6 +118,7 @@ export default defineComponent({
 
     const menu = shallowRef(false)
     const yamlDialog = shallowRef(false)
+    const editYamlDialog = shallowRef(false)
     const editDialog = shallowRef(false)
     function closeDialog() {
       editDialog.value = false
@@ -132,6 +154,7 @@ export default defineComponent({
     return {
       menu,
       yamlDialog,
+      editYamlDialog,
       editDialog,
       closeDialog,
 
