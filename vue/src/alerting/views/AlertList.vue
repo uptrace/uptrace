@@ -33,8 +33,7 @@
 
           <AlertsTable
             :loading="alerts.loading"
-            :alerts="alerts.items"
-            :order="alerts.order"
+            :alerts="pageAlerts"
             @click:alert="showAlert($event)"
             @click:chip="facetedSearch.select"
           >
