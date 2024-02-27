@@ -468,10 +468,10 @@ func (b *DashBuilder) Save(
 		}
 
 		b.dash.ID = existingDash.ID
-		b.dash.Name = existingDash.Name
 		b.dash.Pinned = existingDash.Pinned
 		b.dash.MinInterval = existingDash.MinInterval
 		b.dash.TimeOffset = existingDash.TimeOffset
+		b.dash.TooltipsConnected = existingDash.TooltipsConnected
 		b.dash.GridQuery = existingDash.GridQuery
 	}
 

@@ -102,6 +102,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
 			g.GET("/yaml", dashHandler.ShowYAML)
 			g.POST("", dashHandler.Clone)
 			g.PUT("", dashHandler.Update)
+			g.PUT("/yaml", dashHandler.UpdateYAML)
 			g.PUT("/table", dashHandler.UpdateTable)
 			g.PUT("/grid", dashHandler.UpdateGrid)
 			g.PUT("/reset", dashHandler.Reset)
