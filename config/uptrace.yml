@@ -239,11 +239,19 @@ service_graph:
 ## https://uptrace.dev/get/alerting.html
 ##
 smtp_mailer:
-  enabled: true
+  # Whether to use this mailer for sending emails.
+  enabled: false
+  # SMTP server host.
   host: localhost
+  # SMTP server port.
   port: 1025
+  # Username for authentication.
   username: mailhog
+  # Password for authentication.
   password: mailhog
+  # Uncomment to disable opportunistic TLS.
+  #tls: { disabled: true }
+  # Emails will be send from this address.
   from: 'uptrace@localhost'
 
 ##
