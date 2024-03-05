@@ -16,7 +16,7 @@ integrations for most languages and frameworks.
 Uptrace can process billions of spans and metrics on a single server and allows you to monitor your
 applications at 10x lower cost.
 
-Uptrace uses OpenTelelemetry framework to collect data and ClickHouse database to store it. Uptrace
+Uptrace uses OpenTelemetry framework to collect data and ClickHouse database to store it. Uptrace
 also requires PostgreSQL database to store metadata such as metric names and alerts.
 
 **Features**:
