@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="container--fixed-md">
     <v-container :fluid="$vuetify.breakpoint.mdAndDown" class="py-1">
       <slot name="breadcrumbs" />
     </v-container>

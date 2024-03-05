@@ -44,7 +44,6 @@
 import { defineComponent, PropType } from 'vue'
 
 // Composables
-import { UseOrder } from '@/use/order'
 import { Alert } from '@/alerting/use-alerts'
 
 // Components
@@ -59,10 +58,6 @@ export default defineComponent({
   props: {
     alerts: {
       type: Array as PropType<Alert[]>,
-      required: true,
-    },
-    order: {
-      type: Object as PropType<UseOrder>,
       required: true,
     },
     loading: {

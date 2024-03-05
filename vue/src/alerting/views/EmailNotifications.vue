@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="grey lighten-5">
-    <v-row align="center" style="height: calc(100vh - 285px)">
+    <v-row align="center" style="height: calc(100vh - 128px)">
       <v-col>
         <v-card max-width="600" class="mx-auto">
           <v-toolbar color="light-blue lighten-5" flat>
