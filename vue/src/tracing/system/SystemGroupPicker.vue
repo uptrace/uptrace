@@ -1,21 +1,14 @@
 <template>
-  <v-btn-toggle
-    :value="activeGroupSystem"
-    mandatory
-    group
-    :dense="$vuetify.breakpoint.mdAndDown"
-    borderless
-    color="blue accent-3"
-  >
-    <v-btn
+  <v-tabs :value="activeGroupSystem" :optional="optional">
+    <v-tab
       v-for="group in groups"
       :key="group.system"
-      :value="group.system"
+      :tab-value="group.system"
       @click="$router.push(routeFor(group.system)).catch(() => {})"
     >
       {{ group.name }} ({{ group.count }})
-    </v-btn>
-  </v-btn-toggle>
+    </v-tab>
+  </v-tabs>
 </template>
 
 <script lang="ts">
@@ -55,7 +48,11 @@ export default defineComponent({
     },
     value: {
       type: Array as PropType<string[]>,
-      required: true,
+      default: () => [],
+    },
+    optional: {
+      type: Boolean,
+      default: false,
     },
   },
 
@@ -152,7 +149,7 @@ export default defineComponent({
 
     const activeGroupSystem = computed(() => {
       if (!props.value.length) {
-        if (groups.value.length) {
+        if (!props.optional && groups.value.length) {
           return groups.value[0].system
         }
         return undefined

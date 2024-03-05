@@ -9,9 +9,15 @@
         @input="onInputPeriod"
       />
     </span>
-    <v-btn v-if="showReload" small outlined class="ml-2" @click="dateRange.reload()">
-      <v-icon small left>mdi-refresh</v-icon>
-      <span>Reload</span>
+    <v-btn
+      v-if="showReload"
+      :loading="forceReload.loading"
+      small
+      outlined
+      class="ml-2 px-2"
+      @click="dateRange.reload()"
+    >
+      Reload
     </v-btn>
   </span>
 </template>
@@ -21,6 +27,7 @@ import { defineComponent, computed, onMounted, watch, watchEffect, PropType } fr
 
 // Composables
 import { UseDateRange } from '@/use/date-range'
+import { injectForceReload } from '@/use/force-reload'
 
 // Components
 import PeriodPickerMenu from '@/components/date/PeriodPickerMenu.vue'
@@ -40,10 +47,6 @@ export default defineComponent({
       type: Object as PropType<UseDateRange>,
       required: true,
     },
-    around: {
-      type: String,
-      required: true,
-    },
     rangeDays: {
       type: Number,
       default: 10,
@@ -52,9 +55,15 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
+    around: {
+      type: String,
+      required: true,
+    },
   },
 
   setup(props) {
+    const forceReload = injectForceReload()
+
     const periods = computed(() => {
       return periodsForDays(props.rangeDays)
     })
@@ -85,7 +94,7 @@ export default defineComponent({
       props.dateRange.changeAround(props.around, ms)
     }
 
-    return { periods, onInputPeriod }
+    return { forceReload, periods, onInputPeriod }
   },
 })
 </script>

@@ -1,5 +1,9 @@
 <template>
   <div v-frag>
+    <portal to="navigation">
+      <SystemGroupPicker :loading="systems.loading" :systems="systems.items" optional />
+    </portal>
+
     <template v-if="trace.status.initing()">
       <v-container :fluid="$vuetify.breakpoint.lgAndDown">
         <v-skeleton-loader type="article, image, table" />
@@ -141,11 +145,13 @@ import { defineComponent, shallowRef, computed, watch, proxyRefs } from 'vue'
 import { useSyncQueryParams } from '@/use/router'
 import { useTitle } from '@vueuse/core'
 import { useDateRange, UseDateRange } from '@/use/date-range'
+import { useSystems } from '@/tracing/system/use-systems'
 import { useTrace, UseTrace } from '@/tracing/use-trace'
 import { createQueryEditor } from '@/use/uql'
 import { useAnnotations } from '@/org/use-annotations'
 
 // Components
+import SystemGroupPicker from '@/tracing/system/SystemGroupPicker.vue'
 import FixedDateRangePicker from '@/components/date/FixedDateRangePicker.vue'
 import PercentilesChartLazy from '@/components/PercentilesChartLazy.vue'
 import SpanSystemBarChart from '@/components/SpanSystemBarChart.vue'
@@ -157,6 +163,7 @@ import { AttrKey, SystemName } from '@/models/otel'
 export default defineComponent({
   name: 'TraceShow',
   components: {
+    SystemGroupPicker,
     FixedDateRangePicker,
     PercentilesChartLazy,
     SpanSystemBarChart,
@@ -177,6 +184,11 @@ export default defineComponent({
     })
 
     const annotations = useAnnotations(() => {
+      return {
+        ...dateRange.axiosParams(),
+      }
+    })
+    const systems = useSystems(() => {
       return {
         ...dateRange.axiosParams(),
       }
@@ -259,9 +271,12 @@ export default defineComponent({
 
     return {
       dateRange,
+      annotations,
+      systems,
+
       trace,
       rootSpanId,
-      annotations,
+
       meta: useMeta(dateRange, trace),
 
       axiosParams,

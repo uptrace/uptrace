@@ -27,8 +27,8 @@
       </v-btn>
     </div>
 
-    <v-btn :loading="forceReload.loading" icon @click="dateRange.reload">
-      <v-icon>mdi-refresh</v-icon>
+    <v-btn :loading="forceReload.loading" small outlined class="px-2" @click="dateRange.reload()">
+      Reload
     </v-btn>
     <v-btn v-if="!dateRange.isNow" small outlined class="ml-2" @click="dateRange.reloadNow">
       <span>Reset</span>

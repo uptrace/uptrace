@@ -102,7 +102,7 @@ export default defineComponent({
       }
 
       bs.push({
-        text: 'Span',
+        text: props.span.id,
         to: {
           name: 'SpanShow',
           params: {
