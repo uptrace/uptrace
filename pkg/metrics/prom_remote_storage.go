@@ -91,7 +91,7 @@ func (h *PrometheusHandler) handleTimeseries(
 			unixNano := uint64(s.Timestamp * int64(time.Millisecond))
 
 			if isCumCounter {
-				dp := p.nextDatapoint(metricName, InstrumentCounter, attrs, unixNano)
+				dp := p.newDatapoint(metricName, InstrumentCounter, attrs, unixNano)
 				dp.Unit = unit
 				dp.CumPoint = &NumberPoint{
 					Double: s.Value,
@@ -100,9 +100,10 @@ func (h *PrometheusHandler) handleTimeseries(
 				continue
 			}
 
-			dp := p.nextDatapoint(metricName, InstrumentGauge, attrs, unixNano)
+			dp := p.newDatapoint(metricName, InstrumentGauge, attrs, unixNano)
 			dp.Unit = unit
 			dp.Gauge = float64(s.Value)
+			dp.OtelLibraryName = "Prometheus"
 			p.enqueue(ctx, dp)
 		}
 

@@ -158,7 +158,7 @@ export default defineComponent({
 
         const { projectId } = route.value.params
         return {
-          url: `/internal/v1/tracing/${projectId}/attr-keys`,
+          url: `/internal/v1/tracing/${projectId}/attributes`,
           params: {
             ...props.axiosParams,
             func: func.value?.value,

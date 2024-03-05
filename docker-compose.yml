@@ -138,7 +138,7 @@ services:
     image: quay.io/keycloak/keycloak:19.0.2
     restart: on-failure
     ports:
-      - 8080:8080
+      - 9090:8080
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin

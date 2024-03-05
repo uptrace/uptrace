@@ -97,7 +97,7 @@ export default defineComponent({
     const keysDs = useDataSource(() => {
       const { projectId } = route.value.params
       return {
-        url: `/internal/v1/metrics/${projectId}/attr-keys`,
+        url: `/internal/v1/metrics/${projectId}/attributes`,
         params: axiosParams.value,
       }
     })

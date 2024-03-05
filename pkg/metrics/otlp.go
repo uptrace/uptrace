@@ -164,15 +164,15 @@ func (s *MetricsServiceServer) process(
 		}
 
 		for _, sm := range rms.ScopeMetrics {
-			var scope AttrMap
+			var scopeAttrs AttrMap
 			if sm.Scope != nil && len(sm.Scope.Attributes) > 0 {
-				scope = make(AttrMap, len(resource)+len(sm.Scope.Attributes))
-				maps.Copy(scope, resource)
+				scopeAttrs = make(AttrMap, len(resource)+len(sm.Scope.Attributes))
+				maps.Copy(scopeAttrs, resource)
 				otlpconv.ForEachKeyValue(sm.Scope.Attributes, func(key string, value any) {
-					scope[key] = fmt.Sprint(value)
+					scopeAttrs[key] = fmt.Sprint(value)
 				})
 			} else {
-				scope = resource
+				scopeAttrs = resource
 			}
 
 			if sm.Scope != nil && sm.Scope.Name != "" {
@@ -190,15 +190,15 @@ func (s *MetricsServiceServer) process(
 
 				switch data := metric.Data.(type) {
 				case *metricspb.Metric_Gauge:
-					p.otlpGauge(ctx, scope, metric, data)
+					p.otlpGauge(ctx, sm.Scope, scopeAttrs, metric, data)
 				case *metricspb.Metric_Sum:
-					p.otlpSum(ctx, scope, metric, data)
+					p.otlpSum(ctx, sm.Scope, scopeAttrs, metric, data)
 				case *metricspb.Metric_Histogram:
-					p.otlpHistogram(ctx, scope, metric, data)
+					p.otlpHistogram(ctx, sm.Scope, scopeAttrs, metric, data)
 				case *metricspb.Metric_ExponentialHistogram:
-					p.otlpExpHistogram(ctx, scope, metric, data)
+					p.otlpExpHistogram(ctx, sm.Scope, scopeAttrs, metric, data)
 				case *metricspb.Metric_Summary:
-					p.otlpSummary(ctx, scope, metric, data)
+					p.otlpSummary(ctx, sm.Scope, scopeAttrs, metric, data)
 				default:
 					p.Zap(ctx).Error("unknown metric",
 						zap.String("type", fmt.Sprintf("%T", data)))
@@ -239,7 +239,8 @@ func (p *otlpProcessor) close(ctx context.Context) {
 
 func (p *otlpProcessor) otlpGauge(
 	ctx context.Context,
-	scope AttrMap,
+	scope *commonpb.InstrumentationScope,
+	scopeAttrs AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_Gauge,
 ) {
@@ -248,7 +249,8 @@ func (p *otlpProcessor) otlpGauge(
 			continue
 		}
 
-		dest := p.otlpNextDatapoint(scope, metric, InstrumentGauge, dp.Attributes, dp.TimeUnixNano)
+		dest := p.otlpNewDatapoint(
+			scope, scopeAttrs, metric, InstrumentGauge, dp.Attributes, dp.TimeUnixNano)
 		switch num := dp.Value.(type) {
 		case nil:
 			dest.Gauge = 0
@@ -268,7 +270,8 @@ func (p *otlpProcessor) otlpGauge(
 
 func (p *otlpProcessor) otlpSum(
 	ctx context.Context,
-	scope AttrMap,
+	scope *commonpb.InstrumentationScope,
+	scopeAttrs AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_Sum,
 ) {
@@ -278,7 +281,8 @@ func (p *otlpProcessor) otlpSum(
 			continue
 		}
 
-		dest := p.otlpNextDatapoint(scope, metric, "", dp.Attributes, dp.TimeUnixNano)
+		dest := p.otlpNewDatapoint(
+			scope, scopeAttrs, metric, "", dp.Attributes, dp.TimeUnixNano)
 
 		if !data.Sum.IsMonotonic {
 			dest.Instrument = InstrumentAdditive
@@ -317,7 +321,8 @@ func (p *otlpProcessor) otlpSum(
 
 func (p *otlpProcessor) otlpHistogram(
 	ctx context.Context,
-	scope AttrMap,
+	scope *commonpb.InstrumentationScope,
+	scopeAttrs AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_Histogram,
 ) {
@@ -327,8 +332,8 @@ func (p *otlpProcessor) otlpHistogram(
 			continue
 		}
 
-		dest := p.otlpNextDatapoint(
-			scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
+		dest := p.otlpNewDatapoint(
+			scope, scopeAttrs, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
 		if isDelta {
 			dest.Sum = dp.GetSum()
 			dest.Count = dp.Count
@@ -360,7 +365,8 @@ func (p *otlpProcessor) otlpHistogram(
 
 func (p *otlpProcessor) otlpExpHistogram(
 	ctx context.Context,
-	scope AttrMap,
+	scope *commonpb.InstrumentationScope,
+	scopeAttrs AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_ExponentialHistogram,
 ) {
@@ -380,8 +386,8 @@ func (p *otlpProcessor) otlpExpHistogram(
 		buildBFloat16Hist(hist, base, int(dp.Positive.Offset), dp.Positive.BucketCounts, +1)
 		buildBFloat16Hist(hist, base, int(dp.Negative.Offset), dp.Negative.BucketCounts, -1)
 
-		dest := p.otlpNextDatapoint(
-			scope, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
+		dest := p.otlpNewDatapoint(
+			scope, scopeAttrs, metric, InstrumentHistogram, dp.Attributes, dp.TimeUnixNano)
 
 		if isDelta {
 			dest.Sum = dp.GetSum()
@@ -436,7 +442,8 @@ func buildBFloat16Hist(
 
 func (p *otlpProcessor) otlpSummary(
 	ctx context.Context,
-	scope AttrMap,
+	scope *commonpb.InstrumentationScope,
+	scopeAttrs AttrMap,
 	metric *metricspb.Metric,
 	data *metricspb.Metric_Summary,
 ) {
@@ -456,7 +463,8 @@ func (p *otlpProcessor) otlpSummary(
 			}
 		}
 
-		dest := p.otlpNextDatapoint(scope, metric, InstrumentSummary, dp.Attributes, dp.TimeUnixNano)
+		dest := p.otlpNewDatapoint(
+			scope, scopeAttrs, metric, InstrumentSummary, dp.Attributes, dp.TimeUnixNano)
 		dest.Min = min
 		dest.Max = max
 		dest.Sum = dp.Sum
@@ -466,7 +474,8 @@ func (p *otlpProcessor) otlpSummary(
 	}
 }
 
-func (p *otlpProcessor) otlpNextDatapoint(
+func (p *otlpProcessor) otlpNewDatapoint(
+	scope *commonpb.InstrumentationScope,
 	scopeAttrs AttrMap,
 	metric *metricspb.Metric,
 	instrument Instrument,
@@ -480,15 +489,20 @@ func (p *otlpProcessor) otlpNextDatapoint(
 	})
 
 	metricName := attrkey.Clean(metric.Name)
-	dest := p.nextDatapoint(metricName, instrument, attrs, unixNano)
+	dest := p.newDatapoint(metricName, instrument, attrs, unixNano)
 
 	dest.Description = metric.Description
 	dest.Unit = bunconv.NormUnit(metric.Unit)
 
+	if scope != nil {
+		dest.OtelLibraryName = scope.Name
+		dest.OtelLibraryVersion = scope.Version
+	}
+
 	return dest
 }
 
-func (p *otlpProcessor) nextDatapoint(
+func (p *otlpProcessor) newDatapoint(
 	metricName string,
 	instrument Instrument,
 	attrs AttrMap,

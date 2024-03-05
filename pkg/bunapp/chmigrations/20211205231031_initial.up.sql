@@ -1,4 +1,4 @@
-CREATE TABLE ?DB.spans_index ?ON_CLUSTER (
+CREATE TABLE spans_index ?ON_CLUSTER (
   id UInt64 Codec(T64, ?CODEC),
   trace_id UUID Codec(?CODEC),
   parent_id UInt64 Codec(?CODEC),
@@ -80,7 +80,7 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE TABLE ?DB.spans_data ?ON_CLUSTER (
+CREATE TABLE spans_data ?ON_CLUSTER (
   project_id UInt32 Codec(Delta, ?CODEC),
   type LowCardinality(String) Codec(?CODEC),
   trace_id UUID Codec(?CODEC),
@@ -99,17 +99,17 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE TABLE ?DB.spans_index_buffer ?ON_CLUSTER AS ?DB.spans_index
+CREATE OR REPLACE TABLE spans_index_buffer ?ON_CLUSTER AS spans_index
 ENGINE = Buffer(currentDatabase(), spans_index, 3, 5, 10, 10000, 1000000, 10000000, 100000000)
 
 --migration:split
 
-CREATE TABLE ?DB.spans_data_buffer ?ON_CLUSTER AS ?DB.spans_data
+CREATE OR REPLACE TABLE spans_data_buffer ?ON_CLUSTER AS spans_data
 ENGINE = Buffer(currentDatabase(), spans_data, 3, 5, 10, 10000, 1000000, 10000000, 100000000)
 
 --migration:split
 
-CREATE TABLE ?DB.datapoint_minutes ?ON_CLUSTER (
+CREATE TABLE datapoint_minutes ?ON_CLUSTER (
   project_id UInt32 Codec(DoubleDelta, ?CODEC),
   metric LowCardinality(String) Codec(?CODEC),
   time DateTime Codec(DoubleDelta, ?CODEC),
@@ -136,12 +136,12 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE TABLE ?DB.datapoint_minutes_buffer ?ON_CLUSTER AS ?DB.datapoint_minutes
-ENGINE = Buffer(?DB, datapoint_minutes, 3, 5, 10, 10000, 1000000, 10000000, 100000000)
+CREATE OR REPLACE TABLE datapoint_minutes_buffer ?ON_CLUSTER AS datapoint_minutes
+ENGINE = Buffer(currentDatabase(), datapoint_minutes, 3, 5, 10, 10000, 1000000, 10000000, 100000000)
 
 --migration:split
 
-CREATE TABLE ?DB.datapoint_hours ?ON_CLUSTER (
+CREATE TABLE datapoint_hours ?ON_CLUSTER (
   project_id UInt32 Codec(DoubleDelta, ?CODEC),
   metric LowCardinality(String) Codec(?CODEC),
   time DateTime Codec(DoubleDelta, ?CODEC),
@@ -168,8 +168,8 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE MATERIALIZED VIEW ?DB.datapoint_hours_mv ?ON_CLUSTER
-TO ?DB.datapoint_hours
+CREATE MATERIALIZED VIEW datapoint_hours_mv ?ON_CLUSTER
+TO datapoint_hours
 AS SELECT
   project_id,
   metric,
@@ -187,13 +187,13 @@ AS SELECT
   any(string_keys) AS string_keys,
   any(string_values) AS string_values,
   max(annotations) AS annotations
-FROM ?DB.datapoint_minutes AS m
+FROM datapoint_minutes AS m
 GROUP BY m.project_id, m.metric, toStartOfHour(m.time), m.attrs_hash
 
 --------------------------------------------------------------------------------
 --migration:split
 
-CREATE TABLE ?DB.service_graph_edges ?ON_CLUSTER (
+CREATE TABLE service_graph_edges ?ON_CLUSTER (
   project_id UInt32 Codec(DoubleDelta, ?CODEC),
   type LowCardinality(String) Codec(?CODEC),
   time DateTime Codec(T64, ?CODEC),
@@ -226,13 +226,13 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE TABLE ?DB.service_graph_edges_buffer ?ON_CLUSTER AS ?DB.service_graph_edges
+CREATE OR REPLACE TABLE service_graph_edges_buffer ?ON_CLUSTER AS service_graph_edges
 ENGINE = Buffer(currentDatabase(), service_graph_edges, 3, 5, 10, 10000, 1000000, 10000000, 100000000)
 
 --migration:split
 
-CREATE MATERIALIZED VIEW ?DB.metrics_uptrace_service_graph_client_duration_mv ?ON_CLUSTER
-TO ?DB.datapoint_minutes AS
+CREATE MATERIALIZED VIEW metrics_uptrace_service_graph_client_duration_mv ?ON_CLUSTER
+TO datapoint_minutes AS
 SELECT
   e.project_id,
   'uptrace_service_graph_client_duration' AS metric,
@@ -267,7 +267,7 @@ SELECT
     if(e.deployment_environment != '', [e.deployment_environment], []),
     if(e.service_namespace != '', [e.service_namespace], [])
   ) AS string_values
-FROM ?DB.service_graph_edges AS e
+FROM service_graph_edges AS e
 WHERE e.count > 0 AND e.client_duration_sum > 0
 GROUP BY
   e.project_id,
@@ -280,8 +280,8 @@ GROUP BY
 
 --migration:split
 
-CREATE MATERIALIZED VIEW ?DB.metrics_uptrace_service_graph_server_duration_mv ?ON_CLUSTER
-TO ?DB.datapoint_minutes AS
+CREATE MATERIALIZED VIEW metrics_uptrace_service_graph_server_duration_mv ?ON_CLUSTER
+TO datapoint_minutes AS
 SELECT
   e.project_id,
   'uptrace_service_graph_server_duration' AS metric,
@@ -316,7 +316,7 @@ SELECT
     if(e.deployment_environment != '', [e.deployment_environment], []),
     if(e.service_namespace != '', [e.service_namespace], [])
   ) AS string_values
-FROM ?DB.service_graph_edges AS e
+FROM service_graph_edges AS e
 WHERE e.count > 0 AND e.server_duration_sum > 0
 GROUP BY
   e.project_id,
@@ -329,8 +329,8 @@ GROUP BY
 
 --migration:split
 
-CREATE MATERIALIZED VIEW ?DB.metrics_uptrace_service_graph_failed_requests_mv ?ON_CLUSTER
-TO ?DB.datapoint_minutes AS
+CREATE MATERIALIZED VIEW metrics_uptrace_service_graph_failed_requests_mv ?ON_CLUSTER
+TO datapoint_minutes AS
 SELECT
   e.project_id,
   'uptrace_service_graph_failed_requests' AS metric,
@@ -362,7 +362,7 @@ SELECT
     if(e.deployment_environment != '', [e.deployment_environment], []),
     if(e.service_namespace != '', [e.service_namespace], [])
   ) AS string_values
-FROM ?DB.service_graph_edges AS e
+FROM service_graph_edges AS e
 WHERE e.error_count > 0
 GROUP BY
   e.project_id,

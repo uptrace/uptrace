@@ -98,6 +98,7 @@ type AttrValueItem struct {
 
 func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
+	attrKey := req.Param("attr")
 
 	f, err := DecodeSpanFilter(h.App, req)
 	if err != nil {
@@ -105,12 +106,7 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 	}
 	disableColumnsAndGroups(f.parts)
 
-	if f.AttrKey == "" {
-		return fmt.Errorf(`"attr_key" query param is required`)
-	}
-	f.AttrKey = attrkey.Clean(f.AttrKey)
-
-	col, err := tql.ParseColumn(f.AttrKey)
+	col, err := tql.ParseColumn(attrKey)
 	if err != nil {
 		return err
 	}
@@ -140,7 +136,7 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 	q = q.ColumnExpr("? AS value", ch.Safe(chExpr)).
 		GroupExpr("value").
 		ColumnExpr("count() AS count")
-	if !strings.HasPrefix(f.AttrKey, "_") {
+	if !strings.HasPrefix(attrKey, "_") {
 		q = q.Where("has(s.all_keys, ?)", attr.Name)
 	}
 	if f.SearchInput != "" {

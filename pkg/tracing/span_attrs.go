@@ -275,10 +275,9 @@ func normLogSeverity(val string) string {
 		"ERR", "ALERT", "SEVERE":
 		return "ERROR"
 	case "fatal", "crit", "critical", "emerg", "emergency",
-		"CRIT", "CRITICAL", "EMERG", "EMERGENCY":
+		"CRIT", "CRITICAL", "EMERG", "EMERGENCY",
+		"panic", "PANIC":
 		return "FATAL"
-	case "panic":
-		return "PANIC"
 	default:
 		return val
 	}

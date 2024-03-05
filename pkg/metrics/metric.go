@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	uptraceServiceGraphClientDuration = "uptrace.service_graph.client_duration"
-	uptraceServiceGraphServerDuration = "uptrace.service_graph.server_duration"
-	uptraceServiceGraphFailedRequests = "uptrace.service_graph.failed_requests"
+	uptraceServiceGraphClientDuration = "uptrace_service_graph_client_duration"
+	uptraceServiceGraphServerDuration = "uptrace_service_graph_server_duration"
+	uptraceServiceGraphFailedRequests = "uptrace_service_graph_failed_requests"
 )
 
 type Metric struct {
@@ -43,6 +43,14 @@ type Metric struct {
 	NumTimeseries uint64 `json:"numTimeseries" bun:",scanonly"`
 }
 
+func newDeletedMetric(projectID uint32, metricName string) *Metric {
+	return &Metric{
+		ProjectID:  projectID,
+		Name:       metricName,
+		Instrument: InstrumentDeleted,
+	}
+}
+
 func SelectMetricMap(
 	ctx context.Context, app *bunapp.App, projectID uint32,
 ) (map[string]*Metric, error) {
@@ -65,14 +73,6 @@ func SelectMetricMap(
 	}
 
 	return m, nil
-}
-
-func newDeletedMetric(projectID uint32, metricName string) *Metric {
-	return &Metric{
-		ProjectID:  projectID,
-		Name:       metricName,
-		Instrument: InstrumentDeleted,
-	}
 }
 
 func SelectMetric(ctx context.Context, app *bunapp.App, id uint64) (*Metric, error) {

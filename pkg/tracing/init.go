@@ -87,8 +87,8 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
 			attrHandler := NewAttrHandler(app)
 
-			g.GET("/attr-keys", attrHandler.AttrKeys)
-			g.GET("/attr-values", attrHandler.AttrValues)
+			g.GET("/attributes", attrHandler.AttrKeys)
+			g.GET("/attributes/:attr", attrHandler.AttrValues)
 		})
 
 	internalV1.Use(middleware.UserAndProject).

@@ -298,7 +298,7 @@ export default defineComponent({
 
       const { projectId } = route.value.params
       return {
-        url: `/internal/v1/metrics/${projectId}/attr-keys`,
+        url: `/internal/v1/metrics/${projectId}/attributes`,
         params: {
           ...props.dateRange.axiosParams(),
           metric: props.dashboard.tableMetrics.map((m) => m.name),

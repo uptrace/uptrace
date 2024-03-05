@@ -1,5 +1,6 @@
 import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
 import { shallowRef, computed, watch, proxyRefs } from 'vue'
+import { refDebounced } from '@vueuse/core'
 
 import { useWatchAxios, AxiosRequestSource } from '@/use/watch-axios'
 
@@ -30,6 +31,7 @@ export function useDataSourceRefs<T extends Item>(
   const suggestSearchInput = conf.suggestSearchInput ?? false
 
   const searchInput = shallowRef('')
+  const debouncedSearchInput = refDebounced(searchInput, 1000)
   const hasMore = shallowRef(false)
 
   const { status, loading, data, errorMessage, reload } = useWatchAxios(() => {
@@ -39,7 +41,7 @@ export function useDataSourceRefs<T extends Item>(
     }
 
     req.params ??= {}
-    req.params.search_input = searchInput.value
+    req.params.search_input = debouncedSearchInput.value
     if (!hasMore.value) {
       req.params.$ignore_search_input = true
     }
@@ -58,7 +60,7 @@ export function useDataSourceRefs<T extends Item>(
     }
     return {
       ...item,
-      text: item.value,
+      text: itemText(item.value),
     }
   }
 
@@ -116,4 +118,11 @@ export function useDataSourceRefs<T extends Item>(
     values,
     filteredValues,
   }
+}
+
+function itemText(value: string): string {
+  if (value === '') {
+    return '<empty string>'
+  }
+  return value
 }

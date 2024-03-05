@@ -144,7 +144,7 @@ export default defineComponent({
     const attrKeysDs = useDataSource(() => {
       const { projectId } = route.value.params
       return {
-        url: `/internal/v1/metrics/${projectId}/attr-keys`,
+        url: `/internal/v1/metrics/${projectId}/attributes`,
         params: {
           ...forceReload.params,
         },

@@ -106,7 +106,7 @@ export default defineComponent({
     const attrValues = useDataSource(() => {
       const { projectId } = route.value.params
       return {
-        url: `/internal/v1/tracing/${projectId}/attr-values?attr_key=${props.attrKey}`,
+        url: `/internal/v1/tracing/${projectId}/attributes/${props.attrKey}`,
         params: {
           ...props.dateRange.axiosParams(),
           ...props.uql.axiosParams(),

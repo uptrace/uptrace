@@ -1,4 +1,6 @@
 export enum AttrKey {
+  metricInstrument = '_instrument',
+
   spanId = '_id',
   spanParentId = '_parent_id',
   spanTraceId = '_trace_id',
@@ -54,6 +56,8 @@ export enum AttrKey {
 
   codeFunction = 'code_function',
   codeFilepath = 'code_filepath',
+
+  otelLibraryName = 'otel_library_name',
 }
 
 export enum SystemName {

@@ -109,7 +109,7 @@ export default defineComponent({
   },
 
   setup(props) {
-    useTitle('Test Metrics')
+    useTitle('Explore Metrics')
     const uql = useUql('')
 
     const metricAliases = shallowRef<MetricAlias[]>([])

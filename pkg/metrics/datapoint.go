@@ -38,6 +38,9 @@ type Datapoint struct {
 	StringKeys   []string `ch:"type:Array(LowCardinality(String))"`
 	StringValues []string
 
+	OtelLibraryName    string `ch:",lc"`
+	OtelLibraryVersion string `ch:",lc"`
+
 	StartTimeUnixNano uint64 `ch:"-"`
 	CumPoint          any    `ch:"-"`
 }

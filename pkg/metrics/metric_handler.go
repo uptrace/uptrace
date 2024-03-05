@@ -28,9 +28,10 @@ type MetricFilter struct {
 
 	ProjectID uint32
 
-	Instrument  Instrument
-	AttrKey     []string
-	SearchInput string
+	AttrKey         []string
+	Instrument      []string
+	OtelLibraryName []string
+	SearchInput     string
 
 	Query string
 }
@@ -107,11 +108,14 @@ func selectMetrics(ctx context.Context, app *bunapp.App, f *MetricFilter) ([]*Me
 		OrderExpr("name ASC").
 		Limit(10000)
 
-	if f.Instrument != "" {
-		q = q.Where("instrument = ?", f.Instrument)
-	}
 	if len(f.AttrKey) > 0 {
 		q = q.Where("attr_keys @> ?", pgdialect.Array(f.AttrKey))
+	}
+	if len(f.Instrument) > 0 {
+		q = q.Where("instrument IN (?)", bun.In(f.Instrument))
+	}
+	if len(f.OtelLibraryName) > 0 {
+		q = q.Where("otel_library_name IN (?)", bun.In(f.OtelLibraryName))
 	}
 
 	if err := q.Scan(ctx); err != nil {
@@ -138,11 +142,14 @@ func selectMetricsFromCH(
 		OrderExpr("name ASC").
 		Limit(limit)
 
-	if f.Instrument != "" {
-		q = q.Where("instrument = ?", f.Instrument)
-	}
 	if len(f.AttrKey) > 0 {
-		q = q.Where("hasAll(string_keys, ?)", chschema.Array(f.AttrKey))
+		q = q.Where("hasAll(m.string_keys, ?)", chschema.Array(f.AttrKey))
+	}
+	if len(f.Instrument) > 0 {
+		q = q.Where("m.instrument IN ?", ch.In(f.Instrument))
+	}
+	if len(f.OtelLibraryName) > 0 {
+		q = q.Where("m.otel_library_name IN ?", ch.In(f.OtelLibraryName))
 	}
 	if f.SearchInput != "" {
 		values := strings.Split(f.SearchInput, "|")

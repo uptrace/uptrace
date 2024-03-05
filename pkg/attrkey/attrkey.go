@@ -1,6 +1,8 @@
 package attrkey
 
 const (
+	MetricInstrument = "_instrument"
+
 	AlertType   = "alert_type"
 	AlertStatus = "alert_status"
 

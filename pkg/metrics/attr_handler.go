@@ -2,8 +2,6 @@ package metrics
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -11,6 +9,8 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/go-clickhouse/ch/chschema"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
@@ -25,8 +25,10 @@ type AttrFilter struct {
 	ProjectID uint32
 	Metric    []string
 
-	AttrKey     string
-	SearchInput string
+	AttrKey         []string
+	Instrument      []string
+	OtelLibraryName []string
+	SearchInput     string
 }
 
 func DecodeAttrFilter(app *bunapp.App, req bunrouter.Request, f *AttrFilter) error {
@@ -58,6 +60,23 @@ func (f *AttrFilter) UnmarshalValues(ctx context.Context, values url.Values) err
 	}
 
 	return nil
+}
+
+func (f *AttrFilter) pgWhere(selq *bun.SelectQuery) *bun.SelectQuery {
+	selq = selq.Where("project_id = ?", f.ProjectID)
+
+	if len(f.Metric) == 0 {
+		selq = selq.Where("updated_at >= ?", f.TimeGTE).
+			Where("updated_at < ?", f.TimeLT)
+	}
+	if len(f.Instrument) > 0 {
+		selq = selq.Where("instrument IN (?)", bun.In(f.Instrument))
+	}
+	if len(f.OtelLibraryName) > 0 {
+		selq = selq.Where("otel_library_name IN (?)", bun.In(f.OtelLibraryName))
+	}
+
+	return selq
 }
 
 //------------------------------------------------------------------------------
@@ -97,7 +116,7 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 			Model((*Metric)(nil)).
 			ColumnExpr("name AS metric").
 			ColumnExpr("UNNEST(attr_keys) AS value").
-			Where("project_id = ?", f.ProjectID)
+			Apply(f.pgWhere)
 
 		if err := h.PG.NewSelect().
 			ColumnExpr("value").
@@ -152,7 +171,7 @@ func (h *AttrHandler) selectAttrKeys(ctx context.Context, f *AttrFilter) ([]stri
 	if err := h.PG.NewSelect().
 		Model((*Metric)(nil)).
 		ColumnExpr("UNNEST(array_intersect_agg(attr_keys))").
-		Where("project_id = ?", f.ProjectID).
+		Apply(f.pgWhere).
 		Where("name IN (?)", bun.In(f.Metric)).
 		Scan(ctx, &keys); err != nil {
 		return nil, err
@@ -163,20 +182,14 @@ func (h *AttrHandler) selectAttrKeys(ctx context.Context, f *AttrFilter) ([]stri
 
 func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
+	attrKey := req.Param("attr")
 
 	f := new(AttrFilter)
 	if err := DecodeAttrFilter(h.App, req, f); err != nil {
 		return err
 	}
 
-	if len(f.Metric) == 0 {
-		return errors.New(`"metric" query param is required`)
-	}
-	if f.AttrKey == "" {
-		return fmt.Errorf(`"attr_key" query param is required`)
-	}
-
-	items, hasMore, err := h.selectAttrValues(ctx, f)
+	items, hasMore, err := h.selectAttrValues(ctx, attrKey, f)
 	if err != nil {
 		return err
 	}
@@ -189,10 +202,11 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 
 type AttrValueItem struct {
 	Value string `json:"value"`
+	Count uint64 `json:"count"`
 }
 
 func (h *AttrHandler) selectAttrValues(
-	ctx context.Context, f *AttrFilter,
+	ctx context.Context, attrKey string, f *AttrFilter,
 ) (any, bool, error) {
 	const limit = 1000
 
@@ -200,20 +214,40 @@ func (h *AttrHandler) selectAttrValues(
 	items := make([]AttrValueItem, 0)
 
 	if err := h.CH.NewSelect().
-		ColumnExpr("DISTINCT string_values[indexOf(string_keys, ?)] AS value", f.AttrKey).
-		TableExpr("?", ch.Name(tableName)).
-		Where("project_id = ?", f.ProjectID).
-		Where("metric IN ?", ch.In(f.Metric)).
-		Where("time >= ?", f.TimeGTE).
-		Where("time < ?", f.TimeLT).
-		Where("has(string_keys, ?)", f.AttrKey).
+		ColumnExpr("? AS value", chAttrExpr(attrKey)).
+		ColumnExpr("count(DISTINCT metric) AS count").
+		TableExpr("? AS d", ch.Name(tableName)).
+		Where("d.project_id = ?", f.ProjectID).
+		Where("d.time >= ?", f.TimeGTE).
+		Where("d.time < ?", f.TimeLT).
 		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
-			if f.SearchInput != "" {
-				q = q.Where("string_values[indexOf(string_keys, ?)] like ?",
-					f.AttrKey, "%"+f.SearchInput+"%")
+			if len(f.Metric) > 0 {
+				q = q.Where("d.metric IN ?", ch.In(f.Metric))
 			}
+			if !isMandatoryAttr(attrKey) {
+				q = q.Where("has(d.string_keys, ?)", attrKey)
+			}
+
+			for _, attrKey := range f.AttrKey {
+				if isMandatoryAttr(attrKey) {
+					continue
+				}
+				q = q.Where("has(d.string_keys, ?)", attrKey)
+			}
+			if len(f.Instrument) > 0 {
+				q = q.Where("d.instrument IN ?", ch.In(f.Instrument))
+			}
+			if len(f.OtelLibraryName) > 0 {
+				q = q.Where("d.otel_library_name IN ?", ch.In(f.OtelLibraryName))
+			}
+
+			if f.SearchInput != "" {
+				q = q.Where("? like ?", chAttrExpr(attrKey), "%"+f.SearchInput+"%")
+			}
+
 			return q
 		}).
+		GroupExpr("value").
 		OrderExpr("value ASC").
 		Limit(limit).
 		Scan(ctx, &items); err != nil {
@@ -222,4 +256,25 @@ func (h *AttrHandler) selectAttrValues(
 
 	hasMore := f.SearchInput != "" || len(items) == limit
 	return items, hasMore, nil
+}
+
+func chAttrExpr(attrKey string) ch.Safe {
+	switch attrKey {
+	case attrkey.MetricInstrument:
+		return "d.instrument"
+	}
+	return ch.Safe(appendCHAttrExpr(nil, attrKey))
+}
+
+func appendCHAttrExpr(b []byte, attrKey string) []byte {
+	return chschema.AppendQuery(b, "d.string_values[indexOf(string_keys, ?)]", attrKey)
+}
+
+func isMandatoryAttr(attrKey string) bool {
+	switch attrKey {
+	case attrkey.MetricInstrument, attrkey.OtelLibraryName:
+		return true
+	default:
+		return false
+	}
 }

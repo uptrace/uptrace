@@ -26,6 +26,22 @@
         </v-tabs-items>
       </v-col>
     </v-row>
+
+    <v-row>
+      <v-col>
+        Note that the configuration above is minimal and only collects
+        <a href="https://uptrace.dev/opentelemetry/collector-host-metrics.html" target="_blank"
+          >host metrics</a
+        >. To gather more metrics, you will need to configure additional receivers from the list
+        below, for example,
+        <a href="https://uptrace.dev/get/monitor/opentelemetry-postgresql.html" target="_blank"
+          >PostgreSQL</a
+        >
+        or
+        <a href="https://uptrace.dev/get/monitor/opentelemetry-mysql.html" target="_blank">MySQL</a>
+        receivers.
+      </v-col>
+    </v-row>
   </div>
 </template>
 
@@ -59,7 +75,23 @@ processors:
     send_batch_size: 10000
     timeout: 10s
 
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+  hostmetrics:
+    scrapers:
+      cpu:
+      disk:
+      filesystem:
+      load:
+      memory:
+      network:
+      paging:
+
 exporters:
+  debug:
   otlp/uptrace:
     endpoint: ${dsn.grpcEndpoint}
     tls: { insecure: ${dsn.insecure} }
@@ -71,15 +103,19 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp/uptrace]
+      exporters: [otlp/uptrace, debug]
     metrics:
       receivers: [otlp]
+      processors: [cumulativetodelta, batch]
+      exporters: [otlp/uptrace, debug]
+    metrics/host:
+      receivers: [hostmetrics]
       processors: [cumulativetodelta, batch, resourcedetection]
-      exporters: [otlp/uptrace]
+      exporters: [otlp/uptrace, debug]
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp/uptrace]
+      exporters: [otlp/uptrace, debug]
       `.trim()
     })
 
@@ -93,7 +129,23 @@ processors:
     send_batch_size: 10000
     timeout: 10s
 
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+  hostmetrics:
+    scrapers:
+      cpu:
+      disk:
+      filesystem:
+      load:
+      memory:
+      network:
+      paging:
+
 exporters:
+  debug:
   otlphttp/uptrace:
     endpoint: ${dsn.httpEndpoint}
     headers:
@@ -104,15 +156,19 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlphttp/uptrace]
+      exporters: [otlphttp/uptrace, debug]
     metrics:
       receivers: [otlp]
+      processors: [cumulativetodelta, batch]
+      exporters: [otlphttp/uptrace, debug]
+    metrics/host:
+      receivers: [hostmetrics]
       processors: [cumulativetodelta, batch, resourcedetection]
-      exporters: [otlphttp/uptrace]
+      exporters: [otlphttp/uptrace, debug]
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlphttp/uptrace]
+      exporters: [otlphttp/uptrace, debug]
       `.trim()
     })
 

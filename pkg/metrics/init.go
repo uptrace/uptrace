@@ -72,8 +72,8 @@ func initRoutes(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
 		WithGroup("/metrics/:project_id", func(g *bunrouter.Group) {
 			attrHandler := NewAttrHandler(app)
 
-			g.GET("/attr-keys", attrHandler.AttrKeys)
-			g.GET("/attr-values", attrHandler.AttrValues)
+			g.GET("/attributes", attrHandler.AttrKeys)
+			g.GET("/attributes/:attr", attrHandler.AttrValues)
 		})
 
 	api.
