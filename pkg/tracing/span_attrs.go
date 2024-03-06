@@ -388,7 +388,7 @@ func assignSpanSystemAndGroupID(ctx *spanContext, project *org.Project, span *Sp
 				hashDBStmt(digest, stmt)
 			}
 		})
-		if stmt != "" {
+		if !project.ForceSpanName && stmt != "" {
 			span.DisplayName = stmt
 		}
 		return

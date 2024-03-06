@@ -62,6 +62,8 @@ projects:
     group_funcs_by_service: false
     # Enable prom_compat if you want to use the project as a Prometheus datasource in Grafana.
     prom_compat: true
+    # Show the original span name instead of SQL statement for DB spans (only affects new spans)
+    force_span_name: false
 
   # Other projects can be used to monitor your applications.
   # To monitor micro-services or multiple related services, use a single project.
@@ -73,6 +75,7 @@ projects:
       - host_name
       - deployment_environment
     prom_compat: true
+    force_span_name: false
 
 ##
 ## Create metrics from spans and events.
