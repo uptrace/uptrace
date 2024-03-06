@@ -7,17 +7,6 @@
         <v-tab :to="{ name: 'NotifChannelList' }">Channels</v-tab>
         <v-tab :to="{ name: 'NotifChannelEmail' }">Email notifications</v-tab>
         <v-tab :to="{ name: 'AnnotationList' }">Annotations</v-tab>
-
-        <v-btn
-          small
-          plain
-          href="https://uptrace.dev/get/alerting.html"
-          target="_blank"
-          class="ml-10 align-self-center"
-        >
-          <span>Documentation</span>
-          <v-icon small class="ml-1">mdi-open-in-new</v-icon>
-        </v-btn>
       </v-tabs>
     </portal>
 

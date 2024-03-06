@@ -6,6 +6,11 @@
 
     <PageToolbar :fluid="$vuetify.breakpoint.lgAndDown">
       <v-toolbar-title>Alerts</v-toolbar-title>
+      <v-btn small plain href="https://uptrace.dev/get/alerting.html" target="_blank" class="ml-10">
+        <span>Documentation</span>
+        <v-icon small class="ml-1">mdi-open-in-new</v-icon>
+      </v-btn>
+
       <v-spacer />
 
       <ForceReloadBtn small />

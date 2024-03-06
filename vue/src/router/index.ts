@@ -56,6 +56,7 @@ import DashboardHelp from '@/metrics/views/DashboardHelp.vue'
 
 import Login from '@/views/Login.vue'
 import UserProfile from '@/org/views/UserProfile.vue'
+import DataUsage from '@/org/views/DataUsage.vue'
 
 Vue.use(VueRouter)
 
@@ -75,6 +76,11 @@ const routes: RouteConfig[] = [
     path: '/profile',
     name: 'UserProfile',
     component: UserProfile,
+  },
+  {
+    path: '/usage',
+    name: 'DataUsage',
+    component: DataUsage,
   },
   {
     name: 'ProjectCreate',

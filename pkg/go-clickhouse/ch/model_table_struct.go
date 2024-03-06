@@ -8,9 +8,10 @@ import (
 )
 
 type structTableModel struct {
-	db    *DB
-	table *chschema.Table
-	strct reflect.Value
+	db       *DB
+	table    *chschema.Table
+	strct    reflect.Value
+	columnar bool
 }
 
 var _ TableModel = (*structTableModel)(nil)
@@ -30,8 +31,16 @@ func newStructTableModelValue(db *DB, v reflect.Value) *structTableModel {
 	}
 }
 
+func (m *structTableModel) SetColumnar(on bool) {
+	m.columnar = on
+}
+
 func (m *structTableModel) UseQueryRow() bool {
-	return !m.table.IsColumnar()
+	return !m.isColumnar()
+}
+
+func (m *structTableModel) isColumnar() bool {
+	return m.columnar || m.table.IsColumnar()
 }
 
 func (m *structTableModel) Table() *chschema.Table {
@@ -54,7 +63,7 @@ func (m *structTableModel) ScanBlock(block *chschema.Block) error {
 		return nil
 	}
 
-	if m.table.IsColumnar() {
+	if m.isColumnar() {
 		return scanColumns(m.db, m.table, m.strct, block)
 	}
 	return scanRow(m.db, m.table, m.strct, block, 0)

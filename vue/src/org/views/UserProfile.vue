@@ -1,6 +1,13 @@
 <template>
-  <div v-if="user.isAuth" class="container--fixed-sm">
-    <div class="mb-10">
+  <div class="container--fixed-sm">
+    <portal to="navigation">
+      <v-tabs :key="$route.fullPath" background-color="transparent">
+        <v-tab :to="{ name: 'UserProfile' }" exact-path> Profile </v-tab>
+        <v-tab :to="{ name: 'DataUsage' }" exact-path> Data usage </v-tab>
+      </v-tabs>
+    </portal>
+
+    <div v-if="user.isAuth">
       <PageToolbar>
         <v-toolbar-title>{{ title }}</v-toolbar-title>
       </PageToolbar>

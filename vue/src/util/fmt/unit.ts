@@ -28,6 +28,7 @@ export enum Unit {
   Gigabytes = 'gigabytes',
   Terabytes = 'terabytes',
 
+  Date = 'date',
   Time = 'time',
   UnixTime = 'unix-time', // in seconds
 }

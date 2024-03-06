@@ -1,5 +1,5 @@
 import { Unit } from '@/util/fmt/unit'
-import { datetime } from '@/util/fmt/date'
+import { date, datetime } from '@/util/fmt/date'
 import { num, numVerbose, numShort, percents, utilization } from '@/util/fmt/num'
 import { bytes, bytesShort } from '@/util/fmt/bytes'
 import { duration, durationShort } from '@/util/fmt/duration'
@@ -35,6 +35,8 @@ export function createFormatter(unit: string): Formatter {
       return percents
     case Unit.Utilization:
       return utilization
+    case Unit.Date:
+      return date
     case Unit.Time:
       return datetime
     case Unit.Nanoseconds:

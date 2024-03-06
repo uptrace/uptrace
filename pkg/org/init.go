@@ -61,6 +61,14 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 
 	api.
 		Use(middleware.User).
+		WithGroup("", func(g *bunrouter.Group) {
+			handler := NewUsageHandler(app)
+
+			g.GET("/data-usage", handler.Show)
+		})
+
+	api.
+		Use(middleware.User).
 		WithGroup("/pinned-facets", func(g *bunrouter.Group) {
 			handler := NewPinnedFacetHandler(app)
 

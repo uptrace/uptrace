@@ -30,6 +30,9 @@
       <v-list-item :to="{ name: 'UserProfile' }" exact-path>
         <v-list-item-title>Profile</v-list-item-title>
       </v-list-item>
+      <v-list-item :to="{ name: 'DataUsage' }" exact-path>
+        <v-list-item-title>Data usage</v-list-item-title>
+      </v-list-item>
       <v-list-item @click="user.logout">
         <v-list-item-title>Sign out</v-list-item-title>
       </v-list-item>
