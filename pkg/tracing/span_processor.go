@@ -3,10 +3,12 @@ package tracing
 import (
 	"context"
 	"runtime"
+	"slices"
 	"time"
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/org"
@@ -31,6 +33,7 @@ type SpanProcessor struct {
 func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
 	conf := app.Config()
 	maxprocs := runtime.GOMAXPROCS(0)
+
 	p := &SpanProcessor{
 		App: app,
 
@@ -146,19 +149,19 @@ func (p *SpanProcessor) processSpans(ctx context.Context, src []*Span) {
 		defer p.gate.Done()
 		defer p.WaitGroup().Done()
 
-		spanCtx := newSpanContext(ctx)
-		p._processSpans(spanCtx, spans)
+		thread := newSpanProcessorThread(p)
+		thread._processSpans(ctx, spans)
 	}()
 }
 
-func (p *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
+func (p *spanProcessorThread) _processSpans(ctx context.Context, spans []*Span) {
 	indexedSpans := make([]SpanIndex, 0, len(spans))
 	dataSpans := make([]SpanData, 0, len(spans))
 
 	seenErrors := make(map[uint64]bool) // basic deduplication
 
 	for _, span := range spans {
-		initSpanOrEvent(ctx, p.App, span)
+		p.initSpanOrEvent(ctx, span)
 		spanCounter.Add(
 			ctx,
 			1,
@@ -190,7 +193,7 @@ func (p *SpanProcessor) _processSpans(ctx *spanContext, spans []*Span) {
 		for _, event := range span.Events {
 			eventSpan := new(Span)
 			initEventFromHostSpan(eventSpan, event, span)
-			initEvent(ctx, p.App, eventSpan)
+			p.initEvent(ctx, eventSpan)
 
 			spanCounter.Add(
 				ctx,
@@ -263,33 +266,49 @@ func scheduleCreateErrorAlert(ctx context.Context, app *bunapp.App, span *Span) 
 
 //------------------------------------------------------------------------------
 
-type spanContext struct {
-	context.Context
+type spanProcessorThread struct {
+	*SpanProcessor
 
 	projects map[uint32]*org.Project
 	digest   *xxhash.Digest
 }
 
-func newSpanContext(ctx context.Context) *spanContext {
-	return &spanContext{
-		Context: ctx,
+func newSpanProcessorThread(p *SpanProcessor) *spanProcessorThread {
+	return &spanProcessorThread{
+		SpanProcessor: p,
 
 		projects: make(map[uint32]*org.Project),
 		digest:   xxhash.New(),
 	}
 }
 
-func (c *spanContext) Project(app *bunapp.App, projectID uint32) (*org.Project, bool) {
-	if p, ok := c.projects[projectID]; ok {
-		return p, true
+func (p *spanProcessorThread) project(ctx context.Context, projectID uint32) (*org.Project, bool) {
+	if project, ok := p.projects[projectID]; ok {
+		return project, true
 	}
 
-	project, err := org.SelectProject(c.Context, app, projectID)
+	project, err := org.SelectProject(ctx, p.App, projectID)
 	if err != nil {
-		app.Zap(c.Context).Error("SelectProject failed", zap.Error(err))
+		p.Zap(ctx).Error("SelectProject failed", zap.Error(err))
 		return nil, false
 	}
 
-	c.projects[projectID] = project
+	p.projects[projectID] = project
 	return project, true
+}
+
+func (p *spanProcessorThread) forceSpanName(ctx context.Context, span *Span) bool {
+	if span.EventName != "" {
+		return false
+	}
+
+	project, ok := p.project(ctx, span.ProjectID)
+	if !ok {
+		return false
+	}
+
+	if libName := span.Attrs[attrkey.OtelLibraryName].(string); libName != "" {
+		return slices.Contains(project.ForceSpanName, libName)
+	}
+	return false
 }

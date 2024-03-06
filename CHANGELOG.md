@@ -12,9 +12,14 @@ upgrade to the v1.6.x first.
 - App navigation is reworked using the navigation drawer.
 - Added a list of dashboards.
 - Uptrace now provides quick access to dashboards that have the same prefix. You may need to reset
-  your existing dashboards to benefit from this.
+  your existing dashboards via UI to benefit from this.
 - You can now search over monitors.
 - Added pre-built dashboards for .NET system metrics reported by OpenTelemetry.
+
+#### Improvements
+
+- Added new project setting `force_span_name` by @HeCorr. See the config for details.
+- Added ability to disable TLS when configuring SMTP mailer by @rgl.
 
 #### Changed
 

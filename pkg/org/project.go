@@ -23,7 +23,7 @@ type Project struct {
 	GroupByEnv          bool     `json:"groupByEnv"`
 	GroupFuncsByService bool     `json:"groupFuncsByService"`
 	PromCompat          bool     `json:"promCompat"`
-	ForceSpanName       bool     `json:"forceSpanName"`
+	ForceSpanName       []string `json:"forceSpanName" bun:",array"`
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`

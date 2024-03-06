@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strconv"
@@ -11,7 +12,6 @@ import (
 	ua "github.com/mileusna/useragent"
 	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/idgen"
@@ -25,26 +25,26 @@ import (
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
-func initSpanOrEvent(ctx *spanContext, app *bunapp.App, span *Span) {
-	project, ok := ctx.Project(app, span.ProjectID)
+func (p *spanProcessorThread) initSpanOrEvent(ctx context.Context, span *Span) {
+	project, ok := p.project(ctx, span.ProjectID)
 	if !ok {
 		return
 	}
 
-	processAttrs(ctx, span)
+	p.processAttrs(span)
 
 	if span.EventName != "" {
-		assignEventSystemAndGroupID(ctx, project, span)
+		p.assignEventSystemAndGroupID(project, span)
 		span.EventName = utf8util.TruncLC(span.EventName)
 	} else {
-		assignSpanSystemAndGroupID(ctx, project, span)
+		p.assignSpanSystemAndGroupID(project, span)
 		span.Name = utf8util.TruncLC(span.Name)
 	}
 
 	if name, _ := span.Attrs[attrkey.DisplayName].(string); name != "" {
 		span.DisplayName = utf8util.TruncSmall(name)
 		delete(span.Attrs, attrkey.DisplayName)
-	} else if span.DisplayName != "" {
+	} else if span.DisplayName != "" && !p.forceSpanName(ctx, span) {
 		span.DisplayName = utf8util.TruncSmall(span.DisplayName)
 	} else {
 		span.DisplayName = span.EventOrSpanName()
@@ -53,11 +53,11 @@ func initSpanOrEvent(ctx *spanContext, app *bunapp.App, span *Span) {
 	span.System = utf8util.TruncSmall(span.System)
 }
 
-func processAttrs(ctx *spanContext, span *Span) {
+func (p *spanProcessorThread) processAttrs(span *Span) {
 	normAttrs(span.Attrs)
 
 	if msg, _ := span.Attrs[attrkey.LogMessage].(string); msg != "" {
-		parseLogMessage(ctx, span, msg)
+		p.parseLogMessage(span, msg)
 	}
 	if s, _ := span.Attrs[attrkey.UserAgentOriginal].(string); s != "" {
 		initHTTPUserAgent(span.Attrs, s)
@@ -85,18 +85,16 @@ func processAttrs(ctx *spanContext, span *Span) {
 	}
 }
 
-func parseLogMessage(ctx *spanContext, span *Span, msg string) {
-	hash, params := messageHashAndParams(ctx, msg)
+func (p *spanProcessorThread) parseLogMessage(span *Span, msg string) {
+	hash, params := p.messageHashAndParams(msg)
 	if span.EventName == otelEventLog {
 		span.logMessageHash = hash
 	}
 	populateSpanFromParams(span, params)
 }
 
-func messageHashAndParams(
-	ctx *spanContext, msg string,
-) (uint64, map[string]any) {
-	digest := ctx.digest
+func (p *spanProcessorThread) messageHashAndParams(msg string) (uint64, map[string]any) {
+	digest := p.digest
 	digest.Reset()
 
 	var params map[string]any
@@ -344,11 +342,11 @@ func isSQLKeyword(s string) bool {
 	}
 }
 
-func assignSpanSystemAndGroupID(ctx *spanContext, project *org.Project, span *Span) {
+func (p *spanProcessorThread) assignSpanSystemAndGroupID(project *org.Project, span *Span) {
 	if s := span.Attrs.Text(attrkey.RPCSystem); s != "" {
 		span.Type = SpanTypeRPC
 		span.System = SpanTypeRPC + ":" + span.Attrs.ServiceNameOrUnknown()
-		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
+		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 			hashSpan(project, digest, span,
 				attrkey.RPCSystem,
 				attrkey.RPCService,
@@ -361,7 +359,7 @@ func assignSpanSystemAndGroupID(ctx *spanContext, project *org.Project, span *Sp
 	if s := span.Attrs.Text(attrkey.MessagingSystem); s != "" {
 		span.Type = SpanTypeMessaging
 		span.System = SpanTypeMessaging + ":" + s
-		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
+		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 			hashSpan(project, digest, span,
 				attrkey.MessagingSystem,
 				attrkey.MessagingOperation,
@@ -382,13 +380,13 @@ func assignSpanSystemAndGroupID(ctx *spanContext, project *org.Project, span *Sp
 		span.System = SpanTypeDB + ":" + dbSystem
 		stmt, _ := span.Attrs[attrkey.DBStatement].(string)
 
-		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
+		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 			hashSpan(project, digest, span, attrkey.DBName, attrkey.DBOperation, attrkey.DBSqlTable)
 			if stmt != "" {
 				hashDBStmt(digest, stmt)
 			}
 		})
-		if !project.ForceSpanName && stmt != "" {
+		if stmt != "" {
 			span.DisplayName = stmt
 		}
 		return
@@ -399,7 +397,7 @@ func assignSpanSystemAndGroupID(ctx *spanContext, project *org.Project, span *Sp
 		span.Attrs.Has(attrkey.HTTPResponseStatusCode) {
 		span.Type = SpanTypeHTTP
 		span.System = SpanTypeHTTP + ":" + span.Attrs.ServiceNameOrUnknown()
-		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
+		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 			hashSpan(project, digest, span, attrkey.HTTPRequestMethod, attrkey.HTTPRoute)
 		})
 		return
@@ -411,7 +409,7 @@ func assignSpanSystemAndGroupID(ctx *spanContext, project *org.Project, span *Sp
 			span.Attrs.Has(attrkey.CodeFunction)) {
 		span.Type = SpanTypeFuncs
 		span.System = SpanTypeFuncs + ":" + span.Attrs.ServiceNameOrUnknown()
-		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
+		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 			hashSpan(project, digest, span)
 		})
 		return
@@ -419,15 +417,15 @@ func assignSpanSystemAndGroupID(ctx *spanContext, project *org.Project, span *Sp
 
 	span.Type = SpanTypeFuncs
 	span.System = SpanTypeFuncs
-	span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
+	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 		hashSpan(project, digest, span)
 	})
 }
 
-func spanHash(digest *xxhash.Digest, fn func(digest *xxhash.Digest)) uint64 {
-	digest.Reset()
-	fn(digest)
-	return digest.Sum64()
+func (p *spanProcessorThread) spanHash(fn func(digest *xxhash.Digest)) uint64 {
+	p.digest.Reset()
+	fn(p.digest)
+	return p.digest.Sum64()
 }
 
 func hashSpan(project *org.Project, digest *xxhash.Digest, span *Span, keys ...string) {
@@ -474,33 +472,33 @@ func initEventFromHostSpan(dest *Span, event *SpanEvent, hostSpan *Span) {
 	dest.StatusCode = hostSpan.StatusCode
 }
 
-func initEvent(ctx *spanContext, app *bunapp.App, span *Span) {
-	project, ok := ctx.Project(app, span.ProjectID)
+func (p *spanProcessorThread) initEvent(ctx context.Context, span *Span) {
+	project, ok := p.project(ctx, span.ProjectID)
 	if !ok {
 		return
 	}
 
-	processAttrs(ctx, span)
-	assignEventSystemAndGroupID(ctx, project, span)
+	p.processAttrs(span)
+	p.assignEventSystemAndGroupID(project, span)
 }
 
-func assignEventSystemAndGroupID(ctx *spanContext, project *org.Project, span *Span) {
+func (p *spanProcessorThread) assignEventSystemAndGroupID(project *org.Project, span *Span) {
 	if span.EventName == otelEventError {
 		span.EventName = otelEventException
 	}
 
 	switch span.EventName {
 	case otelEventLog:
-		handleLogEvent(ctx, project, span)
+		p.handleLogEvent(project, span)
 		return
 	case otelEventException:
-		handleExceptionEvent(ctx, project, span)
+		p.handleExceptionEvent(project, span)
 		return
 	case otelEventMessage:
 		system := eventMessageSystem(span)
 		span.Type = EventTypeMessage
 		span.System = EventTypeMessage + ":" + system
-		span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
+		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 			hashSpan(project, digest, span,
 				attrkey.RPCSystem,
 				attrkey.RPCService,
@@ -513,24 +511,24 @@ func assignEventSystemAndGroupID(ctx *spanContext, project *org.Project, span *S
 	}
 
 	if span.Attrs.Has(attrkey.LogMessage) {
-		handleLogEvent(ctx, project, span)
+		p.handleLogEvent(project, span)
 		return
 	}
 
 	if span.Attrs.Has(attrkey.ExceptionMessage) {
-		handleExceptionEvent(ctx, project, span)
+		p.handleExceptionEvent(project, span)
 		return
 	}
 
 	span.Type = EventTypeOther
 	span.System = EventTypeOther
-	span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
+	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 		hashSpan(project, digest, span)
 	})
 	span.DisplayName = span.EventName
 }
 
-func handleLogEvent(ctx *spanContext, project *org.Project, span *Span) {
+func (p *spanProcessorThread) handleLogEvent(project *org.Project, span *Span) {
 	sev, _ := span.Attrs[attrkey.LogSeverity].(string)
 	if sev == "" {
 		sev = bunotel.InfoSeverity
@@ -538,7 +536,7 @@ func handleLogEvent(ctx *spanContext, project *org.Project, span *Span) {
 
 	span.Type = EventTypeLog
 	span.System = EventTypeLog + ":" + strings.ToLower(sev)
-	span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
+	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 		hashSpan(project, digest, span,
 			attrkey.LogSeverity,
 		)
@@ -549,13 +547,13 @@ func handleLogEvent(ctx *spanContext, project *org.Project, span *Span) {
 	span.DisplayName = logDisplayName(span)
 }
 
-func handleExceptionEvent(ctx *spanContext, project *org.Project, span *Span) {
+func (p *spanProcessorThread) handleExceptionEvent(project *org.Project, span *Span) {
 	span.Type = EventTypeLog
 	span.System = SystemLogError
-	span.GroupID = spanHash(ctx.digest, func(digest *xxhash.Digest) {
+	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 		hashSpan(project, digest, span, attrkey.ExceptionType)
 		if s, _ := span.Attrs[attrkey.ExceptionMessage].(string); s != "" {
-			hashMessage(ctx.digest, s)
+			hashMessage(digest, s)
 		}
 	})
 	span.DisplayName = joinTypeMessage(

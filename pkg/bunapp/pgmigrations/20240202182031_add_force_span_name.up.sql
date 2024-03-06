@@ -1,2 +1,2 @@
 ALTER TABLE projects
-ADD COLUMN force_span_name BOOLEAN NOT NULL DEFAULT FALSE;
+ADD COLUMN force_span_name text[];
