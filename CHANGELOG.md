@@ -19,8 +19,9 @@ upgrade to the v1.6.x first, because some migrations from v1.6.x have been remov
 
 #### Improvements
 
-- Added new project setting `force_span_name` by @HeCorr. See the config for details.
-- Added ability to disable TLS when configuring SMTP mailer by @rgl.
+- Added new project setting `force_span_name` by [@HeCorr](https://github.com/HeCorr). See the
+  config for details.
+- Added ability to disable TLS when configuring SMTP mailer by [@rgl](https://github.com/rgl).
 
 #### Changed
 
