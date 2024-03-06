@@ -50,6 +50,8 @@ import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
 import { useAchievements } from '@/org/use-achievements'
+
+// Misc
 import { Project } from '@/org/use-projects'
 
 export default defineComponent({

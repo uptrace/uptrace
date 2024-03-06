@@ -27,7 +27,7 @@ type User struct {
 	Avatar string `json:"avatar" bun:",nullzero"`
 
 	NotifyByEmail bool   `json:"notifyByEmail"`
-	AuthToken     string `json:"-"`
+	AuthToken     string `json:"authToken"`
 
 	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
 	UpdatedAt time.Time `json:"updatedAt" bun:",nullzero"`

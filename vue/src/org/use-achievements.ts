@@ -1,9 +1,7 @@
 import { proxyRefs, computed, ComputedRef } from 'vue'
 
 // Composables
-import { useRouter } from '@/use/router'
 import { useWatchAxios } from '@/use/watch-axios'
-import { injectForceReload } from '@/use/force-reload'
 import { Project } from '@/org/use-projects'
 
 export enum AchievName {
@@ -36,10 +34,7 @@ interface ListItemAttrs {
 
 export type UseAchievements = ReturnType<typeof useAchievements>
 
-export const useAchievements = function (project: ComputedRef<Project | undefined>) {
-  const { route } = useRouter()
-  const forceReload = injectForceReload()
-
+export const useAchievements = function (project: ComputedRef<Project>) {
   const allAchievements = computed((): Achievement[] => {
     const items: Achievement[] = [
       {
@@ -83,10 +78,8 @@ export const useAchievements = function (project: ComputedRef<Project | undefine
   })
 
   const { data, reload } = useWatchAxios(() => {
-    const { projectId } = route.value.params
     return {
-      url: `/internal/v1/projects/${projectId}/achievements`,
-      params: forceReload.params,
+      url: `/internal/v1/projects/${project.value.id}/achievements`,
     }
   })
 

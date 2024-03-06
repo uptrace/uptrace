@@ -51,7 +51,7 @@
               <SpanChips :span="span" trace-mode class="ml-2" />
             </td>
 
-            <td class="text-caption" style="position: relative">
+            <td class="text-body-2" style="position: relative">
               <span :style="span.labelStyle">
                 <span v-show="span.children && trace.isExpanded(span)">
                   <DurationValue :value="span.durationSelf" />

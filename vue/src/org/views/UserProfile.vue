@@ -15,38 +15,27 @@
             for details.
           </v-col>
         </v-row>
+
         <v-row>
           <v-col cols="6">
-            <v-text-field
-              v-model="user.current.name"
-              disabled
-              label="Name"
-              filled
-              required
-              hide-details="auto"
-            />
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col cols="6">
-            <v-text-field
-              v-model="user.current.email"
-              disabled
-              label="Email"
-              filled
-              required
-              hide-details="auto"
-            />
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col>
+            <v-text-field v-model="user.current.name" disabled label="Name" filled required />
+
+            <v-text-field v-model="user.current.email" disabled label="Email" filled required />
+
             <v-checkbox
               v-model="user.current.notifyByEmail"
               disabled
               label="Allow to send alert notifications via email"
               hide-details="auto"
+              class="mt-0"
             />
+          </v-col>
+        </v-row>
+
+        <v-row v-if="user.current.authToken">
+          <v-col>
+            <div class="text-body-2 text--secondary">Auth token</div>
+            <PrismCode :code="user.current.authToken" />
           </v-col>
         </v-row>
       </v-container>

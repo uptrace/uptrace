@@ -26,6 +26,12 @@
           <v-col v-if="!user.isAuth" cols="auto" class="d-flex align-center">
             <v-btn text :to="{ name: 'Login' }" class="mr-1">Sign in</v-btn>
           </v-col>
+          <v-col v-else cols="auto">
+            <v-btn color="green" dark href="https://app.uptrace.dev/join" target="_blank">
+              <v-icon left>mdi-cloud</v-icon>
+              <span>Try cloud</span>
+            </v-btn>
+          </v-col>
         </v-row>
       </v-container>
     </v-app-bar>
