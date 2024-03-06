@@ -355,6 +355,7 @@ type Config struct {
 		AuthType mail.SMTPAuthType `yaml:"auth_type"`
 		Username string            `yaml:"username"`
 		Password string            `yaml:"password"`
+		TLS      *TLSClient        `yaml:"tls"`
 
 		From string `yaml:"from"`
 	} `yaml:"smtp_mailer"`

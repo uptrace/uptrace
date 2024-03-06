@@ -120,13 +120,6 @@ services:
       - '--config.file=/etc/alertmanager/config.yml'
       - '--storage.path=/alertmanager'
 
-  mailhog:
-    image: mailhog/mailhog:v1.0.1
-    restart: on-failure
-    ports:
-      - '1025:1025'
-      - '8025:8025'
-
   vector:
     image: timberio/vector:0.28.X-alpine
     volumes:
@@ -180,6 +173,20 @@ services:
     volumes:
       - '/:/host:ro,rslave'
 
+  mailpit:
+    image: axllent/mailpit
+    restart: always
+    ports:
+      - 1025:1025
+      - 8025:8025
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATA_FILE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    volumes:
+      - mailpit_data:/data
+
 volumes:
   ch1_data:
   ch2_data:
@@ -188,3 +195,4 @@ volumes:
   pg_data:
   alertmanager_data:
   prometheus_data:
+  mailpit_data:

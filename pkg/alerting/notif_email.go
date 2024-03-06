@@ -42,6 +42,40 @@ func NewEmailNotifier(app *bunapp.App) *EmailNotifier {
 		}
 	}
 
+	options := []mail.Option{
+		mail.WithSMTPAuth(conf.AuthType),
+		mail.WithUsername(conf.Username),
+		mail.WithPassword(conf.Password),
+	}
+
+	switch {
+	case conf.TLS == nil:
+		options = append(options,
+			mail.WithTLSPortPolicy(mail.TLSOpportunistic),
+		)
+	case conf.TLS.Disabled:
+		options = append(options,
+			mail.WithTLSPortPolicy(mail.NoTLS),
+			mail.WithPort(conf.Port),
+		)
+	default:
+		options = append(options,
+			mail.WithTLSPortPolicy(mail.TLSMandatory),
+			mail.WithSSLPort(false),
+			mail.WithPort(conf.Port),
+		)
+
+		tlsConf, err := conf.TLS.TLSConfig()
+		if err != nil {
+			app.Logger.Error("smtp_mailer.tls failed", zap.Error(err))
+			return &EmailNotifier{
+				disabled: true,
+			}
+		} else {
+			options = append(options, mail.WithTLSConfig(tlsConf))
+		}
+	}
+
 	client, err := mail.NewClient(
 		conf.Host,
 		mail.WithPort(conf.Port),

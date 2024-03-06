@@ -3,6 +3,7 @@ package bunconf
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -111,11 +112,19 @@ func tlsVersion(v string, defaultVersion uint16) (uint16, error) {
 type TLSClient struct {
 	TLS `yaml:",inline"`
 
+	// Whether to explicitly disable TLS.
+	// Useful when TLS is enabled by default.
+	Disabled bool `yaml:"disabled"`
+
 	InsecureSkipVerify bool   `yaml:"insecure_skip_verify"`
 	ServerName         string `yaml:"server_name_override"`
 }
 
 func (c *TLSClient) TLSConfig() (*tls.Config, error) {
+	if c.Disabled {
+		return nil, errors.New("tls is disabled")
+	}
+
 	tlsConf, err := c.tlsConfig()
 	if err != nil {
 		return nil, err
