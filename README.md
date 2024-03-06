@@ -16,27 +16,28 @@ integrations for most languages and frameworks.
 Uptrace can process billions of spans and metrics on a single server and allows you to monitor your
 applications at 10x lower cost.
 
-Uptrace uses OpenTelemetry framework to collect data and ClickHouse database to store it. Uptrace
-also requires PostgreSQL database to store metadata such as metric names and alerts.
+Uptrace uses OpenTelemetry framework to collect data and ClickHouse database to store it. It also
+requires PostgreSQL database to store metadata such as metric names and alerts.
 
 **Features**:
 
 - Single UI for traces, metrics, and logs.
-- [Grafana](https://uptrace.dev/get/grafana.html) compatibility. You can configure Grafana to use
-  Uptrace as a Tempo/Prometheus datasource.
 - SQL-like query language to [aggregate spans](https://uptrace.dev/get/querying-spans.html).
 - Promql-like language to [aggregate metrics](https://uptrace.dev/get/querying-metrics.html).
 - Built-in [alerts](https://uptrace.dev/get/alerting.html) with notifications via Email, Slack,
   WebHook, and AlertManager.
 - Pre-built metrics dashboards.
-- Multiple users/projects via YAML config.
-- Single sign-on (SSO) using OpenID Connect: [Keycloak](https://uptrace.dev/get/sso/keycloak.html),
-  [Google Cloud](https://uptrace.dev/get/sso/google.html), and
-  [Cloudflare](https://uptrace.dev/get/sso/cloudflare.html).
 - Ingestion using [OpenTelemetry](https://uptrace.dev/get/ingest/opentelemetry.html),
+  [Prometheus](https://uptrace.dev/get/ingest/prometheus.html),
   [Vector](https://uptrace.dev/get/ingest/vector.html),
   [FluentBit](https://uptrace.dev/get/ingest/fluent-bit.html),
   [CloudWatch](https://uptrace.dev/get/ingest/aws-cloudwatch.html), and more.
+- [Grafana](https://uptrace.dev/get/grafana.html) compatibility. You can configure Grafana to use
+  Uptrace as a Tempo/Prometheus datasource.
+- Managing users/projects via YAML config.
+- Single sign-on (SSO) using OpenID Connect: [Keycloak](https://uptrace.dev/get/sso/keycloak.html),
+  [Google Cloud](https://uptrace.dev/get/sso/google.html), and
+  [Cloudflare](https://uptrace.dev/get/sso/cloudflare.html).
 - Efficient processing: more than 10K spans / second on a single core.
 - Excellent on-disk compression: 1KB span can be compressed down to ~40 bytes.
 

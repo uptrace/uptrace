@@ -1,10 +1,10 @@
 <template>
-  <div>
+  <div class="container--fixed-md">
     <v-container fluid class="py-1">
       <slot name="breadcrumbs" />
     </v-container>
 
-    <PageToolbar :fluid="$vuetify.breakpoint.lgAndDown">
+    <PageToolbar fluid>
       <v-toolbar-title>Notification Channels</v-toolbar-title>
 
       <v-spacer />
@@ -12,7 +12,7 @@
       <ForceReloadBtn small />
     </PageToolbar>
 
-    <v-container :fluid="$vuetify.breakpoint.lgAndDown">
+    <v-container fluid>
       <v-row>
         <v-col>
           <NotifChannelNewMenu
