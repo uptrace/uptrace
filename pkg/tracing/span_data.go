@@ -24,6 +24,14 @@ type SpanData struct {
 	Data      []byte
 }
 
+func (sd *SpanData) Span() (*Span, error) {
+	span := new(Span)
+	if err := sd.Decode(span); err != nil {
+		return nil, err
+	}
+	return span, nil
+}
+
 func (sd *SpanData) Decode(span *Span) error {
 	if err := msgpack.Unmarshal(sd.Data, span); err != nil {
 		return fmt.Errorf("msgpack.Unmarshal failed: %w", err)

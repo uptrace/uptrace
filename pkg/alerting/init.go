@@ -20,7 +20,7 @@ func Init(ctx context.Context, app *bunapp.App) {
 
 func initRouter(ctx context.Context, app *bunapp.App) {
 	middleware := NewMiddleware(app)
-	api := app.APIGroup()
+	api := app.InternalAPIV1()
 
 	api.NewGroup("/projects/:project_id",
 		bunrouter.WithMiddleware(middleware.UserAndProject),

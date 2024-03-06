@@ -83,6 +83,9 @@ auth:
       email: uptrace@localhost
       password: uptrace
       notify_by_email: true
+      # Auth token required to use JSON API.
+      # https://uptrace.dev/get/json-api.html
+      auth_token: a3c17c48bee448e68f4e45b850ee4ca9
 
   # Cloudflare Zero Trust Access (Identity)
   # See https://developers.cloudflare.com/cloudflare-one/identity/ for more info.

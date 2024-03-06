@@ -34,8 +34,8 @@ func NewSpanHandler(app *bunapp.App) *SpanHandler {
 func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := DecodeSpanFilter(h.App, req)
-	if err != nil {
+	f := &SpanFilter{App: h.App}
+	if err := DecodeSpanFilter(h.App, req, f); err != nil {
 		return err
 	}
 	disableColumnsAndGroups(f.parts)
@@ -109,8 +109,8 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := DecodeSpanFilter(h.App, req)
-	if err != nil {
+	f := &SpanFilter{App: h.App}
+	if err := DecodeSpanFilter(h.App, req, f); err != nil {
 		return err
 	}
 
@@ -171,8 +171,8 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := DecodeSpanFilter(h.App, req)
-	if err != nil {
+	f := &SpanFilter{App: h.App}
+	if err := DecodeSpanFilter(h.App, req, f); err != nil {
 		return err
 	}
 
@@ -238,8 +238,8 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := DecodeSpanFilter(h.App, req)
-	if err != nil {
+	f := &SpanFilter{App: h.App}
+	if err := DecodeSpanFilter(h.App, req, f); err != nil {
 		return err
 	}
 	disableColumnsAndGroups(f.parts)
@@ -296,8 +296,8 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 func (h *SpanHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := DecodeSpanFilter(h.App, req)
-	if err != nil {
+	f := &SpanFilter{App: h.App}
+	if err := DecodeSpanFilter(h.App, req, f); err != nil {
 		return err
 	}
 

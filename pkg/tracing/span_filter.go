@@ -37,17 +37,15 @@ type SpanFilter struct {
 	parts []*tql.QueryPart
 }
 
-func DecodeSpanFilter(app *bunapp.App, req bunrouter.Request) (*SpanFilter, error) {
-	f := &SpanFilter{App: app}
-
+func DecodeSpanFilter(app *bunapp.App, req bunrouter.Request, f *SpanFilter) error {
 	if err := bunapp.UnmarshalValues(req, f); err != nil {
-		return nil, err
+		return err
 	}
 
 	if f.Search != "" {
 		tokens, err := chquery.Parse(f.Search)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		f.searchTokens = tokens
 	}
@@ -56,7 +54,7 @@ func DecodeSpanFilter(app *bunapp.App, req bunrouter.Request) (*SpanFilter, erro
 	f.ProjectID = project.ID
 	f.parts = tql.ParseQuery(f.Query)
 
-	return f, nil
+	return nil
 }
 
 var _ urlstruct.ValuesUnmarshaler = (*SpanFilter)(nil)

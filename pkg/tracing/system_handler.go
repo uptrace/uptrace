@@ -23,8 +23,8 @@ func NewSystemHandler(app *bunapp.App) *SystemHandler {
 func (h *SystemHandler) ListSystems(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := DecodeSpanFilter(h.App, req)
-	if err != nil {
+	f := &SpanFilter{App: h.App}
+	if err := DecodeSpanFilter(h.App, req, f); err != nil {
 		return err
 	}
 	f.GroupID = 0

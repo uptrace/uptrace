@@ -45,8 +45,8 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 	ctx := req.Context()
 	user := org.UserFromContext(ctx)
 
-	f, err := DecodeSpanFilter(h.App, req)
-	if err != nil {
+	f := &SpanFilter{App: h.App}
+	if err := DecodeSpanFilter(h.App, req, f); err != nil {
 		return err
 	}
 	disableColumnsAndGroups(f.parts)
@@ -100,8 +100,8 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 	ctx := req.Context()
 	attrKey := req.Param("attr")
 
-	f, err := DecodeSpanFilter(h.App, req)
-	if err != nil {
+	f := &SpanFilter{App: h.App}
+	if err := DecodeSpanFilter(h.App, req, f); err != nil {
 		return err
 	}
 	disableColumnsAndGroups(f.parts)

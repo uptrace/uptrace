@@ -45,7 +45,8 @@ func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	router := app.Router()
 	middleware := org.NewMiddleware(app)
-	internalV1 := app.APIGroup()
+	internalV1 := app.InternalAPIV1()
+	publicV1 := app.PublicAPIV1()
 
 	// https://zipkin.io/zipkin-api/#/default/post_spans
 	router.WithGroup("/api/v2", func(g *bunrouter.Group) {
@@ -141,4 +142,13 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 
 		g.GET("", handler.List)
 	})
+
+	publicV1.
+		Use(middleware.UserAndProject).
+		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
+			handler := NewPublicHandler(app)
+
+			g.GET("/spans", handler.Spans)
+			g.GET("/groups", handler.Groups)
+		})
 }

@@ -55,7 +55,7 @@ func initOTLP(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
 func initRoutes(ctx context.Context, app *bunapp.App, mp *DatapointProcessor) {
 	router := app.Router()
 	middleware := NewMiddleware(app)
-	api := app.APIGroup()
+	api := app.InternalAPIV1()
 
 	api.
 		Use(middleware.UserAndProject).

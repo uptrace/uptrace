@@ -26,7 +26,8 @@ type User struct {
 	Name   string `json:"name" bun:",nullzero"`
 	Avatar string `json:"avatar" bun:",nullzero"`
 
-	NotifyByEmail bool `json:"notifyByEmail"`
+	NotifyByEmail bool   `json:"notifyByEmail"`
+	AuthToken     string `json:"-"`
 
 	CreatedAt time.Time `json:"createdAt" bun:",nullzero"`
 	UpdatedAt time.Time `json:"updatedAt" bun:",nullzero"`
@@ -38,11 +39,24 @@ func NewUserFromConfig(src *bunconf.User) (*User, error) {
 		Name:          src.Name,
 		Avatar:        src.Avatar,
 		NotifyByEmail: src.NotifyByEmail,
+		AuthToken:     src.AuthToken,
 	}
 	if err := dest.SetPassword(src.Password); err != nil {
 		return nil, err
 	}
 	return dest, nil
+}
+
+func (u *User) Validate() error {
+	if u.Email == "" {
+		return errors.New("user email can't be empty")
+	}
+	u.Email = strings.ToLower(strings.TrimSpace(u.Email))
+
+	if u.Avatar == "" {
+		u.Avatar = u.gravatar()
+	}
+	return nil
 }
 
 func (u *User) Username() string {
@@ -105,13 +119,20 @@ func SelectUserByEmail(ctx context.Context, app *bunapp.App, email string) (*Use
 	return user, nil
 }
 
-func GetOrCreateUser(ctx context.Context, app *bunapp.App, user *User) error {
-	if user.Email == "" {
-		return errors.New("user email can't be empty")
+func SelectUserByToken(ctx context.Context, app *bunapp.App, token string) (*User, error) {
+	user := new(User)
+	if err := app.PG.NewSelect().
+		Model(user).
+		Where("auth_token = ?", token).
+		Scan(ctx); err != nil {
+		return nil, err
 	}
-	user.Email = strings.ToLower(user.Email)
-	if user.Avatar == "" {
-		user.Avatar = user.gravatar()
+	return user, nil
+}
+
+func GetOrCreateUser(ctx context.Context, app *bunapp.App, user *User) error {
+	if err := user.Validate(); err != nil {
+		return err
 	}
 
 	if _, err := app.PG.NewInsert().

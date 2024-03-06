@@ -63,9 +63,10 @@ type App struct {
 
 	Logger *otelzap.Logger
 
-	router      *bunrouter.Router
-	routerGroup *bunrouter.Group
-	apiGroup    *bunrouter.Group
+	router        *bunrouter.Router
+	routerGroup   *bunrouter.Group
+	publicAPIV1   *bunrouter.Group
+	internalAPIV1 *bunrouter.Group
 
 	grpcServer *grpc.Server
 
@@ -202,7 +203,8 @@ func (app *App) initRouter() {
 			})
 	}
 
-	app.apiGroup = app.routerGroup.NewGroup("/internal/v1")
+	app.internalAPIV1 = app.routerGroup.NewGroup("/internal/v1")
+	app.publicAPIV1 = app.routerGroup.NewGroup("/api/v1")
 }
 
 func (app *App) newRouter(opts ...bunrouter.Option) *bunrouter.Router {
@@ -264,8 +266,12 @@ func (app *App) RouterGroup() *bunrouter.Group {
 	return app.routerGroup
 }
 
-func (app *App) APIGroup() *bunrouter.Group {
-	return app.apiGroup
+func (app *App) PublicAPIV1() *bunrouter.Group {
+	return app.publicAPIV1
+}
+
+func (app *App) InternalAPIV1() *bunrouter.Group {
+	return app.internalAPIV1
 }
 
 func (app *App) HTTPHandler() http.Handler {

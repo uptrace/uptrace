@@ -43,8 +43,8 @@ type ServiceGraphStats struct {
 func (h *ServiceGraphHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := DecodeSpanFilter(h.App, req)
-	if err != nil {
+	f := &SpanFilter{App: h.App}
+	if err := DecodeSpanFilter(h.App, req, f); err != nil {
 		return err
 	}
 

@@ -32,7 +32,7 @@ func Init(ctx context.Context, app *bunapp.App) {
 
 func registerRoutes(ctx context.Context, app *bunapp.App) {
 	middleware := NewMiddleware(app)
-	api := app.APIGroup()
+	api := app.InternalAPIV1()
 
 	api.WithGroup("/users", func(g *bunrouter.Group) {
 		userHandler := NewUserHandler(app)

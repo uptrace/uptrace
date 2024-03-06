@@ -22,12 +22,13 @@ requires PostgreSQL database to store metadata such as metric names and alerts.
 **Features**:
 
 - Single UI for traces, metrics, and logs.
+- 50+ pre-built dashboards that are automatically created once metrics start coming in.
+- Service graph and [chart annotations](https://uptrace.dev/get/annotations.html).
+- Spans/logs/metrics [monitoring](https://uptrace.dev/get/alerting.html) with notifications via
+  Email, Slack, WebHook, and AlertManager.
 - SQL-like query language to [aggregate spans](https://uptrace.dev/get/querying-spans.html).
 - Promql-like language to [aggregate metrics](https://uptrace.dev/get/querying-metrics.html).
-- Built-in [alerts](https://uptrace.dev/get/alerting.html) with notifications via Email, Slack,
-  WebHook, and AlertManager.
-- Pre-built metrics dashboards.
-- Ingestion using [OpenTelemetry](https://uptrace.dev/get/ingest/opentelemetry.html),
+- Data ingestion using [OpenTelemetry](https://uptrace.dev/get/ingest/opentelemetry.html),
   [Prometheus](https://uptrace.dev/get/ingest/prometheus.html),
   [Vector](https://uptrace.dev/get/ingest/vector.html),
   [FluentBit](https://uptrace.dev/get/ingest/fluent-bit.html),

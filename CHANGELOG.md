@@ -5,7 +5,7 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 ## v1.7.0 - UNRELEASED
 
 This release is backwards compatible with v1.6. If you're upgrading from an older version, please
-upgrade to the v1.6.x first.
+upgrade to the v1.6.x first, because some migrations from v1.6.x have been removed.
 
 #### Features
 
@@ -15,6 +15,7 @@ upgrade to the v1.6.x first.
   your existing dashboards via UI to benefit from this.
 - You can now search over monitors.
 - Added pre-built dashboards for .NET system metrics reported by OpenTelemetry.
+- Added `user.auth_token` and support for [JSON API](https://uptrace.dev/get/json-api.html).
 
 #### Improvements
 

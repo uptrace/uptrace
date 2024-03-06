@@ -27,8 +27,8 @@ func NewGroupHandler(app *bunapp.App) *GroupHandler {
 func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := DecodeSpanFilter(h.App, req)
-	if err != nil {
+	f := &SpanFilter{App: h.App}
+	if err := DecodeSpanFilter(h.App, req, f); err != nil {
 		return err
 	}
 
@@ -51,7 +51,7 @@ func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request)
 	q, _ := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
 
 	summary := make(map[string]any)
-	if err = q.Apply(f.CHOrder).Scan(ctx, &summary); err != nil {
+	if err := q.Apply(f.CHOrder).Scan(ctx, &summary); err != nil {
 		return err
 	}
 

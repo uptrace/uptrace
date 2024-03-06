@@ -7,7 +7,8 @@ type User struct {
 	Name   string `yaml:"name"`
 	Avatar string `yaml:"avatar"`
 
-	NotifyByEmail bool `yaml:"notify_by_email"`
+	NotifyByEmail bool   `yaml:"notify_by_email"`
+	AuthToken     string `yaml:"auth_token"`
 }
 
 type CloudflareProvider struct {

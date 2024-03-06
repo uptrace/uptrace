@@ -363,12 +363,25 @@ func loadInitialData(ctx context.Context, app *bunapp.App) error {
 	for i := range conf.Auth.Users {
 		src := &conf.Auth.Users[i]
 
-		dest, err := org.NewUserFromConfig(src)
+		user, err := org.NewUserFromConfig(src)
 		if err != nil {
 			return err
 		}
 
-		if err := org.GetOrCreateUser(ctx, app, dest); err != nil {
+		if err := user.Validate(); err != nil {
+			return err
+		}
+
+		if _, err := app.PG.NewInsert().
+			Model(user).
+			On("CONFLICT (email) DO UPDATE").
+			Set("name = coalesce(EXCLUDED.name, u.name)").
+			Set("avatar = EXCLUDED.avatar").
+			Set("notify_by_email = EXCLUDED.notify_by_email").
+			Set("auth_token = EXCLUDED.auth_token").
+			Set("updated_at = now()").
+			Returning("*").
+			Exec(ctx); err != nil {
 			return err
 		}
 	}

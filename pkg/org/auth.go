@@ -10,12 +10,15 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/httperror"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/metadata"
 
 	"go.uber.org/zap"
 )
+
+var errTokenEmpty = httperror.Unauthorized("token is missing or empty")
 
 const (
 	tokenCookieName = "token"
@@ -73,9 +76,9 @@ func (m *Middleware) User(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
 
-		user := m.userFromRequest(req)
-		if user == nil {
-			return ErrUnauthorized
+		user, err := m.userFromRequest(req)
+		if err != nil {
+			return err
 		}
 		ctx = ContextWithUser(ctx, user)
 
@@ -87,9 +90,9 @@ func (m *Middleware) UserAndProject(next bunrouter.HandlerFunc) bunrouter.Handle
 	return func(w http.ResponseWriter, req bunrouter.Request) error {
 		ctx := req.Context()
 
-		user := m.userFromRequest(req)
-		if user == nil {
-			return ErrUnauthorized
+		user, err := m.userFromRequest(req)
+		if err != nil {
+			return err
 		}
 		ctx = ContextWithUser(ctx, user)
 
@@ -103,12 +106,8 @@ func (m *Middleware) UserAndProject(next bunrouter.HandlerFunc) bunrouter.Handle
 	}
 }
 
-func (m *Middleware) userFromRequest(req bunrouter.Request) *User {
+func (m *Middleware) userFromRequest(req bunrouter.Request) (*User, error) {
 	ctx := req.Context()
-
-	if len(m.userProviders) == 0 {
-		return nil
-	}
 
 	for _, provider := range m.userProviders {
 		user, err := provider.Auth(req)
@@ -130,10 +129,33 @@ func (m *Middleware) userFromRequest(req bunrouter.Request) *User {
 			continue
 		}
 
-		return user
+		return user, nil
 	}
 
-	return nil
+	token, err := tokenFromRequest(req)
+	if err != nil {
+		return nil, httperror.Unauthorized(err.Error())
+	}
+
+	user, err := SelectUserByToken(ctx, m.app, token)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, httperror.Unauthorized(err.Error())
+		}
+		return nil, err
+	}
+	return user, nil
+}
+
+func tokenFromRequest(req bunrouter.Request) (string, error) {
+	if auth := req.Header.Get("Authorization"); auth != "" {
+		const bearerPrefix = "Bearer "
+		auth = strings.TrimPrefix(auth, bearerPrefix)
+		if auth != "" {
+			return auth, nil
+		}
+	}
+	return "", errTokenEmpty
 }
 
 func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*Project, error) {
