@@ -42,7 +42,6 @@
           exact-path
           >{{ attr }}</v-tab
         >
-        <PinnedAttrsMenu v-if="project.canMaintainProject" :date-range="dateRange" />
       </v-tabs>
     </portal>
 
@@ -54,7 +53,7 @@
           <SystemPicker
             v-if="systems.items.length"
             v-model="systems.activeSystems"
-            :systems="spanSystems"
+            :systems="systems.items"
             outlined
           />
           <QuickSpanFilter
@@ -75,16 +74,10 @@
 
         <v-spacer />
 
-        <DateRangePicker :date-range="dateRange" :range-days="90" />
+        <DateRangePicker :date-range="dateRange" :range-days="30" />
       </PageToolbar>
 
-      <v-container :fluid="$vuetify.breakpoint.lgAndDown">
-        <v-row>
-          <v-col>
-            <router-view name="overview" :date-range="dateRange" :systems="systems" :uql="uql" />
-          </v-col>
-        </v-row>
-      </v-container>
+      <router-view name="overview" :date-range="dateRange" :systems="systems" :uql="uql" />
     </template>
   </div>
 </template>
@@ -94,12 +87,12 @@ import { pick } from 'lodash-es'
 import { defineComponent, computed, PropType } from 'vue'
 
 // Composables
-import { useAnnotations } from '@/org/use-annotations'
 import { useTitle } from '@vueuse/core'
 import { UseDateRange } from '@/use/date-range'
 import { useUql, useQueryStore, provideQueryStore } from '@/use/uql'
 import { useProject } from '@/org/use-projects'
-import { useSystems, addAllSystem } from '@/tracing/system/use-systems'
+import { useAnnotations } from '@/org/use-annotations'
+import { useSystems } from '@/tracing/system/use-systems'
 
 // Components
 import TracingPlaceholder from '@/tracing/TracingPlaceholder.vue'
@@ -108,7 +101,7 @@ import SystemPicker from '@/tracing/system/SystemPicker.vue'
 import QuickSpanFilter from '@/tracing/query/QuickSpanFilter.vue'
 
 // Misc
-import { isSpanSystem, isErrorSystem, SystemName, AttrKey } from '@/models/otel'
+import { isErrorSystem, AttrKey } from '@/models/otel'
 import { DAY } from '@/util/fmt/date'
 
 interface ChosenSystem {
@@ -153,12 +146,6 @@ export default defineComponent({
       }
     })
 
-    const spanSystems = computed(() => {
-      const items = systems.items.filter((item) => isSpanSystem(item.system))
-      addAllSystem(items, SystemName.SpansAll)
-      return items
-    })
-
     const chosenSystems = computed((): ChosenSystem[] => {
       if (props.dateRange.duration > 3 * DAY) {
         return []
@@ -194,7 +181,6 @@ export default defineComponent({
       uql,
       project,
       systems,
-      spanSystems,
 
       chosenSystems,
       pick,
@@ -204,7 +190,8 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.border-bottom {
+.border {
+  overflow: auto;
   border-bottom: thin rgba(0, 0, 0, 0.12) solid;
 }
 </style>
