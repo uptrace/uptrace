@@ -23,10 +23,10 @@
           :rules="rules.name"
           hide-details="auto"
           :disabled="disabled"
+          dense
           solo
           flat
-          dense
-          background-color="grey lighten-4"
+          filled
           :search-input.sync="searchInput"
           no-filter
           @change="onMetricNameChange"
@@ -35,18 +35,10 @@
             <v-list-item-content>
               <v-list-item-title>
                 <span>{{ item.name }}</span>
-                <v-chip label small color="grey lighten-4" title="Instrument" class="ml-2">{{
-                  item.instrument
+                <v-chip label small title="Instrument" class="ml-2">{{ item.instrument }}</v-chip>
+                <v-chip v-if="item.unit" label small title="Unit" class="ml-2">{{
+                  item.unit
                 }}</v-chip>
-                <v-chip
-                  v-if="item.unit"
-                  label
-                  small
-                  color="grey lighten-4"
-                  title="Unit"
-                  class="ml-2"
-                  >{{ item.unit }}</v-chip
-                >
               </v-list-item-title>
               <v-list-item-subtitle>
                 {{ item.description }}
@@ -64,11 +56,11 @@
           :rules="rules.alias"
           hide-details="auto"
           prefix="$"
+          dense
           solo
           flat
-          dense
+          filled
           clearable
-          background-color="grey lighten-4"
         />
       </v-col>
       <v-col cols="auto">

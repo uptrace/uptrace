@@ -330,10 +330,4 @@ export default defineComponent({
 })
 </script>
 
-<style lang="scss"></style>
-
-<style lang="scss" scoped>
-.splitpanes__pane {
-  overflow-y: auto;
-}
-</style>
+<style lang="scss" scoped></style>

@@ -2,7 +2,7 @@
   <BtnSelectMenu
     :value="value"
     :items="items"
-    color="white"
+    color="transparent"
     :target-class="targetClass"
     @input="$emit('input', $event)"
   />

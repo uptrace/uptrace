@@ -8,7 +8,6 @@
             placeholder="To create a monitor, paste here a a monitor definition in YAML format"
             auto-grow
             filled
-            background-color="grey lighten-4"
             hide-details="auto"
             :rules="rules.yaml"
           />

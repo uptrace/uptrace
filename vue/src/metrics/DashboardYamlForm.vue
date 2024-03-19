@@ -1,7 +1,7 @@
 <template>
   <v-form v-model="isValid" @submit.prevent="saveYaml">
     <v-card>
-      <v-toolbar color="light-blue lighten-5" flat>
+      <v-toolbar color="bg--primary" flat>
         <v-toolbar-title>New dashboard from YAML</v-toolbar-title>
 
         <v-spacer />
@@ -22,7 +22,6 @@
               rows="20"
               auto-grow
               filled
-              background-color="grey lighten-4"
               hide-details="auto"
               :rules="rules.yaml"
             />

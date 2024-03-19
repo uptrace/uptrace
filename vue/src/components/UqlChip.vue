@@ -1,7 +1,7 @@
 <template>
   <v-tooltip :disabled="!tooltip" top>
     <template #activator="{ on, attrs }">
-      <v-chip label color="grey lighten-4" v-bind="attrs" v-on="on" @click="apply">
+      <v-chip label v-bind="attrs" v-on="on" @click="apply">
         {{ text }}
       </v-chip>
     </template>

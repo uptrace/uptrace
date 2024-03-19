@@ -1,0 +1,50 @@
+.theme--light {
+  .bg--primary {
+    background-color: map-get($light-blue, 'lighten-5') !important;
+  }
+  .bg--light {
+    background-color: map-get($grey, 'lighten-5') !important;
+  }
+  .bg--highlight {
+    background-color: white;
+  }
+
+  .splitpanes.default-theme {
+    .splitpanes__pane {
+      background-color: #fff;
+    }
+    .splitpanes__splitter {
+      background-color: #f2f2f2;
+    }
+  }
+}
+
+.theme--dark {
+  .v-dialog {
+    border: thin solid map-get($grey, 'darken-3');
+  }
+
+  .bg--primary {
+    background-color: map-get($material-dark-elevation-colors, '4') !important;
+  }
+  .bg--light {
+    background-color: map-get($material-dark-elevation-colors, '0') !important;
+  }
+  .bg--highlight {
+    background-color: map-get($material-dark-elevation-colors, '4') !important;
+  }
+
+  .splitpanes.default-theme {
+    .splitpanes__pane {
+      background-color: map-get($material-dark-elevation-colors, '1');
+    }
+    .splitpanes__splitter {
+      background-color: map-get($grey, 'darken-1');
+      border-color: black;
+    }
+  }
+}
+
+.splitpanes__pane {
+  overflow-y: auto;
+}

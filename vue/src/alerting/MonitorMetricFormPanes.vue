@@ -1,7 +1,7 @@
 <template>
-  <v-form ref="form" v-model="isValid" lazy-validation @submit.prevent="submit()">
+  <v-form ref="form" v-model="isValid" lazy-validation class="bg--light" @submit.prevent="submit()">
     <v-card :max-width="maxWidth" class="mx-auto">
-      <v-toolbar flat color="light-blue lighten-5">
+      <v-toolbar flat color="bg--primary">
         <slot name="title"></slot>
 
         <v-spacer />
@@ -113,23 +113,4 @@ export default defineComponent({
 })
 </script>
 
-<style lang="scss">
-.splitpanes.default-theme {
-  .splitpanes__pane {
-    background-color: #fff;
-  }
-  .splitpanes__splitter {
-    background-color: #f2f2f2;
-  }
-}
-</style>
-
-<style lang="scss" scoped>
-.v-form {
-  background-color: #f2f2f2;
-}
-
-.splitpanes__pane {
-  overflow-y: auto;
-}
-</style>
+<style lang="scss" scoped></style>

@@ -1,6 +1,6 @@
 <template>
-  <v-sheet ref="el" :dark="dark" class="x-code" :class="{ 'x-code--wrap': wrap }">
-    <prism :code="code" :inline="inline" :language="language" />
+  <v-sheet ref="el" class="x-code" :class="{ 'x-code--wrap': wrap }">
+    <prism :code="code" :inline="inline" :language="language" :style="targetStyle" />
 
     <CopyBtn :target="target" class="mr-n3 mt-n3" />
   </v-sheet>
@@ -29,9 +29,9 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
-    dark: {
-      type: Boolean,
-      default: false,
+    targetStyle: {
+      type: String,
+      default: '',
     },
   },
 
@@ -56,10 +56,13 @@ export default defineComponent({
 </script>
 
 <style lang="scss">
-.v-sheet.x-code {
+.x-code {
   position: relative;
   padding: 12px;
-  background-color: map-get($grey, 'lighten-5');
+
+  &:not(:hover) .v-btn--copy {
+    display: none;
+  }
 
   pre,
   code {
@@ -97,102 +100,108 @@ export default defineComponent({
       white-space: pre-wrap;
     }
   }
+}
 
-  &.theme--dark {
-    code[class*='language'],
-    pre[class*='language'] {
-      color: #ccc !important;
-    }
+.theme--light .x-code {
+  background-color: map-get($grey, 'lighten-4');
+}
 
-    pre[class*='language'] {
-      &::after {
-        color: hsla(0, 0%, 50%, 1);
-      }
-    }
+.theme--dark .x-code {
+  background-color: map-get($material-dark-elevation-colors, '4');
 
-    &.v-sheet--outlined {
-      border: thin solid hsla(0, 0%, 100%, 0.12) !important;
-    }
+  code[class*='language'],
+  pre[class*='language'] {
+    color: #ccc !important;
+  }
 
-    .token.operator,
-    .token.string {
-      background: none;
+  pre[class*='language'] {
+    &::after {
+      color: hsla(0, 0%, 50%, 1);
     }
+  }
 
-    .token.comment,
-    .token.block-comment,
-    .token.prolog,
-    .token.doctype,
-    .token.cdata {
-      color: #999;
-    }
+  &.v-sheet--outlined {
+    border: thin solid hsla(0, 0%, 100%, 0.12) !important;
+  }
 
-    .token.punctuation {
-      color: #ccc;
-    }
+  .token.operator,
+  .token.string {
+    background: none;
+  }
 
-    .token.tag,
-    .token.attr-name,
-    .token.namespace,
-    .token.deleted {
-      color: #e2777a;
-    }
+  .token.comment,
+  .token.block-comment,
+  .token.prolog,
+  .token.doctype,
+  .token.cdata {
+    color: #999;
+  }
 
-    .token.function-name {
-      color: #6196cc;
-    }
+  .token.punctuation {
+    color: #ccc;
+  }
 
-    .token.boolean,
-    .token.number,
-    .token.function {
-      color: #f08d49;
-    }
+  .token.tag,
+  .token.attr-name,
+  .token.namespace,
+  .token.deleted {
+    color: #e2777a;
+  }
 
-    .token.property,
-    .token.class-name,
-    .token.constant,
-    .token.symbol {
-      color: #f8c555;
-    }
+  .token.function-name {
+    color: #6196cc;
+  }
 
-    .token.selector,
-    .token.important,
-    .token.atrule,
-    .token.keyword,
-    .token.builtin {
-      color: #cc99cd;
-    }
+  .token.boolean,
+  .token.number,
+  .token.function {
+    color: #f08d49;
+  }
 
-    .token.string,
-    .token.char,
-    .token.attr-value,
-    .token.regex,
-    .token.variable {
-      color: #7ec699;
-    }
+  .token.property,
+  .token.class-name,
+  .token.constant,
+  .token.symbol {
+    color: #f8c555;
+  }
 
-    .token.operator,
-    .token.entity,
-    .token.url {
-      color: #67cdcc;
-    }
+  .token.selector,
+  .token.important,
+  .token.atrule,
+  .token.keyword,
+  .token.builtin {
+    color: #cc99cd;
+  }
 
-    .token.important,
-    .token.bold {
-      font-weight: bold;
-    }
+  .token.string,
+  .token.char,
+  .token.attr-value,
+  .token.regex,
+  .token.variable {
+    color: #7ec699;
+  }
 
-    .token.italic {
-      font-style: italic;
-    }
+  .token.operator,
+  .token.entity,
+  .token.url {
+    color: #67cdcc;
+  }
 
-    .token.entity {
-      cursor: help;
-    }
+  .token.important,
+  .token.bold {
+    font-weight: bold;
+  }
 
-    .token.inserted {
-      color: green;
-    }
+  .token.italic {
+    font-style: italic;
+  }
+
+  .token.entity {
+    cursor: help;
+  }
+
+  .token.inserted {
+    color: green;
   }
 }
 </style>

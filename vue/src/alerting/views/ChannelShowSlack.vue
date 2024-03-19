@@ -1,11 +1,11 @@
 <template>
-  <v-container fluid class="fill-height grey lighten-5">
+  <v-container fluid class="fill-height bg--light">
     <v-row align="center" justify="center">
       <v-col cols="auto">
         <v-skeleton-loader v-if="!channel.data" width="600" type="card"></v-skeleton-loader>
 
         <v-card v-else width="600">
-          <v-toolbar flat color="light-blue lighten-5">
+          <v-toolbar flat color="bg--primary">
             <v-breadcrumbs :items="breadcrumbs" divider=">" large class="pl-0"></v-breadcrumbs>
           </v-toolbar>
 

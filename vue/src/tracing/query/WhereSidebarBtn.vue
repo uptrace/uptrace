@@ -17,7 +17,7 @@
       :temporary="temporary"
       stateless
     >
-      <v-system-bar window color="grey lighten-4">
+      <v-system-bar window>
         <v-btn
           icon
           :title="temporary ? 'Keep menu open' : 'Hide menu'"

@@ -26,7 +26,7 @@
       <v-divider />
     </template>
 
-    <v-system-bar v-else window color="grey lighten-4">
+    <v-system-bar v-else window>
       <v-spacer />
       <v-btn icon :title="mini ? 'Expand menu' : 'Minimize menu'" @click="mini = !mini">
         <v-icon>{{ mini ? 'mdi-unfold-more-vertical' : 'mdi-unfold-less-vertical' }}</v-icon>

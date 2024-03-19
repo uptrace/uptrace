@@ -101,7 +101,7 @@ import SystemPicker from '@/tracing/system/SystemPicker.vue'
 import QuickSpanFilter from '@/tracing/query/QuickSpanFilter.vue'
 
 // Misc
-import { isErrorSystem, AttrKey } from '@/models/otel'
+import { isGroupSystem, isErrorSystem, AttrKey } from '@/models/otel'
 import { DAY } from '@/util/fmt/date'
 
 interface ChosenSystem {
@@ -154,7 +154,7 @@ export default defineComponent({
       const chosenMap = new Map<string, ChosenSystem>()
 
       for (let system of systems.items) {
-        if (system.isGroup) {
+        if (isGroupSystem(system.system)) {
           continue
         }
         if (!isErrorSystem(system.system)) {

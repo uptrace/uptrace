@@ -1,20 +1,21 @@
 <template>
-  <div class="page-toolbar" :class="color">
+  <div class="page-toolbar bg--primary">
     <v-progress-linear v-if="loading" absolute indeterminate></v-progress-linear>
-    <v-container :fluid="fluid" class="py-0">
-      <v-row class="ma-0">
-        <v-col class="pa-0">
-          <v-toolbar flat color="transparent" height="auto">
-            <slot></slot>
-          </v-toolbar>
-        </v-col>
-      </v-row>
+    <v-container :fluid="localFluid" class="py-0">
+      <v-toolbar color="transparent" flat height="auto">
+        <slot></slot>
+
+        <template v-if="$slots.extension" #extension>
+          <slot name="extension"></slot>
+        </template>
+      </v-toolbar>
     </v-container>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { defineComponent, computed } from 'vue'
+import vuetify from '@/plugins/vuetify'
 
 export default defineComponent({
   name: 'PageToolbar',
@@ -26,16 +27,19 @@ export default defineComponent({
     },
     fluid: {
       type: Boolean,
-      default: false,
-    },
-    color: {
-      type: String,
-      default: 'light-blue lighten-5',
+      default: undefined,
     },
   },
 
-  setup() {
-    return {}
+  setup(props) {
+    const fluid = computed(() => {
+      if (props.fluid !== undefined) {
+        return props.fluid
+      }
+      return vuetify.framework.breakpoint.mdAndDown
+    })
+
+    return { localFluid: fluid }
   },
 })
 </script>

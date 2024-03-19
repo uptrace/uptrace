@@ -44,15 +44,10 @@
             <v-expansion-panel-header :title="metric.description" class="user-select-text">
               <div>
                 <span class="text-subtitle-2">{{ metric.name }} ({{ metric.numTimeseries }})</span>
-                <v-chip
-                  v-if="metric.instrument"
-                  label
-                  color="grey lighten-4"
-                  title="Instrument"
-                  class="ml-2"
-                  >{{ metric.instrument }}</v-chip
-                >
-                <v-chip v-if="metric.unit" label color="grey lighten-4" title="Unit" class="ml-2">{{
+                <v-chip v-if="metric.instrument" label title="Instrument" class="ml-2">{{
+                  metric.instrument
+                }}</v-chip>
+                <v-chip v-if="metric.unit" label title="Unit" class="ml-2">{{
                   metric.unit
                 }}</v-chip>
               </div>

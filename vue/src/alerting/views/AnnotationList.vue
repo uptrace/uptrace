@@ -51,7 +51,7 @@
 
     <v-dialog v-if="dialog" v-model="dialog" max-width="700">
       <v-card>
-        <v-toolbar flat color="light-blue lighten-5">
+        <v-toolbar flat color="bg--primary">
           <v-toolbar-title>New Annotation</v-toolbar-title>
           <v-spacer />
           <v-toolbar-items>

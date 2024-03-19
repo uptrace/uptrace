@@ -1,10 +1,10 @@
 <template>
   <v-card max-width="800" class="mx-auto my-4">
-    <v-toolbar color="light-blue lighten-5" flat>
+    <v-toolbar color="bg--primary" flat>
       <v-toolbar-title>Dashboard types</v-toolbar-title>
     </v-toolbar>
 
-    <div class="pa-5 grey--text text--darken-3">
+    <div class="pa-5">
       <p>To visualize metrics, Uptrace uses 2 types of dashboards together:</p>
 
       <ul class="mb-4">

@@ -1,11 +1,6 @@
 <template>
   <div class="d-inline-block" style="max-width: 600px">
-    <v-chip
-      label
-      color="grey lighten-4"
-      :class="{ disabled: disabled }"
-      @click="$emit('click:edit')"
-    >
+    <v-chip label :class="{ disabled: disabled }" @click="$emit('click:edit')">
       <v-icon v-if="deletable" left @click.stop="$emit('click:delete')">mdi-close</v-icon>
       <span v-if="info.keyword" class="mr-1 font-weight-medium">{{ info.keyword }}</span>
       <span class="d-inline-block text-truncate">{{ info.expr }}</span>

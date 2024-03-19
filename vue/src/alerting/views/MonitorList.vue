@@ -22,7 +22,7 @@
       <v-row>
         <v-col>
           <v-sheet rounded="lg" outlined class="mb-4">
-            <v-toolbar flat dense color="light-blue lighten-5">
+            <v-toolbar flat dense color="bg--primary">
               <v-text-field
                 v-model="monitors.searchInput"
                 placeholder="Search monitors..."
@@ -35,7 +35,7 @@
               />
 
               <v-spacer />
-              <div v-if="monitors.items.length" class="text-body-2 blue-grey--text text--darken-3">
+              <div v-if="monitors.items.length" class="text-body-2">
                 <NumValue
                   :value="monitors.items.length"
                   format="verbose"

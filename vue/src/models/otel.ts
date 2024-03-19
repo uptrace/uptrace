@@ -163,8 +163,15 @@ export function systemMatches(system: string, pattern: string): boolean {
 }
 
 export function isGroupSystem(system: string | undefined): boolean {
-  const [type, sys] = splitTypeSystem(system)
-  return type === SystemName.All || sys === SystemName.All
+  if (!system) {
+    return false
+  }
+  return system === SystemName.All || system.endsWith(':all')
+}
+
+export function systemType(system: string | undefined): string {
+  const [typ] = splitTypeSystem(system)
+  return typ
 }
 
 export function splitTypeSystem(s: string | undefined): [string, string] {
@@ -173,11 +180,12 @@ export function splitTypeSystem(s: string | undefined): [string, string] {
   }
 
   const i = s.indexOf(':')
-  if (i >= 0) {
-    if (s.slice(i + 1) === SystemName.All) {
-      return [s.slice(0, i), SystemName.All]
-    }
-    return [s.slice(0, i), s]
+  if (i === -1) {
+    return [s, s]
   }
-  return [s, s]
+
+  if (s.slice(i + 1) === SystemName.All) {
+    return [s.slice(0, i), SystemName.All]
+  }
+  return [s.slice(0, i), s]
 }

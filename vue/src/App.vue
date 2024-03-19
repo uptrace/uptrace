@@ -2,7 +2,14 @@
   <v-app>
     <AppNavigation v-model="navigation" />
 
-    <v-app-bar v-if="header" app absolute flat color="white" class="v-bar--underline">
+    <v-app-bar
+      v-if="header"
+      app
+      absolute
+      flat
+      :color="$vuetify.theme.isDark ? undefined : 'white'"
+      class="v-bar--underline"
+    >
       <v-container :fluid="$vuetify.breakpoint.lgAndDown" class="pa-0 fill-height">
         <v-row align="center" class="flex-nowrap">
           <v-col cols="auto">
@@ -19,8 +26,11 @@
 
           <v-spacer />
 
-          <v-col v-if="project.data" cols="auto">
-            <AppSearch v-model="searchVisible" />
+          <v-col cols="auto" class="d-flex align-center">
+            <AppSearch v-if="project.data" v-model="searchVisible" />
+            <v-btn icon title="Toggle dark mode" @click="toggleDark()">
+              <v-icon>mdi-theme-light-dark</v-icon>
+            </v-btn>
           </v-col>
 
           <v-col v-if="!user.isAuth" cols="auto" class="d-flex align-center">
@@ -42,7 +52,13 @@
       <router-view :date-range="dateRange" />
     </v-main>
 
-    <v-footer v-if="footer" app absolute inset color="grey lighten-5">
+    <v-footer
+      v-if="footer"
+      app
+      absolute
+      inset
+      :color="$vuetify.theme.isDark ? undefined : 'grey lighten-5'"
+    >
       <v-container fluid>
         <v-row justify="center" align="center">
           <v-col cols="auto">
@@ -78,6 +94,7 @@ import { defineComponent, shallowRef, provide } from 'vue'
 
 // Composables
 import { useStorage } from '@/use/local-storage'
+import { useDarkMode } from '@/use/dark-mode'
 import { provideForceReload } from '@/use/force-reload'
 import { useDateRange } from '@/use/date-range'
 import { useUser } from '@/org/use-users'
@@ -102,6 +119,7 @@ export default defineComponent({
   },
 
   setup() {
+    const { isDark, toggleDark } = useDarkMode()
     const navigation = useStorage('navigation-drawer', true)
 
     // Make these global across the app.
@@ -122,6 +140,9 @@ export default defineComponent({
     const project = useProject()
 
     return {
+      isDark,
+      toggleDark,
+
       navigation,
       header,
       footer,

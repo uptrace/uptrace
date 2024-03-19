@@ -62,7 +62,7 @@
       <v-row dense>
         <v-col>
           <div class="text-subtitle-1 text--secondary">Attributes</div>
-          <v-card flat tile color="grey lighten-4" class="px-4 py-5">
+          <v-card flat tile color="bg--light" class="px-4 py-5">
             <v-row v-for="(attr, i) in attrs" :key="i" no-gutters>
               <v-col>
                 <AnnotationAttrRow :attr="attr" required @click:remove="removeAttr(i)" />

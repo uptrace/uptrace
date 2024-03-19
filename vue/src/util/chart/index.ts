@@ -1,4 +1,5 @@
 import {
+  registerTheme,
   EChartsOption as BaseEChartsOption,
   LegendComponentOption,
   GridComponentOption,
@@ -9,6 +10,10 @@ import {
   TooltipComponentOption,
 } from 'echarts'
 
+// Composables
+import { useDarkMode } from '@/use/dark-mode'
+
+// Misc
 import {
   createFormatter,
   createVerboseFormatter,
@@ -17,6 +22,9 @@ import {
   Unit,
 } from '@/util/fmt'
 import { truncateMiddle } from '@/util/string'
+import customDark from './custom-dark'
+
+registerTheme('custom-dark', customDark)
 
 export interface EChartsOption extends BaseEChartsOption {
   legend: LegendComponentOption[]
@@ -54,6 +62,7 @@ export function baseChartConfig(): EChartsOption {
 }
 
 export function addChartTooltip(cfg: any, tooltipCfg: TooltipComponentOption = {}) {
+  const { isDark } = useDarkMode()
   cfg.tooltip.push({
     trigger: 'axis',
     appendToBody: true,
@@ -61,6 +70,7 @@ export function addChartTooltip(cfg: any, tooltipCfg: TooltipComponentOption = {
       type: 'cross',
       link: [{ xAxisIndex: 'all' }],
     },
+    className: ['echarts-tooltip', isDark.value ? 'theme--dark' : 'theme--light'].join(' '),
     ...tooltipCfg,
   })
 }
@@ -124,7 +134,7 @@ export function createTooltipFormatter(
     }
 
     const ss = [
-      '<div class="chart-tooltip">',
+      '<div>',
       conf.hideDate ? '' : `<p>${params[0].axisValueLabel}</p>`,
       '<table>',
       '<tbody>',

@@ -66,7 +66,7 @@ export default defineComponent({
     },
     color: {
       type: String,
-      default: 'grey lighten-4',
+      default: undefined,
     },
     elevation: {
       type: Number,

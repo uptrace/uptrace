@@ -3,7 +3,7 @@
     <template v-for="(value, key) in attrs">
       <v-tooltip :key="key" top>
         <template #activator="{ on, attrs }">
-          <v-chip :small="small" label color="grey lighten-4" class="mr-1" v-bind="attrs" v-on="on">
+          <v-chip :small="small" label class="mr-1" v-bind="attrs" v-on="on">
             {{ value ? truncate(value, { length: 20 }) : key }}
           </v-chip>
         </template>

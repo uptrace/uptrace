@@ -8,17 +8,10 @@
       </v-col>
       <v-col cols="auto">
         ${{ metric.alias }} ({{ metric.name }})
-        <v-chip
-          v-if="metric.instrument"
-          label
-          color="grey lighten-4"
-          title="Instrument"
-          class="ml-2"
-          >{{ metric.instrument }}</v-chip
-        >
-        <v-chip v-if="metric.unit" label color="grey lighten-4" title="Unit" class="ml-2">{{
-          metric.unit
+        <v-chip v-if="metric.instrument" label title="Instrument" class="ml-2">{{
+          metric.instrument
         }}</v-chip>
+        <v-chip v-if="metric.unit" label title="Unit" class="ml-2">{{ metric.unit }}</v-chip>
       </v-col>
     </v-row>
   </div>

@@ -9,7 +9,7 @@
     <v-row>
       <v-col>
         <v-card outlined rounded="lg">
-          <v-toolbar flat color="light-blue lighten-5">
+          <v-toolbar flat color="bg--primary">
             <v-toolbar-title>{{ attr }} overview</v-toolbar-title>
             <v-spacer />
             <v-btn :to="groupListRoute" small class="primary">View groups</v-btn>

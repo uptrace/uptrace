@@ -3,7 +3,6 @@
     <v-chip
       small
       label
-      color="grey lighten-4"
       @click.stop="$emit('click:chip', { key: AttrKey.alertType, value: alert.type })"
     >
       {{ alert.type }}
@@ -12,7 +11,6 @@
     <v-chip
       v-if="alert.attrs[AttrKey.spanSystem]"
       small
-      color="grey lighten-4"
       label
       class="ml-1"
       @click.stop="
@@ -26,7 +24,6 @@
       v-if="alert.attrs[AttrKey.spanKind] && alert.attrs[AttrKey.spanKind] !== 'internal'"
       small
       label
-      color="grey lighten-4"
       class="ml-1"
       @click.stop="
         $emit('click:chip', { key: AttrKey.spanKind, value: alert.attrs[AttrKey.spanKind] })
@@ -39,7 +36,6 @@
       v-if="alert.attrs[AttrKey.spanOperation]"
       small
       label
-      color="grey lighten-4"
       class="ml-1"
       @click.stop="
         $emit('click:chip', {

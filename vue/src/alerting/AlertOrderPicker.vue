@@ -1,14 +1,5 @@
 <template>
-  <v-select
-    v-model="order"
-    dense
-    solo
-    flat
-    background-color="grey lighten-4"
-    hide-details
-    mandatory
-    :items="items"
-  >
+  <v-select v-model="order" dense solo flat filled hide-details mandatory :items="items">
     <template #prepend-inner>
       <v-icon>mdi-sort-descending</v-icon>
     </template>

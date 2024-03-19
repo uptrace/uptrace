@@ -20,18 +20,12 @@
                 <v-list-item-content>
                   <v-list-item-title>
                     <span>{{ item.name }}</span>
-                    <v-chip label small color="grey lighten-4" title="Instrument" class="ml-2">{{
+                    <v-chip label small title="Instrument" class="ml-2">{{
                       item.instrument
                     }}</v-chip>
-                    <v-chip
-                      v-if="item.unit"
-                      label
-                      small
-                      color="grey lighten-4"
-                      title="Unit"
-                      class="ml-2"
-                      >{{ item.unit }}</v-chip
-                    >
+                    <v-chip v-if="item.unit" label small title="Unit" class="ml-2">{{
+                      item.unit
+                    }}</v-chip>
                   </v-list-item-title>
                   <v-list-item-subtitle>
                     {{ item.description }}

@@ -1,6 +1,6 @@
 <template>
   <v-card outlined>
-    <v-toolbar color="light-blue lighten-5" flat>
+    <v-toolbar color="bg--primary" flat>
       <v-toolbar-title>Metric explorer</v-toolbar-title>
 
       <v-spacer />

@@ -1,7 +1,7 @@
 <template>
   <v-form v-model="isValid" @submit.prevent="submit">
     <v-card>
-      <v-toolbar color="light-blue lighten-5" flat>
+      <v-toolbar color="bg--primary" flat>
         <v-toolbar-title>{{ dashboard.id ? 'Edit' : 'New' }} dashboard</v-toolbar-title>
 
         <v-spacer />

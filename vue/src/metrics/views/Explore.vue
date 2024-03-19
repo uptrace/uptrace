@@ -10,7 +10,7 @@
     <v-row align="center">
       <v-col>
         <v-card outlined rounded="lg">
-          <v-toolbar flat color="blue lighten-5">
+          <v-toolbar flat color="br--primary">
             <v-toolbar-title>Metrics</v-toolbar-title>
 
             <v-col cols="auto">
@@ -27,7 +27,7 @@
             </v-col>
             <v-spacer />
 
-            <div class="text-body-2 blue-grey--text text--darken-3">
+            <div class="text-body-2">
               <span v-if="metrics.hasMore">more than </span>
               <span class="font-weight-bold">{{ metrics.items.length }}</span>
               <span> metrics</span>

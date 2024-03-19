@@ -72,13 +72,14 @@ import {
 } from 'vue'
 
 // Composables
-import { Annotation } from '@/org/use-annotations'
+import { useDarkMode } from '@/use/dark-mode'
 
 // Components
 import AnnotationAttrs from '@/alerting/AnnotationAttrs.vue'
 
 // Misc
 import type { EChartsOption } from '@/util/chart'
+import { Annotation } from '@/org/use-annotations'
 
 type GroupName = string | symbol
 
@@ -124,6 +125,7 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
+    const { isDark } = useDarkMode()
     let echart: ECharts | undefined
     const div = shallowRef<HTMLDivElement>()
 
@@ -140,6 +142,16 @@ export default defineComponent({
 
     onMounted(() => {
       echart = init()
+
+      watch(isDark, (isDark) => {
+        if (echart) {
+          destroy(echart)
+        }
+        echart = init()
+        if (config.value) {
+          setOptionDebounced(config.value)
+        }
+      })
 
       watch(
         config,
@@ -172,15 +184,12 @@ export default defineComponent({
         return
       }
 
-      if (props.group) {
-        unregister(props.group, echart)
-      }
-      echart.dispose()
+      destroy(echart)
       echart = undefined
     })
 
     function init() {
-      const echart = initChart(div.value!, undefined)
+      const echart = initChart(div.value!, isDark.value ? 'custom-dark' : undefined)
       initAnnotations(echart)
 
       ctx.emit('input', echart)
@@ -190,6 +199,13 @@ export default defineComponent({
       }
 
       return echart
+    }
+
+    function destroy(echart: ECharts) {
+      if (props.group) {
+        unregister(props.group, echart)
+      }
+      echart.dispose()
     }
 
     const popover = usePopover()
@@ -368,16 +384,15 @@ function usePopover() {
 </script>
 
 <style lang="scss">
-.chart-tooltip {
+.echarts-tooltip {
   font-size: 0.85rem;
 
   p {
-    margin-bottom: 2px;
+    margin-bottom: 6px;
     font-weight: 600;
   }
 
   table {
-    width: 100%;
     border-collapse: collapse;
 
     tr.highlighted {
@@ -387,16 +402,22 @@ function usePopover() {
     td {
       &:first-child {
         padding-top: 2px;
-        padding-right: 2px;
+        padding-right: 1px;
       }
 
       &:last-child {
-        padding-left: 15px;
+        padding-left: 10px;
         text-align: right;
         font-weight: 600;
       }
     }
   }
+}
+
+@include theme(echarts-tooltip) using ($material) {
+  color: map-deep-get($material, 'text', 'primary') !important;
+  background-color: map-deep-get($material, 'cards') !important;
+  border-color: map-get($grey, 'darken-1') !important;
 }
 </style>
 

@@ -102,9 +102,9 @@ export default defineComponent({
       }
 
       bs.push({
-        text: props.span.id,
+        text: props.span.id !== '0' ? props.span.id : props.span.traceId,
         to: {
-          name: 'SpanShow',
+          name: 'TraceSpanShow',
           params: {
             projectId: props.span.projectId,
             traceId: props.span.traceId,

@@ -20,6 +20,7 @@ import { addAllSystem, System } from '@/tracing/system/use-systems'
 
 // Misc
 import {
+  isGroupSystem,
   isSpanSystem,
   isLogSystem,
   isEventSystem,
@@ -211,7 +212,7 @@ export default defineComponent({
 function countGroups(systems: System[]) {
   let sum = 0
   for (let system of systems) {
-    if (!system.isGroup) {
+    if (!isGroupSystem(system.system)) {
       sum += system.groupCount
     }
   }

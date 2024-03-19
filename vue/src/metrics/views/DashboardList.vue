@@ -10,7 +10,7 @@
       <v-row>
         <v-col>
           <v-sheet rounded="lg" outlined class="mb-4">
-            <v-toolbar flat color="light-blue lighten-5">
+            <v-toolbar flat color="bg--primary">
               <v-toolbar-title>Dashboards</v-toolbar-title>
 
               <v-col cols="auto">
@@ -27,10 +27,7 @@
               </v-col>
 
               <v-spacer />
-              <div
-                v-if="dashboards.items.length"
-                class="text-body-2 blue-grey--text text--darken-3"
-              >
+              <div v-if="dashboards.items.length" class="text-body-2">
                 <NumValue
                   :value="dashboards.items.length"
                   format="verbose"

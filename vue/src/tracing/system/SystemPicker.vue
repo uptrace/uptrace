@@ -1,7 +1,8 @@
 <template>
   <v-autocomplete
+    ref="autocomplete"
     v-autowidth="{ minWidth: 60 }"
-    :value="value"
+    :value="internalValue"
     :items="filteredSystems"
     item-value="system"
     item-text="system"
@@ -15,30 +16,63 @@
     hide-details
     dense
     outlined
-    background-color="light-blue lighten-5"
+    background-color="bg--primary"
+    :menu-props="{ maxHeight: 500 }"
     class="v-select--fit"
-    @click:clear="$emit('input', systems.length ? [systems[0].system] : [])"
+    @click:clear="$emit('input', [])"
   >
     <template #item="{ item, attrs }">
-      <v-list-item v-bind="attrs" @click="toggleOne(item.system)">
-        <v-list-item-action class="my-0 mr-4">
-          <v-checkbox
-            :input-value="value.includes(item.system)"
-            @click.stop="toggle(item.system)"
-          ></v-checkbox>
-        </v-list-item-action>
-        <v-list-item-content>
-          <v-list-item-title :class="{ 'pl-4': item.indent }">{{ item.system }}</v-list-item-title>
-        </v-list-item-content>
-        <v-list-item-action class="my-0">
-          <v-list-item-action-text><NumValue :value="item.groupCount" /></v-list-item-action-text>
-        </v-list-item-action>
+      <v-list-item v-bind="attrs" class="px-0">
+        <v-menu :key="item.system" open-on-hover offset-x right :close-on-content-click="false">
+          <template #activator="{ attrs, on }">
+            <v-list-item v-bind="attrs" v-on="on" @click="toggleOne(item.system)">
+              <v-list-item-action class="my-0 mr-4">
+                <v-checkbox
+                  :input-value="value.includes(item.system)"
+                  @click.stop="toggle(item.system)"
+                ></v-checkbox>
+              </v-list-item-action>
+              <v-list-item-content>
+                <v-list-item-title :class="{ 'pl-4': item.indent }">
+                  {{ item.system }} (<NumValue :value="item.groupCount" />)
+                </v-list-item-title>
+              </v-list-item-content>
+              <v-list-item-icon>
+                <v-icon v-if="item.children && item.children.length" dense>mdi-menu-right</v-icon>
+              </v-list-item-icon>
+            </v-list-item>
+          </template>
+
+          <v-card flat max-height="95vh">
+            <v-list v-if="item.children && item.children.length" dense>
+              <v-list-item
+                v-for="child in item.children"
+                :key="child.system"
+                @click="toggleOne(child.system)"
+              >
+                <v-list-item-action class="my-0 mr-4">
+                  <v-checkbox
+                    :input-value="value.includes(child.system)"
+                    @click.stop="toggle(child.system)"
+                  ></v-checkbox>
+                </v-list-item-action>
+                <v-list-item-content>
+                  <v-list-item-title>
+                    {{ trimPrefix(child.system, item.system) }} (<NumValue
+                      :value="child.groupCount"
+                    />)
+                  </v-list-item-title>
+                </v-list-item-content>
+              </v-list-item>
+            </v-list>
+          </v-card>
+        </v-menu>
       </v-list-item>
     </template>
     <template #selection="{ index, item }">
       <div v-if="index === 2" class="v-select__selection">, {{ value.length - 2 }} more</div>
       <div v-else-if="index < 2" class="v-select__selection text-truncate">
-        {{ comma(item, index) }}
+        {{ withComma(item, index) }}
       </div>
     </template>
   </v-autocomplete>
@@ -46,13 +80,21 @@
 
 <script lang="ts">
 import { filter as fuzzyFilter } from 'fuzzaldrin-plus'
-import { defineComponent, shallowRef, computed, watchEffect, PropType } from 'vue'
+import { defineComponent, shallowRef, computed, watch, watchEffect, PropType } from 'vue'
 
 // Composables
-import { System } from '@/tracing/system/use-systems'
+import { sortSystems, System } from '@/tracing/system/use-systems'
 
 // Misc
-import { splitTypeSystem, SystemName } from '@/models/otel'
+import { truncateMiddle } from '@/util/string'
+import { systemType, isGroupSystem, SystemName } from '@/models/otel'
+
+const ALL_SYSTEMS = [
+  SystemName.All,
+  SystemName.SpansAll,
+  SystemName.LogAll,
+  SystemName.EventsAll,
+] as string[]
 
 export default defineComponent({
   name: 'SystemPicker',
@@ -78,14 +120,56 @@ export default defineComponent({
 
   setup(props, ctx) {
     const autocomplete = shallowRef()
+
     const searchInput = shallowRef('')
+    watch(
+      () => autocomplete.value?.isMenuActive ?? false,
+      (isMenuActive) => {
+        if (!isMenuActive) {
+          searchInput.value = ''
+        }
+      },
+    )
 
-    const internalSystems = computed(() => {
+    const internalValue = computed(() => {
+      if (autocomplete.value?.isMenuActive) {
+        return []
+      }
+      return props.value
+    })
+
+    const _tree = computed(() => {
       const systems = props.systems.slice()
+      return buildSystemTree(systems)
+    })
+    const tree = shallowRef<SystemNode[]>([])
+    watch(
+      () => {
+        if (autocomplete.value?.isMenuActive) {
+          return undefined
+        }
 
-      for (let system of props.value) {
-        const index = systems.findIndex((item) => item.system === system)
-        if (index === -1) {
+        const systems = _tree.value.slice()
+
+        for (let system of props.value) {
+          const foundIndex = systems.findIndex((item) => item.system === system)
+          if (foundIndex >= 0) {
+            continue
+          }
+
+          const type = systemType(system)
+          const typeIndex = systems.findIndex((item) => item.system === type + ':all')
+
+          const found = props.systems.find((item) => item.system === system)
+          if (found) {
+            systems.push({
+              ...found,
+              indent: typeIndex >= 0,
+              children: [],
+            })
+            continue
+          }
+
           systems.push({
             system,
             count: 0,
@@ -93,23 +177,33 @@ export default defineComponent({
             errorCount: 0,
             errorRate: 0,
             groupCount: 0,
+            indent: typeIndex >= 0,
+            children: [],
           })
         }
-      }
 
-      return systems
-    })
+        sortSystems(systems)
+
+        return systems
+      },
+      (treeValue) => {
+        if (treeValue) {
+          tree.value = treeValue
+        }
+      },
+      { immediate: true },
+    )
 
     const filteredSystems = computed(() => {
       if (!searchInput.value) {
-        return internalSystems.value
+        return tree.value
       }
-      return fuzzyFilter(internalSystems.value, searchInput.value, { key: 'system' })
+      return fuzzyFilter(props.systems, searchInput.value, { key: 'system' })
     })
 
     watchEffect(
       () => {
-        if (props.loading || props.value.length) {
+        if (props.value.length || props.loading) {
           return
         }
         if (props.systems.length) {
@@ -119,16 +213,7 @@ export default defineComponent({
       { flush: 'post' },
     )
 
-    function comma(item: System, index: number): string {
-      if (index > 0) {
-        return ', ' + item.system
-      }
-      return item.system
-    }
-
     function toggle(system: string) {
-      const allSystems = [SystemName.All, SystemName.SpansAll, SystemName.EventsAll] as string[]
-
       let activeSystems = props.value.slice()
 
       const index = activeSystems.indexOf(system)
@@ -148,18 +233,18 @@ export default defineComponent({
         return
       }
 
-      if (allSystems.includes(system)) {
+      if (ALL_SYSTEMS.includes(system)) {
         ctx.emit('input', [system])
         return
       }
 
-      activeSystems = activeSystems.filter((system) => !allSystems.includes(system))
+      activeSystems = activeSystems.filter((system) => !ALL_SYSTEMS.includes(system))
 
-      if (system.endsWith(':all')) {
-        const [type] = splitTypeSystem(system)
+      if (isGroupSystem(system)) {
+        const type = systemType(system)
         activeSystems = activeSystems.filter((system) => !system.startsWith(type + ':'))
       } else if (activeSystems.length) {
-        const [type] = splitTypeSystem(system)
+        const type = systemType(system)
         activeSystems = activeSystems.filter((system) => system !== type + ':all')
       }
 
@@ -185,13 +270,91 @@ export default defineComponent({
     return {
       autocomplete,
       searchInput,
+
+      internalValue,
       filteredSystems,
-      comma,
       toggle,
       toggleOne,
+
+      withComma,
+      trimPrefix,
     }
   },
 })
+
+function withComma(item: System, index: number): string {
+  const text = truncateMiddle(item.system, 20)
+  if (index > 0) {
+    return ', ' + text
+  }
+  return text
+}
+
+interface SystemNode extends System {
+  indent?: boolean
+  children?: System[]
+}
+
+function buildSystemTree(systems: System[]): SystemNode[] {
+  const typeMap = new Map<string, SystemNode>()
+
+  for (let sys of systems) {
+    if (isGroupSystem(sys.system)) {
+      continue
+    }
+
+    let typ = sys.system
+
+    const i = typ.indexOf(':')
+    if (i >= 0) {
+      typ = typ.slice(0, i)
+    }
+
+    const typeSys = typeMap.get(typ)
+    if (typeSys) {
+      typeSys.count += sys.count
+      typeSys.rate += sys.rate
+      typeSys.errorCount += sys.errorCount
+      typeSys.errorRate += sys.errorRate
+      typeSys.groupCount += sys.groupCount
+      typeSys.children!.push(sys)
+      continue
+    }
+
+    typeMap.set(typ, {
+      ...sys,
+      system: typ + ':all',
+      children: [sys],
+    })
+  }
+
+  const nodes: SystemNode[] = []
+
+  typeMap.forEach((system) => {
+    if (system.children!.length === 1) {
+      nodes.push({
+        ...system.children![0],
+      })
+    } else {
+      nodes.push(system)
+    }
+  })
+
+  if (nodes.length === 1 && nodes[0].children) {
+    return nodes[0].children
+  }
+  return nodes
+}
+
+function trimPrefix(str: string, prefix: string): string {
+  if (prefix.endsWith(':all')) {
+    prefix = prefix.slice(0, -3)
+  }
+  if (str.startsWith(prefix)) {
+    return str.slice(prefix.length)
+  }
+  return str
+}
 </script>
 
 <style lang="scss" scoped></style>

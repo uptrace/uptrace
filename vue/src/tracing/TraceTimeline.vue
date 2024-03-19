@@ -144,21 +144,6 @@ export default defineComponent({
 })
 </script>
 
-<style lang="scss" scoped>
-.v-btn.v-btn--disabled .v-icon {
-  cursor: initial !important;
-  color: rgba(255, 255, 255, 0) !important;
-}
-
-tr.active {
-  background: map-deep-get($material-theme, 'table', 'active');
-
-  .span-name {
-    font-weight: 600;
-  }
-}
-</style>
-
 <style lang="scss">
 .trace-table {
   width: 100%;
@@ -168,23 +153,26 @@ tr.active {
   & > thead > tr > th {
     text-align: left;
     font-size: 12px;
-    color: rgba(
-      map-get($material-theme, 'text-color'),
-      map-get($material-theme, 'secondary-text-percent')
-    );
   }
 
-  & > tbody > tr {
-    & > td {
-      border-bottom: 1px solid
-        rgba(map-get($material-theme, 'fg-color'), map-get($material-theme, 'divider-percent'));
-      padding-top: 22px;
-      padding-bottom: 0px;
-    }
+  & > tbody > tr > td {
+    padding-top: 22px;
+    padding-bottom: 0px;
+  }
+}
 
-    &:hover {
-      background: map-deep-get($material-theme, 'table', 'hover');
-    }
+@include theme(trace-table) using ($material) {
+  & > thead > tr > th {
+    color: rgba(map-get($material, 'text-color'), map-get($material, 'secondary-text-percent'));
+  }
+
+  & > tbody > tr > td {
+    border-bottom: 1px solid
+      rgba(map-get($material, 'fg-color'), map-get($material, 'divider-percent'));
+  }
+
+  & > tbody > tr:hover {
+    background: map-deep-get($material, 'table', 'hover');
   }
 }
 
@@ -197,17 +185,34 @@ tr.active {
     z-index: 1;
     height: 11px;
     margin-right: 1px;
+
+    &:hover,
+    &.hover {
+      //filter: brightness(80%);
+    }
   }
 
   & > tbody > tr > td:first-child {
     padding-right: 8px;
   }
+
+  & > tbody > tr.active {
+    .span-name {
+      font-weight: 600;
+    }
+  }
 }
 
-.trace-table--tree {
-  & > thead > tr > th,
-  & > tbody > tr > td {
-    padding: 0 10px;
+@include theme(trace-table--timeline) using ($material) {
+  & > tbody > tr.active {
+    background: map-deep-get($material, 'table', 'active');
   }
+}
+</style>
+
+<style lang="scss" scoped>
+.v-btn.v-btn--disabled .v-icon {
+  cursor: initial !important;
+  color: rgba(255, 255, 255, 0) !important;
 }
 </style>

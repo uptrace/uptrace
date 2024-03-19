@@ -11,7 +11,7 @@
     dense
     outlined
     auto-select-first
-    background-color="light-blue lighten-5"
+    background-color="bg--primary"
     @change="onChange"
   >
     <template #item="{ item }">

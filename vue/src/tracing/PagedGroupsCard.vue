@@ -40,9 +40,7 @@
           :items="plottableColumnItems"
           multiple
           dense
-          solo
-          flat
-          background-color="grey lighten-4"
+          filled
           hide-details="auto"
           @input="$emit('update:plotted-columns', $event)"
         ></v-select>
@@ -79,7 +77,7 @@
 
     <v-dialog v-model="dialog" max-width="1400">
       <v-card v-if="activeGroup" flat>
-        <v-toolbar flat color="light-blue lighten-5">
+        <v-toolbar flat color="bg--primary">
           <v-toolbar-title>{{ activeGroup._query }}</v-toolbar-title>
 
           <v-spacer />

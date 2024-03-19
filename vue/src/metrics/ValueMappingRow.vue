@@ -6,13 +6,7 @@
       </v-btn>
     </v-col>
     <v-col class="d-flex align-center">
-      <BtnSelectMenu
-        v-model="value.op"
-        :items="mappingOpItems"
-        outlined
-        color="grey darken-3"
-        target-class="mr-2"
-      />
+      <BtnSelectMenu v-model="value.op" :items="mappingOpItems" outlined target-class="mr-2" />
       <v-text-field
         v-model.number="value.value"
         type="number"

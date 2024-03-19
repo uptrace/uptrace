@@ -3,12 +3,12 @@
     <v-row>
       <v-col>
         <v-card rounded="lg" outlined class="mb-4">
-          <v-toolbar flat color="light-blue lighten-5">
+          <v-toolbar flat color="bg--primary">
             <slot name="search-filter" />
 
             <v-spacer />
 
-            <div class="text-body-2 blue-grey--text text--darken-3">
+            <div class="text-body-2">
               <span v-if="groups.hasMore">more than </span>
               <strong><NumValue :value="numGroup" verbose /></strong> groups
             </div>

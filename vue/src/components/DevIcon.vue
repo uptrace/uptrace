@@ -1,6 +1,6 @@
 <template>
   <v-hover v-slot="{ hover }">
-    <v-card :flat="!hover" :color="hover ? 'white' : 'transparent'" class="mx-auto">
+    <v-card :flat="!hover" class="mx-auto">
       <v-card-text class="text-center py-1">
         <router-link v-if="to" :to="to">
           <v-img :src="icon" max-width="80" aspect-ratio="1" contain :alt="name" class="mx-auto" />

@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid class="fill-height grey lighten-5">
+  <v-container fluid class="fill-height bg--light">
     <v-row>
       <v-col>
         <v-card max-width="500" class="mx-auto">

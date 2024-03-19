@@ -1,5 +1,45 @@
+@import '~vuetify/src/styles/settings/_colors.scss';
+
 $grid-breakpoints: (
   'xl': 1536 - 24px,
+);
+
+$material-light: (
+  'status-bar': (
+    'regular': map-get($grey, 'lighten-4'),
+    'lights-out': rgba(map-get($shades, 'white'), 0.7),
+  ),
+  'chips': map-get($grey, 'lighten-4'),
+);
+
+$material-dark: (
+  'calendar': (
+    'text-color': map-get($shades, 'white'),
+  ),
+  'kbd': (
+    'color': rgba(map-get($shades, 'white'), 0.9),
+  ),
+  'text': (
+    'theme': rgba(map-get($shades, 'white'), 0.9),
+    'primary': rgba(map-get($shades, 'white'), 0.9),
+  ),
+  'icons': (
+    'active': rgba(map-get($shades, 'white'), 0.9),
+  ),
+  'inputs': (
+    'box': rgba(map-get($shades, 'white'), 0.9),
+  ),
+  'slider': (
+    'discrete': rgba(map-get($shades, 'white'), 0.9),
+  ),
+  'toggle-buttons': (
+    'color': rgba(map-get($shades, 'white'), 0.9),
+  ),
+  'text-fields': (
+    'outlined-hover': rgba(map-get($shades, 'white'), 0.9),
+  ),
+  'fg-color': rgba(map-get($shades, 'white'), 0.9),
+  'text-color': rgba(map-get($shades, 'white'), 0.9),
 );
 
 @import '~vuetify/src/styles/styles.sass';

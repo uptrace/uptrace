@@ -9,7 +9,6 @@
       hide-details
       flat
       solo
-      background-color="grey lighten-4"
       style="width: 360px"
       @keyup.enter="submit"
       @keyup.esc="hideSearch"

@@ -1,52 +1,72 @@
-import { cloneDeep, orderBy } from 'lodash-es'
+import { cloneDeep } from 'lodash-es'
 import { shallowRef, computed, proxyRefs } from 'vue'
 
 // Composables
 import { useRoute, Values } from '@/use/router'
-import { useWatchAxios } from '@/use/watch-axios'
+import { useWatchAxios, AxiosParamsSource } from '@/use/watch-axios'
 
 // Misc
-import { isLogSystem, isEventSystem, isSpanSystem, isGroupSystem, SystemName } from '@/models/otel'
+import { isGroupSystem, isLogSystem, isEventSystem, isSpanSystem, SystemName } from '@/models/otel'
 import { DataHint } from '@/org/types'
 
 export interface System {
   system: string
 
   count: number
-  rate: number
   errorCount: number
+  rate: number
   errorRate: number
   groupCount: number
-
-  isGroup?: boolean
-  indent?: boolean
-}
-
-export interface SystemTreeNode extends System {
-  numChildren: number
-  children?: SystemTreeNode[]
 }
 
 export type UseSystems = ReturnType<typeof useSystems>
 
-export function useSystems(params: () => Record<string, any>) {
+const SORTED_SYSTEMS = [
+  SystemName.All,
+  SystemName.SpansAll,
+  SystemName.LogAll,
+  SystemName.EventsAll,
+  'log',
+  'log:trace',
+  'log:debug',
+  'log:info',
+  'log:warn',
+  'log:error',
+  'log:fatal',
+]
+
+export function useSystems(axiosParamsSource: AxiosParamsSource) {
   const route = useRoute()
 
-  const { status, loading, data } = useWatchAxios(() => {
-    const { projectId } = route.value.params
-    return {
-      url: `/internal/v1/tracing/${projectId}/systems`,
-      params: params(),
-    }
+  const { status, loading, data } = useWatchAxios(
+    () => {
+      const { projectId } = route.value.params
+      const req = {
+        url: `/internal/v1/tracing/${projectId}/systems`,
+        params: axiosParamsSource(),
+        cache: true,
+      }
+      return req
+    },
+    { debounce: 0 },
+  )
+
+  const count = computed(() => {
+    return data.value?.systems?.length ?? 0
   })
 
   const systems = computed((): System[] => {
-    let systems = data.value?.systems ?? []
+    let systems: System[] = data.value?.systems ?? []
 
     systems = cloneDeep(systems)
+    sortSystems(systems)
     addAllSystem(systems, SystemName.All)
-    addAllSystemForEachType(systems)
-    return orderBy(systems, 'system')
+    //addAllSystemForEachType(systems)
+    return systems
+  })
+
+  const types = computed((): string[] => {
+    return systemTypes(systems.value)
   })
 
   const dataHint = computed((): DataHint | undefined => {
@@ -97,7 +117,6 @@ export function useSystems(params: () => Record<string, any>) {
   function queryParams() {
     return { system: activeSystems.value }
   }
-
   function parseQueryParams(queryParams: Values) {
     activeSystems.value = queryParams.array('system')
   }
@@ -106,7 +125,9 @@ export function useSystems(params: () => Record<string, any>) {
     status,
     loading,
 
+    count,
     items: systems,
+    types,
     dataHint,
 
     activeSystems,
@@ -121,64 +142,60 @@ export function useSystems(params: () => Record<string, any>) {
   })
 }
 
-function addAllSystemForEachType(systems: System[]) {
-  if (!systems.length) {
-    return
-  }
+// function addAllSystemForEachType(systems: System[]) {
+//   if (!systems.length) {
+//     return
+//   }
 
-  const typeMap: Record<string, SystemTreeNode> = {}
+//   const typeMap: Record<string, SystemTreeNode> = {}
 
-  for (let sys of systems) {
-    let typ = sys.system
+//   for (let sys of systems) {
+//     let typ = sys.system
 
-    const i = typ.indexOf(':')
-    if (i >= 0) {
-      typ = typ.slice(0, i)
-    }
+//     const i = typ.indexOf(':')
+//     if (i >= 0) {
+//       typ = typ.slice(0, i)
+//     }
 
-    const typeSys = typeMap[typ]
-    if (typeSys) {
-      typeSys.count += sys.count
-      typeSys.rate += sys.rate
-      typeSys.errorCount += sys.errorCount
-      typeSys.errorRate += sys.errorRate
-      typeSys.groupCount += sys.groupCount
-      typeSys.numChildren!++
-      continue
-    }
+//     const typeSys = typeMap[typ]
+//     if (typeSys) {
+//       typeSys.count += sys.count
+//       typeSys.rate += sys.rate
+//       typeSys.errorCount += sys.errorCount
+//       typeSys.errorRate += sys.errorRate
+//       typeSys.groupCount += sys.groupCount
+//       typeSys.numChildren!++
+//       continue
+//     }
 
-    typeMap[typ] = {
-      ...sys,
-      system: typ,
-      numChildren: 1,
-    }
-  }
+//     typeMap[typ] = {
+//       ...sys,
+//       system: typ,
+//       numChildren: 1,
+//     }
+//   }
 
-  for (let systemType in typeMap) {
-    const typ = typeMap[systemType]
-    if (typ.numChildren <= 1) {
-      continue
-    }
+//   for (let systemType in typeMap) {
+//     const typ = typeMap[systemType]
+//     if (typ.numChildren <= 1) {
+//       continue
+//     }
 
-    for (let item of systems) {
-      if (item.system.startsWith(typ.system)) {
-        item.indent = true
-      }
-    }
+//     for (let item of systems) {
+//       if (item.system.startsWith(typ.system)) {
+//         item.indent = true
+//       }
+//     }
 
-    systems.push({
-      ...typ,
-      system: typ.system + ':all',
-      isGroup: true,
-    })
-  }
-}
+//     systems.push({
+//       ...typ,
+//       system: typ.system + ':all',
+//       isGroup: true,
+//     })
+//   }
+// }
 
 export function addAllSystem(systems: System[], systemName: string) {
-  if (!systems.length) {
-    return
-  }
-
   const index = systems.findIndex((item) => item.system === systemName)
   if (index >= 0) {
     return
@@ -196,7 +213,6 @@ function createAllSystem(systems: System[], systemName: string): System {
     errorCount: 0,
     errorRate: 0,
     groupCount: 0,
-    isGroup: true,
   }
   for (let system of systems) {
     if (!isGroupSystem(system.system)) {
@@ -225,4 +241,21 @@ export function systemTypes(systems: System[]): string[] {
   }
 
   return Array.from(types)
+}
+
+export function sortSystems(systems: System[]) {
+  systems.sort((a, b) => {
+    const ai = SORTED_SYSTEMS.indexOf(a.system)
+    const bi = SORTED_SYSTEMS.indexOf(b.system)
+    if (ai >= 0 && bi >= 0) {
+      return ai - bi
+    }
+    if (ai >= 0) {
+      return -1
+    }
+    if (bi >= 0) {
+      return 1
+    }
+    return a.system.localeCompare(b.system)
+  })
 }

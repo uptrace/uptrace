@@ -6,7 +6,7 @@
     @input="$emit('input', $event)"
   >
     <v-card flat outlined>
-      <v-toolbar color="light-blue lighten-5" flat>
+      <v-toolbar color="bg--primary" flat>
         <v-toolbar-title>{{ title }}</v-toolbar-title>
         <slot name="toolbar-append" />
 

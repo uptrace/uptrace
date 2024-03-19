@@ -23,10 +23,10 @@
           :search-input.sync="attrKeysDs.searchInput"
           label="Show all metrics"
           placeholder="Show metrics with given attributes..."
+          dense
           solo
           flat
-          dense
-          background-color="grey lighten-4"
+          filled
           no-filter
           auto-select-first
           clearable

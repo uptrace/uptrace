@@ -2,7 +2,8 @@
   <div>
     <v-row>
       <v-col
-        class="py-2 grey lighten-3 cursor-pointer"
+        class="py-2 cursor-pointer"
+        :class="$vuetify.theme.isDark ? 'grey darken-4' : 'grey lighten-3'"
         @click="expandedInternal = !expandedInternal"
       >
         <v-icon class="mr-1">{{ expandedInternal ? 'mdi-chevron-down' : 'mdi-chevron-up' }}</v-icon>

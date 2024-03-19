@@ -124,7 +124,7 @@ var _ json.Marshaler = (*SpanID)(nil)
 
 func (id SpanID) MarshalJSON() ([]byte, error) {
 	if id == 0 {
-		return []byte("null"), nil
+		return []byte(`"0"`), nil
 	}
 
 	b := make([]byte, 8)

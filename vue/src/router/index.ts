@@ -40,7 +40,7 @@ import TracingTimeseries from '@/tracing/views/TracingTimeseries.vue'
 
 import TraceShow from '@/tracing/views/TraceShow.vue'
 import TraceFind from '@/tracing/views/TraceFind.vue'
-import SpanShow from '@/tracing/views/SpanShow.vue'
+import TraceSpanShow from '@/tracing/views/TraceSpanShow.vue'
 
 import MetricsLayout from '@/metrics/views/Layout.vue'
 import MetricsExplore from '@/metrics/views/Explore.vue'
@@ -294,9 +294,9 @@ const routes: RouteConfig[] = [
     component: TraceShow,
   },
   {
-    name: 'SpanShow',
+    name: 'TraceSpanShow',
     path: '/traces/:projectId(\\d+)/:traceId/:spanId',
-    component: SpanShow,
+    component: TraceSpanShow,
   },
   {
     path: '/traces/:traceId',
