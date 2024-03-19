@@ -39,8 +39,8 @@ export interface MetricMonitorParams {
   checkNumPoint: number
   timeOffset: number
 
-  minValue: number | string | null
-  maxValue: number | string | null
+  minAllowedValue: number | string | null
+  maxAllowedValue: number | string | null
 }
 
 export interface ErrorMonitor extends BaseMonitor {
@@ -83,8 +83,8 @@ export function emptyMetricMonitor(): MetricMonitor {
       checkNumPoint: 5,
       timeOffset: 0,
 
-      minValue: null,
-      maxValue: null,
+      minAllowedValue: null,
+      maxAllowedValue: null,
     },
 
     channelIds: [],

@@ -77,8 +77,8 @@
                 :resolved="timeseries.status.isResolved()"
                 :timeseries="styledTimeseries"
                 :time="timeseries.time"
-                :min-allowed-value="monitor.params.minValue"
-                :max-allowed-value="monitor.params.maxValue"
+                :min-allowed-value="monitor.params.minAllowedValue"
+                :max-allowed-value="monitor.params.maxAllowedValue"
                 :event-bus="eventBus"
               />
             </v-col>

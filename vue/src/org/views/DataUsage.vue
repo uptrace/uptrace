@@ -43,7 +43,7 @@
             :loading="usage.loading"
             :value="usage.data.spans"
             :time="usage.data.time"
-            name="Spans"
+            name="Spans & logs"
           />
 
           <h3 class="text-subtitle-1 text--secondary">Ingested bytes</h3>

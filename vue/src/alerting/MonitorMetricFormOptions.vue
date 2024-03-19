@@ -52,7 +52,7 @@
               </span>
             </template>
             <v-text-field
-              v-model.number="monitor.params.minValue"
+              v-model.number="monitor.params.minAllowedValue"
               type="number"
               :suffix="activeColumn?.unit"
               hint="Leave empty to disable"
@@ -60,7 +60,7 @@
               filled
               dense
               clearable
-              :rules="rules.minValue"
+              :rules="rules.minAllowedValue"
             />
           </PanelSection>
 
@@ -74,7 +74,7 @@
               </span>
             </template>
             <v-text-field
-              v-model.number="monitor.params.maxValue"
+              v-model.number="monitor.params.maxAllowedValue"
               type="number"
               :suffix="activeColumn?.unit"
               hint="Leave empty to disable"
@@ -82,7 +82,7 @@
               filled
               dense
               clearable
-              :rules="rules.maxValue"
+              :rules="rules.maxAllowedValue"
             />
           </PanelSection>
         </SinglePanel>
@@ -250,32 +250,32 @@ export default defineComponent({
     const rules = {
       name: [requiredRule],
       boundsSource: [requiredRule],
-      minValue: [
+      minAllowedValue: [
         (v: any) => {
           if (
-            typeof props.monitor.params.minValue !== 'number' &&
-            typeof props.monitor.params.maxValue !== 'number'
+            typeof props.monitor.params.minAllowedValue !== 'number' &&
+            typeof props.monitor.params.maxAllowedValue !== 'number'
           ) {
             return 'At least min or max value is required'
           }
           return true
         },
       ],
-      maxValue: [
+      maxAllowedValue: [
         (v: any) => {
           if (
-            typeof props.monitor.params.minValue !== 'number' &&
-            typeof props.monitor.params.maxValue !== 'number'
+            typeof props.monitor.params.minAllowedValue !== 'number' &&
+            typeof props.monitor.params.maxAllowedValue !== 'number'
           ) {
             return 'At least min or max value is required'
           }
           if (
-            typeof props.monitor.params.minValue !== 'number' ||
-            typeof props.monitor.params.maxValue !== 'number'
+            typeof props.monitor.params.minAllowedValue !== 'number' ||
+            typeof props.monitor.params.maxAllowedValue !== 'number'
           ) {
             return true
           }
-          if (props.monitor.params.maxValue < props.monitor.params.minValue) {
+          if (props.monitor.params.maxAllowedValue < props.monitor.params.minAllowedValue) {
             return 'Max value should be greater than or equal min'
           }
           return true
@@ -387,11 +387,11 @@ export default defineComponent({
     })
 
     watch(
-      () => props.monitor.params.minValue,
+      () => props.monitor.params.minAllowedValue,
       () => props.form?.validate(),
     )
     watch(
-      () => props.monitor.params.maxValue,
+      () => props.monitor.params.maxAllowedValue,
       () => props.form?.validate(),
     )
 
