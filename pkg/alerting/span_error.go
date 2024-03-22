@@ -202,7 +202,7 @@ func countAlertSpans(
 
 	var spanCount int64
 
-	if err := tracing.NewSpanIndexQuery(app).
+	if err := tracing.NewSpanIndexQuery(app.CH).
 		ColumnExpr("toUInt64(sum(s.count))").
 		Where("s.project_id = ?", span.ProjectID).
 		Where("s.type = ?", span.Type).

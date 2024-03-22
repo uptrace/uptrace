@@ -34,17 +34,17 @@ func NewSpanHandler(app *bunapp.App) *SpanHandler {
 func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f := &SpanFilter{App: h.App}
-	if err := DecodeSpanFilter(h.App, req, f); err != nil {
+	f := &SpanFilter{}
+	if err := DecodeSpanFilter(req, f); err != nil {
 		return err
 	}
-	disableColumnsAndGroups(f.parts)
+	disableColumnsAndGroups(f.QueryParts)
 
 	if f.SortBy != "" && isAggExpr(tql.Attr{Name: f.SortBy}) {
 		f.OrderByMixin.Reset()
 	}
 
-	q, _ := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
+	q, _ := BuildSpanIndexQuery(h.App.CH, f, f.TimeFilter.Duration())
 	q = q.
 		ColumnExpr("id, trace_id").
 		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
@@ -101,7 +101,7 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 		"count": count,
 		"order": f.OrderByMixin,
 		"query": map[string]any{
-			"parts": f.parts,
+			"parts": f.QueryParts,
 		},
 	})
 }
@@ -109,12 +109,12 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f := &SpanFilter{App: h.App}
-	if err := DecodeSpanFilter(h.App, req, f); err != nil {
+	f := &SpanFilter{}
+	if err := DecodeSpanFilter(req, f); err != nil {
 		return err
 	}
 
-	q, columnMap := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
+	q, columnMap := BuildSpanIndexQuery(h.App.CH, f, f.TimeFilter.Duration())
 
 	if _, ok := columnMap.Load(f.SortBy); !ok {
 		f.OrderByMixin.Reset()
@@ -162,7 +162,7 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 		"groups": groups,
 		"order":  f.OrderByMixin,
 		"query": map[string]any{
-			"parts": f.parts,
+			"parts": f.QueryParts,
 		},
 		"columns": columnList(columnMap),
 	})
@@ -171,8 +171,8 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f := &SpanFilter{App: h.App}
-	if err := DecodeSpanFilter(h.App, req, f); err != nil {
+	f := &SpanFilter{}
+	if err := DecodeSpanFilter(req, f); err != nil {
 		return err
 	}
 
@@ -181,7 +181,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 
 	m := make(map[string]interface{})
 
-	subq, _ := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
+	subq, _ := BuildSpanIndexQuery(h.App.CH, f, f.TimeFilter.Duration())
 	subq = subq.
 		ColumnExpr("sum(s.count) AS count").
 		ColumnExpr("sum(s.count) / ? AS rate", minutes).
@@ -238,11 +238,11 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f := &SpanFilter{App: h.App}
-	if err := DecodeSpanFilter(h.App, req, f); err != nil {
+	f := &SpanFilter{}
+	if err := DecodeSpanFilter(req, f); err != nil {
 		return err
 	}
-	disableColumnsAndGroups(f.parts)
+	disableColumnsAndGroups(f.QueryParts)
 
 	if len(f.Column) == 0 {
 		return errors.New(`"column" query param is required`)
@@ -251,7 +251,7 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 
 	groupingInterval := f.GroupingInterval()
 
-	subq, _ := buildSpanIndexQuery(h.App, f, groupingInterval)
+	subq, _ := BuildSpanIndexQuery(h.App.CH, f, groupingInterval)
 	subq = subq.
 		ColumnExpr("toStartOfInterval(time, toIntervalMinute(?)) AS time_", groupingInterval.Minutes()).
 		GroupExpr("time_").
@@ -296,13 +296,13 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 func (h *SpanHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f := &SpanFilter{App: h.App}
-	if err := DecodeSpanFilter(h.App, req, f); err != nil {
+	f := &SpanFilter{}
+	if err := DecodeSpanFilter(req, f); err != nil {
 		return err
 	}
 
 	groupingInterval := f.GroupingInterval()
-	subq, columnMap := buildSpanIndexQuery(h.App, f, groupingInterval)
+	subq, columnMap := BuildSpanIndexQuery(h.App.CH, f, groupingInterval)
 
 	var numAgg int
 	for _, colName := range columnNames(columnMap) {
@@ -382,7 +382,7 @@ func (h *SpanHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) e
 		"time":    timeCol,
 		"columns": columnList(columnMap),
 		"query": map[string]any{
-			"parts": f.parts,
+			"parts": f.QueryParts,
 		},
 	})
 }

@@ -2,28 +2,30 @@ package metrics
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"unsafe"
 
-	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/chquery"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
+	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/tracing"
+	"github.com/uptrace/uptrace/pkg/tracing/tql"
 	"github.com/uptrace/uptrace/pkg/unixtime"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
 type CHStorage struct {
 	ctx  context.Context
-	app  *bunapp.App
 	conf *CHStorageConfig
 
 	db *ch.DB
@@ -67,53 +69,16 @@ func (s *CHStorage) SelectTimeseries(f *mql.TimeseriesFilter) ([]*mql.Timeseries
 }
 
 func (s *CHStorage) compileQuery(metric *Metric, f *mql.TimeseriesFilter) (*ch.SelectQuery, error) {
-	q := s.db.NewSelect().
-		ColumnExpr("d.metric").
-		ColumnExpr("max(d.annotations) AS annotations").
-		TableExpr("? AS d", ch.Name(s.conf.TableName)).
-		Where("d.project_id = ?", s.conf.ProjectID).
-		Where("d.metric = ?", metric.Name).
-		Where("d.time >= ?", f.TimeGTE).
-		Where("d.time < ?", f.TimeLT).
-		GroupExpr("d.metric")
-
-	if len(s.conf.Search) > 0 && len(f.Grouping) > 0 {
-		var b []byte
-		b = append(b, "concatWithSeparator(' '"...)
-		for _, elem := range f.Grouping {
-			b = append(b, ", "...)
-			b = AppendCHExpr(b, elem.Name)
-		}
-		b = append(b, ')')
-		chExpr := ch.Safe(b)
-
-		for _, token := range s.conf.Search {
-			switch token.ID {
-			case chquery.INCLUDE_TOKEN:
-				q = q.Where("multiSearchAnyCaseInsensitiveUTF8(?, ?) != 0",
-					chExpr, ch.Array(token.Values))
-			case chquery.EXCLUDE_TOKEN:
-				q = q.Where("NOT multiSearchAnyCaseInsensitiveUTF8(?, ?) != 0",
-					chExpr, ch.Array(token.Values))
-			case chquery.REGEXP_TOKEN:
-				q = q.Where("match(?, ?)", chExpr, token.Values[0])
-			}
-		}
-	}
-
 	selectAll := f.CHFunc == mql.CHAggNone
-	subq, err := s.subquery(q, metric, f, selectAll)
+	subq, err := s.subquery(metric, f, selectAll)
 	if err != nil {
 		return nil, err
 	}
 
-	q = s.db.NewSelect().
-		ColumnExpr("d.metric").
-		ColumnExpr("max(d.annotations) AS annotations").
+	q := s.db.NewSelect().
 		ColumnExpr("groupArray(toFloat64(d.value)) AS value").
 		ColumnExpr("groupArray(d.time) AS time").
 		TableExpr("(?) AS d", subq).
-		GroupExpr("d.metric").
 		Limit(10000)
 
 	if selectAll {
@@ -130,16 +95,66 @@ func (s *CHStorage) compileQuery(metric *Metric, f *mql.TimeseriesFilter) (*ch.S
 }
 
 func (s *CHStorage) subquery(
-	q *ch.SelectQuery,
 	metric *Metric,
 	f *mql.TimeseriesFilter,
 	selectAll bool,
 ) (_ *ch.SelectQuery, err error) {
+	if strings.HasPrefix(metric.Name, "uptrace_tracing_") {
+		return s.tracingSubquery(metric, f)
+	}
+	return s.metricsSubquery(metric, f, selectAll)
+}
+
+func (s *CHStorage) metricsSubquery(
+	metric *Metric,
+	f *mql.TimeseriesFilter,
+	selectAll bool,
+) (_ *ch.SelectQuery, err error) {
+	q := s.db.NewSelect().
+		TableExpr("? AS d", ch.Name(s.conf.TableName)).
+		Where("d.project_id = ?", s.conf.ProjectID).
+		Where("d.metric = ?", metric.Name).
+		Where("d.time >= ?", f.TimeGTE).
+		Where("d.time < ?", f.TimeLT)
+
 	q = q.
 		ColumnExpr("toUnixTimestamp(toStartOfInterval(d.time, INTERVAL ? SECOND)) AS time",
 			f.Interval.Seconds()).
 		GroupExpr("time").
 		OrderExpr("time")
+
+	if len(s.conf.Search) > 0 && len(f.Grouping) > 0 {
+		for _, token := range s.conf.Search {
+			switch token.ID {
+			case chquery.INCLUDE_TOKEN:
+				q = q.WhereGroup(" AND ", func(q *ch.SelectQuery) *ch.SelectQuery {
+					for _, elem := range f.Grouping {
+						chExpr := CHExpr(elem.Name)
+						q = q.WhereOr("multiSearchAnyCaseInsensitiveUTF8(?, ?) != 0",
+							chExpr, ch.Array(token.Values))
+					}
+					return q
+				})
+			case chquery.EXCLUDE_TOKEN:
+				q = q.WhereGroup(" AND ", func(q *ch.SelectQuery) *ch.SelectQuery {
+					for _, elem := range f.Grouping {
+						chExpr := CHExpr(elem.Name)
+						q = q.Where("NOT multiSearchAnyCaseInsensitiveUTF8(?, ?) != 0",
+							chExpr, ch.Array(token.Values))
+					}
+					return q
+				})
+			case chquery.REGEXP_TOKEN:
+				q = q.WhereGroup(" AND ", func(q *ch.SelectQuery) *ch.SelectQuery {
+					for _, elem := range f.Grouping {
+						chExpr := CHExpr(elem.Name)
+						q = q.WhereOr("match(?, ?)", chExpr, token.Values[0])
+					}
+					return q
+				})
+			}
+		}
+	}
 
 	if len(f.Filters) > 0 {
 		if err := compileFilters(q, metric.Instrument, f.Filters); err != nil {
@@ -179,7 +194,7 @@ func (s *CHStorage) subquery(
 				break
 			}
 			q = q.GroupExpr("d.attrs_hash")
-		case mql.CHAggUniq: // Handle `uniq($gauge{_value=0}, attr1, attr2)`.
+		case mql.CHAggUniq:
 			if len(f.Uniq) == 0 {
 				q = q.ColumnExpr("d.attrs_hash").GroupExpr("d.attrs_hash")
 			} else {
@@ -196,10 +211,7 @@ func (s *CHStorage) subquery(
 		}
 
 		q = s.db.NewSelect().
-			ColumnExpr("d.metric").
-			ColumnExpr("max(d.annotations) AS annotations").
-			TableExpr("(?) AS d", q).
-			GroupExpr("d.metric")
+			TableExpr("(?) AS d", q)
 	}
 
 	q, err = s.agg(q, metric, f)
@@ -207,15 +219,17 @@ func (s *CHStorage) subquery(
 		return nil, err
 	}
 
-	q = q.ColumnExpr("d.time").GroupExpr("d.time").OrderExpr("d.time ASC")
+	if shouldDedup {
+		q = q.ColumnExpr("d.time").GroupExpr("d.time").OrderExpr("d.time ASC")
 
-	if selectAll {
-		q = q.ColumnExpr("d.attrs_hash").GroupExpr("d.attrs_hash")
-	}
+		if selectAll {
+			q = q.ColumnExpr("d.attrs_hash").GroupExpr("d.attrs_hash")
+		}
 
-	for i := range f.Grouping {
-		elem := &f.Grouping[i]
-		q = q.Column(elem.Alias).Group(elem.Alias)
+		for i := range f.Grouping {
+			elem := &f.Grouping[i]
+			q = q.Column(elem.Alias).Group(elem.Alias)
+		}
 	}
 
 	return q, nil
@@ -554,12 +568,6 @@ func (s *CHStorage) newTimeseries(
 		} else if hash, ok := m["attrs_hash"].(uint64); ok {
 			ts.Attrs = mql.NewAttrs("hash", strconv.FormatUint(hash, 10))
 		}
-
-		if annotations, _ := m["annotations"].(string); annotations != "" {
-			if err := json.Unmarshal([]byte(annotations), &ts.Annotations); err != nil {
-				return nil, err
-			}
-		}
 	}
 
 	return timeseries, nil
@@ -646,4 +654,170 @@ func appendCHGrouping(b []byte, elem *ast.GroupingElem, attr ch.Safe) ([]byte, e
 	}
 
 	return b, nil
+}
+
+//------------------------------------------------------------------------------
+
+func (s *CHStorage) tracingSubquery(
+	metric *Metric, f *mql.TimeseriesFilter,
+) (*ch.SelectQuery, error) {
+	if f.CHFunc == mql.CHAggNone {
+		return nil, errors.New("tracing metric requires an agg func")
+	}
+
+	selq, err := s.spanQuery(metric, f)
+	if err != nil {
+		return nil, err
+	}
+
+	q := selq.
+		ColumnExpr("toUnixTimestamp(toStartOfInterval(time, INTERVAL ? SECOND)) AS time",
+			int64(f.Interval.Seconds())).
+		GroupExpr("time").
+		OrderExpr("time")
+	return q, nil
+}
+
+func (s *CHStorage) spanQuery(
+	metric *Metric,
+	f *mql.TimeseriesFilter,
+) (_ *ch.SelectQuery, err error) {
+	var query []string
+
+	query, err = s.tracingAgg(query, f, metric)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(f.Filters) > 0 {
+		query = append(query, s.tracingFilters(f.Filters))
+	}
+	for _, filters := range f.Where {
+		query = append(query, s.tracingFilters(filters))
+	}
+
+	for _, elem := range f.Grouping {
+		var b []byte
+
+		b = append(b, "group by "...)
+		b = elem.AppendString(b)
+
+		query = append(query, string(b))
+	}
+
+	timeFilter := &org.TimeFilter{
+		TimeGTE: f.TimeGTE,
+		TimeLT:  f.TimeLT,
+	}
+	typeFilter, err := newTypeFilter(s.ctx, s.conf.ProjectID, timeFilter, metric.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	spanFilter := newSpanFilter(typeFilter, mql.JoinQuery(query))
+	spanFilter.SearchTokens = s.conf.Search
+
+	for _, part := range spanFilter.QueryParts {
+		if part.Error.Wrapped != nil {
+			return nil, part.Error.Wrapped
+		}
+	}
+
+	selq, _ := tracing.BuildSpanIndexQuery(s.db, spanFilter, f.Interval)
+	return selq, nil
+}
+
+func (s *CHStorage) tracingAgg(
+	q []string, f *mql.TimeseriesFilter, metric *Metric,
+) ([]string, error) {
+	switch metric.Instrument {
+	case InstrumentDeleted:
+		return nil, fmt.Errorf("metric %q not found", metric.Name)
+
+	case InstrumentCounter:
+		switch f.CHFunc {
+		case "", "_", "sum", "per_min", "per_sec":
+			q = append(q, "_count as value")
+			return q, nil
+		default:
+			return nil, unsupportedInstrumentFunc(metric.Instrument, f.CHFunc)
+		}
+
+	case InstrumentHistogram:
+		switch f.CHFunc {
+		case mql.CHAggAvg:
+			q = append(q, "avg(_duration) as value")
+			return q, nil
+		case mql.CHAggMin:
+			q = append(q, "min(_duration) as value")
+			return q, nil
+		case mql.CHAggMax:
+			q = append(q, "max(_duration) as value")
+			return q, nil
+		case mql.CHAggP50:
+			q = append(q, "p50(_duration) as value")
+			return q, nil
+		case mql.CHAggP75:
+			q = append(q, "p75(_duration) as value")
+			return q, nil
+		case mql.CHAggP90:
+			q = append(q, "p90(_duration) as value")
+			return q, nil
+		case mql.CHAggP95:
+			q = append(q, "p95(_duration) as value")
+			return q, nil
+		case mql.CHAggP99:
+			q = append(q, "p99(_duration) as value")
+			return q, nil
+		case mql.CHAggCount:
+			q = append(q, "_count as value")
+			return q, nil
+		default:
+			return nil, unsupportedInstrumentFunc(metric.Instrument, f.CHFunc)
+		}
+
+	default:
+		return nil, fmt.Errorf("unsupported instrument %q", metric.Instrument)
+	}
+}
+
+func (s *CHStorage) tracingFilters(filters ast.Filters) string {
+	var b []byte
+	b = append(b, "where "...)
+	b = filters.AppendString(b)
+	return unsafeconv.String(b)
+}
+
+func newTypeFilter(
+	ctx context.Context,
+	projectID uint32,
+	timeFilter *org.TimeFilter,
+	metricName string,
+) (*tracing.TypeFilter, error) {
+	typeFilter := &tracing.TypeFilter{
+		ProjectID:  projectID,
+		TimeFilter: *timeFilter,
+	}
+
+	switch metricName {
+	case uptraceTracingSpans:
+		typeFilter.System = []string{tracing.SystemSpansAll}
+	case uptraceTracingEvents:
+		typeFilter.System = []string{tracing.SystemEventsAll}
+	case uptraceTracingLogs:
+		typeFilter.System = []string{tracing.SystemLogAll}
+	default:
+		return nil, fmt.Errorf("unsupported tracing metric: %s", metricName)
+	}
+
+	return typeFilter, nil
+}
+
+func newSpanFilter(typeFilter *tracing.TypeFilter, query string) *tracing.SpanFilter {
+	spanFilter := &tracing.SpanFilter{
+		TypeFilter: *typeFilter,
+		Query:      query,
+	}
+	spanFilter.QueryParts = tql.ParseQuery(query)
+	return spanFilter
 }

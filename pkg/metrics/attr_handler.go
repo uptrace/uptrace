@@ -14,6 +14,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 	"golang.org/x/exp/slices"
 )
@@ -166,7 +167,25 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 }
 
 func (h *AttrHandler) selectAttrKeys(ctx context.Context, f *AttrFilter) ([]string, error) {
-	var keys []string
+	if len(f.Metric) == 1 {
+		switch f.Metric[0] {
+		case uptraceTracingSpans, uptraceTracingEvents, uptraceTracingLogs:
+			typeFilter, err := newTypeFilter(ctx, f.ProjectID, &f.TimeFilter, f.Metric[0])
+			if err != nil {
+				return nil, err
+			}
+			spanFilter := newSpanFilter(typeFilter, "")
+
+			keys, err := tracing.SelectAttrKeys(ctx, h.App, spanFilter)
+			if err != nil {
+				return nil, err
+			}
+
+			return keys, nil
+		}
+	}
+
+	keys := make([]string, 0)
 
 	if err := h.PG.NewSelect().
 		Model((*Metric)(nil)).
@@ -209,6 +228,19 @@ func (h *AttrHandler) selectAttrValues(
 	ctx context.Context, attrKey string, f *AttrFilter,
 ) (any, bool, error) {
 	const limit = 1000
+
+	if len(f.Metric) == 1 {
+		switch f.Metric[0] {
+		case uptraceTracingSpans, uptraceTracingEvents, uptraceTracingLogs:
+			typeFilter, err := newTypeFilter(ctx, f.ProjectID, &f.TimeFilter, f.Metric[0])
+			if err != nil {
+				return nil, false, err
+			}
+
+			spanFilter := newSpanFilter(typeFilter, "")
+			return tracing.SelectAttrValues(ctx, h.App, spanFilter, attrKey)
+		}
+	}
 
 	tableName := DatapointTableForWhere(&f.TimeFilter)
 	items := make([]AttrValueItem, 0)

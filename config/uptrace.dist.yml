@@ -77,39 +77,6 @@ projects:
       - deployment_environment
     prom_compat: true
 
-##
-## Create metrics from spans and events.
-##
-metrics_from_spans:
-  - name: uptrace_tracing_spans
-    description: Spans duration (excluding events)
-    instrument: histogram
-    unit: microseconds
-    value: _duration / 1000
-    attrs:
-      - _system
-      - _group_id
-      - service_name
-      - host_name
-      - _status_code
-    annotations:
-      - display_name
-    where: _event_name = ''
-
-  - name: uptrace_tracing_events
-    description: Events count (excluding spans)
-    instrument: counter
-    unit: 1
-    value: _count
-    attrs:
-      - _system
-      - _group_id
-      - _name
-      - host_name
-    annotations:
-      - display_name
-    where: _is_event = 1
-
 auth:
   users:
     - name: John Doe

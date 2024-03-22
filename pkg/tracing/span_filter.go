@@ -18,26 +18,24 @@ import (
 )
 
 type SpanFilter struct {
-	*bunapp.App `urlstruct:"-"`
-
 	org.OrderByMixin
 	urlstruct.Pager
-	SystemFilter
+	TypeFilter
 
 	Query string
 
 	Search       string
-	searchTokens []chquery.Token `urlstruct:"-"`
+	SearchTokens []chquery.Token `urlstruct:"-"`
 
 	Column []string
 
 	AttrKey     string
 	SearchInput string
 
-	parts []*tql.QueryPart
+	QueryParts []*tql.QueryPart `urlstruct:"-"`
 }
 
-func DecodeSpanFilter(app *bunapp.App, req bunrouter.Request, f *SpanFilter) error {
+func DecodeSpanFilter(req bunrouter.Request, f *SpanFilter) error {
 	if err := bunapp.UnmarshalValues(req, f); err != nil {
 		return err
 	}
@@ -47,12 +45,12 @@ func DecodeSpanFilter(app *bunapp.App, req bunrouter.Request, f *SpanFilter) err
 		if err != nil {
 			return err
 		}
-		f.searchTokens = tokens
+		f.SearchTokens = tokens
 	}
 
 	project := org.ProjectFromContext(req.Context())
 	f.ProjectID = project.ID
-	f.parts = tql.ParseQuery(f.Query)
+	f.QueryParts = tql.ParseQuery(f.Query)
 
 	return nil
 }
@@ -60,7 +58,7 @@ func DecodeSpanFilter(app *bunapp.App, req bunrouter.Request, f *SpanFilter) err
 var _ urlstruct.ValuesUnmarshaler = (*SpanFilter)(nil)
 
 func (f *SpanFilter) UnmarshalValues(ctx context.Context, values url.Values) error {
-	if err := f.SystemFilter.UnmarshalValues(ctx, values); err != nil {
+	if err := f.TypeFilter.UnmarshalValues(ctx, values); err != nil {
 		return err
 	}
 	if err := f.Pager.UnmarshalValues(ctx, values); err != nil {
@@ -92,7 +90,7 @@ func isNumColumn(v any) bool {
 }
 
 func (f *SpanFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
-	for _, token := range f.searchTokens {
+	for _, token := range f.SearchTokens {
 		switch token.ID {
 		case chquery.INCLUDE_TOKEN:
 			q = q.Where("multiSearchAnyCaseInsensitiveUTF8(s.display_name, ?) > 0",
@@ -105,11 +103,11 @@ func (f *SpanFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 		}
 	}
 
-	return f.SystemFilter.whereClause(q)
+	return f.TypeFilter.whereClause(q)
 }
 
 func (f *SpanFilter) spanqlWhere(q *ch.SelectQuery) *ch.SelectQuery {
-	for _, part := range f.parts {
+	for _, part := range f.QueryParts {
 		if part.Disabled || part.Error.Wrapped != nil {
 			continue
 		}
@@ -131,15 +129,15 @@ func (f *SpanFilter) spanqlWhere(q *ch.SelectQuery) *ch.SelectQuery {
 
 //------------------------------------------------------------------------------
 
-func NewSpanIndexQuery(app *bunapp.App) *ch.SelectQuery {
-	return app.CH.NewSelect().Model((*SpanIndex)(nil))
+func NewSpanIndexQuery(db *ch.DB) *ch.SelectQuery {
+	return db.NewSelect().Model((*SpanIndex)(nil))
 }
 
-func buildSpanIndexQuery(
-	app *bunapp.App, f *SpanFilter, dur time.Duration,
+func BuildSpanIndexQuery(
+	db *ch.DB, f *SpanFilter, dur time.Duration,
 ) (*ch.SelectQuery, *orderedmap.OrderedMap[string, *ColumnInfo]) {
-	q := NewSpanIndexQuery(app).Apply(f.whereClause)
-	return compileUQL(q, f.parts, dur)
+	q := NewSpanIndexQuery(db).Apply(f.whereClause)
+	return compileUQL(q, f.QueryParts, dur)
 }
 
 func compileUQL(

@@ -142,7 +142,7 @@ func (h *PublicHandler) Groups(w http.ResponseWriter, req bunrouter.Request) err
 	ctx := req.Context()
 
 	f := new(SpanFilter)
-	if err := DecodeSpanFilter(h.App, req, f); err != nil {
+	if err := DecodeSpanFilter(req, f); err != nil {
 		return err
 	}
 
@@ -150,7 +150,7 @@ func (h *PublicHandler) Groups(w http.ResponseWriter, req bunrouter.Request) err
 	f.Pager.MaxLimit = 100000
 	limit := f.Pager.GetLimit()
 
-	selq, _ := buildSpanIndexQuery(h.App, f, 0)
+	selq, _ := BuildSpanIndexQuery(h.App.CH, f, 0)
 
 	items := make([]map[string]any, 0)
 	if err := selq.

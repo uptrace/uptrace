@@ -23,8 +23,8 @@ func NewSystemHandler(app *bunapp.App) *SystemHandler {
 func (h *SystemHandler) ListSystems(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f := &SpanFilter{App: h.App}
-	if err := DecodeSpanFilter(h.App, req, f); err != nil {
+	f := &SpanFilter{}
+	if err := DecodeSpanFilter(req, f); err != nil {
 		return err
 	}
 	f.GroupID = 0
@@ -56,7 +56,7 @@ func (h *SystemHandler) selectSystems(
 ) ([]map[string]any, error) {
 	systems := make([]map[string]any, 0)
 
-	if err := NewSpanIndexQuery(h.App).
+	if err := NewSpanIndexQuery(h.App.CH).
 		ColumnExpr("s.project_id AS projectId").
 		ColumnExpr("s.system").
 		ColumnExpr("sum(s.count) AS count").
@@ -81,7 +81,7 @@ func (h *SystemHandler) selectDataHint(
 ) (map[string]time.Time, error) {
 	var before, after time.Time
 
-	if err := NewSpanIndexQuery(h.App).
+	if err := NewSpanIndexQuery(h.App.CH).
 		ColumnExpr("max(time)").
 		Where("s.project_id = ?", f.ProjectID).
 		Where("s.time < ?", f.TimeGTE).
@@ -89,7 +89,7 @@ func (h *SystemHandler) selectDataHint(
 		return nil, err
 	}
 
-	if err := NewSpanIndexQuery(h.App).
+	if err := NewSpanIndexQuery(h.App.CH).
 		ColumnExpr("min(time)").
 		Where("s.project_id = ?", f.ProjectID).
 		Where("s.time >= ?", f.TimeLT).

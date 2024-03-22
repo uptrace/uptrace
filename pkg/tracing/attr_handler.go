@@ -45,13 +45,13 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 	ctx := req.Context()
 	user := org.UserFromContext(ctx)
 
-	f := &SpanFilter{App: h.App}
-	if err := DecodeSpanFilter(h.App, req, f); err != nil {
+	f := &SpanFilter{}
+	if err := DecodeSpanFilter(req, f); err != nil {
 		return err
 	}
-	disableColumnsAndGroups(f.parts)
+	disableColumnsAndGroups(f.QueryParts)
 
-	attrKeys, err := h.selectAttrKeys(ctx, f)
+	attrKeys, err := SelectAttrKeys(ctx, h.App, f)
 	if err != nil {
 		return err
 	}
@@ -79,9 +79,9 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 	})
 }
 
-func (h *AttrHandler) selectAttrKeys(ctx context.Context, f *SpanFilter) ([]string, error) {
+func SelectAttrKeys(ctx context.Context, app *bunapp.App, f *SpanFilter) ([]string, error) {
 	keys := make([]string, 0)
-	q, _ := buildSpanIndexQuery(h.App, f, 0)
+	q, _ := BuildSpanIndexQuery(app.CH, f, 0)
 	if err := q.
 		ColumnExpr("groupUniqArrayArray(1000)(s.all_keys)").
 		Scan(ctx, &keys); err != nil {
@@ -100,23 +100,40 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 	ctx := req.Context()
 	attrKey := req.Param("attr")
 
-	f := &SpanFilter{App: h.App}
-	if err := DecodeSpanFilter(h.App, req, f); err != nil {
+	f := &SpanFilter{}
+	if err := DecodeSpanFilter(req, f); err != nil {
 		return err
 	}
-	disableColumnsAndGroups(f.parts)
 
-	col, err := tql.ParseColumn(attrKey)
+	items, hasMore, err := SelectAttrValues(ctx, h.App, f, attrKey)
 	if err != nil {
 		return err
 	}
 
-	attr, ok := col.Value.(tql.Attr)
-	if !ok {
-		return fmt.Errorf("expected an attr, got %T", col.Value)
+	return httputil.JSON(w, bunrouter.H{
+		"items":   items,
+		"hasMore": hasMore,
+	})
+}
+
+func SelectAttrValues(
+	ctx context.Context, app *bunapp.App, f *SpanFilter, attrKey string,
+) ([]*AttrValueItem, bool, error) {
+	const limit = 1000
+
+	disableColumnsAndGroups(f.QueryParts)
+
+	col, err := tql.ParseColumn(attrKey)
+	if err != nil {
+		return nil, false, err
 	}
 
-	for _, part := range f.parts {
+	attr, ok := col.Value.(tql.Attr)
+	if !ok {
+		return nil, false, fmt.Errorf("expected an attr, got %T", col.Value)
+	}
+
+	for _, part := range f.QueryParts {
 		ast, ok := part.AST.(*tql.Where)
 		if !ok {
 			continue
@@ -130,7 +147,7 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 		}
 	}
 
-	q, _ := buildSpanIndexQuery(h.App, f, 0)
+	q, _ := BuildSpanIndexQuery(app.CH, f, 0)
 	chExpr := appendCHAttr(nil, attr)
 
 	q = q.ColumnExpr("? AS value", ch.Safe(chExpr)).
@@ -143,22 +160,12 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 		q = q.Where("? like ?", chExpr, "%"+f.SearchInput+"%")
 	}
 
-	var rows []map[string]interface{}
+	items := make([]*AttrValueItem, 0)
 
-	if err := q.Scan(ctx, &rows); err != nil {
-		return err
+	if err := q.Limit(limit).Scan(ctx, &items); err != nil {
+		return nil, false, err
 	}
 
-	items := make([]*AttrValueItem, len(rows))
-
-	for i, item := range rows {
-		items[i] = &AttrValueItem{
-			Value: asString(item["value"]),
-			Count: item["count"].(uint64),
-		}
-	}
-
-	return httputil.JSON(w, bunrouter.H{
-		"items": items,
-	})
+	hasMore := f.SearchInput != "" || len(items) == limit
+	return items, hasMore, nil
 }

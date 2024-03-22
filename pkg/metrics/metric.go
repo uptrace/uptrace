@@ -16,6 +16,12 @@ import (
 )
 
 const (
+	uptraceLibraryName = "uptrace.dev"
+
+	uptraceTracingSpans  = "uptrace_tracing_spans"
+	uptraceTracingEvents = "uptrace_tracing_events"
+	uptraceTracingLogs   = "uptrace_tracing_logs"
+
 	uptraceServiceGraphClientDuration = "uptrace_service_graph_client_duration"
 	uptraceServiceGraphServerDuration = "uptrace_service_graph_server_duration"
 	uptraceServiceGraphFailedRequests = "uptrace_service_graph_failed_requests"
@@ -117,53 +123,6 @@ func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) error {
 		return err
 	}
 	return nil
-}
-
-func CreateSystemMetrics(ctx context.Context, app *bunapp.App, projectID uint32) error {
-	metrics := []Metric{
-		{
-			ProjectID:   projectID,
-			Name:        uptraceServiceGraphClientDuration,
-			Description: "Requests duration between two nodes as seen from the client",
-			Instrument:  InstrumentSummary,
-			Unit:        bunconv.UnitMicroseconds,
-			AttrKeys: []string{
-				"type",
-				"client",
-				"server",
-				"deployment.environment",
-				"service.namespace",
-			},
-		},
-		{
-			ProjectID:   projectID,
-			Name:        uptraceServiceGraphServerDuration,
-			Description: "Requests duration between two nodes as seen from the server",
-			Instrument:  InstrumentSummary,
-			Unit:        bunconv.UnitMicroseconds,
-			AttrKeys: []string{
-				"type",
-				"client",
-				"server",
-				"deployment.environment",
-				"service.namespace",
-			},
-		},
-		{
-			ProjectID:   projectID,
-			Name:        uptraceServiceGraphFailedRequests,
-			Description: "Total count of failed requests between two nodes",
-			Instrument:  InstrumentCounter,
-			AttrKeys: []string{
-				"type",
-				"client",
-				"server",
-				"deployment.environment",
-				"service.namespace",
-			},
-		},
-	}
-	return UpsertMetrics(ctx, app, metrics)
 }
 
 func UpsertMetrics(ctx context.Context, app *bunapp.App, metrics []Metric) error {

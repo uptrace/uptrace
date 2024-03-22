@@ -13,9 +13,10 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
-	"go.uber.org/zap"
 
+	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
@@ -70,8 +71,8 @@ func (h *MetricHandler) List(w http.ResponseWriter, req bunrouter.Request) error
 	ctx := req.Context()
 	project := org.ProjectFromContext(ctx)
 
-	if err := CreateSystemMetrics(ctx, h.App, project.ID); err != nil {
-		h.Zap(ctx).Error("CreateSystemMetrics failed", zap.Error(err))
+	if err := h.createSystemMetrics(ctx, project.ID); err != nil {
+		return err
 	}
 
 	f := new(MetricFilter)
@@ -91,6 +92,100 @@ func (h *MetricHandler) List(w http.ResponseWriter, req bunrouter.Request) error
 	return httputil.JSON(w, bunrouter.H{
 		"metrics": metrics,
 	})
+}
+
+func (h *MetricHandler) createSystemMetrics(ctx context.Context, projectID uint32) error {
+	achievements, err := org.SelectAchievements(ctx, h.App, 0, projectID)
+	if err != nil {
+		return err
+	}
+
+	var tracingConfigured bool
+	for _, achievement := range achievements {
+		switch achievement.Name {
+		case org.AchievConfigureTracing:
+			tracingConfigured = true
+		}
+	}
+
+	var metrics []Metric
+
+	if tracingConfigured {
+		metrics = append(metrics,
+			Metric{
+				ProjectID:       projectID,
+				Name:            uptraceTracingSpans,
+				Description:     "Number of spans and their duration (excluding events and logs)",
+				Instrument:      InstrumentHistogram,
+				Unit:            bunconv.UnitMicroseconds,
+				AttrKeys:        []string{attrkey.ServiceName, attrkey.HostName},
+				OtelLibraryName: uptraceLibraryName,
+			},
+			Metric{
+				ProjectID:       projectID,
+				Name:            uptraceTracingEvents,
+				Description:     "Number of events (excluding spans and logs)",
+				Instrument:      InstrumentCounter,
+				AttrKeys:        []string{attrkey.ServiceName, attrkey.HostName},
+				OtelLibraryName: uptraceLibraryName,
+			},
+			Metric{
+				ProjectID:       projectID,
+				Name:            uptraceTracingLogs,
+				Description:     "Number of logs (excluding spans and events)",
+				Instrument:      InstrumentCounter,
+				AttrKeys:        []string{attrkey.ServiceName, attrkey.HostName},
+				OtelLibraryName: uptraceLibraryName,
+			},
+
+			Metric{
+				ProjectID:   projectID,
+				Name:        uptraceServiceGraphClientDuration,
+				Description: "Requests duration between two nodes as seen from the client",
+				Instrument:  InstrumentSummary,
+				Unit:        bunconv.UnitMicroseconds,
+				AttrKeys: []string{
+					"type",
+					"client",
+					"server",
+					attrkey.DeploymentEnvironment,
+					attrkey.ServiceNamespace,
+				},
+				OtelLibraryName: uptraceLibraryName,
+			},
+			Metric{
+				ProjectID:   projectID,
+				Name:        uptraceServiceGraphServerDuration,
+				Description: "Requests duration between two nodes as seen from the server",
+				Instrument:  InstrumentSummary,
+				Unit:        bunconv.UnitMicroseconds,
+				AttrKeys: []string{
+					"type",
+					"client",
+					"server",
+					attrkey.DeploymentEnvironment,
+					attrkey.ServiceNamespace,
+				},
+				OtelLibraryName: uptraceLibraryName,
+			},
+			Metric{
+				ProjectID:   projectID,
+				Name:        uptraceServiceGraphFailedRequests,
+				Description: "Total count of failed requests between two nodes",
+				Instrument:  InstrumentCounter,
+				AttrKeys: []string{
+					"type",
+					"client",
+					"server",
+					attrkey.DeploymentEnvironment,
+					attrkey.ServiceNamespace,
+				},
+				OtelLibraryName: uptraceLibraryName,
+			},
+		)
+	}
+
+	return UpsertMetrics(ctx, h.App, metrics)
 }
 
 func selectMetrics(ctx context.Context, app *bunapp.App, f *MetricFilter) ([]*Metric, error) {

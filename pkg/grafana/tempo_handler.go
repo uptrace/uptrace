@@ -106,7 +106,7 @@ func (h *TempoHandler) Tags(w http.ResponseWriter, req bunrouter.Request) error 
 
 	keys := make([]string, 0)
 
-	if err := tracing.NewSpanIndexQuery(h.App).
+	if err := tracing.NewSpanIndexQuery(h.App.CH).
 		Distinct().
 		ColumnExpr("arrayJoin(all_keys) AS key").
 		Where("project_id = ?", project.ID).
@@ -148,7 +148,7 @@ func (h *TempoHandler) TagValues(w http.ResponseWriter, req bunrouter.Request) e
 	tag := tempoAttrKey(req.Param("tag"))
 	tagCHExpr := tempoCHExpr(tag)
 
-	q := tracing.NewSpanIndexQuery(h.App).
+	q := tracing.NewSpanIndexQuery(h.App.CH).
 		Distinct().
 		ColumnExpr("toString(?) AS value", tagCHExpr).
 		Where("project_id = ?", project.ID).
@@ -244,7 +244,7 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 		f.Limit = 20
 	}
 
-	q := tracing.NewSpanIndexQuery(h.App).
+	q := tracing.NewSpanIndexQuery(h.App.CH).
 		DistinctOn("trace_id").
 		ColumnExpr("trace_id").
 		ColumnExpr("id").

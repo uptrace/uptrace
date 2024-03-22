@@ -9,10 +9,13 @@ upgrade to the v1.6.x first, because some migrations from v1.6.x have been remov
 
 #### Features
 
+- Added dark mode.
 - App navigation is reworked using the navigation drawer.
 - Added a list of dashboards.
 - Uptrace now provides quick access to dashboards that have the same prefix. You may need to reset
   your existing dashboards via UI to benefit from this.
+- Added ability to query spans using system metrics provided by Uptrace: `uptrace_tracing_spans`,
+  `uptrace_tracing_logs`, and `uptrace_tracing_events`.
 - You can now search over monitors.
 - Added pre-built dashboards for .NET system metrics reported by OpenTelemetry.
 - Added `user.auth_token` and support for [JSON API](https://uptrace.dev/get/json-api.html).

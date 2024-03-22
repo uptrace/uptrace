@@ -43,8 +43,8 @@ type ServiceGraphStats struct {
 func (h *ServiceGraphHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f := &SpanFilter{App: h.App}
-	if err := DecodeSpanFilter(h.App, req, f); err != nil {
+	f := &SpanFilter{}
+	if err := DecodeSpanFilter(req, f); err != nil {
 		return err
 	}
 
@@ -52,7 +52,7 @@ func (h *ServiceGraphHandler) List(w http.ResponseWriter, req bunrouter.Request)
 	var serviceNamespaces []string
 	var serviceNames []string
 
-	for _, part := range f.parts {
+	for _, part := range f.QueryParts {
 		if part.Disabled || part.Error.Wrapped != nil {
 			continue
 		}

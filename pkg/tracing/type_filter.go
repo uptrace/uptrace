@@ -12,7 +12,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
 
-type SystemFilter struct {
+type TypeFilter struct {
 	org.TimeFilter
 	ProjectID uint32
 
@@ -20,10 +20,10 @@ type SystemFilter struct {
 	GroupID uint64
 }
 
-func DecodeSystemFilter(app *bunapp.App, req bunrouter.Request) (*SystemFilter, error) {
+func DecodeTypeFilter(app *bunapp.App, req bunrouter.Request) (*TypeFilter, error) {
 	project := org.ProjectFromContext(req.Context())
 
-	f := &SystemFilter{
+	f := &TypeFilter{
 		ProjectID: project.ID,
 	}
 
@@ -36,14 +36,14 @@ func DecodeSystemFilter(app *bunapp.App, req bunrouter.Request) (*SystemFilter, 
 
 var _ urlstruct.ValuesUnmarshaler = (*SpanFilter)(nil)
 
-func (f *SystemFilter) UnmarshalValues(ctx context.Context, values url.Values) error {
+func (f *TypeFilter) UnmarshalValues(ctx context.Context, values url.Values) error {
 	if err := f.TimeFilter.UnmarshalValues(ctx, values); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
+func (f *TypeFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 	q = q.Where("s.project_id = ?", f.ProjectID).
 		Where("s.time >= ?", f.TimeGTE).
 		Where("s.time < ?", f.TimeLT)
@@ -55,7 +55,7 @@ func (f *SystemFilter) whereClause(q *ch.SelectQuery) *ch.SelectQuery {
 	return f.systemFilter(q)
 }
 
-func (f *SystemFilter) systemFilter(q *ch.SelectQuery) *ch.SelectQuery {
+func (f *TypeFilter) systemFilter(q *ch.SelectQuery) *ch.SelectQuery {
 	return q.WhereGroup(" AND ", func(q *ch.SelectQuery) *ch.SelectQuery {
 		for _, system := range f.System {
 			switch system {
@@ -78,7 +78,7 @@ func (f *SystemFilter) systemFilter(q *ch.SelectQuery) *ch.SelectQuery {
 	})
 }
 
-func (f *SystemFilter) isEventSystem() bool {
+func (f *TypeFilter) isEventSystem() bool {
 	for _, system := range f.System {
 		if !isEventSystem(system) {
 			return false

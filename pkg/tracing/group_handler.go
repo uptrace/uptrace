@@ -27,8 +27,8 @@ func NewGroupHandler(app *bunapp.App) *GroupHandler {
 func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f := &SpanFilter{App: h.App}
-	if err := DecodeSpanFilter(h.App, req, f); err != nil {
+	f := &SpanFilter{}
+	if err := DecodeSpanFilter(req, f); err != nil {
 		return err
 	}
 
@@ -47,8 +47,8 @@ func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request)
 			fmt.Sprintf("{p50, p90, p99, max}(%s)", attrkey.SpanDuration),
 		)
 	}
-	f.parts = tql.ParseQuery(strings.Join(parts, " | "))
-	q, _ := buildSpanIndexQuery(h.App, f, f.TimeFilter.Duration())
+	f.QueryParts = tql.ParseQuery(strings.Join(parts, " | "))
+	q, _ := BuildSpanIndexQuery(h.App.CH, f, f.TimeFilter.Duration())
 
 	summary := make(map[string]any)
 	if err := q.Apply(f.CHOrder).Scan(ctx, &summary); err != nil {
@@ -56,7 +56,7 @@ func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request)
 	}
 
 	var firstSeenAt, lastSeenAt time.Time
-	if err := NewSpanIndexQuery(h.App).
+	if err := NewSpanIndexQuery(h.App.CH).
 		ColumnExpr("min(time) as first_seen_at").
 		ColumnExpr("max(time) as last_seen_at").
 		Where("project_id = ?", f.ProjectID).
