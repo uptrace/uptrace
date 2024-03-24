@@ -96,14 +96,14 @@
                 :events="span.events"
                 :annotations="annotations"
               />
-              <v-tab-item value="group">
-                <GroupInfoCard
-                  :date-range="dateRange"
-                  :system="span.system"
-                  :group-id="span.groupId"
-                  :annotations="annotations"
-                />
-              </v-tab-item>
+            </v-tab-item>
+            <v-tab-item value="group">
+              <GroupInfoCard
+                :date-range="dateRange"
+                :system="span.system"
+                :group-id="span.groupId"
+                :annotations="annotations"
+              />
             </v-tab-item>
           </v-tabs-items>
         </v-sheet>
