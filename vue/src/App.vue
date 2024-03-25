@@ -70,9 +70,15 @@
               <v-icon small class="mr-1">mdi-open-source-initiative</v-icon>
               <span>OpenTelemetry</span>
             </v-btn>
-            <v-btn href="https://uptrace.dev/get/instrument/" target="_blank" text rounded small>
-              <v-icon small class="mr-1">mdi-toy-brick-outline</v-icon>
-              <span>Instrumentations</span>
+            <v-btn
+              href="https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw"
+              target="_blank"
+              text
+              rounded
+              small
+            >
+              <v-icon small class="mr-1">mdi-slack</v-icon>
+              <span>Slack</span>
             </v-btn>
             <v-btn href="https://t.me/uptrace" text rounded small>
               <v-icon small class="mr-1">mdi-message-outline</v-icon>

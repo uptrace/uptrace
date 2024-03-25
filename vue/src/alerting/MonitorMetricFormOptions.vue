@@ -15,7 +15,7 @@
             <v-text-field
               v-model.number="timeOffset"
               type="number"
-              hint="Use a negative number to adjuct check time"
+              hint="Shift time to the past (positive offset) or future (negative offset)"
               placeholder="-60"
               suffix="minutes"
               persistent-hint

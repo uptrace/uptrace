@@ -91,8 +91,8 @@ func (f *TimeFilter) UnmarshalValues(ctx context.Context, values url.Values) err
 
 	if f.TimeOffset != 0 {
 		offset := f.TimeOffset.Duration()
-		f.TimeGTE = f.TimeGTE.Add(offset)
-		f.TimeLT = f.TimeLT.Add(offset)
+		f.TimeGTE = f.TimeGTE.Add(-offset)
+		f.TimeLT = f.TimeLT.Add(-offset)
 	}
 
 	return nil

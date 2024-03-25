@@ -11,7 +11,13 @@
       <MonitorStateAvatar :state="monitor.state" />
     </td>
     <td class="text-center">
-      <v-chip v-if="monitor.alertOpenCount" :to="routeForOpenAlerts" label color="red lighten-5">
+      <v-chip
+        v-if="monitor.alertOpenCount"
+        :to="routeForOpenAlerts"
+        label
+        color="red lighten-5"
+        light
+      >
         <span class="font-weight-medium">{{ monitor.alertOpenCount }}</span>
         <span class="ml-1"> open</span>
       </v-chip>
@@ -20,6 +26,7 @@
         :to="routeForClosedAlerts"
         label
         color="green lighten-5"
+        light
         class="ml-2"
       >
         <span class="font-weight-medium">{{ monitor.alertClosedCount }}</span>

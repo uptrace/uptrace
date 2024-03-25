@@ -13,16 +13,17 @@ import * as echarts from 'echarts'
 import colors from 'vuetify/lib/util/colors'
 import { defineComponent, shallowRef, computed, PropType } from 'vue'
 
-// Components
-import EChart from '@/components/EChart.vue'
-
 // Composables
+import { useDarkMode } from '@/use/dark-mode'
 import {
   ServiceGraphNode,
   ServiceGraphEdge,
   NodeSizeMode,
   NodeSizeMetric,
 } from '@/tracing/use-service-graph'
+
+// Components
+import EChart from '@/components/EChart.vue'
 
 // Misc
 import { num, numShort, duration, durationShort, utilization } from '@/util/fmt'
@@ -52,6 +53,8 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
+    const { isDark } = useDarkMode()
+
     const activeNode = shallowRef('')
     const activeEdge = shallowRef('')
     const highlightedId = shallowRef('')
@@ -286,6 +289,7 @@ export default defineComponent({
             fontFamily: '"Roboto", sans-serif',
           },
           tooltip: {
+            className: ['echarts-tooltip', isDark.value ? 'theme--dark' : 'theme--light'].join(' '),
             formatter: (params: any) => {
               let title = ''
               const rows = []
@@ -332,13 +336,14 @@ export default defineComponent({
               }
 
               const ss = [
-                '<div class="chart-tooltip">',
+                '<div>',
                 `<p>${title}</p>`,
                 '<table>',
                 '<tbody>',
                 rows.join(''),
                 '</tbody>',
                 '</table>',
+                `<div class="mt-2">Click to focus and view details on the right...</div>`,
                 '</div',
               ]
 

@@ -48,8 +48,8 @@
               v-model.number="timeOffset"
               type="number"
               label="Time offset"
-              hint="Shift time to the past (negative offset) or future (positive offset)"
-              placeholder="-60"
+              hint="Shift time to the past (positive offset) or future (negative offset)"
+              placeholder="15"
               suffix="minutes"
               persistent-hint
               filled

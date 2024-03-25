@@ -25,11 +25,94 @@
         />
       </v-col>
       <v-col cols="3">
-        <v-row>
-          <v-col class="text-center">
-            <ServiceGraphHelpDialog />
-          </v-col>
-        </v-row>
+        <template v-if="activeItem">
+          <v-row>
+            <v-col>
+              <v-btn small @click="reset">
+                <v-icon left>mdi-close-thick</v-icon>
+                Reset selection
+              </v-btn>
+            </v-col>
+          </v-row>
+
+          <v-row class="mb-n8">
+            <v-col v-if="tracingGroupsRoute" cols="auto">
+              <v-btn :to="tracingGroupsRoute" depressed small>Explore groups</v-btn>
+            </v-col>
+            <v-col v-if="monitorMenuItems.length" cols="auto">
+              <v-menu offset-y>
+                <template #activator="{ on, attrs }">
+                  <v-btn depressed small v-bind="attrs" v-on="on">
+                    <span>Monitor</span>
+                    <v-icon right>mdi-menu-down</v-icon>
+                  </v-btn>
+                </template>
+                <v-list>
+                  <v-list-item
+                    v-for="(item, index) in monitorMenuItems"
+                    :key="index"
+                    :to="item.route"
+                  >
+                    <v-list-item-title>{{ item.title }}</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+            </v-col>
+          </v-row>
+
+          <v-row>
+            <v-col>
+              <v-simple-table>
+                <tbody>
+                  <tr v-if="activeItem.name">
+                    <th>Node</th>
+                    <td>{{ activeItem.name }}</td>
+                  </tr>
+                  <template v-else>
+                    <tr>
+                      <th>Edge type</th>
+                      <td>{{ activeItem.type }}</td>
+                    </tr>
+                    <tr>
+                      <th>Client</th>
+                      <td>{{ activeItem.clientName }}</td>
+                    </tr>
+                    <tr>
+                      <th>Server</th>
+                      <td>{{ activeItem.serverName }}</td>
+                    </tr>
+                  </template>
+                  <tr>
+                    <th>Calls per min</th>
+                    <td><NumValue :value="activeItem.rate" format="verbose" /></td>
+                  </tr>
+                  <tr>
+                    <th>Err. rate</th>
+                    <td><PctValue :a="activeItem.errorCount" :b="activeItem.count" /></td>
+                  </tr>
+                  <tr>
+                    <th>Avg duration</th>
+                    <td><DurationValue :value="activeItem.durationAvg" /></td>
+                  </tr>
+                  <tr>
+                    <th>Min duration</th>
+                    <td><DurationValue :value="activeItem.durationMin" /></td>
+                  </tr>
+                  <tr>
+                    <th>Max duration</th>
+                    <td><DurationValue :value="activeItem.durationMax" /></td>
+                  </tr>
+                </tbody>
+              </v-simple-table>
+            </v-col>
+          </v-row>
+
+          <v-row>
+            <v-col>
+              <v-divider />
+            </v-col>
+          </v-row>
+        </template>
 
         <v-row>
           <v-col>
@@ -114,97 +197,10 @@
           </v-col>
         </v-row>
 
-        <template v-if="activeItem">
-          <v-row>
-            <v-col>
-              <v-divider />
-            </v-col>
-          </v-row>
-
-          <v-row>
-            <v-col>
-              <v-btn small @click="reset">
-                <v-icon left>mdi-close-thick</v-icon>
-                Reset selection
-              </v-btn>
-            </v-col>
-          </v-row>
-
-          <v-row class="mb-n8">
-            <v-col v-if="tracingGroupsRoute" cols="auto">
-              <v-btn :to="tracingGroupsRoute" depressed small>Explore groups</v-btn>
-            </v-col>
-            <v-col v-if="monitorMenuItems.length" cols="auto">
-              <v-menu offset-y>
-                <template #activator="{ on, attrs }">
-                  <v-btn depressed small v-bind="attrs" v-on="on">
-                    <span>Monitor</span>
-                    <v-icon right>mdi-menu-down</v-icon>
-                  </v-btn>
-                </template>
-                <v-list>
-                  <v-list-item
-                    v-for="(item, index) in monitorMenuItems"
-                    :key="index"
-                    :to="item.route"
-                  >
-                    <v-list-item-title>{{ item.title }}</v-list-item-title>
-                  </v-list-item>
-                </v-list>
-              </v-menu>
-            </v-col>
-          </v-row>
-
-          <v-row>
-            <v-col>
-              <v-simple-table>
-                <tbody>
-                  <tr v-if="activeItem.name">
-                    <th>Node</th>
-                    <td>{{ activeItem.name }}</td>
-                  </tr>
-                  <template v-else>
-                    <tr>
-                      <th>Edge type</th>
-                      <td>{{ activeItem.type }}</td>
-                    </tr>
-                    <tr>
-                      <th>Client</th>
-                      <td>{{ activeItem.clientName }}</td>
-                    </tr>
-                    <tr>
-                      <th>Server</th>
-                      <td>{{ activeItem.serverName }}</td>
-                    </tr>
-                  </template>
-                  <tr>
-                    <th>Calls per min</th>
-                    <td><NumValue :value="activeItem.rate" format="verbose" /></td>
-                  </tr>
-                  <tr>
-                    <th>Err. rate</th>
-                    <td><PctValue :a="activeItem.errorCount" :b="activeItem.count" /></td>
-                  </tr>
-                  <tr>
-                    <th>Avg duration</th>
-                    <td><DurationValue :value="activeItem.durationAvg" /></td>
-                  </tr>
-                  <tr>
-                    <th>Min duration</th>
-                    <td><DurationValue :value="activeItem.durationMin" /></td>
-                  </tr>
-                  <tr>
-                    <th>Max duration</th>
-                    <td><DurationValue :value="activeItem.durationMax" /></td>
-                  </tr>
-                </tbody>
-              </v-simple-table>
-            </v-col>
-          </v-row>
-        </template>
-
-        <v-row v-else>
-          <v-col class="text--secondary"> Click on a node or link to view details... </v-col>
+        <v-row>
+          <v-col class="text-center">
+            <ServiceGraphHelpDialog />
+          </v-col>
         </v-row>
       </v-col>
     </v-row>
@@ -235,7 +231,6 @@ import ServiceGraphHelpCard from '@/tracing/ServiceGraphHelpCard.vue'
 
 // Misc
 import { SystemName, AttrKey } from '@/models/otel'
-import { defaultMetricAlias } from '@/metrics/use-metrics'
 import { MINUTE } from '@/util/fmt/date'
 import { quote } from '@/util/string'
 
@@ -487,25 +482,29 @@ export default defineComponent({
           monitorMenuItemFor(
             'Monitor number of requests',
             `${node.name} number of requests`,
-            'uptrace.service_graph.client_duration',
+            'uptrace_service_graph_client_duration',
+            'client_duration',
             `count($client_duration{server=${quote(node.name)}})`,
           ),
           monitorMenuItemFor(
             'Monitor number of failed requests',
             `${node.name} number of failed requests`,
-            'uptrace.service_graph.failed_requests',
+            'uptrace_service_graph_failed_requests',
+            'failed_requests',
             `count(failed_requests{server=${quote(node.name)}})`,
           ),
           monitorMenuItemFor(
             'Monitor client-side duration',
             `${node.name} client-side duration`,
-            'uptrace.service_graph.client_duration',
+            'uptrace_service_graph_client_duration',
+            'client_duration',
             `avg($client_duration{server=${quote(node.name)}})`,
           ),
           monitorMenuItemFor(
             'Monitor server-side duration',
             `${node.name} server-side duration`,
-            'uptrace.service_graph.server_duration',
+            'uptrace_service_graph_server_duration',
+            'server_duration',
             `avg($server_duration{server=${quote(node.name)}})`,
           ),
         ]
@@ -516,7 +515,8 @@ export default defineComponent({
         monitorMenuItemFor(
           'Monitor number of calls',
           `${link.clientName} → ${link.serverName} number of calls`,
-          'uptrace.service_graph.client_duration',
+          'uptrace_service_graph_client_duration',
+          'client_duration',
           joinQuery([
             `count($client_duration{client=${quote(link.clientName)}, server=${quote(
               link.serverName,
@@ -526,7 +526,8 @@ export default defineComponent({
         monitorMenuItemFor(
           'Monitor number of failed requests',
           `${link.clientName} → ${link.serverName} number of calls`,
-          'uptrace.service_graph.failed_requests',
+          'uptrace_service_graph_failed_requests',
+          'failed_requests',
           joinQuery([
             `count($failed_requests{client=${quote(link.clientName)}, server=${quote(
               link.serverName,
@@ -536,7 +537,8 @@ export default defineComponent({
         monitorMenuItemFor(
           'Monitor client-side duration',
           `${link.clientName} → ${link.serverName} client-side duration`,
-          'uptrace.service_graph.client_duration',
+          'uptrace_service_graph_client_duration',
+          'client_duration',
           joinQuery([
             `avg($client_duration{client=${quote(link.clientName)}, server=${quote(
               link.serverName,
@@ -546,7 +548,8 @@ export default defineComponent({
         monitorMenuItemFor(
           'Monitor server-side duration',
           `${link.clientName} → ${link.serverName} server-side duration`,
-          'uptrace.service_graph.server_duration',
+          'uptrace_service_graph_server_duration',
+          'server_duration',
           joinQuery([
             `count($server_duration{client=${quote(link.clientName)}, server=${quote(
               link.serverName,
@@ -560,6 +563,7 @@ export default defineComponent({
       title: string,
       monitorName: string,
       metricName: string,
+      metricAlias: string,
       query: string,
     ) {
       return {
@@ -569,9 +573,9 @@ export default defineComponent({
           query: {
             name: monitorName,
             metric: metricName,
-            alias: defaultMetricAlias(metricName),
+            alias: metricAlias,
             query,
-            time_offset: String(-10 * MINUTE),
+            time_offset: String(10 * MINUTE),
           },
         },
       }
