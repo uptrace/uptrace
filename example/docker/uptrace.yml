@@ -211,10 +211,10 @@ uptrace_go:
 ##
 smtp_mailer:
   enabled: true
-  host: mailhog
+  host: mailpit
   port: 1025
-  username: mailhog
-  password: mailhog
+  username: mailpit
+  password: mailpit
   from: 'uptrace@localhost'
 
 ##
