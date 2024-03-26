@@ -185,6 +185,10 @@ func (h *MetricHandler) createSystemMetrics(ctx context.Context, projectID uint3
 		)
 	}
 
+	if len(metrics) == 0 {
+		return nil
+	}
+
 	return UpsertMetrics(ctx, h.App, metrics)
 }
 

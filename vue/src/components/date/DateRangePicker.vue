@@ -27,12 +27,25 @@
       </v-btn>
     </div>
 
-    <v-btn :loading="forceReload.loading" small outlined class="px-2" @click="dateRange.reload()">
+    <v-btn
+      :loading="forceReload.loading"
+      small
+      outlined
+      class="ml-1 px-2"
+      @click="dateRange.reload"
+    >
       Reload
     </v-btn>
-    <v-btn v-if="!dateRange.isNow" small outlined class="ml-2" @click="dateRange.reloadNow">
-      <span>Reset</span>
+    <v-btn
+      v-if="dateRange.isNow"
+      icon
+      :title="dateRange.autoReloadEnabled ? 'Stop auto-reloading' : 'Start auto-reloading'"
+      class="ml-1"
+      @click="dateRange.toggleAutoReload()"
+    >
+      <v-icon>{{ dateRange.autoReloadEnabled ? 'mdi-pause' : 'mdi-play' }}</v-icon>
     </v-btn>
+    <v-btn v-else small outlined class="ml-2 px-2" @click="dateRange.reloadNow"> Reset </v-btn>
   </div>
 </template>
 
@@ -44,16 +57,16 @@ import { UseDateRange } from '@/use/date-range'
 import { injectForceReload } from '@/use/force-reload'
 
 // Components
-import PeriodPickerMenu from '@/components/date/PeriodPickerMenu.vue'
 import DateRangePickerMenu from '@/components/date/DateRangePickerMenu.vue'
+import PeriodPickerMenu from '@/components/date/PeriodPickerMenu.vue'
 
 // Misc
-import { HOUR } from '@/util/fmt/date'
 import { periodsForDays, Period } from '@/models/period'
+import { HOUR } from '@/util/fmt'
 
 export default defineComponent({
   name: 'DateRangePicker',
-  components: { PeriodPickerMenu, DateRangePickerMenu },
+  components: { DateRangePickerMenu, PeriodPickerMenu },
 
   props: {
     dateRange: {

@@ -1,5 +1,6 @@
 import { min, addMilliseconds, subMilliseconds, differenceInMilliseconds } from 'date-fns'
-import { shallowRef, computed, proxyRefs, watch, onBeforeUnmount, getCurrentInstance } from 'vue'
+import { shallowRef, computed, proxyRefs, watch, onBeforeUnmount } from 'vue'
+import { useSessionStorage } from '@vueuse/core'
 
 // Composables
 import { useRoute, Values } from '@/use/router'
@@ -16,10 +17,9 @@ import {
   SECOND,
   MINUTE,
   HOUR,
-  DAY,
 } from '@/util/fmt/date'
 
-const UPDATE_NOW_TIMER_DELAY = 5 * MINUTE
+const AUTO_RELOAD_INTERVAL = MINUTE
 
 export type UseDateRange = ReturnType<typeof useDateRange>
 
@@ -35,14 +35,15 @@ interface ParamsConfig {
 
 export function useDateRange(conf: Config = {}) {
   const route = useRoute()
-  let _roundUp = false
+
   const defaultPrefix = conf.prefix ?? 'time_'
+  const roundUpEnabled = shallowRef(false)
 
   const lt = shallowRef<Date>()
   const isNow = shallowRef(false)
-  const duration = shallowRef(0)
+  const duration = shallowRef(0) // milliseconds
 
-  let updateNowTimer: ReturnType<typeof setTimeout> | null
+  let updateNowTimer: ReturnType<typeof global.setTimeout> | undefined
   const forceReload = injectForceReload()
 
   const isValid = computed((): boolean => {
@@ -54,6 +55,7 @@ export function useDateRange(conf: Config = {}) {
       return
     }
     let gte = subMilliseconds(lt.value!, duration.value)
+    //gte = truncDate(gte, durationPeriod(duration.value))
     return gte
   })
 
@@ -76,11 +78,26 @@ export function useDateRange(conf: Config = {}) {
     },
     set(s: string) {
       const dt = new Date(gte.value!.getTime())
-      const [HOURs, MINUTEs] = s.split(':')
-      dt.setHours(parseInt(HOURs, 10))
-      dt.setMinutes(parseInt(MINUTEs, 10))
+      const [hours, minutes] = s.split(':')
+      dt.setHours(parseInt(hours, 10))
+      dt.setMinutes(parseInt(minutes, 10))
       changeGTE(dt)
     },
+  })
+
+  const autoReloadEnabled = useSessionStorage('auto-reload-enabled', false)
+  function toggleAutoReload() {
+    autoReloadEnabled.value = !autoReloadEnabled.value
+    if (autoReloadEnabled.value) {
+      updateNow(true)
+    }
+  }
+
+  onBeforeUnmount(() => {
+    if (updateNowTimer) {
+      clearTimeout(updateNowTimer)
+      updateNowTimer = undefined
+    }
   })
 
   watch(
@@ -90,41 +107,6 @@ export function useDateRange(conf: Config = {}) {
     },
     { flush: 'post' },
   )
-
-  if (getCurrentInstance()) {
-    onBeforeUnmount(() => {
-      if (updateNowTimer) {
-        clearTimeout(updateNowTimer)
-        updateNowTimer = null
-      }
-    })
-  }
-
-  function updateNow(force = false): boolean {
-    if (force) {
-      isNow.value = true
-    } else if (!isNow.value) {
-      return false
-    }
-
-    const now = _roundUp ? ceilDate(new Date(), MINUTE) : truncDate(new Date(), MINUTE)
-    lt.value = now
-
-    if (updateNowTimer) {
-      clearTimeout(updateNowTimer)
-    }
-    updateNowTimer = setTimeout(updateNow, UPDATE_NOW_TIMER_DELAY)
-
-    return true
-  }
-
-  function resetUpdateNowTimer() {
-    if (updateNowTimer) {
-      clearTimeout(updateNowTimer)
-      updateNowTimer = null
-    }
-    isNow.value = false
-  }
 
   function reload() {
     updateNow()
@@ -142,6 +124,43 @@ export function useDateRange(conf: Config = {}) {
     duration.value = 0
   }
 
+  function updateNow(force = false) {
+    if (!isNow.value) {
+      if (!force) {
+        return
+      }
+      isNow.value = true
+    }
+
+    let now = new Date()
+    now = roundUpEnabled.value ? ceilDate(now, MINUTE) : truncDate(now, MINUTE)
+
+    if (!force && duration.value >= 6 * HOUR) {
+      const diff = differenceInMilliseconds(lt.value!, now)
+      if (Math.abs(diff) < 5 * MINUTE) {
+        // Don't update the time so the query cache is not invalidated.
+        return
+      }
+    }
+
+    lt.value = now
+
+    if (autoReloadEnabled.value) {
+      if (updateNowTimer) {
+        clearTimeout(updateNowTimer)
+      }
+      updateNowTimer = global.setTimeout(updateNow, AUTO_RELOAD_INTERVAL)
+    }
+  }
+
+  function resetUpdateNowTimer() {
+    if (updateNowTimer) {
+      clearTimeout(updateNowTimer)
+      updateNowTimer = undefined
+    }
+    isNow.value = false
+  }
+
   function change(gteVal: Date, ltVal: Date) {
     const durVal = ltVal.getTime() - gteVal.getTime()
     lt.value = ltVal
@@ -150,6 +169,7 @@ export function useDateRange(conf: Config = {}) {
   }
 
   function changeDuration(ms: number): void {
+    // Try to preserve gte value.
     if (lt.value && !isNow.value) {
       const newLT = addMilliseconds(gte.value!, ms)
       const now = new Date()
@@ -162,6 +182,12 @@ export function useDateRange(conf: Config = {}) {
 
     duration.value = ms
     updateNow(true)
+  }
+
+  function syncWith(other: UseDateRange) {
+    lt.value = other.lt
+    duration.value = other.duration
+    isNow.value = other.isNow
   }
 
   function includes(dt: Date | string): boolean {
@@ -194,12 +220,6 @@ export function useDateRange(conf: Config = {}) {
     changeLT(dt)
   }
 
-  function syncWith(other: UseDateRange) {
-    lt.value = other.lt
-    duration.value = other.duration
-    isNow.value = other.isNow
-  }
-
   //------------------------------------------------------------------------------
 
   function changeGTE(dt: Date) {
@@ -217,8 +237,9 @@ export function useDateRange(conf: Config = {}) {
     if (!isValid.value) {
       return false
     }
-    const ms = differenceInMilliseconds(new Date(), gte.value!)
-    return ms < 30 * DAY
+    return true
+    // const ms = differenceInMilliseconds(new Date(), gte.value!)
+    // return ms < 30 * DAY
   })
 
   function prevPeriod() {
@@ -272,7 +293,7 @@ export function useDateRange(conf: Config = {}) {
     if (gte) {
       const lt = addMilliseconds(gte, duration.value)
       const ms = differenceInMilliseconds(lt, new Date())
-      if (Math.abs(ms) > 2 * UPDATE_NOW_TIMER_DELAY) {
+      if (Math.abs(ms) > 5 * MINUTE) {
         changeLT(lt)
         return
       }
@@ -288,6 +309,7 @@ export function useDateRange(conf: Config = {}) {
       if (conf.optional) {
         return {}
       }
+      // Return undefined to block axios request.
       return {
         [prefix + 'gte']: undefined,
         [prefix + 'lt']: undefined,
@@ -312,11 +334,11 @@ export function useDateRange(conf: Config = {}) {
   }
 
   function roundUp() {
-    _roundUp = true
+    roundUpEnabled.value = true
     updateNow()
 
     onBeforeUnmount(() => {
-      _roundUp = false
+      roundUpEnabled.value = false
       updateNow()
     })
   }
@@ -331,23 +353,26 @@ export function useDateRange(conf: Config = {}) {
   return proxyRefs({
     gte,
     lt,
+    duration,
 
     isValid,
     isNow,
-    duration,
 
     datePicker,
     timePicker,
 
     reload,
     reloadNow,
+    autoReloadEnabled,
+    toggleAutoReload,
 
     reset,
     change,
     changeDuration,
+    syncWith,
+
     includes,
     changeAround,
-    syncWith,
 
     changeGTE,
     changeLT,

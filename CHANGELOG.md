@@ -18,6 +18,7 @@ upgrade to the v1.6.x first, because some migrations from v1.6.x have been remov
   `uptrace_tracing_logs`, and `uptrace_tracing_events`.
 - You can now search over monitors.
 - Added pre-built dashboards for .NET system metrics reported by OpenTelemetry.
+- Added ability to auto-reload data every 1 minute. See the date picker in the right corner.
 - Added `user.auth_token` and support for [JSON API](https://uptrace.dev/get/json-api.html).
 
 #### Improvements

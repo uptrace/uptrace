@@ -91,8 +91,8 @@ type MetricMonitorParams struct {
 	CheckNumPoint int             `json:"checkNumPoint"`
 	TimeOffset    unixtime.Millis `json:"timeOffset"`
 
-	MinAllowedValue bunutil.NullFloat64 `json:"minValue"`
-	MaxAllowedValue bunutil.NullFloat64 `json:"maxValue"`
+	MinAllowedValue bunutil.NullFloat64 `json:"minAllowedValue"`
+	MaxAllowedValue bunutil.NullFloat64 `json:"maxAllowedValue"`
 }
 
 func (m *MetricMonitor) Base() *BaseMonitor {
