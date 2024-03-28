@@ -2,10 +2,12 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
-## v1.7.0 - UNRELEASED
+## v1.7.0 - March 28 2024
 
 This release is backwards compatible with v1.6. If you're upgrading from an older version, please
 upgrade to the v1.6.x first, because some migrations from v1.6.x have been removed.
+
+You can also check this [blog post](https://uptrace.dev/blog/uptrace-v17.html) for details.
 
 #### Features
 
@@ -79,6 +81,8 @@ or less what we do when deploying major changes to Uptrace Cloud.
 
 The license is changed from BSL to AGPL v3.0 which is a license approved by Open Software
 Foundation.
+
+You can also check this [blog post](https://uptrace.dev/blog/uptrace-v16.html) for details.
 
 #### Breaking
 
