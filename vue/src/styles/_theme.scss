@@ -2,10 +2,13 @@
   .bg--primary {
     background-color: map-get($light-blue, 'lighten-5') !important;
   }
+  .bg--dark-primary {
+    background-color: map-get($blue, 'darken-2') !important;
+  }
   .bg--light {
     background-color: map-get($grey, 'lighten-5') !important;
   }
-  .bg--highlight {
+  .bg--foreground {
     background-color: white;
   }
 
@@ -27,10 +30,13 @@
   .bg--primary {
     background-color: map-get($material-dark-elevation-colors, '4') !important;
   }
+  .bg--dark-primary {
+    background-color: map-get($material-dark-elevation-colors, '4') !important;
+  }
   .bg--light {
     background-color: map-get($material-dark-elevation-colors, '0') !important;
   }
-  .bg--highlight {
+  .bg--foreground {
     background-color: map-get($material-dark-elevation-colors, '4') !important;
   }
 

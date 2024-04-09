@@ -50,25 +50,49 @@ func (h *PromHandler) Metadata(w http.ResponseWriter, req bunrouter.Request) err
 	return err
 }
 
+type LabelFilter struct {
+	Match []string
+	Start time.Time
+	End   time.Time
+	Limit int
+}
+
 func (h *PromHandler) LabelNames(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := decodePromFilter(h.App, req)
+	project := org.ProjectFromContext(ctx)
+
+	filter := new(LabelFilter)
+	if err := bunapp.UnmarshalValues(req, filter); err != nil {
+		return err
+	}
+
+	matcherSets, err := parsePromMatchers(filter.Match)
 	if err != nil {
 		return err
 	}
 
 	var labels []string
 
-	tableName := metrics.DatapointTableForWhere(&f.TimeFilter)
-	if err := h.CH.NewSelect().
+	tableName := metrics.DatapointTableForWhere(&org.TimeFilter{
+		TimeGTE: filter.Start,
+		TimeLT:  filter.End,
+	})
+	selq := h.CH.NewSelect().
 		Distinct().
 		ColumnExpr("arrayJoin(d.string_keys)").
 		TableExpr("? AS d", ch.Name(tableName)).
-		Where("d.project_id = ?", f.ProjectID).
-		Where("d.time >= ?", f.TimeGTE).
-		Where("d.time < ?", f.TimeLT).
-		ScanColumns(ctx, &labels); err != nil {
+		Where("d.project_id = ?", project.ID).
+		Where("d.time >= ?", filter.Start).
+		Where("d.time <= ?", filter.End)
+
+	for _, matchers := range matcherSets {
+		if err := compilePromMatchers(selq, matchers); err != nil {
+			return err
+		}
+	}
+
+	if err := selq.ScanColumns(ctx, &labels); err != nil {
 		return err
 	}
 
@@ -82,32 +106,48 @@ func (h *PromHandler) LabelNames(w http.ResponseWriter, req bunrouter.Request) e
 
 func (h *PromHandler) LabelValues(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
+	project := org.ProjectFromContext(ctx)
 
-	f, err := decodePromFilter(h.App, req)
+	filter := new(LabelFilter)
+	if err := bunapp.UnmarshalValues(req, filter); err != nil {
+		return err
+	}
+
+	label := req.Param("label")
+	if label == "" {
+		return errors.New("'label' query param is required")
+	}
+
+	matcherSets, err := parsePromMatchers(filter.Match)
 	if err != nil {
 		return err
 	}
 
-	if f.Label == "" {
-		return errors.New("'label' query param is required")
+	tableName := metrics.DatapointTableForWhere(&org.TimeFilter{
+		TimeGTE: filter.Start,
+		TimeLT:  filter.End,
+	})
+	selq := h.CH.NewSelect().
+		Distinct().
+		ColumnExpr("?", chExpr(label)).
+		TableExpr("? AS d", ch.Name(tableName)).
+		Where("d.project_id = ?", project.ID).
+		Where("d.time >= ?", filter.Start).
+		Where("d.time <= ?", filter.End)
+
+	for _, matchers := range matcherSets {
+		if err := compilePromMatchers(selq, matchers); err != nil {
+			return err
+		}
 	}
 
-	tableName := metrics.DatapointTableForWhere(&f.TimeFilter)
-	q := h.CH.NewSelect().
-		Distinct().
-		ColumnExpr("?", chExpr(f.Label)).
-		TableExpr("? AS d", ch.Name(tableName)).
-		Where("d.project_id = ?", f.ProjectID).
-		Where("d.time >= ?", f.TimeGTE).
-		Where("d.time < ?", f.TimeLT)
-
-	if f.Label != promlabels.MetricName {
-		q = q.Where("has(d.string_keys, ?)", f.Label)
+	if label != promlabels.MetricName {
+		selq.Where("has(d.string_keys, ?)", label)
 	}
 
 	var values []string
 
-	if err := q.ScanColumns(ctx, &values); err != nil {
+	if err := selq.ScanColumns(ctx, &values); err != nil {
 		return err
 	}
 
@@ -121,37 +161,31 @@ func (h *PromHandler) Series(w http.ResponseWriter, req bunrouter.Request) error
 	ctx := req.Context()
 	project := org.ProjectFromContext(ctx)
 
-	var in struct {
-		Match        []string
-		StartSeconds float64 `urlstruct:"start"`
-		EndSeconds   float64 `urlstruct:"end"`
-	}
-
-	if err := bunapp.UnmarshalValues(req, &in); err != nil {
+	filter := new(LabelFilter)
+	if err := bunapp.UnmarshalValues(req, filter); err != nil {
 		return err
 	}
-	if len(in.Match) == 0 {
+
+	if len(filter.Match) == 0 {
 		return fmt.Errorf("'match' query param is required")
 	}
 
-	matcherSets, err := parseMatchersParam(in.Match)
+	matcherSets, err := parsePromMatchers(filter.Match)
 	if err != nil {
 		return err
 	}
 
-	startMillis := int64(in.StartSeconds * 1000)
-	endMillis := int64(in.EndSeconds * 1000)
 	promStorage := NewPromStorage(h.App, project.ID)
 
-	querier, err := promStorage.Querier(startMillis, endMillis)
+	querier, err := promStorage.Querier(filter.Start.UnixMilli(), filter.End.UnixMilli())
 	if err != nil {
 		return err
 	}
 	defer querier.Close()
 
 	hints := &promstorage.SelectHints{
-		Start: startMillis,
-		End:   endMillis,
+		Start: filter.Start.UnixMilli(),
+		End:   filter.End.UnixMilli(),
 		// There is no series function, this token is used for lookups that don't need samples.
 		Func: "series",
 	}
@@ -186,7 +220,7 @@ func (h *PromHandler) Series(w http.ResponseWriter, req bunrouter.Request) error
 	})
 }
 
-func parseMatchersParam(matchers []string) ([][]*promlabels.Matcher, error) {
+func parsePromMatchers(matchers []string) ([][]*promlabels.Matcher, error) {
 	matcherSets := make([][]*promlabels.Matcher, 0, len(matchers))
 	for _, s := range matchers {
 		matchers, err := promparser.ParseMetricSelector(s)
@@ -231,8 +265,8 @@ func (h *PromHandler) QueryRange(w http.ResponseWriter, req bunrouter.Request) e
 		queryable,
 		queryOpts,
 		f.Query,
-		f.TimeGTE,
-		f.TimeLT,
+		f.Start,
+		f.End,
 		f.Step,
 	)
 	if err != nil {

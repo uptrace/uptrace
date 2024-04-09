@@ -13,7 +13,6 @@ import (
 )
 
 type PromFilter struct {
-	org.TimeFilter
 	ProjectID uint32
 
 	// Range query.
@@ -56,10 +55,5 @@ func (f *PromFilter) UnmarshalValues(ctx context.Context, values url.Values) err
 	if f.End.Before(f.Start) {
 		return errors.New("end time must not be before start time")
 	}
-
-	// Set these fields so we can use TimeFilter.
-	f.TimeGTE = f.Start
-	f.TimeLT = f.End
-
 	return nil
 }

@@ -4,32 +4,32 @@ datasources:
   - name: Uptrace Tempo Project 1
     type: tempo
     access: proxy
-    url: http://host.docker.internal:14318/api/tempo
+    url: http://host.docker.internal:14318/api/tempo/1
     editable: true
     jsonData:
-      httpHeaderName1: 'uptrace-dsn'
+      httpHeaderName1: 'Authorization'
     secureJsonData:
-      httpHeaderValue1: 'http://project1_secret_token@localhost:14317/1'
+      httpHeaderValue1: 'secret_token'
 
   - name: Uptrace Prometheus Project 1
     type: prometheus
     access: proxy
-    url: http://host.docker.internal:14318/api/prometheus
+    url: http://host.docker.internal:14318/api/prometheus/1
     editable: true
     jsonData:
-      httpHeaderName1: 'uptrace-dsn'
+      httpHeaderName1: 'Authorization'
     secureJsonData:
-      httpHeaderValue1: 'http://project1_secret_token@localhost:14317/1'
+      httpHeaderValue1: 'secret_token'
 
   - name: Uptrace Prometheus Project 2
     type: prometheus
     access: proxy
-    url: http://host.docker.internal:14318/api/prometheus
+    url: http://host.docker.internal:14318/api/prometheus/2
     editable: true
     jsonData:
-      httpHeaderName1: 'uptrace-dsn'
+      httpHeaderName1: 'Authorization'
     secureJsonData:
-      httpHeaderValue1: 'http://project2_secret_token@localhost:14317/2'
+      httpHeaderValue1: 'secret_token'
 
   - name: Prometheus
     type: prometheus

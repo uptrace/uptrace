@@ -8,7 +8,7 @@
     </template>
 
     <v-card>
-      <v-toolbar color="bg--primary" flat>
+      <v-toolbar color="bg--none-primary" flat>
         <v-toolbar-title>Service Graph</v-toolbar-title>
 
         <v-spacer />

@@ -1,6 +1,6 @@
 <template>
   <v-card v-if="trace" outlined rounded="lg">
-    <v-tabs v-model="activeTab" background-color="transparent" class="bg--primary">
+    <v-tabs v-model="activeTab" background-color="transparent" class="bg--none-primary">
       <v-tab href="#trace">Trace</v-tab>
       <v-tab v-for="(events, system) in trace.events" :key="system" :href="`#${system}`">
         {{ system }} ({{ events.length }})

@@ -62,7 +62,7 @@
         </v-container>
       </div>
 
-      <v-card flat min-height="calc(100vh - 242px)" color="bg--light">
+      <v-card flat min-height="calc(100vh - 242px)" color="bg--none">
         <router-view
           v-if="dashboard.data"
           name="tab"

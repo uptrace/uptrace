@@ -73,7 +73,7 @@
     <v-row>
       <v-col>
         <v-sheet outlined rounded="lg">
-          <v-tabs v-model="activeTab" background-color="transparent" class="bg--primary">
+          <v-tabs v-model="activeTab" background-color="transparent" class="bg--none-primary">
             <v-tab href="#attrs">Attrs</v-tab>
             <v-tab v-if="span.events && span.events.length" href="#events">
               Events ({{ span.events.length }})

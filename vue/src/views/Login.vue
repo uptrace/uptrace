@@ -1,9 +1,9 @@
 <template>
-  <v-container fluid class="fill-height bg--light">
+  <v-container fluid class="fill-height bg--none">
     <v-row>
       <v-col>
         <v-card max-width="500" class="mx-auto">
-          <v-toolbar color="primary" dark flat>
+          <v-toolbar color="bg--dark-primary" dark flat>
             <v-toolbar-title>Log in</v-toolbar-title>
 
             <v-spacer />

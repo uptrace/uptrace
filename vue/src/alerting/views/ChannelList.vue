@@ -41,7 +41,7 @@
 
     <v-dialog v-model="dialog" max-width="700">
       <v-card v-if="activeChannel">
-        <v-toolbar flat color="bg--primary">
+        <v-toolbar flat color="bg--none-primary">
           <v-toolbar-title>New {{ activeChannel.type }} notification channel</v-toolbar-title>
           <v-spacer />
           <v-toolbar-items>

@@ -1,5 +1,5 @@
 <template>
-  <div class="page-toolbar bg--primary">
+  <div class="page-toolbar bg--none-primary">
     <v-progress-linear v-if="loading" absolute indeterminate></v-progress-linear>
     <v-container :fluid="localFluid" class="py-0">
       <v-toolbar color="transparent" flat height="auto">

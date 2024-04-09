@@ -1,4 +1,4 @@
-module github.com/uptrace/uptrace/example/go-zero/api
+module github.com/uptrace/uptrace/example/go-zero
 
 go 1.20
 

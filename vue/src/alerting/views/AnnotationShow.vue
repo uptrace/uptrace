@@ -1,11 +1,11 @@
 <template>
-  <v-container fluid class="fill-height bg--light">
+  <v-container fluid class="fill-height bg--none">
     <v-row align="center" justify="center">
       <v-col cols="auto">
         <v-skeleton-loader v-if="!annotation.data" width="600" type="card"></v-skeleton-loader>
 
         <v-card v-else width="600">
-          <v-toolbar flat color="bg--primary">
+          <v-toolbar flat color="bg--none-primary">
             <v-breadcrumbs :items="breadcrumbs" divider=">" large class="pl-0"></v-breadcrumbs>
           </v-toolbar>
 

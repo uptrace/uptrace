@@ -5,7 +5,7 @@
     </template>
 
     <v-card>
-      <v-toolbar flat color="bg--primary">
+      <v-toolbar flat color="bg--none-primary">
         <v-toolbar-title>Uptrace Metrics Cheat Sheet</v-toolbar-title>
         <v-btn
           href="https://uptrace.dev/get/querying-metrics.html"

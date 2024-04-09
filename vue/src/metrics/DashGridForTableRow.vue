@@ -1,6 +1,6 @@
 <template>
-  <v-card color="bg--light" min-height="100vh">
-    <v-card flat color="bg--primary">
+  <v-card color="bg--none" min-height="100vh">
+    <v-card flat color="bg--none-primary">
       <v-card flat color="transparent" :max-width="dashboard.gridMaxWidth" class="mx-auto">
         <v-toolbar flat color="transparent">
           <v-toolbar-items>

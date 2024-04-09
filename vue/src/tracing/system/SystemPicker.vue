@@ -16,7 +16,7 @@
     hide-details
     dense
     outlined
-    background-color="bg--primary"
+    background-color="bg--none-primary"
     :menu-props="{ maxHeight: 500 }"
     class="v-select--fit"
     @click:clear="$emit('input', [])"

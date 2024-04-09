@@ -1,5 +1,5 @@
 <template>
-  <v-card flat :color="expanded && gridRow.items.length ? 'transparent' : 'white'">
+  <v-card flat :color="expanded && gridRow.items.length ? 'transparent' : 'bg--foreground'">
     <v-hover v-slot="{ hover }">
       <div class="d-flex align-center" style="height: 32px">
         <div class="text-subtitle-1 font-weight-medium cursor-pointer" @click="toggle()">

@@ -10,7 +10,7 @@
       </v-container>
     </template>
 
-    <v-container v-else-if="trace.error" fluid class="fill-height bg--light">
+    <v-container v-else-if="trace.error" fluid class="fill-height bg--none">
       <v-row>
         <v-col>
           <ApiErrorCard :error="trace.error" />

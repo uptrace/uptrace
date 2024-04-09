@@ -14,7 +14,7 @@
     hide-details
     dense
     outlined
-    background-color="bg--primary"
+    background-color="bg--none-primary"
     class="v-select--fit"
   >
     <template #item="{ item, attrs }">

@@ -132,7 +132,7 @@ export default defineComponent({
     },
     toolbarColor: {
       type: String,
-      default: 'bg--primary',
+      default: 'bg--none-primary',
     },
   },
 

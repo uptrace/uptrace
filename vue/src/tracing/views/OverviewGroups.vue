@@ -3,7 +3,7 @@
     <v-row>
       <v-col>
         <v-card outlined rounded="lg">
-          <v-toolbar flat color="bg--primary">
+          <v-toolbar flat color="bg--none-primary">
             <v-toolbar-title>{{ system }} groups</v-toolbar-title>
             <v-spacer />
             <v-btn :to="groupListRoute" small class="primary">View groups</v-btn>

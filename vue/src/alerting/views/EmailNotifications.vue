@@ -1,9 +1,9 @@
 <template>
-  <v-container fluid class="bg--light">
+  <v-container fluid class="bg--none">
     <v-row align="center" style="height: calc(100vh - 128px)">
       <v-col>
         <v-card max-width="600" class="mx-auto">
-          <v-toolbar color="bg--primary" flat>
+          <v-toolbar color="bg--none-primary" flat>
             <v-toolbar-title>Email notifications</v-toolbar-title>
           </v-toolbar>
 

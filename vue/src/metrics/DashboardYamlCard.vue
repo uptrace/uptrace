@@ -1,6 +1,6 @@
 <template>
   <v-card max-width="800">
-    <v-toolbar color="bg--primary" flat>
+    <v-toolbar color="bg--none-primary" flat>
       <v-toolbar-title>{{ dashboard?.name || 'Dashboard' }}</v-toolbar-title>
 
       <v-spacer />

@@ -2,7 +2,7 @@
   <v-row>
     <v-col>
       <v-card rounded="lg" outlined class="mb-4">
-        <v-toolbar flat color="bg--primary">
+        <v-toolbar flat color="bg--none-primary">
           <slot name="search-filter" />
           <SpansTableSettings :spans="spans.items" class="ml-2" @input="tableColumns = $event" />
 

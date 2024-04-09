@@ -1,6 +1,6 @@
 <template>
   <v-card max-width="800" class="mx-auto my-4">
-    <v-toolbar color="bg--primary" flat>
+    <v-toolbar color="bg--none-primary" flat>
       <v-toolbar-title>Dashboard types</v-toolbar-title>
     </v-toolbar>
 

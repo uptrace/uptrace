@@ -1,7 +1,7 @@
 <template>
-  <v-form ref="form" v-model="isValid" lazy-validation class="bg--light" @submit.prevent="submit()">
+  <v-form ref="form" v-model="isValid" lazy-validation class="bg--none" @submit.prevent="submit()">
     <v-card :max-width="maxWidth" class="mx-auto">
-      <v-toolbar flat color="bg--primary">
+      <v-toolbar flat color="bg--none-primary">
         <slot name="title"></slot>
 
         <v-spacer />

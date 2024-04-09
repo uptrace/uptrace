@@ -2,6 +2,11 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
+## v1.7.1 - April 09 2024
+
+- [Grafana APIs](https://uptrace.dev/get/grafana.html) now require project id and user token instead
+  of Uptrace DSN. The old authentication method will continue working for a while.
+
 ## v1.7.0 - March 28 2024
 
 This release is backwards compatible with v1.6. If you're upgrading from an older version, please

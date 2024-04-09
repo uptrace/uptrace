@@ -115,7 +115,7 @@
             </template>
 
             <v-card>
-              <v-toolbar color="bg--primary" flat>
+              <v-toolbar color="bg--none-primary" flat>
                 <v-toolbar-title>Value mappings</v-toolbar-title>
               </v-toolbar>
 
