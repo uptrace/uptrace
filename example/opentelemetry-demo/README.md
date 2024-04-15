@@ -3,6 +3,8 @@
 This example demonstrates how to run
 [opentelemetry-demo](https://github.com/open-telemetry/opentelemetry-demo) with Uptrace backend.
 
+## Using Docker
+
 **Step 1**. Download the opentelemetry-demo using Git:
 
 ```shell
@@ -29,4 +31,47 @@ If something is not working, check OpenTelemetry Collector logs:
 
 ```shell
 docker-compose logs otelcol
+```
+
+## Using Helm and Uptrace Cloud
+
+Add OpenTelemetry Demo Helm repo:
+
+```
+helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
+```
+
+Create `override-values.yml` file with the Otel Collector configuration for Uptrace. Don't forget to
+specify your Uptrace DSN.
+
+```yaml
+opentelemetry-collector:
+  config:
+    exporters:
+      otlp/uptrace:
+        endpoint: https://otlp.uptrace.dev:4317
+        tls: { insecure: false }
+        headers:
+          uptrace-dsn: '<YOUR_DSN_GOES_HERE>'
+
+    service:
+      pipelines:
+        traces:
+          exporters: [spanmetrics, otlp/uptrace]
+        metrics:
+          exporters: [otlp/uptrace]
+        logs:
+          exporters: [otlp/uptrace]
+```
+
+Start the demo:
+
+```shell
+helm install my-otel-demo open-telemetry/opentelemetry-demo --values override-values.yml
+```
+
+To check the status of OpenTelemetry Demo pods:
+
+```shell
+kubectl get pods
 ```
