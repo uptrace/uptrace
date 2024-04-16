@@ -3,6 +3,8 @@ package chschema
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/uptrace/go-clickhouse/ch/internal/tagparser"
 )
 
 const (
@@ -11,6 +13,7 @@ const (
 
 type Field struct {
 	Field reflect.StructField
+	Tag   tagparser.Tag
 	Type  reflect.Type
 	Index []int
 

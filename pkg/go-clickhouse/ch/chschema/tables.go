@@ -29,7 +29,7 @@ func (t *tablesMap) Get(typ reflect.Type) *Table {
 		return v.(*Table)
 	}
 
-	table := newTable(typ)
+	table := newTable(typ, make(map[reflect.Type]*Table))
 	if v, loaded := t.m.LoadOrStore(typ, table); loaded {
 		return v.(*Table)
 	}

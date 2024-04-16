@@ -3,6 +3,7 @@ package chschema
 import (
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/codemodus/kace"
 	"github.com/jinzhu/inflection"
@@ -42,7 +43,7 @@ type Table struct {
 	CHEngine     string
 	CHPartition  string
 
-	Fields     []*Field // PKs + DataFields
+	Fields     []*Field
 	PKs        []*Field
 	DataFields []*Field
 	FieldMap   map[string]*Field
@@ -50,14 +51,14 @@ type Table struct {
 	flags internal.Flag
 }
 
-func newTable(typ reflect.Type) *Table {
+func newTable(typ reflect.Type, seen map[reflect.Type]*Table) *Table {
 	t := new(Table)
 	t.Type = typ
 	t.ModelName = kace.Snake(t.Type.Name())
 	tableName := tableNameInflector(t.ModelName)
 	t.setName(tableName)
 	t.CHAlias = quoteColumnName(t.ModelName)
-	t.initFields()
+	t.processFields(typ, seen)
 
 	typ = reflect.PtrTo(t.Type)
 	if typ.Implements(afterScanBlockHookType) {
@@ -96,52 +97,95 @@ func (t *Table) Field(name string) (*Field, error) {
 	return field, nil
 }
 
-func (t *Table) initFields() {
-	t.Fields = make([]*Field, 0, t.Type.NumField())
-	t.FieldMap = make(map[string]*Field, t.Type.NumField())
-	t.addFields(t.Type, nil)
-}
+func (t *Table) processFields(typ reflect.Type, seen map[reflect.Type]*Table) {
+	type embeddedField struct {
+		subtable *Table
+		index    []int
+		subfield *Field
+	}
 
-func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
+	names := make(map[string]struct{})
+	embedded := make([]embeddedField, 0, 10)
+
 	for i := 0; i < typ.NumField(); i++ {
 		f := typ.Field(i)
+		unexported := f.PkgPath != ""
 
-		tag := tagparser.Parse(f.Tag.Get("ch"))
-		if tag.Name == "-" {
+		tagstr := f.Tag.Get("ch")
+		if tagstr == "-" {
+			names[f.Name] = struct{}{}
+			continue
+		}
+		tag := tagparser.Parse(tagstr)
+
+		if unexported && !f.Anonymous { // unexported
 			continue
 		}
 
-		// Make a copy so slice is not shared between fields.
-		index := make([]int, len(baseIndex))
-		copy(index, baseIndex)
+		if !f.Anonymous {
+			names[f.Name] = struct{}{}
 
-		if f.Anonymous {
-			if f.Name == "CHModel" && f.Type == chModelType {
-				if len(index) == 0 {
-					t.processCHModelField(f)
-				}
-				continue
+			if field := t.newField(f, tag); field != nil {
+				t.addField(field)
 			}
-
-			fieldType := indirectType(f.Type)
-			if fieldType.Kind() != reflect.Struct {
-				continue
-			}
-			t.addFields(fieldType, append(index, f.Index...))
-
-			if _, ok := tag.Options["inherit"]; ok {
-				embeddedTable := globalTables.Get(fieldType)
-				t.ModelName = embeddedTable.ModelName
-				t.CHName = embeddedTable.CHName
-				t.CHAlias = embeddedTable.CHAlias
-			}
-
 			continue
 		}
 
-		if field := t.newField(f, index, tag); field != nil {
-			t.addField(field)
+		if f.Name == "CHModel" && f.Type == chModelType {
+			t.processCHModelField(f)
+			continue
 		}
+
+		fieldType := indirectType(f.Type)
+		if fieldType.Kind() != reflect.Struct {
+			continue
+		}
+
+		subtable := newTable(fieldType, seen)
+
+		for _, subfield := range subtable.Fields {
+			embedded = append(embedded, embeddedField{
+				index:    f.Index,
+				subfield: subfield,
+			})
+		}
+
+		if _, ok := tag.Options["extend"]; ok {
+			t.Name = subtable.Name
+			t.ModelName = subtable.ModelName
+			t.CHName = subtable.CHName
+			t.CHAlias = subtable.CHAlias
+		}
+	}
+
+	// Only unambiguous embedded fields must be serialized.
+	ambiguousNames := make(map[string]int)
+	ambiguousTags := make(map[string]int)
+
+	// Embedded types can never override a field that was already present at
+	// the top-level.
+	for name := range names {
+		ambiguousNames[name]++
+		ambiguousTags[name]++
+	}
+
+	for _, f := range embedded {
+		ambiguousNames[f.subfield.GoName]++
+		if !f.subfield.Tag.IsZero() {
+			ambiguousTags[f.subfield.GoName]++
+		}
+	}
+
+	for _, embfield := range embedded {
+		subfield := *embfield.subfield // copy
+
+		if ambiguousNames[subfield.GoName] > 1 &&
+			!(!subfield.Tag.IsZero() && ambiguousTags[subfield.GoName] == 1) {
+			continue // ambiguous embedded field
+		}
+
+		subfield.Index = append(slices.Clone(embfield.index), subfield.Index...)
+		t.addField(&subfield)
 	}
 
 	for _, f := range t.FieldMap {
@@ -185,25 +229,20 @@ func (t *Table) processCHModelField(f reflect.StructField) {
 	}
 }
 
-func (t *Table) newField(f reflect.StructField, index []int, tag tagparser.Tag) *Field {
-	if f.PkgPath != "" {
-		return nil
-	}
-
-	if tag.Name == "" {
-		tag.Name = kace.Snake(f.Name)
-	}
-
+func (t *Table) newField(f reflect.StructField, tag tagparser.Tag) *Field {
 	field := &Field{
 		Field: f,
+		Tag:   tag,
 		Type:  f.Type,
 
 		GoName: f.Name,
 		CHName: tag.Name,
-		Column: quoteColumnName(tag.Name),
-
-		Index: append(index, f.Index...),
+		Index:  f.Index,
 	}
+	if field.CHName == "" {
+		field.CHName = kace.Snake(field.GoName)
+	}
+	field.Column = quoteColumnName(field.CHName)
 	field.NotNull = tag.HasOption("notnull")
 	field.IsPK = tag.HasOption("pk")
 
@@ -227,12 +266,8 @@ func (t *Table) newField(f reflect.StructField, index []int, tag tagparser.Tag) 
 	if s, ok := tag.Option("default"); ok {
 		field.CHDefault = Safe(s)
 	}
+
 	field.appendValue = Appender(f.Type)
-
-	if s, ok := tag.Option("alt"); ok {
-		t.FieldMap[s] = field
-	}
-
 	if tag.HasOption("scanonly") {
 		t.FieldMap[field.CHName] = field
 		return nil
@@ -247,6 +282,9 @@ func (t *Table) addField(field *Field) {
 		t.PKs = append(t.PKs, field)
 	} else {
 		t.DataFields = append(t.DataFields, field)
+	}
+	if t.FieldMap == nil {
+		t.FieldMap = make(map[string]*Field)
 	}
 	t.FieldMap[field.CHName] = field
 }
