@@ -1,7 +1,7 @@
 <template>
   <v-form v-model="isValid" @submit.prevent="saveYaml">
     <v-card>
-      <v-toolbar color="bg--none-primary" flat>
+      <v-toolbar color="bg--light-primary" flat>
         <v-toolbar-title>{{ dashboard.name }}</v-toolbar-title>
 
         <v-spacer />

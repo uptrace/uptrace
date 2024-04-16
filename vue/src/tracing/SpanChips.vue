@@ -11,14 +11,21 @@
       <v-icon color="error"> mdi-alert-circle-outline </v-icon>
     </v-btn>
 
-    <v-chip v-if="traceId" :to="traceRoute" title="View trace" color="bg--none-primary" label small>
+    <v-chip
+      v-if="traceId"
+      :to="traceRoute"
+      title="View trace"
+      color="bg--light-primary"
+      label
+      small
+    >
       {{ traceId }}
     </v-chip>
 
     <v-chip
       v-for="chip in chips"
       :key="chip.key"
-      color="bg--none-primary"
+      color="bg--light-primary"
       label
       small
       class="ml-1"
@@ -29,7 +36,7 @@
       {{ chip.text }}
     </v-chip>
 
-    <v-chip v-if="events.length" color="bg--none-primary" label small class="ml-1">
+    <v-chip v-if="events.length" color="bg--light-primary" label small class="ml-1">
       <strong class="mr-1">{{ events.length }}</strong>
       <span>{{ events.length === 1 ? 'event' : 'events' }}</span>
     </v-chip>

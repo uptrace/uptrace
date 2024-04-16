@@ -77,7 +77,7 @@
 
     <v-dialog v-model="dialog" max-width="1400">
       <v-card v-if="activeGroup" flat>
-        <v-toolbar flat color="bg--none-primary">
+        <v-toolbar flat color="bg--light-primary">
           <v-toolbar-title>{{ activeGroup._query }}</v-toolbar-title>
 
           <v-spacer />

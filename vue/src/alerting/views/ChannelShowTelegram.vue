@@ -5,7 +5,7 @@
         <v-skeleton-loader v-if="!channel.data" width="600" type="card"></v-skeleton-loader>
 
         <v-card v-else width="600">
-          <v-toolbar flat color="bg--none-primary">
+          <v-toolbar flat color="bg--light-primary">
             <v-breadcrumbs :items="breadcrumbs" divider=">" large class="pl-0"></v-breadcrumbs>
           </v-toolbar>
 

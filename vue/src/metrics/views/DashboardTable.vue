@@ -47,7 +47,7 @@
     <v-row dense>
       <v-col>
         <v-card outlined rounded="lg">
-          <v-toolbar flat dense color="bg--none-primary">
+          <v-toolbar flat dense color="bg--light-primary">
             <v-tooltip v-if="tableQuery.queryError" bottom>
               <template #activator="{ on, attrs }">
                 <v-toolbar-items v-bind="attrs" v-on="on">

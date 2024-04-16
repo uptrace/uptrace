@@ -1,11 +1,11 @@
 .theme--light {
-  .bg--primary {
+  .bg--light-primary {
     background-color: map-get($light-blue, 'lighten-5') !important;
   }
   .bg--dark-primary {
     background-color: map-get($blue, 'darken-2') !important;
   }
-  .bg--light {
+  .bg--none {
     background-color: map-get($grey, 'lighten-5') !important;
   }
   .bg--foreground {
@@ -27,13 +27,13 @@
     border: thin solid map-get($grey, 'darken-3');
   }
 
-  .bg--primary {
+  .bg--light-primary {
     background-color: map-get($material-dark-elevation-colors, '4') !important;
   }
   .bg--dark-primary {
     background-color: map-get($material-dark-elevation-colors, '4') !important;
   }
-  .bg--light {
+  .bg--none {
     background-color: map-get($material-dark-elevation-colors, '0') !important;
   }
   .bg--foreground {

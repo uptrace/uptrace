@@ -3,7 +3,7 @@
     <v-row>
       <v-col>
         <v-card rounded="lg" outlined class="mb-4">
-          <v-toolbar flat dense color="bg--none-primary">
+          <v-toolbar flat dense color="bg--light-primary">
             <slot name="search-filter" />
 
             <v-spacer />

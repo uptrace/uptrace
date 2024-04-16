@@ -10,7 +10,7 @@
       <v-row>
         <v-col>
           <v-sheet rounded="lg" outlined class="mb-4">
-            <v-toolbar flat color="bg--none-primary">
+            <v-toolbar flat color="bg--light-primary">
               <v-toolbar-title>Dashboards</v-toolbar-title>
 
               <v-col cols="auto">

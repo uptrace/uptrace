@@ -22,7 +22,7 @@
       <v-row>
         <v-col>
           <v-sheet rounded="lg" outlined class="mb-4">
-            <v-toolbar flat dense color="bg--none-primary">
+            <v-toolbar flat dense color="bg--light-primary">
               <v-text-field
                 v-model="monitors.searchInput"
                 placeholder="Search monitors..."
