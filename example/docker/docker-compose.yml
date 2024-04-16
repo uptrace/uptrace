@@ -12,7 +12,7 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - ch_data1:/var/lib/clickhouse
+      - ch_data2:/var/lib/clickhouse
     ports:
       - '8123:8123'
       - '9000:9000'
@@ -31,7 +31,7 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - 'pg_data2:/var/lib/postgresql/data/pgdata'
+      - 'pg_data3:/var/lib/postgresql/data/pgdata'
     ports:
       - '5432:5432'
 
@@ -114,7 +114,7 @@ services:
       - '/:/host:ro,rslave'
 
 volumes:
-  ch_data1:
-  pg_data2:
+  ch_data2:
+  pg_data3:
   prometheus_data:
   mailpit_data:

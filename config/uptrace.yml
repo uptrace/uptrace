@@ -213,7 +213,7 @@ service_graph:
 ##
 smtp_mailer:
   # Whether to use this mailer for sending emails.
-  enabled: false
+  enabled: true
   # SMTP server host.
   host: localhost
   # SMTP server port.
@@ -222,8 +222,8 @@ smtp_mailer:
   username: mailhog
   # Password for authentication.
   password: mailhog
-  # Uncomment to disable opportunistic TLS.
-  #tls: { disabled: true }
+  # Disable TLS. Opportunistic TLS is used by default.
+  tls: { disabled: true }
   # Emails will be send from this address.
   from: 'uptrace@localhost'
 

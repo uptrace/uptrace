@@ -210,11 +210,19 @@ uptrace_go:
 ## https://uptrace.dev/get/alerting.html
 ##
 smtp_mailer:
+  # Whether to use this mailer for sending emails.
   enabled: true
+  # SMTP server host.
   host: mailpit
+  # SMTP server port.
   port: 1025
+  # Username for authentication.
   username: mailpit
+  # Password for authentication.
   password: mailpit
+  # Disable TLS. Opportunistic TLS is used by default.
+  tls: { disabled: true }
+  # Emails will be send from this address.
   from: 'uptrace@localhost'
 
 ##

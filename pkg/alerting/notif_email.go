@@ -52,6 +52,8 @@ func NewEmailNotifier(app *bunapp.App) *EmailNotifier {
 	case conf.TLS == nil:
 		options = append(options,
 			mail.WithTLSPortPolicy(mail.TLSOpportunistic),
+			mail.WithSSLPort(false),
+			mail.WithPort(conf.Port),
 		)
 	case conf.TLS.Disabled:
 		options = append(options,
