@@ -6,8 +6,8 @@ import (
 
 	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
+	"github.com/uptrace/uptrace/pkg/utf8util"
 )
 
 type AttrMap map[string]any
@@ -26,7 +26,11 @@ func (m AttrMap) Merge(other AttrMap) {
 	}
 }
 
-func (m AttrMap) Has(key string) bool {
+func (m AttrMap) Delete(key string) {
+	delete(m, key)
+}
+
+func (m AttrMap) Exists(key string) bool {
 	_, ok := m[key]
 	return ok
 }
@@ -37,39 +41,15 @@ func (m AttrMap) SetDefault(key string, value any) {
 	}
 }
 
-func (m AttrMap) Flatten(params map[string]any, prefix string) {
-	for key, value := range params {
-		key := attrkey.Clean(key)
-		if key == "" {
-			continue
-		}
-
-		switch value := value.(type) {
-		case nil:
-			// discard
-		case map[string]any:
-			m.Flatten(value, prefix+key+".")
-		case string:
-			if params, ok := bunutil.IsJSON(value); ok {
-				m.Flatten(params, prefix+key+".")
-			} else {
-				m.SetClashingKeys(prefix+key, value)
-			}
-		default:
-			m.SetClashingKeys(prefix+key, value)
-		}
-	}
-}
-
 func (m AttrMap) SetClashingKeys(key string, value any) {
-	if !m.Has(key) {
+	if !m.Exists(key) {
 		m[key] = value
 		return
 	}
 
 	for _, suffix := range []string{"1", "2", "3"} {
 		key := key + suffix
-		if !m.Has(key) {
+		if !m.Exists(key) {
 			m[key] = value
 			return
 		}
@@ -79,6 +59,23 @@ func (m AttrMap) SetClashingKeys(key string, value any) {
 func (m AttrMap) Text(key string) string {
 	s, _ := m[key].(string)
 	return s
+}
+
+func (m AttrMap) Get(key string) (any, bool) {
+	val, ok := m[key]
+	return val, ok
+}
+
+func (m AttrMap) GetString(key string) string {
+	s, _ := m[key].(string)
+	return s
+}
+
+func (m AttrMap) GetAsLCString(key string) string {
+	if s, ok := m[key].(string); ok {
+		return utf8util.TruncLC(s)
+	}
+	return ""
 }
 
 func (m AttrMap) Int64(key string) int64 {
@@ -123,4 +120,8 @@ func (m AttrMap) ServiceNameOrUnknown() string {
 func (m AttrMap) HostName() string {
 	s, _ := m[attrkey.HostName].(string)
 	return s
+}
+
+func (m AttrMap) PutString(key, val string) {
+	m[key] = val
 }

@@ -3,12 +3,13 @@ package tracing
 const emptyPlaceholder = "<empty>"
 
 const (
-	SpanTypeFuncs     = "funcs"
-	SpanTypeHTTP      = "http"
-	SpanTypeDB        = "db"
-	SpanTypeRPC       = "rpc"
-	SpanTypeMessaging = "messaging"
-	SpanTypeFAAS      = "faas"
+	SpanTypeFuncs      = "funcs"
+	SpanTypeHTTPServer = "httpserver"
+	SpanTypeHTTPClient = "httpclient"
+	SpanTypeDB         = "db"
+	SpanTypeRPC        = "rpc"
+	SpanTypeMessaging  = "messaging"
+	SpanTypeFAAS       = "faas"
 
 	EventTypeLog     = "log"
 	EventTypeMessage = "message"

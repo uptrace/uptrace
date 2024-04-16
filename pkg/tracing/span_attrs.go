@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -13,7 +14,6 @@ import (
 	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunotel"
-	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/logparser"
 	"github.com/uptrace/uptrace/pkg/org"
@@ -151,25 +151,6 @@ func initHTTPUserAgent(attrs AttrMap, str string) {
 
 func populateSpanFromParams(span *Span, params AttrMap) {
 	attrs := span.Attrs
-	flattenAttrValues(params)
-
-	if span.Time.IsZero() {
-		for _, key := range []string{"timestamp", "datetime", "time"} {
-			value, _ := params[key].(string)
-			if value == "" {
-				continue
-			}
-
-			tm := anyconv.Time(value)
-			if tm.IsZero() {
-				continue
-			}
-
-			span.Time = tm
-			delete(params, key)
-			break
-		}
-	}
 
 	if span.TraceID.IsZero() {
 		for _, key := range []string{"trace_id", "traceid"} {
@@ -208,6 +189,32 @@ func populateSpanFromParams(span *Span, params AttrMap) {
 				delete(params, key)
 				break
 			}
+		}
+	}
+
+	if span.Time.IsZero() {
+		for _, key := range []string{"timestamp", "datetime", "time"} {
+			value, _ := params[key].(string)
+			if value == "" {
+				continue
+			}
+
+			tm := anyconv.Time(value)
+			if tm.IsZero() {
+				continue
+			}
+
+			span.Time = tm
+			delete(params, key)
+			break
+		}
+	}
+
+	if span.Duration == 0 {
+		if val, ok := params.Get(attrkey.SpanDuration); ok {
+			span.Duration = time.Duration(anyconv.Int64(val))
+			params.Delete(attrkey.SpanDuration)
+			span.EventName = ""
 		}
 	}
 
@@ -281,33 +288,6 @@ func normLogSeverity(val string) string {
 	}
 }
 
-func flattenAttrValues(attrs AttrMap) {
-loop:
-	for key, value := range attrs {
-		switch key {
-		case attrkey.LogMessage, attrkey.ExceptionMessage:
-			// Keep log and exception messages as is.
-			continue loop
-		}
-
-		switch value := value.(type) {
-		case nil:
-			delete(attrs, key)
-			continue loop
-		case map[string]any:
-			delete(attrs, key)
-			attrs.Flatten(value, key+".")
-			continue loop
-		case string:
-			if value, ok := bunutil.IsJSON(value); ok {
-				delete(attrs, key)
-				attrs.Flatten(value, key+".")
-				continue loop
-			}
-		}
-	}
-}
-
 //------------------------------------------------------------------------------
 
 func newSpanLink(link *tracepb.Span_Link) *SpanLink {
@@ -371,7 +351,7 @@ func (p *spanProcessorThread) assignSpanSystemAndGroupID(project *org.Project, s
 	}
 
 	if dbSystem := span.Attrs.Text(attrkey.DBSystem); dbSystem != "" ||
-		span.Attrs.Has(attrkey.DBStatement) {
+		span.Attrs.Exists(attrkey.DBStatement) {
 		if dbSystem == "" {
 			dbSystem = "unknown_db"
 		}
@@ -392,34 +372,82 @@ func (p *spanProcessorThread) assignSpanSystemAndGroupID(project *org.Project, s
 		return
 	}
 
-	if span.Attrs.Has(attrkey.HTTPRoute) ||
-		span.Attrs.Has(attrkey.HTTPRequestMethod) ||
-		span.Attrs.Has(attrkey.HTTPResponseStatusCode) {
-		span.Type = SpanTypeHTTP
-		span.System = SpanTypeHTTP + ":" + span.Attrs.ServiceNameOrUnknown()
+	if span.Attrs.Exists(attrkey.HTTPRoute) ||
+		span.Attrs.Exists(attrkey.HTTPRequestMethod) ||
+		span.Attrs.Exists(attrkey.HTTPResponseStatusCode) {
+		if span.Kind == SpanKindClient {
+			span.Type = SpanTypeHTTPClient
+		} else {
+			span.Type = SpanTypeHTTPServer
+		}
+		span.System = span.Type + ":" + span.Attrs.ServiceNameOrUnknown()
 		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 			hashSpan(project, digest, span, attrkey.HTTPRequestMethod, attrkey.HTTPRoute)
 		})
-		return
-	}
-
-	if project.GroupFuncsByService &&
-		(span.ParentID == 0 ||
-			span.Kind != InternalSpanKind ||
-			span.Attrs.Has(attrkey.CodeFunction)) {
-		span.Type = SpanTypeFuncs
-		span.System = SpanTypeFuncs + ":" + span.Attrs.ServiceNameOrUnknown()
-		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
-			hashSpan(project, digest, span)
-		})
+		span.DisplayName = httpDisplayName(span)
 		return
 	}
 
 	span.Type = SpanTypeFuncs
-	span.System = SpanTypeFuncs
+	if project.GroupFuncsByService {
+		service := span.Attrs.ServiceNameOrUnknown()
+		span.System = SpanTypeFuncs + ":" + service
+	} else {
+		span.System = SpanTypeFuncs
+	}
 	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 		hashSpan(project, digest, span)
 	})
+}
+
+func httpDisplayName(span *Span) string {
+	httpMethod := span.Attrs.GetString(attrkey.HTTPRequestMethod)
+	httpRoute := span.Attrs.GetString(attrkey.HTTPRoute)
+	httpServerName := span.Attrs.GetString(attrkey.ServerAddress)
+	httpTarget := span.Attrs.GetString(attrkey.URLPath)
+
+	switch span.Name {
+	case "", httpMethod, httpRoute, httpServerName, httpTarget, "HTTP " + httpMethod:
+	default:
+		return span.Name
+	}
+
+	if httpRoute != "" {
+		if httpMethod != "" {
+			return httpMethod + " " + httpRoute
+		}
+		return httpRoute
+	}
+
+	if httpTarget != "" {
+		if idx := strings.IndexByte(httpTarget, '?'); idx >= 0 {
+			httpTarget = httpTarget[:idx]
+		}
+		if httpMethod != "" {
+			return httpMethod + " " + httpTarget
+		}
+		return httpTarget
+	}
+
+	if httpURL := span.Attrs.GetString(attrkey.URLFull); httpURL != "" {
+		u, err := url.Parse(httpURL)
+		if err == nil && u.Path != "" {
+			if !span.Attrs.Exists(attrkey.URLScheme) {
+				span.Attrs.PutString(attrkey.URLScheme, u.Scheme)
+			}
+
+			if httpMethod != "" {
+				return httpMethod + " " + u.Path
+			}
+			return u.Path
+		}
+	}
+
+	if httpMethod != "" {
+		return httpMethod + " <unknown_route>"
+	}
+
+	return span.Name
 }
 
 func (p *spanProcessorThread) spanHash(fn func(digest *xxhash.Digest)) uint64 {
@@ -510,12 +538,12 @@ func (p *spanProcessorThread) assignEventSystemAndGroupID(project *org.Project, 
 		return
 	}
 
-	if span.Attrs.Has(attrkey.LogMessage) {
+	if span.Attrs.Exists(attrkey.LogMessage) {
 		p.handleLogEvent(project, span)
 		return
 	}
 
-	if span.Attrs.Has(attrkey.ExceptionMessage) {
+	if span.Attrs.Exists(attrkey.ExceptionMessage) {
 		p.handleExceptionEvent(project, span)
 		return
 	}
@@ -556,14 +584,12 @@ func (p *spanProcessorThread) handleExceptionEvent(project *org.Project, span *S
 			hashMessage(digest, s)
 		}
 	})
-	span.DisplayName = joinTypeMessage(
-		span.Attrs.Text(attrkey.ExceptionType),
-		span.Attrs.Text(attrkey.ExceptionMessage),
-	)
+	span.DisplayName = exceptionDisplayName(span)
 }
 
 func logDisplayName(span *Span) string {
 	if msg, _ := span.Attrs[attrkey.LogMessage].(string); msg != "" {
+		span.Attrs.Delete(attrkey.LogMessage)
 		sev, _ := span.Attrs[attrkey.LogSeverity].(string)
 		if sev != "" && !strings.HasPrefix(msg, sev) {
 			msg = sev + " " + msg
@@ -583,9 +609,10 @@ func logDisplayName(span *Span) string {
 }
 
 func exceptionDisplayName(span *Span) string {
-	typ, _ := span.Attrs[attrkey.ExceptionType].(string)
 	msg, _ := span.Attrs[attrkey.ExceptionMessage].(string)
-	if typ != "" || msg != "" {
+	if msg != "" {
+		span.Attrs.Delete(attrkey.ExceptionMessage)
+		typ, _ := span.Attrs[attrkey.ExceptionType].(string)
 		return joinTypeMessage(typ, msg)
 	}
 	return span.EventName

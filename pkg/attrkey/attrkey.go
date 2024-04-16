@@ -130,10 +130,23 @@ const (
 	MessagingMessagePayloadSizeBytes           = "messaging_message_payload_size_bytes"
 	MessagingMessagePayloadCompressedSizeBytes = "messaging_message_payload_compressed_size_bytes"
 
+	MessagingClientID           = "messaging_client_id"
+	MessagingKafkaConsumerGroup = "messaging_kafka_consumer_group"
+
 	CloudProvider         = "cloud_provider"
 	CloudAccountID        = "cloud_account_id"
 	CloudRegion           = "cloud_region"
 	CloudResourceID       = "cloud_resource_id"
 	CloudAvailabilityZone = "cloud_availability_zone"
 	CloudPlatform         = "cloud_platform"
+
+	K8SNamespaceName  = "k8s_namespace_name"
+	K8SClusterName    = "k8s_cluster_name"
+	K8SNodeName       = "k8s_node_name"
+	K8SPodUID         = "k8s_pod_uid"
+	K8SPodName        = "k8s_pod_name"
+	K8SContainerName  = "k8s_container_name"
+	K8SReplicasetName = "k8s_replicaset_name"
+	K8SDeploymentName = "k8s_deployment_name"
+	K8sDaemonsetName  = "k8s_daemonset_name"
 )

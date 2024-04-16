@@ -60,11 +60,8 @@ type SpanIndex struct {
 	DBOperation string `ch:",lc"`
 	DBSqlTable  string `ch:",lc"`
 
-	LogSeverity string `ch:",lc"`
-	LogMessage  string
-
-	ExceptionType    string `ch:",lc"`
-	ExceptionMessage string
+	LogSeverity   string `ch:",lc"`
+	ExceptionType string `ch:",lc"`
 }
 
 func initSpanIndex(index *SpanIndex, span *Span) {
@@ -108,10 +105,7 @@ func initSpanIndex(index *SpanIndex, span *Span) {
 	index.DBSqlTable = span.Attrs.Text(attrkey.DBSqlTable)
 
 	index.LogSeverity = span.Attrs.Text(attrkey.LogSeverity)
-	index.LogMessage = span.Attrs.Text(attrkey.LogMessage)
-
 	index.ExceptionType = span.Attrs.Text(attrkey.ExceptionType)
-	index.ExceptionMessage = span.Attrs.Text(attrkey.ExceptionMessage)
 
 	index.AllKeys = mapKeys(span.Attrs)
 	slices.Sort(index.AllKeys)
@@ -184,10 +178,7 @@ var (
 		attrkey.DBSqlTable,
 
 		attrkey.LogSeverity,
-		attrkey.LogMessage,
-
 		attrkey.ExceptionType,
-		attrkey.ExceptionMessage,
 	}
 	indexedAttrSet = listToSet(indexedAttrs)
 )

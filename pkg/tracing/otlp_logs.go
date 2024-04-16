@@ -205,7 +205,7 @@ func (p *otlpLogProcessor) processLogRecord(resource AttrMap, lr *logspb.LogReco
 		p.processLogRecordBody(span, lr.Body.Value)
 	}
 
-	if !span.Attrs.Has(attrkey.LogMessage) {
+	if !span.Attrs.Exists(attrkey.LogMessage) {
 		if msg := popLogMessageParam(span.Attrs); msg != "" {
 			span.Attrs[attrkey.LogMessage] = msg
 		}

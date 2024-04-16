@@ -149,9 +149,15 @@ func alertAttrs(project *org.Project, span *tracing.Span) map[string]string {
 	if !span.IsEvent() {
 		attrs[attrkey.SpanKind] = span.Kind
 	}
+	addSpanAttrs(attrs, span,
+		attrkey.TelemetrySDKLanguage,
+		attrkey.CloudRegion,
+		attrkey.K8SNamespaceName,
+		attrkey.K8SClusterName,
+	)
 
 	switch span.Type {
-	case tracing.SpanTypeHTTP:
+	case tracing.SpanTypeHTTPClient, tracing.SpanTypeHTTPServer:
 		addSpanAttrs(attrs, span, attrkey.HTTPRequestMethod, attrkey.HTTPRoute)
 	case tracing.SpanTypeDB:
 		addSpanAttrs(attrs, span,
