@@ -2,6 +2,16 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
+## v1.7.2 - April 16 2024
+
+- `log_message` and `exception_message` are automatically promoted to `display_name` when used in
+  logs. The original attribute is removed to avoid double indexing.
+
+  Instead of `log_message contains "something"` you should use `display_name contains "something"`.
+
+- The HTTP system is split into `httpclient` and `httpserver`.
+- Improved service graph edge discovery.
+
 ## v1.7.1 - April 09 2024
 
 - [Grafana APIs](https://uptrace.dev/get/grafana.html) now require project id and user token instead

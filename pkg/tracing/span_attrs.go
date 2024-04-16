@@ -42,11 +42,9 @@ func (p *spanProcessorThread) initSpanOrEvent(ctx context.Context, span *Span) {
 	}
 
 	if name, _ := span.Attrs[attrkey.DisplayName].(string); name != "" {
-		span.DisplayName = utf8util.TruncSmall(name)
+		span.DisplayName = name
 		delete(span.Attrs, attrkey.DisplayName)
-	} else if span.DisplayName != "" && !p.forceSpanName(ctx, span) {
-		span.DisplayName = utf8util.TruncSmall(span.DisplayName)
-	} else {
+	} else if span.DisplayName == "" || p.forceSpanName(ctx, span) {
 		span.DisplayName = span.EventOrSpanName()
 	}
 
