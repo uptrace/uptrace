@@ -430,7 +430,7 @@ func (in *ErrorMonitorIn) Validate(
 	ctx context.Context, app *bunapp.App, monitor *org.ErrorMonitor,
 ) error {
 	if in.Name == "" {
-		return errors.New("name can't be empty")
+		return errors.New("monitor name can't be empty")
 	}
 
 	if in.Params.Matchers == nil {

@@ -93,10 +93,10 @@ func (h *SavedViewHandler) Create(w http.ResponseWriter, req bunrouter.Request) 
 	}
 
 	if in.Name == "" {
-		return errors.New("name can't be empty")
+		return errors.New("saved view name can't be empty")
 	}
 	if in.Route == "" {
-		return errors.New("route can't be empty")
+		return errors.New("saved view route can't be empty")
 	}
 
 	view := &SavedView{

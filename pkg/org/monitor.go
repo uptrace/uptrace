@@ -63,7 +63,7 @@ type BaseMonitor struct {
 
 func (m *BaseMonitor) Validate() error {
 	if m.Name == "" {
-		return errors.New("name can't be empty")
+		return errors.New("monitor name can't be empty")
 	}
 	return nil
 }
