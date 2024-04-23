@@ -349,15 +349,15 @@ type Config struct {
 	}
 
 	SMTPMailer struct {
-		Enabled  bool              `yaml:"enabled"`
+		Enabled bool   `yaml:"enabled"`
+		From    string `yaml:"from"`
+
 		Host     string            `yaml:"host"`
 		Port     int               `yaml:"port"`
 		AuthType mail.SMTPAuthType `yaml:"auth_type"`
 		Username string            `yaml:"username"`
 		Password string            `yaml:"password"`
 		TLS      *TLSClient        `yaml:"tls"`
-
-		From string `yaml:"from"`
 	} `yaml:"smtp_mailer"`
 
 	UptraceGo struct {

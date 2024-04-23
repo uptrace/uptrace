@@ -307,7 +307,7 @@ func (p *spanProcessorThread) forceSpanName(ctx context.Context, span *Span) boo
 		return false
 	}
 
-	if libName := span.Attrs[attrkey.OtelLibraryName].(string); libName != "" {
+	if libName, _ := span.Attrs[attrkey.OtelLibraryName].(string); libName != "" {
 		return slices.Contains(project.ForceSpanName, libName)
 	}
 	return false
