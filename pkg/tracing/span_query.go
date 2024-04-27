@@ -108,14 +108,22 @@ func appendCHFuncCall(b []byte, fn *tql.FuncCall, dur time.Duration) ([]byte, er
 	}
 	arg := ch.Safe(tmp)
 
-	switch fn.Func {
+	funcName := fn.Func
+	switch funcName {
+	case "any_last":
+		funcName = "anyLast"
+	case "uniq":
+		funcName = "uniqCombined64"
+	}
+
+	switch funcName {
 	case "per_min":
 		return chschema.AppendQuery(b, "? / ?", arg, dur.Minutes()), nil
 	case "per_sec":
 		return chschema.AppendQuery(b, "? / ?", arg, dur.Seconds()), nil
 	case "p50", "p75", "p90", "p99":
 		return chschema.AppendQuery(b, "quantileTDigest(?)(?)",
-			quantileLevel(fn.Func), arg), nil
+			quantileLevel(funcName), arg), nil
 	case "top3":
 		return chschema.AppendQuery(b, "topK(3)(?)", arg), nil
 	case "top5":
@@ -123,8 +131,8 @@ func appendCHFuncCall(b []byte, fn *tql.FuncCall, dur time.Duration) ([]byte, er
 	case "top10":
 		return chschema.AppendQuery(b, "topK(10)(?)", arg), nil
 	case "sum", "avg", "min", "max",
-		"any", "anyLast":
-		b = append(b, fn.Func...)
+		"any", "anyLast", "uniqCombined64":
+		b = append(b, funcName...)
 		b = append(b, '(')
 		b = append(b, arg...)
 		b = append(b, ')')
