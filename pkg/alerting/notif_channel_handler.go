@@ -559,19 +559,20 @@ type WebhookMessage struct {
 
 func NewWebhookMessage(app *bunapp.App, alert org.Alert, payload any) *WebhookMessage {
 	baseAlert := alert.Base()
+	baseEvent := alert.GetEvent().Base()
 
 	msg := new(WebhookMessage)
 
-	msg.ID = baseAlert.Event.ID
-	msg.EventName = baseAlert.Event.Name
+	msg.ID = baseEvent.ID
+	msg.EventName = baseEvent.Name
 	msg.Payload = payload
-	msg.CreatedAt = baseAlert.Event.CreatedAt
+	msg.CreatedAt = baseEvent.CreatedAt
 
 	msg.Alert.ID = baseAlert.ID
 	msg.Alert.URL = app.SiteURL(baseAlert.URL())
 	msg.Alert.Name = baseAlert.Name
 	msg.Alert.Type = baseAlert.Type
-	msg.Alert.Status = baseAlert.Event.Status
+	msg.Alert.Status = baseEvent.Status
 	msg.Alert.CreatedAt = baseAlert.CreatedAt
 
 	return msg
