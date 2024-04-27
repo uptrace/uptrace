@@ -79,10 +79,8 @@ func appendCHExpr(b []byte, expr tql.Expr, dur time.Duration) ([]byte, error) {
 
 func appendCHAttr(b []byte, attr tql.Attr) []byte {
 	switch attr.Name {
-	case attrkey.SpanCount:
-		return chschema.AppendQuery(b, "sum(s.count)")
 	case attrkey.SpanErrorCount:
-		return chschema.AppendQuery(b, "sumIf(s.count, s.status_code = 'error')")
+		return chschema.AppendQuery(b, "if(s.status_code = 'error', s.count, 0)")
 	case attrkey.SpanErrorRate:
 		return chschema.AppendQuery(b, "sumIf(s.count, s.status_code = 'error') / sum(s.count)")
 	case attrkey.SpanIsEvent:
@@ -314,7 +312,7 @@ func unitForExpr(expr tql.Expr) string {
 		switch expr.Func {
 		case "",
 			"sum", "avg", "min", "max",
-			"any", "anyLast",
+			"any", "anyLast", "any_last",
 			"p50", "p75", "p90", "p95", "p99":
 			return unit
 		default:
@@ -333,9 +331,7 @@ func isAggExpr(expr tql.Expr) bool {
 	switch expr := expr.(type) {
 	case tql.Attr:
 		switch expr.Name {
-		case attrkey.SpanCount,
-			attrkey.SpanErrorCount,
-			attrkey.SpanErrorRate:
+		case attrkey.SpanErrorRate:
 			return true
 		default:
 			return false
@@ -343,7 +339,8 @@ func isAggExpr(expr tql.Expr) bool {
 	case *tql.FuncCall:
 		switch expr.Func {
 		case "sum", "avg", "min", "max",
-			"any", "anyLast",
+			"any", "anyLast", "any_last",
+			"uniq",
 			"p50", "p75", "p90", "p95", "p99":
 			return true
 		case "per_min", "per_sec":
@@ -398,6 +395,7 @@ func isNumExpr(expr tql.Expr) bool {
 func isNumFunc(name string) bool {
 	switch name {
 	case "sum", "avg", "min", "max",
+		"uniq",
 		"p50", "p75", "p90", "p95", "p99",
 		"per_min", "per_sec":
 		return true

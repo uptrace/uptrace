@@ -230,6 +230,8 @@ export default defineComponent({
 
     function shortColumnName(name: string) {
       switch (name) {
+        case AttrKey.spanCountPerMin:
+          return 'count'
         case AttrKey.spanErrorCount:
           return 'errors'
         case AttrKey.spanErrorRate:

@@ -20,7 +20,8 @@ export enum AttrKey {
   spanStatusMessage = '_status_message',
 
   spanCount = '_count',
-  spanCountPerMin = 'per_min(_count)',
+  spanCountSum = 'sum(_count)',
+  spanCountPerMin = 'per_min(sum(_count))',
   spanErrorCount = '_error_count',
   spanErrorRate = '_error_rate',
 

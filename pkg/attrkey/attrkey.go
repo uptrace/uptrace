@@ -24,10 +24,12 @@ const (
 	SpanStatusCode    = "_status_code"
 	SpanStatusMessage = "_status_message"
 
-	SpanCount       = "_count"
-	SpanCountPerMin = "per_min(_count)"
-	SpanErrorCount  = "_error_count"
-	SpanErrorRate   = "_error_rate"
+	SpanCount         = "_count"
+	SpanCountSum      = "sum(_count)"
+	SpanCountPerMin   = "per_min(sum(_count))"
+	SpanErrorCount    = "_error_count"
+	SpanErrorCountSum = "sum(_error_count)"
+	SpanErrorRate     = "_error_rate"
 
 	SpanLinkCount       = "_link_count"
 	SpanEventCount      = "_event_count"

@@ -19,7 +19,7 @@
       </v-col>
       <v-col cols="auto">
         <div class="grey--text font-weight-regular">Rate</div>
-        <div><NumValue :value="group.getMetric('per_min(_count)')" /> / min</div>
+        <div><NumValue :value="group.getMetric('per_min(sum(_count))')" /> / min</div>
       </v-col>
       <v-col v-if="isSpan" cols="auto">
         <div class="grey--text font-weight-regular">Err rate</div>

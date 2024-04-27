@@ -2,6 +2,11 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
+## v1.7.3 - UNRELEASED
+
+- `_count` is no longer an alias for `sum(_count)`, but instead points to a column. Use
+  `sum(_count)` and `per_min(sum(_count))` instead.
+
 ## v1.7.2 - April 16 2024
 
 - `log_message` and `exception_message` are automatically promoted to `display_name` when used in

@@ -37,13 +37,12 @@ func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request)
 	}
 
 	parts := []string{
-		attrkey.SpanCount,
+		attrkey.SpanCountSum,
 		attrkey.SpanCountPerMin,
 	}
 	if !f.isEventSystem() {
-
 		parts = append(parts,
-			attrkey.SpanErrorCount,
+			attrkey.SpanErrorCountSum,
 			fmt.Sprintf("{p50, p90, p99, max}(%s)", attrkey.SpanDuration),
 		)
 	}

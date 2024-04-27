@@ -63,11 +63,11 @@
 
         <h2 class="mb-5 text-h5">Aggregation</h2>
 
-        <QueryExample query="_count | per_min(_count) | _error_count | _error_rate">
+        <QueryExample query="sum(_count) | per_min(sum(_count)) | _error_count | _error_rate">
           <template #description>Count number of spans and errors.</template>
         </QueryExample>
 
-        <QueryExample query="_count | group by service_name, service_version">
+        <QueryExample query="sum(_count) | group by service_name, service_version">
           <template #description>Count number of spans for each service.</template>
         </QueryExample>
 
@@ -80,7 +80,7 @@
         </QueryExample>
 
         <QueryExample
-          query="group by http_status_code | per_min(_count) | where http_status_code exists"
+          query="group by http_status_code | per_min(sum(_count)) | where http_status_code exists"
         >
           <template #description>
             Filter and group spans by <code>http_status_code</code> attribute.
