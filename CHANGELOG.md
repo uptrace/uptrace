@@ -2,10 +2,12 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
-## v1.7.3 - UNRELEASED
+## v1.7.3 - May 8 2024
 
 - `_count` is no longer an alias for `sum(_count)`, but instead points to the column. Use
   `sum(_count)` and `per_min(sum(_count))` instead.
+
+- Fixed span duration unit in percentiles chart.
 
 ## v1.7.2 - April 16 2024
 
