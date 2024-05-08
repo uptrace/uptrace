@@ -88,8 +88,6 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
-    props.dateRange.roundUp()
-
     const groups = useGroups(() => {
       return props.axiosParams
     })

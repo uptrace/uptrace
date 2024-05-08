@@ -111,7 +111,6 @@ export default defineComponent({
   },
 
   setup(props, ctx) {
-    props.dateRange.roundUp()
     const { route } = useRouter()
     const tableColumns = shallowRef<string[]>([])
 

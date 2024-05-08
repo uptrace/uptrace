@@ -737,7 +737,7 @@ func (s *CHStorage) tracingAgg(
 	case InstrumentCounter:
 		switch f.CHFunc {
 		case "", "_", "sum", "per_min", "per_sec":
-			q = append(q, "_count as value")
+			q = append(q, "sum(_count) as value")
 			return q, nil
 		default:
 			return nil, unsupportedInstrumentFunc(metric.Instrument, f.CHFunc)
@@ -770,7 +770,7 @@ func (s *CHStorage) tracingAgg(
 			q = append(q, "p99(_duration) as value")
 			return q, nil
 		case mql.CHAggCount:
-			q = append(q, "_count as value")
+			q = append(q, "sum(_count) as value")
 			return q, nil
 		default:
 			return nil, unsupportedInstrumentFunc(metric.Instrument, f.CHFunc)

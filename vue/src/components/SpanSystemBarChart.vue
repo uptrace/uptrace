@@ -13,7 +13,7 @@
           <PctValue
             :a="sys.duration"
             :b="totalDuration"
-            :unit="Unit.Microseconds"
+            :unit="Unit.Nanoseconds"
             class="d-inline-flex blue-grey--text"
           />
         </v-col>

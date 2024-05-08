@@ -106,7 +106,7 @@ export default defineComponent({
     const percentilesChart = computed(() => {
       const conf = baseChartConfig()
       addChartTooltip(conf, {
-        formatter: createTooltipFormatter(Unit.Microseconds, { hideDate: true }),
+        formatter: createTooltipFormatter(Unit.Nanoseconds, { hideDate: true }),
       })
 
       const chart = {
@@ -125,11 +125,11 @@ export default defineComponent({
       conf.yAxis.push({
         type: 'value',
         axisLabel: {
-          formatter: axisLabelFormatter(Unit.Microseconds),
+          formatter: axisLabelFormatter(Unit.Nanoseconds),
         },
         axisPointer: {
           label: {
-            formatter: axisPointerFormatter(Unit.Microseconds),
+            formatter: axisPointerFormatter(Unit.Nanoseconds),
           },
         },
         splitNumber: 4,

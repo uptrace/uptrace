@@ -120,6 +120,7 @@ export default defineComponent({
   },
 
   setup(props) {
+    props.dateRange.roundUp()
     useTitle('Explore spans')
 
     const user = useUser()
