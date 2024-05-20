@@ -84,7 +84,7 @@
                   </template>
                   <tr>
                     <th>Calls per min</th>
-                    <td><NumValue :value="activeItem.rate" format="verbose" /></td>
+                    <td><NumValue :value="activeItem.rate" verbosity="max" /></td>
                   </tr>
                   <tr>
                     <th>Err. rate</th>
@@ -231,8 +231,13 @@ import ServiceGraphHelpCard from '@/tracing/ServiceGraphHelpCard.vue'
 
 // Misc
 import { SystemName, AttrKey } from '@/models/otel'
-import { MINUTE } from '@/util/fmt/date'
 import { quote } from '@/util/string'
+
+interface Item {
+  text: string
+  value: string
+  count: number
+}
 
 export default defineComponent({
   name: 'OverviewServiceGraph',
@@ -276,7 +281,7 @@ export default defineComponent({
     })
 
     const activeEdgeTypes = shallowRef<string[]>([])
-    const edgeTypeItems = computed(() => {
+    const edgeTypeItems = computed((): Item[] => {
       const map = new Map<string, number>()
 
       for (let edge of serviceGraph.edges) {
@@ -284,15 +289,15 @@ export default defineComponent({
         map.set(edge.type, count + 1)
       }
 
-      const items = []
+      const items: Item[] = []
 
-      for (let [key, value] of map) {
+      map.forEach((value, key) => {
         items.push({
           text: key,
           value: key,
           count: value,
         })
-      }
+      })
 
       return items
     })
@@ -389,7 +394,7 @@ export default defineComponent({
     })
     const maxErrorRate = computed(() => {
       const prec = 1 / errorRateStep.value
-      return Math.round((_maxErrorRate.value + Number.EPSILON) * prec) / prec
+      return Math.ceil((_maxErrorRate.value + Number.EPSILON) * prec) / prec
     })
     watch(
       () => [minErrorRate.value, maxErrorRate.value],
@@ -575,7 +580,6 @@ export default defineComponent({
             metric: metricName,
             alias: metricAlias,
             query,
-            time_offset: String(10 * MINUTE),
           },
         },
       }
