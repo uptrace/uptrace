@@ -125,7 +125,7 @@ func (h *PublicHandler) Spans(w http.ResponseWriter, req bunrouter.Request) erro
 	spans := make([]PublicSpan, len(spansData))
 
 	for i := range spansData {
-		src, err := spansData[i].Span()
+		src, err := spansData[i].FilledSpan()
 		if err != nil {
 			return err
 		}

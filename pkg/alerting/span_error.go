@@ -27,12 +27,8 @@ func createErrorAlertHandler(
 		return err
 	}
 
-	span := &tracing.Span{
-		ProjectID: projectID,
-		TraceID:   traceID,
-		ID:        spanID,
-	}
-	if err := tracing.SelectSpan(ctx, app, span); err != nil {
+	span, err := tracing.SelectSpan(ctx, app, projectID, traceID, spanID)
+	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil
 		}
@@ -149,34 +145,31 @@ func alertAttrs(project *org.Project, span *tracing.Span) map[string]string {
 	if !span.IsEvent() {
 		attrs[attrkey.SpanKind] = span.Kind
 	}
-	addSpanAttrs(attrs, span,
-		attrkey.TelemetrySDKLanguage,
-		attrkey.CloudRegion,
-		attrkey.K8SNamespaceName,
-		attrkey.K8SClusterName,
-	)
 
 	switch span.Type {
-	case tracing.SpanTypeHTTPClient, tracing.SpanTypeHTTPServer:
+	case tracing.TypeSpanHTTPClient, tracing.TypeSpanHTTPServer:
 		addSpanAttrs(attrs, span, attrkey.HTTPRequestMethod, attrkey.HTTPRoute)
-	case tracing.SpanTypeDB:
+	case tracing.TypeSpanDB:
 		addSpanAttrs(attrs, span,
 			attrkey.DBSystem,
 			attrkey.DBName,
 			attrkey.DBOperation,
 			attrkey.DBSqlTable)
-	case tracing.SpanTypeRPC:
+	case tracing.TypeSpanRPC:
 		addSpanAttrs(attrs, span, attrkey.RPCSystem, attrkey.RPCService, attrkey.RPCMethod)
-	case tracing.SpanTypeMessaging:
+	case tracing.TypeSpanMessaging:
 		addSpanAttrs(attrs, span, attrkey.MessagingSystem)
-	case tracing.SpanTypeFuncs:
+	case tracing.TypeSpanFuncs:
 		if project.GroupFuncsByService {
 			if str, _ := span.Attrs[attrkey.ServiceName].(string); str != "" {
 				attrs[attrkey.ServiceName] = str
 			}
 		}
-	case tracing.EventTypeLog:
-		addSpanAttrs(attrs, span, attrkey.LogSeverity, attrkey.ExceptionType)
+	case tracing.TypeLog:
+		addSpanAttrs(attrs, span,
+			attrkey.LogSeverity,
+			attrkey.ExceptionType,
+			attrkey.TelemetrySDKLanguage)
 	}
 
 	return attrs

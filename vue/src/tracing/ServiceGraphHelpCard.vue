@@ -13,16 +13,16 @@
 
     <ul class="mb-4">
       <li>
-        <code>service_name</code> is an attribute that represents the logical name of the service.
+        <code>service.name</code> is an attribute that represents the logical name of the service.
         Required.
       </li>
       <li>
-        <code>.kind</code> (<code>span.kind</code>) categorizes the type of work being represented
+        <code>_kind</code> (<code>span_kind</code>) categorizes the type of work being represented
         by the span. Make sure your traces have <code>client/server</code> or
         <code>producer/consumer</code> span pairs. Required.
       </li>
       <li>
-        <code>.status_code</code> (<code>span.status_code</code>) provides information about the
+        <code>_status_code</code> (<code>span_status_code</code>) provides information about the
         result of a specific operation or unit of work represented by this span. This attribute
         helps to monitor and understand the success, failure, or other conditions of a given
         operation. Recommended.

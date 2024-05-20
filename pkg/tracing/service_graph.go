@@ -25,9 +25,10 @@ type ServiceGraphEdge struct {
 	Type      EdgeType
 	Time      time.Time `ch:"type:DateTime"`
 
+	ClientAttr            string `ch:",lc"`
 	ClientName            string `ch:",lc"`
-	ServerName            string `ch:",lc"`
 	ServerAttr            string `ch:",lc"`
+	ServerName            string `ch:",lc"`
 	DeploymentEnvironment string `ch:",lc"`
 	ServiceNamespace      string `ch:",lc"`
 
@@ -52,7 +53,46 @@ const (
 	EdgeTypeMessaging EdgeType = "messaging"
 )
 
-func (e *ServiceGraphEdge) SetClientDuration(span *SpanIndex) {
+func (e *ServiceGraphEdge) FillFrom(span *SpanIndex) {
+	e.ProjectID = span.ProjectID
+	clientAttr, clientName, serverAttr, serverName := serviceGraphNode(span)
+
+	switch span.Kind {
+	case SpanKindProducer, SpanKindClient:
+		if clientName != "" {
+			e.ClientAttr = clientAttr
+			e.ClientName = clientName
+		}
+		if e.ServerName == "" {
+			e.ServerAttr = serverAttr
+			e.ServerName = serverName
+		}
+		e.Time = span.Time.Truncate(time.Minute)
+		e.setClientDuration(span)
+	case SpanKindConsumer, SpanKindServer:
+		if e.ClientName == "" {
+			e.ClientAttr = clientAttr
+			e.ClientName = clientName
+		}
+		if serverName != "" {
+			e.ServerAttr = serverAttr
+			e.ServerName = serverName
+		}
+		if e.Time.IsZero() {
+			e.Time = span.Time.Truncate(time.Minute)
+		}
+		e.setServerDuration(span)
+	}
+
+	if e.DeploymentEnvironment == "" {
+		e.DeploymentEnvironment = span.DeploymentEnvironment
+	}
+	if e.ServiceNamespace == "" {
+		e.ServiceNamespace = span.ServiceNamespace
+	}
+}
+
+func (e *ServiceGraphEdge) setClientDuration(span *SpanIndex) {
 	dur := float32(span.Duration)
 	e.ClientDurationMin = dur
 	e.ClientDurationMax = dur
@@ -64,11 +104,18 @@ func (e *ServiceGraphEdge) SetClientDuration(span *SpanIndex) {
 	}
 }
 
-func (e *ServiceGraphEdge) SetServerDuration(span *SpanIndex) {
+func (e *ServiceGraphEdge) setServerDuration(span *SpanIndex) {
 	dur := float32(span.Duration)
 	e.ServerDurationMin = dur
 	e.ServerDurationMax = dur
 	e.ServerDurationSum = dur
+
+	if e.Count == 0 {
+		e.Count = uint32(span.Count)
+		if span.StatusCode == StatusCodeError {
+			e.ErrorCount = e.Count
+		}
+	}
 }
 
 type ServiceGraphProcessor struct {
@@ -113,17 +160,8 @@ func (p *ServiceGraphProcessor) ProcessSpan(
 		edgeType = EdgeTypeMessaging
 		fallthrough
 	case SpanKindClient:
-		if span.ServiceName == "" {
-			return nil
-		}
-
 		if edgeType == EdgeTypeUnset {
 			edgeType = edgeTypeFromSpanType(span.Type)
-		}
-
-		clientName, serverAttr, serverName := serviceGraphServerNode(span)
-		if clientName != "" || serverName != "" {
-			return nil
 		}
 
 		key := ServiceGraphEdgeKey{
@@ -131,16 +169,10 @@ func (p *ServiceGraphProcessor) ProcessSpan(
 			SpanID:  span.ID,
 		}
 		p.store(span.TraceID).WithEdge(ctx, key, func(edge *ServiceGraphEdge) {
-			edge.ProjectID = span.ProjectID
-			edge.Type = edgeType
-			edge.ClientName = clientName
-			edge.ServerAttr = serverAttr
-			edge.ServerName = serverName
-			edge.Time = span.Time.Truncate(time.Minute)
-			edge.DeploymentEnvironment = span.DeploymentEnvironment
-			edge.ServiceNamespace = span.ServiceNamespace
-			edge.SetClientDuration(span)
-
+			if edgeType != EdgeTypeUnset {
+				edge.Type = edgeType
+			}
+			edge.FillFrom(span)
 		})
 		return nil
 	case SpanKindConsumer:
@@ -156,35 +188,10 @@ func (p *ServiceGraphProcessor) ProcessSpan(
 			SpanID:  span.ParentID,
 		}
 		p.store(span.TraceID).WithEdge(ctx, key, func(edge *ServiceGraphEdge) {
-			edge.ProjectID = span.ProjectID
-			edge.SetServerDuration(span)
-
-			if edge.Type == "" {
+			if edgeType != EdgeTypeUnset {
 				edge.Type = edgeType
 			}
-			if span.ParentID == 0 {
-				edge.Time = span.Time.Truncate(time.Minute)
-				switch span.Type {
-				case SpanTypeHTTPServer:
-					edge.ClientName = "<browser>"
-				case SpanTypeRPC:
-					edge.ClientName = "<external-rpc>"
-				case SpanTypeMessaging:
-					edge.ClientName = "<external-producer>"
-				default:
-					edge.ClientName = "<external-client>"
-				}
-				edge.DeploymentEnvironment = span.DeploymentEnvironment
-				edge.ServiceNamespace = span.ServiceNamespace
-				edge.SetClientDuration(span)
-			}
-
-			if span.ServiceName != "" {
-				edge.ServerName = span.ServiceName
-			} else {
-				edge.ServerName = span.System
-				edge.ServerAttr = attrkey.SpanSystem
-			}
+			edge.FillFrom(span)
 		})
 		return nil
 	default:
@@ -192,72 +199,109 @@ func (p *ServiceGraphProcessor) ProcessSpan(
 	}
 }
 
-func serviceGraphServerNode(span *SpanIndex) (clientName, serverAttr, serverName string) {
-	clientName = span.ServiceName
-
+func serviceGraphNode(
+	span *SpanIndex,
+) (clientAttr, clientName, serverAttr, serverName string) {
 	switch span.Type {
-	case SpanTypeRPC:
-		if span.RPCService != "" {
-			serverAttr = attrkey.RPCService
-			serverName = span.RPCService
-			return clientName, serverAttr, serverName
+	case TypeSpanRPC:
+		switch span.Kind {
+		case SpanKindClient:
+			clientAttr = attrkey.ServiceName
+			clientName = span.ServiceName
+			return clientAttr, clientName, "", ""
+		case SpanKindServer:
+			if span.ParentID == 0 {
+				clientName = "<rpc-client>"
+			}
+			if span.RPCService != "" {
+				serverAttr = attrkey.RPCService
+				serverName = span.RPCService
+				return clientAttr, clientName, serverAttr, serverName
+			}
+			if span.ServiceName != "" {
+				serverAttr = attrkey.ServiceName
+				serverName = span.ServiceName
+				return clientAttr, clientName, serverAttr, serverName
+			}
 		}
 
-	case SpanTypeDB:
+	case TypeSpanDB:
+		switch span.Kind {
+		case SpanKindClient:
+			clientAttr = attrkey.ServiceName
+			clientName = span.ServiceName
+		case SpanKindServer:
+			if span.ParentID == 0 {
+				clientName = "<db-client>"
+			}
+		}
+
 		if span.DBName != "" {
 			serverAttr = attrkey.DBName
 			serverName = span.DBName
-			return clientName, serverAttr, serverName
+			return clientAttr, clientName, serverAttr, serverName
 		}
+
 		serverAttr = attrkey.SpanSystem
 		serverName = span.System
-		return clientName, serverAttr, serverName
+		return clientAttr, clientName, serverAttr, serverName
 
-	case SpanTypeHTTPServer:
-		if val := span.Attrs.GetAsLCString(attrkey.ServerSocketDomain); val != "" {
+	case TypeSpanHTTPServer:
+		if span.ParentID == 0 {
+			clientName = "<http-client>"
+		}
+		if domain := span.Attrs.GetAsLCString(attrkey.ServerSocketDomain); domain != "" {
 			serverAttr = attrkey.ServerSocketDomain
-			serverName = val
-			return clientName, serverAttr, serverName
+			serverName = domain
+			return clientAttr, clientName, serverAttr, serverName
 		}
-		if val := span.Attrs.GetAsLCString(attrkey.ServerSocketAddress); val != "" {
+		if addr := span.Attrs.GetAsLCString(attrkey.ServerSocketAddress); addr != "" {
 			serverAttr = attrkey.ServerSocketAddress
-			serverName = val
-			return clientName, serverAttr, serverName
+			serverName = addr
+			return clientAttr, clientName, serverAttr, serverName
+		}
+		if span.ServiceName != "" {
+			serverAttr = attrkey.ServiceName
+			serverName = span.ServiceName
+			return clientAttr, clientName, serverAttr, serverName
 		}
 
-	case SpanTypeMessaging:
+	case TypeSpanMessaging:
 		switch span.Kind {
 		case SpanKindProducer:
+			clientAttr = attrkey.ServiceName
+			clientName = span.ServiceName
 			if clientName == "" {
+				clientAttr = attrkey.MessagingClientID
 				clientName = span.Attrs.GetAsLCString(attrkey.MessagingClientID)
 			}
 			serverAttr = attrkey.MessagingDestinationName
 			serverName = span.Attrs.GetAsLCString(serverAttr)
 			if serverName != "" {
-				return clientName, serverAttr, serverName
+				return clientAttr, clientName, serverAttr, serverName
 			}
 
 		case SpanKindConsumer:
 			if dest := span.Attrs.GetAsLCString(attrkey.MessagingDestinationName); dest != "" {
+				clientAttr = attrkey.MessagingDestinationName
 				clientName = dest
 			}
 			serverAttr = attrkey.MessagingKafkaConsumerGroup
 			serverName = span.Attrs.GetAsLCString(serverAttr)
 			if serverName != "" {
-				return clientName, serverAttr, serverName
+				return clientAttr, clientName, serverAttr, serverName
 			}
 		}
-
 	}
 
-	return "", "", ""
+	return "", "", "", ""
 }
 
 func edgeTypeFromSpanType(spanType string) EdgeType {
 	switch spanType {
-	case SpanTypeHTTPClient, SpanTypeHTTPServer:
+	case TypeSpanHTTPClient, TypeSpanHTTPServer:
 		return EdgeTypeHTTP
-	case SpanTypeDB:
+	case TypeSpanDB:
 		return EdgeTypeDB
 	default:
 		return EdgeTypeUnset

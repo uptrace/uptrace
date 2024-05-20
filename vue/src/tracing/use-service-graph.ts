@@ -28,11 +28,12 @@ export interface ServiceGraphEdge extends ServiceGraphStats {
   type: EdgeType
 
   clientId: string
+  clientAttr: string
   clientName: string
 
   serverId: string
-  serverName: string
   serverAttr: string
+  serverName: string
 }
 
 export enum EdgeType {
@@ -68,6 +69,11 @@ export function useServiceGraph(axiosParamsSource: AxiosParamsSource) {
   const edges = computed((): ServiceGraphEdge[] => {
     const edges: ServiceGraphEdge[] = data.value?.edges ?? []
     return edges.map((edge) => {
+      let clientId = edge.clientName
+      if (edge.clientAttr && edge.clientAttr !== AttrKey.spanSystem) {
+        clientId = edge.clientAttr + '=' + edge.clientName
+      }
+
       let serverId = edge.serverName
       if (edge.serverAttr && edge.serverAttr !== AttrKey.spanSystem) {
         serverId = edge.serverAttr + '=' + edge.serverName
@@ -75,7 +81,7 @@ export function useServiceGraph(axiosParamsSource: AxiosParamsSource) {
 
       return {
         ...edge,
-        clientId: edge.clientName,
+        clientId,
         serverId,
       }
     })

@@ -23,9 +23,10 @@ func NewServiceGraphHandler(app *bunapp.App) *ServiceGraphHandler {
 
 type ServiceGraphLink struct {
 	Type       string `json:"type"`
+	ClientAttr string `json:"clientAttr"`
 	ClientName string `json:"clientName"`
-	ServerName string `json:"serverName"`
 	ServerAttr string `json:"serverAttr"`
+	ServerName string `json:"serverName"`
 	ServiceGraphStats
 }
 
@@ -85,24 +86,21 @@ func (h *ServiceGraphHandler) List(w http.ResponseWriter, req bunrouter.Request)
 	q := h.CH.NewSelect().
 		Model((*ServiceGraphEdge)(nil)).
 		ColumnExpr("e.type").
+		ColumnExpr("e.client_attr").
 		ColumnExpr("e.client_name").
+		ColumnExpr("e.server_attr").
 		ColumnExpr("e.server_name").
-		ColumnExpr("any(e.server_attr) AS server_attr").
-		// Use client duration since it is always present.
-		ColumnExpr("min(e.client_duration_min) AS duration_min").
-		ColumnExpr("max(e.client_duration_max) AS duration_max").
-		ColumnExpr("sum(e.client_duration_sum) AS duration_sum").
+		ColumnExpr("min(if(e.client_duration_min > 0, e.client_duration_min, e.server_duration_min)) AS duration_min").
+		ColumnExpr("max(if(e.client_duration_max > 0, e.client_duration_max, e.server_duration_max)) AS duration_max").
+		ColumnExpr("sum(if(e.client_duration_sum > 0, e.client_duration_sum, e.server_duration_sum)) AS duration_sum").
 		ColumnExpr("sum(e.count) AS count").
 		ColumnExpr("sum(e.count) / ? AS rate", minutes).
 		ColumnExpr("sum(e.error_count) AS error_count").
 		Where("e.project_id = ?", f.ProjectID).
 		Where("e.time >= ?", f.TimeGTE).
 		Where("e.time < ?", f.TimeLT).
-		GroupExpr("e.type, e.client_name, e.server_name")
+		GroupExpr("e.type, e.client_attr, e.client_name, e.server_attr, e.server_name")
 
-	// if len(f.System) > 0 {
-	// 	q = q.Where("e.client_name IN ?0 OR e.server_name IN ?0", ch.In(f.System))
-	// }
 	if len(envs) > 0 {
 		q = q.Where("e.deployment_environment IN ?0", ch.In(envs))
 	}

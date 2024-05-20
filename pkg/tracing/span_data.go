@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -24,7 +25,7 @@ type SpanData struct {
 	Data      []byte
 }
 
-func (sd *SpanData) Span() (*Span, error) {
+func (sd *SpanData) FilledSpan() (*Span, error) {
 	span := new(Span)
 	if err := sd.Decode(span); err != nil {
 		return nil, err
@@ -42,7 +43,6 @@ func (sd *SpanData) Decode(span *Span) error {
 	span.ID = sd.ID
 	span.ParentID = sd.ParentID
 	span.Time = sd.Time
-	span.DurationSelf = span.Duration
 
 	span.Type = span.System
 	if i := strings.IndexByte(span.Type, ':'); i >= 0 {
@@ -62,54 +62,61 @@ func initSpanData(data *SpanData, span *Span) {
 	data.Data = marshalSpanData(span)
 }
 
-func SelectSpan(ctx context.Context, app *bunapp.App, span *Span) error {
-	var data SpanData
+func SelectSpan(
+	ctx context.Context,
+	app *bunapp.App,
+	projectID uint32,
+	traceID idgen.TraceID,
+	spanID idgen.SpanID,
+) (*Span, error) {
+	var spans []*SpanData
 
-	baseq := app.CH.NewSelect().
+	selq := app.CH.NewSelect().
 		ColumnExpr("project_id, trace_id, id, parent_id, time, data").
-		Model(&data).
-		Where("trace_id = ?", span.TraceID)
+		Model(&spans).
+		Where("project_id = ?", projectID).
+		Where("trace_id = ?", traceID)
 
-	if span.ProjectID != 0 {
-		baseq = baseq.Where("project_id = ?", span.ProjectID)
+	if spanID != 0 {
+		selq.Where("id = ? OR parent_id = ?", spanID, spanID)
+	} else {
+		selq.Where("id = 0").Limit(1)
 	}
 
-	q := baseq.Clone().Limit(1)
-	if span.ID != 0 {
-		q = q.Where("id = ?", span.ID)
-	}
-	if err := q.Scan(ctx); err != nil {
-		return err
+	if err := selq.Scan(ctx); err != nil {
+		return nil, err
 	}
 
-	if err := data.Decode(span); err != nil {
-		return err
-	}
+	var found *Span
 
-	if span.IsEvent() {
-		return nil
-	}
-
-	var events []*SpanData
-
-	if err := baseq.Clone().
-		Where("type IN ?", ch.In(LogAndEventTypes)).
-		Where("parent_id = ?", span.ID).
-		OrderExpr("time ASC").
-		Limit(100).
-		Scan(ctx, &events); err != nil {
-		return err
-	}
-
-	for _, eventData := range events {
-		event := new(Span)
-		if err := eventData.Decode(event); err != nil {
-			return err
+	for i := len(spans) - 1; i >= 0; i-- {
+		sd := spans[i]
+		if sd.ID == spanID {
+			span, err := sd.FilledSpan()
+			if err != nil {
+				return nil, err
+			}
+			found = span
+			spans = append(spans[:i], spans[i+1:]...)
+			break
 		}
-		span.AddEvent(event.Event())
 	}
 
-	return nil
+	if found == nil {
+		return nil, sql.ErrNoRows
+	}
+
+	for _, sd := range spans {
+		span, err := sd.FilledSpan()
+		if err != nil {
+			return nil, err
+		}
+		if span.IsEvent() {
+			found.Events = append(found.Events, span.Event())
+		}
+	}
+
+	return found, nil
 }
 
 func SelectTraceSpans(

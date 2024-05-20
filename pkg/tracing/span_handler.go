@@ -16,6 +16,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 	"go4.org/syncutil"
@@ -29,6 +30,13 @@ func NewSpanHandler(app *bunapp.App) *SpanHandler {
 	return &SpanHandler{
 		App: app,
 	}
+}
+
+type SpanIdentity struct {
+	ProjectID uint32
+	TraceID   idgen.TraceID
+	ID        idgen.SpanID
+	Time      time.Time
 }
 
 func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) error {
@@ -46,7 +54,7 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 
 	q, _ := BuildSpanIndexQuery(h.App.CH, f, f.TimeFilter.Duration())
 	q = q.
-		ColumnExpr("id, trace_id").
+		ColumnExpr("project_id, trace_id, id").
 		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
 			if f.SortBy == "" {
 				f.SortBy = attrkey.SpanTime
@@ -60,29 +68,28 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 		Limit(10).
 		Offset(f.Pager.GetOffset())
 
-	spans := make([]*Span, 0)
-
-	count, err := q.ScanAndCount(ctx, &spans)
+	ids := make([]SpanIdentity, 0)
+	count, err := q.ScanAndCount(ctx, &ids)
 	if err != nil {
 		return err
 	}
 
+	spans := make([]*Span, len(ids))
 	var group syncutil.Group
 
-	for i, span := range spans {
-		i := i
-		span := span
+	for i := range ids {
+		id := &ids[i]
 
 		group.Go(func() error {
-			switch err := SelectSpan(ctx, h.App, span); err {
-			case nil:
-				return nil
-			case sql.ErrNoRows:
-				spans[i] = nil
-				return nil
-			default:
+			span, err := SelectSpan(ctx, h.App, id.ProjectID, id.TraceID, id.ID)
+			if err != nil {
+				if err == sql.ErrNoRows {
+					return nil
+				}
 				return err
 			}
+			spans[i] = span
+			return nil
 		})
 	}
 

@@ -1,27 +1,29 @@
 package tracing
 
+import "slices"
+
 const emptyPlaceholder = "<empty>"
 
 const (
-	SpanTypeFuncs      = "funcs"
-	SpanTypeHTTPServer = "httpserver"
-	SpanTypeHTTPClient = "httpclient"
-	SpanTypeDB         = "db"
-	SpanTypeRPC        = "rpc"
-	SpanTypeMessaging  = "messaging"
-	SpanTypeFAAS       = "faas"
+	TypeSpanFuncs      = "funcs"
+	TypeSpanHTTPServer = "httpserver"
+	TypeSpanHTTPClient = "httpclient"
+	TypeSpanDB         = "db"
+	TypeSpanRPC        = "rpc"
+	TypeSpanMessaging  = "messaging"
+	TypeSpanFAAS       = "faas"
 
-	EventTypeLog     = "log"
-	EventTypeMessage = "message"
-	EventTypeOther   = "other-events"
+	TypeLog          = "log"
+	TypeEventMessage = "message"
+	TypeEventOther   = "other-events"
 )
 
 const (
 	SystemUnknown = "unknown"
 
 	SystemAll       = "all"
-	SystemEventsAll = "events:all"
 	SystemSpansAll  = "spans:all"
+	SystemEventsAll = "events:all"
 
 	SystemLogAll   = "log:all"
 	SystemLogError = "log:error"
@@ -36,11 +38,24 @@ const (
 	otelEventError     = "error"
 )
 
+var spanTypeEnum = []string{
+	TypeSpanFuncs,
+	TypeSpanHTTPServer,
+	TypeSpanDB,
+	TypeSpanRPC,
+	TypeSpanMessaging,
+	TypeSpanFAAS,
+	TypeSpanHTTPClient,
+
+	TypeLog,
+	TypeEventMessage,
+	TypeEventOther,
+}
+
 var (
-	EventTypes       = []string{EventTypeMessage, EventTypeOther}
-	LogAndEventTypes = []string{EventTypeLog, EventTypeMessage, EventTypeOther}
-	ErrorTypes       = []string{EventTypeLog}
-	ErrorSystems     = []string{SystemLogError, SystemLogFatal, SystemLogPanic}
+	LogTypes   = []string{TypeLog}
+	EventTypes = []string{TypeEventMessage, TypeEventOther}
+	SpanTypes  []string // filled in init
 )
 
 const (
@@ -56,3 +71,15 @@ const (
 	SpanKindProducer = "producer"
 	SpanKindConsumer = "consumer"
 )
+
+func init() {
+	for _, typ := range spanTypeEnum {
+		if slices.Contains(LogTypes, typ) {
+			continue
+		}
+		if slices.Contains(EventTypes, typ) {
+			continue
+		}
+		SpanTypes = append(SpanTypes, typ)
+	}
+}

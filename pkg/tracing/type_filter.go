@@ -62,7 +62,9 @@ func (f *TypeFilter) systemFilter(q *ch.SelectQuery) *ch.SelectQuery {
 			case "", SystemAll:
 				// nothing
 			case SystemSpansAll:
-				q = q.WhereOr("s.type NOT IN ?", ch.In(LogAndEventTypes))
+				q = q.WhereOr("s.type IN ?", ch.In(SpanTypes))
+			case SystemLogAll:
+				q = q.WhereOr("s.type IN ?", ch.In(LogTypes))
 			case SystemEventsAll:
 				q = q.WhereOr("s.type IN ?", ch.In(EventTypes))
 			default:

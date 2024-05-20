@@ -131,19 +131,29 @@ func (s *Span) TreeEndTime() time.Time {
 }
 
 var (
-	walkBreak    = errors.New("break")
-	walkContinue = errors.New("continue")
+	walkBreak     = errors.New("BREAK")
+	walkNextChild = errors.New("NEXT-CHILD")
 )
 
 func (s *Span) Walk(fn func(child, parent *Span) error) error {
+	if err := fn(s, nil); err != nil {
+		if err != walkBreak {
+			return err
+		}
+		return nil
+	}
+	return s.walkChildren(fn)
+}
+
+func (s *Span) walkChildren(fn func(child, parent *Span) error) error {
 	for _, child := range s.Children {
 		if err := fn(child, s); err != nil {
-			if err == walkContinue {
+			if err == walkNextChild {
 				continue
 			}
 			return err
 		}
-		if err := child.Walk(fn); err != nil {
+		if err := child.walkChildren(fn); err != nil {
 			return err
 		}
 	}
@@ -156,40 +166,6 @@ func (s *Span) AddChild(child *Span) {
 
 func (s *Span) AddEvent(event *SpanEvent) {
 	s.Events = append(s.Events, event)
-}
-
-func (s *Span) UpdateDurationSelf(child *Span, prevEndTime time.Time) {
-	spanEndTime := s.EndTime()
-	childEndTime := child.EndTime()
-
-	if child.Time.After(spanEndTime) {
-		return
-	}
-
-	startTime := maxTime(child.Time, prevEndTime)
-	endTime := minTime(childEndTime, spanEndTime)
-	if endTime.After(startTime) {
-		dur := endTime.Sub(startTime)
-		if dur < s.DurationSelf {
-			s.DurationSelf -= dur
-		} else {
-			s.DurationSelf = 0
-		}
-	}
-}
-
-func maxTime(a, b time.Time) time.Time {
-	if b.Before(a) {
-		return a
-	}
-	return b
-}
-
-func minTime(a, b time.Time) time.Time {
-	if b.Before(a) {
-		return b
-	}
-	return a
 }
 
 //------------------------------------------------------------------------------
@@ -249,8 +225,8 @@ func newFakeRoot(sample *Span) *Span {
 		TraceID: sample.TraceID,
 
 		ProjectID: sample.ProjectID,
-		Type:      SpanTypeFuncs,
-		System:    SpanTypeFuncs + ":" + SystemUnknown,
+		Type:      TypeSpanFuncs,
+		System:    TypeSpanFuncs + ":" + SystemUnknown,
 		Kind:      SpanKindInternal,
 
 		Name:        "unknown",
@@ -272,9 +248,9 @@ func isEventSystem(s string) bool {
 		s = s[:idx]
 	}
 	switch s {
-	case EventTypeOther,
-		EventTypeLog,
-		EventTypeMessage:
+	case TypeEventOther,
+		TypeLog,
+		TypeEventMessage:
 		return true
 	default:
 		return false

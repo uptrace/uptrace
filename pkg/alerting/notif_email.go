@@ -154,12 +154,10 @@ func (n *EmailNotifier) notifyOnErrorAlert(
 ) error {
 	const tplName = "error_alert.html"
 
-	span := &tracing.Span{
-		ProjectID: alert.ProjectID,
-		TraceID:   alert.Event.Params.TraceID,
-		ID:        alert.Event.Params.SpanID,
-	}
-	if err := tracing.SelectSpan(ctx, app, span); err != nil {
+	span, err := tracing.SelectSpan(
+		ctx, app, alert.ProjectID, alert.Event.Params.TraceID, alert.Event.Params.SpanID,
+	)
+	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil
 		}

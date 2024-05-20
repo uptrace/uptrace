@@ -10,6 +10,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/idgen"
+	"github.com/uptrace/uptrace/pkg/org"
 	"golang.org/x/exp/slices"
 )
 
@@ -31,19 +32,24 @@ func (h *TraceHandler) FindTrace(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	span := &Span{
-		TraceID: traceID,
-	}
-	if err := SelectSpan(ctx, h.App, span); err != nil {
+	var projectID uint32
+	var spanID idgen.SpanID
+	if err := h.CH.NewSelect().
+		Model((*SpanData)(nil)).
+		ColumnExpr("project_id, id").
+		Where("trace_id = ?", traceID).
+		OrderExpr("id DESC").
+		Limit(1).
+		Scan(ctx, &projectID, &spanID); err != nil {
 		return err
 	}
 
 	return httputil.JSON(w, bunrouter.H{
 		"span": map[string]any{
-			"projectId":  span.ProjectID,
-			"traceId":    span.TraceID,
-			"id":         span.ID,
-			"standalone": span.Standalone,
+			"projectId":  projectID,
+			"traceId":    traceID,
+			"id":         spanID,
+			"standalone": spanID == 0,
 		},
 	})
 }
@@ -66,7 +72,6 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 	}
 
 	root, numSpan := buildSpanTree(spans)
-	traceInfo := NewTraceInfo(root)
 
 	if rootSpanIDStr := req.URL.Query().Get("root_span_id"); rootSpanIDStr != "" {
 		rootSpanID, err := idgen.ParseSpanID(rootSpanIDStr)
@@ -84,17 +89,11 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 		})
 	}
 
+	traceInfo := NewTraceInfo(root)
 	_ = root.Walk(func(span, parent *Span) error {
-		span.StartPct = spanPct(traceInfo, span.Time)
-		span.EndPct = spanPct(traceInfo, span.EndTime())
-
-		prevEndTime := span.Time
-		for _, child := range span.Children {
-			span.UpdateDurationSelf(child, prevEndTime)
-			if endTime := child.EndTime(); endTime.After(prevEndTime) {
-				prevEndTime = endTime
-			}
-		}
+		setSpanSelfDuration(span)
+		span.StartPct = traceInfo.spanPct(span.Time)
+		span.EndPct = traceInfo.spanPct(span.EndTime())
 
 		slices.SortFunc(span.Children, func(a, b *Span) int {
 			return cmp.Compare(a.Time.UnixNano(), b.Time.UnixNano())
@@ -114,8 +113,54 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 	})
 }
 
+func setSpanSelfDuration(span *Span) {
+	span.DurationSelf = span.Duration
+	prevEndTime := span.Time
+	for _, child := range span.Children {
+		updateSpanSelfDuration(span, child, prevEndTime)
+		if endTime := child.EndTime(); endTime.After(prevEndTime) {
+			prevEndTime = endTime
+		}
+	}
+}
+
+func updateSpanSelfDuration(parent, child *Span, prevEndTime time.Time) {
+	spanEndTime := parent.EndTime()
+	childEndTime := child.EndTime()
+
+	if child.Time.After(spanEndTime) {
+		return
+	}
+
+	startTime := maxTime(child.Time, prevEndTime)
+	endTime := minTime(childEndTime, spanEndTime)
+	if endTime.After(startTime) {
+		dur := endTime.Sub(startTime)
+		if dur < parent.DurationSelf {
+			parent.DurationSelf -= dur
+		} else {
+			parent.DurationSelf = 0
+		}
+	}
+}
+
+func maxTime(a, b time.Time) time.Time {
+	if b.Before(a) {
+		return a
+	}
+	return b
+}
+
+func minTime(a, b time.Time) time.Time {
+	if b.Before(a) {
+		return b
+	}
+	return a
+}
+
 func (h *TraceHandler) ShowSpan(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
+	project := org.ProjectFromContext(ctx)
 
 	traceID, err := idgen.ParseTraceID(req.Param("trace_id"))
 	if err != nil {
@@ -127,11 +172,8 @@ func (h *TraceHandler) ShowSpan(w http.ResponseWriter, req bunrouter.Request) er
 		return err
 	}
 
-	span := new(Span)
-	span.ID = spanID
-	span.TraceID = traceID
-
-	if err := SelectSpan(ctx, h.App, span); err != nil {
+	span, err := SelectSpan(ctx, h.App, project.ID, traceID, spanID)
+	if err != nil {
 		return err
 	}
 
@@ -157,7 +199,7 @@ func NewTraceInfo(root *Span) *TraceInfo {
 	}
 }
 
-func spanPct(trace *TraceInfo, spanTime time.Time) float32 {
+func (trace *TraceInfo) spanPct(spanTime time.Time) float32 {
 	if trace.Duration == 0 {
 		return 0
 	}

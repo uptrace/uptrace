@@ -327,8 +327,8 @@ func isSQLKeyword(s string) bool {
 
 func (p *spanProcessorThread) assignSpanSystemAndGroupID(project *org.Project, span *Span) {
 	if s := span.Attrs.Text(attrkey.RPCSystem); s != "" {
-		span.Type = SpanTypeRPC
-		span.System = SpanTypeRPC + ":" + span.Attrs.ServiceNameOrUnknown()
+		span.Type = TypeSpanRPC
+		span.System = TypeSpanRPC + ":" + span.Attrs.ServiceNameOrUnknown()
 		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 			hashSpan(project, digest, span,
 				attrkey.RPCSystem,
@@ -340,8 +340,8 @@ func (p *spanProcessorThread) assignSpanSystemAndGroupID(project *org.Project, s
 	}
 
 	if s := span.Attrs.Text(attrkey.MessagingSystem); s != "" {
-		span.Type = SpanTypeMessaging
-		span.System = SpanTypeMessaging + ":" + s
+		span.Type = TypeSpanMessaging
+		span.System = TypeSpanMessaging + ":" + s
 		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 			hashSpan(project, digest, span,
 				attrkey.MessagingSystem,
@@ -359,8 +359,8 @@ func (p *spanProcessorThread) assignSpanSystemAndGroupID(project *org.Project, s
 			dbSystem = "unknown_db"
 		}
 
-		span.Type = SpanTypeDB
-		span.System = SpanTypeDB + ":" + dbSystem
+		span.Type = TypeSpanDB
+		span.System = TypeSpanDB + ":" + dbSystem
 		stmt, _ := span.Attrs[attrkey.DBStatement].(string)
 
 		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
@@ -379,9 +379,9 @@ func (p *spanProcessorThread) assignSpanSystemAndGroupID(project *org.Project, s
 		span.Attrs.Exists(attrkey.HTTPRequestMethod) ||
 		span.Attrs.Exists(attrkey.HTTPResponseStatusCode) {
 		if span.Kind == SpanKindClient {
-			span.Type = SpanTypeHTTPClient
+			span.Type = TypeSpanHTTPClient
 		} else {
-			span.Type = SpanTypeHTTPServer
+			span.Type = TypeSpanHTTPServer
 		}
 		span.System = span.Type + ":" + span.Attrs.ServiceNameOrUnknown()
 		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
@@ -391,12 +391,12 @@ func (p *spanProcessorThread) assignSpanSystemAndGroupID(project *org.Project, s
 		return
 	}
 
-	span.Type = SpanTypeFuncs
+	span.Type = TypeSpanFuncs
 	if project.GroupFuncsByService {
 		service := span.Attrs.ServiceNameOrUnknown()
-		span.System = SpanTypeFuncs + ":" + service
+		span.System = TypeSpanFuncs + ":" + service
 	} else {
-		span.System = SpanTypeFuncs
+		span.System = TypeSpanFuncs
 	}
 	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 		hashSpan(project, digest, span)
@@ -527,8 +527,8 @@ func (p *spanProcessorThread) assignEventSystemAndGroupID(project *org.Project, 
 		return
 	case otelEventMessage:
 		system := eventMessageSystem(span)
-		span.Type = EventTypeMessage
-		span.System = EventTypeMessage + ":" + system
+		span.Type = TypeEventMessage
+		span.System = TypeEventMessage + ":" + system
 		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 			hashSpan(project, digest, span,
 				attrkey.RPCSystem,
@@ -551,8 +551,8 @@ func (p *spanProcessorThread) assignEventSystemAndGroupID(project *org.Project, 
 		return
 	}
 
-	span.Type = EventTypeOther
-	span.System = EventTypeOther
+	span.Type = TypeEventOther
+	span.System = TypeEventOther
 	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 		hashSpan(project, digest, span)
 	})
@@ -561,8 +561,8 @@ func (p *spanProcessorThread) assignEventSystemAndGroupID(project *org.Project, 
 
 func (p *spanProcessorThread) handleLogEvent(project *org.Project, span *Span) {
 	sev, _ := span.Attrs[attrkey.LogSeverity].(string)
-	span.Type = EventTypeLog
-	span.System = EventTypeLog + ":" + lowerSeverity(sev)
+	span.Type = TypeLog
+	span.System = TypeLog + ":" + lowerSeverity(sev)
 	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 		hashSpan(project, digest, span,
 			attrkey.LogSeverity,
@@ -596,7 +596,7 @@ func lowerSeverity(sev string) string {
 }
 
 func (p *spanProcessorThread) handleExceptionEvent(project *org.Project, span *Span) {
-	span.Type = EventTypeLog
+	span.Type = TypeLog
 	span.System = SystemLogError
 	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 		hashSpan(project, digest, span, attrkey.ExceptionType)
