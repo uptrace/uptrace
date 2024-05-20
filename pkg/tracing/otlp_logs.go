@@ -18,6 +18,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
+	"github.com/uptrace/uptrace/pkg/tracing/norm"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
@@ -200,6 +201,9 @@ func (p *otlpLogProcessor) processLogRecord(resource AttrMap, lr *logspb.LogReco
 
 	if lr.SeverityText != "" {
 		span.Attrs[attrkey.LogSeverity] = lr.SeverityText
+	} else if lr.SeverityNumber > 0 {
+		sev := p.severityFromNumber(int32(lr.SeverityNumber))
+		span.Attrs[attrkey.LogSeverity] = sev
 	}
 	if lr.Body.Value != nil {
 		p.processLogRecordBody(span, lr.Body.Value)
@@ -212,6 +216,61 @@ func (p *otlpLogProcessor) processLogRecord(resource AttrMap, lr *logspb.LogReco
 	}
 
 	return span
+}
+
+func (p *otlpLogProcessor) severityFromNumber(num int32) string {
+	switch num {
+	case 1:
+		return norm.SeverityTrace
+	case 2:
+		return norm.SeverityTrace2
+	case 3:
+		return norm.SeverityTrace3
+	case 4:
+		return norm.SeverityTrace4
+	case 5:
+		return norm.SeverityDebug
+	case 6:
+		return norm.SeverityDebug2
+	case 7:
+		return norm.SeverityDebug3
+	case 8:
+		return norm.SeverityDebug4
+	case 9:
+		return norm.SeverityInfo
+	case 10:
+		return norm.SeverityInfo2
+	case 11:
+		return norm.SeverityInfo3
+	case 12:
+		return norm.SeverityInfo4
+	case 13:
+		return norm.SeverityWarn
+	case 14:
+		return norm.SeverityWarn2
+	case 15:
+		return norm.SeverityWarn3
+	case 16:
+		return norm.SeverityWarn4
+	case 17:
+		return norm.SeverityError
+	case 18:
+		return norm.SeverityError2
+	case 19:
+		return norm.SeverityError3
+	case 20:
+		return norm.SeverityError4
+	case 21:
+		return norm.SeverityFatal
+	case 22:
+		return norm.SeverityFatal2
+	case 23:
+		return norm.SeverityFatal3
+	case 24:
+		return norm.SeverityFatal4
+	default:
+		return norm.SeverityError
+	}
 }
 
 func minNonZero(u1, u2 uint64) uint64 {

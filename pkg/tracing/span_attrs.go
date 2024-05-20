@@ -13,13 +13,13 @@ import (
 	ua "github.com/mileusna/useragent"
 	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/logparser"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"github.com/uptrace/uptrace/pkg/sqlparser"
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
+	"github.com/uptrace/uptrace/pkg/tracing/norm"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/utf8util"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
@@ -52,7 +52,7 @@ func (p *spanProcessorThread) initSpanOrEvent(ctx context.Context, span *Span) {
 }
 
 func (p *spanProcessorThread) processAttrs(span *Span) {
-	normAttrs(span.Attrs)
+	normalizeAttrs(span.Attrs)
 
 	if msg, _ := span.Attrs[attrkey.LogMessage].(string); msg != "" {
 		p.parseLogMessage(span, msg)
@@ -76,9 +76,14 @@ func (p *spanProcessorThread) processAttrs(span *Span) {
 		span.Time = time.Now()
 	}
 
-	if span.EventName == otelEventLog {
+	switch span.EventName {
+	case otelEventLog:
 		if _, ok := span.Attrs[attrkey.LogSeverity]; !ok {
-			span.Attrs[attrkey.LogSeverity] = bunotel.InfoSeverity
+			span.Attrs[attrkey.LogSeverity] = norm.SeverityInfo
+		}
+	case otelEventException:
+		if _, ok := span.Attrs[attrkey.LogSeverity]; !ok {
+			span.Attrs[attrkey.LogSeverity] = norm.SeverityError
 		}
 	}
 }
@@ -245,7 +250,7 @@ var attrNames = []AttrName{
 	},
 }
 
-func normAttrs(attrs AttrMap) {
+func normalizeAttrs(attrs AttrMap) {
 	for _, name := range attrNames {
 		if _, ok := attrs[name.Canonical]; ok {
 			continue
@@ -556,12 +561,8 @@ func (p *spanProcessorThread) assignEventSystemAndGroupID(project *org.Project, 
 
 func (p *spanProcessorThread) handleLogEvent(project *org.Project, span *Span) {
 	sev, _ := span.Attrs[attrkey.LogSeverity].(string)
-	if sev == "" {
-		sev = bunotel.InfoSeverity
-	}
-
 	span.Type = EventTypeLog
-	span.System = EventTypeLog + ":" + strings.ToLower(sev)
+	span.System = EventTypeLog + ":" + lowerSeverity(sev)
 	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 		hashSpan(project, digest, span,
 			attrkey.LogSeverity,
@@ -571,6 +572,27 @@ func (p *spanProcessorThread) handleLogEvent(project *org.Project, span *Span) {
 		}
 	})
 	span.DisplayName = logDisplayName(span)
+}
+
+func lowerSeverity(sev string) string {
+	switch sev {
+	case norm.SeverityTrace, norm.SeverityTrace2, norm.SeverityTrace3, norm.SeverityTrace4:
+		return "trace"
+	case norm.SeverityDebug, norm.SeverityDebug2, norm.SeverityDebug3, norm.SeverityDebug4:
+		return "debug"
+	case norm.SeverityInfo, norm.SeverityInfo2, norm.SeverityInfo3, norm.SeverityInfo4:
+		return "info"
+	case norm.SeverityWarn, norm.SeverityWarn2, norm.SeverityWarn3, norm.SeverityWarn4:
+		return "warn"
+	case norm.SeverityError, norm.SeverityError2, norm.SeverityError3, norm.SeverityError4:
+		return "error"
+	case norm.SeverityFatal, norm.SeverityFatal2, norm.SeverityFatal3, norm.SeverityFatal4:
+		return "fatal"
+	case norm.SeverityPanic, norm.SeverityPanic2, norm.SeverityPanic3, norm.SeverityPanic4:
+		return "panic"
+	default:
+		return "error"
+	}
 }
 
 func (p *spanProcessorThread) handleExceptionEvent(project *org.Project, span *Span) {
