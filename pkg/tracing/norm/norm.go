@@ -29,10 +29,6 @@ const (
 	SeverityFatal2 = "FATAL2"
 	SeverityFatal3 = "FATAL3"
 	SeverityFatal4 = "FATAL4"
-	SeverityPanic  = "PANIC"
-	SeverityPanic2 = "PANIC2"
-	SeverityPanic3 = "PANIC3"
-	SeverityPanic4 = "PANIC4"
 )
 
 func LogSeverity(s string) string {
@@ -93,12 +89,6 @@ func logSeverity(s string) string {
 		return SeverityFatal3
 	case "fatal4":
 		return SeverityFatal4
-	case "panic2":
-		return SeverityPanic2
-	case "panic3":
-		return SeverityPanic3
-	case "panic4":
-		return SeverityPanic4
 
 	default:
 		return ""

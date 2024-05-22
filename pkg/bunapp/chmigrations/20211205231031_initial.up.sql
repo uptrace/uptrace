@@ -99,13 +99,29 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE OR REPLACE TABLE spans_index_buffer ?ON_CLUSTER AS spans_index
-ENGINE = Buffer(currentDatabase(), spans_index, 3, 5, 10, 10000, 1000000, 10000000, 100000000)
+DROP TABLE IF EXISTS spans_index_buffer ?ON_CLUSTER
 
 --migration:split
 
-CREATE OR REPLACE TABLE spans_data_buffer ?ON_CLUSTER AS spans_data
-ENGINE = Buffer(currentDatabase(), spans_data, 3, 5, 10, 10000, 1000000, 10000000, 100000000)
+CREATE TABLE spans_index_buffer ?ON_CLUSTER AS spans_index
+ENGINE = Buffer(currentDatabase(), spans_index,
+  5,
+  5, 45,
+  1_000_000, 1_000_000,
+  500_000_000, 500_000_000)
+
+--migration:split
+
+DROP TABLE IF EXISTS spans_data_buffer ?ON_CLUSTER
+
+--migration:split
+
+CREATE TABLE spans_data_buffer ?ON_CLUSTER AS spans_data
+ENGINE = Buffer(currentDatabase(), spans_data,
+  3,
+  5, 45,
+  1_000_000, 1_000_000,
+  500_000_000, 500_000_000)
 
 --migration:split
 
@@ -136,8 +152,16 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE OR REPLACE TABLE datapoint_minutes_buffer ?ON_CLUSTER AS datapoint_minutes
-ENGINE = Buffer(currentDatabase(), datapoint_minutes, 3, 5, 10, 10000, 1000000, 10000000, 100000000)
+DROP TABLE IF EXISTS datapoint_minutes_buffer ?ON_CLUSTER
+
+--migration:split
+
+CREATE TABLE datapoint_minutes_buffer ?ON_CLUSTER AS datapoint_minutes
+ENGINE = Buffer(currentDatabase(), datapoint_minutes,
+  5,
+  5, 45,
+  1_000_000, 1_000_000,
+  500_000_000, 500_000_000)
 
 --migration:split
 
@@ -226,8 +250,16 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE OR REPLACE TABLE service_graph_edges_buffer ?ON_CLUSTER AS service_graph_edges
-ENGINE = Buffer(currentDatabase(), service_graph_edges, 3, 5, 10, 10000, 1000000, 10000000, 100000000)
+DROP TABLE IF EXISTS service_graph_edges_buffer ?ON_CLUSTER
+
+--migration:split
+
+CREATE TABLE service_graph_edges_buffer ?ON_CLUSTER AS service_graph_edges
+ENGINE = Buffer(currentDatabase(), service_graph_edges,
+  2,
+  5, 45,
+  1_000_000, 1_000_000,
+  500_000_000, 500_000_000)
 
 --migration:split
 

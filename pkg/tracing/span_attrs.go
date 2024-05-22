@@ -588,8 +588,6 @@ func lowerSeverity(sev string) string {
 		return "error"
 	case norm.SeverityFatal, norm.SeverityFatal2, norm.SeverityFatal3, norm.SeverityFatal4:
 		return "fatal"
-	case norm.SeverityPanic, norm.SeverityPanic2, norm.SeverityPanic3, norm.SeverityPanic4:
-		return "panic"
 	default:
 		return "error"
 	}
