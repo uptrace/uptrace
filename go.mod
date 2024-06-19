@@ -2,7 +2,7 @@ module github.com/uptrace/uptrace
 
 go 1.22
 
-replace github.com/segmentio/encoding => github.com/vmihailenco/encoding v0.3.4-0.20220121071420-f96fbbb25975
+replace github.com/segmentio/encoding => github.com/vmihailenco/encoding v0.3.4-0.20240424103427-05bd731dd667
 
 replace github.com/uptrace/go-clickhouse => ./pkg/go-clickhouse
 
