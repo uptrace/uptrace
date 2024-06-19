@@ -22,7 +22,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 )
 
-const projectIDHeaderKey = "uptrace-project-id"
 const tempoDefaultPeriod = time.Hour
 
 var jsonMarshaler = &jsonpb.Marshaler{}
