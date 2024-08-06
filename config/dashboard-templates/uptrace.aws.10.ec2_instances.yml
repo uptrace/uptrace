@@ -42,7 +42,7 @@ grid_rows:
         query:
           - avg($cpu_utilization) as cpu_utilization
 
-      - name:
+      - title:
           Percentage of allocated compute capacity that is currently in use on the Dedicated Host
         metrics:
           - cloudwatch_aws_ec2_dedicated_host_cpu_utilization as $dedicated_host_cpu_utilization
