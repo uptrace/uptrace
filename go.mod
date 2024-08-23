@@ -7,8 +7,11 @@ replace github.com/segmentio/encoding => github.com/vmihailenco/encoding v0.3.4-
 replace github.com/grafana/tempo => ./pkg/tempo
 
 replace github.com/uptrace/go-clickhouse => ./pkg/go-clickhouse
+
 replace github.com/vmihailenco/taskq/v4 => ./pkg/taskq
+
 replace github.com/vmihailenco/taskq/pgq/v4 => ./pkg/taskq/pgq
+
 replace github.com/vmihailenco/taskq/extra/oteltaskq/v4 => ./pkg/taskq/extra/oteltaskq
 
 require (
@@ -51,7 +54,7 @@ require (
 	github.com/vmihailenco/taskq/pgq/v4 v4.0.0-beta.4
 	github.com/vmihailenco/taskq/v4 v4.0.0-beta.4
 	github.com/wk8/go-ordered-map/v2 v2.1.8
-	github.com/wneessen/go-mail v0.4.1
+	github.com/wneessen/go-mail v0.4.3
 	github.com/xhit/go-str2duration/v2 v2.1.0
 	github.com/zeebo/xxh3 v1.0.2
 	github.com/zyedidia/generic v1.2.1
