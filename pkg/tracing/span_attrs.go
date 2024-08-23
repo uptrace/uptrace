@@ -272,19 +272,27 @@ func normalizeAttrs(attrs AttrMap) {
 
 func normLogSeverity(val string) string {
 	switch val {
-	case "trace":
+	case "trace", "Trace":
 		return "TRACE"
-	case "debug":
+	case "debug", "Debug":
 		return "DEBUG"
-	case "information", "notice", "log", "normal",
-		"INFORMATION", "NOTICE", "LOG", "NORMAL":
+	case "info", "Info",
+		"information", "INFORMATION", "Information",
+		"notice", "NOTICE", "Notice",
+		"log", "LOG", "Log",
+		"normal", "NORMAL", "Normal":
 		return "INFO"
-	case "err", "error", "alert", "severe",
-		"ERR", "ALERT", "SEVERE":
+	case "error", "Error",
+		"err", "ERR", "Err",
+		"alert", "ALERT", "Alert",
+		"severe", "SEVERE", "Severe":
 		return "ERROR"
-	case "fatal", "crit", "critical", "emerg", "emergency",
-		"CRIT", "CRITICAL", "EMERG", "EMERGENCY",
-		"panic", "PANIC":
+	case "fatal", "Fatal",
+		"crit", "CRIT", "Crit",
+		"critical", "CRITICAL", "Critical",
+		"emerg", "EMERG", "Emerg",
+		"emergency", "EMERGENCY", "Emergency",
+		"panic", "PANIC", "Panic":
 		return "FATAL"
 	default:
 		return val
