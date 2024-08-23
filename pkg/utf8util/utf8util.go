@@ -6,13 +6,12 @@ func Trunc(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
 	}
-	maxLen -= 3
 	for i := maxLen; i > 0; {
 		r, size := utf8.DecodeLastRuneInString(s[:i])
 		if r == utf8.RuneError {
 			i -= size
 		} else {
-			return s[:i] + "..."
+			return s[:i]
 		}
 	}
 	return "<invalid UTF-8>"
