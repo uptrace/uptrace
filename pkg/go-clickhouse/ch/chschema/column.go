@@ -2,6 +2,7 @@ package chschema
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -116,6 +117,9 @@ func (c *ColumnOf[T]) AppendValue(v reflect.Value) {
 }
 
 func (c *ColumnOf[T]) ConvertAssign(idx int, dest reflect.Value) error {
+	if scanner, ok := dest.Interface().(sql.Scanner); ok {
+		return scanner.Scan(c.Column[idx])
+	}
 	dest.Set(reflect.ValueOf(c.Column[idx]))
 	return nil
 }
@@ -130,24 +134,29 @@ func (c NumericColumnOf[T]) ConvertAssign(idx int, v reflect.Value) error {
 	switch v.Kind() {
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
 		v.SetInt(int64(c.Column[idx]))
+		return nil
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		v.SetUint(uint64(c.Column[idx]))
+		return nil
 	case reflect.Float32, reflect.Float64:
 		v.SetFloat(float64(c.Column[idx]))
+		return nil
+	case reflect.String:
+		v.SetString(fmt.Sprint(c.Column[idx]))
+		return nil
 	default:
-		v.Set(reflect.ValueOf(c.Column[idx]))
+		return c.ColumnOf.ConvertAssign(idx, v)
 	}
-	return nil
 }
 
 func (c BoolColumn) ConvertAssign(idx int, v reflect.Value) error {
 	switch v.Kind() {
 	case reflect.Bool:
 		v.SetBool(c.Column[idx])
+		return nil
 	default:
-		v.Set(reflect.ValueOf(c.Column[idx]))
+		return c.ColumnOf.ConvertAssign(idx, v)
 	}
-	return nil
 }
 
 func (c StringColumn) ConvertAssign(idx int, v reflect.Value) error {
