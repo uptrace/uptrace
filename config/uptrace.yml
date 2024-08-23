@@ -219,9 +219,9 @@ smtp_mailer:
   # SMTP server port.
   port: 1025
   # Username for authentication.
-  username: mailhog
+  username: mailpit
   # Password for authentication.
-  password: mailhog
+  password: mailpit
   # Disable TLS. Opportunistic TLS is used by default.
   tls: { disabled: true }
   # Emails will be send from this address.
