@@ -117,7 +117,7 @@ func (h *MetricHandler) createSystemMetrics(ctx context.Context, projectID uint3
 				Name:            uptraceTracingSpans,
 				Description:     "Number of spans and their duration (excluding events and logs)",
 				Instrument:      InstrumentHistogram,
-				Unit:            bunconv.UnitMicroseconds,
+				Unit:            bunconv.UnitNanoseconds,
 				AttrKeys:        []string{attrkey.ServiceName, attrkey.HostName},
 				OtelLibraryName: uptraceLibraryName,
 			},
