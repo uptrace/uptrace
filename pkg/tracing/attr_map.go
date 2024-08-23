@@ -12,6 +12,10 @@ import (
 
 type AttrMap map[string]any
 
+func NewAttrMap() AttrMap {
+	return make(AttrMap)
+}
+
 func (m AttrMap) Clone() AttrMap {
 	clone := make(AttrMap, len(m))
 	for k, v := range m {

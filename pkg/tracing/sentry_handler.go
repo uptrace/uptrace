@@ -1,3 +1,5 @@
+// https://github.com/getsentry/sentry-go/blob/master/interfaces.go
+
 package tracing
 
 import (
@@ -68,7 +70,9 @@ func (h *SentryHandler) processEvent(
 		return err
 	}
 
-	span := new(Span)
+	span := &Span{
+		Attrs: NewAttrMap(),
+	}
 
 	if err := h.spanFromEvent(span, event); err != nil {
 		return err
@@ -92,7 +96,6 @@ func (h *SentryHandler) processEvent(
 }
 
 func (h *SentryHandler) spanFromEvent(span *Span, event *SentryEvent) error {
-	span.Attrs = make(AttrMap)
 	span.Time = event.Timestamp.Time
 
 	for k, m := range event.Contexts {
@@ -367,7 +370,9 @@ func (h *SentryHandler) Envelope(w http.ResponseWriter, req bunrouter.Request) e
 func (h *SentryHandler) processTransaction(
 	ctx context.Context, project *org.Project, event *SentryEvent,
 ) error {
-	span := new(Span)
+	span := &Span{
+		Attrs: NewAttrMap(),
+	}
 	span.ProjectID = project.ID
 
 	trace, ok := event.Contexts["trace"]
@@ -392,7 +397,7 @@ func (h *SentryHandler) processTransaction(
 	}
 
 	for i := range event.Spans {
-		src := event.Spans[i]
+		src := &event.Spans[i]
 
 		dest := new(Span)
 		dest.ProjectID = span.ProjectID
@@ -419,6 +424,7 @@ func (h *SentryHandler) processTransaction(
 		dest.Name = src.Op
 		dest.Time = src.StartTime.Time
 		dest.Duration = src.EndTime.Sub(src.StartTime.Time)
+		dest.StatusCode = src.Status
 
 		forEachKV(src.Data, "", func(k string, v any) {
 			dest.Attrs[k] = v
@@ -524,11 +530,11 @@ type SentryEvent struct {
 		Integrations []string        `json:"integrations"`
 		Packages     []SentryPackage `json:"packages"`
 	} `json:"sdk"`
-	ServerName  string            `json:"server_name"`
-	Threads     []SentryThread    `json:"threads"`
-	Tags        map[string]string `json:"tags"`
-	Timestamp   SentryTime        `json:"timestamp"`
-	Transaction string            `json:"transaction"`
+	ServerName  string         `json:"server_name"`
+	Threads     []SentryThread `json:"threads"`
+	Tags        map[string]any `json:"tags"`
+	Timestamp   SentryTime     `json:"timestamp"`
+	Transaction string         `json:"transaction"`
 	User        struct {
 		ID        string            `json:"id"`
 		Email     string            `json:"email"`
@@ -676,17 +682,17 @@ type SentryMechanism struct {
 }
 
 type SentrySpan struct {
-	TraceID      string            `json:"trace_id"`
-	SpanID       string            `json:"span_id"`
-	ParentSpanID string            `json:"parent_span_id"`
-	Name         string            `json:"name"`
-	Op           string            `json:"op"`
-	Description  string            `json:"description"`
-	Status       uint8             `json:"status"`
-	Tags         map[string]string `json:"tags"`
-	StartTime    SentryTime        `json:"start_timestamp"`
-	EndTime      SentryTime        `json:"timestamp"`
-	Data         map[string]any    `json:"data"`
+	TraceID      string         `json:"trace_id"`
+	SpanID       string         `json:"span_id"`
+	ParentSpanID string         `json:"parent_span_id"`
+	Name         string         `json:"name"`
+	Op           string         `json:"op"`
+	Description  string         `json:"description"`
+	Status       string         `json:"status"`
+	Tags         map[string]any `json:"tags"`
+	StartTime    SentryTime     `json:"start_timestamp"`
+	EndTime      SentryTime     `json:"timestamp"`
+	Data         map[string]any `json:"data"`
 }
 
 type SentryTime struct {

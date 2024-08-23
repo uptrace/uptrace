@@ -191,7 +191,9 @@ func (p *spanProcessorThread) _processSpans(ctx context.Context, spans []*Span) 
 		var logCount int
 
 		for _, event := range span.Events {
-			eventSpan := new(Span)
+			eventSpan := &Span{
+				Attrs: NewAttrMap(),
+			}
 			initEventFromHostSpan(eventSpan, event, span)
 			p.initEvent(ctx, eventSpan)
 
