@@ -4,9 +4,12 @@ go 1.22
 
 replace github.com/segmentio/encoding => github.com/vmihailenco/encoding v0.3.4-0.20240424103427-05bd731dd667
 
-replace github.com/uptrace/go-clickhouse => ./pkg/go-clickhouse
-
 replace github.com/grafana/tempo => ./pkg/tempo
+
+replace github.com/uptrace/go-clickhouse => ./pkg/go-clickhouse
+replace github.com/vmihailenco/taskq/v4 => ./pkg/taskq
+replace github.com/vmihailenco/taskq/pgq/v4 => ./pkg/taskq/pgq
+replace github.com/vmihailenco/taskq/extra/oteltaskq/v4 => ./pkg/taskq/extra/oteltaskq
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.3

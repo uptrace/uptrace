@@ -2,7 +2,7 @@ version: '3'
 
 services:
   clickhouse-1:
-    image: clickhouse/clickhouse-server:23.7
+    image: clickhouse/clickhouse-server:24.7
     restart: on-failure
     environment:
       CLICKHOUSE_DB: uptrace
@@ -29,7 +29,7 @@ services:
       - 'host.docker.internal:host-gateway'
 
   clickhouse-2:
-    image: clickhouse/clickhouse-server:23.7
+    image: clickhouse/clickhouse-server:24.7
     restart: on-failure
     environment:
       CLICKHOUSE_DB: uptrace
@@ -48,7 +48,7 @@ services:
       - 'host.docker.internal:host-gateway'
 
   clickhouse-3:
-    image: clickhouse/clickhouse-server:23.7
+    image: clickhouse/clickhouse-server:24.7
     restart: on-failure
     environment:
       CLICKHOUSE_DB: uptrace
@@ -67,7 +67,7 @@ services:
       - 'host.docker.internal:host-gateway'
 
   clickhouse-4:
-    image: clickhouse/clickhouse-server:23.7
+    image: clickhouse/clickhouse-server:24.7
     restart: on-failure
     environment:
       CLICKHOUSE_DB: uptrace
