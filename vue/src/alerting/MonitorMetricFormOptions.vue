@@ -125,68 +125,6 @@
         </SinglePanel>
       </v-col>
     </v-row>
-
-    <v-row>
-      <v-col>
-        <SinglePanel title="Flapping monitors">
-          <p class="text--secondary">
-            Flapping alerts occur when the monitor triggers the same alert in a short period of
-            time. To reduce the noise, you can re-evaluate the alert thresholds or configure
-            additional conditions required to close the alert.
-          </p>
-
-          <p class="text--secondary">
-            For example, the filesystem utilization monitor can go back and forth from
-            <code>0.89</code> to <code>0.9</code>, causing the alert status to constantly change. By
-            configuring the minimum deviation value to <code>0.1</code>, the alert won't be closed
-            until the utilization value changes from <code>0.9</code> to <code>0.8</code>.
-          </p>
-
-          <v-checkbox
-            v-model="monitor.params.flapping"
-            label="Enable flapping alerts mitigations"
-            class="mt-0"
-          />
-
-          <PanelSection>
-            <template #title>
-              <span>Min change in value to trigger an alert</span>
-              <span v-if="observedAvg" class="ml-1">
-                (observed average:
-                <strong>{{ numVerbose(observedAvg) }}</strong
-                >)
-              </span>
-            </template>
-
-            <v-text-field
-              v-model.number="monitor.params.minDevValue"
-              type="number"
-              placeholder="Number"
-              :suffix="activeColumn?.unit"
-              filled
-              dense
-              :rules="rules.minDevValue"
-              hide-details="auto"
-              :disabled="!monitor.params.flapping"
-            />
-          </PanelSection>
-
-          <PanelSection title="Min deviation fraction">
-            <v-text-field
-              v-model.number="monitor.params.minDevFraction"
-              type="number"
-              placeholder="Number"
-              hint="0.2 means that value must change by at least 20%"
-              persistent-hint
-              filled
-              dense
-              :rules="rules.minDevFraction"
-              :disabled="!monitor.params.flapping"
-            />
-          </PanelSection>
-        </SinglePanel>
-      </v-col>
-    </v-row>
   </v-container>
 </template>
 
