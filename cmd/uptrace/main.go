@@ -41,6 +41,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/urfave/cli/v2"
+	"github.com/wneessen/go-mail"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -64,6 +65,7 @@ func main() {
 		Commands: []*cli.Command{
 			versionCommand,
 			serveCommand,
+			emailTestCommand,
 			command.NewCHCommand(chmigrations.Migrations),
 			command.NewBunCommand(pgmigrations.Migrations),
 			command.NewTemplateCommand(),
@@ -83,6 +85,45 @@ var versionCommand = &cli.Command{
 	Usage: "print Uptrace version",
 	Action: func(c *cli.Context) error {
 		fmt.Println(pkg.Version())
+		return nil
+	},
+}
+
+// UPTRACE_CONFIG=config/uptrace.yml go run cmd/uptrace/main.go email-test --to uptrace@localhost
+var emailTestCommand = &cli.Command{
+	Name:  "email-test",
+	Usage: "send test email",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:     "to",
+			Usage:    "recipient email address",
+			Required: true,
+		},
+	},
+	Action: func(c *cli.Context) error {
+		_, app, err := uptracebundle.StartCLI(c)
+		if err != nil {
+			return fmt.Errorf("failed to start app: %w", err)
+		}
+		defer app.Stop()
+
+		client, err := app.InitMailer()
+		if err != nil {
+			return fmt.Errorf("failed to initialize mailer: %w", err)
+		}
+
+		recipient := c.String("to")
+
+		msg := mail.NewMsg()
+		msg.AddTo(recipient)
+		msg.SetBodyString(mail.TypeTextPlain, "This is a test email")
+
+		err = client.Send(msg)
+		if err != nil {
+			return fmt.Errorf("failed to send email: %w", err)
+		}
+
+		fmt.Println("Test email sent successfully to", recipient)
 		return nil
 	},
 }
@@ -595,3 +636,5 @@ type vueFileInfo struct {
 func (f *vueFileInfo) Size() int64 {
 	return f.size
 }
+
+//------------------------------------------------------------------------------

@@ -27,6 +27,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/vmihailenco/taskq/pgq/v4"
 	"github.com/vmihailenco/taskq/v4"
+	"github.com/wneessen/go-mail"
 	"github.com/zyedidia/generic/cache"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/trace"
@@ -77,6 +78,8 @@ type App struct {
 	MainQueue    taskq.Queue
 
 	HTTPClient *http.Client
+
+	mailer *mail.Client
 }
 
 func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
@@ -101,6 +104,7 @@ func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
 	app.CH = app.newCH()
 	app.initTaskq()
 
+	app.InitMailer()
 	return app, nil
 }
 
@@ -473,4 +477,62 @@ func (s *localStorage) Exists(ctx context.Context, key string) bool {
 
 	s.cache.Put(key, now)
 	return false
+}
+
+//------------------------------------------------------------------------------
+
+func (app *App) InitMailer() (*mail.Client, error) {
+	cfg := app.conf.SMTPMailer
+
+	if !cfg.Enabled {
+		app.Logger.Info("smtp_mailer is disabled in the config")
+		return nil, fmt.Errorf("smtp_mailer is disabled in the config")
+	}
+
+	options := []mail.Option{
+		mail.WithSMTPAuth(cfg.AuthType),
+		mail.WithUsername(cfg.Username),
+		mail.WithPassword(cfg.Password),
+	}
+
+	switch {
+	case cfg.TLS == nil:
+		options = append(options,
+			mail.WithTLSPortPolicy(mail.TLSOpportunistic),
+			mail.WithSSLPort(false),
+			mail.WithPort(cfg.Port),
+		)
+	case cfg.TLS.Disabled:
+		options = append(options,
+			mail.WithTLSPortPolicy(mail.NoTLS),
+			mail.WithPort(cfg.Port),
+		)
+	default:
+		options = append(options,
+			mail.WithTLSPortPolicy(mail.TLSMandatory),
+			mail.WithSSLPort(false),
+			mail.WithPort(cfg.Port),
+		)
+	}
+
+	tlsCfg, err := cfg.TLS.TLSConfig()
+	if err != nil {
+		app.Logger.Error("smtp_mailer.tls failed", zap.Error(err))
+		return nil, err
+	} else {
+		options = append(options, mail.WithTLSConfig(tlsCfg))
+	}
+
+	client, err := mail.NewClient(
+		cfg.Host,
+		options...,
+	)
+	if err != nil {
+		app.Logger.Error("mail.NewClient failed", zap.Error(err))
+		return nil, err
+	}
+	app.mailer = client
+	app.Logger.Info("smtp_mailer enabled", zap.String("host", cfg.Host))
+
+	return client, nil
 }

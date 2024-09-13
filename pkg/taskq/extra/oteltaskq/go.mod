@@ -1,6 +1,8 @@
 module github.com/vmihailenco/taskq/extra/oteltaskq/v4
 
-go 1.20
+go 1.22
+
+toolchain go1.22.7
 
 replace github.com/vmihailenco/taskq/v4 => ../..
 
