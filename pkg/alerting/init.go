@@ -218,6 +218,7 @@ var (
 	NotifyBySlackTask    = taskq.NewTask("notify-by-slack")
 	NotifyByWebhookTask  = taskq.NewTask("notify-by-webhook")
 	NotifyByTelegramTask = taskq.NewTask("notify-by-telegram")
+	NotifyByDiscordTask  = taskq.NewTask("notify-by-discord")
 )
 
 func initTasks(ctx context.Context, app *bunapp.App) {
@@ -235,5 +236,8 @@ func initTasks(ctx context.Context, app *bunapp.App) {
 	})
 	_ = app.RegisterTask(NotifyByWebhookTask.Name(), &taskq.TaskConfig{
 		Handler: notifyByWebhookHandler,
+	})
+	_ = app.RegisterTask(NotifyByDiscordTask.Name(), &taskq.TaskConfig{
+		Handler: notifyByDiscordHandler,
 	})
 }

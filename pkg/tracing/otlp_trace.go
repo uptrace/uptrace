@@ -43,6 +43,8 @@ func NewTraceServiceServer(app *bunapp.App, sp *SpanProcessor) *TraceServiceServ
 func (s *TraceServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
+	s.App.Zap(ctx).Error("foo bar")
+
 	dsn, err := org.DSNFromRequest(req)
 	if err != nil {
 		return err
