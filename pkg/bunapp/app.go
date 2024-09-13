@@ -78,8 +78,6 @@ type App struct {
 	MainQueue    taskq.Queue
 
 	HTTPClient *http.Client
-
-	mailer *mail.Client
 }
 
 func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
@@ -485,7 +483,6 @@ func (app *App) InitMailer() (*mail.Client, error) {
 	cfg := app.conf.SMTPMailer
 
 	if !cfg.Enabled {
-		app.Logger.Info("smtp_mailer is disabled in the config")
 		return nil, fmt.Errorf("smtp_mailer is disabled in the config")
 	}
 
@@ -513,26 +510,18 @@ func (app *App) InitMailer() (*mail.Client, error) {
 			mail.WithSSLPort(false),
 			mail.WithPort(cfg.Port),
 		)
-	}
 
-	tlsCfg, err := cfg.TLS.TLSConfig()
-	if err != nil {
-		app.Logger.Error("smtp_mailer.tls failed", zap.Error(err))
-		return nil, err
-	} else {
+		tlsCfg, err := cfg.TLS.TLSConfig()
+		if err != nil {
+			return nil, err
+		}
 		options = append(options, mail.WithTLSConfig(tlsCfg))
 	}
 
-	client, err := mail.NewClient(
-		cfg.Host,
-		options...,
-	)
+	client, err := mail.NewClient(cfg.Host, options...)
 	if err != nil {
-		app.Logger.Error("mail.NewClient failed", zap.Error(err))
 		return nil, err
 	}
-	app.mailer = client
-	app.Logger.Info("smtp_mailer enabled", zap.String("host", cfg.Host))
 
 	return client, nil
 }

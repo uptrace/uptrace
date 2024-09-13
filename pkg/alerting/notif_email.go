@@ -36,54 +36,13 @@ func NewEmailNotifier(app *bunapp.App) *EmailNotifier {
 	conf := app.Config().SMTPMailer
 
 	if !conf.Enabled {
-		app.Logger.Info("smtp_mailer is disabled in the config")
 		return &EmailNotifier{
 			disabled: true,
 		}
 	}
 
-	options := []mail.Option{
-		mail.WithSMTPAuth(conf.AuthType),
-		mail.WithUsername(conf.Username),
-		mail.WithPassword(conf.Password),
-	}
-
-	switch {
-	case conf.TLS == nil:
-		options = append(options,
-			mail.WithTLSPortPolicy(mail.TLSOpportunistic),
-			mail.WithSSLPort(false),
-			mail.WithPort(conf.Port),
-		)
-	case conf.TLS.Disabled:
-		options = append(options,
-			mail.WithTLSPortPolicy(mail.NoTLS),
-			mail.WithPort(conf.Port),
-		)
-	default:
-		options = append(options,
-			mail.WithTLSPortPolicy(mail.TLSMandatory),
-			mail.WithSSLPort(false),
-			mail.WithPort(conf.Port),
-		)
-
-		tlsConf, err := conf.TLS.TLSConfig()
-		if err != nil {
-			app.Logger.Error("smtp_mailer.tls failed", zap.Error(err))
-			return &EmailNotifier{
-				disabled: true,
-			}
-		} else {
-			options = append(options, mail.WithTLSConfig(tlsConf))
-		}
-	}
-
-	client, err := mail.NewClient(
-		conf.Host,
-		options...,
-	)
+	client, err := app.InitMailer()
 	if err != nil {
-		app.Logger.Error("mail.NewClient failed", zap.Error(err))
 		return &EmailNotifier{
 			disabled: true,
 		}
@@ -102,8 +61,7 @@ func NewEmailNotifier(app *bunapp.App) *EmailNotifier {
 	return &EmailNotifier{
 		client: client,
 		emails: emails,
-
-		from: conf.From,
+		from:   conf.From,
 	}
 }
 

@@ -2,8 +2,6 @@ module github.com/vmihailenco/taskq/example/redisexample
 
 go 1.22
 
-toolchain go1.22.7
-
 replace github.com/vmihailenco/taskq/v4 => ../..
 
 replace github.com/vmihailenco/taskq/redisq/v4 => ../../redisq
