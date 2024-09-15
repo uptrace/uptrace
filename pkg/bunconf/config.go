@@ -89,6 +89,11 @@ func defaultConfig() *Config {
 	conf.SMTPMailer.From = "no-reply@localhost"
 	conf.SMTPMailer.AuthType = mail.SMTPAuthPlain
 
+	// dev data
+	conf.Discord.AppId = ""
+	conf.Discord.PublicKey = ""
+	conf.Discord.BotToken = ""
+
 	conf.Logging.Level = "INFO"
 
 	return conf
@@ -379,6 +384,12 @@ type Config struct {
 	Telegram struct {
 		BotToken string `yaml:"bot_token"`
 	} `yaml:"telegram"`
+
+	Discord struct {
+		AppId     string `yaml:"app_id"`
+		PublicKey string `yaml:"public_key"`
+		BotToken  string `yaml:"bot_token"`
+	} `yaml:"discord"`
 }
 
 type SpanMetric struct {

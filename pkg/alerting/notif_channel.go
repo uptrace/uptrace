@@ -36,6 +36,7 @@ const (
 	NotifChannelWebhook      NotifChannelType = "webhook"
 	NotifChannelAlertmanager NotifChannelType = "alertmanager"
 	NotifChannelTelegram     NotifChannelType = "telegram"
+	NotifChannelDiscord      NotifChannelType = "discord"
 )
 
 type NotifChannelState string
@@ -118,6 +119,8 @@ func SelectNotifChannel(
 		return newSlackNotifChannel(channel)
 	case NotifChannelTelegram:
 		return newTelegramNotifChannel(channel)
+	case NotifChannelDiscord:
+		return newDiscordNotifChannel(channel)
 	case NotifChannelWebhook, NotifChannelAlertmanager:
 		return newWebhookNotifChannel(channel)
 	default:

@@ -4,7 +4,7 @@ go 1.22
 
 replace github.com/segmentio/encoding => github.com/vmihailenco/encoding v0.3.4-0.20240424103427-05bd731dd667
 
-replace github.com/grafana/tempo => ./pkg/tempo
+//replace github.com/grafana/tempo => ./pkg/tempo
 
 replace github.com/uptrace/go-clickhouse => ./pkg/go-clickhouse
 
@@ -29,7 +29,7 @@ require (
 	github.com/mileusna/useragent v1.3.4
 	github.com/mostynb/go-grpc-compression v1.2.2
 	github.com/prometheus/alertmanager v0.26.0
-	github.com/prometheus/prometheus v0.49.1
+	github.com/prometheus/prometheus v1.8.2-0.20220228151929-e25a59925555
 	github.com/rs/cors v1.10.1
 	github.com/segmentio/encoding v0.4.0
 	github.com/slack-go/slack v0.12.4
@@ -91,6 +91,7 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
+	github.com/bwmarrin/discordgo v0.28.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect

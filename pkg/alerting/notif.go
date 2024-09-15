@@ -170,6 +170,11 @@ func scheduleNotifyByChannelsOnErrorAlert(
 			if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
 				firstErr = err
 			}
+		case NotifChannelDiscord:
+			job := NotifyByDiscordTask.NewJob(alert.EventID, 0)
+			if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
+				firstErr = err
+			}
 		case NotifChannelWebhook, NotifChannelAlertmanager:
 			job := NotifyByWebhookTask.NewJob(alert.EventID, channel.ID)
 			if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
@@ -178,11 +183,6 @@ func scheduleNotifyByChannelsOnErrorAlert(
 		default:
 			return fmt.Errorf("unknown notification channel type: %s", channel.Type)
 		}
-	}
-
-	job := NotifyByDiscordTask.NewJob(alert.EventID, 0)
-	if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
-		firstErr = err
 	}
 
 	return firstErr

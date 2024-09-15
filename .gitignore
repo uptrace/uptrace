@@ -1,3 +1,5 @@
+.idea/
+
 /bin/
 /dist/
 /cmd/uptrace/uptrace

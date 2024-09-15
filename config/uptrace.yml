@@ -254,6 +254,13 @@ telegram:
   bot_token: ''
 
 ##
+## Discord creds
+discord:
+  app_id: ''
+  public_key: ''
+  bot_token: ''
+
+##
 ## Logging configuration.
 ##
 logging:
