@@ -36,13 +36,15 @@ func NewEmailNotifier(app *bunapp.App) *EmailNotifier {
 	conf := app.Config().SMTPMailer
 
 	if !conf.Enabled {
+		app.Logger.Info("smtp_mailer is disabled in the config")
 		return &EmailNotifier{
 			disabled: true,
 		}
 	}
 
-	client, err := app.InitMailer()
+	client, err := app.NewMailer()
 	if err != nil {
+		app.Logger.Error("mail.NewClient failed", zap.Error(err))
 		return &EmailNotifier{
 			disabled: true,
 		}

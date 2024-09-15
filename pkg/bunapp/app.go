@@ -102,7 +102,6 @@ func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
 	app.CH = app.newCH()
 	app.initTaskq()
 
-	app.InitMailer()
 	return app, nil
 }
 
@@ -479,7 +478,7 @@ func (s *localStorage) Exists(ctx context.Context, key string) bool {
 
 //------------------------------------------------------------------------------
 
-func (app *App) InitMailer() (*mail.Client, error) {
+func (app *App) NewMailer() (*mail.Client, error) {
 	cfg := app.conf.SMTPMailer
 
 	if !cfg.Enabled {

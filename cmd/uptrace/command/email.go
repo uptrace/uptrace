@@ -8,8 +8,6 @@ import (
 	"github.com/wneessen/go-mail"
 )
 
-// UPTRACE_CONFIG=config/uptrace.yml go run cmd/uptrace/main.go email-test --to uptrace@localhost
-
 func NewEmailCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "email-test",
@@ -28,7 +26,7 @@ func NewEmailCommand() *cli.Command {
 			}
 			defer app.Stop()
 
-			client, err := app.InitMailer()
+			client, err := app.NewMailer()
 			if err != nil {
 				return fmt.Errorf("failed to initialize mailer: %w", err)
 			}
