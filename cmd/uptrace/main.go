@@ -69,6 +69,7 @@ func main() {
 			command.NewTemplateCommand(),
 			command.NewCHSchemaCommand(),
 			command.NewConfigCommand(),
+			command.NewEmailCommand(),
 		},
 	}
 

@@ -1,6 +1,6 @@
 module github.com/vmihailenco/taskq/example/redisexample
 
-go 1.20
+go 1.22
 
 replace github.com/vmihailenco/taskq/v4 => ../..
 

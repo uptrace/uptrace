@@ -27,6 +27,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/vmihailenco/taskq/pgq/v4"
 	"github.com/vmihailenco/taskq/v4"
+	"github.com/wneessen/go-mail"
 	"github.com/zyedidia/generic/cache"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/trace"
@@ -473,4 +474,53 @@ func (s *localStorage) Exists(ctx context.Context, key string) bool {
 
 	s.cache.Put(key, now)
 	return false
+}
+
+//------------------------------------------------------------------------------
+
+func (app *App) NewMailer() (*mail.Client, error) {
+	cfg := app.conf.SMTPMailer
+
+	if !cfg.Enabled {
+		return nil, fmt.Errorf("smtp_mailer is disabled in the config")
+	}
+
+	options := []mail.Option{
+		mail.WithSMTPAuth(cfg.AuthType),
+		mail.WithUsername(cfg.Username),
+		mail.WithPassword(cfg.Password),
+	}
+
+	switch {
+	case cfg.TLS == nil:
+		options = append(options,
+			mail.WithTLSPortPolicy(mail.TLSOpportunistic),
+			mail.WithSSLPort(false),
+			mail.WithPort(cfg.Port),
+		)
+	case cfg.TLS.Disabled:
+		options = append(options,
+			mail.WithTLSPortPolicy(mail.NoTLS),
+			mail.WithPort(cfg.Port),
+		)
+	default:
+		options = append(options,
+			mail.WithTLSPortPolicy(mail.TLSMandatory),
+			mail.WithSSLPort(false),
+			mail.WithPort(cfg.Port),
+		)
+
+		tlsCfg, err := cfg.TLS.TLSConfig()
+		if err != nil {
+			return nil, err
+		}
+		options = append(options, mail.WithTLSConfig(tlsCfg))
+	}
+
+	client, err := mail.NewClient(cfg.Host, options...)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
