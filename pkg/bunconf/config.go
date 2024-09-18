@@ -80,6 +80,8 @@ func defaultConfig() *Config {
 	conf.CHSchema.Spans.StoragePolicy = "default"
 	conf.CHSchema.Metrics.TTLDelete = "90 DAY"
 	conf.CHSchema.Metrics.StoragePolicy = "default"
+	conf.CHSchema.Logs.TTLDelete = "30 DAY"
+	conf.CHSchema.Logs.StoragePolicy = "default"
 
 	conf.Listen.Scheme = "http"
 	conf.Listen.GRPC.Addr = ":14317"
@@ -199,6 +201,14 @@ func validateConfig(conf *Config) error {
 		conf.Spans.BufferSize = runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
 	}
 
+	if conf.Logs.BatchSize == 0 {
+		conf.Logs.BatchSize = ScaleWithCPU(1000, 32000)
+	}
+
+	if conf.Logs.BufferSize == 0 {
+		conf.Logs.BufferSize = runtime.GOMAXPROCS(0) * conf.Logs.BatchSize
+	}
+
 	if conf.Metrics.BatchSize == 0 {
 		conf.Metrics.BatchSize = ScaleWithCPU(1000, 32000)
 	}
@@ -306,6 +316,11 @@ type Config struct {
 			TTLDelete     string `yaml:"ttl_delete"`
 		} `yaml:"spans"`
 
+		Logs struct {
+			StoragePolicy string `yaml:"storage_policy"`
+			TTLDelete     string `yaml:"ttl_delete"`
+		} `yaml:"logs"`
+
 		Metrics struct {
 			StoragePolicy string `yaml:"storage_policy"`
 			TTLDelete     string `yaml:"ttl_delete"`
@@ -331,6 +346,11 @@ type Config struct {
 		BufferSize int `yaml:"buffer_size"`
 		BatchSize  int `yaml:"batch_size"`
 	} `yaml:"spans"`
+
+	Logs struct {
+		BufferSize int `yaml:"buffer_size"`
+		BatchSize  int `yaml:"batch_size"`
+	} `yaml:"logs"`
 
 	Metrics struct {
 		DropAttrs []string `yaml:"drop_attrs"`

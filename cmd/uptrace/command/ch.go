@@ -293,6 +293,9 @@ func NewCHMigrator(app *bunapp.App, migrations *chmigrate.Migrations) *chmigrate
 	args["SPANS_STORAGE"] = defaultValue(chSchema.Spans.StoragePolicy, "default")
 	args["SPANS_TTL"] = ch.Safe(chSchema.Spans.TTLDelete)
 
+	args["LOGS_STORAGE"] = defaultValue(chSchema.Logs.StoragePolicy, "default")
+	args["LOGS_TTL"] = ch.Safe(chSchema.Logs.TTLDelete)
+
 	args["METRICS_STORAGE"] = defaultValue(chSchema.Metrics.StoragePolicy, "default")
 	args["METRICS_TTL"] = ch.Safe(chSchema.Metrics.TTLDelete)
 

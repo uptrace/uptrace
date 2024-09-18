@@ -23,26 +23,38 @@ var spanCounter, _ = bunotel.Meter.Int64Counter(
 	metric.WithDescription("Number of processed spans"),
 )
 
+var logCounter, _ = bunotel.Meter.Int64Counter(
+	"uptrace.projects.logs",
+	metric.WithDescription("Number of processed logs"),
+)
+
 func Init(ctx context.Context, app *bunapp.App) {
 	sp := NewSpanProcessor(app)
+	lg := NewLogProcessor(app)
 
-	initOTLP(ctx, app, sp)
+	app.Logger.Info("Initializing OTLP and routes")
+	initOTLP(ctx, app, sp, lg)
 	initRoutes(ctx, app, sp)
+	app.Logger.Info("Initialization complete")
 }
 
-func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
+func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanProcessor, lg *LogProcessor) {
 	traceService := NewTraceServiceServer(app, sp)
 	collectortracepb.RegisterTraceServiceServer(app.GRPCServer(), traceService)
 
-	logsService := NewLogsServiceServer(app, sp)
+	logsService := NewLogsServiceServer(app, lg)
 	collectorlogspb.RegisterLogsServiceServer(app.GRPCServer(), logsService)
 
 	router := app.Router()
 	router.POST("/v1/traces", traceService.ExportHTTP)
+	app.Logger.Info("Registered /v1/traces route")
+
 	router.POST("/v1/logs", logsService.ExportHTTP)
+	app.Logger.Info("Registered /v1/logs route")
 }
 
 func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
+
 	router := app.Router()
 	middleware := org.NewMiddleware(app)
 	internalV1 := app.InternalAPIV1()
@@ -114,6 +126,13 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 			g.GET("/percentiles", spanHandler.Percentiles)
 			g.GET("/group-stats", spanHandler.GroupStats)
 			g.GET("/timeseries", spanHandler.Timeseries)
+		})
+
+	internalV1.Use(middleware.UserAndProject).
+		WithGroup("/logs/:project_id", func(g *bunrouter.Group) {
+			logHandler := NewLogHandler(app)
+
+			g.GET("/logs", logHandler.ListLogs)
 		})
 
 	internalV1.Use(middleware.UserAndProject).

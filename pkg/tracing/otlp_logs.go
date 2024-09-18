@@ -22,6 +22,7 @@ import (
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
+	"go.uber.org/zap"
 	"golang.org/x/exp/maps"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -34,15 +35,15 @@ type LogsServiceServer struct {
 
 	*bunapp.App
 
-	sp *SpanProcessor
+	lp *LogProcessor
 }
 
 var _ collectorlogspb.LogsServiceServer = (*LogsServiceServer)(nil)
 
-func NewLogsServiceServer(app *bunapp.App, sp *SpanProcessor) *LogsServiceServer {
+func NewLogsServiceServer(app *bunapp.App, lp *LogProcessor) *LogsServiceServer {
 	return &LogsServiceServer{
 		App: app,
-		sp:  sp,
+		lp:  lp,
 	}
 }
 
@@ -165,9 +166,10 @@ func (s *LogsServiceServer) export(
 			}
 
 			for _, lr := range sl.LogRecords {
-				span := p.processLogRecord(scope, lr)
-				span.ProjectID = project.ID
-				s.sp.AddSpan(ctx, span)
+				log := p.processLogRecord(scope, lr)
+				s.lp.logger.Info("Processed log", zap.String("logID", log.ID.String()))
+				log.ProjectID = project.ID
+				s.lp.AddLog(ctx, log)
 			}
 		}
 	}
@@ -181,41 +183,41 @@ type otlpLogProcessor struct {
 }
 
 func (p *otlpLogProcessor) processLogRecord(resource AttrMap, lr *logspb.LogRecord) *Span {
-	span := new(Span)
+	log := new(Span)
 
-	span.ID = idgen.RandSpanID()
-	span.ParentID = idgen.SpanIDFromBytes(lr.SpanId)
+	log.ID = idgen.RandSpanID()
+	log.ParentID = idgen.SpanIDFromBytes(lr.SpanId)
 	if lr.TraceId != nil {
-		span.TraceID = idgen.TraceIDFromBytes(lr.TraceId)
+		log.TraceID = idgen.TraceIDFromBytes(lr.TraceId)
 	}
 
-	span.EventName = otelEventLog
-	span.Kind = InternalSpanKind
-	span.Time = time.Unix(0, int64(minNonZero(lr.TimeUnixNano, lr.ObservedTimeUnixNano)))
+	log.EventName = otelEventLog
+	log.Kind = InternalSpanKind
+	log.Time = time.Unix(0, int64(minNonZero(lr.TimeUnixNano, lr.ObservedTimeUnixNano)))
 
-	span.Attrs = make(AttrMap, len(resource)+len(lr.Attributes)+1)
-	span.Attrs.Merge(resource)
+	log.Attrs = make(AttrMap, len(resource)+len(lr.Attributes)+1)
+	log.Attrs.Merge(resource)
 	otlpconv.ForEachKeyValue(lr.Attributes, func(key string, value any) {
-		span.Attrs[key] = value
+		log.Attrs[key] = value
 	})
 
 	if lr.SeverityText != "" {
-		span.Attrs[attrkey.LogSeverity] = lr.SeverityText
+		log.Attrs[attrkey.LogSeverity] = lr.SeverityText
 	} else if lr.SeverityNumber > 0 {
 		sev := p.severityFromNumber(int32(lr.SeverityNumber))
-		span.Attrs[attrkey.LogSeverity] = sev
+		log.Attrs[attrkey.LogSeverity] = sev
 	}
 	if lr.Body.Value != nil {
-		p.processLogRecordBody(span, lr.Body.Value)
+		p.processLogRecordBody(log, lr.Body.Value)
 	}
 
-	if !span.Attrs.Exists(attrkey.LogMessage) {
-		if msg := popLogMessageParam(span.Attrs); msg != "" {
-			span.Attrs[attrkey.LogMessage] = msg
+	if !log.Attrs.Exists(attrkey.LogMessage) {
+		if msg := popLogMessageParam(log.Attrs); msg != "" {
+			log.Attrs[attrkey.LogMessage] = msg
 		}
 	}
 
-	return span
+	return log
 }
 
 func (p *otlpLogProcessor) severityFromNumber(num int32) string {
@@ -283,18 +285,18 @@ func minNonZero(u1, u2 uint64) uint64 {
 	return u2
 }
 
-func (p *otlpLogProcessor) processLogRecordBody(span *Span, bodyValue any) {
+func (p *otlpLogProcessor) processLogRecordBody(log *Span, bodyValue any) {
 	switch v := bodyValue.(type) {
 	case *commonpb.AnyValue_StringValue:
 		msg := v.StringValue
 		if params, ok := bunutil.IsJSON(msg); ok {
-			p.parseJSONLogMessage(span, params)
+			p.parseJSONLogMessage(log, params)
 		} else {
-			span.Attrs[attrkey.LogMessage] = msg
+			log.Attrs[attrkey.LogMessage] = msg
 		}
 	case *commonpb.AnyValue_KvlistValue:
 		params := otlpconv.Map(v.KvlistValue.Values)
-		populateSpanFromParams(span, params)
+		populateLogFromParams(log, params)
 	}
 }
 
@@ -304,7 +306,7 @@ type baseLogProcessor struct {
 	buf []byte
 }
 
-func (p *baseLogProcessor) parseJSONLogMessage(span *Span, params AttrMap) {
+func (p *baseLogProcessor) parseJSONLogMessage(log *Span, params AttrMap) {
 	type kv struct {
 		key string
 		val any
@@ -335,12 +337,12 @@ func (p *baseLogProcessor) parseJSONLogMessage(span *Span, params AttrMap) {
 	msg := popLogMessageParam(params)
 
 	if msg != "" {
-		span.Attrs[attrkey.LogMessage] = msg
-		populateSpanFromParams(span, params)
+		log.Attrs[attrkey.LogMessage] = msg
+		populateLogFromParams(log, params)
 		return
 	}
 
-	if span.EventName != otelEventLog {
+	if log.EventName != otelEventLog {
 		return
 	}
 
@@ -356,7 +358,7 @@ func (p *baseLogProcessor) parseJSONLogMessage(span *Span, params AttrMap) {
 		buf = appendParamValue(buf, params[key])
 	}
 
-	span.Attrs[attrkey.LogMessage] = string(buf)
+	log.Attrs[attrkey.LogMessage] = string(buf)
 	p.buf = buf
 }
 

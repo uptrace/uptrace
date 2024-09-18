@@ -1,3 +1,4 @@
+-- Active: 1725560486319@@localhost@5431@postgres
 ##
 ## Uptrace configuration file.
 ## See https://uptrace.dev/get/config.html for details.
@@ -134,6 +135,10 @@ ch_schema:
     # Delete spans data after 7 days.
     ttl_delete: 7 DAY
     storage_policy: 'default'
+  
+  logs:
+    ttl_delete: 7 DAY
+    storage_policy: 'default'
 
   metrics:
     # Delete metrics data after 90 days.
@@ -173,7 +178,8 @@ spans:
 
   # The number of spans to insert in a single query.
   #batch_size: 10000
-
+logs: 
+ 
 ##
 ## Metrics processing options.
 ##
