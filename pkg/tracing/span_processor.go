@@ -3,45 +3,34 @@ package tracing
 import (
 	"context"
 	"runtime"
-	"slices"
 	"time"
 
-	"github.com/cespare/xxhash/v2"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
-	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
-	"go4.org/syncutil"
 )
 
 type SpanProcessor struct {
-	*bunapp.App
-
-	batchSize int
-	queue     chan *Span
-	gate      *syncutil.Gate
-
+	*ProcessorThread[Span, SpanIndex]
 	sgp *ServiceGraphProcessor
-
-	logger *otelzap.Logger
 }
 
 func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
 	conf := app.Config()
-	maxprocs := runtime.GOMAXPROCS(0)
+
+	processor := NewProcessor[Span](
+		app,
+		conf.Spans.BatchSize,
+		conf.Spans.BufferSize,
+	)
+	thread := NewProcessorThread[Span, SpanIndex](processor)
 
 	p := &SpanProcessor{
-		App: app,
-
-		batchSize: conf.Spans.BatchSize,
-		queue:     make(chan *Span, conf.Spans.BufferSize),
-		gate:      syncutil.NewGate(maxprocs),
-
-		logger: app.Logger,
+		ProcessorThread: thread,
+		sgp:             NewServiceGraphProcessor(app),
 	}
 
 	if !conf.ServiceGraph.Disabled {
@@ -49,40 +38,26 @@ func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
 	}
 
 	p.logger.Info("starting processing spans...",
-		zap.Int("threads", maxprocs),
-		zap.Int("batch_size", p.batchSize),
+		zap.Int("threads", runtime.GOMAXPROCS(0)),
+		zap.Int("batch_size", conf.Spans.BatchSize),
 		zap.Int("buffer_size", conf.Spans.BufferSize))
 
 	app.WaitGroup().Add(1)
 	go func() {
 		defer app.WaitGroup().Done()
-
 		p.processLoop(app.Context())
 	}()
 
-	queueLen, _ := bunotel.Meter.Int64ObservableGauge("uptrace.tracing.queue_length",
-		metric.WithUnit("{spans}"),
-	)
-
-	if _, err := bunotel.Meter.RegisterCallback(
-		func(ctx context.Context, o metric.Observer) error {
-			o.ObserveInt64(queueLen, int64(len(p.queue)))
-			return nil
-		},
-		queueLen,
-	); err != nil {
-		panic(err)
-	}
-
 	return p
 }
-
 func (p *SpanProcessor) AddSpan(ctx context.Context, span *Span) {
 	select {
 	case p.queue <- span:
+		p.logger.Debug("span added")
 	default:
-		p.logger.Error("span buffer is full (consider increasing spans.buffer_size)",
-			zap.Int("len", len(p.queue)))
+		p.processItems(ctx, []*Span{span})
+		p.AddItem(ctx, span)
+		p.logger.Error("Span buffer is full (consider increasing spans.buffer_size)", zap.Int("len", len(p.queue)))
 		spanCounter.Add(
 			ctx,
 			1,
@@ -94,60 +69,19 @@ func (p *SpanProcessor) AddSpan(ctx context.Context, span *Span) {
 	}
 }
 
-func (p *SpanProcessor) processLoop(ctx context.Context) {
-	const timeout = 5 * time.Second
+func (p *SpanProcessor) processItems(ctx context.Context, spans []*Span) {
+	p.logger.Info("processItems called")
+	p.logger.Info("Starting processing spans", zap.Int("batch_size", len(spans)))
 
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
-
-	spans := make([]*Span, 0, p.batchSize)
-
-loop:
-	for {
-		select {
-		case span := <-p.queue:
-			spans = append(spans, span)
-
-			if len(spans) < p.batchSize {
-				break
-			}
-
-			p.processSpans(ctx, spans)
-			spans = spans[:0]
-
-			if !timer.Stop() {
-				<-timer.C
-			}
-			timer.Reset(timeout)
-		case <-timer.C:
-			if len(spans) > 0 {
-				p.processSpans(ctx, spans)
-				spans = spans[:0]
-			}
-			timer.Reset(timeout)
-		case <-p.Done():
-			break loop
-		}
-	}
-
-	if len(spans) > 0 {
-		p.processSpans(ctx, spans)
-	}
-}
-
-func (p *SpanProcessor) processSpans(ctx context.Context, src []*Span) {
 	ctx, span := bunotel.Tracer.Start(ctx, "process-spans")
 
-	p.WaitGroup().Add(1)
+	p.App.WaitGroup().Add(1)
 	p.gate.Start()
-
-	spans := make([]*Span, len(src))
-	copy(spans, src)
 
 	go func() {
 		defer span.End()
 		defer p.gate.Done()
-		defer p.WaitGroup().Done()
+		defer p.App.WaitGroup().Done()
 
 		thread := newSpanProcessorThread(p)
 		thread._processSpans(ctx, spans)
@@ -177,7 +111,7 @@ func (p *spanProcessorThread) _processSpans(ctx context.Context, spans []*Span) 
 
 		if p.sgp != nil {
 			if err := p.sgp.ProcessSpan(ctx, index); err != nil {
-				p.Zap(ctx).Error("service graph failed", zap.Error(err))
+				p.App.Logger.Error("service graph failed", zap.Error(err))
 			}
 		}
 
@@ -227,25 +161,24 @@ func (p *spanProcessorThread) _processSpans(ctx context.Context, spans []*Span) 
 		index.LinkCount = uint8(len(span.Links))
 		index.EventCount = uint8(len(span.Events))
 		index.EventErrorCount = uint8(errorCount)
-		index.EventLogCount = uint8(logCount)
 		span.Events = nil
 
 		dataSpans = append(dataSpans, SpanData{})
 		initSpanData(&dataSpans[len(dataSpans)-1], span)
 	}
 
-	if _, err := p.CH.NewInsert().
+	if _, err := p.App.CH.NewInsert().
 		Model(&dataSpans).
 		Exec(ctx); err != nil {
-		p.Zap(ctx).Error("ch.Insert failed",
+		p.App.Logger.Error("ch.Insert failed",
 			zap.Error(err),
 			zap.String("table", "spans_data"))
 	}
 
-	if _, err := p.CH.NewInsert().
+	if _, err := p.App.CH.NewInsert().
 		Model(&indexedSpans).
 		Exec(ctx); err != nil {
-		p.Zap(ctx).Error("ch.Insert failed",
+		p.App.Logger.Error("ch.Insert failed",
 			zap.Error(err),
 			zap.String("table", "spans_index"))
 	}
@@ -269,48 +202,23 @@ func scheduleCreateErrorAlert(ctx context.Context, app *bunapp.App, span *Span) 
 //------------------------------------------------------------------------------
 
 type spanProcessorThread struct {
-	*SpanProcessor
-
-	projects map[uint32]*org.Project
-	digest   *xxhash.Digest
+	*ProcessorThread[Span, SpanProcessor]
+	sgp *ServiceGraphProcessor
 }
 
 func newSpanProcessorThread(p *SpanProcessor) *spanProcessorThread {
 	return &spanProcessorThread{
-		SpanProcessor: p,
-
-		projects: make(map[uint32]*org.Project),
-		digest:   xxhash.New(),
+		ProcessorThread: NewProcessorThread[Span, SpanProcessor](p.Processor),
+		sgp:             p.sgp,
 	}
-}
-
-func (p *spanProcessorThread) project(ctx context.Context, projectID uint32) (*org.Project, bool) {
-	if project, ok := p.projects[projectID]; ok {
-		return project, true
-	}
-
-	project, err := org.SelectProject(ctx, p.App, projectID)
-	if err != nil {
-		p.Zap(ctx).Error("SelectProject failed", zap.Error(err))
-		return nil, false
-	}
-
-	p.projects[projectID] = project
-	return project, true
 }
 
 func (p *spanProcessorThread) forceSpanName(ctx context.Context, span *Span) bool {
-	if span.EventName != "" {
-		return false
-	}
-
-	project, ok := p.project(ctx, span.ProjectID)
-	if !ok {
-		return false
-	}
-
-	if libName, _ := span.Attrs[attrkey.OtelLibraryName].(string); libName != "" {
-		return slices.Contains(project.ForceSpanName, libName)
-	}
-	return false
+	return p.forceName(ctx, span, func(s *Span) map[string]interface{} {
+		return s.Attrs
+	}, func(s *Span) uint32 {
+		return s.ProjectID
+	}, func(s *Span) string {
+		return s.EventName
+	})
 }

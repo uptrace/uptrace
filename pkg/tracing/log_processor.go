@@ -3,49 +3,36 @@ package tracing
 import (
 	"context"
 	"runtime"
-	"time"
 
-	"github.com/cespare/xxhash/v2"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
-	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
-	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
-	"go4.org/syncutil"
-	"golang.org/x/exp/slices"
 )
 
 type LogProcessor struct {
-	*bunapp.App
-
-	batchSize int
-	queue     chan *Span
-	gate      *syncutil.Gate
-
-	logger *otelzap.Logger
+	*ProcessorThread[Span, LogIndex]
 }
 
 func NewLogProcessor(app *bunapp.App) *LogProcessor {
 	conf := app.Config()
-	maxprocs := runtime.GOMAXPROCS(0)
+
+	processor := NewProcessor[Span](
+		app,
+		conf.Spans.BatchSize,
+		conf.Spans.BufferSize,
+	)
+	thread := NewProcessorThread[Span, LogIndex](processor)
 
 	p := &LogProcessor{
-		App: app,
-
-		batchSize: conf.Logs.BatchSize,
-		queue:     make(chan *Span, conf.Logs.BufferSize*2),
-		gate:      syncutil.NewGate(maxprocs),
-
-		logger: app.Logger,
+		ProcessorThread: thread,
 	}
 
 	p.logger.Info("starting processing logs...",
-		zap.Int("threads", maxprocs),
-		zap.Int("batch_size", p.batchSize),
-		zap.Int("buffer_size", conf.Logs.BufferSize))
+		zap.Int("threads", runtime.GOMAXPROCS(0)),
+		zap.Int("batch_size", conf.Spans.BatchSize),
+		zap.Int("buffer_size", conf.Spans.BufferSize))
 
 	app.WaitGroup().Add(1)
 	go func() {
@@ -53,29 +40,17 @@ func NewLogProcessor(app *bunapp.App) *LogProcessor {
 		p.processLoop(app.Context())
 	}()
 
-	queueLen, _ := bunotel.Meter.Int64ObservableGauge("uptrace.tracing.queue_length",
-		metric.WithUnit("{logs}"),
-	)
-
-	if _, err := bunotel.Meter.RegisterCallback(
-		func(ctx context.Context, o metric.Observer) error {
-			o.ObserveInt64(queueLen, int64(len(p.queue)))
-			return nil
-		},
-		queueLen,
-	); err != nil {
-		p.logger.Error("Failed to register queue length metric", zap.Error(err))
-		panic(err)
-	}
-
 	return p
 }
 
 func (p *LogProcessor) AddLog(ctx context.Context, log *Span) {
 	select {
 	case p.queue <- log:
+		p.logger.Debug("log added")
 	default:
 		p.logger.Error("Log buffer is full (consider increasing logs.buffer_size)", zap.Int("len", len(p.queue)))
+		p.processItems(ctx, []*Span{log})
+		p.AddItem(ctx, log)
 		logCounter.Add(
 			ctx,
 			1,
@@ -87,75 +62,37 @@ func (p *LogProcessor) AddLog(ctx context.Context, log *Span) {
 	}
 }
 
-func (p *LogProcessor) processLoop(ctx context.Context) {
-	const timeout = 5 * time.Second
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
+func (p *LogProcessor) processItems(ctx context.Context, logs []*Span) {
+	p.logger.Info("processItems called", zap.Int("batch_size", len(logs)))
+	ctx, span := bunotel.Tracer.Start(ctx, "process-logs")
 
-	logs := make([]*Span, 0, p.batchSize)
+	p.ProcessorThread.processItems(ctx, logs)
 
-loop:
-	for {
-		select {
-		case log := <-p.queue:
-			logs = append(logs, log)
-
-			if len(logs) < p.batchSize {
-				break
-			}
-
-			p.processLogs(ctx, logs)
-			logs = logs[:0]
-
-			if !timer.Stop() {
-				<-timer.C
-			}
-			timer.Reset(timeout)
-
-		case <-timer.C:
-			if len(logs) > 0 {
-				p.processLogs(ctx, logs)
-				logs = logs[:0]
-			} else {
-				p.logger.Info("Timer expired but no logs to process")
-			}
-			timer.Reset(timeout)
-
-		case <-p.Done():
-			break loop
-		}
-	}
-
-	if len(logs) > 0 {
-		p.processLogs(ctx, logs)
-	}
-}
-
-func (p *LogProcessor) processLogs(ctx context.Context, src []*Span) {
-	ctx, logSpan := bunotel.Tracer.Start(ctx, "process-logs")
-	defer logSpan.End()
-
-	p.WaitGroup().Add(1)
+	p.App.WaitGroup().Add(1)
 	p.gate.Start()
 
-	logs := make([]*Span, len(src))
-	copy(logs, src)
+	p.logger.Info("Processing batch of logs", zap.Int("batch_size", len(logs)))
 
 	go func() {
+		p.logger.Info("Log processing goroutine started")
+		defer span.End()
 		defer p.gate.Done()
-		defer p.WaitGroup().Done()
+		defer p.App.WaitGroup().Done()
 
 		thread := newLogProcessorThread(p)
 		thread._processLogs(ctx, logs)
 	}()
 }
+
 func (p *logProcessorThread) _processLogs(ctx context.Context, logs []*Span) {
+	p.logger.Info("Started processing logs", zap.Int("count", len(logs)))
 	indexedLogs := make([]LogIndex, 0, len(logs))
 	dataLogs := make([]LogData, 0, len(logs))
 
 	seenErrors := make(map[uint64]bool)
 
 	for _, log := range logs {
+		p.logger.Debug("Processing log", zap.String("logID", log.ID.String()), zap.Any("attributes", log.Attrs))
 		p.initLogOrEvent(ctx, log)
 		spanCounter.Add(
 			ctx,
@@ -169,12 +106,6 @@ func (p *logProcessorThread) _processLogs(ctx context.Context, logs []*Span) {
 		indexedLogs = append(indexedLogs, LogIndex{})
 		index := &indexedLogs[len(indexedLogs)-1]
 		initLogIndex(index, log)
-
-		// if p.sgp != nil {
-		// 	if err := p.sgp.ProcessSpan(ctx, index); err != nil {
-		// 		p.Zap(ctx).Error("service graph failed", zap.Error(err))
-		// 	}
-		// }
 
 		if log.EventName != "" {
 			dataLogs = append(dataLogs, LogData{})
@@ -229,66 +160,43 @@ func (p *logProcessorThread) _processLogs(ctx context.Context, logs []*Span) {
 		initLogData(&dataLogs[len(dataLogs)-1], log)
 	}
 
-	if _, err := p.CH.NewInsert().
+	if _, err := p.App.CH.NewInsert().
 		Model(&dataLogs).
+		ModelTableExpr("logs_data_buffer").
 		Exec(ctx); err != nil {
-		p.Zap(ctx).Error("ch.Insert failed",
-			zap.Error(err),
-			zap.String("table", "logs_data"))
-	}
-
-	if _, err := p.CH.NewInsert().
-		Model(&indexedLogs).
-		Exec(ctx); err != nil {
-		p.Zap(ctx).Error("ch.Insert failed",
+		p.App.Logger.Error("CH insert failed",
 			zap.Error(err),
 			zap.String("table", "logs_index"))
 	}
+
+	if _, err := p.App.CH.NewInsert().
+		Model(&indexedLogs).
+		ModelTableExpr("logs_index_buffer").
+		Exec(ctx); err != nil {
+		p.App.Logger.Error("CH insert failed",
+			zap.Error(err),
+			zap.String("table", "logs_index"))
+	}
+
+	p.logger.Info("Finished processing logs")
 }
 
 type logProcessorThread struct {
-	*LogProcessor
-
-	projects map[uint32]*org.Project
-	digest   *xxhash.Digest
+	*ProcessorThread[Span, LogProcessor]
 }
 
 func newLogProcessorThread(p *LogProcessor) *logProcessorThread {
 	return &logProcessorThread{
-		LogProcessor: p,
-
-		projects: make(map[uint32]*org.Project),
-		digest:   xxhash.New(),
+		ProcessorThread: NewProcessorThread[Span, LogProcessor](p.Processor),
 	}
-}
-
-func (p *logProcessorThread) project(ctx context.Context, projectID uint32) (*org.Project, bool) {
-	if project, ok := p.projects[projectID]; ok {
-		return project, true
-	}
-
-	project, err := org.SelectProject(ctx, p.App, projectID)
-	if err != nil {
-		p.Zap(ctx).Error("SelectProject failed", zap.Error(err))
-		return nil, false
-	}
-
-	p.projects[projectID] = project
-	return project, true
 }
 
 func (p *logProcessorThread) forceLogName(ctx context.Context, log *Span) bool {
-	if log.EventName != "" {
-		return false
-	}
-
-	project, ok := p.project(ctx, log.ProjectID)
-	if !ok {
-		return false
-	}
-
-	if libName, _ := log.Attrs[attrkey.OtelLibraryName].(string); libName != "" {
-		return slices.Contains(project.ForceSpanName, libName)
-	}
-	return false
+	return p.forceName(ctx, log, func(s *Span) map[string]interface{} {
+		return s.Attrs
+	}, func(s *Span) uint32 {
+		return s.ProjectID
+	}, func(s *Span) string {
+		return s.EventName
+	})
 }

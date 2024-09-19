@@ -24,13 +24,13 @@ const vectorSDK = "vector"
 type VectorHandler struct {
 	*bunapp.App
 
-	sp *SpanProcessor
+	lg *LogProcessor
 }
 
-func NewVectorHandler(app *bunapp.App, sp *SpanProcessor) *VectorHandler {
+func NewVectorHandler(app *bunapp.App, lg *LogProcessor) *VectorHandler {
 	return &VectorHandler{
 		App: app,
-		sp:  sp,
+		lg:  lg,
 	}
 }
 
@@ -75,10 +75,10 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 			return err
 		}
 
-		span := new(Span)
-		p.spanFromVector(ctx, span, m)
-		span.ProjectID = project.ID
-		h.sp.AddSpan(ctx, span)
+		log := new(Span)
+		p.spanFromVector(ctx, log, m)
+		log.ProjectID = project.ID
+		h.lg.AddLog(ctx, log)
 	}
 
 	return nil

@@ -32,10 +32,8 @@ func Init(ctx context.Context, app *bunapp.App) {
 	sp := NewSpanProcessor(app)
 	lg := NewLogProcessor(app)
 
-	app.Logger.Info("Initializing OTLP and routes")
 	initOTLP(ctx, app, sp, lg)
-	initRoutes(ctx, app, sp)
-	app.Logger.Info("Initialization complete")
+	initRoutes(ctx, app, sp, lg)
 }
 
 func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanProcessor, lg *LogProcessor) {
@@ -47,13 +45,11 @@ func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanProcessor, lg *LogPr
 
 	router := app.Router()
 	router.POST("/v1/traces", traceService.ExportHTTP)
-	app.Logger.Info("Registered /v1/traces route")
 
 	router.POST("/v1/logs", logsService.ExportHTTP)
-	app.Logger.Info("Registered /v1/logs route")
 }
 
-func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
+func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor, lg *LogProcessor) {
 
 	router := app.Router()
 	middleware := org.NewMiddleware(app)
@@ -75,7 +71,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	})
 
 	router.WithGroup("/api/v1", func(g *bunrouter.Group) {
-		vectorHandler := NewVectorHandler(app, sp)
+		vectorHandler := NewVectorHandler(app, lg)
 
 		g.POST("/vector-logs", vectorHandler.Create)
 		g.POST("/vector/logs", vectorHandler.Create)
