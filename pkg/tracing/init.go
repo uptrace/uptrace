@@ -129,13 +129,6 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 		})
 
 	internalV1.Use(middleware.UserAndProject).
-		WithGroup("/logs/:project_id", func(g *bunrouter.Group) {
-			logHandler := NewLogHandler(app)
-
-			g.GET("/logs", logHandler.ListLogs)
-		})
-
-	internalV1.Use(middleware.UserAndProject).
 		WithGroup("/tracing/:project_id/groups/:group_id", func(g *bunrouter.Group) {
 			groupHandler := NewGroupHandler(app)
 

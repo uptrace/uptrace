@@ -25,8 +25,6 @@ type LogProcessor struct {
 	queue     chan *Span
 	gate      *syncutil.Gate
 
-	sgp *ServiceGraphProcessor
-
 	logger *otelzap.Logger
 }
 
