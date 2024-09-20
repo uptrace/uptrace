@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cespare/xxhash/v2"
 	ua "github.com/mileusna/useragent"
-	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/logparser"
@@ -19,8 +17,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"github.com/uptrace/uptrace/pkg/sqlparser"
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
-	"github.com/uptrace/uptrace/pkg/tracing/norm"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/utf8util"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
@@ -34,7 +30,7 @@ func (p *spanProcessorThread) initSpanOrEvent(ctx context.Context, span *Span) {
 	p.processAttrs(span)
 
 	if span.EventName != "" {
-		p.assignEventSystemAndGroupID(project, span)
+		p.assignSpanSystemAndGroupID(project, span)
 		span.EventName = utf8util.TruncLC(span.EventName)
 	} else {
 		p.assignSpanSystemAndGroupID(project, span)
@@ -54,9 +50,6 @@ func (p *spanProcessorThread) initSpanOrEvent(ctx context.Context, span *Span) {
 func (p *spanProcessorThread) processAttrs(span *Span) {
 	normalizeAttrs(span.Attrs)
 
-	if msg, _ := span.Attrs[attrkey.LogMessage].(string); msg != "" {
-		p.parseLogMessage(span, msg)
-	}
 	if s, _ := span.Attrs[attrkey.UserAgentOriginal].(string); s != "" {
 		initHTTPUserAgent(span.Attrs, s)
 	}
@@ -75,82 +68,7 @@ func (p *spanProcessorThread) processAttrs(span *Span) {
 	if span.Time.IsZero() {
 		span.Time = time.Now()
 	}
-
-	switch span.EventName {
-	case otelEventLog:
-		if _, ok := span.Attrs[attrkey.LogSeverity]; !ok {
-			span.Attrs[attrkey.LogSeverity] = norm.SeverityInfo
-		}
-	case otelEventException:
-		if _, ok := span.Attrs[attrkey.LogSeverity]; !ok {
-			span.Attrs[attrkey.LogSeverity] = norm.SeverityError
-		}
-	}
 }
-
-func (p *spanProcessorThread) parseLogMessage(span *Span, msg string) {
-	hash, params := p.messageHashAndParams(msg)
-	if span.EventName == otelEventLog {
-		span.logMessageHash = hash
-	}
-	populateSpanFromParams(span, params)
-}
-
-func (p *spanProcessorThread) messageHashAndParams(msg string) (uint64, map[string]any) {
-	digest := p.digest
-	digest.Reset()
-
-	var params map[string]any
-
-	tok := logparser.NewTokenizer(msg)
-loop:
-	for {
-		tok := tok.NextToken()
-		switch tok.Type {
-		case logparser.InvalidToken:
-			break loop
-		case logparser.WordToken:
-			digest.WriteString(tok.Text)
-		case logparser.ParamToken:
-			if k, v, ok := logparser.IsLogfmt(tok.Text); ok {
-				if params == nil {
-					params = make(map[string]any)
-				}
-				params[k] = v
-			}
-		}
-	}
-
-	return digest.Sum64(), params
-}
-
-func initHTTPUserAgent(attrs AttrMap, str string) {
-	agent := ua.Parse(str)
-
-	if agent.Name != "" {
-		attrs[attrkey.UserAgentName] = agent.Name
-	}
-	if agent.Version != "" {
-		attrs[attrkey.UserAgentVersion] = agent.Version
-	}
-
-	if agent.OS != "" {
-		attrs[attrkey.UserAgentOSName] = agent.OS
-	}
-	if agent.OSVersion != "" {
-		attrs[attrkey.UserAgentOSVersion] = agent.OSVersion
-	}
-
-	if agent.Device != "" {
-		attrs[attrkey.UserAgentDevice] = agent.Device
-	}
-
-	if agent.Bot {
-		attrs[attrkey.UserAgentIsBot] = 1
-	}
-}
-
-//------------------------------------------------------------------------------
 
 func populateSpanFromParams(span *Span, params AttrMap) {
 	attrs := span.Attrs
@@ -226,80 +144,31 @@ func populateSpanFromParams(span *Span, params AttrMap) {
 	}
 }
 
-type AttrName struct {
-	Canonical string
-	Alts      []string
-}
+func initHTTPUserAgent(attrs AttrMap, str string) {
+	agent := ua.Parse(str)
 
-var attrNames = []AttrName{
-	{
-		Canonical: attrkey.DeploymentEnvironment,
-		Alts:      []string{"environment", "env"},
-	},
-	{Canonical: attrkey.ServiceName, Alts: []string{"service", "component"}},
-	{Canonical: attrkey.URLScheme, Alts: []string{"http_scheme"}},
-	{Canonical: attrkey.URLFull, Alts: []string{"http_url"}},
-	{Canonical: attrkey.URLPath, Alts: []string{"http_target"}},
-	{Canonical: attrkey.HTTPRequestMethod, Alts: []string{"http_method"}},
-	{Canonical: attrkey.HTTPResponseStatusCode, Alts: []string{"http_status_code"}},
-	{Canonical: attrkey.HTTPResponseStatusClass, Alts: []string{"http_status_class"}},
-	{Canonical: attrkey.DBSystem, Alts: []string{"db_type"}},
-	{
-		Canonical: attrkey.LogSeverity,
-		Alts:      []string{"severity", "log_level", "error_severity", "level"},
-	},
-}
-
-func normalizeAttrs(attrs AttrMap) {
-	for _, name := range attrNames {
-		if _, ok := attrs[name.Canonical]; ok {
-			continue
-		}
-
-		for _, key := range name.Alts {
-			if val, ok := attrs[key]; ok {
-				delete(attrs, key)
-				attrs[name.Canonical] = val
-				break
-			}
-		}
+	if agent.Name != "" {
+		attrs[attrkey.UserAgentName] = agent.Name
+	}
+	if agent.Version != "" {
+		attrs[attrkey.UserAgentVersion] = agent.Version
 	}
 
-	if val, ok := attrs[attrkey.LogSeverity].(string); ok {
-		attrs[attrkey.LogSeverity] = normLogSeverity(val)
+	if agent.OS != "" {
+		attrs[attrkey.UserAgentOSName] = agent.OS
+	}
+	if agent.OSVersion != "" {
+		attrs[attrkey.UserAgentOSVersion] = agent.OSVersion
+	}
+
+	if agent.Device != "" {
+		attrs[attrkey.UserAgentDevice] = agent.Device
+	}
+
+	if agent.Bot {
+		attrs[attrkey.UserAgentIsBot] = 1
 	}
 }
-
-func normLogSeverity(val string) string {
-	switch val {
-	case "trace", "Trace":
-		return "TRACE"
-	case "debug", "Debug":
-		return "DEBUG"
-	case "info", "Info",
-		"information", "INFORMATION", "Information",
-		"notice", "NOTICE", "Notice",
-		"log", "LOG", "Log",
-		"normal", "NORMAL", "Normal":
-		return "INFO"
-	case "error", "Error",
-		"err", "ERR", "Err",
-		"alert", "ALERT", "Alert",
-		"severe", "SEVERE", "Severe":
-		return "ERROR"
-	case "fatal", "Fatal",
-		"crit", "CRIT", "Crit",
-		"critical", "CRITICAL", "Critical",
-		"emerg", "EMERG", "Emerg",
-		"emergency", "EMERGENCY", "Emergency",
-		"panic", "PANIC", "Panic":
-		return "FATAL"
-	default:
-		return val
-	}
-}
-
-//------------------------------------------------------------------------------
 
 func newSpanLink(link *tracepb.Span_Link) *SpanLink {
 	return &SpanLink{
@@ -489,7 +358,56 @@ func hashSpan(project *org.Project, digest *xxhash.Digest, span *Span, keys ...s
 	}
 }
 
-//------------------------------------------------------------------------------
+type AttrName struct {
+	Canonical string
+	Alts      []string
+}
+
+var attrNames = []AttrName{
+	{
+		Canonical: attrkey.DeploymentEnvironment,
+		Alts:      []string{"environment", "env"},
+	},
+	{Canonical: attrkey.ServiceName, Alts: []string{"service", "component"}},
+	{Canonical: attrkey.URLScheme, Alts: []string{"http_scheme"}},
+	{Canonical: attrkey.URLFull, Alts: []string{"http_url"}},
+	{Canonical: attrkey.URLPath, Alts: []string{"http_target"}},
+	{Canonical: attrkey.HTTPRequestMethod, Alts: []string{"http_method"}},
+	{Canonical: attrkey.HTTPResponseStatusCode, Alts: []string{"http_status_code"}},
+	{Canonical: attrkey.HTTPResponseStatusClass, Alts: []string{"http_status_class"}},
+	{Canonical: attrkey.DBSystem, Alts: []string{"db_type"}},
+}
+
+func normalizeAttrs(attrs AttrMap) {
+	for _, name := range attrNames {
+		if _, ok := attrs[name.Canonical]; ok {
+			continue
+		}
+
+		for _, key := range name.Alts {
+			if val, ok := attrs[key]; ok {
+				delete(attrs, key)
+				attrs[name.Canonical] = val
+				break
+			}
+		}
+	}
+
+}
+
+func hashMessage(digest *xxhash.Digest, msg string) {
+	tok := logparser.NewTokenizer(msg)
+loop:
+	for {
+		tok := tok.NextToken()
+		switch tok.Type {
+		case logparser.InvalidToken:
+			break loop
+		case logparser.WordToken:
+			digest.WriteString(tok.Text)
+		}
+	}
+}
 
 func initEventFromHostSpan(dest *Span, event *SpanEvent, hostSpan *Span) {
 	dest.EventName = event.Name
@@ -518,170 +436,7 @@ func (p *spanProcessorThread) initEvent(ctx context.Context, span *Span) {
 	}
 
 	p.processAttrs(span)
-	p.assignEventSystemAndGroupID(project, span)
-}
-
-func (p *spanProcessorThread) assignEventSystemAndGroupID(project *org.Project, span *Span) {
-	if span.EventName == otelEventError {
-		span.EventName = otelEventException
-	}
-
-	switch span.EventName {
-	case otelEventLog:
-		p.handleLogEvent(project, span)
-		return
-	case otelEventException:
-		p.handleExceptionEvent(project, span)
-		return
-	case otelEventMessage:
-		system := eventMessageSystem(span)
-		span.Type = TypeEventMessage
-		span.System = TypeEventMessage + ":" + system
-		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
-			hashSpan(project, digest, span,
-				attrkey.RPCSystem,
-				attrkey.RPCService,
-				attrkey.RPCMethod,
-				attrkey.MessagingMessageType,
-			)
-		})
-		span.DisplayName = eventMessageDisplayName(span)
-		return
-	}
-
-	if span.Attrs.Exists(attrkey.LogMessage) {
-		p.handleLogEvent(project, span)
-		return
-	}
-
-	if span.Attrs.Exists(attrkey.ExceptionMessage) {
-		p.handleExceptionEvent(project, span)
-		return
-	}
-
-	span.Type = TypeEventOther
-	span.System = TypeEventOther
-	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
-		hashSpan(project, digest, span)
-	})
-	span.DisplayName = span.EventName
-}
-
-func (p *spanProcessorThread) handleLogEvent(project *org.Project, span *Span) {
-	sev, _ := span.Attrs[attrkey.LogSeverity].(string)
-	span.Type = TypeLog
-	span.System = TypeLog + ":" + lowerSeverity(sev)
-	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
-		hashSpan(project, digest, span,
-			attrkey.LogSeverity,
-		)
-		if span.logMessageHash != 0 {
-			digest.WriteString(strconv.FormatUint(span.logMessageHash, 10))
-		}
-	})
-	span.DisplayName = logDisplayName(span)
-}
-
-func lowerSeverity(sev string) string {
-	switch sev {
-	case norm.SeverityTrace, norm.SeverityTrace2, norm.SeverityTrace3, norm.SeverityTrace4:
-		return "trace"
-	case norm.SeverityDebug, norm.SeverityDebug2, norm.SeverityDebug3, norm.SeverityDebug4:
-		return "debug"
-	case norm.SeverityInfo, norm.SeverityInfo2, norm.SeverityInfo3, norm.SeverityInfo4:
-		return "info"
-	case norm.SeverityWarn, norm.SeverityWarn2, norm.SeverityWarn3, norm.SeverityWarn4:
-		return "warn"
-	case norm.SeverityError, norm.SeverityError2, norm.SeverityError3, norm.SeverityError4:
-		return "error"
-	case norm.SeverityFatal, norm.SeverityFatal2, norm.SeverityFatal3, norm.SeverityFatal4:
-		return "fatal"
-	default:
-		return "error"
-	}
-}
-
-func (p *spanProcessorThread) handleExceptionEvent(project *org.Project, span *Span) {
-	span.Type = TypeLog
-	span.System = SystemLogError
-	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
-		hashSpan(project, digest, span, attrkey.ExceptionType)
-		if s, _ := span.Attrs[attrkey.ExceptionMessage].(string); s != "" {
-			hashMessage(digest, s)
-		}
-	})
-	span.DisplayName = exceptionDisplayName(span)
-}
-
-func logDisplayName(span *Span) string {
-	if msg, _ := span.Attrs[attrkey.LogMessage].(string); msg != "" {
-		span.Attrs.Delete(attrkey.LogMessage)
-		sev, _ := span.Attrs[attrkey.LogSeverity].(string)
-		if sev != "" && !strings.HasPrefix(msg, sev) {
-			msg = sev + " " + msg
-		}
-		return msg
-	}
-
-	if name := exceptionDisplayName(span); name != span.EventName {
-		return name
-	}
-
-	if b, err := json.Marshal(span.Attrs); err == nil {
-		return unsafeconv.String(b)
-	}
-
-	return span.EventName
-}
-
-func exceptionDisplayName(span *Span) string {
-	msg, _ := span.Attrs[attrkey.ExceptionMessage].(string)
-	if msg != "" {
-		span.Attrs.Delete(attrkey.ExceptionMessage)
-		typ, _ := span.Attrs[attrkey.ExceptionType].(string)
-		return joinTypeMessage(typ, msg)
-	}
-	return span.EventName
-}
-
-func eventMessageSystem(span *Span) string {
-	if sys := span.Attrs.Text(attrkey.RPCSystem); sys != "" {
-		return sys
-	}
-	if sys := span.Attrs.Text(attrkey.MessagingSystem); sys != "" {
-		return sys
-	}
-	return SystemUnknown
-}
-
-func eventMessageDisplayName(span *Span) string {
-	if span.EventName != otelEventMessage {
-		return span.EventName
-	}
-	if op := span.Attrs.Text(attrkey.MessagingOperation); op != "" {
-		return join(span.Name, op)
-	}
-	if typ := span.Attrs.Text("message.type"); typ != "" {
-		return join(span.Name, typ)
-	}
-	if span.Kind != InternalSpanKind {
-		return join(span.Name, span.Kind)
-	}
-	return span.EventName
-}
-
-func hashMessage(digest *xxhash.Digest, msg string) {
-	tok := logparser.NewTokenizer(msg)
-loop:
-	for {
-		tok := tok.NextToken()
-		switch tok.Type {
-		case logparser.InvalidToken:
-			break loop
-		case logparser.WordToken:
-			digest.WriteString(tok.Text)
-		}
-	}
+	p.assignSpanSystemAndGroupID(project, span)
 }
 
 func joinTypeMessage(typ, msg string) string {

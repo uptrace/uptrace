@@ -168,7 +168,7 @@ func (p *logProcessorThread) _processLogs(ctx context.Context, logs []*Span) {
 				Attrs: NewAttrMap(),
 			}
 			initEventFromHostSpan(eventSpan, event, log)
-			p.initEvent(ctx, eventSpan)
+			p.initLogOrEvent(ctx, eventSpan)
 
 			p.logger.Debug("Processing event", zap.String("eventID", eventSpan.ID.String()), zap.Any("attributes", eventSpan.Attrs))
 

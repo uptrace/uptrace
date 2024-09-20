@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/uptrace/pkg/attrkey"
@@ -44,16 +43,6 @@ func (p *logProcessorThread) initLogOrEvent(ctx context.Context, log *Span) {
 	}
 
 	log.System = utf8util.TruncSmall(log.System)
-}
-
-func (p *logProcessorThread) initEvent(ctx context.Context, log *Span) {
-	project, ok := p.project(ctx, log.ProjectID)
-	if !ok {
-		return
-	}
-
-	p.processLogAttrs(log)
-	p.assignEventSystemAndGroupIDForLog(project, log)
 }
 
 func (p *logProcessorThread) processLogAttrs(log *Span) {
@@ -172,14 +161,6 @@ func populateLogFromParams(log *Span, params AttrMap) {
 			log.Time = tm
 			delete(params, key)
 			break
-		}
-	}
-
-	if log.Duration == 0 {
-		if val, ok := params.Get(attrkey.SpanDuration); ok {
-			log.Duration = time.Duration(anyconv.Int64(val))
-			params.Delete(attrkey.SpanDuration)
-			log.EventName = ""
 		}
 	}
 
@@ -466,4 +447,23 @@ func eventMessageDisplay(log *Span) string {
 		return join(log.Name, log.Kind)
 	}
 	return log.EventName
+}
+
+func lowerSeverity(sev string) string {
+	switch sev {
+	case norm.SeverityTrace, norm.SeverityTrace2, norm.SeverityTrace3, norm.SeverityTrace4:
+		return "trace"
+	case norm.SeverityDebug, norm.SeverityDebug2, norm.SeverityDebug3, norm.SeverityDebug4:
+		return "debug"
+	case norm.SeverityInfo, norm.SeverityInfo2, norm.SeverityInfo3, norm.SeverityInfo4:
+		return "info"
+	case norm.SeverityWarn, norm.SeverityWarn2, norm.SeverityWarn3, norm.SeverityWarn4:
+		return "warn"
+	case norm.SeverityError, norm.SeverityError2, norm.SeverityError3, norm.SeverityError4:
+		return "error"
+	case norm.SeverityFatal, norm.SeverityFatal2, norm.SeverityFatal3, norm.SeverityFatal4:
+		return "fatal"
+	default:
+		return "error"
+	}
 }

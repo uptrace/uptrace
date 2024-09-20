@@ -39,32 +39,6 @@ CREATE TABLE logs_index ?ON_CLUSTER  (
 
   deployment_environment LowCardinality(String) Codec(?CODEC),
 
-  service_name LowCardinality(String) Codec(?CODEC),
-  service_version LowCardinality(String) Codec(?CODEC),
-  service_namespace LowCardinality(String) Codec(?CODEC),
-  host_name LowCardinality(String) Codec(?CODEC),
-
-  client_address LowCardinality(String) Codec(?CODEC),
-  client_socket_address LowCardinality(String) Codec(?CODEC),
-  client_socket_port Int32 Codec(?CODEC),
-
-  url_scheme LowCardinality(String) Codec(?CODEC),
-  url_full String Codec(?CODEC),
-  url_path LowCardinality(String) Codec(?CODEC),
-
-  http_request_method LowCardinality(String) Codec(?CODEC),
-  http_response_status_code UInt16 Codec(?CODEC),
-  http_route LowCardinality(String) Codec(?CODEC),
-
-  rpc_method LowCardinality(String) Codec(?CODEC),
-  rpc_service LowCardinality(String) Codec(?CODEC),
-
-  db_system LowCardinality(String) Codec(?CODEC),
-  db_name LowCardinality(String) Codec(?CODEC),
-  db_statement String Codec(?CODEC),
-  db_operation LowCardinality(String) Codec(?CODEC),
-  db_sql_table LowCardinality(String) Codec(?CODEC),
-
   log_severity LowCardinality(String) Codec(?CODEC),
   log_message String Codec(?CODEC),
 
