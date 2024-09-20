@@ -11,8 +11,6 @@ import (
 type LogIndex struct {
 	ch.CHModel `ch:"table:logs_index,insert:logs_index_buffer,alias:s"`
 
-	*Span
-
 	DisplayName string
 
 	Count           float32
@@ -44,30 +42,11 @@ type LogIndex struct {
 	ClientSocketAddress string `ch:",lc"`
 	ClientSocketPort    int32
 
-	URLScheme string `attr:"url.scheme" ch:",lc"`
-	URLFull   string `attr:"url.full"`
-	URLPath   string `attr:"url.path" ch:",lc"`
-
-	HTTPRequestMethod      string `ch:",lc"`
-	HTTPResponseStatusCode uint16
-	HTTPRoute              string `ch:",lc"`
-
-	RPCMethod  string `ch:",lc"`
-	RPCService string `ch:",lc"`
-
-	DBSystem    string `ch:",lc"`
-	DBName      string `ch:",lc"`
-	DBStatement string
-	DBOperation string `ch:",lc"`
-	DBSqlTable  string `ch:",lc"`
-
 	LogSeverity   string `ch:",lc"`
 	ExceptionType string `ch:",lc"`
 }
 
 func initLogIndex(index *LogIndex, log *Span) {
-	index.Span = log
-
 	index.DisplayName = utf8util.TruncLarge(log.DisplayName)
 	index.Count = 1
 
@@ -89,23 +68,6 @@ func initLogIndex(index *LogIndex, log *Span) {
 	index.ClientAddress = log.Attrs.Text(attrkey.ClientAddress)
 	index.ClientSocketAddress = log.Attrs.Text(attrkey.ClientSocketAddress)
 	index.ClientSocketPort = int32(log.Attrs.Int64(attrkey.ClientSocketPort))
-
-	index.URLScheme = log.Attrs.Text(attrkey.URLScheme)
-	index.URLFull = log.Attrs.Text(attrkey.URLFull)
-	index.URLPath = log.Attrs.Text(attrkey.URLPath)
-
-	index.HTTPRequestMethod = log.Attrs.Text(attrkey.HTTPRequestMethod)
-	index.HTTPResponseStatusCode = uint16(log.Attrs.Uint64(attrkey.HTTPResponseStatusCode))
-	index.HTTPRoute = log.Attrs.Text(attrkey.HTTPRoute)
-
-	index.RPCMethod = log.Attrs.Text(attrkey.RPCMethod)
-	index.RPCService = log.Attrs.Text(attrkey.RPCService)
-
-	index.DBSystem = log.Attrs.Text(attrkey.DBSystem)
-	index.DBName = log.Attrs.Text(attrkey.DBName)
-	index.DBStatement = log.Attrs.Text(attrkey.DBStatement)
-	index.DBOperation = log.Attrs.Text(attrkey.DBOperation)
-	index.DBSqlTable = log.Attrs.Text(attrkey.DBSqlTable)
 
 	index.LogSeverity = log.Attrs.Text(attrkey.LogSeverity)
 	index.ExceptionType = log.Attrs.Text(attrkey.ExceptionType)

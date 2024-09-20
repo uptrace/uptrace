@@ -64,6 +64,7 @@ func NewProcessor[T any](app *bunapp.App, batchSize, bufferSize int) *Processor[
 }
 
 func (p *Processor[T]) AddItem(ctx context.Context, item *T) {
+	p.logger.Info("AddItem called", zap.Any("item", item))
 	select {
 	case p.queue <- item:
 	default:
@@ -73,6 +74,7 @@ func (p *Processor[T]) AddItem(ctx context.Context, item *T) {
 }
 
 func (p *Processor[T]) processLoop(ctx context.Context) {
+	p.logger.Info("processLoop started")
 	const timeout = 5 * time.Second
 
 	timer := time.NewTimer(timeout)
@@ -82,14 +84,20 @@ func (p *Processor[T]) processLoop(ctx context.Context) {
 
 loop:
 	for {
+		p.logger.Info("Waiting for items in the queue")
 		select {
 		case item := <-p.queue:
+			p.logger.Info("Received item from queue", zap.Int("currentBatchSize", len(items)+1), zap.Int("queueLength", len(p.queue)))
 			items = append(items, item)
 
+			p.logger.Info("Current batch size after adding item", zap.Int("currentBatchSize", len(items)))
+
 			if len(items) < p.batchSize {
+				p.logger.Info("Batch size not reached yet", zap.Int("currentBatchSize", len(items)), zap.Int("requiredBatchSize", p.batchSize))
 				break
 			}
 
+			p.logger.Info("Processing batch of items", zap.Int("batchSize", len(items)))
 			p.processItems(ctx, items)
 			items = items[:0]
 
@@ -100,22 +108,38 @@ loop:
 
 		case <-timer.C:
 			if len(items) > 0 {
+				p.logger.Info("Processing batch due to timeout", zap.Int("batchSize", len(items)))
 				p.processItems(ctx, items)
 				items = items[:0]
 			}
 			timer.Reset(timeout)
 
 		case <-p.App.Context().Done():
+			p.logger.Info("Shutting down processor, final items processing", zap.Int("finalBatchSize", len(items)))
 			break loop
 		}
 	}
 
 	if len(items) > 0 {
+		p.logger.Info("Final batch processing after shutdown", zap.Int("batchSize", len(items)))
+		p.processItems(ctx, items)
+	}
+
+	if len(items) > 0 {
+		p.logger.Info("Final batch processing after shutdown", zap.Int("batchSize", len(items)))
 		p.processItems(ctx, items)
 	}
 }
 
-func (p *Processor[T]) processItems(ctx context.Context, items []*T) {}
+func (p *Processor[T]) processItems(ctx context.Context, items []*T) {
+	p.logger.Info("Processing batch of items", zap.Int("batchSize", len(items)))
+
+	if ctx.Err() != nil {
+		p.logger.Error("Context canceled before processing", zap.Error(ctx.Err()))
+		return
+	}
+
+}
 
 type ProcessorThread[T any, P any] struct {
 	*Processor[T]

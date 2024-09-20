@@ -16,9 +16,11 @@ import (
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
 	"github.com/uptrace/uptrace/pkg/tracing/norm"
 	"github.com/uptrace/uptrace/pkg/utf8util"
+	"go.uber.org/zap"
 )
 
 func (p *logProcessorThread) initLogOrEvent(ctx context.Context, log *Span) {
+	p.logger.Debug("Initializing log", zap.String("logID", log.ID.String()), zap.Any("attributes", log.Attrs))
 	project, ok := p.project(ctx, log.ProjectID)
 	if !ok {
 		return
@@ -62,21 +64,6 @@ func (p *logProcessorThread) processLogAttrs(log *Span) {
 	}
 	if s, _ := log.Attrs[attrkey.UserAgentOriginal].(string); s != "" {
 		initHTTPUserAgent(log.Attrs, s)
-	}
-
-	if log.TraceID.IsZero() {
-		log.TraceID = idgen.RandTraceID()
-		log.ID = 0
-		log.ParentID = 0
-		log.Standalone = true
-	}
-	if !log.Standalone {
-		if log.ID == 0 {
-			log.ID = idgen.RandSpanID()
-		}
-	}
-	if log.Time.IsZero() {
-		log.Time = time.Now()
 	}
 
 	switch log.EventName {
