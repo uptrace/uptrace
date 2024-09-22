@@ -1,8 +1,6 @@
 module github.com/uptrace/uptrace/example/go-slog
 
-go 1.21
-
-toolchain go1.22.1
+go 1.22
 
 require (
 	github.com/uptrace/uptrace-go v1.27.0
