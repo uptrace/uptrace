@@ -10,7 +10,16 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
+	"log"
 )
+
+type userStorage map[string]string
+
+var storage = userStorage{}
+
+func (u userStorage) Set(username, chatId string) {
+	u[username] = chatId
+}
 
 type DiscordNotifier struct {
 	session *discordgo.Session
@@ -48,12 +57,6 @@ func (d *DiscordNotifChannel) DiscordSession(app *bunapp.App) (*discordgo.Sessio
 	conf := app.Config()
 	if conf.Discord.BotToken == "" {
 		return nil, errors.New("discord.bot_token is empty")
-	}
-	if conf.Discord.PublicKey == "" {
-		return nil, errors.New("discord.public_key is empty")
-	}
-	if conf.Discord.AppId == "" {
-		return nil, errors.New("discord.app_id is empty")
 	}
 	if d.Params.ChatID == "" {
 		return nil, errors.New("chat id can't be empty")
@@ -110,21 +113,78 @@ func notifyByDiscordHandler(ctx context.Context, eventID, channelID uint64) erro
 }
 
 func notifyByDiscordChannel(
-	ctx context.Context,
+	_ context.Context,
 	app *bunapp.App,
-	project *org.Project,
-	alert org.Alert,
+	_ *org.Project,
+	_ org.Alert,
 	channel *DiscordNotifChannel,
 ) error {
 	if channel.State != NotifChannelDelivering {
 		return nil
 	}
 
-	bot, err := channel.DiscordSession(app)
+	dg, err := channel.DiscordSession(app)
 	if err != nil {
 		return err
 	}
 
-	_, err = bot.ChannelMessageSend(channel.Params.ChatID, fmt.Sprintf("%v", alert))
+	dg.AddHandler(messageCreate)
+
+	err = dg.Open()
+	if err != nil {
+		return fmt.Errorf("error opening Discord session: %v", err)
+	}
+
 	return err
+}
+
+func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	if m.Author.ID == s.State.User.ID {
+		return
+	}
+
+	if _, ok := storage[m.Author.Username]; !ok {
+		storage.Set(m.Author.Username, m.ChannelID)
+	}
+
+	var cfg = &SMC{
+		session:       s,
+		messageCreate: m,
+	}
+
+	// DM logic
+	if m.GuildID == "" {
+		send(cfg, "test1")
+		return
+	}
+
+	channel, err := s.UserChannelCreate(m.Author.ID)
+	if err != nil {
+		_, _ = s.ChannelMessageSend(
+			m.ChannelID,
+			"Something went wrong while sending the DM!",
+		)
+		return
+	}
+	cfg.channel = channel
+
+	send(cfg, "test2")
+}
+
+type SMC struct {
+	session       *discordgo.Session
+	messageCreate *discordgo.MessageCreate
+	channel       *discordgo.Channel
+}
+
+func send(cfg *SMC, content string) {
+	_, err := cfg.session.ChannelMessageSend(cfg.messageCreate.ChannelID, content)
+	if err != nil {
+		log.Printf("Error - sending message: %v", err)
+		_, _ = cfg.session.ChannelMessageSend(
+			cfg.messageCreate.ChannelID,
+			"Failed to send you a DM. "+
+				"Did you disable DM in your privacy settings?",
+		)
+	}
 }

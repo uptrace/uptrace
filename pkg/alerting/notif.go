@@ -185,6 +185,11 @@ func scheduleNotifyByChannelsOnErrorAlert(
 		}
 	}
 
+	job := NotifyByDiscordTask.NewJob(alert.EventID, 0)
+	if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
+		firstErr = err
+	}
+
 	return firstErr
 }
 
