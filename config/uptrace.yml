@@ -251,12 +251,12 @@ uptrace_go:
 ## https://sendpulse.com/knowledge-base/chatbot/telegram/create-telegram-chatbot
 ##
 telegram:
-  bot_token: '6703145702:AAF2K3q3ifD_Eqq2SMj9C8cKtO5_lIm8cwc'
+  bot_token: ''
 
 ##
 ## Discord creds
 discord:
-  bot_token: 'MTI4NDIwNDYyMTA0MDE5MzY0OA.GV6Zwy.EhxZWzyLPdi53wefRyuoELQ4-7RcS-py17WM5Y'
+  bot_token: ''
 
 ##
 ## Logging configuration.
