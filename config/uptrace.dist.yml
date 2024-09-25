@@ -253,6 +253,10 @@ uptrace_go:
 telegram:
   bot_token: ''
 
+discord:
+  webhook_id: 0
+  webhook_token: ''
+
 ##
 ## Logging configuration.
 ##

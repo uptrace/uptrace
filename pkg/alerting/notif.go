@@ -171,6 +171,7 @@ func scheduleNotifyByChannelsOnErrorAlert(
 				firstErr = err
 			}
 		case NotifChannelDiscord:
+			fmt.Println("<<<------666------->>>")
 			job := NotifyByDiscordTask.NewJob(alert.EventID, 0)
 			if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
 				firstErr = err
@@ -185,9 +186,12 @@ func scheduleNotifyByChannelsOnErrorAlert(
 		}
 	}
 
+	fmt.Println("<<<------777------->>>")
 	job := NotifyByDiscordTask.NewJob(alert.EventID, 0)
 	if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
 		firstErr = err
+	} else {
+		fmt.Println(err)
 	}
 
 	return firstErr

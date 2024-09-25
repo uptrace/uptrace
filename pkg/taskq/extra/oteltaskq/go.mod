@@ -2,8 +2,6 @@ module github.com/vmihailenco/taskq/extra/oteltaskq/v4
 
 go 1.22
 
-toolchain go1.23.0
-
 replace github.com/vmihailenco/taskq/v4 => ../..
 
 replace github.com/vmihailenco/taskq/memqueue/v4 => ../../memqueue

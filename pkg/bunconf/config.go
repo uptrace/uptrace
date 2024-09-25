@@ -381,7 +381,8 @@ type Config struct {
 	} `yaml:"telegram"`
 
 	Discord struct {
-		BotToken string `yaml:"bot_token"`
+		WebhookId    int64  `yaml:"webhook_id"`
+		WebhookToken string `yaml:"webhook_token"`
 	} `yaml:"discord"`
 }
 

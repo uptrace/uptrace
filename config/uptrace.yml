@@ -256,7 +256,8 @@ telegram:
 ##
 ## Discord creds
 discord:
-  bot_token: ''
+  webhook_id: 0
+  webhook_token: ''
 
 ##
 ## Logging configuration.
