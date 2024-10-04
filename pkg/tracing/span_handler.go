@@ -65,7 +65,7 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 			order := string(chExpr) + " " + f.SortDir()
 			return q.OrderExpr(order)
 		}).
-		Limit(10).
+		Limit(15).
 		Offset(f.Pager.GetOffset())
 
 	ids := make([]SpanIdentity, 0)
