@@ -257,10 +257,11 @@ func (h *SentryHandler) newSpanFromBreadcrumb(bc *SentryBreadcrumb) *SpanEvent {
 	event.Time = bc.Timestamp.Time
 	event.Attrs = bc.Data
 
+	if event.Attrs == nil {
+		event.Attrs = NewAttrMap()
+	}
+
 	if bc.Type != "" {
-		if event.Attrs == nil {
-			event.Attrs = make(AttrMap)
-		}
 		event.Attrs["breadcrumb.type"] = bc.Type
 	}
 
