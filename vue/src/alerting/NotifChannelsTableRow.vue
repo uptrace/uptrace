@@ -6,6 +6,14 @@
       <NotifChannelStateAvatar :state="channel.state" class="mr-2" />
     </td>
     <td class="text-center">
+      <v-btn 
+      :loading="man.pending"     
+      icon
+      title="Test channel"
+      @click.stop="testChannel(channel)"
+      >
+      <v-icon>mdi-message-alert</v-icon>
+      </v-btn>
       <v-btn
         v-if="channel.state === NotifChannelState.Delivering"
         :loading="man.pending"
@@ -71,6 +79,12 @@ export default defineComponent({
     const confirm = useConfirm()
     const man = useNotifChannelManager()
 
+    function testChannel(channel: NotifChannel) {
+      man.test(channel.id, channel).then(() => {
+        ctx.emit('change')
+      })
+    }
+
     function pauseChannel(channel: NotifChannel) {
       man.pause(channel.id).then(() => {
         ctx.emit('change')
@@ -113,6 +127,7 @@ export default defineComponent({
       NotifChannelState,
 
       man,
+      testChannel,
       pauseChannel,
       unpauseChannel,
       deleteChannel,

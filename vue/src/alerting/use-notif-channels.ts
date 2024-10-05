@@ -217,6 +217,14 @@ export function useNotifChannelManager() {
   const route = useRoute()
   const { loading: pending, request } = useAxios()
 
+  function test(channelId: number, channel: NotifChannel) {
+    const { projectId } = route.value.params
+    const url = `/internal/v1/projects/${projectId}/notification-channels/${channel.type}/${channelId}`
+    return request({ method: 'POST', url, data: channel }).then((resp) => {
+      return resp.data.channel
+    })
+  }
+
   function pause(channelId: number) {
     const { projectId } = route.value.params
     const url = `/internal/v1/projects/${projectId}/notification-channels/${channelId}/paused`
@@ -305,7 +313,7 @@ export function useNotifChannelManager() {
 
   return proxyRefs({
     pending,
-
+    test,
     pause,
     unpause,
     delete: del,
