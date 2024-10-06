@@ -97,6 +97,28 @@ func (h *NotifChannelHandler) UpdateNotifChannelState(
 	})
 }
 
+func (h *NotifChannelHandler) ChannelTest(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	baseChannel := NotifChannelFromContext(ctx).Base()
+
+	switch baseChannel.Type {
+	case NotifChannelAlertmanager:
+		//TODO:
+		return nil
+	case NotifChannelSlack:
+		return h.slackTest(w, req)
+
+	case NotifChannelTelegram:
+		return h.telegramTest(w, req)
+
+	case NotifChannelWebhook:
+		return h.webhookTest(w, req)
+
+	}
+	return fmt.Errorf("unexpected notification channel: %T", baseChannel)
+}
+
 //------------------------------------------------------------------------------
 
 func (h *NotifChannelHandler) SlackShow(w http.ResponseWriter, req bunrouter.Request) error {
@@ -201,7 +223,7 @@ func (h *NotifChannelHandler) SlackUpdate(w http.ResponseWriter, req bunrouter.R
 	})
 }
 
-func (h *NotifChannelHandler) SlackTest(w http.ResponseWriter, req bunrouter.Request) error {
+func (h *NotifChannelHandler) slackTest(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
 	channel, err := SlackNotifChannelFromContext(ctx)
@@ -233,7 +255,7 @@ func (h *NotifChannelHandler) sendSlackTestMsg(channel *SlackNotifChannel) error
 	}
 
 	msg := &slack.WebhookMessage{
-		Text: fmt.Sprintf("Test message from Uptrace"),
+		Text: "Test message from Uptrace",
 	}
 	if err := slack.PostWebhook(webhookURL, msg); err != nil {
 		return err
@@ -310,7 +332,7 @@ func (h *NotifChannelHandler) TelegramCreate(w http.ResponseWriter, req bunroute
 	})
 }
 
-func (h *NotifChannelHandler) TelegramTest(w http.ResponseWriter, req bunrouter.Request) error {
+func (h *NotifChannelHandler) telegramTest(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 	project := org.ProjectFromContext(ctx)
 
@@ -320,7 +342,6 @@ func (h *NotifChannelHandler) TelegramTest(w http.ResponseWriter, req bunrouter.
 			Type:      NotifChannelTelegram,
 		},
 	}
-
 	in := new(TelegramNotifChannelIn)
 	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
 		return err
@@ -505,7 +526,7 @@ func (h *NotifChannelHandler) WebhookUpdate(w http.ResponseWriter, req bunrouter
 	})
 }
 
-func (h *NotifChannelHandler) WebhookTest(w http.ResponseWriter, req bunrouter.Request) error {
+func (h *NotifChannelHandler) webhookTest(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 	project := org.ProjectFromContext(ctx)
 

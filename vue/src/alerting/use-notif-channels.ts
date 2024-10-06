@@ -219,7 +219,7 @@ export function useNotifChannelManager() {
 
   function test(channelId: number, channel: NotifChannel) {
     const { projectId } = route.value.params
-    const url = `/internal/v1/projects/${projectId}/notification-channels/${channel.type}/${channelId}`
+    const url = `/internal/v1/projects/${projectId}/notification-channels/${channelId}/test`
     return request({ method: 'POST', url, data: channel }).then((resp) => {
       return resp.data.channel
     })
