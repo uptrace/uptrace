@@ -78,6 +78,7 @@ func initRouter(ctx context.Context, app *bunapp.App) {
 			g.DELETE("/:channel_id", handler.Delete)
 			g.PUT("/:channel_id/paused", handler.Pause)
 			g.PUT("/:channel_id/unpaused", handler.Unpause)
+			g.POST("/:channel_id/test", handler.ChannelTest)
 
 			g.GET("/slack/:channel_id", handler.SlackShow)
 			g.PUT("/slack/:channel_id", handler.SlackUpdate)
