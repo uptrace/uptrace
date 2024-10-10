@@ -113,8 +113,9 @@ func (n *EmailNotifier) notifyOnErrorAlert(
 	recipients []string,
 ) error {
 	const tplName = "error_alert.html"
-
-	span, err := tracing.SelectSpan(
+	
+	// TODO: temporarily only for spans
+	span, err := tracing.SelectSpan[*tracing.SpanData](
 		ctx, app, alert.ProjectID, alert.Event.Params.TraceID, alert.Event.Params.SpanID,
 	)
 	if err != nil {

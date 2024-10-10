@@ -155,8 +155,8 @@ func (p *SpanProcessor) processSpans(ctx context.Context, src []*Span) {
 }
 
 func (p *spanProcessorThread) _processSpans(ctx context.Context, spans []*Span) {
-	indexedSpans := make([]SpanIndex, 0, len(spans))
-	dataSpans := make([]SpanData, 0, len(spans))
+	indexedSpans := make([]BaseIndex, 0, len(spans))
+	dataSpans := make([]BaseData, 0, len(spans))
 
 	seenErrors := make(map[uint64]bool) // basic deduplication
 
@@ -171,9 +171,9 @@ func (p *spanProcessorThread) _processSpans(ctx context.Context, spans []*Span) 
 			),
 		)
 
-		indexedSpans = append(indexedSpans, SpanIndex{})
+		indexedSpans = append(indexedSpans, BaseIndex{})
 		index := &indexedSpans[len(indexedSpans)-1]
-		initSpanIndex(index, span)
+		consumeIndex(index, span)
 
 		if p.sgp != nil {
 			if err := p.sgp.ProcessSpan(ctx, index); err != nil {
@@ -182,8 +182,8 @@ func (p *spanProcessorThread) _processSpans(ctx context.Context, spans []*Span) 
 		}
 
 		if span.EventName != "" {
-			dataSpans = append(dataSpans, SpanData{})
-			initSpanData(&dataSpans[len(dataSpans)-1], span)
+			dataSpans = append(dataSpans, BaseData{})
+			consumeData(&dataSpans[len(dataSpans)-1], span)
 			continue
 		}
 
@@ -206,11 +206,11 @@ func (p *spanProcessorThread) _processSpans(ctx context.Context, spans []*Span) 
 				),
 			)
 
-			indexedSpans = append(indexedSpans, SpanIndex{})
-			initSpanIndex(&indexedSpans[len(indexedSpans)-1], eventSpan)
+			indexedSpans = append(indexedSpans, BaseIndex{})
+			consumeIndex(&indexedSpans[len(indexedSpans)-1], eventSpan)
 
-			dataSpans = append(dataSpans, SpanData{})
-			initSpanData(&dataSpans[len(dataSpans)-1], eventSpan)
+			dataSpans = append(dataSpans, BaseData{})
+			consumeData(&dataSpans[len(dataSpans)-1], eventSpan)
 
 			if isErrorSystem(eventSpan.System) {
 				errorCount++
@@ -230,25 +230,81 @@ func (p *spanProcessorThread) _processSpans(ctx context.Context, spans []*Span) 
 		index.EventLogCount = uint8(logCount)
 		span.Events = nil
 
-		dataSpans = append(dataSpans, SpanData{})
-		initSpanData(&dataSpans[len(dataSpans)-1], span)
+		dataSpans = append(dataSpans, BaseData{})
+		consumeData(&dataSpans[len(dataSpans)-1], span)
 	}
 
+	p.insertData(ctx, dataSpans)
+	p.insertIndex(ctx, indexedSpans)
+}
+
+func consumeIndex(index *BaseIndex, span *Span) {
+	switch {
+	// TODO: case event
+	case span.Type == "log":
+		b := NewBaseIndexer(NewLogIndex(index))
+		b.initIndex(span)
+	default:
+		b := NewBaseIndexer(NewSpanIndex(index))
+		b.initIndex(span)
+	}
+}
+
+func consumeData(data *BaseData, span *Span) {
+	switch {
+	// TODO: case event
+	case span.Type == "log":
+		d := NewBaseDater(NewLogData(data))
+		d.initData(span)
+	default:
+		d := NewBaseDater(NewSpanData(data))
+		d.initData(span)
+	}
+}
+
+func (p *spanProcessorThread) insertCH(ctx context.Context, val any, table string) {
 	if _, err := p.CH.NewInsert().
-		Model(&dataSpans).
+		Model(val).
 		Exec(ctx); err != nil {
 		p.Zap(ctx).Error("ch.Insert failed",
 			zap.Error(err),
-			zap.String("table", "spans_data"))
+			zap.String("table", table))
 	}
+}
 
-	if _, err := p.CH.NewInsert().
-		Model(&indexedSpans).
-		Exec(ctx); err != nil {
-		p.Zap(ctx).Error("ch.Insert failed",
-			zap.Error(err),
-			zap.String("table", "spans_index"))
+func (p *spanProcessorThread) insertData(ctx context.Context, datas []BaseData) {
+	dataSpans := make([]SpanData, 0, len(datas))
+	dataLogs := make([]LogData, 0, len(datas))
+
+	for _, d := range datas {
+		switch {
+		// TODO: case event
+		case d.Type == "log":
+			dataLogs = append(dataLogs, *NewLogData(&d))
+		default:
+			dataSpans = append(dataSpans, *NewSpanData(&d))
+		}
 	}
+	p.insertCH(ctx, &dataSpans, new(SpanData).TableName())
+	p.insertCH(ctx, &dataLogs, new(LogData).TableName())
+}
+
+func (p *spanProcessorThread) insertIndex(ctx context.Context, indexes []BaseIndex) {
+	indexedSpans := make([]SpanIndex, 0, len(indexes))
+	indexedLogs := make([]LogIndex, 0, len(indexes))
+
+	for _, i := range indexes {
+		switch {
+		//TODO: case event
+		case i.Type == "log":
+			indexedLogs = append(indexedLogs, *NewLogIndex(&i))
+		default:
+			indexedSpans = append(indexedSpans, *NewSpanIndex(&i))
+		}
+	}
+	p.insertCH(ctx, &indexedSpans, new(SpanIndex).TableName())
+	p.insertCH(ctx, &indexedLogs, new(LogIndex).TableName())
+
 }
 
 func scheduleCreateErrorAlert(ctx context.Context, app *bunapp.App, span *Span) {

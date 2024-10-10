@@ -14,7 +14,8 @@ import (
 func scheduleNotifyOnErrorAlert(
 	ctx context.Context, app *bunapp.App, alert *ErrorAlert,
 ) error {
-	span, err := tracing.SelectSpan(
+	// TODO: temporarily only for spans
+	span, err := tracing.SelectSpan[*tracing.SpanData](
 		ctx, app, alert.ProjectID, alert.Event.Params.TraceID, alert.Event.Params.SpanID,
 	)
 	if err != nil {

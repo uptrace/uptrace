@@ -81,7 +81,8 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 		id := &ids[i]
 
 		group.Go(func() error {
-			span, err := SelectSpan(ctx, h.App, id.ProjectID, id.TraceID, id.ID)
+			// TODO: temporarily only for spans
+			span, err := SelectSpan[*SpanData](ctx, h.App, id.ProjectID, id.TraceID, id.ID)
 			if err != nil {
 				if err == sql.ErrNoRows {
 					return nil
