@@ -97,6 +97,28 @@ func (h *NotifChannelHandler) UpdateNotifChannelState(
 	})
 }
 
+func (h *NotifChannelHandler) ChannelTest(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	baseChannel := NotifChannelFromContext(ctx).Base()
+
+	switch baseChannel.Type {
+	case NotifChannelAlertmanager:
+		//TODO:
+		return nil
+	case NotifChannelSlack:
+		return h.slackTest(w, req)
+
+	case NotifChannelTelegram:
+		return h.telegramTest(w, req)
+
+	case NotifChannelWebhook:
+		return h.webhookTest(w, req)
+
+	}
+	return fmt.Errorf("unexpected notification channel: %T", baseChannel)
+}
+
 //------------------------------------------------------------------------------
 
 func (h *NotifChannelHandler) SlackShow(w http.ResponseWriter, req bunrouter.Request) error {
@@ -201,6 +223,31 @@ func (h *NotifChannelHandler) SlackUpdate(w http.ResponseWriter, req bunrouter.R
 	})
 }
 
+func (h *NotifChannelHandler) slackTest(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+
+	channel, err := SlackNotifChannelFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	in := new(SlackNotifChannelIn)
+	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
+		return err
+	}
+
+	if err := in.Validate(channel); err != nil {
+		return httperror.Wrap(err)
+	}
+	if err := h.sendSlackTestMsg(channel); err != nil {
+		return httperror.Wrap(err)
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"channel": channel,
+	})
+}
+
 func (h *NotifChannelHandler) sendSlackTestMsg(channel *SlackNotifChannel) error {
 	webhookURL := channel.Params.WebhookURL
 	if webhookURL == "" {
@@ -208,7 +255,7 @@ func (h *NotifChannelHandler) sendSlackTestMsg(channel *SlackNotifChannel) error
 	}
 
 	msg := &slack.WebhookMessage{
-		Text: fmt.Sprintf("Test message from Uptrace"),
+		Text: "Test message from Uptrace",
 	}
 	if err := slack.PostWebhook(webhookURL, msg); err != nil {
 		return err
@@ -278,6 +325,33 @@ func (h *NotifChannelHandler) TelegramCreate(w http.ResponseWriter, req bunroute
 
 	if err := InsertNotifChannel(ctx, h.App, channel); err != nil {
 		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"channel": channel,
+	})
+}
+
+func (h *NotifChannelHandler) telegramTest(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+	project := org.ProjectFromContext(ctx)
+
+	channel := &TelegramNotifChannel{
+		BaseNotifChannel: &BaseNotifChannel{
+			ProjectID: project.ID,
+			Type:      NotifChannelTelegram,
+		},
+	}
+	in := new(TelegramNotifChannelIn)
+	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
+		return err
+	}
+
+	if err := in.Validate(channel); err != nil {
+		return httperror.Wrap(err)
+	}
+	if err := h.sendTelegramTestMsg(channel); err != nil {
+		return httperror.Wrap(err)
 	}
 
 	return httputil.JSON(w, bunrouter.H{
@@ -445,6 +519,32 @@ func (h *NotifChannelHandler) WebhookUpdate(w http.ResponseWriter, req bunrouter
 
 	if err := UpdateNotifChannel(ctx, h.App, channel); err != nil {
 		return err
+	}
+
+	return httputil.JSON(w, bunrouter.H{
+		"channel": channel,
+	})
+}
+
+func (h *NotifChannelHandler) webhookTest(w http.ResponseWriter, req bunrouter.Request) error {
+	ctx := req.Context()
+	project := org.ProjectFromContext(ctx)
+
+	channel, err := WebhookNotifChannelFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	in := new(WebhookNotifChannelIn)
+	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
+		return err
+	}
+
+	if err := in.Validate(channel); err != nil {
+		return httperror.Wrap(err)
+	}
+	if err := h.sendWebhookTestMsg(ctx, project, channel); err != nil {
+		return httperror.Wrap(err)
 	}
 
 	return httputil.JSON(w, bunrouter.H{

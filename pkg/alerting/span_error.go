@@ -27,7 +27,8 @@ func createErrorAlertHandler(
 		return err
 	}
 
-	span, err := tracing.SelectSpan(ctx, app, projectID, traceID, spanID)
+	// TODO: temporarily only for spans
+	span, err := tracing.SelectSpan[*tracing.SpanData](ctx, app, projectID, traceID, spanID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil

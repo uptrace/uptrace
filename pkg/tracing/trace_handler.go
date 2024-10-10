@@ -61,8 +61,8 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 	if err != nil {
 		return err
 	}
-
-	spans, hasMore, err := SelectTraceSpans(ctx, h.App, traceID)
+	// TODO: temporarily only for spans
+	spans, hasMore, err := SelectTraceSpans[*SpanData](ctx, h.App, traceID)
 	if err != nil {
 		return err
 	}
@@ -171,8 +171,8 @@ func (h *TraceHandler) ShowSpan(w http.ResponseWriter, req bunrouter.Request) er
 	if err != nil {
 		return err
 	}
-
-	span, err := SelectSpan(ctx, h.App, project.ID, traceID, spanID)
+	// TODO: temporarily only for spans
+	span, err := SelectSpan[*SpanData](ctx, h.App, project.ID, traceID, spanID)
 	if err != nil {
 		return err
 	}

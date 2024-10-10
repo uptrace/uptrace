@@ -53,7 +53,7 @@ const (
 	EdgeTypeMessaging EdgeType = "messaging"
 )
 
-func (e *ServiceGraphEdge) FillFrom(span *SpanIndex) {
+func (e *ServiceGraphEdge) FillFrom(span *BaseIndex) {
 	e.ProjectID = span.ProjectID
 	clientAttr, clientName, serverAttr, serverName := serviceGraphNode(span)
 
@@ -92,7 +92,7 @@ func (e *ServiceGraphEdge) FillFrom(span *SpanIndex) {
 	}
 }
 
-func (e *ServiceGraphEdge) setClientDuration(span *SpanIndex) {
+func (e *ServiceGraphEdge) setClientDuration(span *BaseIndex) {
 	dur := float32(span.Duration)
 	e.ClientDurationMin = dur
 	e.ClientDurationMax = dur
@@ -104,7 +104,7 @@ func (e *ServiceGraphEdge) setClientDuration(span *SpanIndex) {
 	}
 }
 
-func (e *ServiceGraphEdge) setServerDuration(span *SpanIndex) {
+func (e *ServiceGraphEdge) setServerDuration(span *BaseIndex) {
 	dur := float32(span.Duration)
 	e.ServerDurationMin = dur
 	e.ServerDurationMax = dur
@@ -123,6 +123,7 @@ type ServiceGraphProcessor struct {
 
 	storeShards []*ServiceGraphStore
 	edgeCh      chan *ServiceGraphEdge
+
 }
 
 func NewServiceGraphProcessor(app *bunapp.App) *ServiceGraphProcessor {
@@ -152,7 +153,7 @@ func NewServiceGraphProcessor(app *bunapp.App) *ServiceGraphProcessor {
 }
 
 func (p *ServiceGraphProcessor) ProcessSpan(
-	ctx context.Context, span *SpanIndex,
+	ctx context.Context, span *BaseIndex,
 ) error {
 	edgeType := EdgeTypeUnset
 	switch span.Kind {
@@ -200,7 +201,7 @@ func (p *ServiceGraphProcessor) ProcessSpan(
 }
 
 func serviceGraphNode(
-	span *SpanIndex,
+	span *BaseIndex,
 ) (clientAttr, clientName, serverAttr, serverName string) {
 	switch span.Type {
 	case TypeSpanRPC:

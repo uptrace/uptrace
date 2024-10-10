@@ -63,8 +63,8 @@ func (h *TempoHandler) queryTrace(
 	if err != nil {
 		return err
 	}
-
-	spans, _, err := tracing.SelectTraceSpans(ctx, h.App, traceID)
+	// TODO: temporarily only for spans
+	spans, _, err := tracing.SelectTraceSpans[*tracing.SpanData](ctx, h.App, traceID)
 	if err != nil {
 		return err
 	}
