@@ -32,11 +32,4 @@ type BaseRecorder[I IndexRecord, D DataRecord] struct {
 	processItem processItemFunc
 }
 
-// func NewBaseRecorder[I IndexRecord, D DataRecord](insertSize int, processItem processItemFunc) *BaseRecorder[I, D] {
-// 	return &BaseRecorder[I, D]{
-// 		indexSlice:  make([]I, 0, insertSize),
-// 		dataSlice:   make([]D, 0, insertSize),
-// 		processItem: processItem,
-// 	}
-// }
 

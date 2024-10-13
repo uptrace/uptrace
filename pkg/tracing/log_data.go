@@ -10,7 +10,6 @@ import (
 type LogData struct {
 	ch.CHModel `ch:"table:logs_data_buffer,insert:logs_data_buffer,alias:s"`
 
-	// Type      string `ch:",lc"`
 	ProjectID uint32
 	TraceID   idgen.TraceID
 	ID        idgen.SpanID
@@ -20,7 +19,6 @@ type LogData struct {
 }
 
 func (data *LogData) init(span *Span) {
-	// data.Type = span.Type
 	data.ProjectID = span.ProjectID
 	data.TraceID = span.TraceID
 	data.ID = span.ID
