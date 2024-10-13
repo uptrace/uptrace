@@ -1,12 +1,12 @@
 package tracing
 
 import (
-	"slices"
 	"strings"
 
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/utf8util"
+	"golang.org/x/exp/slices"
 )
 
 type SpanIndex struct {
@@ -66,7 +66,7 @@ type SpanIndex struct {
 	ExceptionType string `ch:",lc"`
 }
 
-func initSpanIndex(index *SpanIndex, span *Span) {
+func (index *SpanIndex) init(span *Span) {
 	index.Span = span
 
 	index.DisplayName = utf8util.TruncLarge(span.DisplayName)

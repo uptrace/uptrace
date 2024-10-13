@@ -12,6 +12,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/org"
+
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
@@ -155,10 +156,28 @@ func (p *SpanProcessor) processSpans(ctx context.Context, src []*Span) {
 }
 
 func (p *spanProcessorThread) _processSpans(ctx context.Context, spans []*Span) {
-	indexedSpans := make([]SpanIndex, 0, len(spans))
-	dataSpans := make([]SpanData, 0, len(spans))
+
+	spanConsumer := new(SpanConsumer)
+	spanRecorder := &BaseRecorder[*SpanIndex, *SpanData]{
+		indexSlice:  make([]*SpanIndex, 0, len(spans)),
+		dataSlice:   make([]*SpanData, 0, len(spans)),
+		processItem: spanConsumer.processItem,
+	}
+	spanConsumer.BaseRecorder = spanRecorder
+
+	logConsumer := new(LogConsumer)
+	logRecorder := &BaseRecorder[*LogIndex, *LogData]{
+		indexSlice:  make([]*LogIndex, 0, len(spans)),
+		dataSlice:   make([]*LogData, 0, len(spans)),
+		processItem: logConsumer.processItem,
+	}
+	logConsumer.BaseRecorder = logRecorder
 
 	seenErrors := make(map[uint64]bool) // basic deduplication
+	var (
+		errorCount int
+		logCount   int
+	)
 
 	for _, span := range spans {
 		p.initSpanOrEvent(ctx, span)
@@ -170,26 +189,25 @@ func (p *spanProcessorThread) _processSpans(ctx context.Context, spans []*Span) 
 				attribute.String("type", "inserted"),
 			),
 		)
-
-		indexedSpans = append(indexedSpans, SpanIndex{})
-		index := &indexedSpans[len(indexedSpans)-1]
-		initSpanIndex(index, span)
-
 		if p.sgp != nil {
-			if err := p.sgp.ProcessSpan(ctx, index); err != nil {
-				p.Zap(ctx).Error("service graph failed", zap.Error(err))
-			}
+			p.WaitGroup().Add(1)
+			go func() {
+				defer p.WaitGroup().Done()
+				index := new(SpanIndex)
+				index.init(span)
+				if err := p.sgp.ProcessSpan(ctx, index); err != nil {
+					p.Zap(ctx).Error("service graph failed", zap.Error(err))
+				}
+			}()
 		}
 
 		if span.EventName != "" {
-			dataSpans = append(dataSpans, SpanData{})
-			initSpanData(&dataSpans[len(dataSpans)-1], span)
+			logRecorder.processItem(ctx, span)
 			continue
 		}
 
-		var errorCount int
-		var logCount int
-
+		spanRecorder.processItem(ctx, span)
+		numIndexInSlice := len(spanRecorder.indexSlice)-1
 		for _, event := range span.Events {
 			eventSpan := &Span{
 				Attrs: NewAttrMap(),
@@ -205,13 +223,12 @@ func (p *spanProcessorThread) _processSpans(ctx context.Context, spans []*Span) 
 					attribute.String("type", "inserted"),
 				),
 			)
-
-			indexedSpans = append(indexedSpans, SpanIndex{})
-			initSpanIndex(&indexedSpans[len(indexedSpans)-1], eventSpan)
-
-			dataSpans = append(dataSpans, SpanData{})
-			initSpanData(&dataSpans[len(dataSpans)-1], eventSpan)
-
+			if eventSpan.Type == TypeLog {
+				logRecorder.processItem(ctx, eventSpan)
+			} else {
+				spanRecorder.processItem(ctx, eventSpan)
+			}
+			
 			if isErrorSystem(eventSpan.System) {
 				errorCount++
 				if !seenErrors[eventSpan.GroupID] {
@@ -224,30 +241,28 @@ func (p *spanProcessorThread) _processSpans(ctx context.Context, spans []*Span) 
 			}
 		}
 
-		index.LinkCount = uint8(len(span.Links))
-		index.EventCount = uint8(len(span.Events))
-		index.EventErrorCount = uint8(errorCount)
-		index.EventLogCount = uint8(logCount)
+		baseSpanIndex := spanRecorder.indexSlice[numIndexInSlice]
+		baseSpanIndex.LinkCount = uint8(len(span.Links))
+		baseSpanIndex.EventCount = uint8(len(span.Events))
+		baseSpanIndex.EventErrorCount = uint8(errorCount)
+		baseSpanIndex.EventLogCount = uint8(logCount)
+
 		span.Events = nil
-
-		dataSpans = append(dataSpans, SpanData{})
-		initSpanData(&dataSpans[len(dataSpans)-1], span)
 	}
 
+	p.insertCH(ctx, "spans_data", &spanRecorder.dataSlice)
+	p.insertCH(ctx, "spans_index", &spanRecorder.indexSlice)
+	p.insertCH(ctx, "logs_data", &logRecorder.dataSlice)
+	p.insertCH(ctx, "logs_index", &logRecorder.indexSlice)
+}
+
+func (p *spanProcessorThread) insertCH(ctx context.Context, table string, model any) {
 	if _, err := p.CH.NewInsert().
-		Model(&dataSpans).
+		Model(model).
 		Exec(ctx); err != nil {
 		p.Zap(ctx).Error("ch.Insert failed",
 			zap.Error(err),
-			zap.String("table", "spans_data"))
-	}
-
-	if _, err := p.CH.NewInsert().
-		Model(&indexedSpans).
-		Exec(ctx); err != nil {
-		p.Zap(ctx).Error("ch.Insert failed",
-			zap.Error(err),
-			zap.String("table", "spans_index"))
+			zap.String("table", table))
 	}
 }
 

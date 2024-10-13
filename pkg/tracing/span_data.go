@@ -25,6 +25,16 @@ type SpanData struct {
 	Data      []byte
 }
 
+func (data *SpanData) init(span *Span) {
+	data.Type = span.Type
+	data.ProjectID = span.ProjectID
+	data.TraceID = span.TraceID
+	data.ID = span.ID
+	data.ParentID = span.ParentID
+	data.Time = span.Time
+	data.Data = marshalSpanData(span)
+}
+
 func (sd *SpanData) FilledSpan() (*Span, error) {
 	span := new(Span)
 	if err := sd.Decode(span); err != nil {
@@ -50,16 +60,6 @@ func (sd *SpanData) Decode(span *Span) error {
 	}
 
 	return nil
-}
-
-func initSpanData(data *SpanData, span *Span) {
-	data.Type = span.Type
-	data.ProjectID = span.ProjectID
-	data.TraceID = span.TraceID
-	data.ID = span.ID
-	data.ParentID = span.ParentID
-	data.Time = span.Time
-	data.Data = marshalSpanData(span)
 }
 
 func SelectSpan(
