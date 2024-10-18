@@ -19,10 +19,10 @@ import (
 type KinesisHandler struct {
 	*bunapp.App
 
-	sp *SpanProcessor
+	sp *SpanConsumer
 }
 
-func NewKinesisHandler(app *bunapp.App, sp *SpanProcessor) *KinesisHandler {
+func NewKinesisHandler(app *bunapp.App, sp *SpanConsumer) *KinesisHandler {
 	return &KinesisHandler{
 		App: app,
 		sp:  sp,

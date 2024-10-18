@@ -24,13 +24,13 @@ var spanCounter, _ = bunotel.Meter.Int64Counter(
 )
 
 func Init(ctx context.Context, app *bunapp.App) {
-	sp := NewSpanProcessor(app)
+	sp := NewSpanConsumer(app)
 
 	initOTLP(ctx, app, sp)
 	initRoutes(ctx, app, sp)
 }
 
-func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
+func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanConsumer) {
 	traceService := NewTraceServiceServer(app, sp)
 	collectortracepb.RegisterTraceServiceServer(app.GRPCServer(), traceService)
 
@@ -42,7 +42,7 @@ func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
 	router.POST("/v1/logs", logsService.ExportHTTP)
 }
 
-func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanProcessor) {
+func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer) {
 	router := app.Router()
 	middleware := org.NewMiddleware(app)
 	internalV1 := app.InternalAPIV1()

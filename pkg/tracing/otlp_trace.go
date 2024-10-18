@@ -27,12 +27,12 @@ type TraceServiceServer struct {
 
 	*bunapp.App
 
-	sp *SpanProcessor
+	sp *SpanConsumer
 }
 
 var _ collectortrace.TraceServiceServer = (*TraceServiceServer)(nil)
 
-func NewTraceServiceServer(app *bunapp.App, sp *SpanProcessor) *TraceServiceServer {
+func NewTraceServiceServer(app *bunapp.App, sp *SpanConsumer) *TraceServiceServer {
 	s := &TraceServiceServer{
 		App: app,
 		sp:  sp,

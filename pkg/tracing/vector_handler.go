@@ -24,10 +24,10 @@ const vectorSDK = "vector"
 type VectorHandler struct {
 	*bunapp.App
 
-	sp *SpanProcessor
+	sp *SpanConsumer
 }
 
-func NewVectorHandler(app *bunapp.App, sp *SpanProcessor) *VectorHandler {
+func NewVectorHandler(app *bunapp.App, sp *SpanConsumer) *VectorHandler {
 	return &VectorHandler{
 		App: app,
 		sp:  sp,

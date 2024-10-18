@@ -603,8 +603,8 @@ github.com/uptrace/uptrace-go v1.28.0 h1:95MCiS+DAGKXWhJPq2Sf/l7Czz5zgXCNuUpQso0
 github.com/uptrace/uptrace-go v1.28.0/go.mod h1:dsOxJX3e6uDaBbCg74PdrzdfqsYW6sViT8nXBNfajoU=
 github.com/urfave/cli/v2 v2.27.1 h1:8xSQ6szndafKVRmfyeUMxkNUJQMjL1F2zmsZ+qHpfho=
 github.com/urfave/cli/v2 v2.27.1/go.mod h1:8qnjx1vcq5s2/wpsqoZFndg2CE5tNFyrTvS6SinrnYQ=
-github.com/vmihailenco/encoding v0.3.4-0.20240424103427-05bd731dd667 h1:Sj1XP8ISrKFaQ+taJ5IRj63dvw3IZNgH9hZnuzJRPdo=
-github.com/vmihailenco/encoding v0.3.4-0.20240424103427-05bd731dd667/go.mod h1:/d03Cd8PoaDeceuhUUUQWjU0KhWjrmYrWPgtJHYZSnI=
+github.com/vmihailenco/encoding v0.3.4-0.20241005105549-b26e7cf35dd6 h1:wJkNW2F5PvBQupGFWrKux5SJVyt9xCZHV5tUbC+cdPE=
+github.com/vmihailenco/encoding v0.3.4-0.20241005105549-b26e7cf35dd6/go.mod h1:/d03Cd8PoaDeceuhUUUQWjU0KhWjrmYrWPgtJHYZSnI=
 github.com/vmihailenco/msgpack/v5 v5.4.1 h1:cQriyiUvjTwOHg8QZaPihLWeRAAVoCpE00IUPn0Bjt8=
 github.com/vmihailenco/msgpack/v5 v5.4.1/go.mod h1:GaZTsDaehaPpQVyxrf5mtQlH+pc21PIudVV/E3rRQok=
 github.com/vmihailenco/tagparser v0.1.2 h1:gnjoVuB/kljJ5wICEEOpx98oXMWPLj22G67Vbd1qPqc=

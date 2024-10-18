@@ -18,7 +18,7 @@ import (
 	"go4.org/syncutil"
 )
 
-type SpanProcessor struct {
+type SpanConsumer struct {
 	*bunapp.App
 
 	batchSize int
@@ -30,11 +30,11 @@ type SpanProcessor struct {
 	logger *otelzap.Logger
 }
 
-func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
+func NewSpanConsumer(app *bunapp.App) *SpanConsumer {
 	conf := app.Config()
 	maxprocs := runtime.GOMAXPROCS(0)
 
-	p := &SpanProcessor{
+	p := &SpanConsumer{
 		App: app,
 
 		batchSize: conf.Spans.BatchSize,
@@ -77,7 +77,7 @@ func NewSpanProcessor(app *bunapp.App) *SpanProcessor {
 	return p
 }
 
-func (p *SpanProcessor) AddSpan(ctx context.Context, span *Span) {
+func (p *SpanConsumer) AddSpan(ctx context.Context, span *Span) {
 	select {
 	case p.queue <- span:
 	default:
@@ -94,7 +94,7 @@ func (p *SpanProcessor) AddSpan(ctx context.Context, span *Span) {
 	}
 }
 
-func (p *SpanProcessor) processLoop(ctx context.Context) {
+func (p *SpanConsumer) processLoop(ctx context.Context) {
 	const timeout = 5 * time.Second
 
 	timer := time.NewTimer(timeout)
@@ -135,7 +135,7 @@ loop:
 	}
 }
 
-func (p *SpanProcessor) processSpans(ctx context.Context, src []*Span) {
+func (p *SpanConsumer) processSpans(ctx context.Context, src []*Span) {
 	ctx, span := bunotel.Tracer.Start(ctx, "process-spans")
 
 	p.WaitGroup().Add(1)
@@ -149,7 +149,7 @@ func (p *SpanProcessor) processSpans(ctx context.Context, src []*Span) {
 		defer p.gate.Done()
 		defer p.WaitGroup().Done()
 
-		thread := newSpanProcessorThread(p)
+		thread := newSpanConsumerThread(p)
 		thread._processSpans(ctx, spans)
 	}()
 }
@@ -269,15 +269,15 @@ func scheduleCreateErrorAlert(ctx context.Context, app *bunapp.App, span *Span) 
 //------------------------------------------------------------------------------
 
 type spanProcessorThread struct {
-	*SpanProcessor
+	*SpanConsumer
 
 	projects map[uint32]*org.Project
 	digest   *xxhash.Digest
 }
 
-func newSpanProcessorThread(p *SpanProcessor) *spanProcessorThread {
+func newSpanConsumerThread(p *SpanConsumer) *spanProcessorThread {
 	return &spanProcessorThread{
-		SpanProcessor: p,
+		SpanConsumer: p,
 
 		projects: make(map[uint32]*org.Project),
 		digest:   xxhash.New(),

@@ -21,10 +21,10 @@ import (
 type ZipkinHandler struct {
 	*bunapp.App
 
-	sp *SpanProcessor
+	sp *SpanConsumer
 }
 
-func NewZipkinHandler(app *bunapp.App, sp *SpanProcessor) *ZipkinHandler {
+func NewZipkinHandler(app *bunapp.App, sp *SpanConsumer) *ZipkinHandler {
 	return &ZipkinHandler{
 		App: app,
 		sp:  sp,

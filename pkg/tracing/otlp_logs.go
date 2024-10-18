@@ -34,12 +34,12 @@ type LogsServiceServer struct {
 
 	*bunapp.App
 
-	sp *SpanProcessor
+	sp *SpanConsumer
 }
 
 var _ collectorlogspb.LogsServiceServer = (*LogsServiceServer)(nil)
 
-func NewLogsServiceServer(app *bunapp.App, sp *SpanProcessor) *LogsServiceServer {
+func NewLogsServiceServer(app *bunapp.App, sp *SpanConsumer) *LogsServiceServer {
 	return &LogsServiceServer{
 		App: app,
 		sp:  sp,

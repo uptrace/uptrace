@@ -27,10 +27,10 @@ import (
 type SentryHandler struct {
 	*bunapp.App
 
-	sp *SpanProcessor
+	sp *SpanConsumer
 }
 
-func NewSentryHandler(app *bunapp.App, sp *SpanProcessor) *SentryHandler {
+func NewSentryHandler(app *bunapp.App, sp *SpanConsumer) *SentryHandler {
 	return &SentryHandler{
 		App: app,
 		sp:  sp,
