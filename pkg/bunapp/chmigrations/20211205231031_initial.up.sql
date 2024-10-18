@@ -63,13 +63,7 @@ CREATE TABLE spans_index ?ON_CLUSTER (
   db_name LowCardinality(String) Codec(?CODEC),
   db_statement String Codec(?CODEC),
   db_operation LowCardinality(String) Codec(?CODEC),
-  db_sql_table LowCardinality(String) Codec(?CODEC),
-
-  log_severity LowCardinality(String) Codec(?CODEC),
-  log_message String Codec(?CODEC),
-
-  exception_type LowCardinality(String) Codec(?CODEC),
-  exception_message String Codec(?CODEC)
+  db_sql_table LowCardinality(String) Codec(?CODEC)
 )
 ENGINE = ?(REPLICATED)MergeTree()
 ORDER BY (project_id, system, group_id, time)
