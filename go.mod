@@ -25,7 +25,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/grafana/tempo v1.5.0
-	github.com/klauspost/compress v1.17.6
+	github.com/klauspost/compress v1.17.8
 	github.com/mileusna/useragent v1.3.4
 	github.com/mostynb/go-grpc-compression v1.2.2
 	github.com/prometheus/alertmanager v0.26.0
@@ -127,7 +127,7 @@ require (
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/grafana/dskit v0.0.0-20240216094944-102ab37233e4 // indirect
-	github.com/grafana/pyroscope-go/godeltaprof v0.1.7 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.8 // indirect
 	github.com/grafana/regexp v0.0.0-20221123153739-15dc172cd2db // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 // indirect
