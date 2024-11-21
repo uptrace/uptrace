@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"runtime"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -10,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	"go4.org/syncutil"
 )
 
 const (
@@ -24,10 +26,13 @@ var spanCounter, _ = bunotel.Meter.Int64Counter(
 )
 
 func Init(ctx context.Context, app *bunapp.App) {
-	sp := NewSpanConsumer(app)
+	maxprocs := runtime.GOMAXPROCS(0)
+	gate := syncutil.NewGate(maxprocs)
+	sp := NewSpanConsumer(app, gate)
+	lc := NewLogConsumer(app, gate)
 
 	initOTLP(ctx, app, sp)
-	initRoutes(ctx, app, sp)
+	initRoutes(ctx, app, sp, lc)
 }
 
 func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanConsumer) {
@@ -42,7 +47,7 @@ func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanConsumer) {
 	router.POST("/v1/logs", logsService.ExportHTTP)
 }
 
-func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer) {
+func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer, lc *LogConsumer) {
 	router := app.Router()
 	middleware := org.NewMiddleware(app)
 	internalV1 := app.InternalAPIV1()
@@ -63,7 +68,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer) {
 	})
 
 	router.WithGroup("/api/v1", func(g *bunrouter.Group) {
-		vectorHandler := NewVectorHandler(app, sp)
+		vectorHandler := NewVectorHandler(app, lc)
 
 		g.POST("/vector-logs", vectorHandler.Create)
 		g.POST("/vector/logs", vectorHandler.Create)

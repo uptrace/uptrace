@@ -85,6 +85,10 @@ func (s *Span) IsEvent() bool {
 	return s.EventName != ""
 }
 
+func (s *Span) IsLog() bool {
+	return s.Name == "log"
+}
+
 func (s *Span) IsError() bool {
 	return isErrorSystem(s.System)
 }
