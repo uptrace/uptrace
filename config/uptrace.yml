@@ -169,7 +169,7 @@ site:
 spans:
   # The size of the Go chan used to buffer incoming spans.
   # If the buffer is full, Uptrace starts to drop spans.
-  buffer_size: 100000
+  #buffer_size: 100000
 
   # The number of spans to insert in a single query.
   #batch_size: 10000
@@ -186,7 +186,7 @@ metrics:
 
   # The size of the Go chan used to buffer incoming measures.
   # If the buffer is full, Uptrace starts to drop measures.
-  buffer_size: 100000
+  #buffer_size: 100000
 
   # The number of measures to insert in a single query.
   #batch_size: 10000
