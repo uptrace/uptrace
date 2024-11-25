@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -16,13 +15,7 @@ import (
 type SpanData struct {
 	ch.CHModel `ch:"table:spans_data_buffer,insert:spans_data_buffer,alias:s"`
 
-	Type      string `ch:",lc"`
-	ProjectID uint32
-	TraceID   idgen.TraceID
-	ID        idgen.SpanID
-	ParentID  idgen.SpanID
-	Time      time.Time `ch:"type:DateTime64(6)"`
-	Data      []byte
+	BaseData
 }
 
 func (sd *SpanData) FilledSpan() (*Span, error) {
@@ -53,13 +46,7 @@ func (sd *SpanData) Decode(span *Span) error {
 }
 
 func initSpanData(data *SpanData, span *Span) {
-	data.Type = span.Type
-	data.ProjectID = span.ProjectID
-	data.TraceID = span.TraceID
-	data.ID = span.ID
-	data.ParentID = span.ParentID
-	data.Time = span.Time
-	data.Data = marshalSpanData(span)
+	data.InitFromSpan(span)
 }
 
 func SelectSpan(
@@ -149,12 +136,4 @@ func SelectTraceSpans(
 	}
 
 	return spans, len(spans) == limit, nil
-}
-
-func marshalSpanData(span *Span) []byte {
-	b, err := msgpack.Marshal(span)
-	if err != nil {
-		panic(err)
-	}
-	return b
 }

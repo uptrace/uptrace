@@ -18,45 +18,44 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
-type IndexType interface {
+type IndexRecord interface {
 	SpanIndex | LogIndex
 }
 
-type DataType interface {
+type DataRecord interface {
 	SpanData | LogData
 }
 
-type consumer[IT IndexType, DT DataType] interface {
-	indexFromSpan(*IT, *Span)
-	dataFromSpan(*DT, *Span)
-	updateIndexStats(*IT, uint8, uint8, uint8, uint8)
+type transformer[IT IndexRecord, DT DataRecord] interface {
+	indexFromSpan(*Span) IT
+	dataFromSpan(*Span) DT
 	postprocessIndex(context.Context, *IT)
 }
 
-type Consumer[IT IndexType, DT DataType] struct {
+type Consumer[IT IndexRecord, DT DataRecord] struct {
 	*bunapp.App
 
 	batchSize int
 	queue     chan *Span
 	gate      *syncutil.Gate
 
-	c consumer[IT, DT]
+	transformer transformer[IT, DT]
 
 	logger *otelzap.Logger
 }
 
-func NewConsumer[IT IndexType, DT DataType](
+func NewConsumer[IT IndexRecord, DT DataRecord](
 	app *bunapp.App,
 	batchSize, bufferSize int,
 	gate *syncutil.Gate,
-	c consumer[IT, DT],
+	transformer transformer[IT, DT],
 ) *Consumer[IT, DT] {
 	return &Consumer[IT, DT]{
-		App:       app,
-		batchSize: batchSize,
-		queue:     make(chan *Span, bufferSize),
-		gate:      gate,
-		c:         c,
+		App:         app,
+		batchSize:   batchSize,
+		queue:       make(chan *Span, bufferSize),
+		gate:        gate,
+		transformer: transformer,
 	}
 }
 
@@ -132,42 +131,29 @@ func (p *Consumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 		defer p.gate.Done()
 		defer p.WaitGroup().Done()
 
-		thread := newConsumerThread[IT, DT](p.c, p.App)
+		thread := newConsumerThread[IT, DT](p.App, p.transformer)
 		thread._processSpans(ctx, spans)
 	}()
 }
 
-type consumerThread[IT IndexType, DT DataType] struct {
-	consumer[IT, DT]
-
+type consumerThread[IT IndexRecord, DT DataRecord] struct {
 	*bunapp.App
-	projects map[uint32]*org.Project
-	digest   *xxhash.Digest
+
+	transformer transformer[IT, DT]
+	projects    map[uint32]*org.Project
+	digest      *xxhash.Digest
 }
 
-func newConsumerThread[IT IndexType, DT DataType](c consumer[IT, DT], app *bunapp.App) *consumerThread[IT, DT] {
+func newConsumerThread[IT IndexRecord, DT DataRecord](
+	app *bunapp.App,
+	transformer transformer[IT, DT],
+) *consumerThread[IT, DT] {
 	return &consumerThread[IT, DT]{
-		App:      app,
-		consumer: c,
-		projects: make(map[uint32]*org.Project),
-		digest:   xxhash.New(),
+		App:         app,
+		transformer: transformer,
+		projects:    make(map[uint32]*org.Project),
+		digest:      xxhash.New(),
 	}
-}
-
-func (p *consumerThread[IT, DT]) appendIndexed(indexed []IT, span *Span) []IT {
-	var iv IT
-	indexed = append(indexed, iv)
-	item := &indexed[len(indexed)-1]
-	p.indexFromSpan(item, span)
-	return indexed
-}
-
-func (p *consumerThread[IT, DT]) appendData(data []DT, span *Span) []DT {
-	var dv DT
-	data = append(data, dv)
-	item := &data[len(data)-1]
-	p.dataFromSpan(item, span)
-	return data
 }
 
 func (p *consumerThread[IT, DT]) _processSpans(ctx context.Context, spans []*Span) {
@@ -187,15 +173,15 @@ func (p *consumerThread[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 			),
 		)
 
-		indexedSpans = p.appendIndexed(indexedSpans, span)
+		indexedSpans = append(indexedSpans, p.transformer.indexFromSpan(span))
 		index := &indexedSpans[len(indexedSpans)-1]
 
 		if span.IsEvent() || span.IsLog() {
-			dataSpans = p.appendData(dataSpans, span)
+			dataSpans = append(dataSpans, p.transformer.dataFromSpan(span))
 			continue
 		}
 
-		p.postprocessIndex(ctx, index)
+		p.transformer.postprocessIndex(ctx, index)
 
 		var errorCount int
 		var logCount int
@@ -216,8 +202,8 @@ func (p *consumerThread[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 				),
 			)
 
-			indexedSpans = p.appendIndexed(indexedSpans, eventSpan)
-			dataSpans = p.appendData(dataSpans, eventSpan)
+			indexedSpans = append(indexedSpans, p.transformer.indexFromSpan(eventSpan))
+			dataSpans = append(dataSpans, p.transformer.dataFromSpan(eventSpan))
 
 			if isErrorSystem(eventSpan.System) {
 				errorCount++
@@ -231,16 +217,9 @@ func (p *consumerThread[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 			}
 		}
 
-		p.updateIndexStats(
-			index,
-			uint8(len(span.Links)),
-			uint8(len(span.Events)),
-			uint8(errorCount),
-			uint8(logCount),
-		)
 		span.Events = nil
 
-		dataSpans = p.appendData(dataSpans, span)
+		dataSpans = append(dataSpans, p.transformer.dataFromSpan(span))
 	}
 
 	query := p.CH.NewInsert().Model(&dataSpans)

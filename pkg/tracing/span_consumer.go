@@ -5,6 +5,8 @@ import (
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunotel"
+	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
 )
@@ -26,8 +28,8 @@ func NewSpanConsumer(app *bunapp.App, gate *syncutil.Gate) *SpanConsumer {
 		sgp = NewServiceGraphProcessor(app)
 	}
 
-	c := &spanConsumer{sgp: sgp, logger: app.Logger}
-	p.consumer = NewConsumer[SpanIndex, SpanData](app, batchSize, bufferSize, gate, c)
+	sp := &spanTransformer{sgp: sgp, logger: app.Logger}
+	p.consumer = NewConsumer[SpanIndex, SpanData](app, batchSize, bufferSize, gate, sp)
 
 	p.logger.Info("starting processing spans...",
 		zap.Int("batch_size", batchSize),
@@ -40,21 +42,19 @@ func NewSpanConsumer(app *bunapp.App, gate *syncutil.Gate) *SpanConsumer {
 		p.consumer.processLoop(app.Context())
 	}()
 
-	/*
-		queueLen, _ := bunotel.Meter.Int64ObservableGauge("uptrace.tracing.queue_length",
-			metric.WithUnit("{spans}"),
-		)
+	queueLen, _ := bunotel.Meter.Int64ObservableGauge("uptrace.tracing.queue_length",
+		metric.WithUnit("{spans}"),
+	)
 
-		if _, err := bunotel.Meter.RegisterCallback(
-			func(ctx context.Context, o metric.Observer) error {
-				o.ObserveInt64(queueLen, int64(len(p.queue)))
-				return nil
-			},
-			queueLen,
-		); err != nil {
-			panic(err)
-		}
-	*/
+	if _, err := bunotel.Meter.RegisterCallback(
+		func(ctx context.Context, o metric.Observer) error {
+			o.ObserveInt64(queueLen, int64(len(p.consumer.queue)))
+			return nil
+		},
+		queueLen,
+	); err != nil {
+		panic(err)
+	}
 
 	return p
 }
@@ -63,33 +63,27 @@ func (p *SpanConsumer) AddSpan(ctx context.Context, span *Span) {
 	p.consumer.AddSpan(ctx, span)
 }
 
-type spanConsumer struct {
+type spanTransformer struct {
 	sgp    *ServiceGraphProcessor
 	logger *otelzap.Logger
 }
 
-func (p *spanConsumer) indexFromSpan(index *SpanIndex, span *Span) {
-	initSpanIndex(index, span)
+func (c *spanTransformer) indexFromSpan(span *Span) SpanIndex {
+	index := SpanIndex{}
+	initSpanIndex(&index, span)
+	return index
 }
 
-func (p *spanConsumer) dataFromSpan(data *SpanData, span *Span) {
-	initSpanData(data, span)
+func (c *spanTransformer) dataFromSpan(span *Span) SpanData {
+	data := SpanData{}
+	initSpanData(&data, span)
+	return data
 }
 
-func (p *spanConsumer) updateIndexStats(
-	index *SpanIndex,
-	linkCount, eventCount, eventErrorCount, eventLogCount uint8,
-) {
-	index.LinkCount = linkCount
-	index.EventCount = eventCount
-	index.EventErrorCount = eventErrorCount
-	index.EventLogCount = eventLogCount
-}
-
-func (p *spanConsumer) postprocessIndex(ctx context.Context, index *SpanIndex) {
-	if p.sgp != nil {
-		if err := p.sgp.ProcessSpan(ctx, index); err != nil {
-			p.logger.Error("service graph failed", zap.Error(err))
+func (c *spanTransformer) postprocessIndex(ctx context.Context, index *SpanIndex) {
+	if c.sgp != nil {
+		if err := c.sgp.ProcessSpan(ctx, index); err != nil {
+			c.logger.Error("service graph failed", zap.Error(err))
 		}
 	}
 }
