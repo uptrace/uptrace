@@ -35,14 +35,17 @@ type transformer[IT IndexRecord, DT DataRecord] interface {
 type Consumer[IT IndexRecord, DT DataRecord] struct {
 	*bunapp.App
 
-	batchSize int
-	queue     chan *Span
-	gate      *syncutil.Gate
+	batchSize  int
+	queue      chan *Span
+	gate       *syncutil.Gate
+	threadPool chan *consumerThread[IT, DT]
 
 	transformer transformer[IT, DT]
 
 	logger *otelzap.Logger
 }
+
+const maxPoolSize = 10
 
 func NewConsumer[IT IndexRecord, DT DataRecord](
 	app *bunapp.App,
@@ -50,12 +53,18 @@ func NewConsumer[IT IndexRecord, DT DataRecord](
 	gate *syncutil.Gate,
 	transformer transformer[IT, DT],
 ) *Consumer[IT, DT] {
+	pool := make(chan *consumerThread[IT, DT], maxPoolSize)
+	for i := 0; i < maxPoolSize; i++ {
+		pool <- newConsumerThread(app, transformer, bufferSize)
+	}
+
 	return &Consumer[IT, DT]{
 		App:         app,
 		batchSize:   batchSize,
 		queue:       make(chan *Span, bufferSize),
 		gate:        gate,
 		transformer: transformer,
+		threadPool:  pool,
 	}
 }
 
@@ -131,8 +140,9 @@ func (p *Consumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 		defer p.gate.Done()
 		defer p.WaitGroup().Done()
 
-		thread := newConsumerThread[IT, DT](p.App, p.transformer)
+		thread := <-p.threadPool
 		thread._processSpans(ctx, spans)
+		p.threadPool <- thread
 	}()
 }
 
@@ -142,25 +152,33 @@ type consumerThread[IT IndexRecord, DT DataRecord] struct {
 	transformer transformer[IT, DT]
 	projects    map[uint32]*org.Project
 	digest      *xxhash.Digest
+
+	indexedSpans []IT
+	dataSpans    []DT
 }
 
 func newConsumerThread[IT IndexRecord, DT DataRecord](
 	app *bunapp.App,
 	transformer transformer[IT, DT],
+	bufSize int,
 ) *consumerThread[IT, DT] {
 	return &consumerThread[IT, DT]{
-		App:         app,
-		transformer: transformer,
-		projects:    make(map[uint32]*org.Project),
-		digest:      xxhash.New(),
+		App:          app,
+		transformer:  transformer,
+		projects:     make(map[uint32]*org.Project),
+		digest:       xxhash.New(),
+		indexedSpans: make([]IT, 0, bufSize),
+		dataSpans:    make([]DT, 0, bufSize),
 	}
 }
 
 func (p *consumerThread[IT, DT]) _processSpans(ctx context.Context, spans []*Span) {
-	indexedSpans := make([]IT, 0, len(spans))
-	dataSpans := make([]DT, 0, len(spans))
-
 	seenErrors := make(map[uint64]bool) // basic deduplication
+
+	defer func() {
+		clear(p.indexedSpans)
+		clear(p.dataSpans)
+	}()
 
 	for _, span := range spans {
 		p.initSpanOrEvent(ctx, span)
@@ -173,14 +191,14 @@ func (p *consumerThread[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 			),
 		)
 
-		indexedSpans = append(indexedSpans, p.transformer.indexFromSpan(span))
-		index := &indexedSpans[len(indexedSpans)-1]
+		p.indexedSpans = append(p.indexedSpans, p.transformer.indexFromSpan(span))
 
 		if span.IsEvent() || span.IsLog() {
-			dataSpans = append(dataSpans, p.transformer.dataFromSpan(span))
+			p.dataSpans = append(p.dataSpans, p.transformer.dataFromSpan(span))
 			continue
 		}
 
+		index := &p.indexedSpans[len(p.indexedSpans)-1]
 		p.transformer.postprocessIndex(ctx, index)
 
 		var errorCount int
@@ -202,8 +220,8 @@ func (p *consumerThread[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 				),
 			)
 
-			indexedSpans = append(indexedSpans, p.transformer.indexFromSpan(eventSpan))
-			dataSpans = append(dataSpans, p.transformer.dataFromSpan(eventSpan))
+			p.indexedSpans = append(p.indexedSpans, p.transformer.indexFromSpan(eventSpan))
+			p.dataSpans = append(p.dataSpans, p.transformer.dataFromSpan(eventSpan))
 
 			if isErrorSystem(eventSpan.System) {
 				errorCount++
@@ -219,17 +237,17 @@ func (p *consumerThread[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 
 		span.Events = nil
 
-		dataSpans = append(dataSpans, p.transformer.dataFromSpan(span))
+		p.dataSpans = append(p.dataSpans, p.transformer.dataFromSpan(span))
 	}
 
-	query := p.CH.NewInsert().Model(&dataSpans)
+	query := p.CH.NewInsert().Model(&p.dataSpans)
 	if _, err := query.Exec(ctx); err != nil {
 		p.Zap(ctx).Error("ch.Insert failed",
 			zap.Error(err),
 			zap.String("table", query.GetTableName()))
 	}
 
-	query = p.CH.NewInsert().Model(&indexedSpans)
+	query = p.CH.NewInsert().Model(&p.indexedSpans)
 	if _, err := query.Exec(ctx); err != nil {
 		p.Zap(ctx).Error("ch.Insert failed",
 			zap.Error(err),
