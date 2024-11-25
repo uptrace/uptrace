@@ -35,17 +35,18 @@ type transformer[IT IndexRecord, DT DataRecord] interface {
 type Consumer[IT IndexRecord, DT DataRecord] struct {
 	*bunapp.App
 
-	batchSize  int
-	queue      chan *Span
-	gate       *syncutil.Gate
-	threadPool chan *consumerThread[IT, DT]
+	batchSize   int
+	queue       chan *Span
+	gate        *syncutil.Gate
+	workerPool  chan *consumerWorker[IT, DT]
+	workerCount int
 
 	transformer transformer[IT, DT]
 
 	logger *otelzap.Logger
 }
 
-const maxPoolSize = 10
+const maxWorkers = 10
 
 func NewConsumer[IT IndexRecord, DT DataRecord](
 	app *bunapp.App,
@@ -53,18 +54,14 @@ func NewConsumer[IT IndexRecord, DT DataRecord](
 	gate *syncutil.Gate,
 	transformer transformer[IT, DT],
 ) *Consumer[IT, DT] {
-	pool := make(chan *consumerThread[IT, DT], maxPoolSize)
-	for i := 0; i < maxPoolSize; i++ {
-		pool <- newConsumerThread(app, transformer, bufferSize)
-	}
-
 	return &Consumer[IT, DT]{
 		App:         app,
 		batchSize:   batchSize,
 		queue:       make(chan *Span, bufferSize),
 		gate:        gate,
 		transformer: transformer,
-		threadPool:  pool,
+		workerPool:  make(chan *consumerWorker[IT, DT], maxWorkers),
+		workerCount: 0,
 	}
 }
 
@@ -132,21 +129,34 @@ func (p *Consumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 	p.WaitGroup().Add(1)
 	p.gate.Start()
 
+	var worker *consumerWorker[IT, DT]
+
+	select {
+	case worker = <-p.workerPool:
+	default:
+		if p.workerCount < maxWorkers {
+			worker = newConsumerWorker(p.App, p.transformer, cap(p.queue))
+			p.workerCount++
+		}
+	}
+
 	spans := make([]*Span, len(src))
 	copy(spans, src)
 
-	go func() {
+	go func(worker *consumerWorker[IT, DT]) {
 		defer span.End()
 		defer p.gate.Done()
 		defer p.WaitGroup().Done()
 
-		thread := <-p.threadPool
-		thread._processSpans(ctx, spans)
-		p.threadPool <- thread
-	}()
+		if worker == nil {
+			worker = <-p.workerPool
+		}
+		worker._processSpans(ctx, spans)
+		p.workerPool <- worker
+	}(worker)
 }
 
-type consumerThread[IT IndexRecord, DT DataRecord] struct {
+type consumerWorker[IT IndexRecord, DT DataRecord] struct {
 	*bunapp.App
 
 	transformer transformer[IT, DT]
@@ -157,12 +167,12 @@ type consumerThread[IT IndexRecord, DT DataRecord] struct {
 	dataSpans    []DT
 }
 
-func newConsumerThread[IT IndexRecord, DT DataRecord](
+func newConsumerWorker[IT IndexRecord, DT DataRecord](
 	app *bunapp.App,
 	transformer transformer[IT, DT],
 	bufSize int,
-) *consumerThread[IT, DT] {
-	return &consumerThread[IT, DT]{
+) *consumerWorker[IT, DT] {
+	return &consumerWorker[IT, DT]{
 		App:          app,
 		transformer:  transformer,
 		projects:     make(map[uint32]*org.Project),
@@ -172,7 +182,7 @@ func newConsumerThread[IT IndexRecord, DT DataRecord](
 	}
 }
 
-func (p *consumerThread[IT, DT]) _processSpans(ctx context.Context, spans []*Span) {
+func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Span) {
 	seenErrors := make(map[uint64]bool) // basic deduplication
 
 	defer func() {
@@ -255,7 +265,7 @@ func (p *consumerThread[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 	}
 }
 
-func (p *consumerThread[IT, DT]) project(ctx context.Context, projectID uint32) (*org.Project, bool) {
+func (p *consumerWorker[IT, DT]) project(ctx context.Context, projectID uint32) (*org.Project, bool) {
 	if project, ok := p.projects[projectID]; ok {
 		return project, true
 	}
@@ -270,7 +280,7 @@ func (p *consumerThread[IT, DT]) project(ctx context.Context, projectID uint32) 
 	return project, true
 }
 
-func (p *consumerThread[IT, DT]) forceSpanName(ctx context.Context, span *Span) bool {
+func (p *consumerWorker[IT, DT]) forceSpanName(ctx context.Context, span *Span) bool {
 	if span.EventName != "" {
 		return false
 	}

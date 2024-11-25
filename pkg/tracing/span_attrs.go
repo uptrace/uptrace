@@ -25,7 +25,7 @@ import (
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
 
-func (p *consumerThread[IT, DT]) initSpanOrEvent(ctx context.Context, span *Span) {
+func (p *consumerWorker[IT, DT]) initSpanOrEvent(ctx context.Context, span *Span) {
 	project, ok := p.project(ctx, span.ProjectID)
 	if !ok {
 		return
@@ -51,7 +51,7 @@ func (p *consumerThread[IT, DT]) initSpanOrEvent(ctx context.Context, span *Span
 	span.System = utf8util.TruncSmall(span.System)
 }
 
-func (p *consumerThread[IT, DT]) processAttrs(span *Span) {
+func (p *consumerWorker[IT, DT]) processAttrs(span *Span) {
 	normalizeAttrs(span.Attrs)
 
 	if msg, _ := span.Attrs[attrkey.LogMessage].(string); msg != "" {
@@ -88,7 +88,7 @@ func (p *consumerThread[IT, DT]) processAttrs(span *Span) {
 	}
 }
 
-func (p *consumerThread[IT, DT]) parseLogMessage(span *Span, msg string) {
+func (p *consumerWorker[IT, DT]) parseLogMessage(span *Span, msg string) {
 	hash, params := p.messageHashAndParams(msg)
 	if span.EventName == otelEventLog {
 		span.logMessageHash = hash
@@ -96,7 +96,7 @@ func (p *consumerThread[IT, DT]) parseLogMessage(span *Span, msg string) {
 	populateSpanFromParams(span, params)
 }
 
-func (p *consumerThread[IT, DT]) messageHashAndParams(msg string) (uint64, map[string]any) {
+func (p *consumerWorker[IT, DT]) messageHashAndParams(msg string) (uint64, map[string]any) {
 	digest := p.digest
 	digest.Reset()
 
@@ -333,7 +333,7 @@ func isSQLKeyword(s string) bool {
 	}
 }
 
-func (p *consumerThread[IT, DT]) assignSpanSystemAndGroupID(project *org.Project, span *Span) {
+func (p *consumerWorker[IT, DT]) assignSpanSystemAndGroupID(project *org.Project, span *Span) {
 	if s := span.Attrs.Text(attrkey.RPCSystem); s != "" {
 		span.Type = TypeSpanRPC
 		span.System = TypeSpanRPC + ":" + span.Attrs.ServiceNameOrUnknown()
@@ -461,7 +461,7 @@ func httpDisplayName(span *Span) string {
 	return span.Name
 }
 
-func (p *consumerThread[IT, DT]) spanHash(fn func(digest *xxhash.Digest)) uint64 {
+func (p *consumerWorker[IT, DT]) spanHash(fn func(digest *xxhash.Digest)) uint64 {
 	p.digest.Reset()
 	fn(p.digest)
 	return p.digest.Sum64()
@@ -511,7 +511,7 @@ func initEventFromHostSpan(dest *Span, event *SpanEvent, hostSpan *Span) {
 	dest.StatusCode = hostSpan.StatusCode
 }
 
-func (p *consumerThread[IT, DT]) initEvent(ctx context.Context, span *Span) {
+func (p *consumerWorker[IT, DT]) initEvent(ctx context.Context, span *Span) {
 	project, ok := p.project(ctx, span.ProjectID)
 	if !ok {
 		return
@@ -521,7 +521,7 @@ func (p *consumerThread[IT, DT]) initEvent(ctx context.Context, span *Span) {
 	p.assignEventSystemAndGroupID(project, span)
 }
 
-func (p *consumerThread[IT, DT]) assignEventSystemAndGroupID(project *org.Project, span *Span) {
+func (p *consumerWorker[IT, DT]) assignEventSystemAndGroupID(project *org.Project, span *Span) {
 	if span.EventName == otelEventError {
 		span.EventName = otelEventException
 	}
@@ -567,7 +567,7 @@ func (p *consumerThread[IT, DT]) assignEventSystemAndGroupID(project *org.Projec
 	span.DisplayName = span.EventName
 }
 
-func (p *consumerThread[IT, DT]) handleLogEvent(project *org.Project, span *Span) {
+func (p *consumerWorker[IT, DT]) handleLogEvent(project *org.Project, span *Span) {
 	sev, _ := span.Attrs[attrkey.LogSeverity].(string)
 	span.Type = TypeLog
 	span.System = TypeLog + ":" + lowerSeverity(sev)
@@ -601,7 +601,7 @@ func lowerSeverity(sev string) string {
 	}
 }
 
-func (p *consumerThread[IT, DT]) handleExceptionEvent(project *org.Project, span *Span) {
+func (p *consumerWorker[IT, DT]) handleExceptionEvent(project *org.Project, span *Span) {
 	span.Type = TypeLog
 	span.System = SystemLogError
 	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
