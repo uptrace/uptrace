@@ -174,6 +174,22 @@ func newConsumerWorker[IT IndexRecord, DT DataRecord](
 	}
 }
 
+func (p *consumerWorker[IT, DT]) appendIndexed(span *Span) *IT {
+	var item IT
+	p.indexedSpans = append(p.indexedSpans, item)
+	index := &p.indexedSpans[len(p.indexedSpans)-1]
+	p.transformer.initIndexFromSpan(index, span)
+	return index
+}
+
+func (p *consumerWorker[IT, DT]) appendData(span *Span) *DT {
+	var item DT
+	p.dataSpans = append(p.dataSpans, item)
+	data := &p.dataSpans[len(p.dataSpans)-1]
+	p.transformer.initDataFromSpan(data, span)
+	return data
+}
+
 func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Span) {
 	seenErrors := make(map[uint64]bool) // basic deduplication
 
@@ -195,18 +211,13 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 			),
 		)
 
-		var index IT
-		p.indexedSpans = append(p.indexedSpans, index)
-		p.transformer.initIndexFromSpan(&index, span)
+		index := p.appendIndexed(span)
+		p.transformer.postprocessIndex(ctx, index)
 
 		if span.IsEvent() || span.IsLog() {
-			var data DT
-			p.dataSpans = append(p.dataSpans, data)
-			p.transformer.initDataFromSpan(&data, span)
+			_ = p.appendData(span)
 			continue
 		}
-
-		p.transformer.postprocessIndex(ctx, &index)
 
 		var errorCount int
 		var logCount int
@@ -227,13 +238,8 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 				),
 			)
 
-			var index IT
-			p.indexedSpans = append(p.indexedSpans, index)
-			p.transformer.initIndexFromSpan(&index, eventSpan)
-
-			var data DT
-			p.dataSpans = append(p.dataSpans, data)
-			p.transformer.initDataFromSpan(&data, eventSpan)
+			_ = p.appendIndexed(eventSpan)
+			_ = p.appendData(eventSpan)
 
 			if isErrorSystem(eventSpan.System) {
 				errorCount++
@@ -249,9 +255,7 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 
 		span.Events = nil
 
-		var data DT
-		p.dataSpans = append(p.dataSpans, data)
-		p.transformer.initDataFromSpan(&data, span)
+		_ = p.appendData(span)
 	}
 
 	query := p.CH.NewInsert().Model(&p.dataSpans)
