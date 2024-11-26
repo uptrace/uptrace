@@ -11,7 +11,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
-	"go4.org/syncutil"
 )
 
 type LogIndex struct {
@@ -38,15 +37,16 @@ type LogConsumer struct {
 	logger   *otelzap.Logger
 }
 
-func NewLogConsumer(app *bunapp.App, gate *syncutil.Gate) *LogConsumer {
+func NewLogConsumer(app *bunapp.App) *LogConsumer {
 	conf := app.Config()
-	batchSize := conf.Spans.BatchSize
-	bufferSize := conf.Spans.BufferSize
-
-	p := &LogConsumer{logger: app.Logger}
+	batchSize := conf.Logs.BatchSize
+	bufferSize := conf.Logs.BufferSize
+	maxWorkers := conf.Logs.MaxWorkers
 
 	transformer := &logTransformer{logger: app.Logger}
-	p.consumer = NewConsumer[LogIndex, LogData](app, batchSize, bufferSize, gate, transformer)
+
+	p := &LogConsumer{logger: app.Logger}
+	p.consumer = NewConsumer[LogIndex, LogData](app, batchSize, bufferSize, maxWorkers, transformer)
 
 	p.logger.Info("starting processing logs...",
 		zap.Int("batch_size", batchSize),
@@ -84,16 +84,12 @@ type logTransformer struct {
 	logger *otelzap.Logger
 }
 
-func (c *logTransformer) indexFromSpan(span *Span) LogIndex {
-	index := LogIndex{}
-	initLogIndex(&index, span)
-	return index
+func (c *logTransformer) initIndexFromSpan(index *LogIndex, span *Span) {
+	initLogIndex(index, span)
 }
 
-func (c *logTransformer) dataFromSpan(span *Span) LogData {
-	data := LogData{}
-	initLogData(&data, span)
-	return data
+func (c *logTransformer) initDataFromSpan(data *LogData, span *Span) {
+	initLogData(data, span)
 }
 
 func (c *logTransformer) postprocessIndex(ctx context.Context, index *LogIndex) {}

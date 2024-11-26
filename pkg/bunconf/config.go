@@ -198,6 +198,19 @@ func validateConfig(conf *Config) error {
 	if conf.Spans.BufferSize == 0 {
 		conf.Spans.BufferSize = runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
 	}
+	if conf.Spans.MaxWorkers == 0 {
+		conf.Spans.MaxWorkers = runtime.GOMAXPROCS(0)
+	}
+
+	if conf.Logs.BatchSize == 0 {
+		conf.Logs.BatchSize = ScaleWithCPU(1000, 32000)
+	}
+	if conf.Logs.BufferSize == 0 {
+		conf.Spans.BufferSize = runtime.GOMAXPROCS(0) * conf.Spans.BatchSize
+	}
+	if conf.Logs.MaxWorkers == 0 {
+		conf.Spans.MaxWorkers = runtime.GOMAXPROCS(0)
+	}
 
 	if conf.Metrics.BatchSize == 0 {
 		conf.Metrics.BatchSize = ScaleWithCPU(1000, 32000)
@@ -330,7 +343,14 @@ type Config struct {
 	Spans struct {
 		BufferSize int `yaml:"buffer_size"`
 		BatchSize  int `yaml:"batch_size"`
+		MaxWorkers int `yaml:"max_workers"`
 	} `yaml:"spans"`
+
+	Logs struct {
+		BufferSize int `yaml:"buffer_size"`
+		BatchSize  int `yaml:"batch_size"`
+		MaxWorkers int `yaml:"max_workers"`
+	} `yaml:"logs"`
 
 	Metrics struct {
 		DropAttrs []string `yaml:"drop_attrs"`

@@ -9,7 +9,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
-	"go4.org/syncutil"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
@@ -27,38 +26,33 @@ type DataRecord interface {
 }
 
 type transformer[IT IndexRecord, DT DataRecord] interface {
-	indexFromSpan(*Span) IT
-	dataFromSpan(*Span) DT
+	initIndexFromSpan(*IT, *Span)
+	initDataFromSpan(*DT, *Span)
 	postprocessIndex(context.Context, *IT)
 }
 
 type Consumer[IT IndexRecord, DT DataRecord] struct {
 	*bunapp.App
+	logger *otelzap.Logger
 
 	batchSize   int
 	queue       chan *Span
-	gate        *syncutil.Gate
+	transformer transformer[IT, DT]
 	workerPool  chan *consumerWorker[IT, DT]
 	workerCount int
-
-	transformer transformer[IT, DT]
-
-	logger *otelzap.Logger
 }
 
 const maxWorkers = 10
 
 func NewConsumer[IT IndexRecord, DT DataRecord](
 	app *bunapp.App,
-	batchSize, bufferSize int,
-	gate *syncutil.Gate,
+	batchSize, bufferSize, maxWorkers int,
 	transformer transformer[IT, DT],
 ) *Consumer[IT, DT] {
 	return &Consumer[IT, DT]{
 		App:         app,
 		batchSize:   batchSize,
 		queue:       make(chan *Span, bufferSize),
-		gate:        gate,
 		transformer: transformer,
 		workerPool:  make(chan *consumerWorker[IT, DT], maxWorkers),
 		workerCount: 0,
@@ -127,7 +121,6 @@ func (p *Consumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 	ctx, span := bunotel.Tracer.Start(ctx, "process-spans")
 
 	p.WaitGroup().Add(1)
-	p.gate.Start()
 
 	var worker *consumerWorker[IT, DT]
 
@@ -145,7 +138,6 @@ func (p *Consumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 
 	go func(worker *consumerWorker[IT, DT]) {
 		defer span.End()
-		defer p.gate.Done()
 		defer p.WaitGroup().Done()
 
 		if worker == nil {
@@ -187,7 +179,9 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 
 	defer func() {
 		clear(p.indexedSpans)
+		p.indexedSpans = p.indexedSpans[:0]
 		clear(p.dataSpans)
+		p.dataSpans = p.dataSpans[:0]
 	}()
 
 	for _, span := range spans {
@@ -201,15 +195,18 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 			),
 		)
 
-		p.indexedSpans = append(p.indexedSpans, p.transformer.indexFromSpan(span))
+		var index IT
+		p.indexedSpans = append(p.indexedSpans, index)
+		p.transformer.initIndexFromSpan(&index, span)
 
 		if span.IsEvent() || span.IsLog() {
-			p.dataSpans = append(p.dataSpans, p.transformer.dataFromSpan(span))
+			var data DT
+			p.dataSpans = append(p.dataSpans, data)
+			p.transformer.initDataFromSpan(&data, span)
 			continue
 		}
 
-		index := &p.indexedSpans[len(p.indexedSpans)-1]
-		p.transformer.postprocessIndex(ctx, index)
+		p.transformer.postprocessIndex(ctx, &index)
 
 		var errorCount int
 		var logCount int
@@ -230,8 +227,13 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 				),
 			)
 
-			p.indexedSpans = append(p.indexedSpans, p.transformer.indexFromSpan(eventSpan))
-			p.dataSpans = append(p.dataSpans, p.transformer.dataFromSpan(eventSpan))
+			var index IT
+			p.indexedSpans = append(p.indexedSpans, index)
+			p.transformer.initIndexFromSpan(&index, eventSpan)
+
+			var data DT
+			p.dataSpans = append(p.dataSpans, data)
+			p.transformer.initDataFromSpan(&data, eventSpan)
 
 			if isErrorSystem(eventSpan.System) {
 				errorCount++
@@ -247,7 +249,9 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 
 		span.Events = nil
 
-		p.dataSpans = append(p.dataSpans, p.transformer.dataFromSpan(span))
+		var data DT
+		p.dataSpans = append(p.dataSpans, data)
+		p.transformer.initDataFromSpan(&data, span)
 	}
 
 	query := p.CH.NewInsert().Model(&p.dataSpans)

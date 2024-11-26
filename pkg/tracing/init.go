@@ -2,7 +2,6 @@ package tracing
 
 import (
 	"context"
-	"runtime"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -11,7 +10,6 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
-	"go4.org/syncutil"
 )
 
 const (
@@ -26,10 +24,8 @@ var spanCounter, _ = bunotel.Meter.Int64Counter(
 )
 
 func Init(ctx context.Context, app *bunapp.App) {
-	maxprocs := runtime.GOMAXPROCS(0)
-	gate := syncutil.NewGate(maxprocs)
-	sp := NewSpanConsumer(app, gate)
-	lc := NewLogConsumer(app, gate)
+	sp := NewSpanConsumer(app)
+	lc := NewLogConsumer(app)
 
 	initOTLP(ctx, app, sp)
 	initRoutes(ctx, app, sp, lc)

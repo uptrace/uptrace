@@ -8,7 +8,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
-	"go4.org/syncutil"
 )
 
 type SpanConsumer struct {
@@ -16,12 +15,11 @@ type SpanConsumer struct {
 	logger   *otelzap.Logger
 }
 
-func NewSpanConsumer(app *bunapp.App, gate *syncutil.Gate) *SpanConsumer {
+func NewSpanConsumer(app *bunapp.App) *SpanConsumer {
 	conf := app.Config()
 	batchSize := conf.Spans.BatchSize
 	bufferSize := conf.Spans.BufferSize
-
-	p := &SpanConsumer{logger: app.Logger}
+	maxWorkers := conf.Spans.MaxWorkers
 
 	var sgp *ServiceGraphProcessor
 	if !conf.ServiceGraph.Disabled {
@@ -29,7 +27,10 @@ func NewSpanConsumer(app *bunapp.App, gate *syncutil.Gate) *SpanConsumer {
 	}
 
 	sp := &spanTransformer{sgp: sgp, logger: app.Logger}
-	p.consumer = NewConsumer[SpanIndex, SpanData](app, batchSize, bufferSize, gate, sp)
+	p := &SpanConsumer{
+		logger: app.Logger,
+	}
+	p.consumer = NewConsumer[SpanIndex, SpanData](app, batchSize, bufferSize, maxWorkers, sp)
 
 	p.logger.Info("starting processing spans...",
 		zap.Int("batch_size", batchSize),
@@ -68,16 +69,12 @@ type spanTransformer struct {
 	logger *otelzap.Logger
 }
 
-func (c *spanTransformer) indexFromSpan(span *Span) SpanIndex {
-	index := SpanIndex{}
-	initSpanIndex(&index, span)
-	return index
+func (c *spanTransformer) initIndexFromSpan(index *SpanIndex, span *Span) {
+	initSpanIndex(index, span)
 }
 
-func (c *spanTransformer) dataFromSpan(span *Span) SpanData {
-	data := SpanData{}
-	initSpanData(&data, span)
-	return data
+func (c *spanTransformer) initDataFromSpan(data *SpanData, span *Span) {
+	initSpanData(data, span)
 }
 
 func (c *spanTransformer) postprocessIndex(ctx context.Context, index *SpanIndex) {
