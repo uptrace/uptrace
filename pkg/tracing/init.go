@@ -25,9 +25,10 @@ var spanCounter, _ = bunotel.Meter.Int64Counter(
 
 func Init(ctx context.Context, app *bunapp.App) {
 	sp := NewSpanConsumer(app)
+	lc := NewLogConsumer(app)
 
 	initOTLP(ctx, app, sp)
-	initRoutes(ctx, app, sp)
+	initRoutes(ctx, app, sp, lc)
 }
 
 func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanConsumer) {
@@ -42,7 +43,7 @@ func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanConsumer) {
 	router.POST("/v1/logs", logsService.ExportHTTP)
 }
 
-func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer) {
+func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer, lc *LogConsumer) {
 	router := app.Router()
 	middleware := org.NewMiddleware(app)
 	internalV1 := app.InternalAPIV1()
@@ -63,7 +64,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer) {
 	})
 
 	router.WithGroup("/api/v1", func(g *bunrouter.Group) {
-		vectorHandler := NewVectorHandler(app, sp)
+		vectorHandler := NewVectorHandler(app, lc)
 
 		g.POST("/vector-logs", vectorHandler.Create)
 		g.POST("/vector/logs", vectorHandler.Create)
