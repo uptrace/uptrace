@@ -192,6 +192,20 @@ logs:
   #max_workers: 10
 
 ##
+## Events processing options.
+##
+events:
+  # The size of the Go chan used to buffer incoming events.
+  # If the buffer is full, Uptrace starts to drop events.
+  #buffer_size: 100000
+
+  # The number of events to insert in a single query.
+  #batch_size: 10000
+
+  # The maximum number of event consumer workers.
+  #max_workers: 10
+
+##
 ## Metrics processing options.
 ##
 metrics:

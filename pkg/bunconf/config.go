@@ -352,6 +352,12 @@ type Config struct {
 		MaxWorkers int `yaml:"max_workers"`
 	} `yaml:"logs"`
 
+	Events struct {
+		BufferSize int `yaml:"buffer_size"`
+		BatchSize  int `yaml:"batch_size"`
+		MaxWorkers int `yaml:"max_workers"`
+	} `yaml:"Events"`
+
 	Metrics struct {
 		DropAttrs []string `yaml:"drop_attrs"`
 

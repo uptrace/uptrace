@@ -18,11 +18,11 @@ import (
 )
 
 type IndexRecord interface {
-	SpanIndex | LogIndex
+	SpanIndex | LogIndex | EventIndex
 }
 
 type DataRecord interface {
-	SpanData | LogData
+	SpanData | LogData | EventData
 }
 
 type transformer[IT IndexRecord, DT DataRecord] interface {
@@ -31,7 +31,7 @@ type transformer[IT IndexRecord, DT DataRecord] interface {
 	postprocessIndex(context.Context, *IT)
 }
 
-type Consumer[IT IndexRecord, DT DataRecord] struct {
+type BaseConsumer[IT IndexRecord, DT DataRecord] struct {
 	*bunapp.App
 	logger *otelzap.Logger
 
@@ -44,12 +44,13 @@ type Consumer[IT IndexRecord, DT DataRecord] struct {
 
 const maxWorkers = 10
 
-func NewConsumer[IT IndexRecord, DT DataRecord](
+func NewBaseConsumer[IT IndexRecord, DT DataRecord](
 	app *bunapp.App,
+	signalName string,
 	batchSize, bufferSize, maxWorkers int,
 	transformer transformer[IT, DT],
-) *Consumer[IT, DT] {
-	return &Consumer[IT, DT]{
+) *BaseConsumer[IT, DT] {
+	c := &BaseConsumer[IT, DT]{
 		App:         app,
 		batchSize:   batchSize,
 		queue:       make(chan *Span, bufferSize),
@@ -57,9 +58,30 @@ func NewConsumer[IT IndexRecord, DT DataRecord](
 		workerPool:  make(chan *consumerWorker[IT, DT], maxWorkers),
 		workerCount: 0,
 	}
+
+	queueLen, _ := bunotel.Meter.Int64ObservableGauge(signalName, metric.WithUnit("{spans}"))
+	if _, err := bunotel.Meter.RegisterCallback(
+		func(ctx context.Context, o metric.Observer) error {
+			o.ObserveInt64(queueLen, int64(len(c.queue)))
+			return nil
+		},
+		queueLen,
+	); err != nil {
+		panic(err)
+	}
+
+	return c
 }
 
-func (p *Consumer[IT, DT]) AddSpan(ctx context.Context, span *Span) {
+func (p *BaseConsumer[IT, DT]) Run() {
+	p.WaitGroup().Add(1)
+	go func() {
+		defer p.WaitGroup().Done()
+		p.processLoop(p.Context())
+	}()
+}
+
+func (p *BaseConsumer[IT, DT]) AddSpan(ctx context.Context, span *Span) {
 	select {
 	case p.queue <- span:
 	default:
@@ -76,7 +98,7 @@ func (p *Consumer[IT, DT]) AddSpan(ctx context.Context, span *Span) {
 	}
 }
 
-func (p *Consumer[IT, DT]) processLoop(ctx context.Context) {
+func (p *BaseConsumer[IT, DT]) processLoop(ctx context.Context) {
 	const timeout = 5 * time.Second
 
 	timer := time.NewTimer(timeout)
@@ -117,7 +139,7 @@ loop:
 	}
 }
 
-func (p *Consumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
+func (p *BaseConsumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 	ctx, span := bunotel.Tracer.Start(ctx, "process-spans")
 
 	p.WaitGroup().Add(1)
@@ -128,7 +150,7 @@ func (p *Consumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 	case worker = <-p.workerPool:
 	default:
 		if p.workerCount < maxWorkers {
-			worker = newConsumerWorker(p.App, p.transformer, cap(p.queue))
+			worker = newConsumerWorker(p.App, p.logger, p.transformer, cap(p.queue))
 			p.workerCount++
 		}
 	}
@@ -150,6 +172,7 @@ func (p *Consumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 
 type consumerWorker[IT IndexRecord, DT DataRecord] struct {
 	*bunapp.App
+	logger *otelzap.Logger
 
 	transformer transformer[IT, DT]
 	projects    map[uint32]*org.Project
@@ -161,11 +184,13 @@ type consumerWorker[IT IndexRecord, DT DataRecord] struct {
 
 func newConsumerWorker[IT IndexRecord, DT DataRecord](
 	app *bunapp.App,
+	logger *otelzap.Logger,
 	transformer transformer[IT, DT],
 	bufSize int,
 ) *consumerWorker[IT, DT] {
 	return &consumerWorker[IT, DT]{
 		App:          app,
+		logger:       logger,
 		transformer:  transformer,
 		projects:     make(map[uint32]*org.Project),
 		digest:       xxhash.New(),
@@ -260,14 +285,14 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 
 	query := p.CH.NewInsert().Model(&p.dataSpans)
 	if _, err := query.Exec(ctx); err != nil {
-		p.Zap(ctx).Error("ch.Insert failed",
+		p.logger.Error("ch.Insert failed",
 			zap.Error(err),
 			zap.String("table", query.GetTableName()))
 	}
 
 	query = p.CH.NewInsert().Model(&p.indexedSpans)
 	if _, err := query.Exec(ctx); err != nil {
-		p.Zap(ctx).Error("ch.Insert failed",
+		p.logger.Error("ch.Insert failed",
 			zap.Error(err),
 			zap.String("table", query.GetTableName()))
 	}

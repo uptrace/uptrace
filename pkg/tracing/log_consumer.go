@@ -8,8 +8,6 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunotel"
-	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 )
 
@@ -33,8 +31,7 @@ type LogData struct {
 }
 
 type LogConsumer struct {
-	consumer *Consumer[LogIndex, LogData]
-	logger   *otelzap.Logger
+	*BaseConsumer[LogIndex, LogData]
 }
 
 func NewLogConsumer(app *bunapp.App) *LogConsumer {
@@ -42,42 +39,25 @@ func NewLogConsumer(app *bunapp.App) *LogConsumer {
 	batchSize := conf.Logs.BatchSize
 	bufferSize := conf.Logs.BufferSize
 	maxWorkers := conf.Logs.MaxWorkers
-
 	transformer := &logTransformer{logger: app.Logger}
 
-	p := &LogConsumer{logger: app.Logger}
-	p.consumer = NewConsumer[LogIndex, LogData](app, batchSize, bufferSize, maxWorkers, transformer)
+	p := &LogConsumer{
+		BaseConsumer: NewBaseConsumer[LogIndex, LogData](
+			app,
+			"uptrace.tracing.logs_queue_length",
+			batchSize, bufferSize, maxWorkers,
+			transformer,
+		),
+	}
 
 	p.logger.Info("starting processing logs...",
 		zap.Int("batch_size", batchSize),
-		zap.Int("buffer_size", bufferSize))
-
-	app.WaitGroup().Add(1)
-	go func() {
-		defer app.WaitGroup().Done()
-
-		p.consumer.processLoop(app.Context())
-	}()
-
-	queueLen, _ := bunotel.Meter.Int64ObservableGauge("uptrace.tracing.log_queue_length",
-		metric.WithUnit("{spans}"),
+		zap.Int("buffer_size", bufferSize),
+		zap.Int("max_workers", maxWorkers),
 	)
-
-	if _, err := bunotel.Meter.RegisterCallback(
-		func(ctx context.Context, o metric.Observer) error {
-			o.ObserveInt64(queueLen, int64(len(p.consumer.queue)))
-			return nil
-		},
-		queueLen,
-	); err != nil {
-		panic(err)
-	}
+	p.Run()
 
 	return p
-}
-
-func (p *LogConsumer) AddSpan(ctx context.Context, span *Span) {
-	p.consumer.AddSpan(ctx, span)
 }
 
 type logTransformer struct {
