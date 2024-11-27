@@ -14,7 +14,7 @@ import (
 )
 
 type LogIndex struct {
-	ch.CHModel `ch:"table:logs_index,insert:logs_index_buffer,alias:s"`
+	ch.CHModel `ch:"table:logs_index,alias:s"`
 
 	BaseIndex
 	// Hide some fields from Span
@@ -27,7 +27,7 @@ type LogIndex struct {
 }
 
 type LogData struct {
-	ch.CHModel `ch:"table:logs_data,insert:logs_data_buffer,alias:s"`
+	ch.CHModel `ch:"table:logs_data,alias:s"`
 
 	BaseData
 }

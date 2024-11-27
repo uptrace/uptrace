@@ -92,29 +92,3 @@ TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          index_granularity = 2048,
          storage_policy = ?SPANS_STORAGE
-
---migration:split
-
-DROP TABLE IF EXISTS logs_index_buffer ?ON_CLUSTER
-
---migration:split
-
-CREATE TABLE logs_index_buffer ?ON_CLUSTER AS logs_index
-ENGINE = Buffer(currentDatabase(), logs_index,
-  5,
-  5, 45,
-  1_000_000, 1_000_000,
-  500_000_000, 500_000_000)
-
---migration:split
-
-DROP TABLE IF EXISTS logs_data_buffer ?ON_CLUSTER
-
---migration:split
-
-CREATE TABLE logs_data_buffer ?ON_CLUSTER AS logs_data
-ENGINE = Buffer(currentDatabase(), logs_data,
-  3,
-  5, 45,
-  1_000_000, 1_000_000,
-  500_000_000, 500_000_000)
