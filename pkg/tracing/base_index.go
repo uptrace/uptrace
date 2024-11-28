@@ -13,10 +13,6 @@ type BaseIndex struct {
 	DisplayName string
 
 	Count           float32
-	LinkCount       uint8
-	EventCount      uint8
-	EventErrorCount uint8
-	EventLogCount   uint8
 
 	AllKeys      []string `ch:"type:Array(LowCardinality(String))"`
 	StringKeys   []string `ch:"type:Array(LowCardinality(String))"`
