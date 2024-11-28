@@ -14,12 +14,6 @@ CREATE TABLE events_index ?ON_CLUSTER (
   display_name String Codec(?CODEC),
 
   time DateTime Codec(Delta, ?CODEC),
-  count Float32 Codec(?CODEC),
-
-  link_count UInt8 Codec(?CODEC),
-  event_count UInt8 Codec(?CODEC),
-  event_error_count UInt8 Codec(?CODEC),
-  event_log_count UInt8 Codec(?CODEC),
 
   all_keys Array(LowCardinality(String)) Codec(?CODEC),
   string_keys Array(LowCardinality(String)) Codec(?CODEC),

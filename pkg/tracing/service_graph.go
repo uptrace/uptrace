@@ -97,11 +97,6 @@ func (e *ServiceGraphEdge) setClientDuration(span *SpanIndex) {
 	e.ClientDurationMin = dur
 	e.ClientDurationMax = dur
 	e.ClientDurationSum = dur
-
-	e.Count = uint32(span.Count)
-	if span.StatusCode == StatusCodeError {
-		e.ErrorCount = e.Count
-	}
 }
 
 func (e *ServiceGraphEdge) setServerDuration(span *SpanIndex) {
@@ -109,13 +104,6 @@ func (e *ServiceGraphEdge) setServerDuration(span *SpanIndex) {
 	e.ServerDurationMin = dur
 	e.ServerDurationMax = dur
 	e.ServerDurationSum = dur
-
-	if e.Count == 0 {
-		e.Count = uint32(span.Count)
-		if span.StatusCode == StatusCodeError {
-			e.ErrorCount = e.Count
-		}
-	}
 }
 
 type ServiceGraphProcessor struct {

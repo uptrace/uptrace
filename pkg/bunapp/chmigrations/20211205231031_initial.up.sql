@@ -15,15 +15,9 @@ CREATE TABLE spans_index ?ON_CLUSTER (
 
   time DateTime Codec(Delta, ?CODEC),
   duration Int64 Codec(T64, ?CODEC),
-  count Float32 Codec(?CODEC),
 
   status_code LowCardinality(String) Codec(?CODEC),
   status_message String Codec(?CODEC),
-
-  link_count UInt8 Codec(?CODEC),
-  event_count UInt8 Codec(?CODEC),
-  event_error_count UInt8 Codec(?CODEC),
-  event_log_count UInt8 Codec(?CODEC),
 
   all_keys Array(LowCardinality(String)) Codec(?CODEC),
   string_keys Array(LowCardinality(String)) Codec(?CODEC),

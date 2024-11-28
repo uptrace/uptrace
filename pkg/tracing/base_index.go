@@ -12,12 +12,6 @@ type BaseIndex struct {
 
 	DisplayName string
 
-	Count           float32
-	LinkCount       uint8
-	EventCount      uint8
-	EventErrorCount uint8
-	EventLogCount   uint8
-
 	AllKeys      []string `ch:"type:Array(LowCardinality(String))"`
 	StringKeys   []string `ch:"type:Array(LowCardinality(String))"`
 	StringValues []string
@@ -63,7 +57,6 @@ func (index *BaseIndex) InitFromSpan(span *Span) {
 	index.Span = span
 
 	index.DisplayName = utf8util.TruncLarge(span.DisplayName)
-	index.Count = 1
 
 	index.TelemetrySDKName = span.Attrs.Text(attrkey.TelemetrySDKName)
 	index.TelemetrySDKLanguage = span.Attrs.Text(attrkey.TelemetrySDKLanguage)
