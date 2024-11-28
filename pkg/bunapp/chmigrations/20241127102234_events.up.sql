@@ -1,4 +1,4 @@
-CREATE TABLE logs_index ?ON_CLUSTER (
+CREATE TABLE events_index ?ON_CLUSTER (
   id UInt64 Codec(T64, ?CODEC),
   trace_id UUID Codec(?CODEC),
   parent_id UInt64 Codec(?CODEC),
@@ -71,7 +71,7 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-CREATE TABLE logs_data ?ON_CLUSTER (
+CREATE TABLE events_data ?ON_CLUSTER (
   project_id UInt32 Codec(Delta, ?CODEC),
   type LowCardinality(String) Codec(?CODEC),
   trace_id UUID Codec(?CODEC),
