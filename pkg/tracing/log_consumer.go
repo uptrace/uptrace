@@ -32,6 +32,7 @@ type LogData struct {
 
 type LogConsumer struct {
 	*BaseConsumer[LogIndex, LogData]
+	logger *otelzap.Logger
 }
 
 func NewLogConsumer(app *bunapp.App) *LogConsumer {
@@ -42,6 +43,7 @@ func NewLogConsumer(app *bunapp.App) *LogConsumer {
 	transformer := &logTransformer{logger: app.Logger}
 
 	p := &LogConsumer{
+		logger: app.Logger,
 		BaseConsumer: NewBaseConsumer[LogIndex, LogData](
 			app,
 			app.Logger,

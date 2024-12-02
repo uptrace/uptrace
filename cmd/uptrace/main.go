@@ -11,10 +11,8 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
 	"path/filepath"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/klauspost/compress/gzhttp"
@@ -23,6 +21,7 @@ import (
 	"github.com/rs/cors"
 	"github.com/uptrace/bun/migrate"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace"
 	"github.com/uptrace/uptrace/cmd/uptrace/command"
 	"github.com/uptrace/uptrace/pkg"
@@ -30,13 +29,14 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunapp/chmigrations"
 	"github.com/uptrace/uptrace/pkg/bunapp/pgmigrations"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/grafana"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/run"
 	"github.com/uptrace/uptrace/pkg/uptracebundle"
 	"github.com/vmihailenco/taskq/extra/oteltaskq/v4"
 	"golang.org/x/net/http2"
+	"google.golang.org/grpc"
 
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/tracing"
@@ -44,6 +44,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
 
@@ -88,78 +89,41 @@ var versionCommand = &cli.Command{
 	},
 }
 
-var serveCommand = &cli.Command{
-	Name:  "serve",
-	Usage: "run HTTP and gRPC APIs",
-	Action: func(c *cli.Context) error {
-		ctx, app, err := uptracebundle.StartCLI(c)
-		if err != nil {
-			return err
-		}
-		defer app.Stop()
+func NewConfig(app *bunapp.App) *bunconf.Config {
+	return app.Config()
+}
 
-		conf := app.Config()
-		logger := app.Logger
+func NewLog(app *bunapp.App) *otelzap.Logger {
+	return app.Logger
+}
 
-		fmt.Printf("read the docs at            https://uptrace.dev/get/\n")
-		fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
-		fmt.Printf("Telegram chat               https://t.me/uptrace\n")
-		fmt.Printf("Slack chat                  https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw\n")
-		fmt.Println()
+func NewHTTPServer(lc fx.Lifecycle, app *bunapp.App, conf *bunconf.Config, logger *otelzap.Logger) (*http.Server, error) {
+	handleStaticFiles(app, uptrace.DistFS())
+	handler := app.HTTPHandler()
+	handler = gzhttp.GzipHandler(handler)
+	handler = httputil.DecompressHandler{Next: handler}
+	handler = httputil.NewTraceparentHandler(handler)
+	handler = otelhttp.NewHandler(handler, "")
+	handler = cors.AllowAll().Handler(handler)
+	handler = httputil.PanicHandler{Next: handler}
 
-		fmt.Printf("Open UI (site.addr)         %s\n", conf.SiteURL("/"))
-		fmt.Println()
+	srv := &http.Server{
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: time.Minute,
+		IdleTimeout:  3 * time.Minute,
+		Handler:      handler,
+	}
 
-		app.Logger.Info("starting Uptrace...",
-			zap.String("version", pkg.Version()),
-			zap.String("config", conf.Path))
-
-		httpLn, err := net.Listen("tcp", conf.Listen.HTTP.Addr)
-		if err != nil {
-			logger.Error("net.Listen failed (edit listen.http YAML option)",
-				zap.Error(err), zap.String("addr", conf.Listen.HTTP.Addr))
-			return err
-		}
-
-		grpcLn, err := net.Listen("tcp", conf.Listen.GRPC.Addr)
-		if err != nil {
-			logger.Error("net.Listen failed (edit listen.grpc YAML option)",
-				zap.String("addr", conf.Listen.GRPC.Addr),
-				zap.Error(err))
-			return err
-		}
-
-		if err := initPostgres(ctx, app); err != nil {
-			return fmt.Errorf("initPostgres failed: %w", err)
-		}
-		if err := initClickhouse(ctx, app); err != nil {
-			return fmt.Errorf("initClickhouse failed: %w", err)
-		}
-		if err := loadInitialData(ctx, app); err != nil {
-			return fmt.Errorf("loadInitialData failed: %w", err)
-		}
-
-		org.Init(ctx, app)
-		tracing.Init(ctx, app)
-		metrics.Init(ctx, app)
-		alerting.Init(ctx, app)
-		grafana.Init(ctx, app)
-
-		if err := syncDashboards(ctx, app); err != nil {
-			app.Zap(ctx).Error("syncDashboards failed", zap.Error(err))
-		}
-
-		var group run.Group
-
-		{
-			handleStaticFiles(app, uptrace.DistFS())
-			handler := app.HTTPHandler()
-			handler = gzhttp.GzipHandler(handler)
-			handler = httputil.DecompressHandler{Next: handler}
-			handler = httputil.NewTraceparentHandler(handler)
-			handler = otelhttp.NewHandler(handler, "")
-			handler = cors.AllowAll().Handler(handler)
-			handler = httputil.PanicHandler{Next: handler}
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			l, err := net.Listen("tcp", conf.Listen.HTTP.Addr)
+			if err != nil {
+				logger.Error(
+					"net.Listen failed (edit listen.http YAML option)",
+					zap.Error(err), zap.String("addr", conf.Listen.HTTP.Addr),
+				)
+				return err
+			}
 
 			if conf.Listen.HTTP.TLS != nil {
 				tlsConf, err := conf.Listen.HTTP.TLS.TLSConfig()
@@ -167,86 +131,173 @@ var serveCommand = &cli.Command{
 					return err
 				}
 				tlsConf.NextProtos = []string{http2.NextProtoTLS, "http/1.1"}
-				httpLn = tls.NewListener(httpLn, tlsConf)
+				l = tls.NewListener(l, tlsConf)
 			}
 
-			httpServer := &http.Server{
-				ReadTimeout:  10 * time.Second,
-				WriteTimeout: time.Minute,
-				IdleTimeout:  3 * time.Minute,
-				Handler:      handler,
+			go func() {
+				_ = srv.Serve(l)
+			}()
+
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			return srv.Shutdown(ctx)
+		},
+	})
+
+	return srv, nil
+}
+
+func NewGRPCServer(lc fx.Lifecycle, app *bunapp.App, conf *bunconf.Config, logger *otelzap.Logger) (*grpc.Server, error) {
+	srv := app.GRPCServer()
+
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			l, err := net.Listen("tcp", conf.Listen.GRPC.Addr)
+			if err != nil {
+				logger.Error("net.Listen failed (edit listen.grpc YAML option)",
+					zap.String("addr", conf.Listen.GRPC.Addr),
+					zap.Error(err))
+				return err
 			}
 
-			group.Add(func() error {
-				return httpServer.Serve(httpLn)
-			}, func(err error) {
-				if err := httpServer.Shutdown(ctx); err != nil {
-					logger.Error("httpServer.Shutdown", zap.Error(err))
-				}
-			})
-		}
+			go func() {
+				_ = srv.Serve(l)
+			}()
 
-		{
-			grpcServer := app.GRPCServer()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			srv.Stop()
+			return nil
+		},
+	})
 
-			group.Add(func() error {
-				return grpcServer.Serve(grpcLn)
-			}, func(err error) {
-				grpcServer.Stop()
-			})
-		}
+	return srv, nil
+}
 
-		{
-			man := alerting.NewManager(app, &alerting.ManagerConfig{
-				Logger: app.Logger.Logger,
-			})
+func NewAlertingManager(lc fx.Lifecycle, app *bunapp.App, conf *bunconf.Config, logger *otelzap.Logger) (*alerting.Manager, error) {
+	man := alerting.NewManager(app, &alerting.ManagerConfig{
+		Logger: app.Logger.Logger,
+	})
 
-			group.Add(func() error {
-				man.Run()
-				return nil
-			}, func(err error) {
-				man.Stop()
-			})
-		}
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			go man.Run()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			man.Stop()
+			return nil
+		},
+	})
 
-		{
-			group.Add(func() error {
+	return man, nil
+}
+
+func RunConsumer(lc fx.Lifecycle, app *bunapp.App, logger *otelzap.Logger) error {
+	lc.Append(fx.Hook{
+		OnStart: func(_ context.Context) error {
+			go func() {
+				ctx := app.Context()
 				consumer := app.MainQueue.Consumer()
 				consumer.AddHook(oteltaskq.NewHook())
 
 				if err := consumer.Start(ctx); err != nil {
-					return err
+					logger.Error("consumer.Start() failed",
+						zap.Error(err))
 				}
 
 				<-app.Done()
-				return nil
-			}, func(err error) {
-				app.MainQueue.Close()
-			})
-		}
+			}()
 
-		{
-			term := make(chan os.Signal, 1)
-			signal.Notify(term, os.Interrupt, syscall.SIGTERM)
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			app.MainQueue.Close()
+			return nil
+		},
+	})
 
-			group.Add(func() error {
-				select {
-				case <-term:
-				case <-app.Done():
+	return nil
+}
+
+var serveCommand = &cli.Command{
+	Name:  "serve",
+	Usage: "run HTTP and gRPC APIs",
+	Action: func(c *cli.Context) error {
+		fxApp := fx.New(
+			fx.Provide(
+				func(lc fx.Lifecycle) (*bunapp.App, error) {
+					_, app, err := uptracebundle.StartCLI(c)
+					if err != nil {
+						return nil, err
+					}
+
+					lc.Append(fx.Hook{
+						OnStop: func(ctx context.Context) error {
+							app.Stop()
+							return nil
+						},
+					})
+
+					return app, nil
+				},
+				NewConfig,
+				NewLog,
+				NewHTTPServer,
+				NewGRPCServer,
+				NewAlertingManager,
+			),
+			fx.Invoke(func(app *bunapp.App, conf *bunconf.Config, logger *otelzap.Logger) error {
+				fmt.Printf("read the docs at            https://uptrace.dev/get/\n")
+				fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
+				fmt.Printf("Telegram chat               https://t.me/uptrace\n")
+				fmt.Printf("Slack chat                  https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw\n")
+				fmt.Println()
+
+				fmt.Printf("Open UI (site.addr)         %s\n", conf.SiteURL("/"))
+				fmt.Println()
+
+				logger.Info("starting Uptrace...",
+					zap.String("version", pkg.Version()),
+					zap.String("config", conf.Path))
+
+				ctx := app.Context()
+
+				if err := initPostgres(ctx, app); err != nil {
+					return fmt.Errorf("initPostgres failed: %w", err)
+				}
+				if err := initClickhouse(ctx, app); err != nil {
+					return fmt.Errorf("initClickhouse failed: %w", err)
+				}
+				if err := loadInitialData(ctx, app); err != nil {
+					return fmt.Errorf("loadInitialData failed: %w", err)
+				}
+
+				org.Init(ctx, app)
+				tracing.Init(ctx, app)
+				metrics.Init(ctx, app)
+				alerting.Init(ctx, app)
+				grafana.Init(ctx, app)
+
+				if err := syncDashboards(ctx, app); err != nil {
+					app.Zap(ctx).Error("syncDashboards failed", zap.Error(err))
 				}
 
 				return nil
-			}, func(err error) {
-				app.Stop()
-			})
-		}
+			}),
+			fx.Invoke(func(srv *http.Server) {}),
+			fx.Invoke(func(srv *grpc.Server) {}),
+			fx.Invoke(func(man *alerting.Manager) {}),
+			fx.Invoke(RunConsumer),
+			fx.Invoke(func() {
+				go genSampleTrace()
+			}),
+		)
+		fxApp.Run()
 
-		go genSampleTrace()
-
-		runCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		return group.Run(runCtx)
+		return nil
 	},
 }
 
