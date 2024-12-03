@@ -44,6 +44,7 @@ func NewEventConsumer(app *bunapp.App) *EventConsumer {
 	p := &EventConsumer{
 		BaseConsumer: NewBaseConsumer[EventIndex, EventData](
 			app,
+			app.Logger,
 			"uptrace.tracing.events_queue_length",
 			batchSize, bufferSize, maxWorkers,
 			transformer,
