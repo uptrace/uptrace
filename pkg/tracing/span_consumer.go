@@ -10,7 +10,6 @@ import (
 
 type SpanConsumer struct {
 	*BaseConsumer[SpanIndex, SpanData]
-	logger *otelzap.Logger
 }
 
 func NewSpanConsumer(app *bunapp.App) *SpanConsumer {
@@ -26,9 +25,9 @@ func NewSpanConsumer(app *bunapp.App) *SpanConsumer {
 	transformer := &spanTransformer{sgp: sgp, logger: app.Logger}
 
 	p := &SpanConsumer{
-		logger: app.Logger,
 		BaseConsumer: NewBaseConsumer[SpanIndex, SpanData](
 			app,
+			app.Logger,
 			"uptrace.tracing.queue_length",
 			batchSize, bufferSize, maxWorkers,
 			transformer,

@@ -44,6 +44,7 @@ func NewLogConsumer(app *bunapp.App) *LogConsumer {
 	p := &LogConsumer{
 		BaseConsumer: NewBaseConsumer[LogIndex, LogData](
 			app,
+			app.Logger,
 			"uptrace.tracing.logs_queue_length",
 			batchSize, bufferSize, maxWorkers,
 			transformer,

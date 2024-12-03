@@ -46,12 +46,14 @@ const maxWorkers = 10
 
 func NewBaseConsumer[IT IndexRecord, DT DataRecord](
 	app *bunapp.App,
+	logger *otelzap.Logger,
 	signalName string,
 	batchSize, bufferSize, maxWorkers int,
 	transformer transformer[IT, DT],
 ) *BaseConsumer[IT, DT] {
 	c := &BaseConsumer[IT, DT]{
 		App:         app,
+		logger:      logger,
 		batchSize:   batchSize,
 		queue:       make(chan *Span, bufferSize),
 		transformer: transformer,
