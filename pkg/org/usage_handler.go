@@ -5,17 +5,26 @@ import (
 	"time"
 
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"golang.org/x/exp/constraints"
 )
 
 type UsageHandler struct {
-	*Org
+	conf   *bunconf.Config
+	logger *otelzap.Logger
+	ch     *ch.DB
 }
 
-func NewUsageHandler(org *Org) *UsageHandler {
-	return &UsageHandler{Org: org}
+func NewUsageHandler(conf *bunconf.Config, logger *otelzap.Logger, ch *ch.DB) *UsageHandler {
+	return &UsageHandler{
+		conf:   conf,
+		logger: logger,
+		ch:     ch,
+	}
 }
 
 type Usage struct {
@@ -39,12 +48,12 @@ func (h *UsageHandler) Show(w http.ResponseWriter, req bunrouter.Request) error 
 	timeGTE := timeLT.AddDate(0, -1, 0)
 
 	usage := new(Usage)
-	if err := h.CH.NewSelect().
+	if err := h.ch.NewSelect().
 		ColumnExpr("sum(rows) AS spans").
 		ColumnExpr("sum(data_uncompressed_bytes) AS bytes").
 		ColumnExpr("parseDateTime(partition, '%Y-%m-%d') AS time").
 		TableExpr("system.parts").
-		Where("database = ?", h.CH.Config().Database).
+		Where("database = ?", h.ch.Config().Database).
 		Where("table = ?", "spans_data").
 		Where("min_time >= ?", timeGTE).
 		Where("active").
@@ -58,7 +67,7 @@ func (h *UsageHandler) Show(w http.ResponseWriter, req bunrouter.Request) error 
 	usage.Bytes = bunutil.Fill(usage.Bytes, usage.Time, 0, timeGTE, timeLT, interval)
 	usage.Time = bunutil.FillTime(usage.Time, timeGTE, timeLT, interval)
 
-	subq := h.CH.NewSelect().
+	subq := h.ch.NewSelect().
 		ColumnExpr("60 * uniqCombined64(15)(d.attrs_hash) AS datapoints").
 		ColumnExpr("d.time").
 		ColumnExpr("60 AS minutes").
@@ -68,7 +77,7 @@ func (h *UsageHandler) Show(w http.ResponseWriter, req bunrouter.Request) error 
 		GroupExpr("d.project_id, d.time")
 
 	usage2 := new(Usage2)
-	if err := h.CH.NewSelect().
+	if err := h.ch.NewSelect().
 		ColumnExpr("sum(d.datapoints) AS datapoints").
 		ColumnExpr("toStartOfDay(d.time) AS time").
 		ColumnExpr("sum(d.minutes) AS minutes").

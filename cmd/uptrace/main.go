@@ -89,9 +89,15 @@ var versionCommand = &cli.Command{
 	},
 }
 
-func RunHTTPServer(lc fx.Lifecycle, router *bunapp.Router, conf *bunconf.Config, logger *otelzap.Logger) {
-	handleStaticFiles(conf, router, uptrace.DistFS())
-	handler := http.Handler(router.Router)
+func RunHTTPServer(
+	lc fx.Lifecycle,
+	router *bunrouter.Router,
+	routerGroup *bunrouter.Group,
+	conf *bunconf.Config,
+	logger *otelzap.Logger,
+) {
+	handleStaticFiles(conf, routerGroup, uptrace.DistFS())
+	handler := http.Handler(router)
 	handler = gzhttp.GzipHandler(handler)
 	handler = httputil.DecompressHandler{Next: handler}
 	handler = httputil.NewTraceparentHandler(handler)
@@ -218,13 +224,13 @@ func NewFxApp(c *cli.Context, opts ...fx.Option) (*fx.App, error) {
 			app,
 			app.Conf,
 			app.Logger,
-			app.RouterAPI(),
+			app.Router(),
+			fx.Annotate(app.RouterGroup(), fx.ResultTags(`name:"router_group"`)),
+			fx.Annotate(app.InternalAPIV1(), fx.ResultTags(`name:"router_internal_apiv1"`)),
+			fx.Annotate(app.PublicAPIV1(), fx.ResultTags(`name:"router_public_apiv1"`)),
 			app.GRPCServer(),
 			app.PG,
 			app.CH,
-		),
-		fx.Provide(
-			org.NewOrg,
 		),
 		fx.Invoke(func(lc fx.Lifecycle, app *bunapp.App) {
 			lc.Append(fx.Hook{
@@ -285,7 +291,10 @@ var serveCommand = &cli.Command{
 		fxApp, err := NewFxApp(c,
 			fx.Invoke(UptraceInit),
 			fx.Invoke(org.Init),
-			fx.Invoke(RunHTTPServer),
+			fx.Invoke(fx.Annotate(
+				RunHTTPServer,
+				fx.ParamTags(``, ``, `name:"router_group"`, ``, ``),
+			)),
 			fx.Invoke(RunGRPCServer),
 			fx.Invoke(RunAlertingManager),
 			fx.Invoke(RunConsumer),
@@ -512,12 +521,12 @@ func createProject(ctx context.Context, app *bunapp.App, project *org.Project) e
 	return nil
 }
 
-func handleStaticFiles(conf *bunconf.Config, router *bunapp.Router, fsys fs.FS) {
+func handleStaticFiles(conf *bunconf.Config, routerGroup *bunrouter.Group, fsys fs.FS) {
 	fsys = newVueFS(fsys, conf.Site.URL.Path)
 	httpFS := http.FS(fsys)
 	fileServer := http.FileServer(httpFS)
 
-	router.RouterGroup.GET("/*path", func(w http.ResponseWriter, req bunrouter.Request) error {
+	routerGroup.GET("/*path", func(w http.ResponseWriter, req bunrouter.Request) error {
 		if _, err := httpFS.Open(req.URL.Path); err == nil {
 			fileServer.ServeHTTP(w, req.Request)
 			return nil

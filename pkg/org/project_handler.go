@@ -3,18 +3,25 @@ package org
 import (
 	"net/http"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httputil"
 )
 
 type ProjectHandler struct {
-	*Org
+	conf   *bunconf.Config
+	logger *otelzap.Logger
+	pg     *bun.DB
 }
 
-func NewProjectHandler(org *Org) *ProjectHandler {
+func NewProjectHandler(conf *bunconf.Config, logger *otelzap.Logger, pg *bun.DB) *ProjectHandler {
 	return &ProjectHandler{
-		Org: org,
+		conf:   conf,
+		logger: logger,
+		pg:     pg,
 	}
 }
 
@@ -26,7 +33,7 @@ func (h *ProjectHandler) Show(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	fakeApp := &bunapp.App{PG: h.PG}
+	fakeApp := &bunapp.App{PG: h.pg}
 	project, err := SelectProject(ctx, fakeApp, projectID)
 	if err != nil {
 		return err

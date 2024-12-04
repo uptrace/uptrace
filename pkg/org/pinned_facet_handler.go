@@ -4,25 +4,34 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"golang.org/x/exp/slices"
 )
 
 type PinnedFacetHandler struct {
-	*Org
+	conf   *bunconf.Config
+	logger *otelzap.Logger
+	pg     *bun.DB
 }
 
-func NewPinnedFacetHandler(org *Org) *PinnedFacetHandler {
-	return &PinnedFacetHandler{org}
+func NewPinnedFacetHandler(conf *bunconf.Config, logger *otelzap.Logger, pg *bun.DB) *PinnedFacetHandler {
+	return &PinnedFacetHandler{
+		conf:   conf,
+		logger: logger,
+		pg:     pg,
+	}
 }
 
 func (h *PinnedFacetHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 	user := UserFromContext(ctx)
 
-	fakeApp := &bunapp.App{PG: h.PG}
+	fakeApp := &bunapp.App{PG: h.pg}
 	attrs, err := SelectPinnedFacets(ctx, fakeApp, user.ID)
 	if err != nil {
 		return err
@@ -54,7 +63,7 @@ func (h *PinnedFacetHandler) Add(w http.ResponseWriter, req bunrouter.Request) e
 		UserID: user.ID,
 		Attr:   in.Attr,
 	}
-	if _, err := h.PG.NewInsert().
+	if _, err := h.pg.NewInsert().
 		Model(filter).
 		On("CONFLICT (user_id, attr) DO UPDATE").
 		Set("unpinned = false").
@@ -87,7 +96,7 @@ func (h *PinnedFacetHandler) Remove(w http.ResponseWriter, req bunrouter.Request
 		Attr:     in.Attr,
 		Unpinned: true,
 	}
-	if _, err := h.PG.NewInsert().
+	if _, err := h.pg.NewInsert().
 		Model(facet).
 		On("CONFLICT (user_id, attr) DO UPDATE").
 		Set("unpinned = true").

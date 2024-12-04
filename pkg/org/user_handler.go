@@ -6,20 +6,27 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserHandler struct {
-	*Org
+	conf   *bunconf.Config
+	logger *otelzap.Logger
+	pg     *bun.DB
 }
 
-func NewUserHandler(org *Org) *UserHandler {
+func NewUserHandler(conf *bunconf.Config, logger *otelzap.Logger, pg *bun.DB) *UserHandler {
 	return &UserHandler{
-		Org: org,
+		conf:   conf,
+		logger: logger,
+		pg:     pg,
 	}
 }
 
@@ -27,7 +34,7 @@ func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) erro
 	ctx := req.Context()
 	user := UserFromContext(ctx)
 
-	fakeApp := &bunapp.App{PG: h.PG}
+	fakeApp := &bunapp.App{PG: h.pg}
 	projects, err := SelectProjects(ctx, fakeApp)
 	if err != nil {
 		return err
