@@ -6,20 +6,27 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserHandler struct {
-	*bunapp.App
+	conf   *bunconf.Config
+	logger *otelzap.Logger
+	pg     *bun.DB
 }
 
-func NewUserHandler(app *bunapp.App) *UserHandler {
+func NewUserHandler(conf *bunconf.Config, logger *otelzap.Logger, pg *bun.DB) *UserHandler {
 	return &UserHandler{
-		App: app,
+		conf:   conf,
+		logger: logger,
+		pg:     pg,
 	}
 }
 
@@ -27,7 +34,8 @@ func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) erro
 	ctx := req.Context()
 	user := UserFromContext(ctx)
 
-	projects, err := SelectProjects(ctx, h.App)
+	fakeApp := &bunapp.App{PG: h.pg}
+	projects, err := SelectProjects(ctx, fakeApp)
 	if err != nil {
 		return err
 	}
@@ -56,12 +64,12 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 		return httperror.BadRequest("credentials", "user with such credentials not found")
 	}
 
-	token, err := encodeUserToken(h.Config().SecretKey, user.Email, tokenTTL)
+	token, err := encodeUserToken(h.conf.SecretKey, user.Email, tokenTTL)
 	if err != nil {
 		return err
 	}
 
-	cookie := bunapp.NewCookie(h.App, req)
+	cookie := bunapp.NewCookie(req)
 	cookie.Name = tokenCookieName
 	cookie.Value = token
 	cookie.MaxAge = int(tokenTTL.Seconds())
@@ -71,7 +79,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 }
 
 func (h *UserHandler) userByEmail(email string) (*User, error) {
-	conf := h.Config()
+	conf := h.conf
 	for i := range conf.Auth.Users {
 		user := &conf.Auth.Users[i]
 		if user.Email == email {
@@ -82,7 +90,7 @@ func (h *UserHandler) userByEmail(email string) (*User, error) {
 }
 
 func (h *UserHandler) Logout(w http.ResponseWriter, req bunrouter.Request) error {
-	cookie := bunapp.NewCookie(h.App, req)
+	cookie := bunapp.NewCookie(req)
 	cookie.Name = tokenCookieName
 	cookie.Expires = time.Now().Add(-time.Hour)
 	http.SetCookie(w, cookie)

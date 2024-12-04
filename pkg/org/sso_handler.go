@@ -1,6 +1,7 @@
 package org
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
@@ -10,7 +11,9 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httputil"
@@ -19,8 +22,6 @@ import (
 )
 
 type SSOHandler struct {
-	*bunapp.App
-
 	methods []*SSOMethod
 }
 
@@ -30,8 +31,7 @@ type SSOMethod struct {
 	RedirectURL string `json:"url"`
 }
 
-func NewSSOHandler(app *bunapp.App, router *bunrouter.Group) *SSOHandler {
-	conf := app.Config()
+func NewSSOHandler(conf *bunconf.Config, logger *otelzap.Logger, pg *bun.DB, router *bunrouter.Group) *SSOHandler {
 	methods := make([]*SSOMethod, 0)
 
 	for _, oidcConf := range conf.Auth.OIDC {
@@ -40,9 +40,9 @@ func NewSSOHandler(app *bunapp.App, router *bunrouter.Group) *SSOHandler {
 				"/internal/v1/sso/%s/callback", oidcConf.ID))
 		}
 
-		handler, err := NewSSOMethodHandler(app, oidcConf)
+		handler, err := NewSSOMethodHandler(conf, logger, pg, oidcConf)
 		if err != nil {
-			app.Logger.Error("failed to initialize OIDC user provider", zap.Error(err))
+			logger.Error("failed to initialize OIDC user provider", zap.Error(err))
 			continue
 		}
 
@@ -57,7 +57,6 @@ func NewSSOHandler(app *bunapp.App, router *bunrouter.Group) *SSOHandler {
 	}
 
 	return &SSOHandler{
-		App:     app,
 		methods: methods,
 	}
 }
@@ -71,9 +70,11 @@ func (h *SSOHandler) ListMethods(w http.ResponseWriter, req bunrouter.Request) e
 //------------------------------------------------------------------------------
 
 type SSOMethodHandler struct {
-	*bunapp.App
+	conf   *bunconf.Config
+	logger *otelzap.Logger
+	pg     *bun.DB
 
-	conf     *bunconf.OIDCProvider
+	oidcConf *bunconf.OIDCProvider
 	provider *oidc.Provider
 	oauth    *oauth2.Config
 }
@@ -81,32 +82,37 @@ type SSOMethodHandler struct {
 const stateCookieName = "oidc-state"
 
 func NewSSOMethodHandler(
-	app *bunapp.App, conf *bunconf.OIDCProvider,
+	conf *bunconf.Config,
+	logger *otelzap.Logger,
+	pg *bun.DB,
+	oidcConf *bunconf.OIDCProvider,
 ) (*SSOMethodHandler, error) {
-	provider, err := oidc.NewProvider(app.Context(), conf.IssuerURL)
+	provider, err := oidc.NewProvider(context.Background(), oidcConf.IssuerURL)
 	if err != nil {
 		return nil, err
 	}
 
 	scopes := []string{oidc.ScopeOpenID}
 
-	if len(conf.Scopes) > 0 {
-		scopes = append(scopes, conf.Scopes...)
+	if len(oidcConf.Scopes) > 0 {
+		scopes = append(scopes, oidcConf.Scopes...)
 	} else {
 		scopes = append(scopes, "profile")
 	}
 
 	oauth := &oauth2.Config{
-		ClientID:     conf.ClientID,
-		ClientSecret: conf.ClientSecret,
-		RedirectURL:  conf.RedirectURL,
+		ClientID:     oidcConf.ClientID,
+		ClientSecret: oidcConf.ClientSecret,
+		RedirectURL:  oidcConf.RedirectURL,
 		Endpoint:     provider.Endpoint(),
 		Scopes:       scopes,
 	}
 
 	return &SSOMethodHandler{
-		App:      app,
 		conf:     conf,
+		logger:   logger,
+		pg:       pg,
+		oidcConf: oidcConf,
 		provider: provider,
 		oauth:    oauth,
 	}, nil
@@ -139,22 +145,23 @@ func (h *SSOMethodHandler) Callback(w http.ResponseWriter, req bunrouter.Request
 		return err
 	}
 
-	if err := GetOrCreateUser(ctx, h.App, user); err != nil {
+	fakeApp := &bunapp.App{PG: h.pg}
+	if err := GetOrCreateUser(ctx, fakeApp, user); err != nil {
 		return err
 	}
 
-	token, err := encodeUserToken(h.Config().SecretKey, user.Email, tokenTTL)
+	token, err := encodeUserToken(h.conf.SecretKey, user.Email, tokenTTL)
 	if err != nil {
 		return err
 	}
 
-	cookie := bunapp.NewCookie(h.App, req)
+	cookie := bunapp.NewCookie(req)
 	cookie.Name = tokenCookieName
 	cookie.Value = token
 	cookie.MaxAge = int(tokenTTL.Seconds())
 	http.SetCookie(w, cookie)
 
-	http.Redirect(w, req.Request, h.SiteURL("/"), http.StatusFound)
+	http.Redirect(w, req.Request, h.conf.SiteURL("/"), http.StatusFound)
 	return nil
 }
 
@@ -199,8 +206,8 @@ func (h *SSOMethodHandler) exchange(
 	}
 
 	emailKey := "email"
-	if len(h.conf.EmailClaim) > 0 {
-		emailKey = h.conf.EmailClaim
+	if len(h.oidcConf.EmailClaim) > 0 {
+		emailKey = h.oidcConf.EmailClaim
 	}
 
 	var email string
@@ -220,8 +227,8 @@ func (h *SSOMethodHandler) exchange(
 	}
 
 	var name string
-	if len(h.conf.NameClaim) > 0 {
-		name, _ = (*claims)[h.conf.NameClaim].(string)
+	if len(h.oidcConf.NameClaim) > 0 {
+		name, _ = (*claims)[h.oidcConf.NameClaim].(string)
 	}
 	if name == "" {
 		for _, key := range []string{"name", "preferred_username"} {

@@ -3,19 +3,18 @@ package org
 import (
 	"net/http"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 )
 
 type AchievementHandler struct {
-	*bunapp.App
+	pg *bun.DB
 }
 
-func NewAchievementHandler(app *bunapp.App) *AchievementHandler {
-	return &AchievementHandler{
-		App: app,
-	}
+func NewAchievementHandler(pg *bun.DB) *AchievementHandler {
+	return &AchievementHandler{pg: pg}
 }
 
 func (h *AchievementHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
@@ -23,7 +22,8 @@ func (h *AchievementHandler) List(w http.ResponseWriter, req bunrouter.Request) 
 	user := UserFromContext(ctx)
 	project := ProjectFromContext(ctx)
 
-	achievements, err := SelectAchievements(ctx, h.App, user.ID, project.ID)
+	fakeApp := &bunapp.App{PG: h.pg}
+	achievements, err := SelectAchievements(ctx, fakeApp, user.ID, project.ID)
 	if err != nil {
 		return err
 	}

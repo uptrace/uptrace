@@ -3,18 +3,25 @@ package org
 import (
 	"net/http"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httputil"
 )
 
 type ProjectHandler struct {
-	*bunapp.App
+	conf   *bunconf.Config
+	logger *otelzap.Logger
+	pg     *bun.DB
 }
 
-func NewProjectHandler(app *bunapp.App) *ProjectHandler {
+func NewProjectHandler(conf *bunconf.Config, logger *otelzap.Logger, pg *bun.DB) *ProjectHandler {
 	return &ProjectHandler{
-		App: app,
+		conf:   conf,
+		logger: logger,
+		pg:     pg,
 	}
 }
 
@@ -26,13 +33,14 @@ func (h *ProjectHandler) Show(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	project, err := SelectProject(ctx, h.App, projectID)
+	fakeApp := &bunapp.App{PG: h.pg}
+	project, err := SelectProject(ctx, fakeApp, projectID)
 	if err != nil {
 		return err
 	}
 
 	return httputil.JSON(w, bunrouter.H{
 		"project": project,
-		"dsn":     BuildDSN(h.Config(), project.Token),
+		"dsn":     BuildDSN(h.conf, project.Token),
 	})
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash/v2"
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -15,13 +16,11 @@ import (
 )
 
 type AnnotationHandler struct {
-	*bunapp.App
+	pg *bun.DB
 }
 
-func NewAnnotationHandler(app *bunapp.App) *AnnotationHandler {
-	return &AnnotationHandler{
-		App: app,
-	}
+func NewAnnotationHandler(pg *bun.DB) *AnnotationHandler {
+	return &AnnotationHandler{pg: pg}
 }
 
 func (h *AnnotationHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
@@ -34,7 +33,7 @@ func (h *AnnotationHandler) List(w http.ResponseWriter, req bunrouter.Request) e
 
 	anns := make([]*Annotation, 0)
 
-	count, err := h.PG.NewSelect().
+	count, err := h.pg.NewSelect().
 		Model(&anns).
 		Apply(f.WhereClause).
 		Apply(f.PGOrder).
@@ -105,7 +104,8 @@ func (h *AnnotationHandler) CreatePublic(w http.ResponseWriter, req bunrouter.Re
 		return err
 	}
 
-	project, err := SelectProjectByDSN(ctx, h.App, dsn)
+	fakeApp := &bunapp.App{PG: h.pg}
+	project, err := SelectProjectByDSN(ctx, fakeApp, dsn)
 	if err != nil {
 		return err
 	}
@@ -144,7 +144,7 @@ func (h *AnnotationHandler) createAnnotation(
 		return nil, err
 	}
 
-	if _, err := h.PG.NewInsert().
+	if _, err := h.pg.NewInsert().
 		Model(ann).
 		On("CONFLICT (project_id, hash) DO NOTHING").
 		Exec(req.Context()); err != nil {
@@ -166,7 +166,7 @@ func (h *AnnotationHandler) Update(w http.ResponseWriter, req bunrouter.Request)
 		return err
 	}
 
-	if err := h.PG.NewUpdate().
+	if err := h.pg.NewUpdate().
 		Model(ann).
 		Set("name = ?", ann.Name).
 		Set("description = ?", ann.Description).
@@ -187,7 +187,7 @@ func (h *AnnotationHandler) Delete(w http.ResponseWriter, req bunrouter.Request)
 	ctx := req.Context()
 	ann := AnnotationFromContext(ctx)
 
-	if _, err := h.PG.NewDelete().
+	if _, err := h.pg.NewDelete().
 		Model(ann).
 		Where("id = ?", ann.ID).
 		Exec(ctx); err != nil {
@@ -209,7 +209,7 @@ func (h *AnnotationHandler) AnnotationMiddleware(next bunrouter.HandlerFunc) bun
 
 		ann := new(Annotation)
 
-		if err := h.PG.NewSelect().
+		if err := h.pg.NewSelect().
 			Model(ann).
 			Where("id = ?", annID).
 			Where("project_id = ?", project.ID).
