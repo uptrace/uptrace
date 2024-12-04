@@ -9,13 +9,11 @@ import (
 )
 
 type AchievementHandler struct {
-	*bunapp.App
+	*Org
 }
 
-func NewAchievementHandler(app *bunapp.App) *AchievementHandler {
-	return &AchievementHandler{
-		App: app,
-	}
+func NewAchievementHandler(org *Org) *AchievementHandler {
+	return &AchievementHandler{Org: org}
 }
 
 func (h *AchievementHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
@@ -23,7 +21,8 @@ func (h *AchievementHandler) List(w http.ResponseWriter, req bunrouter.Request) 
 	user := UserFromContext(ctx)
 	project := ProjectFromContext(ctx)
 
-	achievements, err := SelectAchievements(ctx, h.App, user.ID, project.ID)
+	fakeApp := &bunapp.App{PG: h.PG}
+	achievements, err := SelectAchievements(ctx, fakeApp, user.ID, project.ID)
 	if err != nil {
 		return err
 	}

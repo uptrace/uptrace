@@ -5,20 +5,17 @@ import (
 	"time"
 
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"golang.org/x/exp/constraints"
 )
 
 type UsageHandler struct {
-	*bunapp.App
+	*Org
 }
 
-func NewUsageHandler(app *bunapp.App) *UsageHandler {
-	return &UsageHandler{
-		App: app,
-	}
+func NewUsageHandler(org *Org) *UsageHandler {
+	return &UsageHandler{Org: org}
 }
 
 type Usage struct {

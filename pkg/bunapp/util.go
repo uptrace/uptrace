@@ -35,7 +35,7 @@ func UnmarshalValues(req bunrouter.Request, filter any) error {
 	return urlstruct.Unmarshal(req.Context(), values, filter)
 }
 
-func NewCookie(app *App, req bunrouter.Request) *http.Cookie {
+func NewCookie(req bunrouter.Request) *http.Cookie {
 	cookie := &http.Cookie{
 		Path:     "/",
 		HttpOnly: true,

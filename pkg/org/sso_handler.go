@@ -1,6 +1,7 @@
 package org
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
@@ -19,8 +20,6 @@ import (
 )
 
 type SSOHandler struct {
-	*bunapp.App
-
 	methods []*SSOMethod
 }
 
@@ -30,26 +29,25 @@ type SSOMethod struct {
 	RedirectURL string `json:"url"`
 }
 
-func NewSSOHandler(app *bunapp.App, router *bunrouter.Group) *SSOHandler {
-	conf := app.Config()
+func NewSSOHandler(org *Org, router *bunrouter.Group) *SSOHandler {
 	methods := make([]*SSOMethod, 0)
 
-	for _, oidcConf := range conf.Auth.OIDC {
+	for _, oidcConf := range org.conf.Auth.OIDC {
 		if oidcConf.RedirectURL == "" {
-			oidcConf.RedirectURL = conf.SiteURL(fmt.Sprintf(
+			oidcConf.RedirectURL = org.conf.SiteURL(fmt.Sprintf(
 				"/internal/v1/sso/%s/callback", oidcConf.ID))
 		}
 
-		handler, err := NewSSOMethodHandler(app, oidcConf)
+		handler, err := NewSSOMethodHandler(org, oidcConf)
 		if err != nil {
-			app.Logger.Error("failed to initialize OIDC user provider", zap.Error(err))
+			org.logger.Error("failed to initialize OIDC user provider", zap.Error(err))
 			continue
 		}
 
 		methods = append(methods, &SSOMethod{
 			ID:          oidcConf.ID,
 			DisplayName: oidcConf.DisplayName,
-			RedirectURL: conf.SiteURL("/internal/v1/sso/%s/start", oidcConf.ID),
+			RedirectURL: org.conf.SiteURL("/internal/v1/sso/%s/start", oidcConf.ID),
 		})
 
 		router.GET(fmt.Sprintf("/%s/start", oidcConf.ID), handler.Start)
@@ -57,7 +55,6 @@ func NewSSOHandler(app *bunapp.App, router *bunrouter.Group) *SSOHandler {
 	}
 
 	return &SSOHandler{
-		App:     app,
 		methods: methods,
 	}
 }
@@ -71,8 +68,7 @@ func (h *SSOHandler) ListMethods(w http.ResponseWriter, req bunrouter.Request) e
 //------------------------------------------------------------------------------
 
 type SSOMethodHandler struct {
-	*bunapp.App
-
+	*Org
 	conf     *bunconf.OIDCProvider
 	provider *oidc.Provider
 	oauth    *oauth2.Config
@@ -80,10 +76,8 @@ type SSOMethodHandler struct {
 
 const stateCookieName = "oidc-state"
 
-func NewSSOMethodHandler(
-	app *bunapp.App, conf *bunconf.OIDCProvider,
-) (*SSOMethodHandler, error) {
-	provider, err := oidc.NewProvider(app.Context(), conf.IssuerURL)
+func NewSSOMethodHandler(org *Org, conf *bunconf.OIDCProvider) (*SSOMethodHandler, error) {
+	provider, err := oidc.NewProvider(context.Background(), conf.IssuerURL)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +99,7 @@ func NewSSOMethodHandler(
 	}
 
 	return &SSOMethodHandler{
-		App:      app,
+		Org:      org,
 		conf:     conf,
 		provider: provider,
 		oauth:    oauth,
@@ -139,22 +133,23 @@ func (h *SSOMethodHandler) Callback(w http.ResponseWriter, req bunrouter.Request
 		return err
 	}
 
-	if err := GetOrCreateUser(ctx, h.App, user); err != nil {
+	fakeApp := &bunapp.App{PG: h.PG}
+	if err := GetOrCreateUser(ctx, fakeApp, user); err != nil {
 		return err
 	}
 
-	token, err := encodeUserToken(h.Config().SecretKey, user.Email, tokenTTL)
+	token, err := encodeUserToken(h.Org.conf.SecretKey, user.Email, tokenTTL)
 	if err != nil {
 		return err
 	}
 
-	cookie := bunapp.NewCookie(h.App, req)
+	cookie := bunapp.NewCookie(req)
 	cookie.Name = tokenCookieName
 	cookie.Value = token
 	cookie.MaxAge = int(tokenTTL.Seconds())
 	http.SetCookie(w, cookie)
 
-	http.Redirect(w, req.Request, h.SiteURL("/"), http.StatusFound)
+	http.Redirect(w, req.Request, h.Org.conf.SiteURL("/"), http.StatusFound)
 	return nil
 }
 

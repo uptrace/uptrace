@@ -9,12 +9,12 @@ import (
 )
 
 type ProjectHandler struct {
-	*bunapp.App
+	*Org
 }
 
-func NewProjectHandler(app *bunapp.App) *ProjectHandler {
+func NewProjectHandler(org *Org) *ProjectHandler {
 	return &ProjectHandler{
-		App: app,
+		Org: org,
 	}
 }
 
@@ -26,13 +26,14 @@ func (h *ProjectHandler) Show(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	project, err := SelectProject(ctx, h.App, projectID)
+	fakeApp := &bunapp.App{PG: h.PG}
+	project, err := SelectProject(ctx, fakeApp, projectID)
 	if err != nil {
 		return err
 	}
 
 	return httputil.JSON(w, bunrouter.H{
 		"project": project,
-		"dsn":     BuildDSN(h.Config(), project.Token),
+		"dsn":     BuildDSN(h.conf, project.Token),
 	})
 }

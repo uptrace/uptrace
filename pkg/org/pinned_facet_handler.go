@@ -11,18 +11,19 @@ import (
 )
 
 type PinnedFacetHandler struct {
-	*bunapp.App
+	*Org
 }
 
-func NewPinnedFacetHandler(app *bunapp.App) *PinnedFacetHandler {
-	return &PinnedFacetHandler{app}
+func NewPinnedFacetHandler(org *Org) *PinnedFacetHandler {
+	return &PinnedFacetHandler{org}
 }
 
 func (h *PinnedFacetHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 	user := UserFromContext(ctx)
 
-	attrs, err := SelectPinnedFacets(ctx, h.App, user.ID)
+	fakeApp := &bunapp.App{PG: h.PG}
+	attrs, err := SelectPinnedFacets(ctx, fakeApp, user.ID)
 	if err != nil {
 		return err
 	}

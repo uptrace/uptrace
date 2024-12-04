@@ -1,12 +1,15 @@
 package org
 
 import (
-	"context"
-
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/vmihailenco/taskq/v4"
+	"go.uber.org/fx"
 )
 
 var (
@@ -26,16 +29,54 @@ const (
 	ModelSpanGroup TrackableModel = "SpanGroup"
 )
 
-func Init(ctx context.Context, app *bunapp.App) {
-	registerRoutes(ctx, app)
+type OrgParams struct {
+	fx.In
+
+	Conf   *bunconf.Config
+	Logger *otelzap.Logger
+	PG     *bun.DB
+	CH     *ch.DB
 }
 
-func registerRoutes(ctx context.Context, app *bunapp.App) {
-	middleware := NewMiddleware(app)
-	api := app.InternalAPIV1()
+type OrgRunParams struct {
+	fx.In
+
+	Org    *Org
+	Router *bunapp.Router
+}
+
+type Org struct {
+	conf   *bunconf.Config
+	logger *otelzap.Logger
+	PG     *bun.DB
+	CH     *ch.DB
+}
+
+func NewOrg(p OrgParams) *Org {
+	return &Org{
+		conf:   p.Conf,
+		logger: p.Logger,
+		PG:     p.PG,
+		CH:     p.CH,
+	}
+}
+
+func Init(params OrgRunParams) {
+	registerRoutes(params)
+}
+
+func registerRoutes(p OrgRunParams) {
+	fakeApp := &bunapp.App{
+		Conf:   p.Org.conf,
+		PG:     p.Org.PG,
+		CH:     p.Org.CH,
+		Logger: p.Org.logger,
+	}
+	middleware := NewMiddleware(fakeApp)
+	api := p.Router.InternalV1
 
 	api.WithGroup("/users", func(g *bunrouter.Group) {
-		userHandler := NewUserHandler(app)
+		userHandler := NewUserHandler(p.Org)
 
 		g.POST("/login", userHandler.Login)
 		g.POST("/logout", userHandler.Logout)
@@ -46,7 +87,7 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 	})
 
 	api.WithGroup("/sso", func(g *bunrouter.Group) {
-		ssoHandler := NewSSOHandler(app, g)
+		ssoHandler := NewSSOHandler(p.Org, g)
 
 		g.GET("/methods", ssoHandler.ListMethods)
 	})
@@ -54,7 +95,7 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 	api.
 		Use(middleware.User).
 		WithGroup("/projects/:project_id", func(g *bunrouter.Group) {
-			projectHandler := NewProjectHandler(app)
+			projectHandler := NewProjectHandler(p.Org)
 
 			g.GET("", projectHandler.Show)
 		})
@@ -62,7 +103,7 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 	api.
 		Use(middleware.User).
 		WithGroup("", func(g *bunrouter.Group) {
-			handler := NewUsageHandler(app)
+			handler := NewUsageHandler(p.Org)
 
 			g.GET("/data-usage", handler.Show)
 		})
@@ -70,7 +111,7 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 	api.
 		Use(middleware.User).
 		WithGroup("/pinned-facets", func(g *bunrouter.Group) {
-			handler := NewPinnedFacetHandler(app)
+			handler := NewPinnedFacetHandler(p.Org)
 
 			g.GET("", handler.List)
 			g.POST("", handler.Add)
@@ -79,13 +120,13 @@ func registerRoutes(ctx context.Context, app *bunapp.App) {
 
 	api.Use(middleware.UserAndProject).
 		WithGroup("/projects/:project_id", func(g *bunrouter.Group) {
-			handler := NewAchievementHandler(app)
+			handler := NewAchievementHandler(p.Org)
 
 			g.GET("/achievements", handler.List)
 		})
 
 	{
-		handler := NewAnnotationHandler(app)
+		handler := NewAnnotationHandler(p.Org)
 		api.POST("/annotations", handler.CreatePublic)
 
 		api.Use(middleware.UserAndProject).

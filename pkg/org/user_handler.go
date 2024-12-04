@@ -14,12 +14,12 @@ import (
 )
 
 type UserHandler struct {
-	*bunapp.App
+	*Org
 }
 
-func NewUserHandler(app *bunapp.App) *UserHandler {
+func NewUserHandler(org *Org) *UserHandler {
 	return &UserHandler{
-		App: app,
+		Org: org,
 	}
 }
 
@@ -27,7 +27,8 @@ func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) erro
 	ctx := req.Context()
 	user := UserFromContext(ctx)
 
-	projects, err := SelectProjects(ctx, h.App)
+	fakeApp := &bunapp.App{PG: h.PG}
+	projects, err := SelectProjects(ctx, fakeApp)
 	if err != nil {
 		return err
 	}
@@ -56,12 +57,12 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 		return httperror.BadRequest("credentials", "user with such credentials not found")
 	}
 
-	token, err := encodeUserToken(h.Config().SecretKey, user.Email, tokenTTL)
+	token, err := encodeUserToken(h.conf.SecretKey, user.Email, tokenTTL)
 	if err != nil {
 		return err
 	}
 
-	cookie := bunapp.NewCookie(h.App, req)
+	cookie := bunapp.NewCookie(req)
 	cookie.Name = tokenCookieName
 	cookie.Value = token
 	cookie.MaxAge = int(tokenTTL.Seconds())
@@ -71,7 +72,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 }
 
 func (h *UserHandler) userByEmail(email string) (*User, error) {
-	conf := h.Config()
+	conf := h.conf
 	for i := range conf.Auth.Users {
 		user := &conf.Auth.Users[i]
 		if user.Email == email {
@@ -82,7 +83,7 @@ func (h *UserHandler) userByEmail(email string) (*User, error) {
 }
 
 func (h *UserHandler) Logout(w http.ResponseWriter, req bunrouter.Request) error {
-	cookie := bunapp.NewCookie(h.App, req)
+	cookie := bunapp.NewCookie(req)
 	cookie.Name = tokenCookieName
 	cookie.Expires = time.Now().Add(-time.Hour)
 	http.SetCookie(w, cookie)

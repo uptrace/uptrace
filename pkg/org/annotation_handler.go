@@ -15,13 +15,11 @@ import (
 )
 
 type AnnotationHandler struct {
-	*bunapp.App
+	*Org
 }
 
-func NewAnnotationHandler(app *bunapp.App) *AnnotationHandler {
-	return &AnnotationHandler{
-		App: app,
-	}
+func NewAnnotationHandler(org *Org) *AnnotationHandler {
+	return &AnnotationHandler{Org: org}
 }
 
 func (h *AnnotationHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
@@ -105,7 +103,8 @@ func (h *AnnotationHandler) CreatePublic(w http.ResponseWriter, req bunrouter.Re
 		return err
 	}
 
-	project, err := SelectProjectByDSN(ctx, h.App, dsn)
+	fakeApp := &bunapp.App{PG: h.PG}
+	project, err := SelectProjectByDSN(ctx, fakeApp, dsn)
 	if err != nil {
 		return err
 	}

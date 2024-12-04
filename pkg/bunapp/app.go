@@ -57,7 +57,7 @@ type App struct {
 	stopped uint32
 
 	startTime time.Time
-	conf      *bunconf.Config
+	Conf      *bunconf.Config
 
 	onStop    appHooks
 	onStopped appHooks
@@ -83,7 +83,7 @@ type App struct {
 func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
 	app := &App{
 		startTime: time.Now(),
-		conf:      conf,
+		Conf:      conf,
 
 		HTTPClient: &http.Client{
 			Timeout: 5 * time.Second,
@@ -123,7 +123,7 @@ func (app *App) OnStopped(name string, fn HookFunc) {
 }
 
 func (app *App) Debug() bool {
-	return app.conf.Debug
+	return app.Conf.Debug
 }
 
 func (app *App) Context() context.Context {
@@ -139,7 +139,7 @@ func (app *App) WaitGroup() *sync.WaitGroup {
 }
 
 func (app *App) Config() *bunconf.Config {
-	return app.conf
+	return app.Conf
 }
 
 //------------------------------------------------------------------------------
@@ -155,8 +155,8 @@ func (app *App) initZap() {
 	}
 
 	level := zap.InfoLevel
-	if app.conf.Logging.Level != "" {
-		level, err = zapcore.ParseLevel(app.conf.Logging.Level)
+	if app.Conf.Logging.Level != "" {
+		level, err = zapcore.ParseLevel(app.Conf.Logging.Level)
 		if err != nil {
 			panic(err)
 		}
@@ -179,12 +179,21 @@ func (app *App) Zap(ctx context.Context) otelzap.LoggerWithCtx {
 	return app.Logger.Ctx(ctx)
 }
 
+func (app *App) RouterAPI() *Router {
+	return &Router{
+		Router:      app.router,
+		RouterGroup: app.routerGroup,
+		InternalV1:  app.internalAPIV1,
+		PublicV1:    app.publicAPIV1,
+	}
+}
+
 //------------------------------------------------------------------------------
 
 func (app *App) initRouter() {
 	app.router = app.newRouter()
-	if app.conf.Site.URL.Path != "/" {
-		app.routerGroup = app.router.NewGroup(app.conf.Site.URL.Path)
+	if app.Conf.Site.URL.Path != "/" {
+		app.routerGroup = app.router.NewGroup(app.Conf.Site.URL.Path)
 	} else {
 		app.routerGroup = app.router.NewGroup("")
 	}
@@ -291,8 +300,8 @@ func (app *App) initGRPC() error {
 		grpc.ReadBufferSize(512<<10),
 	)
 
-	if app.conf.Listen.GRPC.TLS != nil {
-		tlsConf, err := app.conf.Listen.GRPC.TLS.TLSConfig()
+	if app.Conf.Listen.GRPC.TLS != nil {
+		tlsConf, err := app.Conf.Listen.GRPC.TLS.TLSConfig()
 		if err != nil {
 			return err
 		}
@@ -311,7 +320,7 @@ func (app *App) GRPCServer() *grpc.Server {
 //------------------------------------------------------------------------------
 
 func (app *App) newPG() *bun.DB {
-	conf := app.conf.PG
+	conf := app.Conf.PG
 
 	var options []pgdriver.Option
 
@@ -358,7 +367,7 @@ func (app *App) newPG() *bun.DB {
 //------------------------------------------------------------------------------
 
 func (app *App) newCH() *ch.DB {
-	chConf := app.conf.CH
+	chConf := app.Conf.CH
 
 	settings := chConf.QuerySettings
 	if settings == nil {
@@ -388,8 +397,8 @@ func (app *App) newCH() *ch.DB {
 	if chConf.Database != "" {
 		opts = append(opts, ch.WithDatabase(chConf.Database))
 	}
-	if app.conf.CHSchema.Cluster != "" {
-		opts = append(opts, ch.WithCluster(app.conf.CHSchema.Cluster))
+	if app.Conf.CHSchema.Cluster != "" {
+		opts = append(opts, ch.WithCluster(app.Conf.CHSchema.Cluster))
 	}
 	if chConf.TLS != nil {
 		tlsConf, err := chConf.TLS.TLSConfig()
@@ -437,7 +446,7 @@ func (app *App) RegisterTask(name string, conf *taskq.TaskConfig) *taskq.Task {
 }
 
 func (app *App) SiteURL(path string, args ...any) string {
-	return app.conf.SiteURL(path, args...)
+	return app.Conf.SiteURL(path, args...)
 }
 
 func (app *App) WithGlobalLock(ctx context.Context, fn func() error) error {
@@ -479,7 +488,7 @@ func (s *localStorage) Exists(ctx context.Context, key string) bool {
 //------------------------------------------------------------------------------
 
 func (app *App) NewMailer() (*mail.Client, error) {
-	cfg := app.conf.SMTPMailer
+	cfg := app.Conf.SMTPMailer
 
 	if !cfg.Enabled {
 		return nil, fmt.Errorf("smtp_mailer is disabled in the config")
