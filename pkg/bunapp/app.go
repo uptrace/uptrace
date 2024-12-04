@@ -179,15 +179,6 @@ func (app *App) Zap(ctx context.Context) otelzap.LoggerWithCtx {
 	return app.Logger.Ctx(ctx)
 }
 
-func (app *App) RouterParams() *RouterParams {
-	return &RouterParams{
-		Router:           app.router,
-		RouterGroup:      app.routerGroup,
-		RouterInternalV1: app.internalAPIV1,
-		RouterPublicV1:   app.publicAPIV1,
-	}
-}
-
 //------------------------------------------------------------------------------
 
 func (app *App) initRouter() {
