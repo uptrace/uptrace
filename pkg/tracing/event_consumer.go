@@ -7,7 +7,6 @@ import (
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"go.uber.org/zap"
 )
 
@@ -34,31 +33,31 @@ type EventConsumer struct {
 	*BaseConsumer[EventIndex, EventData]
 }
 
-func NewEventConsumer(app *bunapp.App) *EventConsumer {
-	conf := app.Config()
-	batchSize := conf.Events.BatchSize
-	bufferSize := conf.Events.BufferSize
-	maxWorkers := conf.Events.MaxWorkers
-	transformer := &eventTransformer{logger: app.Logger}
+func NewEventConsumer(p *ModuleParams) *EventConsumer {
+	batchSize := p.Conf.Events.BatchSize
+	bufferSize := p.Conf.Events.BufferSize
+	maxWorkers := p.Conf.Events.MaxWorkers
+	transformer := &eventTransformer{logger: p.Logger}
 
-	p := &EventConsumer{
+	c := &EventConsumer{
 		BaseConsumer: NewBaseConsumer[EventIndex, EventData](
-			app,
-			app.Logger,
+			p.Logger,
+			p.PG,
+			p.CH,
+			p.MainQueue,
 			"uptrace.tracing.events_queue_length",
 			batchSize, bufferSize, maxWorkers,
 			transformer,
 		),
 	}
 
-	p.logger.Info("starting processing events...",
+	p.Logger.Info("starting processing events...",
 		zap.Int("batch_size", batchSize),
 		zap.Int("buffer_size", bufferSize),
 		zap.Int("max_workers", maxWorkers),
 	)
-	p.Run()
 
-	return p
+	return c
 }
 
 type eventTransformer struct {

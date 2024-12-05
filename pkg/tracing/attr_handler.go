@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
@@ -18,12 +20,16 @@ import (
 )
 
 type AttrHandler struct {
-	*bunapp.App
+	logger *otelzap.Logger
+	pg     *bun.DB
+	ch     *ch.DB
 }
 
-func NewAttrHandler(app *bunapp.App) *AttrHandler {
+func NewAttrHandler(logger *otelzap.Logger, pg *bun.DB, ch *ch.DB) *AttrHandler {
 	return &AttrHandler{
-		App: app,
+		logger: logger,
+		pg:     pg,
+		ch:     ch,
 	}
 }
 
@@ -51,13 +57,14 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 	}
 	disableColumnsAndGroups(f.QueryParts)
 
-	attrKeys, err := SelectAttrKeys(ctx, h.App, f)
+	fakeApp := &bunapp.App{CH: h.ch}
+	attrKeys, err := SelectAttrKeys(ctx, fakeApp, f)
 	if err != nil {
 		return err
 	}
 	attrKeys = append(attrKeys, spanKeys...)
 
-	pinnedAttrMap, err := org.SelectPinnedFacetMap(ctx, h.App, user.ID)
+	pinnedAttrMap, err := org.SelectPinnedFacetMap(ctx, fakeApp, user.ID)
 	if err != nil {
 		return err
 	}
@@ -105,7 +112,8 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	items, hasMore, err := SelectAttrValues(ctx, h.App, f, attrKey)
+	fakeApp := &bunapp.App{PG: h.pg}
+	items, hasMore, err := SelectAttrValues(ctx, fakeApp, f, attrKey)
 	if err != nil {
 		return err
 	}

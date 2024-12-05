@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/idgen"
@@ -76,12 +78,14 @@ type PublicSpanFilter struct {
 }
 
 type PublicHandler struct {
-	*bunapp.App
+	logger *otelzap.Logger
+	ch     *ch.DB
 }
 
-func NewPublicHandler(app *bunapp.App) *PublicHandler {
+func NewPublicHandler(logger *otelzap.Logger, ch *ch.DB) *PublicHandler {
 	return &PublicHandler{
-		App: app,
+		logger: logger,
+		ch:     ch,
 	}
 }
 
@@ -101,7 +105,7 @@ func (h *PublicHandler) Spans(w http.ResponseWriter, req bunrouter.Request) erro
 	limit := f.Pager.GetLimit()
 
 	var spansData []SpanData
-	q := h.CH.NewSelect().
+	q := h.ch.NewSelect().
 		Model(&spansData).
 		Where("project_id = ?", f.ProjectID).
 		Where("time >= ?", f.TimeGTE).
@@ -150,7 +154,7 @@ func (h *PublicHandler) Groups(w http.ResponseWriter, req bunrouter.Request) err
 	f.Pager.MaxLimit = 100000
 	limit := f.Pager.GetLimit()
 
-	selq, _ := BuildSpanIndexQuery(h.App.CH, f, 0)
+	selq, _ := BuildSpanIndexQuery(h.ch, f, 0)
 
 	items := make([]map[string]any, 0)
 	if err := selq.

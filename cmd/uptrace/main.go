@@ -225,12 +225,22 @@ func NewFxApp(c *cli.Context, opts ...fx.Option) (*fx.App, error) {
 			app.Conf,
 			app.Logger,
 			app.Router(),
-			fx.Annotate(app.RouterGroup(), fx.ResultTags(`name:"router_group"`)),
-			fx.Annotate(app.InternalAPIV1(), fx.ResultTags(`name:"router_internal_apiv1"`)),
-			fx.Annotate(app.PublicAPIV1(), fx.ResultTags(`name:"router_public_apiv1"`)),
+			fx.Annotate(
+				app.RouterGroup(),
+				fx.ResultTags(`name:"router_group"`),
+			),
+			fx.Annotate(
+				app.InternalAPIV1(),
+				fx.ResultTags(`name:"router_internal_apiv1"`),
+			),
+			fx.Annotate(
+				app.PublicAPIV1(),
+				fx.ResultTags(`name:"router_public_apiv1"`),
+			),
 			app.GRPCServer(),
 			app.PG,
 			app.CH,
+			app.MainQueue,
 		),
 		fx.Invoke(func(lc fx.Lifecycle, app *bunapp.App) {
 			lc.Append(fx.Hook{
@@ -272,7 +282,6 @@ func UptraceInit(app *bunapp.App, conf *bunconf.Config, logger *otelzap.Logger) 
 		return fmt.Errorf("loadInitialData failed: %w", err)
 	}
 
-	tracing.Init(ctx, app)
 	metrics.Init(ctx, app)
 	alerting.Init(ctx, app)
 	grafana.Init(ctx, app)
@@ -284,6 +293,10 @@ func UptraceInit(app *bunapp.App, conf *bunconf.Config, logger *otelzap.Logger) 
 	return nil
 }
 
+func TracingInit() {
+
+}
+
 var serveCommand = &cli.Command{
 	Name:  "serve",
 	Usage: "run HTTP and gRPC APIs",
@@ -291,6 +304,7 @@ var serveCommand = &cli.Command{
 		fxApp, err := NewFxApp(c,
 			fx.Invoke(UptraceInit),
 			fx.Invoke(org.Init),
+			fx.Invoke(tracing.Init),
 			fx.Invoke(fx.Annotate(
 				RunHTTPServer,
 				fx.ParamTags(``, ``, `name:"router_group"`, ``, ``),

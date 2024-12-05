@@ -15,7 +15,9 @@ import (
 
 	"github.com/segmentio/encoding/json"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/idgen"
@@ -25,15 +27,16 @@ import (
 )
 
 type SentryHandler struct {
-	*bunapp.App
-
-	sp *SpanConsumer
+	logger   *otelzap.Logger
+	pg       *bun.DB
+	consumer *SpanConsumer
 }
 
-func NewSentryHandler(app *bunapp.App, sp *SpanConsumer) *SentryHandler {
+func NewSentryHandler(logger *otelzap.Logger, pg *bun.DB, consumer *SpanConsumer) *SentryHandler {
 	return &SentryHandler{
-		App: app,
-		sp:  sp,
+		logger:   logger,
+		pg:       pg,
+		consumer: consumer,
 	}
 }
 
@@ -90,7 +93,7 @@ func (h *SentryHandler) processEvent(
 		span.Attrs[attrkey.LogMessage] = event.Message
 	}
 
-	h.sp.AddSpan(ctx, span)
+	h.consumer.AddSpan(ctx, span)
 
 	return nil
 }
@@ -361,7 +364,7 @@ func (h *SentryHandler) Envelope(w http.ResponseWriter, req bunrouter.Request) e
 		case "client_report":
 			// ignore
 		default:
-			h.Zap(ctx).Error("sentry: unsupported item type", zap.String("type", header.Type))
+			h.logger.Error("sentry: unsupported item type", zap.String("type", header.Type))
 		}
 	}
 
@@ -378,7 +381,7 @@ func (h *SentryHandler) processTransaction(
 
 	trace, ok := event.Contexts["trace"]
 	if !ok {
-		h.Zap(ctx).Error("sentry: trace context is missing (transaction dropped)")
+		h.logger.Error("sentry: trace context is missing (transaction dropped)")
 		return nil
 	}
 	delete(event.Contexts, "trace")
@@ -437,7 +440,7 @@ func (h *SentryHandler) processTransaction(
 			}
 		}
 
-		h.sp.AddSpan(ctx, dest)
+		h.consumer.AddSpan(ctx, dest)
 	}
 
 	span.ID = spanID
@@ -454,7 +457,7 @@ func (h *SentryHandler) processTransaction(
 		}
 	}
 
-	h.sp.AddSpan(ctx, span)
+	h.consumer.AddSpan(ctx, span)
 
 	return nil
 }
@@ -467,7 +470,8 @@ func (h *SentryHandler) projectFromRequest(req bunrouter.Request) (*org.Project,
 		return nil, err
 	}
 
-	return org.SelectProjectByToken(ctx, h.App, sentryKey)
+	fakeApp := &bunapp.App{PG: h.pg}
+	return org.SelectProjectByToken(ctx, fakeApp, sentryKey)
 }
 
 func (h *SentryHandler) sentryKey(req bunrouter.Request) (string, error) {

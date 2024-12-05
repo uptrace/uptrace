@@ -12,6 +12,7 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
@@ -23,12 +24,14 @@ import (
 )
 
 type SpanHandler struct {
-	*bunapp.App
+	logger *otelzap.Logger
+	ch     *ch.DB
 }
 
-func NewSpanHandler(app *bunapp.App) *SpanHandler {
+func NewSpanHandler(logger *otelzap.Logger, ch *ch.DB) *SpanHandler {
 	return &SpanHandler{
-		App: app,
+		logger: logger,
+		ch:     ch,
 	}
 }
 
@@ -52,7 +55,7 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 		f.OrderByMixin.Reset()
 	}
 
-	q, _ := BuildSpanIndexQuery(h.App.CH, f, f.TimeFilter.Duration())
+	q, _ := BuildSpanIndexQuery(h.ch, f, f.TimeFilter.Duration())
 	q = q.
 		ColumnExpr("project_id, trace_id, id").
 		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
@@ -77,11 +80,12 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 	spans := make([]*Span, len(ids))
 	var group syncutil.Group
 
+	fakeApp := &bunapp.App{CH: h.ch}
 	for i := range ids {
 		id := &ids[i]
 
 		group.Go(func() error {
-			span, err := SelectSpan(ctx, h.App, id.ProjectID, id.TraceID, id.ID)
+			span, err := SelectSpan(ctx, fakeApp, id.ProjectID, id.TraceID, id.ID)
 			if err != nil {
 				if err == sql.ErrNoRows {
 					return nil
@@ -121,7 +125,7 @@ func (h *SpanHandler) ListGroups(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	q, columnMap := BuildSpanIndexQuery(h.App.CH, f, f.TimeFilter.Duration())
+	q, columnMap := BuildSpanIndexQuery(h.ch, f, f.TimeFilter.Duration())
 
 	if _, ok := columnMap.Load(f.SortBy); !ok {
 		f.OrderByMixin.Reset()
@@ -188,7 +192,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 
 	m := make(map[string]interface{})
 
-	subq, _ := BuildSpanIndexQuery(h.App.CH, f, f.TimeFilter.Duration())
+	subq, _ := BuildSpanIndexQuery(h.ch, f, f.TimeFilter.Duration())
 	subq = subq.
 		ColumnExpr("sum(s.count) AS count").
 		ColumnExpr("sum(s.count) / ? AS rate", minutes).
@@ -213,7 +217,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		OrderExpr("time_ ASC").
 		Limit(10000)
 
-	if err := h.CH.NewSelect().
+	if err := h.ch.NewSelect().
 		ColumnExpr("groupArray(count) AS count").
 		ColumnExpr("groupArray(rate) AS rate").
 		ColumnExpr("groupArray(time_) AS time").
@@ -258,7 +262,7 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 
 	groupingInterval := f.GroupingInterval()
 
-	subq, _ := BuildSpanIndexQuery(h.App.CH, f, groupingInterval)
+	subq, _ := BuildSpanIndexQuery(h.ch, f, groupingInterval)
 	subq = subq.
 		ColumnExpr("toStartOfInterval(time, toIntervalMinute(?)) AS time_", groupingInterval.Minutes()).
 		GroupExpr("time_").
@@ -278,7 +282,7 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 
 	item := make(map[string]interface{})
 
-	if err := h.CH.NewSelect().
+	if err := h.ch.NewSelect().
 		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
 			for _, colName := range f.Column {
 				q = q.ColumnExpr("groupArray(?) AS ?", ch.Name(colName), ch.Name(colName))
@@ -309,7 +313,7 @@ func (h *SpanHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) e
 	}
 
 	groupingInterval := f.GroupingInterval()
-	subq, columnMap := BuildSpanIndexQuery(h.App.CH, f, groupingInterval)
+	subq, columnMap := BuildSpanIndexQuery(h.ch, f, groupingInterval)
 
 	var numAgg int
 	for _, colName := range columnNames(columnMap) {
@@ -330,7 +334,7 @@ func (h *SpanHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) e
 		Group("_time").
 		OrderExpr("`_time` ASC")
 
-	q := h.CH.NewSelect().
+	q := h.ch.NewSelect().
 		ColumnExpr("groupArray(`_time`) AS `_time`").
 		TableExpr("(?)", subq).
 		Limit(100)

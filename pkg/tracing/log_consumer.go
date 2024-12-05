@@ -7,7 +7,6 @@ import (
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"go.uber.org/zap"
 )
 
@@ -34,31 +33,31 @@ type LogConsumer struct {
 	*BaseConsumer[LogIndex, LogData]
 }
 
-func NewLogConsumer(app *bunapp.App) *LogConsumer {
-	conf := app.Config()
-	batchSize := conf.Logs.BatchSize
-	bufferSize := conf.Logs.BufferSize
-	maxWorkers := conf.Logs.MaxWorkers
-	transformer := &logTransformer{logger: app.Logger}
+func NewLogConsumer(p *ModuleParams) *LogConsumer {
+	batchSize := p.Conf.Logs.BatchSize
+	bufferSize := p.Conf.Logs.BufferSize
+	maxWorkers := p.Conf.Logs.MaxWorkers
+	transformer := &logTransformer{logger: p.Logger}
 
-	p := &LogConsumer{
+	c := &LogConsumer{
 		BaseConsumer: NewBaseConsumer[LogIndex, LogData](
-			app,
-			app.Logger,
+			p.Logger,
+			p.PG,
+			p.CH,
+			p.MainQueue,
 			"uptrace.tracing.logs_queue_length",
 			batchSize, bufferSize, maxWorkers,
 			transformer,
 		),
 	}
 
-	p.logger.Info("starting processing logs...",
+	p.Logger.Info("starting processing logs...",
 		zap.Int("batch_size", batchSize),
 		zap.Int("buffer_size", bufferSize),
 		zap.Int("max_workers", maxWorkers),
 	)
-	p.Run()
 
-	return p
+	return c
 }
 
 type logTransformer struct {

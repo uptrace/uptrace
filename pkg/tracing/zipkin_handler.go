@@ -11,7 +11,9 @@ import (
 
 	"github.com/segmentio/encoding/json"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/idgen"
@@ -19,15 +21,16 @@ import (
 )
 
 type ZipkinHandler struct {
-	*bunapp.App
-
-	sp *SpanConsumer
+	logger   *otelzap.Logger
+	pg       *bun.DB
+	consumer *SpanConsumer
 }
 
-func NewZipkinHandler(app *bunapp.App, sp *SpanConsumer) *ZipkinHandler {
+func NewZipkinHandler(logger *otelzap.Logger, pg *bun.DB, consumer *SpanConsumer) *ZipkinHandler {
 	return &ZipkinHandler{
-		App: app,
-		sp:  sp,
+		logger:   logger,
+		pg:       pg,
+		consumer: consumer,
 	}
 }
 
@@ -65,7 +68,8 @@ func (h *ZipkinHandler) PostSpans(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, h.App, dsn)
+	fakeApp := &bunapp.App{PG: h.pg}
+	project, err := org.SelectProjectByDSN(ctx, fakeApp, dsn)
 	if err != nil {
 		return err
 	}
@@ -87,7 +91,7 @@ func (h *ZipkinHandler) PostSpans(w http.ResponseWriter, req bunrouter.Request) 
 			return err
 		}
 
-		h.sp.AddSpan(ctx, span)
+		h.consumer.AddSpan(ctx, span)
 	}
 
 	w.WriteHeader(http.StatusAccepted)

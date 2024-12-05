@@ -146,7 +146,8 @@ func NewServiceGraphProcessor(app *bunapp.App) *ServiceGraphProcessor {
 		)
 	}
 
-	go p.insertEdgesLoop(app.Context())
+	// FIXME we need a proper way to cancel this goroutine
+	go p.insertEdgesLoop(context.Background())
 
 	return p
 }
