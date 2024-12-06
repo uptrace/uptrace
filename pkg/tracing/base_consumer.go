@@ -3,13 +3,17 @@ package tracing
 import (
 	"context"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/cespare/xxhash/v2"
+	"github.com/vmihailenco/taskq/v4"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"
 
+	"github.com/uptrace/bun"
+	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -32,12 +36,16 @@ type transformer[IT IndexRecord, DT DataRecord] interface {
 }
 
 type BaseConsumer[IT IndexRecord, DT DataRecord] struct {
-	*bunapp.App
-	logger *otelzap.Logger
-
+	logger      *otelzap.Logger
+	pg          *bun.DB
+	ch          *ch.DB
+	mainQueue   taskq.Queue
 	batchSize   int
-	queue       chan *Span
 	transformer transformer[IT, DT]
+
+	cancel      context.CancelFunc
+	wg          sync.WaitGroup
+	queue       chan *Span
 	workerPool  chan *consumerWorker[IT, DT]
 	workerCount int
 }
@@ -45,15 +53,18 @@ type BaseConsumer[IT IndexRecord, DT DataRecord] struct {
 const maxWorkers = 10
 
 func NewBaseConsumer[IT IndexRecord, DT DataRecord](
-	app *bunapp.App,
 	logger *otelzap.Logger,
+	pg *bun.DB,
+	ch *ch.DB,
+	mainQueue taskq.Queue,
 	signalName string,
 	batchSize, bufferSize, maxWorkers int,
 	transformer transformer[IT, DT],
 ) *BaseConsumer[IT, DT] {
 	c := &BaseConsumer[IT, DT]{
-		App:         app,
 		logger:      logger,
+		pg:          pg,
+		ch:          ch,
 		batchSize:   batchSize,
 		queue:       make(chan *Span, bufferSize),
 		transformer: transformer,
@@ -75,12 +86,23 @@ func NewBaseConsumer[IT IndexRecord, DT DataRecord](
 	return c
 }
 
-func (p *BaseConsumer[IT, DT]) Run() {
-	p.WaitGroup().Add(1)
+func (p *BaseConsumer[IT, DT]) Run(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	p.cancel = cancel
+
 	go func() {
-		defer p.WaitGroup().Done()
-		p.processLoop(p.Context())
+		p.processLoop(ctx)
 	}()
+}
+
+func (p *BaseConsumer[IT, DT]) Stop() {
+	if p.cancel == nil {
+		p.logger.Error("no cancel function registered for BaseConsumer")
+		return
+	}
+
+	p.cancel()
+	p.wg.Wait()
 }
 
 func (p *BaseConsumer[IT, DT]) AddSpan(ctx context.Context, span *Span) {
@@ -131,7 +153,7 @@ loop:
 				spans = spans[:0]
 			}
 			timer.Reset(timeout)
-		case <-p.Done():
+		case <-ctx.Done():
 			break loop
 		}
 	}
@@ -144,25 +166,30 @@ loop:
 func (p *BaseConsumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 	ctx, span := bunotel.Tracer.Start(ctx, "process-spans")
 
-	p.WaitGroup().Add(1)
-
 	var worker *consumerWorker[IT, DT]
 
 	select {
 	case worker = <-p.workerPool:
 	default:
 		if p.workerCount < maxWorkers {
-			worker = newConsumerWorker(p.App, p.logger, p.transformer, cap(p.queue))
 			p.workerCount++
+			worker = newConsumerWorker(
+				p.logger,
+				p.pg, p.ch,
+				p.transformer,
+				cap(p.queue),
+				p.spanErrorHandler,
+			)
 		}
 	}
 
 	spans := make([]*Span, len(src))
 	copy(spans, src)
 
+	p.wg.Add(1)
 	go func(worker *consumerWorker[IT, DT]) {
 		defer span.End()
-		defer p.WaitGroup().Done()
+		defer p.wg.Done()
 
 		if worker == nil {
 			worker = <-p.workerPool
@@ -172,32 +199,52 @@ func (p *BaseConsumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 	}(worker)
 }
 
+func (p *BaseConsumer[IT, DT]) spanErrorHandler(ctx context.Context, span *Span) {
+	job := org.CreateErrorAlertTask.NewJob(
+		span.ProjectID,
+		span.GroupID,
+		span.TraceID,
+		span.ID,
+	)
+	job.OnceInPeriod(15*time.Minute, span.GroupID)
+	job.SetDelay(time.Minute)
+
+	if err := p.mainQueue.AddJob(ctx, job); err != nil {
+		p.logger.Error("MainQueue.Add failed", zap.Error(err))
+	}
+}
+
 type consumerWorker[IT IndexRecord, DT DataRecord] struct {
-	*bunapp.App
-	logger *otelzap.Logger
+	logger           *otelzap.Logger
+	pg               *bun.DB
+	ch               *ch.DB
+	transformer      transformer[IT, DT]
+	spanErrorHandler func(context.Context, *Span)
 
-	transformer transformer[IT, DT]
-	projects    map[uint32]*org.Project
-	digest      *xxhash.Digest
-
+	projects     map[uint32]*org.Project
+	digest       *xxhash.Digest
 	indexedSpans []IT
 	dataSpans    []DT
 }
 
 func newConsumerWorker[IT IndexRecord, DT DataRecord](
-	app *bunapp.App,
 	logger *otelzap.Logger,
+	pg *bun.DB,
+	ch *ch.DB,
 	transformer transformer[IT, DT],
 	bufSize int,
+	spanErrorHandler func(context.Context, *Span),
 ) *consumerWorker[IT, DT] {
 	return &consumerWorker[IT, DT]{
-		App:          app,
-		logger:       logger,
-		transformer:  transformer,
-		projects:     make(map[uint32]*org.Project),
-		digest:       xxhash.New(),
-		indexedSpans: make([]IT, 0, bufSize),
-		dataSpans:    make([]DT, 0, bufSize),
+		logger:           logger,
+		pg:               pg,
+		ch:               ch,
+		transformer:      transformer,
+		spanErrorHandler: spanErrorHandler,
+		projects:         make(map[uint32]*org.Project),
+		digest:           xxhash.New(),
+		indexedSpans:     make([]IT, 0, bufSize),
+		dataSpans:        make([]DT, 0, bufSize),
 	}
 }
 
@@ -246,9 +293,6 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 			continue
 		}
 
-		var errorCount int
-		var logCount int
-
 		for _, event := range span.Events {
 			eventSpan := &Span{
 				Attrs: NewAttrMap(),
@@ -268,15 +312,9 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 			_ = p.appendIndexed(eventSpan)
 			_ = p.appendData(eventSpan)
 
-			if isErrorSystem(eventSpan.System) {
-				errorCount++
-				if !seenErrors[eventSpan.GroupID] {
-					seenErrors[eventSpan.GroupID] = true
-					scheduleCreateErrorAlert(ctx, p.App, eventSpan)
-				}
-			}
-			if isLogSystem(eventSpan.System) {
-				logCount++
+			if isErrorSystem(eventSpan.System) && !seenErrors[eventSpan.GroupID] {
+				seenErrors[eventSpan.GroupID] = true
+				p.spanErrorHandler(ctx, eventSpan)
 			}
 		}
 
@@ -285,14 +323,14 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 		_ = p.appendData(span)
 	}
 
-	query := p.CH.NewInsert().Model(&p.dataSpans)
+	query := p.ch.NewInsert().Model(&p.dataSpans)
 	if _, err := query.Exec(ctx); err != nil {
 		p.logger.Error("ch.Insert failed",
 			zap.Error(err),
 			zap.String("table", query.GetTableName()))
 	}
 
-	query = p.CH.NewInsert().Model(&p.indexedSpans)
+	query = p.ch.NewInsert().Model(&p.indexedSpans)
 	if _, err := query.Exec(ctx); err != nil {
 		p.logger.Error("ch.Insert failed",
 			zap.Error(err),
@@ -305,9 +343,10 @@ func (p *consumerWorker[IT, DT]) project(ctx context.Context, projectID uint32) 
 		return project, true
 	}
 
-	project, err := org.SelectProject(ctx, p.App, projectID)
+	fakeApp := &bunapp.App{PG: p.pg}
+	project, err := org.SelectProject(ctx, fakeApp, projectID)
 	if err != nil {
-		p.Zap(ctx).Error("SelectProject failed", zap.Error(err))
+		p.logger.Error("SelectProject failed", zap.Error(err))
 		return nil, false
 	}
 
@@ -329,19 +368,4 @@ func (p *consumerWorker[IT, DT]) forceSpanName(ctx context.Context, span *Span) 
 		return slices.Contains(project.ForceSpanName, libName)
 	}
 	return false
-}
-
-func scheduleCreateErrorAlert(ctx context.Context, app *bunapp.App, span *Span) {
-	job := org.CreateErrorAlertTask.NewJob(
-		span.ProjectID,
-		span.GroupID,
-		span.TraceID,
-		span.ID,
-	)
-	job.OnceInPeriod(15*time.Minute, span.GroupID)
-	job.SetDelay(time.Minute)
-
-	if err := app.MainQueue.AddJob(ctx, job); err != nil {
-		app.Zap(ctx).Error("MainQueue.Add failed", zap.Error(err))
-	}
 }

@@ -1,15 +1,20 @@
 package tracing
 
 import (
-	"context"
-
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/vmihailenco/taskq/v4"
 	"go.opentelemetry.io/otel/metric"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	collectortracepb "go.opentelemetry.io/proto/otlp/collector/trace/v1"
+	"go.uber.org/fx"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -23,55 +28,74 @@ var spanCounter, _ = bunotel.Meter.Int64Counter(
 	metric.WithDescription("Number of processed spans"),
 )
 
-func Init(ctx context.Context, app *bunapp.App) {
-	sp := NewSpanConsumer(app)
-	lc := NewLogConsumer(app)
+type ModuleParams struct {
+	fx.In
+	bunapp.RouterParams
 
-	initOTLP(ctx, app, sp)
-	initRoutes(ctx, app, sp, lc)
+	Conf      *bunconf.Config
+	Logger    *otelzap.Logger
+	GRPC      *grpc.Server
+	PG        *bun.DB
+	CH        *ch.DB
+	MainQueue taskq.Queue
 }
 
-func initOTLP(ctx context.Context, app *bunapp.App, sp *SpanConsumer) {
-	traceService := NewTraceServiceServer(app, sp)
-	collectortracepb.RegisterTraceServiceServer(app.GRPCServer(), traceService)
+func Init(p *ModuleParams) {
+	sc := NewSpanConsumer(p)
+	lc := NewLogConsumer(p)
 
-	logsService := NewLogsServiceServer(app, sp)
-	collectorlogspb.RegisterLogsServiceServer(app.GRPCServer(), logsService)
-
-	router := app.Router()
-	router.POST("/v1/traces", traceService.ExportHTTP)
-	router.POST("/v1/logs", logsService.ExportHTTP)
+	initOTLP(p, sc)
+	initRoutes(p, sc, lc)
 }
 
-func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer, lc *LogConsumer) {
-	router := app.Router()
-	middleware := org.NewMiddleware(app)
-	internalV1 := app.InternalAPIV1()
-	publicV1 := app.PublicAPIV1()
+func initOTLP(p *ModuleParams, sp *SpanConsumer) {
+	fakeApp := &bunapp.App{
+		PG: p.PG,
+	}
+	traceService := NewTraceServiceServer(fakeApp, sp)
+	collectortracepb.RegisterTraceServiceServer(p.GRPC, traceService)
+
+	logsService := NewLogsServiceServer(fakeApp, sp)
+	collectorlogspb.RegisterLogsServiceServer(p.GRPC, logsService)
+
+	p.Router.POST("/v1/traces", traceService.ExportHTTP)
+	p.Router.POST("/v1/logs", logsService.ExportHTTP)
+}
+
+func initRoutes(p *ModuleParams, spanConsumer *SpanConsumer, logConsumer *LogConsumer) {
+	fakeApp := &bunapp.App{
+		Conf:   p.Conf,
+		Logger: p.Logger,
+		PG:     p.PG,
+		CH:     p.CH,
+	}
+	middleware := org.NewMiddleware(fakeApp)
+	internalV1 := p.RouterInternalV1
+	publicV1 := p.RouterPublicV1
 
 	// https://zipkin.io/zipkin-api/#/default/post_spans
-	router.WithGroup("/api/v2", func(g *bunrouter.Group) {
-		zipkinHandler := NewZipkinHandler(app, sp)
+	p.Router.WithGroup("/api/v2", func(g *bunrouter.Group) {
+		zipkinHandler := NewZipkinHandler(p.Logger, p.PG, spanConsumer)
 
 		g.POST("/spans", zipkinHandler.PostSpans)
 	})
 
-	router.WithGroup("/api", func(g *bunrouter.Group) {
-		sentryHandler := NewSentryHandler(app, sp)
+	p.Router.WithGroup("/api", func(g *bunrouter.Group) {
+		sentryHandler := NewSentryHandler(p.Logger, p.PG, spanConsumer)
 
 		g.POST("/:project_id/store/", sentryHandler.Store)
 		g.POST("/:project_id/envelope/", sentryHandler.Envelope)
 	})
 
-	router.WithGroup("/api/v1", func(g *bunrouter.Group) {
-		vectorHandler := NewVectorHandler(app, lc)
+	p.Router.WithGroup("/api/v1", func(g *bunrouter.Group) {
+		vectorHandler := NewVectorHandler(p.Logger, p.PG, logConsumer)
 
 		g.POST("/vector-logs", vectorHandler.Create)
 		g.POST("/vector/logs", vectorHandler.Create)
 	})
 
-	router.WithGroup("/api/v1/cloudwatch", func(g *bunrouter.Group) {
-		handler := NewKinesisHandler(app, sp)
+	p.Router.WithGroup("/api/v1/cloudwatch", func(g *bunrouter.Group) {
+		handler := NewKinesisHandler(p.Logger, p.PG, spanConsumer)
 
 		g.POST("/logs", handler.Logs)
 	})
@@ -79,7 +103,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer, lc *LogC
 	internalV1.
 		Use(middleware.UserAndProject).
 		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
-			sysHandler := NewSystemHandler(app)
+			sysHandler := NewSystemHandler(p.Logger, p.CH)
 
 			g.GET("/systems", sysHandler.ListSystems)
 		})
@@ -87,7 +111,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer, lc *LogC
 	internalV1.
 		Use(middleware.UserAndProject).
 		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
-			attrHandler := NewAttrHandler(app)
+			attrHandler := NewAttrHandler(p.Logger, p.PG, p.CH)
 
 			g.GET("/attributes", attrHandler.AttrKeys)
 			g.GET("/attributes/:attr", attrHandler.AttrValues)
@@ -95,7 +119,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer, lc *LogC
 
 	internalV1.Use(middleware.UserAndProject).
 		WithGroup("/tracing/:project_id/saved-views", func(g *bunrouter.Group) {
-			viewHandler := NewSavedViewHandler(app)
+			viewHandler := NewSavedViewHandler(p.Logger, p.PG)
 
 			g.GET("", viewHandler.List)
 
@@ -108,7 +132,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer, lc *LogC
 
 	internalV1.Use(middleware.UserAndProject).
 		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
-			spanHandler := NewSpanHandler(app)
+			spanHandler := NewSpanHandler(p.Logger, p.CH)
 
 			g.GET("/groups", spanHandler.ListGroups)
 			g.GET("/spans", spanHandler.ListSpans)
@@ -119,14 +143,14 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer, lc *LogC
 
 	internalV1.Use(middleware.UserAndProject).
 		WithGroup("/tracing/:project_id/groups/:group_id", func(g *bunrouter.Group) {
-			groupHandler := NewGroupHandler(app)
+			groupHandler := NewGroupHandler(p.Logger, p.CH)
 
 			g.GET("", groupHandler.ShowSummary)
 		})
 
 	internalV1.Use(middleware.User).
 		WithGroup("", func(g *bunrouter.Group) {
-			traceHandler := NewTraceHandler(app)
+			traceHandler := NewTraceHandler(p.Logger, p.CH)
 
 			g.GET("/traces/search", traceHandler.FindTrace)
 
@@ -139,7 +163,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer, lc *LogC
 	internalV1.WithGroup("/tracing/:project_id/service-graph", func(g *bunrouter.Group) {
 		g = g.Use(middleware.UserAndProject)
 
-		handler := NewServiceGraphHandler(app)
+		handler := NewServiceGraphHandler(p.Logger, p.CH)
 
 		g.GET("", handler.List)
 	})
@@ -147,7 +171,7 @@ func initRoutes(ctx context.Context, app *bunapp.App, sp *SpanConsumer, lc *LogC
 	publicV1.
 		Use(middleware.UserAndProject).
 		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
-			handler := NewPublicHandler(app)
+			handler := NewPublicHandler(p.Logger, p.CH)
 
 			g.GET("/spans", handler.Spans)
 			g.GET("/groups", handler.Groups)

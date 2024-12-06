@@ -8,19 +8,22 @@ import (
 	"time"
 
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 )
 
 type GroupHandler struct {
-	*bunapp.App
+	logger *otelzap.Logger
+	ch     *ch.DB
 }
 
-func NewGroupHandler(app *bunapp.App) *GroupHandler {
+func NewGroupHandler(logger *otelzap.Logger, ch *ch.DB) *GroupHandler {
 	return &GroupHandler{
-		App: app,
+		logger: logger,
+		ch:     ch,
 	}
 }
 
@@ -47,7 +50,7 @@ func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request)
 		)
 	}
 	f.QueryParts = tql.ParseQuery(strings.Join(parts, " | "))
-	q, _ := BuildSpanIndexQuery(h.App.CH, f, f.TimeFilter.Duration())
+	q, _ := BuildSpanIndexQuery(h.ch, f, f.TimeFilter.Duration())
 
 	summary := make(map[string]any)
 	if err := q.Apply(f.CHOrder).Scan(ctx, &summary); err != nil {
@@ -55,7 +58,7 @@ func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request)
 	}
 
 	var firstSeenAt, lastSeenAt time.Time
-	if err := NewSpanIndexQuery(h.App.CH).
+	if err := NewSpanIndexQuery(h.ch).
 		ColumnExpr("min(time) as first_seen_at").
 		ColumnExpr("max(time) as last_seen_at").
 		Where("project_id = ?", f.ProjectID).

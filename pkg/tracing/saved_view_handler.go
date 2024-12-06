@@ -7,7 +7,7 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 )
@@ -19,11 +19,15 @@ type SavedViewDetails struct {
 }
 
 type SavedViewHandler struct {
-	*bunapp.App
+	logger *otelzap.Logger
+	pg     *bun.DB
 }
 
-func NewSavedViewHandler(app *bunapp.App) *SavedViewHandler {
-	return &SavedViewHandler{app}
+func NewSavedViewHandler(logger *otelzap.Logger, pg *bun.DB) *SavedViewHandler {
+	return &SavedViewHandler{
+		logger: logger,
+		pg:     pg,
+	}
 }
 
 func (h *SavedViewHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
@@ -31,7 +35,7 @@ func (h *SavedViewHandler) List(w http.ResponseWriter, req bunrouter.Request) er
 	project := org.ProjectFromContext(ctx)
 
 	views := make([]*SavedViewDetails, 0)
-	if err := h.PG.NewSelect().
+	if err := h.pg.NewSelect().
 		Model(&views).
 		Where("project_id = ?", project.ID).
 		OrderExpr("pinned DESC, created_at DESC").
@@ -58,7 +62,7 @@ func (h *SavedViewHandler) List(w http.ResponseWriter, req bunrouter.Request) er
 	}
 
 	var users []*org.User
-	if err := h.PG.NewSelect().
+	if err := h.pg.NewSelect().
 		Model(&users).
 		Where("id IN (?)", bun.In(userIDs)).
 		Scan(ctx); err != nil {
@@ -108,7 +112,7 @@ func (h *SavedViewHandler) Create(w http.ResponseWriter, req bunrouter.Request) 
 		Params: in.Params,
 		Query:  in.Query,
 	}
-	if _, err := h.PG.NewInsert().
+	if _, err := h.pg.NewInsert().
 		Model(view).
 		Exec(ctx); err != nil {
 		return err
@@ -127,7 +131,7 @@ func (h *SavedViewHandler) Delete(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	if _, err := h.PG.NewDelete().
+	if _, err := h.pg.NewDelete().
 		Model(((*SavedView)(nil))).
 		Where("id = ?", viewID).
 		Exec(ctx); err != nil {
@@ -139,7 +143,7 @@ func (h *SavedViewHandler) Delete(w http.ResponseWriter, req bunrouter.Request) 
 
 func (h *SavedViewHandler) selectView(ctx context.Context, viewID uint64) (*SavedView, error) {
 	view := new(SavedView)
-	if err := h.PG.NewSelect().
+	if err := h.pg.NewSelect().
 		Model(view).
 		Where("id = ?", viewID).
 		Scan(ctx); err != nil {
@@ -166,7 +170,7 @@ func (h *SavedViewHandler) updateViewPinned(
 		return err
 	}
 
-	if _, err := h.PG.NewUpdate().
+	if _, err := h.pg.NewUpdate().
 		Model((*SavedView)(nil)).
 		Where("id = ?", id).
 		Set("pinned = ?", pinned).

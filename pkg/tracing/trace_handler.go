@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
@@ -15,12 +17,14 @@ import (
 )
 
 type TraceHandler struct {
-	*bunapp.App
+	logger *otelzap.Logger
+	ch     *ch.DB
 }
 
-func NewTraceHandler(app *bunapp.App) *TraceHandler {
+func NewTraceHandler(logger *otelzap.Logger, ch *ch.DB) *TraceHandler {
 	return &TraceHandler{
-		App: app,
+		logger: logger,
+		ch:     ch,
 	}
 }
 
@@ -34,7 +38,7 @@ func (h *TraceHandler) FindTrace(w http.ResponseWriter, req bunrouter.Request) e
 
 	var projectID uint32
 	var spanID idgen.SpanID
-	if err := h.CH.NewSelect().
+	if err := h.ch.NewSelect().
 		Model((*SpanData)(nil)).
 		ColumnExpr("project_id, id").
 		Where("trace_id = ?", traceID).
@@ -62,7 +66,8 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	spans, hasMore, err := SelectTraceSpans(ctx, h.App, traceID)
+	fakeApp := &bunapp.App{CH: h.ch}
+	spans, hasMore, err := SelectTraceSpans(ctx, fakeApp, traceID)
 	if err != nil {
 		return err
 	}
@@ -172,7 +177,8 @@ func (h *TraceHandler) ShowSpan(w http.ResponseWriter, req bunrouter.Request) er
 		return err
 	}
 
-	span, err := SelectSpan(ctx, h.App, project.ID, traceID, spanID)
+	fakeApp := &bunapp.App{CH: h.ch}
+	span, err := SelectSpan(ctx, fakeApp, project.ID, traceID, spanID)
 	if err != nil {
 		return err
 	}

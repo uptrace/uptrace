@@ -6,17 +6,20 @@ import (
 	"time"
 
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/httputil"
 )
 
 type SystemHandler struct {
-	*bunapp.App
+	logger *otelzap.Logger
+	ch     *ch.DB
 }
 
-func NewSystemHandler(app *bunapp.App) *SystemHandler {
+func NewSystemHandler(logger *otelzap.Logger, ch *ch.DB) *SystemHandler {
 	return &SystemHandler{
-		App: app,
+		logger: logger,
+		ch:     ch,
 	}
 }
 
@@ -56,7 +59,7 @@ func (h *SystemHandler) selectSystems(
 ) ([]map[string]any, error) {
 	systems := make([]map[string]any, 0)
 
-	if err := NewSpanIndexQuery(h.App.CH).
+	if err := NewSpanIndexQuery(h.ch).
 		ColumnExpr("s.project_id AS projectId").
 		ColumnExpr("s.system").
 		ColumnExpr("sum(s.count) AS count").
@@ -81,7 +84,7 @@ func (h *SystemHandler) selectDataHint(
 ) (map[string]time.Time, error) {
 	var before, after time.Time
 
-	if err := NewSpanIndexQuery(h.App.CH).
+	if err := NewSpanIndexQuery(h.ch).
 		ColumnExpr("max(time)").
 		Where("s.project_id = ?", f.ProjectID).
 		Where("s.time < ?", f.TimeGTE).
@@ -89,7 +92,7 @@ func (h *SystemHandler) selectDataHint(
 		return nil, err
 	}
 
-	if err := NewSpanIndexQuery(h.App.CH).
+	if err := NewSpanIndexQuery(h.ch).
 		ColumnExpr("min(time)").
 		Where("s.project_id = ?", f.ProjectID).
 		Where("s.time >= ?", f.TimeLT).

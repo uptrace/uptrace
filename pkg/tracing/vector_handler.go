@@ -9,7 +9,9 @@ import (
 
 	"github.com/segmentio/encoding/json"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
@@ -22,15 +24,16 @@ import (
 const vectorSDK = "vector"
 
 type VectorHandler struct {
-	*bunapp.App
-
+	logger   *otelzap.Logger
+	pg       *bun.DB
 	consumer *LogConsumer
 }
 
-func NewVectorHandler(app *bunapp.App, c *LogConsumer) *VectorHandler {
+func NewVectorHandler(logger *otelzap.Logger, pg *bun.DB, consumer *LogConsumer) *VectorHandler {
 	return &VectorHandler{
-		App:      app,
-		consumer: c,
+		logger:   logger,
+		pg:       pg,
+		consumer: consumer,
 	}
 }
 
@@ -42,7 +45,8 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 		return err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, h.App, dsn)
+	fakeApp := &bunapp.App{PG: h.pg}
+	project, err := org.SelectProjectByDSN(ctx, fakeApp, dsn)
 	if err != nil {
 		return err
 	}
