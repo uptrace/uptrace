@@ -12,17 +12,22 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/fx"
+	"go.uber.org/zap"
+	"go4.org/syncutil"
+	"gopkg.in/yaml.v3"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/madalarm"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
-	"go.uber.org/zap"
-	"go4.org/syncutil"
-	"gopkg.in/yaml.v3"
 )
 
 type MonitorFilter struct {
@@ -130,13 +135,30 @@ func (f *MonitorFilter) extractParamsFromQuery() error {
 
 //------------------------------------------------------------------------------
 
-type MonitorHandler struct {
-	*bunapp.App
+type MonitorHandlerParams struct {
+	fx.In
+	App    *bunapp.App
+	Logger *otelzap.Logger
+	Conf   *bunconf.Config
+	PG     *bun.DB
+	CH     *ch.DB
 }
 
-func NewMonitorHandler(app *bunapp.App) *MonitorHandler {
+type MonitorHandler struct {
+	app    *bunapp.App
+	logger *otelzap.Logger
+	conf   *bunconf.Config
+	pg     *bun.DB
+	ch     *ch.DB
+}
+
+func NewMonitorHandler(p MonitorHandlerParams) *MonitorHandler {
 	return &MonitorHandler{
-		App: app,
+		app:    p.App,
+		logger: p.Logger,
+		conf:   p.Conf,
+		pg:     p.PG,
+		ch:     p.CH,
 	}
 }
 
@@ -149,14 +171,14 @@ type MonitorOut struct {
 func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := decodeMonitorFilter(h.App, req)
+	f, err := decodeMonitorFilter(h.app, req)
 	if err != nil {
 		return err
 	}
 
 	var monitors []*MonitorOut
 
-	count, err := h.PG.NewSelect().
+	count, err := h.pg.NewSelect().
 		Model(&monitors).
 		Apply(f.whereClause).
 		Apply(f.PGOrder).
@@ -173,7 +195,7 @@ func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 	}
 
 	if err := h.countMonitorAlerts(ctx, monitors); err != nil {
-		h.Zap(ctx).Error("countMonitorAlerts failed", zap.Error(err))
+		h.logger.Error("countMonitorAlerts failed", zap.Error(err))
 	}
 
 	return httputil.JSON(w, bunrouter.H{
@@ -191,7 +213,7 @@ func (h *MonitorHandler) countMonitorAlerts(
 	for _, monitor := range monitors {
 		monitor := monitor
 		group.Go(func() error {
-			if err := h.PG.NewSelect().
+			if err := h.pg.NewSelect().
 				ColumnExpr("count(*) filter (where event.status = ?)", org.AlertStatusOpen).
 				ColumnExpr("count(*) filter (where event.status = ?)", org.AlertStatusClosed).
 				Model((*org.BaseAlert)(nil)).
@@ -285,7 +307,7 @@ func (h *MonitorHandler) ShowYAML(w http.ResponseWriter, req bunrouter.Request) 
 
 func (h *MonitorHandler) selectChannelIDs(ctx context.Context, monitorID uint64) ([]uint64, error) {
 	ids := make([]uint64, 0)
-	if err := h.PG.NewSelect().
+	if err := h.pg.NewSelect().
 		ColumnExpr("channel_id").
 		Model((*org.MonitorChannel)(nil)).
 		Where("monitor_id = ?", monitorID).
@@ -350,11 +372,11 @@ func (h *MonitorHandler) CreateMetricMonitor(w http.ResponseWriter, req bunroute
 	monitor.State = org.MonitorActive
 	monitor.Type = org.MonitorMetric
 
-	if err := in.Validate(ctx, h.App, monitor); err != nil {
+	if err := in.Validate(ctx, h.app, monitor); err != nil {
 		return err
 	}
 
-	if _, err := h.PG.NewInsert().
+	if _, err := h.pg.NewInsert().
 		Model(monitor).
 		Exec(ctx); err != nil {
 		return err
@@ -364,7 +386,7 @@ func (h *MonitorHandler) CreateMetricMonitor(w http.ResponseWriter, req bunroute
 		return err
 	}
 
-	org.CreateAchievementOnce(ctx, h.App, &org.Achievement{
+	org.CreateAchievementOnce(ctx, h.app, &org.Achievement{
 		ProjectID: project.ID,
 		Name:      org.AchievCreateMetricMonitor,
 	})
@@ -386,11 +408,11 @@ func (h *MonitorHandler) UpdateMetricMonitor(w http.ResponseWriter, req bunroute
 	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
 		return err
 	}
-	if err := in.Validate(ctx, h.App, monitor); err != nil {
+	if err := in.Validate(ctx, h.app, monitor); err != nil {
 		return err
 	}
 
-	if err := h.PG.NewUpdate().
+	if err := h.pg.NewUpdate().
 		Model(monitor).
 		Column("name").
 		Column("notify_everyone_by_email").
@@ -402,7 +424,7 @@ func (h *MonitorHandler) UpdateMetricMonitor(w http.ResponseWriter, req bunroute
 		return err
 	}
 
-	if _, err := h.PG.NewDelete().
+	if _, err := h.pg.NewDelete().
 		Model((*org.MonitorChannel)(nil)).
 		Where("monitor_id = ?", monitor.ID).
 		Exec(ctx); err != nil {
@@ -459,11 +481,11 @@ func (h *MonitorHandler) CreateErrorMonitor(w http.ResponseWriter, req bunrouter
 	monitor.State = org.MonitorActive
 	monitor.Type = org.MonitorError
 
-	if err := in.Validate(ctx, h.App, monitor); err != nil {
+	if err := in.Validate(ctx, h.app, monitor); err != nil {
 		return err
 	}
 
-	if _, err := h.PG.NewInsert().
+	if _, err := h.pg.NewInsert().
 		Model(monitor).
 		Exec(ctx); err != nil {
 		return err
@@ -491,12 +513,12 @@ func (h *MonitorHandler) UpdateErrorMonitor(w http.ResponseWriter, req bunrouter
 	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
 		return err
 	}
-	if err := in.Validate(ctx, h.App, monitor); err != nil {
+	if err := in.Validate(ctx, h.app, monitor); err != nil {
 		return err
 	}
 	monitor.UpdatedAt = bun.NullTime{Time: time.Now()}
 
-	if err := h.PG.NewUpdate().
+	if err := h.pg.NewUpdate().
 		Model(monitor).
 		Column("name").
 		Column("notify_everyone_by_email").
@@ -508,7 +530,7 @@ func (h *MonitorHandler) UpdateErrorMonitor(w http.ResponseWriter, req bunrouter
 		return err
 	}
 
-	if _, err := h.PG.NewDelete().
+	if _, err := h.pg.NewDelete().
 		Model((*org.MonitorChannel)(nil)).
 		Where("monitor_id = ?", monitor.ID).
 		Exec(ctx); err != nil {
@@ -533,7 +555,7 @@ func (h *MonitorHandler) insertMonitorChannels(
 			MonitorID: monitor.ID,
 			ChannelID: channelID,
 		}
-		if _, err := h.PG.NewInsert().
+		if _, err := h.pg.NewInsert().
 			Model(mc).
 			On("CONFLICT DO NOTHING").
 			Exec(ctx); err != nil {
@@ -600,13 +622,13 @@ func (h *MonitorHandler) CreateMonitorFromYAML(
 	}
 
 	for _, monitor := range monitors {
-		if err := org.InsertMonitor(ctx, h.App.PG, monitor); err != nil {
+		if err := org.InsertMonitor(ctx, h.pg, monitor); err != nil {
 			return err
 		}
 	}
 
 	if hasMetricMonitor {
-		org.CreateAchievementOnce(ctx, h.App, &org.Achievement{
+		org.CreateAchievementOnce(ctx, h.app, &org.Achievement{
 			UserID:    user.ID,
 			ProjectID: project.ID,
 			Name:      org.AchievCreateMetricMonitor,
@@ -622,7 +644,7 @@ func (h *MonitorHandler) Delete(w http.ResponseWriter, req bunrouter.Request) er
 	ctx := req.Context()
 	monitor := monitorFromContext(ctx).Base()
 
-	if _, err := h.PG.NewDelete().
+	if _, err := h.pg.NewDelete().
 		Model(monitor).
 		Where("id = ?", monitor.ID).
 		Exec(ctx); err != nil {
@@ -648,7 +670,7 @@ func (h *MonitorHandler) updateState(
 	monitor := monitorFromContext(ctx).Base()
 	monitor.State = state
 
-	if _, err := h.PG.NewUpdate().
+	if _, err := h.pg.NewUpdate().
 		Model((*org.BaseMonitor)(nil)).
 		Set("state = ?", state).
 		Where("id = ?", monitor.ID).

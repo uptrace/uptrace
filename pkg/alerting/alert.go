@@ -7,6 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/xhit/go-str2duration/v2"
+	"go.uber.org/zap"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconv"
@@ -15,8 +18,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/unixtime"
-	"github.com/xhit/go-str2duration/v2"
-	"go.uber.org/zap"
 )
 
 var (

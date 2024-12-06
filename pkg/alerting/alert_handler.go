@@ -6,24 +6,43 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/fx"
+	"go.uber.org/zap"
+	"golang.org/x/exp/maps"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
-	"go.uber.org/zap"
-	"golang.org/x/exp/maps"
 )
 
-type AlertHandler struct {
-	*bunapp.App
+type AlertHandlerParams struct {
+	fx.In
+	Logger *otelzap.Logger
+	Conf   *bunconf.Config
+	PG     *bun.DB
+	CH     *ch.DB
 }
 
-func NewAlertHandler(app *bunapp.App) *AlertHandler {
+type AlertHandler struct {
+	logger *otelzap.Logger
+	conf   *bunconf.Config
+	pg     *bun.DB
+	ch     *ch.DB
+}
+
+func NewAlertHandler(p AlertHandlerParams) *AlertHandler {
 	return &AlertHandler{
-		App: app,
+		logger: p.Logger,
+		conf:   p.Conf,
+		pg:     p.PG,
+		ch:     p.CH,
 	}
 }
 
@@ -36,7 +55,8 @@ func (h *AlertHandler) Show(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	alert, err := SelectAlert(ctx, h.App, alertID)
+	fakeApp := &bunapp.App{PG: h.pg}
+	alert, err := SelectAlert(ctx, fakeApp, alertID)
 	if err != nil {
 		return err
 	}
@@ -61,7 +81,7 @@ func (h *AlertHandler) Delete(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	if _, err := h.PG.NewDelete().
+	if _, err := h.pg.NewDelete().
 		Model((*org.BaseAlert)(nil)).
 		Where("id IN (?)", bun.In(in.AlertIDs)).
 		Where("project_id = ?", project.ID).
@@ -113,7 +133,8 @@ func (h *AlertHandler) updateAlertsStatus(
 func (h *AlertHandler) changeAlertStatus(
 	ctx context.Context, userID uint64, projectID uint32, alertID uint64, status org.AlertStatus,
 ) error {
-	alert, err := SelectAlert(ctx, h.App, alertID)
+	fakeApp := &bunapp.App{PG: h.pg, CH: h.ch}
+	alert, err := SelectAlert(ctx, fakeApp, alertID)
 	if err != nil {
 		return err
 	}
@@ -126,7 +147,7 @@ func (h *AlertHandler) changeAlertStatus(
 		return nil
 	}
 
-	if err := tryAlertInTx(ctx, h.App, alert, func(tx bun.Tx) error {
+	if err := tryAlertInTx(ctx, fakeApp, alert, func(tx bun.Tx) error {
 		event := alert.GetEvent().Clone()
 		baseEvent := event.Base()
 		baseEvent.UserID = userID
@@ -161,7 +182,13 @@ func (h *AlertHandler) List(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	facets, err := selectAlertFacets(ctx, h.App, f)
+	fakeApp := &bunapp.App{
+		Logger: h.logger,
+		Conf:   h.conf,
+		PG:     h.pg,
+		CH:     h.ch,
+	}
+	facets, err := selectAlertFacets(ctx, fakeApp, f)
 	if err != nil {
 		return err
 	}
@@ -177,7 +204,7 @@ func (h *AlertHandler) selectAlerts(
 	ctx context.Context, f *AlertFilter,
 ) ([]*org.BaseAlert, int, error) {
 	alerts := make([]*org.BaseAlert, 0)
-	count, err := h.PG.NewSelect().
+	count, err := h.pg.NewSelect().
 		Model(&alerts).
 		Relation("Event").
 		Where("event.id IS NOT NULL").

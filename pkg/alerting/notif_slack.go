@@ -8,12 +8,16 @@ import (
 	"net/url"
 
 	"github.com/slack-go/slack"
-	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/org"
 	"go.uber.org/zap"
+
+	"github.com/uptrace/bun"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
+	"github.com/uptrace/uptrace/pkg/org"
 )
 
-func notifyBySlackHandler(ctx context.Context, eventID, channelID uint64) error {
+func (h *NotifChannelHandler) notifyBySlackHandler(ctx context.Context, eventID, channelID uint64) error {
 	app := bunapp.AppFromContext(ctx)
 
 	alert, err := selectAlertWithEvent(ctx, app, eventID)
@@ -30,17 +34,19 @@ func notifyBySlackHandler(ctx context.Context, eventID, channelID uint64) error 
 		return err
 	}
 
-	channel, err := SelectSlackNotifChannel(ctx, app, channelID)
+	channel, err := SelectSlackNotifChannel(ctx, h.pg, channelID)
 	if err != nil {
 		return err
 	}
 
-	return notifyBySlackChannel(ctx, app, project, alert, channel)
+	return notifyBySlackChannel(ctx, h.logger, h.conf, h.pg, project, alert, channel)
 }
 
 func notifyBySlackChannel(
 	ctx context.Context,
-	app *bunapp.App,
+	logger *otelzap.Logger,
+	conf *bunconf.Config,
+	pg *bun.DB,
 	project *org.Project,
 	alert org.Alert,
 	channel *SlackNotifChannel,
@@ -53,15 +59,15 @@ func notifyBySlackChannel(
 
 	if webhookURL == "" {
 		if err := UpdateNotifChannelState(
-			ctx, app, channel.Base(), NotifChannelDisabled,
+			ctx, pg, channel.Base(), NotifChannelDisabled,
 		); err != nil {
-			app.Zap(ctx).Error("UpdateNotifChannelState failed", zap.Error(err))
+			logger.Error("UpdateNotifChannelState failed", zap.Error(err))
 			return err
 		}
 		return nil
 	}
 
-	block, err := slackAlertBlock(app, project, alert)
+	block, err := slackAlertBlock(conf, project, alert)
 	if err != nil {
 		return err
 	}
@@ -80,9 +86,9 @@ func notifyBySlackChannel(
 	case slack.StatusCodeError:
 		if err.Code == 404 {
 			if err := UpdateNotifChannelState(
-				ctx, app, channel.Base(), NotifChannelDisabled,
+				ctx, pg, channel.Base(), NotifChannelDisabled,
 			); err != nil {
-				app.Zap(ctx).Error("UpdateNotifChannelState failed", zap.Error(err))
+				logger.Error("UpdateNotifChannelState failed", zap.Error(err))
 				return err
 			}
 			return nil
@@ -92,15 +98,15 @@ func notifyBySlackChannel(
 		var urlErr *url.Error
 		if errors.As(err, &urlErr) {
 			if err := UpdateNotifChannelState(
-				ctx, app, channel.Base(), NotifChannelDisabled,
+				ctx, pg, channel.Base(), NotifChannelDisabled,
 			); err != nil {
-				app.Zap(ctx).Error("UpdateNotifChannelState failed", zap.Error(err))
+				logger.Error("UpdateNotifChannelState failed", zap.Error(err))
 				return err
 			}
 			return nil
 		}
 
-		app.Zap(ctx).Error("slack.PostWebhook failed",
+		logger.Error("slack.PostWebhook failed",
 			zap.String("webhook", webhookURL),
 			zap.Error(err),
 			zap.String("unwrap", fmt.Sprintf("%T", errors.Unwrap(err))))
@@ -109,7 +115,7 @@ func notifyBySlackChannel(
 }
 
 func slackAlertBlock(
-	app *bunapp.App, project *org.Project, alert org.Alert,
+	conf *bunconf.Config, project *org.Project, alert org.Alert,
 ) (*slack.SectionBlock, error) {
 	baseAlert := alert.Base()
 	text := slack.NewTextBlockObject("mrkdwn", "", false, false)
@@ -129,7 +135,7 @@ func slackAlertBlock(
 		fmt.Sprintf("view_%d", baseAlert.ID),
 		viewBtnText,
 	)
-	viewBtn.URL = app.SiteURL(baseAlert.URL())
+	viewBtn.URL = conf.SiteURL(baseAlert.URL())
 
 	return slack.NewSectionBlock(text, nil, slack.NewAccessory(viewBtn)), nil
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/segmentio/encoding/json"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 )
 
 type NotifChannel interface {
@@ -68,16 +67,16 @@ func (c *BaseNotifChannel) AfterScanRow(ctx context.Context) error {
 	return nil
 }
 
-func InsertNotifChannel(ctx context.Context, app *bunapp.App, channel NotifChannel) error {
-	_, err := app.PG.NewInsert().
+func InsertNotifChannel(ctx context.Context, pg *bun.DB, channel NotifChannel) error {
+	_, err := pg.NewInsert().
 		Model(channel).
 		Exec(ctx)
 	return err
 }
 
-func UpdateNotifChannel(ctx context.Context, app *bunapp.App, channel NotifChannel) error {
+func UpdateNotifChannel(ctx context.Context, pg *bun.DB, channel NotifChannel) error {
 	base := channel.Base()
-	_, err := app.PG.NewUpdate().
+	_, err := pg.NewUpdate().
 		Model(base).
 		Set("name = ?", base.Name).
 		Set("params = ?", string(base.ParamsData)).
@@ -87,9 +86,9 @@ func UpdateNotifChannel(ctx context.Context, app *bunapp.App, channel NotifChann
 }
 
 func UpdateNotifChannelState(
-	ctx context.Context, app *bunapp.App, channel *BaseNotifChannel, state NotifChannelState,
+	ctx context.Context, pg *bun.DB, channel *BaseNotifChannel, state NotifChannelState,
 ) error {
-	if _, err := app.PG.NewUpdate().
+	if _, err := pg.NewUpdate().
 		Model(channel).
 		Set("state = ?", state).
 		Where("id = ?", channel.ID).
@@ -102,11 +101,11 @@ func UpdateNotifChannelState(
 }
 
 func SelectNotifChannel(
-	ctx context.Context, app *bunapp.App, channelID uint64,
+	ctx context.Context, pg *bun.DB, channelID uint64,
 ) (NotifChannel, error) {
 	channel := new(BaseNotifChannel)
 
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(channel).
 		Where("id = ?", channelID).
 		Scan(ctx); err != nil {

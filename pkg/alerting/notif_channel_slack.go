@@ -7,7 +7,7 @@ import (
 
 	"github.com/segmentio/encoding/json"
 
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/bun"
 )
 
 type SlackNotifChannel struct {
@@ -46,9 +46,9 @@ func (c *SlackNotifChannel) Base() *BaseNotifChannel {
 }
 
 func SelectSlackNotifChannel(
-	ctx context.Context, app *bunapp.App, channelID uint64,
+	ctx context.Context, pg *bun.DB, channelID uint64,
 ) (*SlackNotifChannel, error) {
-	channelAny, err := SelectNotifChannel(ctx, app, channelID)
+	channelAny, err := SelectNotifChannel(ctx, pg, channelID)
 	if err != nil {
 		return nil, err
 	}

@@ -19,6 +19,16 @@ import (
 	_ "github.com/mostynb/go-grpc-compression/snappy"
 	_ "github.com/mostynb/go-grpc-compression/zstd"
 	"github.com/rs/cors"
+	"github.com/urfave/cli/v2"
+	"github.com/vmihailenco/taskq/extra/oteltaskq/v4"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.uber.org/fx"
+	"go.uber.org/zap"
+	"golang.org/x/net/http2"
+	"google.golang.org/grpc"
+
 	"github.com/uptrace/bun/migrate"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
@@ -32,20 +42,10 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/grafana"
 	"github.com/uptrace/uptrace/pkg/httputil"
-	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/uptracebundle"
-	"github.com/vmihailenco/taskq/extra/oteltaskq/v4"
-	"golang.org/x/net/http2"
-	"google.golang.org/grpc"
-
 	"github.com/uptrace/uptrace/pkg/metrics"
+	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
-	"github.com/urfave/cli/v2"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.uber.org/fx"
-	"go.uber.org/zap"
+	"github.com/uptrace/uptrace/pkg/uptracebundle"
 )
 
 func main() {
@@ -220,6 +220,7 @@ func NewFxApp(c *cli.Context, opts ...fx.Option) (*fx.App, error) {
 	}
 
 	options := []fx.Option{
+		alerting.Module,
 		fx.Supply(
 			app,
 			app.Conf,
@@ -274,7 +275,6 @@ func UptraceInit(app *bunapp.App, conf *bunconf.Config, logger *otelzap.Logger) 
 
 	tracing.Init(ctx, app)
 	metrics.Init(ctx, app)
-	alerting.Init(ctx, app)
 	grafana.Init(ctx, app)
 
 	if err := syncDashboards(ctx, app); err != nil {

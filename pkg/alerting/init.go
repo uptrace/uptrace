@@ -6,27 +6,41 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/vmihailenco/taskq/v4"
+	"go.uber.org/fx"
+
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/vmihailenco/taskq/v4"
 )
 
-func Init(ctx context.Context, app *bunapp.App) {
-	initRouter(ctx, app)
-	initTasks(ctx, app)
-}
+var Module = fx.Module("alerting",
+	fx.Provide(
+		fx.Private,
+		NewMiddleware,
+		NewAlertHandler,
+		NewMonitorHandler,
+		NewNotifChannelHandler,
+	),
+	fx.Invoke(
+		fx.Annotate(initRouter, fx.ParamTags(`name:"router_internal_apiv1"`)),
+		initTasks,
+	),
+)
 
-func initRouter(ctx context.Context, app *bunapp.App) {
-	middleware := NewMiddleware(app)
-	api := app.InternalAPIV1()
-
+func initRouter(
+	api *bunrouter.Group,
+	middleware Middleware,
+	alertHandler *AlertHandler,
+	monitorHandler *MonitorHandler,
+	notifChannelHandler *NotifChannelHandler,
+) {
 	api.NewGroup("/projects/:project_id",
 		bunrouter.WithMiddleware(middleware.UserAndProject),
 		bunrouter.WithGroup(func(g *bunrouter.Group) {
-			alertHandler := NewAlertHandler(app)
-
 			g.GET("/alerts", alertHandler.List)
 			g.GET("/alerts/:alert_id", alertHandler.Show)
 			g.PUT("/alerts/closed", alertHandler.Close)
@@ -37,8 +51,6 @@ func initRouter(ctx context.Context, app *bunapp.App) {
 	api.
 		Use(middleware.UserAndProject).
 		WithGroup("/projects/:project_id/monitors", func(g *bunrouter.Group) {
-			monitorHandler := NewMonitorHandler(app)
-
 			g.GET("", monitorHandler.List)
 
 			g.POST("/yaml", monitorHandler.CreateMonitorFromYAML)
@@ -62,31 +74,29 @@ func initRouter(ctx context.Context, app *bunapp.App) {
 	api.
 		Use(middleware.UserAndProject).
 		WithGroup("/projects/:project_id/notification-channels", func(g *bunrouter.Group) {
-			handler := NewNotifChannelHandler(app)
+			g.GET("", notifChannelHandler.List)
 
-			g.GET("", handler.List)
+			g.POST("/slack", notifChannelHandler.SlackCreate)
+			g.POST("/webhook", notifChannelHandler.WebhookCreate)
+			g.POST("/telegram", notifChannelHandler.TelegramCreate)
 
-			g.POST("/slack", handler.SlackCreate)
-			g.POST("/webhook", handler.WebhookCreate)
-			g.POST("/telegram", handler.TelegramCreate)
-
-			g.GET("/email", handler.EmailShow)
-			g.PUT("/email", handler.EmailUpdate)
+			g.GET("/email", notifChannelHandler.EmailShow)
+			g.PUT("/email", notifChannelHandler.EmailUpdate)
 
 			g = g.Use(middleware.NotifChannel)
 
-			g.DELETE("/:channel_id", handler.Delete)
-			g.PUT("/:channel_id/paused", handler.Pause)
-			g.PUT("/:channel_id/unpaused", handler.Unpause)
+			g.DELETE("/:channel_id", notifChannelHandler.Delete)
+			g.PUT("/:channel_id/paused", notifChannelHandler.Pause)
+			g.PUT("/:channel_id/unpaused", notifChannelHandler.Unpause)
 
-			g.GET("/slack/:channel_id", handler.SlackShow)
-			g.PUT("/slack/:channel_id", handler.SlackUpdate)
+			g.GET("/slack/:channel_id", notifChannelHandler.SlackShow)
+			g.PUT("/slack/:channel_id", notifChannelHandler.SlackUpdate)
 
-			g.GET("/webhook/:channel_id", handler.WebhookShow)
-			g.PUT("/webhook/:channel_id", handler.WebhookUpdate)
+			g.GET("/webhook/:channel_id", notifChannelHandler.WebhookShow)
+			g.PUT("/webhook/:channel_id", notifChannelHandler.WebhookUpdate)
 
-			g.GET("/telegram/:channel_id", handler.TelegramShow)
-			g.PUT("/telegram/:channel_id", handler.TelegramUpdate)
+			g.GET("/telegram/:channel_id", notifChannelHandler.TelegramShow)
+			g.PUT("/telegram/:channel_id", notifChannelHandler.TelegramUpdate)
 		})
 }
 
@@ -196,7 +206,7 @@ func (m *Middleware) NotifChannel(next bunrouter.HandlerFunc) bunrouter.HandlerF
 			return err
 		}
 
-		channel, err := SelectNotifChannel(ctx, m.App, channelID)
+		channel, err := SelectNotifChannel(ctx, m.App.PG, channelID)
 		if err != nil {
 			return err
 		}
@@ -220,20 +230,17 @@ var (
 	NotifyByTelegramTask = taskq.NewTask("notify-by-telegram")
 )
 
-func initTasks(ctx context.Context, app *bunapp.App) {
-	_ = app.RegisterTask(org.CreateErrorAlertTask.Name(), &taskq.TaskConfig{
-		Handler: createErrorAlertHandler,
-	})
-	_ = app.RegisterTask(NotifyByEmailTask.Name(), &taskq.TaskConfig{
-		Handler: NewEmailNotifier(app).NotifyHandler,
-	})
-	_ = app.RegisterTask(NotifyByTelegramTask.Name(), &taskq.TaskConfig{
-		Handler: notifyByTelegramHandler,
-	})
-	_ = app.RegisterTask(NotifyBySlackTask.Name(), &taskq.TaskConfig{
-		Handler: notifyBySlackHandler,
-	})
-	_ = app.RegisterTask(NotifyByWebhookTask.Name(), &taskq.TaskConfig{
-		Handler: notifyByWebhookHandler,
+func initTasks(logger *otelzap.Logger, conf *bunconf.Config, handler *NotifChannelHandler) {
+	registerTaskHandler(org.CreateErrorAlertTask.Name(), createErrorAlertHandler)
+	registerTaskHandler(NotifyByEmailTask.Name(), NewEmailNotifier(logger, conf).NotifyHandler)
+	registerTaskHandler(NotifyByTelegramTask.Name(), handler.notifyByTelegramHandler)
+	registerTaskHandler(NotifyBySlackTask.Name(), handler.notifyBySlackHandler)
+	registerTaskHandler(NotifyByWebhookTask.Name(), handler.notifyByWebhookHandler)
+}
+
+func registerTaskHandler(name string, handler any) {
+	_ = taskq.RegisterTask(name, &taskq.TaskConfig{
+		RetryLimit: 16,
+		Handler:    handler,
 	})
 }
