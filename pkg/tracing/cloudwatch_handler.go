@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
@@ -17,15 +19,16 @@ import (
 )
 
 type KinesisHandler struct {
-	*bunapp.App
-
-	sp *SpanConsumer
+	logger   *otelzap.Logger
+	pg       *bun.DB
+	consumer *SpanConsumer
 }
 
-func NewKinesisHandler(app *bunapp.App, sp *SpanConsumer) *KinesisHandler {
+func NewKinesisHandler(logger *otelzap.Logger, pg *bun.DB, consumer *SpanConsumer) *KinesisHandler {
 	return &KinesisHandler{
-		App: app,
-		sp:  sp,
+		logger:   logger,
+		pg:       pg,
+		consumer: consumer,
 	}
 }
 
@@ -61,7 +64,8 @@ func (h *KinesisHandler) Logs(w http.ResponseWriter, req bunrouter.Request) erro
 		return errors.New("X-Amz-Firehose-Access-Key header is empty or missing")
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, h.App, dsn)
+	fakeApp := &bunapp.App{PG: h.pg}
+	project, err := org.SelectProjectByDSN(ctx, fakeApp, dsn)
 	if err != nil {
 		return err
 	}
@@ -101,7 +105,7 @@ func (h *KinesisHandler) Logs(w http.ResponseWriter, req bunrouter.Request) erro
 			event := &log.LogEvents[i]
 			span := h.convEvent(event)
 			span.ProjectID = project.ID
-			h.sp.AddSpan(ctx, span)
+			h.consumer.AddSpan(ctx, span)
 		}
 	}
 

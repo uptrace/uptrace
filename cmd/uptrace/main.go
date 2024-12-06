@@ -21,6 +21,7 @@ import (
 	"github.com/rs/cors"
 	"github.com/urfave/cli/v2"
 	"github.com/vmihailenco/taskq/extra/oteltaskq/v4"
+	"github.com/vmihailenco/taskq/v4"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -226,12 +227,22 @@ func NewFxApp(c *cli.Context, opts ...fx.Option) (*fx.App, error) {
 			app.Conf,
 			app.Logger,
 			app.Router(),
-			fx.Annotate(app.RouterGroup(), fx.ResultTags(`name:"router_group"`)),
-			fx.Annotate(app.InternalAPIV1(), fx.ResultTags(`name:"router_internal_apiv1"`)),
-			fx.Annotate(app.PublicAPIV1(), fx.ResultTags(`name:"router_public_apiv1"`)),
+			fx.Annotate(
+				app.RouterGroup(),
+				fx.ResultTags(`name:"router_group"`),
+			),
+			fx.Annotate(
+				app.InternalAPIV1(),
+				fx.ResultTags(`name:"router_internal_apiv1"`),
+			),
+			fx.Annotate(
+				app.PublicAPIV1(),
+				fx.ResultTags(`name:"router_public_apiv1"`),
+			),
 			app.GRPCServer(),
 			app.PG,
 			app.CH,
+			fx.Annotate(app.MainQueue, fx.As(new(taskq.Queue))),
 		),
 		fx.Invoke(func(lc fx.Lifecycle, app *bunapp.App) {
 			lc.Append(fx.Hook{
@@ -273,9 +284,7 @@ func UptraceInit(app *bunapp.App, conf *bunconf.Config, logger *otelzap.Logger) 
 		return fmt.Errorf("loadInitialData failed: %w", err)
 	}
 
-	tracing.Init(ctx, app)
 	metrics.Init(ctx, app)
-	grafana.Init(ctx, app)
 
 	if err := syncDashboards(ctx, app); err != nil {
 		app.Zap(ctx).Error("syncDashboards failed", zap.Error(err))
@@ -291,6 +300,8 @@ var serveCommand = &cli.Command{
 		fxApp, err := NewFxApp(c,
 			fx.Invoke(UptraceInit),
 			fx.Invoke(org.Init),
+			fx.Invoke(tracing.Init),
+			fx.Invoke(grafana.Init),
 			fx.Invoke(fx.Annotate(
 				RunHTTPServer,
 				fx.ParamTags(``, ``, `name:"router_group"`, ``, ``),

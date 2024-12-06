@@ -12,36 +12,41 @@ type SpanConsumer struct {
 	*BaseConsumer[SpanIndex, SpanData]
 }
 
-func NewSpanConsumer(app *bunapp.App) *SpanConsumer {
-	conf := app.Config()
-	batchSize := conf.Spans.BatchSize
-	bufferSize := conf.Spans.BufferSize
-	maxWorkers := conf.Spans.MaxWorkers
+func NewSpanConsumer(p *ModuleParams) *SpanConsumer {
+	batchSize := p.Conf.Spans.BatchSize
+	bufferSize := p.Conf.Spans.BufferSize
+	maxWorkers := p.Conf.Spans.MaxWorkers
 
-	var sgp *ServiceGraphProcessor
-	if !conf.ServiceGraph.Disabled {
-		sgp = NewServiceGraphProcessor(app)
+	fakeApp := &bunapp.App{
+		Conf:   p.Conf,
+		Logger: p.Logger,
+		CH:     p.CH,
 	}
-	transformer := &spanTransformer{sgp: sgp, logger: app.Logger}
+	var sgp *ServiceGraphProcessor
+	if !p.Conf.ServiceGraph.Disabled {
+		sgp = NewServiceGraphProcessor(fakeApp)
+	}
+	transformer := &spanTransformer{sgp: sgp, logger: p.Logger}
 
-	p := &SpanConsumer{
+	c := &SpanConsumer{
 		BaseConsumer: NewBaseConsumer[SpanIndex, SpanData](
-			app,
-			app.Logger,
+			p.Logger,
+			p.PG,
+			p.CH,
+			p.MainQueue,
 			"uptrace.tracing.queue_length",
 			batchSize, bufferSize, maxWorkers,
 			transformer,
 		),
 	}
 
-	p.logger.Info("starting processing spans...",
+	p.Logger.Info("starting processing spans...",
 		zap.Int("batch_size", batchSize),
 		zap.Int("buffer_size", bufferSize),
 		zap.Int("max_workers", maxWorkers),
 	)
-	p.Run()
 
-	return p
+	return c
 }
 
 type spanTransformer struct {

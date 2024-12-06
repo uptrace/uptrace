@@ -12,9 +12,12 @@ import (
 	promparser "github.com/prometheus/prometheus/promql/parser"
 	"github.com/prometheus/prometheus/storage"
 	promstorage "github.com/prometheus/prometheus/storage"
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/org"
@@ -27,10 +30,13 @@ type PromHandler struct {
 	promqlEngine *promql.Engine
 }
 
-func NewPromHandler(app *bunapp.App) *PromHandler {
+func NewPromHandler(logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB, ch *ch.DB) *PromHandler {
 	return &PromHandler{
 		BaseGrafanaHandler: BaseGrafanaHandler{
-			App: app,
+			logger: logger,
+			conf:   conf,
+			pg:     pg,
+			ch:     ch,
 		},
 
 		promqlEngine: promql.NewEngine(promql.EngineOpts{
@@ -78,7 +84,7 @@ func (h *PromHandler) LabelNames(w http.ResponseWriter, req bunrouter.Request) e
 		TimeGTE: filter.Start,
 		TimeLT:  filter.End,
 	})
-	selq := h.CH.NewSelect().
+	selq := h.ch.NewSelect().
 		Distinct().
 		ColumnExpr("arrayJoin(d.string_keys)").
 		TableExpr("? AS d", ch.Name(tableName)).
@@ -127,7 +133,7 @@ func (h *PromHandler) LabelValues(w http.ResponseWriter, req bunrouter.Request) 
 		TimeGTE: filter.Start,
 		TimeLT:  filter.End,
 	})
-	selq := h.CH.NewSelect().
+	selq := h.ch.NewSelect().
 		Distinct().
 		ColumnExpr("?", chExpr(label)).
 		TableExpr("? AS d", ch.Name(tableName)).
@@ -175,7 +181,7 @@ func (h *PromHandler) Series(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	promStorage := NewPromStorage(h.App, project.ID)
+	promStorage := NewPromStorage(h.logger, h.ch, project.ID)
 
 	querier, err := promStorage.Querier(filter.Start.UnixMilli(), filter.End.UnixMilli())
 	if err != nil {
@@ -238,7 +244,7 @@ func parsePromMatchers(matchers []string) ([][]*promlabels.Matcher, error) {
 func (h *PromHandler) QueryRange(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := decodePromFilter(h.App, req)
+	f, err := decodePromFilter(req)
 	if err != nil {
 		return err
 	}
@@ -253,7 +259,7 @@ func (h *PromHandler) QueryRange(w http.ResponseWriter, req bunrouter.Request) e
 		return errors.New(`"query" param is required`)
 	}
 
-	queryable := NewPromStorage(h.App, f.ProjectID)
+	queryable := NewPromStorage(h.logger, h.ch, f.ProjectID)
 
 	queryOpts, err := promQueryOpts(req.Request)
 	if err != nil {
@@ -302,7 +308,7 @@ func (h *PromHandler) QueryInstant(w http.ResponseWriter, req bunrouter.Request)
 		in.Time = float64(time.Now().Unix())
 	}
 
-	queryable := NewPromStorage(h.App, project.ID)
+	queryable := NewPromStorage(h.logger, h.ch, project.ID)
 
 	queryOpts, err := promQueryOpts(req.Request)
 	if err != nil {
@@ -334,7 +340,7 @@ func (h *PromHandler) EnablePromCompat(next bunrouter.HandlerFunc) bunrouter.Han
 		project := org.ProjectFromContext(ctx)
 
 		if !project.PromCompat {
-			if _, err := h.PG.NewUpdate().
+			if _, err := h.pg.NewUpdate().
 				Model(project).
 				Set("prom_compat = TRUE").
 				Where("id = ?", project.ID).

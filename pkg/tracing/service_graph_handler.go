@@ -5,19 +5,21 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 )
 
 type ServiceGraphHandler struct {
-	*bunapp.App
+	logger *otelzap.Logger
+	ch     *ch.DB
 }
 
-func NewServiceGraphHandler(app *bunapp.App) *ServiceGraphHandler {
+func NewServiceGraphHandler(logger *otelzap.Logger, ch *ch.DB) *ServiceGraphHandler {
 	return &ServiceGraphHandler{
-		App: app,
+		logger: logger,
+		ch:     ch,
 	}
 }
 
@@ -83,7 +85,7 @@ func (h *ServiceGraphHandler) List(w http.ResponseWriter, req bunrouter.Request)
 	}
 
 	minutes := f.Duration().Minutes()
-	q := h.CH.NewSelect().
+	q := h.ch.NewSelect().
 		Model((*ServiceGraphEdge)(nil)).
 		ColumnExpr("e.type").
 		ColumnExpr("e.client_attr").

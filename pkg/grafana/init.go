@@ -1,14 +1,18 @@
 package grafana
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/org"
+	"go.uber.org/fx"
 )
 
 const (
@@ -16,17 +20,32 @@ const (
 	jsonContentType     = "application/json"
 )
 
-func Init(ctx context.Context, app *bunapp.App) {
-	initRoutes(ctx, app)
+type ModuleParams struct {
+	fx.In
+	bunapp.RouterParams
+
+	Conf   *bunconf.Config
+	Logger *otelzap.Logger
+	PG     *bun.DB
+	CH     *ch.DB
 }
 
-func initRoutes(ctx context.Context, app *bunapp.App) {
-	middleware := org.NewMiddleware(app)
-	router := app.Router()
+func Init(p ModuleParams) {
+	initRoutes(&p)
+}
+
+func initRoutes(p *ModuleParams) {
+	fakeApp := &bunapp.App{
+		Conf:   p.Conf,
+		Logger: p.Logger,
+		PG:     p.PG,
+		CH:     p.CH,
+	}
+	middleware := org.NewMiddleware(fakeApp)
 
 	// https://grafana.com/docs/tempo/latest/api_docs/
-	router.WithGroup("/api/tempo/:project_id", func(g *bunrouter.Group) {
-		tempoHandler := NewTempoHandler(app)
+	p.Router.WithGroup("/api/tempo/:project_id", func(g *bunrouter.Group) {
+		tempoHandler := NewTempoHandler(p.Logger, p.Conf, p.PG, p.CH)
 
 		g = g.Use(middleware.UserAndProject)
 
@@ -43,8 +62,8 @@ func initRoutes(ctx context.Context, app *bunapp.App) {
 		g.GET("/api/v2/search/tag/:tag/values", tempoHandler.TagValues)
 	})
 
-	router.WithGroup("/api/prometheus/:project_id", func(g *bunrouter.Group) {
-		promHandler := NewPromHandler(app)
+	p.Router.WithGroup("/api/prometheus/:project_id", func(g *bunrouter.Group) {
+		promHandler := NewPromHandler(p.Logger, p.Conf, p.PG, p.CH)
 
 		g = g.Use(
 			middleware.UserAndProject,
