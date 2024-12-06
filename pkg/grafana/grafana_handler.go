@@ -3,13 +3,20 @@ package grafana
 import (
 	"net/http"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
 type BaseGrafanaHandler struct {
-	*bunapp.App
+	logger *otelzap.Logger
+	conf   *bunconf.Config
+	pg     *bun.DB
+	ch     *ch.DB
 }
 
 func (h *BaseGrafanaHandler) Ready(w http.ResponseWriter, req bunrouter.Request) error {
@@ -31,7 +38,8 @@ func (h *BaseGrafanaHandler) CheckProjectAccess(next bunrouter.HandlerFunc) bunr
 			return err
 		}
 
-		project, err := org.SelectProjectByDSN(ctx, h.App, dsn)
+		fakeApp := &bunapp.App{PG: h.pg}
+		project, err := org.SelectProjectByDSN(ctx, fakeApp, dsn)
 		if err != nil {
 			return err
 		}
