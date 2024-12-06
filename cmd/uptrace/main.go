@@ -284,7 +284,6 @@ func UptraceInit(app *bunapp.App, conf *bunconf.Config, logger *otelzap.Logger) 
 
 	metrics.Init(ctx, app)
 	alerting.Init(ctx, app)
-	grafana.Init(ctx, app)
 
 	if err := syncDashboards(ctx, app); err != nil {
 		app.Zap(ctx).Error("syncDashboards failed", zap.Error(err))
@@ -301,6 +300,7 @@ var serveCommand = &cli.Command{
 			fx.Invoke(UptraceInit),
 			fx.Invoke(org.Init),
 			fx.Invoke(tracing.Init),
+			fx.Invoke(grafana.Init),
 			fx.Invoke(fx.Annotate(
 				RunHTTPServer,
 				fx.ParamTags(``, ``, `name:"router_group"`, ``, ``),
