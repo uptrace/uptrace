@@ -34,12 +34,12 @@ func (h *NotifChannelHandler) notifyBySlackHandler(ctx context.Context, eventID,
 		return err
 	}
 
-	channel, err := SelectSlackNotifChannel(ctx, h.pg, channelID)
+	channel, err := SelectSlackNotifChannel(ctx, h.PG, channelID)
 	if err != nil {
 		return err
 	}
 
-	return notifyBySlackChannel(ctx, h.logger, h.conf, h.pg, project, alert, channel)
+	return notifyBySlackChannel(ctx, h.Logger, h.Conf, h.PG, project, alert, channel)
 }
 
 func notifyBySlackChannel(

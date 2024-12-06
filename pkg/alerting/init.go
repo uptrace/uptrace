@@ -26,89 +26,20 @@ var Module = fx.Module("alerting",
 		NewNotifChannelHandler,
 	),
 	fx.Invoke(
-		fx.Annotate(initRouter, fx.ParamTags(`name:"router_internal_apiv1"`)),
+		registerAlertHandler,
+		registerMonitorHandler,
+		registerNotifChannelHandler,
 		initTasks,
 	),
 )
-
-func initRouter(
-	api *bunrouter.Group,
-	middleware Middleware,
-	alertHandler *AlertHandler,
-	monitorHandler *MonitorHandler,
-	notifChannelHandler *NotifChannelHandler,
-) {
-	api.NewGroup("/projects/:project_id",
-		bunrouter.WithMiddleware(middleware.UserAndProject),
-		bunrouter.WithGroup(func(g *bunrouter.Group) {
-			g.GET("/alerts", alertHandler.List)
-			g.GET("/alerts/:alert_id", alertHandler.Show)
-			g.PUT("/alerts/closed", alertHandler.Close)
-			g.PUT("/alerts/open", alertHandler.Open)
-			g.DELETE("/alerts", alertHandler.Delete)
-		}))
-
-	api.
-		Use(middleware.UserAndProject).
-		WithGroup("/projects/:project_id/monitors", func(g *bunrouter.Group) {
-			g.GET("", monitorHandler.List)
-
-			g.POST("/yaml", monitorHandler.CreateMonitorFromYAML)
-			g.POST("/metric", monitorHandler.CreateMetricMonitor)
-			g.POST("/error", monitorHandler.CreateErrorMonitor)
-
-			g = g.NewGroup("/:monitor_id").
-				Use(middleware.Monitor)
-
-			g.GET("", monitorHandler.Show)
-			g.GET("/yaml", monitorHandler.ShowYAML)
-			g.DELETE("", monitorHandler.Delete)
-
-			g.PUT("/metric", monitorHandler.UpdateMetricMonitor)
-			g.PUT("/error", monitorHandler.UpdateErrorMonitor)
-
-			g.PUT("/active", monitorHandler.Activate)
-			g.PUT("/paused", monitorHandler.Pause)
-		})
-
-	api.
-		Use(middleware.UserAndProject).
-		WithGroup("/projects/:project_id/notification-channels", func(g *bunrouter.Group) {
-			g.GET("", notifChannelHandler.List)
-
-			g.POST("/slack", notifChannelHandler.SlackCreate)
-			g.POST("/webhook", notifChannelHandler.WebhookCreate)
-			g.POST("/telegram", notifChannelHandler.TelegramCreate)
-
-			g.GET("/email", notifChannelHandler.EmailShow)
-			g.PUT("/email", notifChannelHandler.EmailUpdate)
-
-			g = g.Use(middleware.NotifChannel)
-
-			g.DELETE("/:channel_id", notifChannelHandler.Delete)
-			g.PUT("/:channel_id/paused", notifChannelHandler.Pause)
-			g.PUT("/:channel_id/unpaused", notifChannelHandler.Unpause)
-
-			g.GET("/slack/:channel_id", notifChannelHandler.SlackShow)
-			g.PUT("/slack/:channel_id", notifChannelHandler.SlackUpdate)
-
-			g.GET("/webhook/:channel_id", notifChannelHandler.WebhookShow)
-			g.PUT("/webhook/:channel_id", notifChannelHandler.WebhookUpdate)
-
-			g.GET("/telegram/:channel_id", notifChannelHandler.TelegramShow)
-			g.PUT("/telegram/:channel_id", notifChannelHandler.TelegramUpdate)
-		})
-}
-
-//------------------------------------------------------------------------------
 
 type Middleware struct {
 	App *bunapp.App
 	*org.Middleware
 }
 
-func NewMiddleware(app *bunapp.App) Middleware {
-	return Middleware{
+func NewMiddleware(app *bunapp.App) *Middleware {
+	return &Middleware{
 		App:        app,
 		Middleware: org.NewMiddleware(app),
 	}
@@ -230,12 +161,12 @@ var (
 	NotifyByTelegramTask = taskq.NewTask("notify-by-telegram")
 )
 
-func initTasks(logger *otelzap.Logger, conf *bunconf.Config, handler *NotifChannelHandler) {
+func initTasks(logger *otelzap.Logger, conf *bunconf.Config, h *NotifChannelHandler) {
 	registerTaskHandler(org.CreateErrorAlertTask.Name(), createErrorAlertHandler)
 	registerTaskHandler(NotifyByEmailTask.Name(), NewEmailNotifier(logger, conf).NotifyHandler)
-	registerTaskHandler(NotifyByTelegramTask.Name(), handler.notifyByTelegramHandler)
-	registerTaskHandler(NotifyBySlackTask.Name(), handler.notifyBySlackHandler)
-	registerTaskHandler(NotifyByWebhookTask.Name(), handler.notifyByWebhookHandler)
+	registerTaskHandler(NotifyByTelegramTask.Name(), h.notifyByTelegramHandler)
+	registerTaskHandler(NotifyBySlackTask.Name(), h.notifyBySlackHandler)
+	registerTaskHandler(NotifyByWebhookTask.Name(), h.notifyByWebhookHandler)
 }
 
 func registerTaskHandler(name string, handler any) {

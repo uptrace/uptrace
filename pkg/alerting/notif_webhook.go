@@ -32,7 +32,7 @@ func (h *NotifChannelHandler) notifyByWebhookHandler(ctx context.Context, eventI
 		return err
 	}
 
-	channel, err := SelectWebhookNotifChannel(ctx, h.pg, channelID)
+	channel, err := SelectWebhookNotifChannel(ctx, h.PG, channelID)
 	if err != nil {
 		return err
 	}
@@ -54,10 +54,10 @@ func (h *NotifChannelHandler) notifyByWebhookChannel(
 
 	switch channel.Type {
 	case NotifChannelWebhook:
-		msg = NewWebhookMessage(h.conf, alert, channel.Params.Payload)
+		msg = NewWebhookMessage(h.Conf, alert, channel.Params.Payload)
 	case NotifChannelAlertmanager:
 		var err error
-		msg, err = NewAlertmanagerMessage(h.conf, project, alert)
+		msg, err = NewAlertmanagerMessage(h.Conf, project, alert)
 		if err != nil {
 			return err
 		}
@@ -95,12 +95,12 @@ func (h *NotifChannelHandler) notifyByWebhookChannel(
 			Message string `json:"message"`
 		}
 		if err := json.Unmarshal(body, &out); err == nil {
-			h.logger.Error("http.Post failed", zap.String("message", out.Message))
+			h.Logger.Error("http.Post failed", zap.String("message", out.Message))
 		} else {
 			if len(body) > 100 {
 				body = body[:100]
 			}
-			h.logger.Error("http.Post failed", zap.String("message", string(body)))
+			h.Logger.Error("http.Post failed", zap.String("message", string(body)))
 		}
 
 		return fmt.Errorf("unexpected response: %s", resp.Status)

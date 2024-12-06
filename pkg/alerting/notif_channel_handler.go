@@ -18,7 +18,6 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
@@ -35,21 +34,51 @@ type NotifChannelHandlerParams struct {
 	Logger *otelzap.Logger
 	Conf   *bunconf.Config
 	PG     *bun.DB
-	CH     *ch.DB
 }
 
 type NotifChannelHandler struct {
-	logger     *otelzap.Logger
-	conf       *bunconf.Config
-	pg         *bun.DB
+	*NotifChannelHandlerParams
+
 	httpClient *http.Client
+}
+
+func registerNotifChannelHandler(p bunapp.RouterParams, h *NotifChannelHandler, middleware *Middleware) {
+	p.RouterInternalV1.
+		Use(middleware.UserAndProject).
+		WithGroup("/projects/:project_id/notification-channels", func(g *bunrouter.Group) {
+			g.GET("", h.List)
+
+			g.POST("/slack", h.SlackCreate)
+			g.POST("/webhook", h.WebhookCreate)
+			g.POST("/telegram", h.TelegramCreate)
+
+			g.GET("/email", h.EmailShow)
+			g.PUT("/email", h.EmailUpdate)
+
+			g = g.Use(middleware.NotifChannel)
+
+			g.DELETE("/:channel_id", h.Delete)
+			g.PUT("/:channel_id/paused", h.Pause)
+			g.PUT("/:channel_id/unpaused", h.Unpause)
+
+			g.GET("/slack/:channel_id", h.SlackShow)
+			g.PUT("/slack/:channel_id", h.SlackUpdate)
+
+			g.GET("/webhook/:channel_id", h.WebhookShow)
+			g.PUT("/webhook/:channel_id", h.WebhookUpdate)
+
+			g.GET("/telegram/:channel_id", h.TelegramShow)
+			g.PUT("/telegram/:channel_id", h.TelegramUpdate)
+		})
 }
 
 func NewNotifChannelHandler(p NotifChannelHandlerParams) *NotifChannelHandler {
 	return &NotifChannelHandler{
-		logger:     p.Logger,
-		conf:       p.Conf,
-		pg:         p.PG,
+		NotifChannelHandlerParams: &NotifChannelHandlerParams{
+			Logger: p.Logger,
+			Conf:   p.Conf,
+			PG:     p.PG,
+		},
 		httpClient: p.App.HTTPClient,
 	}
 }
@@ -60,7 +89,7 @@ func (h *NotifChannelHandler) List(w http.ResponseWriter, req bunrouter.Request)
 
 	channels := make([]*BaseNotifChannel, 0)
 
-	if err := h.pg.NewSelect().
+	if err := h.PG.NewSelect().
 		Model(&channels).
 		Where("project_id = ?", project.ID).
 		Order("id ASC").
@@ -78,7 +107,7 @@ func (h *NotifChannelHandler) Delete(w http.ResponseWriter, req bunrouter.Reques
 	ctx := req.Context()
 	channel := NotifChannelFromContext(ctx)
 
-	if _, err := h.pg.NewDelete().
+	if _, err := h.PG.NewDelete().
 		Model(channel).
 		Where("id = ?", channel.Base().ID).
 		Exec(ctx); err != nil {
@@ -104,7 +133,7 @@ func (h *NotifChannelHandler) UpdateNotifChannelState(
 	ctx := req.Context()
 	channel := NotifChannelFromContext(ctx).Base()
 
-	if err := UpdateNotifChannelState(ctx, h.pg, channel, state); err != nil {
+	if err := UpdateNotifChannelState(ctx, h.PG, channel, state); err != nil {
 		return err
 	}
 
@@ -180,7 +209,7 @@ func (h *NotifChannelHandler) SlackCreate(w http.ResponseWriter, req bunrouter.R
 		return httperror.Wrap(err)
 	}
 
-	if err := InsertNotifChannel(ctx, h.pg, channel); err != nil {
+	if err := InsertNotifChannel(ctx, h.PG, channel); err != nil {
 		return err
 	}
 
@@ -208,7 +237,7 @@ func (h *NotifChannelHandler) SlackUpdate(w http.ResponseWriter, req bunrouter.R
 		return httperror.Wrap(err)
 	}
 
-	if err := UpdateNotifChannel(ctx, h.pg, channel); err != nil {
+	if err := UpdateNotifChannel(ctx, h.PG, channel); err != nil {
 		return err
 	}
 
@@ -292,7 +321,7 @@ func (h *NotifChannelHandler) TelegramCreate(w http.ResponseWriter, req bunroute
 		return httperror.Wrap(err)
 	}
 
-	if err := InsertNotifChannel(ctx, h.pg, channel); err != nil {
+	if err := InsertNotifChannel(ctx, h.PG, channel); err != nil {
 		return err
 	}
 
@@ -302,7 +331,7 @@ func (h *NotifChannelHandler) TelegramCreate(w http.ResponseWriter, req bunroute
 }
 
 func (h *NotifChannelHandler) sendTelegramTestMsg(channel *TelegramNotifChannel) error {
-	bot, err := channel.TelegramBot(h.conf)
+	bot, err := channel.TelegramBot(h.Conf)
 	if err != nil {
 		return err
 	}
@@ -335,7 +364,7 @@ func (h *NotifChannelHandler) TelegramUpdate(w http.ResponseWriter, req bunroute
 		return httperror.Wrap(err)
 	}
 
-	if err := UpdateNotifChannel(ctx, h.pg, channel); err != nil {
+	if err := UpdateNotifChannel(ctx, h.PG, channel); err != nil {
 		return err
 	}
 
@@ -429,7 +458,7 @@ func (h *NotifChannelHandler) WebhookCreate(w http.ResponseWriter, req bunrouter
 		return httperror.Wrap(err)
 	}
 
-	if err := InsertNotifChannel(ctx, h.pg, channel); err != nil {
+	if err := InsertNotifChannel(ctx, h.PG, channel); err != nil {
 		return err
 	}
 
@@ -459,7 +488,7 @@ func (h *NotifChannelHandler) WebhookUpdate(w http.ResponseWriter, req bunrouter
 		return httperror.Wrap(err)
 	}
 
-	if err := UpdateNotifChannel(ctx, h.pg, channel); err != nil {
+	if err := UpdateNotifChannel(ctx, h.PG, channel); err != nil {
 		return err
 	}
 
@@ -505,7 +534,7 @@ func (h *NotifChannelHandler) EmailShow(w http.ResponseWriter, req bunrouter.Req
 		NotifyOnRecurringErrors: true,
 	}
 
-	if err := h.pg.NewSelect().
+	if err := h.PG.NewSelect().
 		Model(data).
 		Where("user_id = ?", user.ID).
 		Where("project_id = ?", project.ID).
@@ -540,7 +569,7 @@ func (h *NotifChannelHandler) EmailUpdate(w http.ResponseWriter, req bunrouter.R
 		NotifyOnRecurringErrors: in.NotifyOnRecurringErrors,
 	}
 
-	if _, err := h.pg.NewInsert().
+	if _, err := h.PG.NewInsert().
 		Model(data).
 		On("CONFLICT (user_id, project_id) DO UPDATE").
 		Set("notify_on_metrics = EXCLUDED.notify_on_metrics").

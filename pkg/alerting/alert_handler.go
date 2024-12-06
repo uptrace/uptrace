@@ -31,18 +31,29 @@ type AlertHandlerParams struct {
 }
 
 type AlertHandler struct {
-	logger *otelzap.Logger
-	conf   *bunconf.Config
-	pg     *bun.DB
-	ch     *ch.DB
+	*AlertHandlerParams
+}
+
+func registerAlertHandler(p bunapp.RouterParams, h *AlertHandler, middleware *Middleware) {
+	p.RouterInternalV1.NewGroup("/projects/:project_id",
+		bunrouter.WithMiddleware(middleware.UserAndProject),
+		bunrouter.WithGroup(func(g *bunrouter.Group) {
+			g.GET("/alerts", h.List)
+			g.GET("/alerts/:alert_id", h.Show)
+			g.PUT("/alerts/closed", h.Close)
+			g.PUT("/alerts/open", h.Open)
+			g.DELETE("/alerts", h.Delete)
+		}))
 }
 
 func NewAlertHandler(p AlertHandlerParams) *AlertHandler {
 	return &AlertHandler{
-		logger: p.Logger,
-		conf:   p.Conf,
-		pg:     p.PG,
-		ch:     p.CH,
+		AlertHandlerParams: &AlertHandlerParams{
+			Logger: p.Logger,
+			Conf:   p.Conf,
+			PG:     p.PG,
+			CH:     p.CH,
+		},
 	}
 }
 
@@ -55,7 +66,7 @@ func (h *AlertHandler) Show(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	fakeApp := &bunapp.App{PG: h.pg}
+	fakeApp := &bunapp.App{PG: h.PG}
 	alert, err := SelectAlert(ctx, fakeApp, alertID)
 	if err != nil {
 		return err
@@ -81,7 +92,7 @@ func (h *AlertHandler) Delete(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	if _, err := h.pg.NewDelete().
+	if _, err := h.PG.NewDelete().
 		Model((*org.BaseAlert)(nil)).
 		Where("id IN (?)", bun.In(in.AlertIDs)).
 		Where("project_id = ?", project.ID).
@@ -133,7 +144,7 @@ func (h *AlertHandler) updateAlertsStatus(
 func (h *AlertHandler) changeAlertStatus(
 	ctx context.Context, userID uint64, projectID uint32, alertID uint64, status org.AlertStatus,
 ) error {
-	fakeApp := &bunapp.App{PG: h.pg, CH: h.ch}
+	fakeApp := &bunapp.App{PG: h.PG, CH: h.CH}
 	alert, err := SelectAlert(ctx, fakeApp, alertID)
 	if err != nil {
 		return err
@@ -183,10 +194,10 @@ func (h *AlertHandler) List(w http.ResponseWriter, req bunrouter.Request) error 
 	}
 
 	fakeApp := &bunapp.App{
-		Logger: h.logger,
-		Conf:   h.conf,
-		PG:     h.pg,
-		CH:     h.ch,
+		Logger: h.Logger,
+		Conf:   h.Conf,
+		PG:     h.PG,
+		CH:     h.CH,
 	}
 	facets, err := selectAlertFacets(ctx, fakeApp, f)
 	if err != nil {
@@ -204,7 +215,7 @@ func (h *AlertHandler) selectAlerts(
 	ctx context.Context, f *AlertFilter,
 ) ([]*org.BaseAlert, int, error) {
 	alerts := make([]*org.BaseAlert, 0)
-	count, err := h.pg.NewSelect().
+	count, err := h.PG.NewSelect().
 		Model(&alerts).
 		Relation("Event").
 		Where("event.id IS NOT NULL").

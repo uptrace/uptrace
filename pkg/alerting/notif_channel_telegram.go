@@ -96,12 +96,12 @@ func (h *NotifChannelHandler) notifyByTelegramHandler(ctx context.Context, event
 		return err
 	}
 
-	channel, err := SelectTelegramNotifChannel(ctx, h.pg, channelID)
+	channel, err := SelectTelegramNotifChannel(ctx, h.PG, channelID)
 	if err != nil {
 		return err
 	}
 
-	return notifyByTelegramChannel(ctx, h.conf, project, alert, channel)
+	return notifyByTelegramChannel(ctx, h.Conf, project, alert, channel)
 }
 
 func notifyByTelegramChannel(
