@@ -10,10 +10,13 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/grafana/tempo/pkg/traceql"
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/idgen"
@@ -30,10 +33,13 @@ type TempoHandler struct {
 	BaseGrafanaHandler
 }
 
-func NewTempoHandler(app *bunapp.App) *TempoHandler {
+func NewTempoHandler(logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB, ch *ch.DB) *TempoHandler {
 	return &TempoHandler{
 		BaseGrafanaHandler: BaseGrafanaHandler{
-			App: app,
+			logger: logger,
+			conf:   conf,
+			pg:     pg,
+			ch:     ch,
 		},
 	}
 }
@@ -64,7 +70,8 @@ func (h *TempoHandler) queryTrace(
 		return err
 	}
 
-	spans, _, err := tracing.SelectTraceSpans(ctx, h.App, traceID)
+	fakeApp := &bunapp.App{CH: h.ch}
+	spans, _, err := tracing.SelectTraceSpans(ctx, fakeApp, traceID)
 	if err != nil {
 		return err
 	}
@@ -73,7 +80,7 @@ func (h *TempoHandler) queryTrace(
 		return httperror.NotFound("Trace %q not found. Try again later.", traceID)
 	}
 
-	resp := newTempopbTrace(h.App, traceID, spans)
+	resp := newTempopbTrace(h.conf, traceID, spans)
 
 	switch contentType {
 	case "*/*", jsonContentType:
@@ -105,7 +112,7 @@ func (h *TempoHandler) Tags(w http.ResponseWriter, req bunrouter.Request) error 
 
 	keys := make([]string, 0)
 
-	if err := tracing.NewSpanIndexQuery(h.App.CH).
+	if err := tracing.NewSpanIndexQuery(h.ch).
 		Distinct().
 		ColumnExpr("arrayJoin(all_keys) AS key").
 		Where("project_id = ?", project.ID).
@@ -147,7 +154,7 @@ func (h *TempoHandler) TagValues(w http.ResponseWriter, req bunrouter.Request) e
 	tag := tempoAttrKey(req.Param("tag"))
 	tagCHExpr := tempoCHExpr(tag)
 
-	q := tracing.NewSpanIndexQuery(h.App.CH).
+	q := tracing.NewSpanIndexQuery(h.ch).
 		Distinct().
 		ColumnExpr("toString(?) AS value", tagCHExpr).
 		Where("project_id = ?", project.ID).
@@ -243,7 +250,7 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 		f.Limit = 20
 	}
 
-	q := tracing.NewSpanIndexQuery(h.App.CH).
+	q := tracing.NewSpanIndexQuery(h.ch).
 		DistinctOn("trace_id").
 		ColumnExpr("trace_id").
 		ColumnExpr("id").
@@ -280,7 +287,7 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 	for _, item := range found {
 		var data []*tracing.SpanData
 
-		if err := h.CH.NewSelect().
+		if err := h.ch.NewSelect().
 			DistinctOn("id").
 			ColumnExpr("trace_id, id, parent_id, time, data").
 			Model(&data).

@@ -29,7 +29,7 @@ type PromFilter struct {
 	Query string
 }
 
-func decodePromFilter(app *bunapp.App, req bunrouter.Request) (*PromFilter, error) {
+func decodePromFilter(req bunrouter.Request) (*PromFilter, error) {
 	ctx := req.Context()
 	project := org.ProjectFromContext(ctx)
 

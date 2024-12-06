@@ -11,18 +11,18 @@ import (
 	tracepb "github.com/grafana/tempo/pkg/tempopb/trace/v1"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/tracing"
 	"go.uber.org/zap"
 )
 
-func newTempopbTrace(app *bunapp.App, traceID idgen.TraceID, spans []*tracing.Span) *tempopb.Trace {
+func newTempopbTrace(conf *bunconf.Config, traceID idgen.TraceID, spans []*tracing.Span) *tempopb.Trace {
 	backlink := &commonpb.KeyValue{
 		Key: "uptrace.url",
 		Value: &commonpb.AnyValue{
 			Value: &commonpb.AnyValue_StringValue{
-				StringValue: app.SiteURL("/traces/%s", traceID.String()),
+				StringValue: conf.SiteURL("/traces/%s", traceID.String()),
 			},
 		},
 	}

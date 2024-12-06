@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/org"
 	"go.uber.org/zap"
@@ -25,17 +24,16 @@ import (
 )
 
 type PromStorage struct {
-	app *bunapp.App
-
-	projectID uint32
 	logger    *otelzap.Logger
+	ch        *ch.DB
+	projectID uint32
 }
 
-func NewPromStorage(app *bunapp.App, projectID uint32) *PromStorage {
+func NewPromStorage(logger *otelzap.Logger, ch *ch.DB, projectID uint32) *PromStorage {
 	return &PromStorage{
-		app:       app,
+		logger:    logger,
+		ch:        ch,
 		projectID: projectID,
-		logger:    app.Logger,
 	}
 }
 
@@ -92,7 +90,7 @@ func (pq *promQuerier) Select(
 		tf.Round(time.Minute)
 	}
 
-	chQuery := pq.app.CH.NewSelect().
+	chQuery := pq.ch.NewSelect().
 		ColumnExpr("d.metric, d.attrs_hash, d.instrument").
 		ColumnExpr("toStartOfInterval(d.time, INTERVAL ? second) AS time_start", step.Seconds()).
 		ColumnExpr(
@@ -146,7 +144,7 @@ func (pq *promQuerier) Select(
 
 		if lastSeries.metric != metric || lastSeries.attrsHash != attrsHash {
 			if len(keys) != len(values) {
-				pq.app.Zap(ctx).Error("keys and values length does not match",
+				pq.logger.Error("keys and values length does not match",
 					zap.Strings("keys", keys),
 					zap.Strings("values", values))
 				continue
@@ -181,7 +179,7 @@ func (pq *promQuerier) Series(
 	}
 
 	tableName := metrics.DatapointTableForWhere(tf)
-	chQuery := pq.app.CH.NewSelect().
+	chQuery := pq.ch.NewSelect().
 		DistinctOn("d.metric, d.attrs_hash").
 		ColumnExpr("d.metric").
 		TableExpr("? AS d", ch.Name(tableName)).
