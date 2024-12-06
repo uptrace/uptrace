@@ -293,10 +293,6 @@ func UptraceInit(app *bunapp.App, conf *bunconf.Config, logger *otelzap.Logger) 
 	return nil
 }
 
-func TracingInit() {
-
-}
-
 var serveCommand = &cli.Command{
 	Name:  "serve",
 	Usage: "run HTTP and gRPC APIs",
