@@ -79,7 +79,7 @@ func (h *NotifChannelHandler) notifyByWebhookChannel(
 	req.Header.Set("User-Agent", "Uptrace/1.0")
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := h.httpClient.Do(req)
+	resp, err := h.HTTPClient.Do(req)
 	if err != nil {
 		return err
 	}

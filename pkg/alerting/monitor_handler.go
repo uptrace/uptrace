@@ -148,6 +148,10 @@ type MonitorHandler struct {
 	*MonitorHandlerParams
 }
 
+func NewMonitorHandler(p MonitorHandlerParams) *MonitorHandler {
+	return &MonitorHandler{&p}
+}
+
 func registerMonitorHandler(p bunapp.RouterParams, h *MonitorHandler, middleware *Middleware) {
 	p.RouterInternalV1.
 		Use(middleware.UserAndProject).
@@ -171,18 +175,6 @@ func registerMonitorHandler(p bunapp.RouterParams, h *MonitorHandler, middleware
 			g.PUT("/active", h.Activate)
 			g.PUT("/paused", h.Pause)
 		})
-}
-
-func NewMonitorHandler(p MonitorHandlerParams) *MonitorHandler {
-	return &MonitorHandler{
-		MonitorHandlerParams: &MonitorHandlerParams{
-			App:    p.App,
-			Logger: p.Logger,
-			Conf:   p.Conf,
-			PG:     p.PG,
-			CH:     p.CH,
-		},
-	}
 }
 
 type MonitorOut struct {

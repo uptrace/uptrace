@@ -30,16 +30,18 @@ import (
 
 type NotifChannelHandlerParams struct {
 	fx.In
-	App    *bunapp.App
-	Logger *otelzap.Logger
-	Conf   *bunconf.Config
-	PG     *bun.DB
+	Logger     *otelzap.Logger
+	Conf       *bunconf.Config
+	PG         *bun.DB
+	HTTPClient *http.Client
 }
 
 type NotifChannelHandler struct {
 	*NotifChannelHandlerParams
+}
 
-	httpClient *http.Client
+func NewNotifChannelHandler(p NotifChannelHandlerParams) *NotifChannelHandler {
+	return &NotifChannelHandler{&p}
 }
 
 func registerNotifChannelHandler(p bunapp.RouterParams, h *NotifChannelHandler, middleware *Middleware) {
@@ -70,17 +72,6 @@ func registerNotifChannelHandler(p bunapp.RouterParams, h *NotifChannelHandler, 
 			g.GET("/telegram/:channel_id", h.TelegramShow)
 			g.PUT("/telegram/:channel_id", h.TelegramUpdate)
 		})
-}
-
-func NewNotifChannelHandler(p NotifChannelHandlerParams) *NotifChannelHandler {
-	return &NotifChannelHandler{
-		NotifChannelHandlerParams: &NotifChannelHandlerParams{
-			Logger: p.Logger,
-			Conf:   p.Conf,
-			PG:     p.PG,
-		},
-		httpClient: p.App.HTTPClient,
-	}
 }
 
 func (h *NotifChannelHandler) List(w http.ResponseWriter, req bunrouter.Request) error {

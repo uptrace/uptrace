@@ -242,6 +242,7 @@ func NewFxApp(c *cli.Context, opts ...fx.Option) (*fx.App, error) {
 			app.GRPCServer(),
 			app.PG,
 			app.CH,
+			app.HTTPClient,
 			fx.Annotate(app.MainQueue, fx.As(new(taskq.Queue))),
 		),
 		fx.Invoke(func(lc fx.Lifecycle, app *bunapp.App) {

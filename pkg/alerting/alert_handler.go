@@ -34,6 +34,10 @@ type AlertHandler struct {
 	*AlertHandlerParams
 }
 
+func NewAlertHandler(p AlertHandlerParams) *AlertHandler {
+	return &AlertHandler{&p}
+}
+
 func registerAlertHandler(p bunapp.RouterParams, h *AlertHandler, middleware *Middleware) {
 	p.RouterInternalV1.NewGroup("/projects/:project_id",
 		bunrouter.WithMiddleware(middleware.UserAndProject),
@@ -44,17 +48,6 @@ func registerAlertHandler(p bunapp.RouterParams, h *AlertHandler, middleware *Mi
 			g.PUT("/alerts/open", h.Open)
 			g.DELETE("/alerts", h.Delete)
 		}))
-}
-
-func NewAlertHandler(p AlertHandlerParams) *AlertHandler {
-	return &AlertHandler{
-		AlertHandlerParams: &AlertHandlerParams{
-			Logger: p.Logger,
-			Conf:   p.Conf,
-			PG:     p.PG,
-			CH:     p.CH,
-		},
-	}
 }
 
 func (h *AlertHandler) Show(w http.ResponseWriter, req bunrouter.Request) error {
