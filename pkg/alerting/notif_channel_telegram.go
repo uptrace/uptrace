@@ -10,7 +10,9 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/segmentio/encoding/json"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
@@ -44,8 +46,7 @@ func (c *TelegramNotifChannel) Base() *BaseNotifChannel {
 	return c.BaseNotifChannel
 }
 
-func (c *TelegramNotifChannel) TelegramBot(app *bunapp.App) (*tgbotapi.BotAPI, error) {
-	conf := app.Config()
+func (c *TelegramNotifChannel) TelegramBot(conf *bunconf.Config) (*tgbotapi.BotAPI, error) {
 	if conf.Telegram.BotToken == "" {
 		return nil, errors.New("telegram.bot_token is empty")
 	}
@@ -62,9 +63,9 @@ func (c *TelegramNotifChannel) TelegramBot(app *bunapp.App) (*tgbotapi.BotAPI, e
 }
 
 func SelectTelegramNotifChannel(
-	ctx context.Context, app *bunapp.App, channelID uint64,
+	ctx context.Context, pg *bun.DB, channelID uint64,
 ) (*TelegramNotifChannel, error) {
-	channelAny, err := SelectNotifChannel(ctx, app, channelID)
+	channelAny, err := SelectNotifChannel(ctx, pg, channelID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +79,7 @@ func SelectTelegramNotifChannel(
 
 //------------------------------------------------------------------------------
 
-func notifyByTelegramHandler(ctx context.Context, eventID, channelID uint64) error {
+func (h *NotifChannelHandler) notifyByTelegramHandler(ctx context.Context, eventID, channelID uint64) error {
 	app := bunapp.AppFromContext(ctx)
 
 	alert, err := selectAlertWithEvent(ctx, app, eventID)
@@ -95,17 +96,17 @@ func notifyByTelegramHandler(ctx context.Context, eventID, channelID uint64) err
 		return err
 	}
 
-	channel, err := SelectTelegramNotifChannel(ctx, app, channelID)
+	channel, err := SelectTelegramNotifChannel(ctx, h.PG, channelID)
 	if err != nil {
 		return err
 	}
 
-	return notifyByTelegramChannel(ctx, app, project, alert, channel)
+	return notifyByTelegramChannel(ctx, h.Conf, project, alert, channel)
 }
 
 func notifyByTelegramChannel(
 	ctx context.Context,
-	app *bunapp.App,
+	conf *bunconf.Config,
 	project *org.Project,
 	alert org.Alert,
 	channel *TelegramNotifChannel,
@@ -114,12 +115,12 @@ func notifyByTelegramChannel(
 		return nil
 	}
 
-	msg, err := telegramMsg(app, project, channel.Params.ChatID, alert)
+	msg, err := telegramMsg(conf, project, channel.Params.ChatID, alert)
 	if err != nil {
 		return err
 	}
 
-	bot, err := channel.TelegramBot(app)
+	bot, err := channel.TelegramBot(conf)
 	if err != nil {
 		return err
 	}
@@ -132,7 +133,7 @@ func notifyByTelegramChannel(
 }
 
 func telegramMsg(
-	app *bunapp.App, project *org.Project, chatID int64, alert org.Alert,
+	conf *bunconf.Config, project *org.Project, chatID int64, alert org.Alert,
 ) (*tgbotapi.MessageConfig, error) {
 	baseAlert := alert.Base()
 	msg := tgbotapi.NewMessage(chatID, "")
@@ -151,7 +152,7 @@ func telegramMsg(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonURL(
 				"View on Uptrace",
-				app.SiteURL(baseAlert.URL()),
+				conf.SiteURL(baseAlert.URL()),
 			),
 		),
 	)

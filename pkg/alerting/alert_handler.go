@@ -6,25 +6,48 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/fx"
+	"go.uber.org/zap"
+	"golang.org/x/exp/maps"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
-	"go.uber.org/zap"
-	"golang.org/x/exp/maps"
 )
 
-type AlertHandler struct {
-	*bunapp.App
+type AlertHandlerParams struct {
+	fx.In
+	Logger *otelzap.Logger
+	Conf   *bunconf.Config
+	PG     *bun.DB
+	CH     *ch.DB
 }
 
-func NewAlertHandler(app *bunapp.App) *AlertHandler {
-	return &AlertHandler{
-		App: app,
-	}
+type AlertHandler struct {
+	*AlertHandlerParams
+}
+
+func NewAlertHandler(p AlertHandlerParams) *AlertHandler {
+	return &AlertHandler{&p}
+}
+
+func registerAlertHandler(p bunapp.RouterParams, h *AlertHandler, middleware *Middleware) {
+	p.RouterInternalV1.NewGroup("/projects/:project_id",
+		bunrouter.WithMiddleware(middleware.UserAndProject),
+		bunrouter.WithGroup(func(g *bunrouter.Group) {
+			g.GET("/alerts", h.List)
+			g.GET("/alerts/:alert_id", h.Show)
+			g.PUT("/alerts/closed", h.Close)
+			g.PUT("/alerts/open", h.Open)
+			g.DELETE("/alerts", h.Delete)
+		}))
 }
 
 func (h *AlertHandler) Show(w http.ResponseWriter, req bunrouter.Request) error {
@@ -36,7 +59,8 @@ func (h *AlertHandler) Show(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	alert, err := SelectAlert(ctx, h.App, alertID)
+	fakeApp := &bunapp.App{PG: h.PG}
+	alert, err := SelectAlert(ctx, fakeApp, alertID)
 	if err != nil {
 		return err
 	}
@@ -113,7 +137,8 @@ func (h *AlertHandler) updateAlertsStatus(
 func (h *AlertHandler) changeAlertStatus(
 	ctx context.Context, userID uint64, projectID uint32, alertID uint64, status org.AlertStatus,
 ) error {
-	alert, err := SelectAlert(ctx, h.App, alertID)
+	fakeApp := &bunapp.App{PG: h.PG, CH: h.CH}
+	alert, err := SelectAlert(ctx, fakeApp, alertID)
 	if err != nil {
 		return err
 	}
@@ -126,7 +151,7 @@ func (h *AlertHandler) changeAlertStatus(
 		return nil
 	}
 
-	if err := tryAlertInTx(ctx, h.App, alert, func(tx bun.Tx) error {
+	if err := tryAlertInTx(ctx, fakeApp, alert, func(tx bun.Tx) error {
 		event := alert.GetEvent().Clone()
 		baseEvent := event.Base()
 		baseEvent.UserID = userID
@@ -161,7 +186,13 @@ func (h *AlertHandler) List(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	facets, err := selectAlertFacets(ctx, h.App, f)
+	fakeApp := &bunapp.App{
+		Logger: h.Logger,
+		Conf:   h.Conf,
+		PG:     h.PG,
+		CH:     h.CH,
+	}
+	facets, err := selectAlertFacets(ctx, fakeApp, f)
 	if err != nil {
 		return err
 	}

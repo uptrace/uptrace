@@ -12,17 +12,22 @@ import (
 	"strings"
 	"time"
 
+	"go.uber.org/fx"
+	"go.uber.org/zap"
+	"go4.org/syncutil"
+	"gopkg.in/yaml.v3"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/madalarm"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
-	"go.uber.org/zap"
-	"go4.org/syncutil"
-	"gopkg.in/yaml.v3"
 )
 
 type MonitorFilter struct {
@@ -130,14 +135,46 @@ func (f *MonitorFilter) extractParamsFromQuery() error {
 
 //------------------------------------------------------------------------------
 
-type MonitorHandler struct {
-	*bunapp.App
+type MonitorHandlerParams struct {
+	fx.In
+	App    *bunapp.App
+	Logger *otelzap.Logger
+	Conf   *bunconf.Config
+	PG     *bun.DB
+	CH     *ch.DB
 }
 
-func NewMonitorHandler(app *bunapp.App) *MonitorHandler {
-	return &MonitorHandler{
-		App: app,
-	}
+type MonitorHandler struct {
+	*MonitorHandlerParams
+}
+
+func NewMonitorHandler(p MonitorHandlerParams) *MonitorHandler {
+	return &MonitorHandler{&p}
+}
+
+func registerMonitorHandler(p bunapp.RouterParams, h *MonitorHandler, middleware *Middleware) {
+	p.RouterInternalV1.
+		Use(middleware.UserAndProject).
+		WithGroup("/projects/:project_id/monitors", func(g *bunrouter.Group) {
+			g.GET("", h.List)
+
+			g.POST("/yaml", h.CreateMonitorFromYAML)
+			g.POST("/metric", h.CreateMetricMonitor)
+			g.POST("/error", h.CreateErrorMonitor)
+
+			g = g.NewGroup("/:monitor_id").
+				Use(middleware.Monitor)
+
+			g.GET("", h.Show)
+			g.GET("/yaml", h.ShowYAML)
+			g.DELETE("", h.Delete)
+
+			g.PUT("/metric", h.UpdateMetricMonitor)
+			g.PUT("/error", h.UpdateErrorMonitor)
+
+			g.PUT("/active", h.Activate)
+			g.PUT("/paused", h.Pause)
+		})
 }
 
 type MonitorOut struct {
@@ -173,7 +210,7 @@ func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 	}
 
 	if err := h.countMonitorAlerts(ctx, monitors); err != nil {
-		h.Zap(ctx).Error("countMonitorAlerts failed", zap.Error(err))
+		h.Logger.Error("countMonitorAlerts failed", zap.Error(err))
 	}
 
 	return httputil.JSON(w, bunrouter.H{
@@ -600,7 +637,7 @@ func (h *MonitorHandler) CreateMonitorFromYAML(
 	}
 
 	for _, monitor := range monitors {
-		if err := org.InsertMonitor(ctx, h.App.PG, monitor); err != nil {
+		if err := org.InsertMonitor(ctx, h.PG, monitor); err != nil {
 			return err
 		}
 	}

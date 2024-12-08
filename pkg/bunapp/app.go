@@ -479,7 +479,11 @@ func (s *localStorage) Exists(ctx context.Context, key string) bool {
 //------------------------------------------------------------------------------
 
 func (app *App) NewMailer() (*mail.Client, error) {
-	cfg := app.Conf.SMTPMailer
+	return NewMailer(app.Conf)
+}
+
+func NewMailer(conf *bunconf.Config) (*mail.Client, error) {
+	cfg := conf.SMTPMailer
 
 	if !cfg.Enabled {
 		return nil, fmt.Errorf("smtp_mailer is disabled in the config")

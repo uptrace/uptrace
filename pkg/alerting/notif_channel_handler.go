@@ -9,14 +9,18 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/segmentio/encoding/json"
-
 	"github.com/go-openapi/strfmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/prometheus/alertmanager/api/v2/models"
+	"github.com/segmentio/encoding/json"
 	"github.com/slack-go/slack"
+	"go.uber.org/fx"
+
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bunlex"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
@@ -24,18 +28,50 @@ import (
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
-type NotifChannelHandler struct {
-	*bunapp.App
-
-	httpClient *http.Client
+type NotifChannelHandlerParams struct {
+	fx.In
+	Logger     *otelzap.Logger
+	Conf       *bunconf.Config
+	PG         *bun.DB
+	HTTPClient *http.Client
 }
 
-func NewNotifChannelHandler(app *bunapp.App) *NotifChannelHandler {
-	return &NotifChannelHandler{
-		App: app,
+type NotifChannelHandler struct {
+	*NotifChannelHandlerParams
+}
 
-		httpClient: app.HTTPClient,
-	}
+func NewNotifChannelHandler(p NotifChannelHandlerParams) *NotifChannelHandler {
+	return &NotifChannelHandler{&p}
+}
+
+func registerNotifChannelHandler(p bunapp.RouterParams, h *NotifChannelHandler, middleware *Middleware) {
+	p.RouterInternalV1.
+		Use(middleware.UserAndProject).
+		WithGroup("/projects/:project_id/notification-channels", func(g *bunrouter.Group) {
+			g.GET("", h.List)
+
+			g.POST("/slack", h.SlackCreate)
+			g.POST("/webhook", h.WebhookCreate)
+			g.POST("/telegram", h.TelegramCreate)
+
+			g.GET("/email", h.EmailShow)
+			g.PUT("/email", h.EmailUpdate)
+
+			g = g.Use(middleware.NotifChannel)
+
+			g.DELETE("/:channel_id", h.Delete)
+			g.PUT("/:channel_id/paused", h.Pause)
+			g.PUT("/:channel_id/unpaused", h.Unpause)
+
+			g.GET("/slack/:channel_id", h.SlackShow)
+			g.PUT("/slack/:channel_id", h.SlackUpdate)
+
+			g.GET("/webhook/:channel_id", h.WebhookShow)
+			g.PUT("/webhook/:channel_id", h.WebhookUpdate)
+
+			g.GET("/telegram/:channel_id", h.TelegramShow)
+			g.PUT("/telegram/:channel_id", h.TelegramUpdate)
+		})
 }
 
 func (h *NotifChannelHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
@@ -88,7 +124,7 @@ func (h *NotifChannelHandler) UpdateNotifChannelState(
 	ctx := req.Context()
 	channel := NotifChannelFromContext(ctx).Base()
 
-	if err := UpdateNotifChannelState(ctx, h.App, channel, state); err != nil {
+	if err := UpdateNotifChannelState(ctx, h.PG, channel, state); err != nil {
 		return err
 	}
 
@@ -164,7 +200,7 @@ func (h *NotifChannelHandler) SlackCreate(w http.ResponseWriter, req bunrouter.R
 		return httperror.Wrap(err)
 	}
 
-	if err := InsertNotifChannel(ctx, h.App, channel); err != nil {
+	if err := InsertNotifChannel(ctx, h.PG, channel); err != nil {
 		return err
 	}
 
@@ -192,7 +228,7 @@ func (h *NotifChannelHandler) SlackUpdate(w http.ResponseWriter, req bunrouter.R
 		return httperror.Wrap(err)
 	}
 
-	if err := UpdateNotifChannel(ctx, h.App, channel); err != nil {
+	if err := UpdateNotifChannel(ctx, h.PG, channel); err != nil {
 		return err
 	}
 
@@ -276,7 +312,7 @@ func (h *NotifChannelHandler) TelegramCreate(w http.ResponseWriter, req bunroute
 		return httperror.Wrap(err)
 	}
 
-	if err := InsertNotifChannel(ctx, h.App, channel); err != nil {
+	if err := InsertNotifChannel(ctx, h.PG, channel); err != nil {
 		return err
 	}
 
@@ -286,7 +322,7 @@ func (h *NotifChannelHandler) TelegramCreate(w http.ResponseWriter, req bunroute
 }
 
 func (h *NotifChannelHandler) sendTelegramTestMsg(channel *TelegramNotifChannel) error {
-	bot, err := channel.TelegramBot(h.App)
+	bot, err := channel.TelegramBot(h.Conf)
 	if err != nil {
 		return err
 	}
@@ -319,7 +355,7 @@ func (h *NotifChannelHandler) TelegramUpdate(w http.ResponseWriter, req bunroute
 		return httperror.Wrap(err)
 	}
 
-	if err := UpdateNotifChannel(ctx, h.App, channel); err != nil {
+	if err := UpdateNotifChannel(ctx, h.PG, channel); err != nil {
 		return err
 	}
 
@@ -413,7 +449,7 @@ func (h *NotifChannelHandler) WebhookCreate(w http.ResponseWriter, req bunrouter
 		return httperror.Wrap(err)
 	}
 
-	if err := InsertNotifChannel(ctx, h.App, channel); err != nil {
+	if err := InsertNotifChannel(ctx, h.PG, channel); err != nil {
 		return err
 	}
 
@@ -443,7 +479,7 @@ func (h *NotifChannelHandler) WebhookUpdate(w http.ResponseWriter, req bunrouter
 		return httperror.Wrap(err)
 	}
 
-	if err := UpdateNotifChannel(ctx, h.App, channel); err != nil {
+	if err := UpdateNotifChannel(ctx, h.PG, channel); err != nil {
 		return err
 	}
 
@@ -473,7 +509,7 @@ func (h *NotifChannelHandler) sendWebhookTestMsg(
 		},
 	}
 
-	return notifyByWebhookChannel(ctx, h.App, project, alert, channel)
+	return h.notifyByWebhookChannel(ctx, project, alert, channel)
 }
 
 //------------------------------------------------------------------------------
@@ -557,7 +593,7 @@ type WebhookMessage struct {
 	} `json:"alert"`
 }
 
-func NewWebhookMessage(app *bunapp.App, alert org.Alert, payload any) *WebhookMessage {
+func NewWebhookMessage(conf *bunconf.Config, alert org.Alert, payload any) *WebhookMessage {
 	baseAlert := alert.Base()
 	baseEvent := alert.GetEvent().Base()
 
@@ -569,7 +605,7 @@ func NewWebhookMessage(app *bunapp.App, alert org.Alert, payload any) *WebhookMe
 	msg.CreatedAt = baseEvent.CreatedAt
 
 	msg.Alert.ID = baseAlert.ID
-	msg.Alert.URL = app.SiteURL(baseAlert.URL())
+	msg.Alert.URL = conf.SiteURL(baseAlert.URL())
 	msg.Alert.Name = baseAlert.Name
 	msg.Alert.Type = baseAlert.Type
 	msg.Alert.Status = baseEvent.Status
@@ -581,7 +617,7 @@ func NewWebhookMessage(app *bunapp.App, alert org.Alert, payload any) *WebhookMe
 //------------------------------------------------------------------------------
 
 func NewAlertmanagerMessage(
-	app *bunapp.App, project *org.Project, alert org.Alert,
+	conf *bunconf.Config, project *org.Project, alert org.Alert,
 ) (models.PostableAlerts, error) {
 	baseAlert := alert.Base()
 
@@ -590,7 +626,7 @@ func NewAlertmanagerMessage(
 		labels[cleanLabelName(k)] = v
 	}
 	labels["alertname"] = baseAlert.Name
-	labels["alerturl"] = app.SiteURL(baseAlert.URL())
+	labels["alerturl"] = conf.SiteURL(baseAlert.URL())
 
 	var summary string
 	switch alert := alert.(type) {

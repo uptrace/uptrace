@@ -30,8 +30,8 @@ type ModuleParams struct {
 	CH     *ch.DB
 }
 
-func Init(p *ModuleParams) {
-	initRoutes(p)
+func Init(p ModuleParams) {
+	initRoutes(&p)
 }
 
 func initRoutes(p *ModuleParams) {

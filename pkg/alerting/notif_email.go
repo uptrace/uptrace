@@ -11,7 +11,9 @@ import (
 	"sync"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/wneessen/go-mail"
@@ -32,19 +34,17 @@ type EmailNotifier struct {
 	from string
 }
 
-func NewEmailNotifier(app *bunapp.App) *EmailNotifier {
-	conf := app.Config().SMTPMailer
-
-	if !conf.Enabled {
-		app.Logger.Info("smtp_mailer is disabled in the config")
+func NewEmailNotifier(logger *otelzap.Logger, conf *bunconf.Config) *EmailNotifier {
+	if !conf.SMTPMailer.Enabled {
+		logger.Info("smtp_mailer is disabled in the config")
 		return &EmailNotifier{
 			disabled: true,
 		}
 	}
 
-	client, err := app.NewMailer()
+	client, err := bunapp.NewMailer(conf)
 	if err != nil {
-		app.Logger.Error("mail.NewClient failed", zap.Error(err))
+		logger.Error("mail.NewClient failed", zap.Error(err))
 		return &EmailNotifier{
 			disabled: true,
 		}
@@ -54,7 +54,7 @@ func NewEmailNotifier(app *bunapp.App) *EmailNotifier {
 		Funcs(sprig.FuncMap()).
 		ParseFS(bunapp.FS(), path.Join("email", "*.html"))
 	if err != nil {
-		app.Logger.Error("template.New failed", zap.Error(err))
+		logger.Error("template.New failed", zap.Error(err))
 		return &EmailNotifier{
 			disabled: true,
 		}
@@ -63,7 +63,7 @@ func NewEmailNotifier(app *bunapp.App) *EmailNotifier {
 	return &EmailNotifier{
 		client: client,
 		emails: emails,
-		from:   conf.From,
+		from:   conf.SMTPMailer.From,
 	}
 }
 
@@ -101,8 +101,6 @@ func (n *EmailNotifier) NotifyHandler(
 	default:
 		return fmt.Errorf("unknown alert type: %T", alert)
 	}
-
-	return nil
 }
 
 func (n *EmailNotifier) notifyOnErrorAlert(

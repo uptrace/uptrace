@@ -9,13 +9,13 @@ import (
 	"net/http"
 
 	"github.com/segmentio/encoding/json"
+	"go.uber.org/zap"
 
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
-	"go.uber.org/zap"
 )
 
-func notifyByWebhookHandler(ctx context.Context, eventID, channelID uint64) error {
+func (h *NotifChannelHandler) notifyByWebhookHandler(ctx context.Context, eventID, channelID uint64) error {
 	app := bunapp.AppFromContext(ctx)
 
 	alert, err := selectAlertWithEvent(ctx, app, eventID)
@@ -32,17 +32,16 @@ func notifyByWebhookHandler(ctx context.Context, eventID, channelID uint64) erro
 		return err
 	}
 
-	channel, err := SelectWebhookNotifChannel(ctx, app, channelID)
+	channel, err := SelectWebhookNotifChannel(ctx, h.PG, channelID)
 	if err != nil {
 		return err
 	}
 
-	return notifyByWebhookChannel(ctx, app, project, alert, channel)
+	return h.notifyByWebhookChannel(ctx, project, alert, channel)
 }
 
-func notifyByWebhookChannel(
+func (h *NotifChannelHandler) notifyByWebhookChannel(
 	ctx context.Context,
-	app *bunapp.App,
 	project *org.Project,
 	alert org.Alert,
 	channel *WebhookNotifChannel,
@@ -55,10 +54,10 @@ func notifyByWebhookChannel(
 
 	switch channel.Type {
 	case NotifChannelWebhook:
-		msg = NewWebhookMessage(app, alert, channel.Params.Payload)
+		msg = NewWebhookMessage(h.Conf, alert, channel.Params.Payload)
 	case NotifChannelAlertmanager:
 		var err error
-		msg, err = NewAlertmanagerMessage(app, project, alert)
+		msg, err = NewAlertmanagerMessage(h.Conf, project, alert)
 		if err != nil {
 			return err
 		}
@@ -80,7 +79,7 @@ func notifyByWebhookChannel(
 	req.Header.Set("User-Agent", "Uptrace/1.0")
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := app.HTTPClient.Do(req)
+	resp, err := h.HTTPClient.Do(req)
 	if err != nil {
 		return err
 	}
@@ -96,12 +95,12 @@ func notifyByWebhookChannel(
 			Message string `json:"message"`
 		}
 		if err := json.Unmarshal(body, &out); err == nil {
-			app.Zap(ctx).Error("http.Post failed", zap.String("message", out.Message))
+			h.Logger.Error("http.Post failed", zap.String("message", out.Message))
 		} else {
 			if len(body) > 100 {
 				body = body[:100]
 			}
-			app.Zap(ctx).Error("http.Post failed", zap.String("message", string(body)))
+			h.Logger.Error("http.Post failed", zap.String("message", string(body)))
 		}
 
 		return fmt.Errorf("unexpected response: %s", resp.Status)

@@ -40,12 +40,12 @@ type ModuleParams struct {
 	MainQueue taskq.Queue
 }
 
-func Init(p *ModuleParams) {
-	sc := NewSpanConsumer(p)
-	lc := NewLogConsumer(p)
+func Init(p ModuleParams) {
+	sc := NewSpanConsumer(&p)
+	lc := NewLogConsumer(&p)
 
-	initOTLP(p, sc)
-	initRoutes(p, sc, lc)
+	initOTLP(&p, sc)
+	initRoutes(&p, sc, lc)
 }
 
 func initOTLP(p *ModuleParams, sp *SpanConsumer) {
