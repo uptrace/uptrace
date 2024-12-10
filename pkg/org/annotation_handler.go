@@ -9,18 +9,42 @@ import (
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/utf8util"
+	"go.uber.org/fx"
 )
 
-type AnnotationHandler struct {
-	pg *bun.DB
+type AnnotationHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	PG     *bun.DB
 }
 
-func NewAnnotationHandler(pg *bun.DB) *AnnotationHandler {
-	return &AnnotationHandler{pg: pg}
+type AnnotationHandler struct {
+	*AchievementHandlerParams
+}
+
+func NewAnnotationHandler(p AchievementHandlerParams) *AnnotationHandler {
+	return &AnnotationHandler{&p}
+}
+
+func registerAnnotationHandler(h *AnnotationHandler, p bunapp.RouterParams, m *Middleware) {
+	p.RouterInternalV1.POST("/annotations", h.CreatePublic)
+
+	p.RouterInternalV1.Use(m.UserAndProject).
+		WithGroup("/projects/:project_id/annotations", func(g *bunrouter.Group) {
+			g.GET("", h.List)
+			g.POST("", h.Create)
+
+			g = g.Use(h.AnnotationMiddleware)
+			g.GET("/:annotation_id", h.Show)
+			g.PUT("/:annotation_id", h.Update)
+			g.DELETE("/:annotation_id", h.Delete)
+		})
 }
 
 func (h *AnnotationHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
@@ -33,7 +57,7 @@ func (h *AnnotationHandler) List(w http.ResponseWriter, req bunrouter.Request) e
 
 	anns := make([]*Annotation, 0)
 
-	count, err := h.pg.NewSelect().
+	count, err := h.PG.NewSelect().
 		Model(&anns).
 		Apply(f.WhereClause).
 		Apply(f.PGOrder).
@@ -104,8 +128,7 @@ func (h *AnnotationHandler) CreatePublic(w http.ResponseWriter, req bunrouter.Re
 		return err
 	}
 
-	fakeApp := &bunapp.App{PG: h.pg}
-	project, err := SelectProjectByDSN(ctx, fakeApp, dsn)
+	project, err := SelectProjectByDSN(ctx, h.PG, dsn)
 	if err != nil {
 		return err
 	}
@@ -144,7 +167,7 @@ func (h *AnnotationHandler) createAnnotation(
 		return nil, err
 	}
 
-	if _, err := h.pg.NewInsert().
+	if _, err := h.PG.NewInsert().
 		Model(ann).
 		On("CONFLICT (project_id, hash) DO NOTHING").
 		Exec(req.Context()); err != nil {
@@ -166,7 +189,7 @@ func (h *AnnotationHandler) Update(w http.ResponseWriter, req bunrouter.Request)
 		return err
 	}
 
-	if err := h.pg.NewUpdate().
+	if err := h.PG.NewUpdate().
 		Model(ann).
 		Set("name = ?", ann.Name).
 		Set("description = ?", ann.Description).
@@ -187,7 +210,7 @@ func (h *AnnotationHandler) Delete(w http.ResponseWriter, req bunrouter.Request)
 	ctx := req.Context()
 	ann := AnnotationFromContext(ctx)
 
-	if _, err := h.pg.NewDelete().
+	if _, err := h.PG.NewDelete().
 		Model(ann).
 		Where("id = ?", ann.ID).
 		Exec(ctx); err != nil {
@@ -209,7 +232,7 @@ func (h *AnnotationHandler) AnnotationMiddleware(next bunrouter.HandlerFunc) bun
 
 		ann := new(Annotation)
 
-		if err := h.pg.NewSelect().
+		if err := h.PG.NewSelect().
 			Model(ann).
 			Where("id = ?", annID).
 			Where("project_id = ?", project.ID).

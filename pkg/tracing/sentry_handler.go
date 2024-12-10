@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
+	"go.uber.org/fx"
+	"go.uber.org/zap"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
@@ -23,21 +25,29 @@ import (
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/unsafeconv"
-	"go.uber.org/zap"
 )
 
-type SentryHandler struct {
-	logger   *otelzap.Logger
-	pg       *bun.DB
-	consumer *SpanConsumer
+type SentryHandlerParams struct {
+	fx.In
+
+	Logger   *otelzap.Logger
+	PG       *bun.DB
+	Consumer *SpanConsumer
 }
 
-func NewSentryHandler(logger *otelzap.Logger, pg *bun.DB, consumer *SpanConsumer) *SentryHandler {
-	return &SentryHandler{
-		logger:   logger,
-		pg:       pg,
-		consumer: consumer,
-	}
+type SentryHandler struct {
+	*SentryHandlerParams
+}
+
+func NewSentryHandler(p SentryHandlerParams) *SentryHandler {
+	return &SentryHandler{&p}
+}
+
+func registerSentryHandler(h *SentryHandler, p bunapp.RouterParams) {
+	p.Router.WithGroup("/api", func(g *bunrouter.Group) {
+		g.POST("/:project_id/store/", h.Store)
+		g.POST("/:project_id/envelope/", h.Envelope)
+	})
 }
 
 func (h *SentryHandler) Store(w http.ResponseWriter, req bunrouter.Request) error {
@@ -93,7 +103,7 @@ func (h *SentryHandler) processEvent(
 		span.Attrs[attrkey.LogMessage] = event.Message
 	}
 
-	h.consumer.AddSpan(ctx, span)
+	h.Consumer.AddSpan(ctx, span)
 
 	return nil
 }
@@ -364,7 +374,7 @@ func (h *SentryHandler) Envelope(w http.ResponseWriter, req bunrouter.Request) e
 		case "client_report":
 			// ignore
 		default:
-			h.logger.Error("sentry: unsupported item type", zap.String("type", header.Type))
+			h.Logger.Error("sentry: unsupported item type", zap.String("type", header.Type))
 		}
 	}
 
@@ -381,7 +391,7 @@ func (h *SentryHandler) processTransaction(
 
 	trace, ok := event.Contexts["trace"]
 	if !ok {
-		h.logger.Error("sentry: trace context is missing (transaction dropped)")
+		h.Logger.Error("sentry: trace context is missing (transaction dropped)")
 		return nil
 	}
 	delete(event.Contexts, "trace")
@@ -440,7 +450,7 @@ func (h *SentryHandler) processTransaction(
 			}
 		}
 
-		h.consumer.AddSpan(ctx, dest)
+		h.Consumer.AddSpan(ctx, dest)
 	}
 
 	span.ID = spanID
@@ -457,7 +467,7 @@ func (h *SentryHandler) processTransaction(
 		}
 	}
 
-	h.consumer.AddSpan(ctx, span)
+	h.Consumer.AddSpan(ctx, span)
 
 	return nil
 }
@@ -470,8 +480,7 @@ func (h *SentryHandler) projectFromRequest(req bunrouter.Request) (*org.Project,
 		return nil, err
 	}
 
-	fakeApp := &bunapp.App{PG: h.pg}
-	return org.SelectProjectByToken(ctx, fakeApp, sentryKey)
+	return org.SelectProjectByToken(ctx, h.PG, sentryKey)
 }
 
 func (h *SentryHandler) sentryKey(req bunrouter.Request) (string, error) {

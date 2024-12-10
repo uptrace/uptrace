@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/fx"
+	"golang.org/x/exp/slices"
+
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
@@ -13,19 +16,33 @@ import (
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
-	"golang.org/x/exp/slices"
 )
 
-type TraceHandler struct {
-	logger *otelzap.Logger
-	ch     *ch.DB
+type TraceHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	CH     *ch.DB
 }
 
-func NewTraceHandler(logger *otelzap.Logger, ch *ch.DB) *TraceHandler {
-	return &TraceHandler{
-		logger: logger,
-		ch:     ch,
-	}
+type TraceHandler struct {
+	*TraceHandlerParams
+}
+
+func NewTraceHandler(p TraceHandlerParams) *TraceHandler {
+	return &TraceHandler{&p}
+}
+
+func registerTraceHandler(h *TraceHandler, p bunapp.RouterParams, m *org.Middleware) {
+	p.RouterInternalV1.Use(m.User).
+		WithGroup("", func(g *bunrouter.Group) {
+			g.GET("/traces/search", h.FindTrace)
+
+			g = g.Use(m.UserAndProject).NewGroup("/tracing/:project_id")
+
+			g.GET("/traces/:trace_id", h.ShowTrace)
+			g.GET("/traces/:trace_id/:span_id", h.ShowSpan)
+		})
 }
 
 func (h *TraceHandler) FindTrace(w http.ResponseWriter, req bunrouter.Request) error {
@@ -38,7 +55,7 @@ func (h *TraceHandler) FindTrace(w http.ResponseWriter, req bunrouter.Request) e
 
 	var projectID uint32
 	var spanID idgen.SpanID
-	if err := h.ch.NewSelect().
+	if err := h.CH.NewSelect().
 		Model((*SpanData)(nil)).
 		ColumnExpr("project_id, id").
 		Where("trace_id = ?", traceID).
@@ -66,8 +83,7 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	fakeApp := &bunapp.App{CH: h.ch}
-	spans, hasMore, err := SelectTraceSpans(ctx, fakeApp, traceID)
+	spans, hasMore, err := SelectTraceSpans(ctx, h.CH, traceID)
 	if err != nil {
 		return err
 	}
@@ -177,8 +193,7 @@ func (h *TraceHandler) ShowSpan(w http.ResponseWriter, req bunrouter.Request) er
 		return err
 	}
 
-	fakeApp := &bunapp.App{CH: h.ch}
-	span, err := SelectSpan(ctx, fakeApp, project.ID, traceID, spanID)
+	span, err := SelectSpan(ctx, h.CH, project.ID, traceID, spanID)
 	if err != nil {
 		return err
 	}

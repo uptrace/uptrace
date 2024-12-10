@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/vmihailenco/msgpack/v5"
 )
@@ -51,14 +50,14 @@ func initSpanData(data *SpanData, span *Span) {
 
 func SelectSpan(
 	ctx context.Context,
-	app *bunapp.App,
+	ch *ch.DB,
 	projectID uint32,
 	traceID idgen.TraceID,
 	spanID idgen.SpanID,
 ) (*Span, error) {
 	var spans []*SpanData
 
-	selq := app.CH.NewSelect().
+	selq := ch.NewSelect().
 		ColumnExpr("project_id, trace_id, id, parent_id, time, data").
 		Model(&spans).
 		Where("project_id = ?", projectID).
@@ -107,13 +106,13 @@ func SelectSpan(
 }
 
 func SelectTraceSpans(
-	ctx context.Context, app *bunapp.App, traceID idgen.TraceID,
+	ctx context.Context, ch *ch.DB, traceID idgen.TraceID,
 ) ([]*Span, bool, error) {
 	const limit = 10000
 
 	var data []SpanData
 
-	if err := app.CH.NewSelect().
+	if err := ch.NewSelect().
 		DistinctOn("id").
 		ColumnExpr("project_id, trace_id, id, parent_id, time, data").
 		Model(&data).

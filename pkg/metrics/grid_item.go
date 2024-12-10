@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
@@ -484,11 +483,11 @@ func (m *ValueMapping) Validate() error {
 //------------------------------------------------------------------------------
 
 func SelectGridItem(
-	ctx context.Context, app *bunapp.App, itemID uint64,
+	ctx context.Context, pg *bun.DB, itemID uint64,
 ) (GridItem, error) {
 	baseItem := new(BaseGridItem)
 
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(baseItem).
 		Where("id = ?", itemID).
 		Scan(ctx); err != nil {
@@ -542,9 +541,9 @@ func decodeBaseGridItem(baseItem *BaseGridItem) (GridItem, error) {
 }
 
 func SelectGridItems(
-	ctx context.Context, app *bunapp.App, dashID uint64,
+	ctx context.Context, pg *bun.DB, dashID uint64,
 ) ([]GridItem, error) {
-	baseItems, err := SelectBaseGridItems(ctx, app, dashID)
+	baseItems, err := SelectBaseGridItems(ctx, pg, dashID)
 	if err != nil {
 		return nil, err
 	}
@@ -560,10 +559,10 @@ func SelectGridItems(
 }
 
 func SelectBaseGridItems(
-	ctx context.Context, app *bunapp.App, dashID uint64,
+	ctx context.Context, pg *bun.DB, dashID uint64,
 ) ([]*BaseGridItem, error) {
 	var gridItems []*BaseGridItem
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(&gridItems).
 		Where("dash_id = ?", dashID).
 		OrderExpr("row_id ASC, y_axis ASC, x_axis ASC, id ASC").

@@ -6,31 +6,43 @@ import (
 	"net/http"
 	"strings"
 
+	"go.uber.org/fx"
+	"golang.org/x/exp/slices"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
-	"golang.org/x/exp/slices"
-
-	"github.com/uptrace/uptrace/pkg/bunapp"
 )
 
-type AttrHandler struct {
-	logger *otelzap.Logger
-	pg     *bun.DB
-	ch     *ch.DB
+type AttrHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	PG     *bun.DB
+	CH     *ch.DB
 }
 
-func NewAttrHandler(logger *otelzap.Logger, pg *bun.DB, ch *ch.DB) *AttrHandler {
-	return &AttrHandler{
-		logger: logger,
-		pg:     pg,
-		ch:     ch,
-	}
+type AttrHandler struct {
+	*AttrHandlerParams
+}
+
+func NewAttrHandler(p AttrHandlerParams) *AttrHandler {
+	return &AttrHandler{&p}
+}
+
+func registerAttrHandler(h *AttrHandler, p bunapp.RouterParams, m *org.Middleware) {
+	p.RouterInternalV1.
+		Use(m.UserAndProject).
+		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
+			g.GET("/attributes", h.AttrKeys)
+			g.GET("/attributes/:attr", h.AttrValues)
+		})
 }
 
 var spanKeys = []string{
@@ -57,14 +69,13 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 	}
 	disableColumnsAndGroups(f.QueryParts)
 
-	fakeApp := &bunapp.App{CH: h.ch}
-	attrKeys, err := SelectAttrKeys(ctx, fakeApp, f)
+	attrKeys, err := SelectAttrKeys(ctx, h.CH, f)
 	if err != nil {
 		return err
 	}
 	attrKeys = append(attrKeys, spanKeys...)
 
-	pinnedAttrMap, err := org.SelectPinnedFacetMap(ctx, fakeApp, user.ID)
+	pinnedAttrMap, err := org.SelectPinnedFacetMap(ctx, h.PG, user.ID)
 	if err != nil {
 		return err
 	}
@@ -86,9 +97,9 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 	})
 }
 
-func SelectAttrKeys(ctx context.Context, app *bunapp.App, f *SpanFilter) ([]string, error) {
+func SelectAttrKeys(ctx context.Context, ch *ch.DB, f *SpanFilter) ([]string, error) {
 	keys := make([]string, 0)
-	q, _ := BuildSpanIndexQuery(app.CH, f, 0)
+	q, _ := BuildSpanIndexQuery(ch, f, 0)
 	if err := q.
 		ColumnExpr("groupUniqArrayArray(1000)(s.all_keys)").
 		Scan(ctx, &keys); err != nil {
@@ -112,8 +123,7 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	fakeApp := &bunapp.App{PG: h.pg}
-	items, hasMore, err := SelectAttrValues(ctx, fakeApp, f, attrKey)
+	items, hasMore, err := SelectAttrValues(ctx, h.CH, f, attrKey)
 	if err != nil {
 		return err
 	}
@@ -125,7 +135,7 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 }
 
 func SelectAttrValues(
-	ctx context.Context, app *bunapp.App, f *SpanFilter, attrKey string,
+	ctx context.Context, chdb *ch.DB, f *SpanFilter, attrKey string,
 ) ([]*AttrValueItem, bool, error) {
 	const limit = 1000
 
@@ -155,7 +165,7 @@ func SelectAttrValues(
 		}
 	}
 
-	q, _ := BuildSpanIndexQuery(app.CH, f, 0)
+	q, _ := BuildSpanIndexQuery(chdb, f, 0)
 	chExpr := appendCHAttr(nil, attr)
 
 	q = q.ColumnExpr("? AS value", ch.Safe(chExpr)).

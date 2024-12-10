@@ -97,9 +97,9 @@ func md5s(s string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func SelectUser(ctx context.Context, app *bunapp.App, id uint64) (*User, error) {
+func SelectUser(ctx context.Context, pg *bun.DB, id uint64) (*User, error) {
 	user := new(User)
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(user).
 		Where("id = ?", id).
 		Scan(ctx); err != nil {
@@ -119,9 +119,9 @@ func SelectUserByEmail(ctx context.Context, app *bunapp.App, email string) (*Use
 	return user, nil
 }
 
-func SelectUserByToken(ctx context.Context, app *bunapp.App, token string) (*User, error) {
+func SelectUserByToken(ctx context.Context, pg *bun.DB, token string) (*User, error) {
 	user := new(User)
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(user).
 		Where("auth_token = ?", token).
 		Scan(ctx); err != nil {
@@ -130,12 +130,12 @@ func SelectUserByToken(ctx context.Context, app *bunapp.App, token string) (*Use
 	return user, nil
 }
 
-func GetOrCreateUser(ctx context.Context, app *bunapp.App, user *User) error {
+func GetOrCreateUser(ctx context.Context, pg *bun.DB, user *User) error {
 	if err := user.Validate(); err != nil {
 		return err
 	}
 
-	if _, err := app.PG.NewInsert().
+	if _, err := pg.NewInsert().
 		Model(user).
 		On("CONFLICT (email) DO UPDATE").
 		Set("name = coalesce(EXCLUDED.name, u.name)").

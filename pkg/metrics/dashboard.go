@@ -8,7 +8,6 @@ import (
 
 	"github.com/uptrace/bun"
 
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"github.com/uptrace/uptrace/pkg/unixtime"
@@ -123,9 +122,9 @@ func (c *TableColumn) Validate() error {
 
 //------------------------------------------------------------------------------
 
-func SelectDashboard(ctx context.Context, app *bunapp.App, id uint64) (*Dashboard, error) {
+func SelectDashboard(ctx context.Context, pg *bun.DB, id uint64) (*Dashboard, error) {
 	dash := new(Dashboard)
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(dash).
 		Where("id = ?", id).
 		Scan(ctx); err != nil {

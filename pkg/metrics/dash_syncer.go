@@ -8,7 +8,6 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
@@ -18,23 +17,22 @@ import (
 )
 
 type DashSyncer struct {
-	app *bunapp.App
+	logger *otelzap.Logger
+	pg     *bun.DB
 
 	templates []*DashboardTpl
-
-	logger *otelzap.Logger
 }
 
-func NewDashSyncer(app *bunapp.App) *DashSyncer {
+func NewDashSyncer(logger *otelzap.Logger, pg *bun.DB) *DashSyncer {
 	templates, err := readDashboardTemplates()
 	if err != nil {
-		app.Logger.Error("readDashboardTemplates failed", zap.Error(err))
+		logger.Error("readDashboardTemplates failed", zap.Error(err))
 	}
 
 	return &DashSyncer{
-		app:       app,
+		logger:    logger,
+		pg:        pg,
 		templates: templates,
-		logger:    app.Logger,
 	}
 }
 
@@ -46,7 +44,7 @@ func (s *DashSyncer) CreateDashboardsHandler(ctx context.Context, projectID uint
 		attribute.Int64("project_id", int64(projectID)),
 	)
 
-	return s.app.PG.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+	return s.pg.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		var locked bool
 		if err := tx.NewRaw("SELECT pg_try_advisory_xact_lock(?)", projectID).
 			Scan(ctx, &locked); err != nil {
@@ -60,14 +58,14 @@ func (s *DashSyncer) CreateDashboardsHandler(ctx context.Context, projectID uint
 }
 
 func (s *DashSyncer) createDashboards(ctx context.Context, projectID uint32) error {
-	metricMap, err := SelectMetricMap(ctx, s.app, projectID)
+	metricMap, err := SelectMetricMap(ctx, s.pg, projectID)
 	if err != nil {
 		return fmt.Errorf("SelectMetricMap failed: %w", err)
 	}
 
 	var dashboards []*Dashboard
 
-	if err := s.app.PG.NewSelect().
+	if err := s.pg.NewSelect().
 		Model(&dashboards).
 		Where("project_id = ?", projectID).
 		Where("template_id IS NOT NULL").
@@ -88,8 +86,8 @@ func (s *DashSyncer) createDashboards(ctx context.Context, projectID uint32) err
 
 		if !evalMetricConditions(metricMap, tpl.If) {
 			if existingDash != nil {
-				if err := DeleteDashboard(ctx, s.app.PG, existingDash.ID); err != nil {
-					s.app.Zap(ctx).Error("DeleteDashboard failed", zap.Error(err))
+				if err := DeleteDashboard(ctx, s.pg, existingDash.ID); err != nil {
+					s.logger.Error("DeleteDashboard failed", zap.Error(err))
 				}
 			}
 			continue
@@ -103,14 +101,14 @@ func (s *DashSyncer) createDashboards(ctx context.Context, projectID uint32) err
 
 		if builder.IsEmpty() {
 			if existingDash != nil {
-				if err := DeleteDashboard(ctx, s.app.PG, existingDash.ID); err != nil {
+				if err := DeleteDashboard(ctx, s.pg, existingDash.ID); err != nil {
 					return fmt.Errorf("DeleteDashboard failed: %w", err)
 				}
 			}
 			continue
 		}
 
-		if err := s.app.PG.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		if err := s.pg.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 			return builder.Save(ctx, tx, existingDash, true)
 		}); err != nil {
 			return fmt.Errorf("saving dashboard %s failed: %w", tpl.ID, err)
@@ -125,7 +123,7 @@ func (s *DashSyncer) isDashChanged(ctx context.Context, dash *Dashboard) bool {
 		return true
 	}
 
-	n, err := s.app.PG.NewSelect().
+	n, err := s.pg.NewSelect().
 		Model((*BaseGridItem)(nil)).
 		Where("dash_id = ?", dash.ID).
 		Where("updated_at != created_at").

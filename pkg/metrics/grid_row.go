@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 )
 
 type GridRow struct {
@@ -42,11 +41,11 @@ func (row *GridRow) Validate() error {
 }
 
 func SelectGridRow(
-	ctx context.Context, app *bunapp.App, rowID uint64,
+	ctx context.Context, pg *bun.DB, rowID uint64,
 ) (*GridRow, error) {
 	row := new(GridRow)
 
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(row).
 		Where("id = ?", rowID).
 		Scan(ctx); err != nil {
@@ -76,14 +75,14 @@ func SelectGridRows(
 	return rows, nil
 }
 
-func SelectOrCreateGridRow(ctx context.Context, app *bunapp.App, dashID uint64) (*GridRow, error) {
+func SelectOrCreateGridRow(ctx context.Context, pg *bun.DB, dashID uint64) (*GridRow, error) {
 	row := &GridRow{
 		DashID:   dashID,
 		Title:    "Row Title",
 		Expanded: true,
 	}
 
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(row).
 		Where("dash_id = ?", dashID).
 		OrderExpr("index ASC").
@@ -97,7 +96,7 @@ func SelectOrCreateGridRow(ctx context.Context, app *bunapp.App, dashID uint64) 
 	if err := row.Validate(); err != nil {
 		return nil, err
 	}
-	if _, err := app.PG.NewInsert().Model(row).Exec(ctx); err != nil {
+	if _, err := pg.NewInsert().Model(row).Exec(ctx); err != nil {
 		return nil, err
 	}
 	return row, nil

@@ -10,13 +10,10 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/grafana/tempo/pkg/traceql"
-	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/idgen"
@@ -33,15 +30,29 @@ type TempoHandler struct {
 	BaseGrafanaHandler
 }
 
-func NewTempoHandler(logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB, ch *ch.DB) *TempoHandler {
+func NewTempoHandler(p BaseGrafanaHandlerParams) *TempoHandler {
 	return &TempoHandler{
-		BaseGrafanaHandler: BaseGrafanaHandler{
-			logger: logger,
-			conf:   conf,
-			pg:     pg,
-			ch:     ch,
-		},
+		BaseGrafanaHandler: BaseGrafanaHandler{&p},
 	}
+}
+
+func registerTempoHandler(h *TempoHandler, p bunapp.RouterParams, m *org.Middleware) {
+	// https://grafana.com/docs/tempo/latest/api_docs/
+	p.Router.WithGroup("/api/tempo/:project_id", func(g *bunrouter.Group) {
+		g = g.Use(m.UserAndProject)
+
+		g.GET("/ready", h.Ready)
+		g.GET("/api/echo", h.Echo)
+		g.GET("/api/status/buildinfo", h.BuildInfo)
+
+		g.GET("/api/traces/:trace_id", h.QueryTrace)
+		g.GET("/api/traces/:trace_id/json", h.QueryTraceJSON)
+
+		g.GET("/api/search", h.Search)
+
+		g.GET("/api/v2/search/tags", h.Tags)
+		g.GET("/api/v2/search/tag/:tag/values", h.TagValues)
+	})
 }
 
 func (h *TempoHandler) BuildInfo(w http.ResponseWriter, req bunrouter.Request) error {
@@ -70,8 +81,7 @@ func (h *TempoHandler) queryTrace(
 		return err
 	}
 
-	fakeApp := &bunapp.App{CH: h.ch}
-	spans, _, err := tracing.SelectTraceSpans(ctx, fakeApp, traceID)
+	spans, _, err := tracing.SelectTraceSpans(ctx, h.CH, traceID)
 	if err != nil {
 		return err
 	}
@@ -80,7 +90,7 @@ func (h *TempoHandler) queryTrace(
 		return httperror.NotFound("Trace %q not found. Try again later.", traceID)
 	}
 
-	resp := newTempopbTrace(h.conf, traceID, spans)
+	resp := newTempopbTrace(h.Conf, traceID, spans)
 
 	switch contentType {
 	case "*/*", jsonContentType:
@@ -112,7 +122,7 @@ func (h *TempoHandler) Tags(w http.ResponseWriter, req bunrouter.Request) error 
 
 	keys := make([]string, 0)
 
-	if err := tracing.NewSpanIndexQuery(h.ch).
+	if err := tracing.NewSpanIndexQuery(h.CH).
 		Distinct().
 		ColumnExpr("arrayJoin(all_keys) AS key").
 		Where("project_id = ?", project.ID).
@@ -154,7 +164,7 @@ func (h *TempoHandler) TagValues(w http.ResponseWriter, req bunrouter.Request) e
 	tag := tempoAttrKey(req.Param("tag"))
 	tagCHExpr := tempoCHExpr(tag)
 
-	q := tracing.NewSpanIndexQuery(h.ch).
+	q := tracing.NewSpanIndexQuery(h.CH).
 		Distinct().
 		ColumnExpr("toString(?) AS value", tagCHExpr).
 		Where("project_id = ?", project.ID).
@@ -250,7 +260,7 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 		f.Limit = 20
 	}
 
-	q := tracing.NewSpanIndexQuery(h.ch).
+	q := tracing.NewSpanIndexQuery(h.CH).
 		DistinctOn("trace_id").
 		ColumnExpr("trace_id").
 		ColumnExpr("id").
@@ -287,7 +297,7 @@ func (h *TempoHandler) Search(w http.ResponseWriter, req bunrouter.Request) erro
 	for _, item := range found {
 		var data []*tracing.SpanData
 
-		if err := h.ch.NewSelect().
+		if err := h.CH.NewSelect().
 			DistinctOn("id").
 			ColumnExpr("trace_id, id, parent_id, time, data").
 			Model(&data).

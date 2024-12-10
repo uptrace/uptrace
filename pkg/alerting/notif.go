@@ -4,24 +4,32 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/vmihailenco/taskq/v4"
+	"go.uber.org/zap"
+
 	"github.com/uptrace/bun"
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
-	"go.uber.org/zap"
 )
 
 func scheduleNotifyOnErrorAlert(
-	ctx context.Context, app *bunapp.App, alert *ErrorAlert,
+	ctx context.Context,
+	logger *otelzap.Logger,
+	pg *bun.DB,
+	ch *ch.DB,
+	mainQueue taskq.Queue,
+	alert *ErrorAlert,
 ) error {
 	span, err := tracing.SelectSpan(
-		ctx, app, alert.ProjectID, alert.Event.Params.TraceID, alert.Event.Params.SpanID,
+		ctx, ch, alert.ProjectID, alert.Event.Params.TraceID, alert.Event.Params.SpanID,
 	)
 	if err != nil {
 		return err
 	}
 
-	monitors, err := selectErrorMonitors(ctx, app, alert, span)
+	monitors, err := selectErrorMonitors(ctx, pg, alert, span)
 	if err != nil {
 		return err
 	}
@@ -30,23 +38,23 @@ func scheduleNotifyOnErrorAlert(
 		return nil
 	}
 
-	if err := scheduleNotifyByEmailOnErrorAlert(ctx, app, alert, monitors); err != nil {
-		app.Zap(ctx).Error("scheduleNotifyByEmailOnErrorAlert failed", zap.Error(err))
+	if err := scheduleNotifyByEmailOnErrorAlert(ctx, pg, mainQueue, alert, monitors); err != nil {
+		logger.Error("scheduleNotifyByEmailOnErrorAlert failed", zap.Error(err))
 	}
 
-	if err := scheduleNotifyByChannelsOnErrorAlert(ctx, app, alert, monitors); err != nil {
-		app.Zap(ctx).Error("scheduleNotifyByChannelsOnErrorAlert failed", zap.Error(err))
+	if err := scheduleNotifyByChannelsOnErrorAlert(ctx, pg, mainQueue, alert, monitors); err != nil {
+		logger.Error("scheduleNotifyByChannelsOnErrorAlert failed", zap.Error(err))
 	}
 
 	return nil
 }
 
 func selectErrorMonitors(
-	ctx context.Context, app *bunapp.App, alert *ErrorAlert, span *tracing.Span,
+	ctx context.Context, pg *bun.DB, alert *ErrorAlert, span *tracing.Span,
 ) ([]*org.ErrorMonitor, error) {
 	var monitors []*org.ErrorMonitor
 
-	q := app.PG.NewSelect().
+	q := pg.NewSelect().
 		Model(&monitors).
 		Where("project_id = ?", alert.ProjectID).
 		Where("type = ?", org.MonitorError).
@@ -84,7 +92,8 @@ func monitorMatches(m *org.ErrorMonitor, span *tracing.Span) bool {
 
 func scheduleNotifyByEmailOnErrorAlert(
 	ctx context.Context,
-	app *bunapp.App,
+	pg *bun.DB,
+	mainQueue taskq.Queue,
 	alert *ErrorAlert,
 	monitors []*org.ErrorMonitor,
 ) error {
@@ -94,7 +103,7 @@ func scheduleNotifyByEmailOnErrorAlert(
 	for _, monitor := range monitors {
 		emails, err := selectEmailRecipientsForMonitor(
 			ctx,
-			app,
+			pg,
 			monitor.Base(),
 			func(q *bun.SelectQuery) *bun.SelectQuery {
 				if alert.Event.Params.SpanCount > 0 {
@@ -118,7 +127,7 @@ func scheduleNotifyByEmailOnErrorAlert(
 
 	if len(recipients) > 0 {
 		job := NotifyByEmailTask.NewJob(alert.EventID, recipients)
-		if err := app.MainQueue.AddJob(ctx, job); err != nil {
+		if err := mainQueue.AddJob(ctx, job); err != nil {
 			return err
 		}
 	}
@@ -128,7 +137,8 @@ func scheduleNotifyByEmailOnErrorAlert(
 
 func scheduleNotifyByChannelsOnErrorAlert(
 	ctx context.Context,
-	app *bunapp.App,
+	pg *bun.DB,
+	mainQueue taskq.Queue,
 	alert *ErrorAlert,
 	monitors []*org.ErrorMonitor,
 ) error {
@@ -139,13 +149,13 @@ func scheduleNotifyByChannelsOnErrorAlert(
 
 	var channels []*BaseNotifChannel
 
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(&channels).
 		Where("project_id = ?", alert.ProjectID).
 		Where("state = ?", NotifChannelDelivering).
 		Limit(100).
 		Apply(func(q *bun.SelectQuery) *bun.SelectQuery {
-			subq := app.PG.NewSelect().
+			subq := pg.NewSelect().
 				Model((*org.MonitorChannel)(nil)).
 				ColumnExpr("channel_id").
 				Where("monitor_id IN (?)", bun.In(monitorIDs))
@@ -162,17 +172,17 @@ func scheduleNotifyByChannelsOnErrorAlert(
 		switch channel.Type {
 		case NotifChannelSlack:
 			job := NotifyBySlackTask.NewJob(alert.EventID, channel.ID)
-			if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
+			if err := mainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
 				firstErr = err
 			}
 		case NotifChannelTelegram:
 			job := NotifyByTelegramTask.NewJob(alert.EventID, channel.ID)
-			if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
+			if err := mainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
 				firstErr = err
 			}
 		case NotifChannelWebhook, NotifChannelAlertmanager:
 			job := NotifyByWebhookTask.NewJob(alert.EventID, channel.ID)
-			if err := app.MainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
+			if err := mainQueue.AddJob(ctx, job); err != nil && firstErr == nil {
 				firstErr = err
 			}
 		default:
@@ -186,16 +196,19 @@ func scheduleNotifyByChannelsOnErrorAlert(
 //------------------------------------------------------------------------------
 
 func scheduleNotifyOnMetricAlert(
-	ctx context.Context, app *bunapp.App, alert *MetricAlert,
+	ctx context.Context,
+	pg *bun.DB,
+	mainQueue taskq.Queue,
+	alert *MetricAlert,
 ) error {
-	monitor, err := org.SelectBaseMonitor(ctx, app, alert.MonitorID)
+	monitor, err := org.SelectBaseMonitor(ctx, pg, alert.MonitorID)
 	if err != nil {
 		return err
 	}
 
 	recipients, err := selectEmailRecipientsForMonitor(
 		ctx,
-		app,
+		pg,
 		monitor,
 		func(q *bun.SelectQuery) *bun.SelectQuery {
 			return q.Where("up IS NULL OR up.notify_on_metrics")
@@ -207,20 +220,20 @@ func scheduleNotifyOnMetricAlert(
 
 	if len(recipients) > 0 {
 		job := NotifyByEmailTask.NewJob(alert.EventID, recipients)
-		if err := app.MainQueue.AddJob(ctx, job); err != nil {
+		if err := mainQueue.AddJob(ctx, job); err != nil {
 			return err
 		}
 	}
 
 	var channels []*BaseNotifChannel
 
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(&channels).
 		Where("project_id = ?", alert.ProjectID).
 		Where("state = ?", NotifChannelDelivering).
 		Limit(100).
 		Apply(func(q *bun.SelectQuery) *bun.SelectQuery {
-			subq := app.PG.NewSelect().
+			subq := pg.NewSelect().
 				Model((*org.MonitorChannel)(nil)).
 				ColumnExpr("channel_id").
 				Where("monitor_id = ?", alert.MonitorID)
@@ -235,17 +248,17 @@ func scheduleNotifyOnMetricAlert(
 		switch channel.Type {
 		case NotifChannelSlack:
 			job := NotifyBySlackTask.NewJob(alert.EventID, channel.ID)
-			if err := app.MainQueue.AddJob(ctx, job); err != nil {
+			if err := mainQueue.AddJob(ctx, job); err != nil {
 				return err
 			}
 		case NotifChannelTelegram:
 			job := NotifyByTelegramTask.NewJob(alert.EventID, channel.ID)
-			if err := app.MainQueue.AddJob(ctx, job); err != nil {
+			if err := mainQueue.AddJob(ctx, job); err != nil {
 				return err
 			}
 		case NotifChannelWebhook, NotifChannelAlertmanager:
 			job := NotifyByWebhookTask.NewJob(alert.EventID, channel.ID)
-			if err := app.MainQueue.AddJob(ctx, job); err != nil {
+			if err := mainQueue.AddJob(ctx, job); err != nil {
 				return err
 			}
 		default:
@@ -258,30 +271,25 @@ func scheduleNotifyOnMetricAlert(
 
 func selectEmailRecipientsForMonitor(
 	ctx context.Context,
-	app *bunapp.App,
+	pg *bun.DB,
 	monitor *org.BaseMonitor,
 	cb func(q *bun.SelectQuery) *bun.SelectQuery,
 ) ([]string, error) {
 	if monitor.NotifyEveryoneByEmail {
-		return selectAllEmailRecipients(
-			ctx,
-			app,
-			monitor.ProjectID,
-			cb,
-		)
+		return selectAllEmailRecipients(ctx, pg, monitor.ProjectID, cb)
 	}
 	return nil, nil
 }
 
 func selectAllEmailRecipients(
 	ctx context.Context,
-	app *bunapp.App,
+	pg *bun.DB,
 	projectID uint32,
 	cb func(q *bun.SelectQuery) *bun.SelectQuery,
 ) ([]string, error) {
 	var recipients []string
 
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		ColumnExpr("u.email").
 		Model((*org.User)(nil)).
 		Join(

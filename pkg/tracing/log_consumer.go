@@ -33,7 +33,7 @@ type LogConsumer struct {
 	*BaseConsumer[LogIndex, LogData]
 }
 
-func NewLogConsumer(p *ModuleParams) *LogConsumer {
+func NewLogConsumer(p BaseConsumerParams) *LogConsumer {
 	batchSize := p.Conf.Logs.BatchSize
 	bufferSize := p.Conf.Logs.BufferSize
 	maxWorkers := p.Conf.Logs.MaxWorkers

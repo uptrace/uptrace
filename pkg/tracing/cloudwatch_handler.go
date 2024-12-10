@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
+	"go.uber.org/fx"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
@@ -18,18 +20,26 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
-type KinesisHandler struct {
-	logger   *otelzap.Logger
-	pg       *bun.DB
-	consumer *SpanConsumer
+type KinesisHandlerParams struct {
+	fx.In
+
+	Logger   *otelzap.Logger
+	PG       *bun.DB
+	Consumer *SpanConsumer
 }
 
-func NewKinesisHandler(logger *otelzap.Logger, pg *bun.DB, consumer *SpanConsumer) *KinesisHandler {
-	return &KinesisHandler{
-		logger:   logger,
-		pg:       pg,
-		consumer: consumer,
-	}
+type KinesisHandler struct {
+	*KinesisHandlerParams
+}
+
+func NewKinesisHandler(p KinesisHandlerParams) *KinesisHandler {
+	return &KinesisHandler{&p}
+}
+
+func registerKinesisHandler(h *KinesisHandler, p bunapp.RouterParams) {
+	p.Router.WithGroup("/api/v1/cloudwatch", func(g *bunrouter.Group) {
+		g.POST("/logs", h.Logs)
+	})
 }
 
 type KinesisEvent struct {
@@ -64,8 +74,7 @@ func (h *KinesisHandler) Logs(w http.ResponseWriter, req bunrouter.Request) erro
 		return errors.New("X-Amz-Firehose-Access-Key header is empty or missing")
 	}
 
-	fakeApp := &bunapp.App{PG: h.pg}
-	project, err := org.SelectProjectByDSN(ctx, fakeApp, dsn)
+	project, err := org.SelectProjectByDSN(ctx, h.PG, dsn)
 	if err != nil {
 		return err
 	}
@@ -105,7 +114,7 @@ func (h *KinesisHandler) Logs(w http.ResponseWriter, req bunrouter.Request) erro
 			event := &log.LogEvents[i]
 			span := h.convEvent(event)
 			span.ProjectID = project.ID
-			h.consumer.AddSpan(ctx, span)
+			h.Consumer.AddSpan(ctx, span)
 		}
 	}
 

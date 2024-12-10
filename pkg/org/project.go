@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 )
 
@@ -54,11 +53,9 @@ func (p *Project) DSN(conf *bunconf.Config) string {
 	return BuildDSN(conf, p.Token)
 }
 
-func SelectProject(
-	ctx context.Context, app *bunapp.App, projectID uint32,
-) (*Project, error) {
+func SelectProject(ctx context.Context, pg *bun.DB, projectID uint32) (*Project, error) {
 	project := new(Project)
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(project).
 		Where("id = ?", projectID).
 		Limit(1).
@@ -68,9 +65,7 @@ func SelectProject(
 	return project, nil
 }
 
-func SelectProjectByDSN(
-	ctx context.Context, app *bunapp.App, dsnStr string,
-) (*Project, error) {
+func SelectProjectByDSN(ctx context.Context, pg *bun.DB, dsnStr string) (*Project, error) {
 	dsn, err := ParseDSN(dsnStr)
 	if err != nil {
 		return nil, err
@@ -80,7 +75,7 @@ func SelectProjectByDSN(
 		return nil, fmt.Errorf("dsn %q does not have a token", dsnStr)
 	}
 
-	project, err := SelectProjectByToken(ctx, app, dsn.Token)
+	project, err := SelectProjectByToken(ctx, pg, dsn.Token)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("can't find project with token=%q", dsn.Token)
@@ -91,11 +86,9 @@ func SelectProjectByDSN(
 	return project, nil
 }
 
-func SelectProjectByToken(
-	ctx context.Context, app *bunapp.App, token string,
-) (*Project, error) {
+func SelectProjectByToken(ctx context.Context, pg *bun.DB, token string) (*Project, error) {
 	project := new(Project)
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(project).
 		Where("token = ?", token).
 		Limit(1).
@@ -105,9 +98,9 @@ func SelectProjectByToken(
 	return project, nil
 }
 
-func SelectProjects(ctx context.Context, app *bunapp.App) ([]*Project, error) {
+func SelectProjects(ctx context.Context, pg *bun.DB) ([]*Project, error) {
 	projects := make([]*Project, 0)
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(&projects).
 		Scan(ctx); err != nil {
 		return nil, err

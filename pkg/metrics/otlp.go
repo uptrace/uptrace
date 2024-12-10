@@ -3,28 +3,32 @@ package metrics
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/go-clickhouse/ch/bfloat16"
-	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconv"
-	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/otlpconv"
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	metricspb "go.opentelemetry.io/proto/otlp/metrics/v1"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"golang.org/x/exp/maps"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch/bfloat16"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/attrkey"
+	"github.com/uptrace/uptrace/pkg/bunconv"
+	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/otlpconv"
 )
 
 const (
@@ -32,19 +36,23 @@ const (
 	deltaAggTemp      = metricspb.AggregationTemporality_AGGREGATION_TEMPORALITY_DELTA
 )
 
-type MetricsServiceServer struct {
-	collectormetricspb.UnimplementedMetricsServiceServer
+type MetricsServiceServerParams struct {
+	fx.In
 
-	*bunapp.App
-
-	mp *DatapointProcessor
+	Logger *otelzap.Logger
+	PG     *bun.DB
+	MP     *DatapointProcessor
 }
 
-func NewMetricsServiceServer(app *bunapp.App, mp *DatapointProcessor) *MetricsServiceServer {
-	return &MetricsServiceServer{
-		App: app,
-		mp:  mp,
-	}
+type MetricsServiceServer struct {
+	*MetricsServiceServerParams
+	collectormetricspb.UnimplementedMetricsServiceServer
+
+	//mp *DatapointProcessor
+}
+
+func NewMetricsServiceServer(p MetricsServiceServerParams) *MetricsServiceServer {
+	return &MetricsServiceServer{MetricsServiceServerParams: &p}
 }
 
 var _ collectormetricspb.MetricsServiceServer = (*MetricsServiceServer)(nil)
@@ -57,14 +65,14 @@ func (s *MetricsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.R
 		return err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, s.App, dsn)
+	project, err := org.SelectProjectByDSN(ctx, s.PG, dsn)
 	if err != nil {
 		return err
 	}
 
 	switch contentType := req.Header.Get("content-type"); contentType {
 	case jsonContentType:
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		if err != nil {
 			return err
 		}
@@ -134,7 +142,7 @@ func (s *MetricsServiceServer) Export(
 		return nil, err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, s.App, dsn)
+	project, err := org.SelectProjectByDSN(ctx, s.PG, dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +156,9 @@ func (s *MetricsServiceServer) process(
 	project *org.Project,
 ) (*collectormetricspb.ExportMetricsServiceResponse, error) {
 	p := otlpProcessor{
-		App:     s.App,
-		mp:      s.mp,
+		logger:  s.Logger,
+		pg:      s.PG,
+		mp:      s.MP,
 		project: project,
 	}
 	defer p.close(ctx)
@@ -200,7 +209,7 @@ func (s *MetricsServiceServer) process(
 				case *metricspb.Metric_Summary:
 					p.otlpSummary(ctx, sm.Scope, scopeAttrs, metric, data)
 				default:
-					p.Zap(ctx).Error("unknown metric",
+					p.logger.Error("unknown metric",
 						zap.String("type", fmt.Sprintf("%T", data)))
 				}
 			}
@@ -211,9 +220,9 @@ func (s *MetricsServiceServer) process(
 }
 
 type otlpProcessor struct {
-	*bunapp.App
-
-	mp *DatapointProcessor
+	logger *otelzap.Logger
+	pg     *bun.DB
+	mp     *DatapointProcessor
 
 	project     *org.Project
 	metricIDMap map[MetricKey]struct{}
@@ -224,13 +233,13 @@ type otlpProcessor struct {
 
 func (p *otlpProcessor) close(ctx context.Context) {
 	if p.hasCollectorMetrics {
-		org.CreateAchievementOnce(ctx, p.App, &org.Achievement{
+		org.CreateAchievementOnce(ctx, p.logger, p.pg, &org.Achievement{
 			ProjectID: p.project.ID,
 			Name:      org.AchievInstallCollector,
 		})
 	}
 	if p.hasAppMetrics {
-		org.CreateAchievementOnce(ctx, p.App, &org.Achievement{
+		org.CreateAchievementOnce(ctx, p.logger, p.pg, &org.Achievement{
 			ProjectID: p.project.ID,
 			Name:      org.AchievConfigureMetrics,
 		})
@@ -262,7 +271,7 @@ func (p *otlpProcessor) otlpGauge(
 			dest.Gauge = num.AsDouble
 			p.enqueue(ctx, dest)
 		default:
-			p.Zap(ctx).Error("unknown data point value",
+			p.logger.Error("unknown data point value",
 				zap.String("type", fmt.Sprintf("%T", dp.Value)))
 		}
 	}
@@ -313,7 +322,7 @@ func (p *otlpProcessor) otlpSum(
 			}
 			p.enqueue(ctx, dest)
 		default:
-			p.Zap(ctx).Error("unknown point value type",
+			p.logger.Error("unknown point value type",
 				zap.String("type", fmt.Sprintf("%T", dp.Value)))
 		}
 	}
@@ -519,19 +528,19 @@ func (p *otlpProcessor) newDatapoint(
 
 func (p *otlpProcessor) enqueue(ctx context.Context, datapoint *Datapoint) {
 	if datapoint.ProjectID == 0 {
-		p.Zap(ctx).Error("project id is empty")
+		p.logger.Error("project id is empty")
 		return
 	}
 	if datapoint.Metric == "" {
-		p.Zap(ctx).Error("metric name is empty")
+		p.logger.Error("metric name is empty")
 		return
 	}
 	if datapoint.Instrument == "" {
-		p.Zap(ctx).Error("instrument is empty")
+		p.logger.Error("instrument is empty")
 		return
 	}
 	if datapoint.Time.IsZero() {
-		p.Zap(ctx).Error("time is empty")
+		p.logger.Error("time is empty")
 		return
 	}
 

@@ -30,6 +30,7 @@ import (
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/migrate"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
@@ -41,7 +42,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp/chmigrations"
 	"github.com/uptrace/uptrace/pkg/bunapp/pgmigrations"
 	"github.com/uptrace/uptrace/pkg/bunconf"
-	"github.com/uptrace/uptrace/pkg/grafana"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/org"
@@ -90,7 +90,7 @@ var versionCommand = &cli.Command{
 	},
 }
 
-func RunHTTPServer(
+func runHTTPServer(
 	lc fx.Lifecycle,
 	router *bunrouter.Router,
 	routerGroup *bunrouter.Group,
@@ -145,7 +145,7 @@ func RunHTTPServer(
 	})
 }
 
-func RunGRPCServer(lc fx.Lifecycle, srv *grpc.Server, conf *bunconf.Config, logger *otelzap.Logger) (*grpc.Server, error) {
+func runGRPCServer(lc fx.Lifecycle, srv *grpc.Server, conf *bunconf.Config, logger *otelzap.Logger) (*grpc.Server, error) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			l, err := net.Listen("tcp", conf.Listen.GRPC.Addr)
@@ -171,26 +171,7 @@ func RunGRPCServer(lc fx.Lifecycle, srv *grpc.Server, conf *bunconf.Config, logg
 	return srv, nil
 }
 
-func RunAlertingManager(lc fx.Lifecycle, app *bunapp.App, logger *otelzap.Logger) (*alerting.Manager, error) {
-	man := alerting.NewManager(app, &alerting.ManagerConfig{
-		Logger: logger.Logger,
-	})
-
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			go man.Run()
-			return nil
-		},
-		OnStop: func(ctx context.Context) error {
-			man.Stop()
-			return nil
-		},
-	})
-
-	return man, nil
-}
-
-func RunConsumer(lc fx.Lifecycle, app *bunapp.App, logger *otelzap.Logger) error {
+func runConsumer(lc fx.Lifecycle, app *bunapp.App, logger *otelzap.Logger) error {
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
 			go func() {
@@ -221,7 +202,11 @@ func NewFxApp(c *cli.Context, opts ...fx.Option) (*fx.App, error) {
 	}
 
 	options := []fx.Option{
+		org.Module,
 		alerting.Module,
+		metrics.Module,
+		tracing.Module,
+
 		fx.Supply(
 			app,
 			app.Conf,
@@ -259,7 +244,7 @@ func NewFxApp(c *cli.Context, opts ...fx.Option) (*fx.App, error) {
 	return fx.New(options...), nil
 }
 
-func UptraceInit(app *bunapp.App, conf *bunconf.Config, logger *otelzap.Logger) error {
+func uptraceInit(app *bunapp.App, conf *bunconf.Config, logger *otelzap.Logger) error {
 	fmt.Printf("read the docs at            https://uptrace.dev/get/\n")
 	fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
 	fmt.Printf("Telegram chat               https://t.me/uptrace\n")
@@ -285,12 +270,6 @@ func UptraceInit(app *bunapp.App, conf *bunconf.Config, logger *otelzap.Logger) 
 		return fmt.Errorf("loadInitialData failed: %w", err)
 	}
 
-	metrics.Init(ctx, app)
-
-	if err := syncDashboards(ctx, app); err != nil {
-		app.Zap(ctx).Error("syncDashboards failed", zap.Error(err))
-	}
-
 	return nil
 }
 
@@ -299,17 +278,14 @@ var serveCommand = &cli.Command{
 	Usage: "run HTTP and gRPC APIs",
 	Action: func(c *cli.Context) error {
 		fxApp, err := NewFxApp(c,
-			fx.Invoke(UptraceInit),
-			fx.Invoke(org.Init),
-			fx.Invoke(tracing.Init),
-			fx.Invoke(grafana.Init),
+			fx.Invoke(uptraceInit),
+			fx.Invoke(syncDashboards),
 			fx.Invoke(fx.Annotate(
-				RunHTTPServer,
+				runHTTPServer,
 				fx.ParamTags(``, ``, `name:"router_group"`, ``, ``),
 			)),
-			fx.Invoke(RunGRPCServer),
-			fx.Invoke(RunAlertingManager),
-			fx.Invoke(RunConsumer),
+			fx.Invoke(runGRPCServer),
+			fx.Invoke(runConsumer),
 			fx.Invoke(func() {
 				go genSampleTrace()
 			}),
@@ -555,20 +531,24 @@ func handleStaticFiles(conf *bunconf.Config, routerGroup *bunrouter.Group, fsys 
 	})
 }
 
-func syncDashboards(ctx context.Context, app *bunapp.App) error {
-	projects, err := org.SelectProjects(ctx, app)
-	if err != nil {
-		return err
-	}
+func syncDashboards(lc fx.Lifecycle, logger *otelzap.Logger, pg *bun.DB) {
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			projects, err := org.SelectProjects(ctx, pg)
+			if err != nil {
+				return err
+			}
 
-	dashSyncer := metrics.NewDashSyncer(app)
-	for _, project := range projects {
-		if err := dashSyncer.CreateDashboardsHandler(ctx, project.ID); err != nil {
-			return err
-		}
-	}
+			dashSyncer := metrics.NewDashSyncer(logger, pg)
+			for _, project := range projects {
+				if err := dashSyncer.CreateDashboardsHandler(ctx, project.ID); err != nil {
+					return err
+				}
+			}
 
-	return nil
+			return nil
+		},
+	})
 }
 
 func genSampleTrace() {

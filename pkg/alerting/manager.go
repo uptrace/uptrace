@@ -6,24 +6,37 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash/v2"
+	"github.com/vmihailenco/taskq/v4"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/fx"
+	"go.uber.org/zap"
+
 	"github.com/uptrace/bun"
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/madalarm"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/unixtime"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
 )
 
 const noDataMinutesThreshold = 60
 
+type ManagerParams struct {
+	fx.In
+
+	Logger    *otelzap.Logger
+	PG        *bun.DB
+	CH        *ch.DB
+	MainQueue taskq.Queue
+}
+
 type Manager struct {
-	app  *bunapp.App
-	conf *ManagerConfig
+	//conf *ManagerConfig
+	*ManagerParams
 
 	stop func()
 	exit <-chan struct{}
@@ -31,15 +44,26 @@ type Manager struct {
 }
 
 type ManagerConfig struct {
-	Monitors []*org.MetricMonitor
-	Logger   *zap.Logger
+	//Monitors []*org.MetricMonitor
+	Logger *zap.Logger
 }
 
-func NewManager(app *bunapp.App, conf *ManagerConfig) *Manager {
-	return &Manager{
-		app:  app,
-		conf: conf,
-	}
+// func NewManager(app *bunapp.App, conf *ManagerConfig) *Manager {
+func NewManager(p ManagerParams) *Manager {
+	return &Manager{ManagerParams: &p}
+}
+
+func runManager(lc fx.Lifecycle, man *Manager) {
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			go man.Run()
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			man.Stop()
+			return nil
+		},
+	})
 }
 
 func (m *Manager) Stop() {
@@ -54,14 +78,13 @@ func (m *Manager) Run() {
 
 	done := make(chan struct{})
 	m.done = done
-	defer func() {
-		close(done)
-	}()
+	defer close(done)
 
 	nextCheck := time.Now().
 		Add(time.Minute).
 		Truncate(time.Minute).
 		Add(30 * time.Second)
+
 	for {
 		select {
 		case <-time.After(time.Until(nextCheck)):
@@ -77,8 +100,7 @@ func (m *Manager) Run() {
 func (m *Manager) tick(ctx context.Context, tm time.Time) {
 	monitors, err := m.selectMetricMonitors(ctx)
 	if err != nil {
-		m.conf.Logger.Error("SelectMonitors failed",
-			zap.Error(err))
+		m.Logger.Error("SelectMonitors failed", zap.Error(err))
 		return
 	}
 
@@ -93,7 +115,7 @@ func (m *Manager) tick(ctx context.Context, tm time.Time) {
 
 			return m.monitor(ctx, monitor, tm)
 		}); err != nil {
-			m.conf.Logger.Error("monitor failed",
+			m.Logger.Error("monitor failed",
 				zap.Error(err),
 				zap.String("monitor.name", monitor.Name),
 				zap.String("monitor.query", monitor.Params.Query))
@@ -103,7 +125,7 @@ func (m *Manager) tick(ctx context.Context, tm time.Time) {
 
 func (m *Manager) selectMetricMonitors(ctx context.Context) ([]*org.MetricMonitor, error) {
 	monitors := make([]*org.MetricMonitor, 0)
-	if err := m.app.PG.NewSelect().
+	if err := m.PG.NewSelect().
 		Model(&monitors).
 		Where("type = ?", org.MonitorMetric).
 		Where("state NOT IN (?)", org.MonitorPaused, org.MonitorFailed).
@@ -118,7 +140,7 @@ func (m *Manager) monitor(ctx context.Context, monitor *org.MetricMonitor, timeL
 	if err != nil {
 		if err == sql.ErrNoRows { // one of the metrics does not exist
 			return org.UpdateMonitorState(
-				ctx, m.app, monitor.ID, monitor.State, org.MonitorFailed,
+				ctx, m.PG, monitor.ID, monitor.State, org.MonitorFailed,
 			)
 		}
 		return err
@@ -159,27 +181,27 @@ func (m *Manager) monitor(ctx context.Context, monitor *org.MetricMonitor, timeL
 	switch {
 	case len(result.Timeseries) == 0:
 		if err := org.UpdateMonitorState(
-			ctx, m.app, monitor.ID, monitor.State, org.MonitorNoData,
+			ctx, m.PG, monitor.ID, monitor.State, org.MonitorNoData,
 		); err != nil {
 			return err
 		}
 
 	case firing && monitor.State != org.MonitorFiring:
 		if err := org.UpdateMonitorState(
-			ctx, m.app, monitor.ID, monitor.State, org.MonitorFiring,
+			ctx, m.PG, monitor.ID, monitor.State, org.MonitorFiring,
 		); err != nil {
 			return err
 		}
 
 	case !firing && monitor.State != org.MonitorActive:
 		if err := org.UpdateMonitorState(
-			ctx, m.app, monitor.ID, monitor.State, org.MonitorActive,
+			ctx, m.PG, monitor.ID, monitor.State, org.MonitorActive,
 		); err != nil {
 			return err
 		}
 	}
 
-	if _, err := m.app.PG.NewUpdate().
+	if _, err := m.PG.NewUpdate().
 		Model(monitor).
 		Set("updated_at = now()").
 		Where("id = ?", monitor.ID).
@@ -196,7 +218,7 @@ func (m *Manager) selectMetricMap(
 ) (map[string]*metrics.Metric, error) {
 	metricMap := make(map[string]*metrics.Metric)
 	for _, ma := range monitor.Params.Metrics {
-		metric, err := metrics.SelectMetricByName(ctx, m.app, monitor.ProjectID, ma.Name)
+		metric, err := metrics.SelectMetricByName(ctx, m.PG, monitor.ProjectID, ma.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -211,7 +233,7 @@ func (m *Manager) selectTimeseries(
 	metricMap map[string]*metrics.Metric,
 	timeLT time.Time,
 ) (*mql.Result, error) {
-	storage := metrics.NewCHStorage(ctx, m.app.CH, &metrics.CHStorageConfig{
+	storage := metrics.NewCHStorage(ctx, m.CH, &metrics.CHStorageConfig{
 		ProjectID: monitor.ProjectID,
 		MetricMap: metricMap,
 		TableName: "datapoint_minutes",
@@ -273,7 +295,7 @@ func (m *Manager) checkTimeseries(
 
 	if alert != nil && alertTime.Sub(alert.Event.CreatedAt) < 8*time.Hour {
 		// There is already a recent closed alert. Reuse it instead of creating a new one.
-		if err := tryAlertInTx(ctx, m.app, alert, func(tx bun.Tx) error {
+		if err := tryAlertInTx(ctx, m.Logger, m.PG, m.CH, m.MainQueue, alert, func(tx bun.Tx) error {
 			event := alert.GetEvent().Clone().(*MetricAlertEvent)
 			event.Params.Update(monitor, checkRes)
 
@@ -311,7 +333,7 @@ func (m *Manager) checkTimeseries(
 	params.WhereQuery = ts.WhereQuery()
 	params.Update(monitor, checkRes)
 
-	if err := createAlert(ctx, m.app, alert); err != nil {
+	if err := createAlert(ctx, m.Logger, m.PG, m.CH, m.MainQueue, alert); err != nil {
 		return nil, err
 	}
 	return alert, nil
@@ -321,7 +343,7 @@ func (m *Manager) selectMetricAlert(
 	ctx context.Context, alert *org.BaseAlert,
 ) (*MetricAlert, error) {
 	dest := NewMetricAlert()
-	if err := selectMatchingAlert(ctx, m.app, alert, dest); err != nil {
+	if err := selectMatchingAlert(ctx, m.PG, alert, dest); err != nil {
 		return nil, err
 	}
 	return dest, nil
@@ -333,8 +355,7 @@ func (m *Manager) checkOpenAlert(
 	checker *madalarm.Checker,
 	ts *mql.Timeseries,
 	alert *MetricAlert,
-) (*MetricAlert, error,
-) {
+) (*MetricAlert, error) {
 	checkNumPoint := monitor.Params.CheckNumPoint
 	bounds := alert.Event.Params.Bounds
 
@@ -344,7 +365,7 @@ func (m *Manager) checkOpenAlert(
 	}
 
 	if checkRes.Firing == 0 && checkRes.FiringFor == 0 {
-		if err := tryAlertInTx(ctx, m.app, alert, func(tx bun.Tx) error {
+		if err := tryAlertInTx(ctx, m.Logger, m.PG, m.CH, m.MainQueue, alert, func(tx bun.Tx) error {
 			event := alert.Event.Clone().(*MetricAlertEvent)
 			event.Params.NormalValue = ts.Value[len(ts.Value)-checkNumPoint]
 			event.Params.UpdateMonitor(monitor)
@@ -372,7 +393,7 @@ func (m *Manager) checkOpenAlert(
 	}
 
 	if alertTime := ts.Time[len(ts.Time)-1].Time(); alertTime.Sub(alert.Event.CreatedAt) >= time.Hour {
-		if err := tryAlertInTx(ctx, m.app, alert, func(tx bun.Tx) error {
+		if err := tryAlertInTx(ctx, m.Logger, m.PG, m.CH, m.MainQueue, alert, func(tx bun.Tx) error {
 			event := alert.Event.Clone().(*MetricAlertEvent)
 			event.Params.Firing = checkRes.Firing
 			event.Params.CurrentValue = ts.Value[len(ts.Value)-1]

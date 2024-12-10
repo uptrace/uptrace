@@ -6,38 +6,44 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	collectortrace "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
+	"go.uber.org/fx"
 	"golang.org/x/exp/maps"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/attrkey"
+	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/otlpconv"
 )
+
+type TraceServiceServerParams struct {
+	fx.In
+
+	Logger   *otelzap.Logger
+	PG       *bun.DB
+	Consumer *SpanConsumer
+}
 
 type TraceServiceServer struct {
 	collectortrace.UnimplementedTraceServiceServer
-
-	*bunapp.App
-
-	sp *SpanConsumer
+	*TraceServiceServerParams
 }
 
 var _ collectortrace.TraceServiceServer = (*TraceServiceServer)(nil)
 
-func NewTraceServiceServer(app *bunapp.App, sp *SpanConsumer) *TraceServiceServer {
-	s := &TraceServiceServer{
-		App: app,
-		sp:  sp,
+func NewTraceServiceServer(p TraceServiceServerParams) *TraceServiceServer {
+	return &TraceServiceServer{
+		TraceServiceServerParams: &p,
 	}
-	return s
 }
 
 func (s *TraceServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Request) error {
@@ -53,7 +59,7 @@ func (s *TraceServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Req
 		span.SetAttributes(attribute.String("dsn", dsn))
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, s.App, dsn)
+	project, err := org.SelectProjectByDSN(ctx, s.PG, dsn)
 	if err != nil {
 		return err
 	}
@@ -128,7 +134,7 @@ func (s *TraceServiceServer) Export(
 		return nil, err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, s.App, dsn)
+	project, err := org.SelectProjectByDSN(ctx, s.PG, dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -167,12 +173,12 @@ func (s *TraceServiceServer) process(
 				span := &mem[i]
 				initSpanFromOTLP(span, scope, otlpSpan)
 				span.ProjectID = project.ID
-				s.sp.AddSpan(ctx, span)
+				s.Consumer.AddSpan(ctx, span)
 			}
 		}
 	}
 
-	org.CreateAchievementOnce(ctx, s.App, &org.Achievement{
+	org.CreateAchievementOnce(ctx, s.Logger, s.PG, &org.Achievement{
 		ProjectID: project.ID,
 		Name:      org.AchievConfigureTracing,
 	})

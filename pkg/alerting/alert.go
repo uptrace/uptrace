@@ -7,11 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vmihailenco/taskq/v4"
 	"github.com/xhit/go-str2duration/v2"
 	"go.uber.org/zap"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/madalarm"
@@ -214,10 +216,10 @@ func (params *MetricAlertParams) UpdateCheckResult(checkRes *madalarm.CheckResul
 	params.Bounds = checkRes.Bounds
 }
 
-func selectAlertWithEvent(ctx context.Context, app *bunapp.App, eventID uint64) (org.Alert, error) {
+func selectAlertWithEvent(ctx context.Context, pg *bun.DB, eventID uint64) (org.Alert, error) {
 	event := new(org.BaseAlertEvent)
 
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(event).
 		Relation("Alert").
 		Where("e.id = ?", eventID).
@@ -230,7 +232,7 @@ func selectAlertWithEvent(ctx context.Context, app *bunapp.App, eventID uint64) 
 	alert.Event = event
 
 	if event.UserID != 0 {
-		user, err := org.SelectUser(ctx, app, event.UserID)
+		user, err := org.SelectUser(ctx, pg, event.UserID)
 		if err != nil {
 			return nil, err
 		}
@@ -240,17 +242,17 @@ func selectAlertWithEvent(ctx context.Context, app *bunapp.App, eventID uint64) 
 	return decodeAlert(alert)
 }
 
-func SelectAlert(ctx context.Context, app *bunapp.App, id uint64) (org.Alert, error) {
-	alert, err := SelectBaseAlert(ctx, app, id)
+func SelectAlert(ctx context.Context, pg *bun.DB, id uint64) (org.Alert, error) {
+	alert, err := SelectBaseAlert(ctx, pg, id)
 	if err != nil {
 		return nil, err
 	}
 	return decodeAlert(alert)
 }
 
-func SelectBaseAlert(ctx context.Context, app *bunapp.App, alertID uint64) (*org.BaseAlert, error) {
+func SelectBaseAlert(ctx context.Context, pg *bun.DB, alertID uint64) (*org.BaseAlert, error) {
 	alert := new(org.BaseAlert)
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(alert).
 		Relation("Event").
 		Where("a.id = ?", alertID).
@@ -329,11 +331,11 @@ func updateAlertEvent(
 
 func selectMatchingAlert(
 	ctx context.Context,
-	app *bunapp.App,
+	pg *bun.DB,
 	alert *org.BaseAlert,
 	dest org.Alert,
 ) error {
-	return app.PG.NewSelect().
+	return pg.NewSelect().
 		Model(dest).
 		ExcludeColumn().
 		Relation("Event").
@@ -354,7 +356,14 @@ func selectMatchingAlert(
 		Scan(ctx)
 }
 
-func createAlert(ctx context.Context, app *bunapp.App, alert org.Alert) error {
+func createAlert(
+	ctx context.Context,
+	logger *otelzap.Logger,
+	pg *bun.DB,
+	ch *ch.DB,
+	mainQueue taskq.Queue,
+	alert org.Alert,
+) error {
 	baseAlert := alert.Base()
 
 	event := alert.GetEvent()
@@ -370,8 +379,8 @@ func createAlert(ctx context.Context, app *bunapp.App, alert org.Alert) error {
 		return fmt.Errorf("unexpected event name: %q", baseEvent.Name)
 	}
 
-	return tryAlertInTx(ctx, app, alert, func(tx bun.Tx) error {
-		inserted, err := org.InsertAlert(ctx, app, tx, alert)
+	return tryAlertInTx(ctx, logger, pg, ch, mainQueue, alert, func(tx bun.Tx) error {
+		inserted, err := org.InsertAlert(ctx, tx, alert)
 		if err != nil {
 			return err
 		}
@@ -393,9 +402,15 @@ func createAlert(ctx context.Context, app *bunapp.App, alert org.Alert) error {
 }
 
 func tryAlertInTx(
-	ctx context.Context, app *bunapp.App, alert org.Alert, fn func(tx bun.Tx) error,
+	ctx context.Context,
+	logger *otelzap.Logger,
+	pg *bun.DB,
+	ch *ch.DB,
+	mainQueue taskq.Queue,
+	alert org.Alert,
+	fn func(tx bun.Tx) error,
 ) error {
-	if err := app.PG.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+	if err := pg.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		return fn(tx)
 	}); err != nil {
 		return err
@@ -412,13 +427,13 @@ func tryAlertInTx(
 
 	switch alert := alert.(type) {
 	case *ErrorAlert:
-		if err := scheduleNotifyOnErrorAlert(ctx, app, alert); err != nil {
-			app.Zap(ctx).Error("scheduleNotifyOnErrorAlert failed", zap.Error(err))
+		if err := scheduleNotifyOnErrorAlert(ctx, logger, pg, ch, mainQueue, alert); err != nil {
+			logger.Error("scheduleNotifyOnErrorAlert failed", zap.Error(err))
 		}
 		return nil
 	case *MetricAlert:
-		if err := scheduleNotifyOnMetricAlert(ctx, app, alert); err != nil {
-			app.Zap(ctx).Error("scheduleNotifyOnMetricAlert failed", zap.Error(err))
+		if err := scheduleNotifyOnMetricAlert(ctx, pg, mainQueue, alert); err != nil {
+			logger.Error("scheduleNotifyOnMetricAlert failed", zap.Error(err))
 		}
 		return nil
 	default:

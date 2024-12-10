@@ -3,24 +3,38 @@ package tracing
 import (
 	"net/http"
 
+	"go.uber.org/fx"
+
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 )
 
-type ServiceGraphHandler struct {
-	logger *otelzap.Logger
-	ch     *ch.DB
+type ServiceGraphHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	CH     *ch.DB
 }
 
-func NewServiceGraphHandler(logger *otelzap.Logger, ch *ch.DB) *ServiceGraphHandler {
-	return &ServiceGraphHandler{
-		logger: logger,
-		ch:     ch,
-	}
+type ServiceGraphHandler struct {
+	*ServiceGraphHandlerParams
+}
+
+func NewServiceGraphHandler(p ServiceGraphHandlerParams) *ServiceGraphHandler {
+	return &ServiceGraphHandler{&p}
+}
+
+func registerServiceGraphHandler(h *ServiceGraphHandler, p bunapp.RouterParams, m *org.Middleware) {
+	p.RouterInternalV1.WithGroup("/tracing/:project_id/service-graph", func(g *bunrouter.Group) {
+		g = g.Use(m.UserAndProject)
+		g.GET("", h.List)
+	})
 }
 
 type ServiceGraphLink struct {
@@ -85,7 +99,7 @@ func (h *ServiceGraphHandler) List(w http.ResponseWriter, req bunrouter.Request)
 	}
 
 	minutes := f.Duration().Minutes()
-	q := h.ch.NewSelect().
+	q := h.CH.NewSelect().
 		Model((*ServiceGraphEdge)(nil)).
 		ColumnExpr("e.type").
 		ColumnExpr("e.client_attr").

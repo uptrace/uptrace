@@ -6,17 +6,20 @@ import (
 	"net/url"
 	"time"
 
+	"go.uber.org/fx"
+	"golang.org/x/exp/slices"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
-	"golang.org/x/exp/slices"
 )
 
 type AttrFilter struct {
@@ -32,7 +35,7 @@ type AttrFilter struct {
 	SearchInput     string
 }
 
-func DecodeAttrFilter(app *bunapp.App, req bunrouter.Request, f *AttrFilter) error {
+func DecodeAttrFilter(req bunrouter.Request, f *AttrFilter) error {
 	ctx := req.Context()
 	f.ProjectID = org.ProjectFromContext(ctx).ID
 
@@ -82,14 +85,29 @@ func (f *AttrFilter) pgWhere(selq *bun.SelectQuery) *bun.SelectQuery {
 
 //------------------------------------------------------------------------------
 
-type AttrHandler struct {
-	*bunapp.App
+type AttrHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	PG     *bun.DB
+	CH     *ch.DB
 }
 
-func NewAttrHandler(app *bunapp.App) *AttrHandler {
-	return &AttrHandler{
-		App: app,
-	}
+type AttrHandler struct {
+	*AttrHandlerParams
+}
+
+func NewAttrHandler(p AttrHandlerParams) *AttrHandler {
+	return &AttrHandler{&p}
+}
+
+func registerAttrHandler(h *AttrHandler, p bunapp.RouterParams, m *Middleware) {
+	p.RouterInternalV1.
+		Use(m.UserAndProject).
+		WithGroup("/metrics/:project_id", func(g *bunrouter.Group) {
+			g.GET("/attributes", h.AttrKeys)
+			g.GET("/attributes/:attr", h.AttrValues)
+		})
 }
 
 type AttrKeyItem struct {
@@ -106,7 +124,7 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 	f.TimeLT = time.Now()
 	f.TimeGTE = time.Now().Add(-24 * time.Hour)
 
-	if err := DecodeAttrFilter(h.App, req, f); err != nil {
+	if err := DecodeAttrFilter(req, f); err != nil {
 		return err
 	}
 
@@ -142,7 +160,7 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 
 	var pinnedAttrMap map[string]bool
 	if user != nil {
-		pinnedAttrMap, err = org.SelectPinnedFacetMap(ctx, h.App, user.ID)
+		pinnedAttrMap, err = org.SelectPinnedFacetMap(ctx, h.PG, user.ID)
 		if err != nil {
 			return err
 		}
@@ -176,7 +194,7 @@ func (h *AttrHandler) selectAttrKeys(ctx context.Context, f *AttrFilter) ([]stri
 			}
 			spanFilter := newSpanFilter(typeFilter, "")
 
-			keys, err := tracing.SelectAttrKeys(ctx, h.App, spanFilter)
+			keys, err := tracing.SelectAttrKeys(ctx, h.CH, spanFilter)
 			if err != nil {
 				return nil, err
 			}
@@ -204,7 +222,7 @@ func (h *AttrHandler) AttrValues(w http.ResponseWriter, req bunrouter.Request) e
 	attrKey := req.Param("attr")
 
 	f := new(AttrFilter)
-	if err := DecodeAttrFilter(h.App, req, f); err != nil {
+	if err := DecodeAttrFilter(req, f); err != nil {
 		return err
 	}
 
@@ -238,7 +256,7 @@ func (h *AttrHandler) selectAttrValues(
 			}
 
 			spanFilter := newSpanFilter(typeFilter, "")
-			return tracing.SelectAttrValues(ctx, h.App, spanFilter, attrKey)
+			return tracing.SelectAttrValues(ctx, h.CH, spanFilter, attrKey)
 		}
 	}
 

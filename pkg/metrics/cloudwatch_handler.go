@@ -3,12 +3,15 @@ package metrics
 import (
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
 	"github.com/segmentio/encoding/json"
+	"go.uber.org/fx"
+
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconv"
@@ -16,17 +19,26 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
-type KinesisHandler struct {
-	*bunapp.App
+type KinesisHandlerParams struct {
+	fx.In
 
-	mp *DatapointProcessor
+	Logger *otelzap.Logger
+	PG     *bun.DB
+	MP     *DatapointProcessor
 }
 
-func NewKinesisHandler(app *bunapp.App, mp *DatapointProcessor) *KinesisHandler {
-	return &KinesisHandler{
-		App: app,
-		mp:  mp,
-	}
+type KinesisHandler struct {
+	*KinesisHandlerParams
+}
+
+func NewKinesisHandler(p KinesisHandlerParams) *KinesisHandler {
+	return &KinesisHandler{&p}
+}
+
+func registerKinesisHandler(h *KinesisHandler, p bunapp.RouterParams) {
+	p.Router.WithGroup("/api/v1/cloudwatch", func(g *bunrouter.Group) {
+		g.POST("/metrics", h.Metrics)
+	})
 }
 
 type KinesisEvent struct {
@@ -63,12 +75,12 @@ func (h *KinesisHandler) Metrics(w http.ResponseWriter, req bunrouter.Request) e
 		return errors.New("X-Amz-Firehose-Access-Key header is empty or missing")
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, h.App, dsn)
+	project, err := org.SelectProjectByDSN(ctx, h.PG, dsn)
 	if err != nil {
 		return err
 	}
 
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		return err
 	}
@@ -81,8 +93,9 @@ func (h *KinesisHandler) Metrics(w http.ResponseWriter, req bunrouter.Request) e
 	}
 
 	p := otlpProcessor{
-		App:     h.App,
-		mp:      h.mp,
+		logger:  h.Logger,
+		pg:      h.PG,
+		mp:      h.MP,
 		project: project,
 	}
 	defer p.close(ctx)

@@ -9,6 +9,7 @@ import (
 	"github.com/vmihailenco/taskq/v4"
 	"go.uber.org/fx"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
@@ -21,27 +22,31 @@ var Module = fx.Module("alerting",
 	fx.Provide(
 		fx.Private,
 		NewMiddleware,
+		NewEmailNotifier,
+		NewAlertNotifier,
+		NewManager,
+
 		NewAlertHandler,
 		NewMonitorHandler,
 		NewNotifChannelHandler,
 	),
 	fx.Invoke(
+		initTasks,
+		runManager,
+
 		registerAlertHandler,
 		registerMonitorHandler,
 		registerNotifChannelHandler,
-		initTasks,
 	),
 )
 
 type Middleware struct {
-	App *bunapp.App
 	*org.Middleware
 }
 
-func NewMiddleware(app *bunapp.App) *Middleware {
+func NewMiddleware(logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB) *Middleware {
 	return &Middleware{
-		App:        app,
-		Middleware: org.NewMiddleware(app),
+		Middleware: org.NewMiddleware(logger, conf, pg),
 	}
 }
 
@@ -56,7 +61,7 @@ func (m *Middleware) Monitor(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
 			return err
 		}
 
-		monitor, err := org.SelectMonitor(ctx, m.App, monitorID)
+		monitor, err := org.SelectMonitor(ctx, m.PG, monitorID)
 		if err != nil {
 			return err
 		}
@@ -137,7 +142,7 @@ func (m *Middleware) NotifChannel(next bunrouter.HandlerFunc) bunrouter.HandlerF
 			return err
 		}
 
-		channel, err := SelectNotifChannel(ctx, m.App.PG, channelID)
+		channel, err := SelectNotifChannel(ctx, m.PG, channelID)
 		if err != nil {
 			return err
 		}
@@ -161,17 +166,14 @@ var (
 	NotifyByTelegramTask = taskq.NewTask("notify-by-telegram")
 )
 
-func initTasks(logger *otelzap.Logger, conf *bunconf.Config, h *NotifChannelHandler) {
-	registerTaskHandler(org.CreateErrorAlertTask.Name(), createErrorAlertHandler)
-	registerTaskHandler(NotifyByEmailTask.Name(), NewEmailNotifier(logger, conf).NotifyHandler)
-	registerTaskHandler(NotifyByTelegramTask.Name(), h.notifyByTelegramHandler)
-	registerTaskHandler(NotifyBySlackTask.Name(), h.notifyBySlackHandler)
-	registerTaskHandler(NotifyByWebhookTask.Name(), h.notifyByWebhookHandler)
-}
-
-func registerTaskHandler(name string, handler any) {
-	_ = taskq.RegisterTask(name, &taskq.TaskConfig{
-		RetryLimit: 16,
-		Handler:    handler,
-	})
+func initTasks(
+	alertNotifier *AlertNotifier,
+	emailNotifier *EmailNotifier,
+	handler *NotifChannelHandler,
+) {
+	bunapp.RegisterTaskHandler(org.CreateErrorAlertTask.Name(), alertNotifier.ErrorHandler)
+	bunapp.RegisterTaskHandler(NotifyByEmailTask.Name(), emailNotifier.NotifyHandler)
+	bunapp.RegisterTaskHandler(NotifyByTelegramTask.Name(), handler.notifyByTelegramHandler)
+	bunapp.RegisterTaskHandler(NotifyBySlackTask.Name(), handler.notifyBySlackHandler)
+	bunapp.RegisterTaskHandler(NotifyByWebhookTask.Name(), handler.notifyByWebhookHandler)
 }

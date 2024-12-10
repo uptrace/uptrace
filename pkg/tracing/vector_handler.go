@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/fx"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
@@ -17,24 +20,31 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
 const vectorSDK = "vector"
 
-type VectorHandler struct {
-	logger   *otelzap.Logger
-	pg       *bun.DB
-	consumer *LogConsumer
+type VectorHandlerParams struct {
+	fx.In
+
+	Logger   *otelzap.Logger
+	PG       *bun.DB
+	Consumer *LogConsumer
 }
 
-func NewVectorHandler(logger *otelzap.Logger, pg *bun.DB, consumer *LogConsumer) *VectorHandler {
-	return &VectorHandler{
-		logger:   logger,
-		pg:       pg,
-		consumer: consumer,
-	}
+type VectorHandler struct {
+	*VectorHandlerParams
+}
+
+func NewVectorHandler(p VectorHandlerParams) *VectorHandler {
+	return &VectorHandler{&p}
+}
+
+func registerVectorHandler(h *VectorHandler, p bunapp.RouterParams) {
+	p.Router.WithGroup("/api/v1", func(g *bunrouter.Group) {
+		g.POST("/vector-logs", h.Create)
+		g.POST("/vector/logs", h.Create)
+	})
 }
 
 func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) error {
@@ -45,8 +55,7 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 		return err
 	}
 
-	fakeApp := &bunapp.App{PG: h.pg}
-	project, err := org.SelectProjectByDSN(ctx, fakeApp, dsn)
+	project, err := org.SelectProjectByDSN(ctx, h.PG, dsn)
 	if err != nil {
 		return err
 	}
@@ -82,7 +91,7 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 		span := new(Span)
 		p.spanFromVector(ctx, span, m)
 		span.ProjectID = project.ID
-		h.consumer.AddSpan(ctx, span)
+		h.Consumer.AddSpan(ctx, span)
 	}
 
 	return nil

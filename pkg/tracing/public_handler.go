@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/fx"
+
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
@@ -77,16 +79,28 @@ type PublicSpanFilter struct {
 	ParentID  uint64
 }
 
-type PublicHandler struct {
-	logger *otelzap.Logger
-	ch     *ch.DB
+type PublicHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	CH     *ch.DB
 }
 
-func NewPublicHandler(logger *otelzap.Logger, ch *ch.DB) *PublicHandler {
-	return &PublicHandler{
-		logger: logger,
-		ch:     ch,
-	}
+type PublicHandler struct {
+	*PublicHandlerParams
+}
+
+func NewPublicHandler(p PublicHandlerParams) *PublicHandler {
+	return &PublicHandler{&p}
+}
+
+func registerPublicHandler(h *PublicHandler, p bunapp.RouterParams, m *org.Middleware) {
+	p.RouterPublicV1.
+		Use(m.UserAndProject).
+		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
+			g.GET("/spans", h.Spans)
+			g.GET("/groups", h.Groups)
+		})
 }
 
 func (h *PublicHandler) Spans(w http.ResponseWriter, req bunrouter.Request) error {
@@ -105,7 +119,7 @@ func (h *PublicHandler) Spans(w http.ResponseWriter, req bunrouter.Request) erro
 	limit := f.Pager.GetLimit()
 
 	var spansData []SpanData
-	q := h.ch.NewSelect().
+	q := h.CH.NewSelect().
 		Model(&spansData).
 		Where("project_id = ?", f.ProjectID).
 		Where("time >= ?", f.TimeGTE).
@@ -154,7 +168,7 @@ func (h *PublicHandler) Groups(w http.ResponseWriter, req bunrouter.Request) err
 	f.Pager.MaxLimit = 100000
 	limit := f.Pager.GetLimit()
 
-	selq, _ := BuildSpanIndexQuery(h.ch, f, 0)
+	selq, _ := BuildSpanIndexQuery(h.CH, f, 0)
 
 	items := make([]map[string]any, 0)
 	if err := selq.

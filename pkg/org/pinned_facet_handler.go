@@ -10,29 +10,41 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"go.uber.org/fx"
 	"golang.org/x/exp/slices"
 )
 
-type PinnedFacetHandler struct {
-	conf   *bunconf.Config
-	logger *otelzap.Logger
-	pg     *bun.DB
+type PinnedFacetHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	Conf   *bunconf.Config
+	PG     *bun.DB
 }
 
-func NewPinnedFacetHandler(conf *bunconf.Config, logger *otelzap.Logger, pg *bun.DB) *PinnedFacetHandler {
-	return &PinnedFacetHandler{
-		conf:   conf,
-		logger: logger,
-		pg:     pg,
-	}
+type PinnedFacetHandler struct {
+	*PinnedFacetHandlerParams
+}
+
+func NewPinnedFacetHandler(p PinnedFacetHandlerParams) *PinnedFacetHandler {
+	return &PinnedFacetHandler{&p}
+}
+
+func registerPinnedFacetHandler(h *PinnedFacetHandler, p bunapp.RouterParams, m *Middleware) {
+	p.RouterInternalV1.
+		Use(m.User).
+		WithGroup("/pinned-facets", func(g *bunrouter.Group) {
+			g.GET("", h.List)
+			g.POST("", h.Add)
+			g.DELETE("", h.Remove)
+		})
 }
 
 func (h *PinnedFacetHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 	user := UserFromContext(ctx)
 
-	fakeApp := &bunapp.App{PG: h.pg}
-	attrs, err := SelectPinnedFacets(ctx, fakeApp, user.ID)
+	attrs, err := SelectPinnedFacets(ctx, h.PG, user.ID)
 	if err != nil {
 		return err
 	}
@@ -63,7 +75,7 @@ func (h *PinnedFacetHandler) Add(w http.ResponseWriter, req bunrouter.Request) e
 		UserID: user.ID,
 		Attr:   in.Attr,
 	}
-	if _, err := h.pg.NewInsert().
+	if _, err := h.PG.NewInsert().
 		Model(filter).
 		On("CONFLICT (user_id, attr) DO UPDATE").
 		Set("unpinned = false").
@@ -96,7 +108,7 @@ func (h *PinnedFacetHandler) Remove(w http.ResponseWriter, req bunrouter.Request
 		Attr:     in.Attr,
 		Unpinned: true,
 	}
-	if _, err := h.pg.NewInsert().
+	if _, err := h.PG.NewInsert().
 		Model(facet).
 		On("CONFLICT (user_id, attr) DO UPDATE").
 		Set("unpinned = true").

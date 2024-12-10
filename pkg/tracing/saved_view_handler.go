@@ -5,9 +5,12 @@ import (
 	"errors"
 	"net/http"
 
+	"go.uber.org/fx"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 )
@@ -18,16 +21,32 @@ type SavedViewDetails struct {
 	User *org.User `json:"user" bun:"-"`
 }
 
-type SavedViewHandler struct {
-	logger *otelzap.Logger
-	pg     *bun.DB
+type SavedViewHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	PG     *bun.DB
 }
 
-func NewSavedViewHandler(logger *otelzap.Logger, pg *bun.DB) *SavedViewHandler {
-	return &SavedViewHandler{
-		logger: logger,
-		pg:     pg,
-	}
+type SavedViewHandler struct {
+	*SavedViewHandlerParams
+}
+
+func NewSavedViewHandler(p SavedViewHandlerParams) *SavedViewHandler {
+	return &SavedViewHandler{&p}
+}
+
+func registerSavedViewHandler(h *SavedViewHandler, p bunapp.RouterParams, m *org.Middleware) {
+	p.RouterInternalV1.Use(m.UserAndProject).
+		WithGroup("/tracing/:project_id/saved-views", func(g *bunrouter.Group) {
+			g.GET("", h.List)
+
+			g.POST("", h.Create)
+			g.DELETE("/:view_id", h.Delete)
+
+			g.PUT("/:view_id/pinned", h.Pin)
+			g.PUT("/:view_id/unpinned", h.Unpin)
+		})
 }
 
 func (h *SavedViewHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
@@ -35,7 +54,7 @@ func (h *SavedViewHandler) List(w http.ResponseWriter, req bunrouter.Request) er
 	project := org.ProjectFromContext(ctx)
 
 	views := make([]*SavedViewDetails, 0)
-	if err := h.pg.NewSelect().
+	if err := h.PG.NewSelect().
 		Model(&views).
 		Where("project_id = ?", project.ID).
 		OrderExpr("pinned DESC, created_at DESC").
@@ -62,7 +81,7 @@ func (h *SavedViewHandler) List(w http.ResponseWriter, req bunrouter.Request) er
 	}
 
 	var users []*org.User
-	if err := h.pg.NewSelect().
+	if err := h.PG.NewSelect().
 		Model(&users).
 		Where("id IN (?)", bun.In(userIDs)).
 		Scan(ctx); err != nil {
@@ -112,7 +131,7 @@ func (h *SavedViewHandler) Create(w http.ResponseWriter, req bunrouter.Request) 
 		Params: in.Params,
 		Query:  in.Query,
 	}
-	if _, err := h.pg.NewInsert().
+	if _, err := h.PG.NewInsert().
 		Model(view).
 		Exec(ctx); err != nil {
 		return err
@@ -131,7 +150,7 @@ func (h *SavedViewHandler) Delete(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	if _, err := h.pg.NewDelete().
+	if _, err := h.PG.NewDelete().
 		Model(((*SavedView)(nil))).
 		Where("id = ?", viewID).
 		Exec(ctx); err != nil {
@@ -143,7 +162,7 @@ func (h *SavedViewHandler) Delete(w http.ResponseWriter, req bunrouter.Request) 
 
 func (h *SavedViewHandler) selectView(ctx context.Context, viewID uint64) (*SavedView, error) {
 	view := new(SavedView)
-	if err := h.pg.NewSelect().
+	if err := h.PG.NewSelect().
 		Model(view).
 		Where("id = ?", viewID).
 		Scan(ctx); err != nil {
@@ -170,7 +189,7 @@ func (h *SavedViewHandler) updateViewPinned(
 		return err
 	}
 
-	if _, err := h.pg.NewUpdate().
+	if _, err := h.PG.NewUpdate().
 		Model((*SavedView)(nil)).
 		Where("id = ?", id).
 		Set("pinned = ?", pinned).

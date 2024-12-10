@@ -8,22 +8,37 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash/v2"
-	"github.com/uptrace/go-clickhouse/ch/bfloat16"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
-	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunotel"
-	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/vmihailenco/taskq/v4"
 	"github.com/zyedidia/generic/cache"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"go4.org/syncutil"
 	"golang.org/x/exp/slices"
+
+	"github.com/uptrace/bun"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/go-clickhouse/ch/bfloat16"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/attrkey"
+	"github.com/uptrace/uptrace/pkg/bunconf"
+	"github.com/uptrace/uptrace/pkg/bunotel"
+	"github.com/uptrace/uptrace/pkg/org"
 )
 
+type DatapointProcessorParams struct {
+	fx.In
+
+	Logger    *otelzap.Logger
+	Conf      *bunconf.Config
+	PG        *bun.DB
+	CH        *ch.DB
+	MainQueue taskq.Queue
+}
+
 type DatapointProcessor struct {
-	*bunapp.App
+	*DatapointProcessorParams
 
 	batchSize int
 	dropAttrs map[string]struct{}
@@ -31,50 +46,45 @@ type DatapointProcessor struct {
 	queue chan *Datapoint
 	gate  *syncutil.Gate
 
-	c2d    *CumToDeltaConv
-	logger *otelzap.Logger
+	c2d *CumToDeltaConv
 
 	metricCacheMu sync.RWMutex
 	metricCache   *cache.Cache[MetricKey, time.Time]
 
 	dashSyncer *DashSyncer
+
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
-func NewDatapointProcessor(app *bunapp.App) *DatapointProcessor {
-	conf := app.Config()
+func NewDatapointProcessor(p DatapointProcessorParams) *DatapointProcessor {
 	maxprocs := runtime.GOMAXPROCS(0)
-	p := &DatapointProcessor{
-		App: app,
 
-		batchSize: conf.Metrics.BatchSize,
+	conf := p.Conf.Metrics
+	dp := &DatapointProcessor{
+		DatapointProcessorParams: &p,
 
-		queue: make(chan *Datapoint, conf.Metrics.BufferSize),
+		batchSize: conf.BatchSize,
+
+		queue: make(chan *Datapoint, conf.BufferSize),
 		gate:  syncutil.NewGate(maxprocs),
 
-		c2d:    NewCumToDeltaConv(conf.Metrics.CumToDeltaSize),
-		logger: app.Logger,
+		c2d: NewCumToDeltaConv(conf.CumToDeltaSize),
 
-		metricCache: cache.New[MetricKey, time.Time](conf.Metrics.CumToDeltaSize),
+		metricCache: cache.New[MetricKey, time.Time](conf.CumToDeltaSize),
 
-		dashSyncer: NewDashSyncer(app),
+		dashSyncer: NewDashSyncer(p.Logger, p.PG),
 	}
 
-	if len(conf.Metrics.DropAttrs) > 0 {
-		p.dropAttrs = listToSet(conf.Metrics.DropAttrs)
+	if len(p.Conf.Metrics.DropAttrs) > 0 {
+		dp.dropAttrs = listToSet(p.Conf.Metrics.DropAttrs)
 	}
 
-	p.logger.Info("starting processing metrics...",
+	p.Logger.Info("starting processing metrics...",
 		zap.Int("threads", maxprocs),
-		zap.Int("batch_size", p.batchSize),
-		zap.Int("buffer_size", conf.Metrics.BufferSize),
-		zap.Int("cum_to_delta_size", conf.Metrics.CumToDeltaSize))
-
-	app.WaitGroup().Add(1)
-	go func() {
-		defer app.WaitGroup().Done()
-
-		p.processLoop(app.Context())
-	}()
+		zap.Int("batch_size", dp.batchSize),
+		zap.Int("buffer_size", conf.BufferSize),
+		zap.Int("cum_to_delta_size", conf.CumToDeltaSize))
 
 	queueLen, _ := bunotel.Meter.Int64ObservableGauge("uptrace.metrics.queue_length",
 		metric.WithUnit("{datapoints}"),
@@ -82,7 +92,7 @@ func NewDatapointProcessor(app *bunapp.App) *DatapointProcessor {
 
 	if _, err := bunotel.Meter.RegisterCallback(
 		func(ctx context.Context, o metric.Observer) error {
-			o.ObserveInt64(queueLen, int64(len(p.queue)))
+			o.ObserveInt64(queueLen, int64(len(dp.queue)))
 			return nil
 		},
 		queueLen,
@@ -90,14 +100,33 @@ func NewDatapointProcessor(app *bunapp.App) *DatapointProcessor {
 		panic(err)
 	}
 
-	return p
+	return dp
+}
+
+func (p *DatapointProcessor) Run(ctx context.Context) {
+	ctx, cancel := context.WithCancel(ctx)
+	p.cancel = cancel
+
+	go func() {
+		p.processLoop(ctx)
+	}()
+}
+
+func (p *DatapointProcessor) Stop() {
+	if p.cancel == nil {
+		p.Logger.Error("no cancel function registered for BaseConsumer")
+		return
+	}
+
+	p.cancel()
+	p.wg.Wait()
 }
 
 func (p *DatapointProcessor) AddDatapoint(ctx context.Context, datapoint *Datapoint) {
 	select {
 	case p.queue <- datapoint:
 	default:
-		p.logger.Error("datapoint buffer is full (consider increasing metrics.buffer_size)",
+		p.Logger.Error("datapoint buffer is full (consider increasing metrics.buffer_size)",
 			zap.Int("len", len(p.queue)))
 		datapointCounter.Add(
 			ctx,
@@ -141,7 +170,7 @@ loop:
 				datapoints = datapoints[:0]
 			}
 			timer.Reset(timeout)
-		case <-p.Done():
+		case <-ctx.Done():
 			break loop
 		}
 	}
@@ -154,7 +183,7 @@ loop:
 func (p *DatapointProcessor) processDatapoints(ctx context.Context, src []*Datapoint) {
 	ctx, span := bunotel.Tracer.Start(ctx, "process-datapoints")
 
-	p.WaitGroup().Add(1)
+	p.wg.Add(1)
 	p.gate.Start()
 
 	datapoints := make([]*Datapoint, len(src))
@@ -163,7 +192,7 @@ func (p *DatapointProcessor) processDatapoints(ctx context.Context, src []*Datap
 	go func() {
 		defer span.End()
 		defer p.gate.Done()
-		defer p.WaitGroup().Done()
+		defer p.wg.Done()
 
 		mctx := newDatapointContext(ctx)
 		p._processDatapoints(mctx, datapoints)
@@ -188,7 +217,7 @@ func (p *DatapointProcessor) _processDatapoints(ctx *datapointContext, datapoint
 			continue
 		}
 
-		project := ctx.Project(p.App, dp.ProjectID)
+		project := ctx.Project(p.Logger, p.PG, dp.ProjectID)
 		if project == nil {
 			datapoints = append(datapoints[:i], datapoints[i+1:]...)
 			datapointCounter.Add(
@@ -221,14 +250,14 @@ func (p *DatapointProcessor) _processDatapoints(ctx *datapointContext, datapoint
 	}
 
 	if len(datapoints) > 0 {
-		if err := InsertDatapoints(ctx, p.App, datapoints); err != nil {
-			p.Zap(ctx).Error("InsertDatapoints failed", zap.Error(err))
+		if err := InsertDatapoints(ctx, p.CH, datapoints); err != nil {
+			p.Logger.Error("InsertDatapoints failed", zap.Error(err))
 		}
 	}
 
 	if len(ctx.metrics) > 0 {
-		if err := UpsertMetrics(ctx, p.App, ctx.metrics); err != nil {
-			p.Zap(ctx).Error("upsertMetrics failed", zap.Error(err))
+		if err := UpsertMetrics(ctx, p.Logger, p.PG, p.MainQueue, ctx.metrics); err != nil {
+			p.Logger.Error("upsertMetrics failed", zap.Error(err))
 		}
 	}
 }
@@ -256,7 +285,7 @@ func (p *DatapointProcessor) cumToDelta(ctx *datapointContext, datapoint *Datapo
 		datapoint.CumPoint = nil
 		return true
 	default:
-		p.Zap(ctx).Error("unknown cum point type",
+		p.Logger.Error("unknown cum point type",
 			zap.String("type", reflect.TypeOf(point).String()))
 		return false
 	}
@@ -330,7 +359,7 @@ func (p *DatapointProcessor) convertHistogramPoint(
 		return false
 	}
 	if len(point.BucketCounts) != len(prevPoint.BucketCounts) {
-		p.Zap(ctx).Error("number of buckets does not match")
+		p.Logger.Error("number of buckets does not match")
 		return false
 	}
 
@@ -454,14 +483,14 @@ func newDatapointContext(ctx context.Context) *datapointContext {
 	}
 }
 
-func (c *datapointContext) Project(app *bunapp.App, projectID uint32) *org.Project {
+func (c *datapointContext) Project(logger *otelzap.Logger, pg *bun.DB, projectID uint32) *org.Project {
 	if p, ok := c.projects[projectID]; ok {
 		return p
 	}
 
-	project, err := org.SelectProject(c.Context, app, projectID)
+	project, err := org.SelectProject(c.Context, pg, projectID)
 	if err != nil {
-		app.Zap(c.Context).Error("SelectProject failed", zap.Error(err))
+		logger.Error("SelectProject failed", zap.Error(err))
 		return nil
 	}
 

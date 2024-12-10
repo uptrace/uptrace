@@ -8,8 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
 	"go.opentelemetry.io/otel/trace"
@@ -49,25 +51,26 @@ func ContextWithProject(ctx context.Context, project *Project) context.Context {
 }
 
 type Middleware struct {
-	app *bunapp.App
-
+	Logger        *otelzap.Logger
+	Conf          *bunconf.Config
+	PG            *bun.DB
 	userProviders []UserProvider
 }
 
-func NewMiddleware(app *bunapp.App) *Middleware {
+func NewMiddleware(logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB) *Middleware {
 	var userProviders []UserProvider
 
-	conf := app.Config()
-
 	if len(conf.Auth.Users) > 0 || len(conf.Auth.OIDC) > 0 {
-		userProviders = append(userProviders, NewJWTProvider(app, conf.SecretKey))
+		userProviders = append(userProviders, NewJWTProvider(conf.SecretKey))
 	}
 	for _, cloudflare := range conf.Auth.Cloudflare {
 		userProviders = append(userProviders, NewCloudflareProvider(cloudflare))
 	}
 
 	return &Middleware{
-		app:           app,
+		Conf:          conf,
+		Logger:        logger,
+		PG:            pg,
 		userProviders: userProviders,
 	}
 }
@@ -96,7 +99,7 @@ func (m *Middleware) UserAndProject(next bunrouter.HandlerFunc) bunrouter.Handle
 		}
 		ctx = ContextWithUser(ctx, user)
 
-		project, err := ProjectFromRequest(m.app, req)
+		project, err := ProjectFromRequest(m.PG, req)
 		if err != nil {
 			return err
 		}
@@ -113,7 +116,7 @@ func (m *Middleware) userFromRequest(req bunrouter.Request) (*User, error) {
 		user, err := provider.Auth(req)
 		if err != nil {
 			if err != errNoUser {
-				m.app.Zap(ctx).Error("provider.Auth failed", zap.Error(err))
+				m.Logger.Error("provider.Auth failed", zap.Error(err))
 			}
 			continue
 		}
@@ -124,8 +127,8 @@ func (m *Middleware) userFromRequest(req bunrouter.Request) (*User, error) {
 			)
 		}
 
-		if err := GetOrCreateUser(ctx, m.app, user); err != nil {
-			m.app.Zap(ctx).Error("GetOrCreateUser failed", zap.Error(err))
+		if err := GetOrCreateUser(ctx, m.PG, user); err != nil {
+			m.Logger.Error("GetOrCreateUser failed", zap.Error(err))
 			continue
 		}
 
@@ -137,7 +140,7 @@ func (m *Middleware) userFromRequest(req bunrouter.Request) (*User, error) {
 		return nil, httperror.Unauthorized(err.Error())
 	}
 
-	user, err := SelectUserByToken(ctx, m.app, token)
+	user, err := SelectUserByToken(ctx, m.PG, token)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, httperror.Unauthorized(err.Error())
@@ -158,7 +161,7 @@ func tokenFromRequest(req bunrouter.Request) (string, error) {
 	return "", errTokenEmpty
 }
 
-func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*Project, error) {
+func ProjectFromRequest(pg *bun.DB, req bunrouter.Request) (*Project, error) {
 	ctx := req.Context()
 
 	projectID, err := req.Params().Uint32("project_id")
@@ -166,7 +169,7 @@ func ProjectFromRequest(app *bunapp.App, req bunrouter.Request) (*Project, error
 		return nil, err
 	}
 
-	project, err := SelectProject(ctx, app, projectID)
+	project, err := SelectProject(ctx, pg, projectID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrProjectNotFound

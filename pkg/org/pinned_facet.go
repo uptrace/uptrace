@@ -7,7 +7,6 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"golang.org/x/exp/slices"
 )
 
@@ -58,10 +57,10 @@ type PinnedFacet struct {
 	Unpinned bool   `json:"-"`
 }
 
-func SelectPinnedFacets(ctx context.Context, app *bunapp.App, userID uint64) ([]string, error) {
+func SelectPinnedFacets(ctx context.Context, pg *bun.DB, userID uint64) ([]string, error) {
 	var facets []*PinnedFacet
 
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(&facets).
 		Where("user_id = ?", userID).
 		Scan(ctx); err != nil {
@@ -88,10 +87,8 @@ func SelectPinnedFacets(ctx context.Context, app *bunapp.App, userID uint64) ([]
 	return attrs, nil
 }
 
-func SelectPinnedFacetMap(
-	ctx context.Context, app *bunapp.App, userID uint64,
-) (map[string]bool, error) {
-	pinnedAttrs, err := SelectPinnedFacets(ctx, app, userID)
+func SelectPinnedFacetMap(ctx context.Context, pg *bun.DB, userID uint64) (map[string]bool, error) {
+	pinnedAttrs, err := SelectPinnedFacets(ctx, pg, userID)
 	if err != nil {
 		return nil, err
 	}

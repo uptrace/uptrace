@@ -6,7 +6,6 @@ import (
 
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/bfloat16"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
@@ -53,8 +52,8 @@ func (m AttrMap) Merge(other AttrMap) {
 	}
 }
 
-func InsertDatapoints(ctx context.Context, app *bunapp.App, datapoints []*Datapoint) error {
-	_, err := app.CH.NewInsert().
+func InsertDatapoints(ctx context.Context, ch *ch.DB, datapoints []*Datapoint) error {
+	_, err := ch.NewInsert().
 		Model(&datapoints).
 		Exec(ctx)
 	return err

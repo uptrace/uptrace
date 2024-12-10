@@ -10,16 +10,19 @@ import (
 	"github.com/vmihailenco/taskq/v4"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/org"
 )
+
+const maxWorkers = 10
 
 type IndexRecord interface {
 	SpanIndex | LogIndex | EventIndex
@@ -50,7 +53,15 @@ type BaseConsumer[IT IndexRecord, DT DataRecord] struct {
 	workerCount int
 }
 
-const maxWorkers = 10
+type BaseConsumerParams struct {
+	fx.In
+
+	Logger    *otelzap.Logger
+	Conf      *bunconf.Config
+	PG        *bun.DB
+	CH        *ch.DB
+	MainQueue taskq.Queue
+}
 
 func NewBaseConsumer[IT IndexRecord, DT DataRecord](
 	logger *otelzap.Logger,
@@ -343,8 +354,7 @@ func (p *consumerWorker[IT, DT]) project(ctx context.Context, projectID uint32) 
 		return project, true
 	}
 
-	fakeApp := &bunapp.App{PG: p.pg}
-	project, err := org.SelectProject(ctx, fakeApp, projectID)
+	project, err := org.SelectProject(ctx, p.pg, projectID)
 	if err != nil {
 		p.logger.Error("SelectProject failed", zap.Error(err))
 		return nil, false

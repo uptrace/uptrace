@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"go.uber.org/zap"
 )
@@ -31,10 +31,10 @@ func (a *Achievement) key() string {
 }
 
 func SelectAchievements(
-	ctx context.Context, app *bunapp.App, userID uint64, projectID uint32,
+	ctx context.Context, pg *bun.DB, userID uint64, projectID uint32,
 ) ([]*Achievement, error) {
 	achievements := make([]*Achievement, 0)
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		DistinctOn("(name)").
 		Model(&achievements).
 		Where("user_id IS NULL OR user_id = ?", userID).
@@ -50,20 +50,21 @@ var achievOnce bunutil.OnceMap
 
 func CreateAchievementOnce(
 	ctx context.Context,
-	app *bunapp.App,
+	logger *otelzap.Logger,
+	pg *bun.DB,
 	achievement *Achievement,
 ) {
 	achievOnce.Do(achievement.key(), func() {
-		if err := UpsertAchievement(ctx, app, achievement); err != nil {
-			app.Zap(ctx).Error("UpsertAchievement failed", zap.Error(err))
+		if err := UpsertAchievement(ctx, pg, achievement); err != nil {
+			logger.Error("UpsertAchievement failed", zap.Error(err))
 		}
 	})
 }
 
 func UpsertAchievement(
-	ctx context.Context, app *bunapp.App, achievement *Achievement,
+	ctx context.Context, pg *bun.DB, achievement *Achievement,
 ) error {
-	if _, err := app.PG.NewInsert().
+	if _, err := pg.NewInsert().
 		Model(achievement).
 		On("CONFLICT (coalesce(user_id, 0), coalesce(project_id, 0), name) DO NOTHING").
 		Exec(ctx); err != nil {

@@ -7,24 +7,38 @@ import (
 	"strings"
 	"time"
 
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"go.uber.org/fx"
+
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 )
 
-type GroupHandler struct {
-	logger *otelzap.Logger
-	ch     *ch.DB
+type GroupHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	CH     *ch.DB
 }
 
-func NewGroupHandler(logger *otelzap.Logger, ch *ch.DB) *GroupHandler {
-	return &GroupHandler{
-		logger: logger,
-		ch:     ch,
-	}
+type GroupHandler struct {
+	*GroupHandlerParams
+}
+
+func NewGroupHandler(p GroupHandlerParams) *GroupHandler {
+	return &GroupHandler{&p}
+}
+
+func registerGroupHandler(h *GroupHandler, p bunapp.RouterParams, m *org.Middleware) {
+	p.RouterInternalV1.Use(m.UserAndProject).
+		WithGroup("/tracing/:project_id/groups/:group_id", func(g *bunrouter.Group) {
+			g.GET("", h.ShowSummary)
+		})
 }
 
 func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request) error {
@@ -50,7 +64,7 @@ func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request)
 		)
 	}
 	f.QueryParts = tql.ParseQuery(strings.Join(parts, " | "))
-	q, _ := BuildSpanIndexQuery(h.ch, f, f.TimeFilter.Duration())
+	q, _ := BuildSpanIndexQuery(h.CH, f, f.TimeFilter.Duration())
 
 	summary := make(map[string]any)
 	if err := q.Apply(f.CHOrder).Scan(ctx, &summary); err != nil {
@@ -58,7 +72,7 @@ func (h *GroupHandler) ShowSummary(w http.ResponseWriter, req bunrouter.Request)
 	}
 
 	var firstSeenAt, lastSeenAt time.Time
-	if err := NewSpanIndexQuery(h.ch).
+	if err := NewSpanIndexQuery(h.CH).
 		ColumnExpr("min(time) as first_seen_at").
 		ColumnExpr("max(time) as last_seen_at").
 		Where("project_id = ?", f.ProjectID).

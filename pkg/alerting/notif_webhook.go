@@ -11,14 +11,11 @@ import (
 	"github.com/segmentio/encoding/json"
 	"go.uber.org/zap"
 
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
 func (h *NotifChannelHandler) notifyByWebhookHandler(ctx context.Context, eventID, channelID uint64) error {
-	app := bunapp.AppFromContext(ctx)
-
-	alert, err := selectAlertWithEvent(ctx, app, eventID)
+	alert, err := selectAlertWithEvent(ctx, h.PG, eventID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil
@@ -27,7 +24,7 @@ func (h *NotifChannelHandler) notifyByWebhookHandler(ctx context.Context, eventI
 	}
 	baseAlert := alert.Base()
 
-	project, err := org.SelectProject(ctx, app, baseAlert.ProjectID)
+	project, err := org.SelectProject(ctx, h.PG, baseAlert.ProjectID)
 	if err != nil {
 		return err
 	}
