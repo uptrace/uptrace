@@ -5,16 +5,33 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"go.uber.org/fx"
 )
 
-type AchievementHandler struct {
-	pg *bun.DB
+type AchievementHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	PG     *bun.DB
 }
 
-func NewAchievementHandler(pg *bun.DB) *AchievementHandler {
-	return &AchievementHandler{pg: pg}
+type AchievementHandler struct {
+	*AchievementHandlerParams
+}
+
+func NewAchievementHandler(p AchievementHandlerParams) *AchievementHandler {
+	return &AchievementHandler{&p}
+}
+
+func registerAchievementHandler(h *AchievementHandler, p bunapp.RouterParams, m *Middleware) {
+	p.RouterInternalV1.
+		Use(m.UserAndProject).
+		WithGroup("/projects/:project_id", func(g *bunrouter.Group) {
+			g.GET("/achievements", h.List)
+		})
 }
 
 func (h *AchievementHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
@@ -22,8 +39,7 @@ func (h *AchievementHandler) List(w http.ResponseWriter, req bunrouter.Request) 
 	user := UserFromContext(ctx)
 	project := ProjectFromContext(ctx)
 
-	fakeApp := &bunapp.App{PG: h.pg}
-	achievements, err := SelectAchievements(ctx, fakeApp, user.ID, project.ID)
+	achievements, err := SelectAchievements(ctx, h.PG, user.ID, project.ID)
 	if err != nil {
 		return err
 	}

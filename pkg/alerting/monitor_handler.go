@@ -341,9 +341,7 @@ type MetricMonitorIn struct {
 	ChannelIDs []uint64 `json:"channelIds"`
 }
 
-func (in *MetricMonitorIn) Validate(
-	ctx context.Context, app *bunapp.App, monitor *org.MetricMonitor,
-) error {
+func (in *MetricMonitorIn) Validate(ctx context.Context, pg *bun.DB, monitor *org.MetricMonitor) error {
 	monitor.Name = in.Name
 	monitor.NotifyEveryoneByEmail = in.NotifyEveryoneByEmail
 	monitor.Params = in.Params
@@ -354,7 +352,7 @@ func (in *MetricMonitorIn) Validate(
 
 	for _, ma := range in.Params.Metrics {
 		if _, err := metrics.SelectMetricByName(
-			ctx, app, monitor.ProjectID, ma.Name,
+			ctx, pg, monitor.ProjectID, ma.Name,
 		); err == sql.ErrNoRows {
 			return fmt.Errorf("metric %s does not exist", ma.Name)
 		}
@@ -387,7 +385,7 @@ func (h *MonitorHandler) CreateMetricMonitor(w http.ResponseWriter, req bunroute
 	monitor.State = org.MonitorActive
 	monitor.Type = org.MonitorMetric
 
-	if err := in.Validate(ctx, h.App, monitor); err != nil {
+	if err := in.Validate(ctx, h.PG, monitor); err != nil {
 		return err
 	}
 
@@ -401,7 +399,7 @@ func (h *MonitorHandler) CreateMetricMonitor(w http.ResponseWriter, req bunroute
 		return err
 	}
 
-	org.CreateAchievementOnce(ctx, h.App, &org.Achievement{
+	org.CreateAchievementOnce(ctx, h.Logger, h.PG, &org.Achievement{
 		ProjectID: project.ID,
 		Name:      org.AchievCreateMetricMonitor,
 	})
@@ -423,7 +421,7 @@ func (h *MonitorHandler) UpdateMetricMonitor(w http.ResponseWriter, req bunroute
 	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
 		return err
 	}
-	if err := in.Validate(ctx, h.App, monitor); err != nil {
+	if err := in.Validate(ctx, h.PG, monitor); err != nil {
 		return err
 	}
 
@@ -643,7 +641,7 @@ func (h *MonitorHandler) CreateMonitorFromYAML(
 	}
 
 	if hasMetricMonitor {
-		org.CreateAchievementOnce(ctx, h.App, &org.Achievement{
+		org.CreateAchievementOnce(ctx, h.Logger, h.PG, &org.Achievement{
 			UserID:    user.ID,
 			ProjectID: project.ID,
 			Name:      org.AchievCreateMetricMonitor,

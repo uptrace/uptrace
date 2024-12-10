@@ -33,7 +33,7 @@ type EventConsumer struct {
 	*BaseConsumer[EventIndex, EventData]
 }
 
-func NewEventConsumer(p *ModuleParams) *EventConsumer {
+func NewEventConsumer(p BaseConsumerParams) *EventConsumer {
 	batchSize := p.Conf.Events.BatchSize
 	bufferSize := p.Conf.Events.BufferSize
 	maxWorkers := p.Conf.Events.MaxWorkers

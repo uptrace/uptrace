@@ -12,12 +12,9 @@ import (
 	promparser "github.com/prometheus/prometheus/promql/parser"
 	"github.com/prometheus/prometheus/storage"
 	promstorage "github.com/prometheus/prometheus/storage"
-	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/org"
@@ -30,14 +27,9 @@ type PromHandler struct {
 	promqlEngine *promql.Engine
 }
 
-func NewPromHandler(logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB, ch *ch.DB) *PromHandler {
+func NewPromHandler(p BaseGrafanaHandlerParams) *PromHandler {
 	return &PromHandler{
-		BaseGrafanaHandler: BaseGrafanaHandler{
-			logger: logger,
-			conf:   conf,
-			pg:     pg,
-			ch:     ch,
-		},
+		BaseGrafanaHandler: BaseGrafanaHandler{&p},
 
 		promqlEngine: promql.NewEngine(promql.EngineOpts{
 			MaxSamples:    1_000_000,
@@ -49,6 +41,27 @@ func NewPromHandler(logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB, ch
 			EnableNegativeOffset: true,
 		}),
 	}
+}
+
+func registerPromHandler(h *PromHandler, p bunapp.RouterParams, m *org.Middleware) {
+	p.Router.WithGroup("/api/prometheus/:project_id", func(g *bunrouter.Group) {
+		g = g.Use(
+			m.UserAndProject,
+			h.EnablePromCompat,
+			promErrorHandler,
+		)
+
+		g.GET("/api/v1/metadata", h.Metadata)
+		g.GET("/api/v1/labels", h.LabelNames)
+		g.POST("/api/v1/labels", h.LabelNames)
+		g.GET("/api/v1/label/:label/values", h.LabelValues)
+		g.POST("/api/v1/query_range", h.QueryRange)
+		g.GET("/api/v1/query_range", h.QueryRange)
+		g.POST("/api/v1/query", h.QueryInstant)
+		g.GET("/api/v1/query", h.QueryInstant)
+		g.GET("/api/v1/series", h.Series)
+		g.POST("/api/v1/series", h.Series)
+	})
 }
 
 func (h *PromHandler) Metadata(w http.ResponseWriter, req bunrouter.Request) error {
@@ -84,7 +97,7 @@ func (h *PromHandler) LabelNames(w http.ResponseWriter, req bunrouter.Request) e
 		TimeGTE: filter.Start,
 		TimeLT:  filter.End,
 	})
-	selq := h.ch.NewSelect().
+	selq := h.CH.NewSelect().
 		Distinct().
 		ColumnExpr("arrayJoin(d.string_keys)").
 		TableExpr("? AS d", ch.Name(tableName)).
@@ -133,7 +146,7 @@ func (h *PromHandler) LabelValues(w http.ResponseWriter, req bunrouter.Request) 
 		TimeGTE: filter.Start,
 		TimeLT:  filter.End,
 	})
-	selq := h.ch.NewSelect().
+	selq := h.CH.NewSelect().
 		Distinct().
 		ColumnExpr("?", chExpr(label)).
 		TableExpr("? AS d", ch.Name(tableName)).
@@ -181,7 +194,7 @@ func (h *PromHandler) Series(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	promStorage := NewPromStorage(h.logger, h.ch, project.ID)
+	promStorage := NewPromStorage(h.Logger, h.CH, project.ID)
 
 	querier, err := promStorage.Querier(filter.Start.UnixMilli(), filter.End.UnixMilli())
 	if err != nil {
@@ -259,7 +272,7 @@ func (h *PromHandler) QueryRange(w http.ResponseWriter, req bunrouter.Request) e
 		return errors.New(`"query" param is required`)
 	}
 
-	queryable := NewPromStorage(h.logger, h.ch, f.ProjectID)
+	queryable := NewPromStorage(h.Logger, h.CH, f.ProjectID)
 
 	queryOpts, err := promQueryOpts(req.Request)
 	if err != nil {
@@ -308,7 +321,7 @@ func (h *PromHandler) QueryInstant(w http.ResponseWriter, req bunrouter.Request)
 		in.Time = float64(time.Now().Unix())
 	}
 
-	queryable := NewPromStorage(h.logger, h.ch, project.ID)
+	queryable := NewPromStorage(h.Logger, h.CH, project.ID)
 
 	queryOpts, err := promQueryOpts(req.Request)
 	if err != nil {
@@ -340,7 +353,7 @@ func (h *PromHandler) EnablePromCompat(next bunrouter.HandlerFunc) bunrouter.Han
 		project := org.ProjectFromContext(ctx)
 
 		if !project.PromCompat {
-			if _, err := h.pg.NewUpdate().
+			if _, err := h.PG.NewUpdate().
 				Model(project).
 				Set("prom_compat = TRUE").
 				Where("id = ?", project.ID).

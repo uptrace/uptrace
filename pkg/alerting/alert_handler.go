@@ -20,14 +20,17 @@ import (
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/vmihailenco/taskq/v4"
 )
 
 type AlertHandlerParams struct {
 	fx.In
-	Logger *otelzap.Logger
-	Conf   *bunconf.Config
-	PG     *bun.DB
-	CH     *ch.DB
+
+	Logger    *otelzap.Logger
+	Conf      *bunconf.Config
+	PG        *bun.DB
+	CH        *ch.DB
+	MainQueue taskq.Queue
 }
 
 type AlertHandler struct {
@@ -38,9 +41,9 @@ func NewAlertHandler(p AlertHandlerParams) *AlertHandler {
 	return &AlertHandler{&p}
 }
 
-func registerAlertHandler(p bunapp.RouterParams, h *AlertHandler, middleware *Middleware) {
+func registerAlertHandler(h *AlertHandler, p bunapp.RouterParams, m *Middleware) {
 	p.RouterInternalV1.NewGroup("/projects/:project_id",
-		bunrouter.WithMiddleware(middleware.UserAndProject),
+		bunrouter.WithMiddleware(m.UserAndProject),
 		bunrouter.WithGroup(func(g *bunrouter.Group) {
 			g.GET("/alerts", h.List)
 			g.GET("/alerts/:alert_id", h.Show)
@@ -59,8 +62,7 @@ func (h *AlertHandler) Show(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	fakeApp := &bunapp.App{PG: h.PG}
-	alert, err := SelectAlert(ctx, fakeApp, alertID)
+	alert, err := SelectAlert(ctx, h.PG, alertID)
 	if err != nil {
 		return err
 	}
@@ -137,8 +139,7 @@ func (h *AlertHandler) updateAlertsStatus(
 func (h *AlertHandler) changeAlertStatus(
 	ctx context.Context, userID uint64, projectID uint32, alertID uint64, status org.AlertStatus,
 ) error {
-	fakeApp := &bunapp.App{PG: h.PG, CH: h.CH}
-	alert, err := SelectAlert(ctx, fakeApp, alertID)
+	alert, err := SelectAlert(ctx, h.PG, alertID)
 	if err != nil {
 		return err
 	}
@@ -151,7 +152,7 @@ func (h *AlertHandler) changeAlertStatus(
 		return nil
 	}
 
-	if err := tryAlertInTx(ctx, fakeApp, alert, func(tx bun.Tx) error {
+	if err := tryAlertInTx(ctx, h.Logger, h.PG, h.CH, h.MainQueue, alert, func(tx bun.Tx) error {
 		event := alert.GetEvent().Clone()
 		baseEvent := event.Base()
 		baseEvent.UserID = userID
@@ -186,13 +187,7 @@ func (h *AlertHandler) List(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	fakeApp := &bunapp.App{
-		Logger: h.Logger,
-		Conf:   h.Conf,
-		PG:     h.PG,
-		CH:     h.CH,
-	}
-	facets, err := selectAlertFacets(ctx, fakeApp, f)
+	facets, err := selectAlertFacets(ctx, h.Logger, h.PG, f)
 	if err != nil {
 		return err
 	}
@@ -223,21 +218,24 @@ func (h *AlertHandler) selectAlerts(
 }
 
 func selectAlertFacets(
-	ctx context.Context, app *bunapp.App, f *AlertFilter,
+	ctx context.Context,
+	logger *otelzap.Logger,
+	pg *bun.DB,
+	f *AlertFilter,
 ) ([]*org.Facet, error) {
-	facetMap, err := selectAlertFacetMap(ctx, app, f)
+	facetMap, err := selectAlertFacetMap(ctx, logger, pg, f)
 	if err != nil {
 		return nil, err
 	}
 
 	delete(facetMap, attrkey.AlertType)
 
-	statusFacet, err := selectAlertStatusFacet(ctx, app, f)
+	statusFacet, err := selectAlertStatusFacet(ctx, pg, f)
 	if err != nil {
 		return nil, err
 	}
 
-	typeFacet, err := selectAlertTypeFacet(ctx, app, f)
+	typeFacet, err := selectAlertTypeFacet(ctx, pg, f)
 	if err != nil {
 		return nil, err
 	}
@@ -255,11 +253,14 @@ func selectAlertFacets(
 }
 
 func selectAlertFacetMap(
-	ctx context.Context, app *bunapp.App, f *AlertFilter,
+	ctx context.Context,
+	logger *otelzap.Logger,
+	pg *bun.DB,
+	f *AlertFilter,
 ) (map[string]*org.Facet, error) {
 	start := time.Now()
 
-	facetMap, err := selectAlertFacetsForAttr(ctx, app, f, "")
+	facetMap, err := selectAlertFacetsForAttr(ctx, pg, f, "")
 	if err != nil {
 		return nil, err
 	}
@@ -274,9 +275,9 @@ func selectAlertFacetMap(
 		f.Attrs = maps.Clone(f.Attrs)
 		delete(f.Attrs, attrKey)
 
-		newFacetMap, err := selectAlertFacetsForAttr(ctx, app, f, attrKey)
+		newFacetMap, err := selectAlertFacetsForAttr(ctx, pg, f, attrKey)
 		if err != nil {
-			app.Zap(ctx).Error("selectAlertFacetsForAttr failed", zap.Error(err))
+			logger.Error("selectAlertFacetsForAttr failed", zap.Error(err))
 			continue
 		}
 
@@ -289,16 +290,16 @@ func selectAlertFacetMap(
 }
 
 func selectAlertFacetsForAttr(
-	ctx context.Context, app *bunapp.App, f *AlertFilter, attrKey string,
+	ctx context.Context, pg *bun.DB, f *AlertFilter, attrKey string,
 ) (map[string]*org.Facet, error) {
-	searchq := app.PG.NewSelect().
+	searchq := pg.NewSelect().
 		Model((*org.BaseAlert)(nil)).
 		Join("JOIN alert_events AS event ON event.id = a.event_id").
 		ColumnExpr("tsv").
 		Apply(f.WhereClause).
 		Limit(100e3)
 
-	facetq := app.PG.NewSelect().
+	facetq := pg.NewSelect().
 		ColumnExpr("split_part(word, '~~', 2) AS key").
 		ColumnExpr("split_part(word, '~~', 3) AS value").
 		ColumnExpr("ndoc AS count").
@@ -309,7 +310,7 @@ func selectAlertFacetsForAttr(
 		TableExpr("ts_stat($$ ? $$)", searchq).
 		Where("starts_with(word, '~~')")
 
-	q := app.PG.NewSelect().
+	q := pg.NewSelect().
 		With("q", facetq).
 		ColumnExpr("key, value, count").
 		TableExpr("q").
@@ -329,14 +330,14 @@ func selectAlertFacetsForAttr(
 }
 
 func selectAlertStatusFacet(
-	ctx context.Context, app *bunapp.App, f *AlertFilter,
+	ctx context.Context, pg *bun.DB, f *AlertFilter,
 ) (*org.Facet, error) {
 	f = f.Clone()
 	f.Status = nil
 
 	var items []*org.FacetItem
 
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model((*org.BaseAlert)(nil)).
 		Join("JOIN alert_events AS event ON event.id = a.event_id").
 		ColumnExpr("? AS key", attrkey.AlertStatus).
@@ -373,14 +374,14 @@ func hasOpenStatus(items []*org.FacetItem) bool {
 }
 
 func selectAlertTypeFacet(
-	ctx context.Context, app *bunapp.App, f *AlertFilter,
+	ctx context.Context, pg *bun.DB, f *AlertFilter,
 ) (*org.Facet, error) {
 	f = f.Clone()
 	f.Type = nil
 
 	var items []*org.FacetItem
 
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model((*org.BaseAlert)(nil)).
 		Join("JOIN alert_events AS event ON event.id = a.event_id").
 		ColumnExpr("? AS key", attrkey.AlertType).

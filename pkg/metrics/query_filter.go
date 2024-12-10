@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"net/url"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
-
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/chquery"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
@@ -90,7 +90,7 @@ func (f *QueryFilter) Clone() *QueryFilter {
 	return &clone
 }
 
-func (f *QueryFilter) MetricMap(ctx context.Context, app *bunapp.App) (map[string]*Metric, error) {
+func (f *QueryFilter) MetricMap(ctx context.Context, pg *bun.DB) (map[string]*Metric, error) {
 	metricMap := make(map[string]*Metric, len(f.Metric))
 
 	for i, metricName := range f.Metric {
@@ -104,7 +104,7 @@ func (f *QueryFilter) MetricMap(ctx context.Context, app *bunapp.App) (map[strin
 		}
 		metricAlias = "$" + metricAlias
 
-		metric, err := SelectMetricByName(ctx, app, f.Project.ID, metricName)
+		metric, err := SelectMetricByName(ctx, pg, f.Project.ID, metricName)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				metricMap[metricAlias] = newDeletedMetric(f.Project.ID, metricName)

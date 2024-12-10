@@ -5,22 +5,47 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/fx"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
-type GridRowHandler struct {
-	*bunapp.App
+type GridRowHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	PG     *bun.DB
 }
 
-func NewGridRowHandler(app *bunapp.App) *GridRowHandler {
-	return &GridRowHandler{
-		App: app,
-	}
+type GridRowHandler struct {
+	*GridRowHandlerParams
+}
+
+func NewGridRowHandler(p GridRowHandlerParams) *GridRowHandler {
+	return &GridRowHandler{&p}
+}
+
+func registerGridRowHandler(h *GridRowHandler, p bunapp.RouterParams, m *Middleware) {
+	p.RouterInternalV1.
+		Use(m.UserAndProject).
+		Use(m.Dashboard).
+		WithGroup("/metrics/:project_id/dashboards/:dash_id/rows", func(g *bunrouter.Group) {
+			g.POST("", h.Create)
+
+			g = g.Use(h.GridRowMiddleware)
+
+			g.GET("/:row_id", h.Show)
+			g.PUT("/:row_id", h.Update)
+			g.PUT("/:row_id/up", h.MoveUp)
+			g.PUT("/:row_id/down", h.MoveDown)
+			g.DELETE("/:row_id", h.Delete)
+		})
 }
 
 func (h *GridRowHandler) Show(w http.ResponseWriter, req bunrouter.Request) error {
@@ -249,7 +274,7 @@ func (h *GridRowHandler) GridRowMiddleware(next bunrouter.HandlerFunc) bunrouter
 			return err
 		}
 
-		row, err := SelectGridRow(ctx, h.App, rowID)
+		row, err := SelectGridRow(ctx, h.PG, rowID)
 		if err != nil {
 			return err
 		}

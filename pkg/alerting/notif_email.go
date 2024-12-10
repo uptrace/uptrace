@@ -11,19 +11,34 @@ import (
 	"sync"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/wneessen/go-mail"
+	"go.uber.org/fx"
+	"go.uber.org/zap"
+	"golang.org/x/exp/slices"
+
+	"github.com/uptrace/bun"
+	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
-	"github.com/wneessen/go-mail"
-	"go.uber.org/zap"
-	"golang.org/x/exp/slices"
 )
 
 const fromName = "Uptrace"
 
+type EmailNotifierParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	Conf   *bunconf.Config
+	PG     *bun.DB
+	CH     *ch.DB
+}
+
 type EmailNotifier struct {
+	*EmailNotifierParams
+
 	disabled bool
 
 	mu     sync.Mutex
@@ -34,17 +49,17 @@ type EmailNotifier struct {
 	from string
 }
 
-func NewEmailNotifier(logger *otelzap.Logger, conf *bunconf.Config) *EmailNotifier {
-	if !conf.SMTPMailer.Enabled {
-		logger.Info("smtp_mailer is disabled in the config")
+func NewEmailNotifier(p EmailNotifierParams) *EmailNotifier {
+	if !p.Conf.SMTPMailer.Enabled {
+		p.Logger.Info("smtp_mailer is disabled in the config")
 		return &EmailNotifier{
 			disabled: true,
 		}
 	}
 
-	client, err := bunapp.NewMailer(conf)
+	client, err := bunapp.NewMailer(p.Conf)
 	if err != nil {
-		logger.Error("mail.NewClient failed", zap.Error(err))
+		p.Logger.Error("mail.NewClient failed", zap.Error(err))
 		return &EmailNotifier{
 			disabled: true,
 		}
@@ -54,29 +69,26 @@ func NewEmailNotifier(logger *otelzap.Logger, conf *bunconf.Config) *EmailNotifi
 		Funcs(sprig.FuncMap()).
 		ParseFS(bunapp.FS(), path.Join("email", "*.html"))
 	if err != nil {
-		logger.Error("template.New failed", zap.Error(err))
+		p.Logger.Error("template.New failed", zap.Error(err))
 		return &EmailNotifier{
 			disabled: true,
 		}
 	}
 
 	return &EmailNotifier{
-		client: client,
-		emails: emails,
-		from:   conf.SMTPMailer.From,
+		EmailNotifierParams: &p,
+		client:              client,
+		emails:              emails,
+		from:                p.Conf.SMTPMailer.From,
 	}
 }
 
-func (n *EmailNotifier) NotifyHandler(
-	ctx context.Context, eventID uint64, recipients []string,
-) error {
+func (n *EmailNotifier) NotifyHandler(ctx context.Context, eventID uint64, recipients []string) error {
 	if n.disabled {
 		return nil
 	}
 
-	app := bunapp.AppFromContext(ctx)
-
-	alert, err := selectAlertWithEvent(ctx, app, eventID)
+	alert, err := selectAlertWithEvent(ctx, n.PG, eventID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil
@@ -85,7 +97,7 @@ func (n *EmailNotifier) NotifyHandler(
 	}
 	baseAlert := alert.Base()
 
-	project, err := org.SelectProject(ctx, app, baseAlert.ProjectID)
+	project, err := org.SelectProject(ctx, n.PG, baseAlert.ProjectID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil
@@ -95,9 +107,9 @@ func (n *EmailNotifier) NotifyHandler(
 
 	switch alert := alert.(type) {
 	case *ErrorAlert:
-		return n.notifyOnErrorAlert(ctx, app, project, alert, recipients)
+		return n.notifyOnErrorAlert(ctx, project, alert, recipients)
 	case *MetricAlert:
-		return n.notifyOnMetricAlert(ctx, app, project, alert, recipients)
+		return n.notifyOnMetricAlert(ctx, project, alert, recipients)
 	default:
 		return fmt.Errorf("unknown alert type: %T", alert)
 	}
@@ -105,7 +117,6 @@ func (n *EmailNotifier) NotifyHandler(
 
 func (n *EmailNotifier) notifyOnErrorAlert(
 	ctx context.Context,
-	app *bunapp.App,
 	project *org.Project,
 	alert *ErrorAlert,
 	recipients []string,
@@ -113,7 +124,7 @@ func (n *EmailNotifier) notifyOnErrorAlert(
 	const tplName = "error_alert.html"
 
 	span, err := tracing.SelectSpan(
-		ctx, app, alert.ProjectID, alert.Event.Params.TraceID, alert.Event.Params.SpanID,
+		ctx, n.CH, alert.ProjectID, alert.Event.Params.TraceID, alert.Event.Params.SpanID,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -126,12 +137,12 @@ func (n *EmailNotifier) notifyOnErrorAlert(
 
 	if err := n.emails.ExecuteTemplate(&buf, tplName, map[string]any{
 		"projectName":        project.Name,
-		"projectSettingsURL": app.SiteURL(project.EmailSettingsURL()),
+		"projectSettingsURL": n.Conf.SiteURL(project.EmailSettingsURL()),
 
 		"title":     emailErrorFormatter.Format(project, alert),
 		"alert":     alert,
 		"alertName": alert.Name,
-		"alertURL":  app.SiteURL(alert.URL()),
+		"alertURL":  n.Conf.SiteURL(alert.URL()),
 
 		"spanAttrs": span.Attrs,
 		"attrKeys":  attrKeys(span.Attrs),
@@ -169,7 +180,6 @@ func attrKeys(attrs map[string]any) []string {
 
 func (n *EmailNotifier) notifyOnMetricAlert(
 	ctx context.Context,
-	app *bunapp.App,
 	project *org.Project,
 	alert *MetricAlert,
 	recipients []string,
@@ -180,13 +190,13 @@ func (n *EmailNotifier) notifyOnMetricAlert(
 
 	if err := n.emails.ExecuteTemplate(&buf, tplName, map[string]any{
 		"projectName":        project.Name,
-		"projectSettingsURL": app.SiteURL(project.EmailSettingsURL()),
+		"projectSettingsURL": n.Conf.SiteURL(project.EmailSettingsURL()),
 
 		"title":       template.HTML(emailMetricFormatter.Format(project, alert)),
 		"longSummary": template.HTML(alert.LongSummary("<br />")),
 		"alert":       alert,
 		"alertName":   alert.Name,
-		"alertURL":    app.SiteURL(alert.URL()),
+		"alertURL":    n.Conf.SiteURL(alert.URL()),
 	}); err != nil {
 		return err
 	}

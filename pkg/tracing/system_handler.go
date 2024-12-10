@@ -5,22 +5,37 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/fx"
+
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"github.com/uptrace/uptrace/pkg/org"
 )
 
-type SystemHandler struct {
-	logger *otelzap.Logger
-	ch     *ch.DB
+type SystemHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	CH     *ch.DB
 }
 
-func NewSystemHandler(logger *otelzap.Logger, ch *ch.DB) *SystemHandler {
-	return &SystemHandler{
-		logger: logger,
-		ch:     ch,
-	}
+type SystemHandler struct {
+	*SystemHandlerParams
+}
+
+func NewSystemHandler(p SystemHandlerParams) *SystemHandler {
+	return &SystemHandler{&p}
+}
+
+func registerSystemHandler(h *SystemHandler, p bunapp.RouterParams, m *org.Middleware) {
+	p.RouterInternalV1.
+		Use(m.UserAndProject).
+		WithGroup("/tracing/:project_id", func(g *bunrouter.Group) {
+			g.GET("/systems", h.ListSystems)
+		})
 }
 
 func (h *SystemHandler) ListSystems(w http.ResponseWriter, req bunrouter.Request) error {
@@ -59,7 +74,7 @@ func (h *SystemHandler) selectSystems(
 ) ([]map[string]any, error) {
 	systems := make([]map[string]any, 0)
 
-	if err := NewSpanIndexQuery(h.ch).
+	if err := NewSpanIndexQuery(h.CH).
 		ColumnExpr("s.project_id AS projectId").
 		ColumnExpr("s.system").
 		ColumnExpr("sum(s.count) AS count").
@@ -84,7 +99,7 @@ func (h *SystemHandler) selectDataHint(
 ) (map[string]time.Time, error) {
 	var before, after time.Time
 
-	if err := NewSpanIndexQuery(h.ch).
+	if err := NewSpanIndexQuery(h.CH).
 		ColumnExpr("max(time)").
 		Where("s.project_id = ?", f.ProjectID).
 		Where("s.time < ?", f.TimeGTE).
@@ -92,7 +107,7 @@ func (h *SystemHandler) selectDataHint(
 		return nil, err
 	}
 
-	if err := NewSpanIndexQuery(h.ch).
+	if err := NewSpanIndexQuery(h.CH).
 		ColumnExpr("min(time)").
 		Where("s.project_id = ?", f.ProjectID).
 		Where("s.time >= ?", f.TimeLT).

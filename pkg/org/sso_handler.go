@@ -17,9 +17,18 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 )
+
+type SSOHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	Conf   *bunconf.Config
+	PG     *bun.DB
+}
 
 type SSOHandler struct {
 	methods []*SSOMethod
@@ -29,36 +38,48 @@ type SSOMethod struct {
 	ID          string `json:"id"`
 	DisplayName string `json:"name"`
 	RedirectURL string `json:"url"`
+
+	handler *SSOMethodHandler
 }
 
-func NewSSOHandler(conf *bunconf.Config, logger *otelzap.Logger, pg *bun.DB, router *bunrouter.Group) *SSOHandler {
+func NewSSOHandler(p SSOHandlerParams) *SSOHandler {
 	methods := make([]*SSOMethod, 0)
 
-	for _, oidcConf := range conf.Auth.OIDC {
+	for _, oidcConf := range p.Conf.Auth.OIDC {
 		if oidcConf.RedirectURL == "" {
-			oidcConf.RedirectURL = conf.SiteURL(fmt.Sprintf(
+			oidcConf.RedirectURL = p.Conf.SiteURL(fmt.Sprintf(
 				"/internal/v1/sso/%s/callback", oidcConf.ID))
 		}
 
-		handler, err := NewSSOMethodHandler(conf, logger, pg, oidcConf)
+		handler, err := NewSSOMethodHandler(p.Logger, p.Conf, p.PG, oidcConf)
 		if err != nil {
-			logger.Error("failed to initialize OIDC user provider", zap.Error(err))
+			p.Logger.Error("failed to initialize OIDC user provider", zap.Error(err))
 			continue
 		}
 
 		methods = append(methods, &SSOMethod{
 			ID:          oidcConf.ID,
 			DisplayName: oidcConf.DisplayName,
-			RedirectURL: conf.SiteURL("/internal/v1/sso/%s/start", oidcConf.ID),
+			// TODO(yupi) get rid of "/internal/v1" hardcoding somehow
+			RedirectURL: p.Conf.SiteURL("/internal/v1/sso/%s/start", oidcConf.ID),
+			handler:     handler,
 		})
-
-		router.GET(fmt.Sprintf("/%s/start", oidcConf.ID), handler.Start)
-		router.GET(fmt.Sprintf("/%s/callback", oidcConf.ID), handler.Callback)
 	}
 
 	return &SSOHandler{
 		methods: methods,
 	}
+}
+
+func registerSSOHandler(h *SSOHandler, p bunapp.RouterParams) {
+	p.RouterInternalV1.WithGroup("/sso", func(g *bunrouter.Group) {
+		g.GET("/methods", h.ListMethods)
+
+		for _, method := range h.methods {
+			g.GET(fmt.Sprintf("/%s/start", method.ID), method.handler.Start)
+			g.GET(fmt.Sprintf("/%s/callback", method.ID), method.handler.Callback)
+		}
+	})
 }
 
 func (h *SSOHandler) ListMethods(w http.ResponseWriter, req bunrouter.Request) error {
@@ -70,9 +91,9 @@ func (h *SSOHandler) ListMethods(w http.ResponseWriter, req bunrouter.Request) e
 //------------------------------------------------------------------------------
 
 type SSOMethodHandler struct {
-	conf   *bunconf.Config
-	logger *otelzap.Logger
-	pg     *bun.DB
+	Logger *otelzap.Logger
+	Conf   *bunconf.Config
+	PG     *bun.DB
 
 	oidcConf *bunconf.OIDCProvider
 	provider *oidc.Provider
@@ -82,8 +103,8 @@ type SSOMethodHandler struct {
 const stateCookieName = "oidc-state"
 
 func NewSSOMethodHandler(
-	conf *bunconf.Config,
 	logger *otelzap.Logger,
+	conf *bunconf.Config,
 	pg *bun.DB,
 	oidcConf *bunconf.OIDCProvider,
 ) (*SSOMethodHandler, error) {
@@ -109,9 +130,9 @@ func NewSSOMethodHandler(
 	}
 
 	return &SSOMethodHandler{
-		conf:     conf,
-		logger:   logger,
-		pg:       pg,
+		Logger:   logger,
+		Conf:     conf,
+		PG:       pg,
 		oidcConf: oidcConf,
 		provider: provider,
 		oauth:    oauth,
@@ -145,12 +166,11 @@ func (h *SSOMethodHandler) Callback(w http.ResponseWriter, req bunrouter.Request
 		return err
 	}
 
-	fakeApp := &bunapp.App{PG: h.pg}
-	if err := GetOrCreateUser(ctx, fakeApp, user); err != nil {
+	if err := GetOrCreateUser(ctx, h.PG, user); err != nil {
 		return err
 	}
 
-	token, err := encodeUserToken(h.conf.SecretKey, user.Email, tokenTTL)
+	token, err := encodeUserToken(h.Conf.SecretKey, user.Email, tokenTTL)
 	if err != nil {
 		return err
 	}
@@ -161,7 +181,7 @@ func (h *SSOMethodHandler) Callback(w http.ResponseWriter, req bunrouter.Request
 	cookie.MaxAge = int(tokenTTL.Seconds())
 	http.SetCookie(w, cookie)
 
-	http.Redirect(w, req.Request, h.conf.SiteURL("/"), http.StatusFound)
+	http.Redirect(w, req.Request, h.Conf.SiteURL("/"), http.StatusFound)
 	return nil
 }
 

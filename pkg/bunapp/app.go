@@ -528,3 +528,10 @@ func NewMailer(conf *bunconf.Config) (*mail.Client, error) {
 
 	return client, nil
 }
+
+func RegisterTaskHandler(name string, handler any) *taskq.Task {
+	return taskq.RegisterTask(name, &taskq.TaskConfig{
+		RetryLimit: 16,
+		Handler:    handler,
+	})
+}

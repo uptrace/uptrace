@@ -13,29 +13,42 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"go.uber.org/fx"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserHandler struct {
-	conf   *bunconf.Config
-	logger *otelzap.Logger
-	pg     *bun.DB
+type UserHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	Conf   *bunconf.Config
+	PG     *bun.DB
 }
 
-func NewUserHandler(conf *bunconf.Config, logger *otelzap.Logger, pg *bun.DB) *UserHandler {
-	return &UserHandler{
-		conf:   conf,
-		logger: logger,
-		pg:     pg,
-	}
+type UserHandler struct {
+	*UserHandlerParams
+}
+
+func NewUserHandler(p UserHandlerParams) *UserHandler {
+	return &UserHandler{&p}
+}
+
+func registerUserHandler(h *UserHandler, p bunapp.RouterParams, m *Middleware) {
+	p.RouterInternalV1.WithGroup("/users", func(g *bunrouter.Group) {
+		g.POST("/login", h.Login)
+		g.POST("/logout", h.Logout)
+
+		g = g.Use(m.User)
+
+		g.GET("/current", h.Current)
+	})
 }
 
 func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 	user := UserFromContext(ctx)
 
-	fakeApp := &bunapp.App{PG: h.pg}
-	projects, err := SelectProjects(ctx, fakeApp)
+	projects, err := SelectProjects(ctx, h.PG)
 	if err != nil {
 		return err
 	}
@@ -64,7 +77,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 		return httperror.BadRequest("credentials", "user with such credentials not found")
 	}
 
-	token, err := encodeUserToken(h.conf.SecretKey, user.Email, tokenTTL)
+	token, err := encodeUserToken(h.Conf.SecretKey, user.Email, tokenTTL)
 	if err != nil {
 		return err
 	}
@@ -79,9 +92,8 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 }
 
 func (h *UserHandler) userByEmail(email string) (*User, error) {
-	conf := h.conf
-	for i := range conf.Auth.Users {
-		user := &conf.Auth.Users[i]
+	for i := range h.Conf.Auth.Users {
+		user := &h.Conf.Auth.Users[i]
 		if user.Email == email {
 			return NewUserFromConfig(user)
 		}

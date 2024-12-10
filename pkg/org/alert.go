@@ -9,7 +9,6 @@ import (
 	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/pgquery"
@@ -106,7 +105,7 @@ func (p *ErrorAlertParams) Clone() *ErrorAlertParams {
 	return &clone
 }
 
-func InsertAlert(ctx context.Context, app *bunapp.App, db bun.IDB, alert Alert) (bool, error) {
+func InsertAlert(ctx context.Context, db bun.IDB, alert Alert) (bool, error) {
 	base := alert.Base()
 	if base.ProjectID == 0 {
 		return false, errors.New("alert project id can't be zero")

@@ -8,12 +8,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vmihailenco/taskq/v4"
+	"go.uber.org/fx"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
-
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconv"
@@ -57,14 +60,31 @@ func (f *MetricFilter) UnmarshalValues(ctx context.Context, values url.Values) e
 
 //-----------------------------------------------------------------------------------------
 
-type MetricHandler struct {
-	*bunapp.App
+type MetricHandlerParams struct {
+	fx.In
+
+	Logger    *otelzap.Logger
+	PG        *bun.DB
+	CH        *ch.DB
+	MainQueue taskq.Queue
 }
 
-func NewMetricHandler(app *bunapp.App) *MetricHandler {
-	return &MetricHandler{
-		App: app,
-	}
+type MetricHandler struct {
+	*MetricHandlerParams
+}
+
+func NewMetricHandler(p MetricHandlerParams) *MetricHandler {
+	return &MetricHandler{&p}
+}
+
+func registerMetricHandler(h *MetricHandler, p bunapp.RouterParams, m *Middleware) {
+	p.RouterInternalV1.
+		Use(m.UserAndProject).
+		WithGroup("/metrics/:project_id", func(g *bunrouter.Group) {
+			g.GET("", h.List)
+			g.GET("/describe", h.Describe)
+			g.GET("/stats", h.Stats)
+		})
 }
 
 func (h *MetricHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
@@ -84,7 +104,7 @@ func (h *MetricHandler) List(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	metrics, err := selectMetrics(ctx, h.App, f)
+	metrics, err := selectMetrics(ctx, h.PG, h.CH, f)
 	if err != nil {
 		return err
 	}
@@ -95,7 +115,7 @@ func (h *MetricHandler) List(w http.ResponseWriter, req bunrouter.Request) error
 }
 
 func (h *MetricHandler) createSystemMetrics(ctx context.Context, projectID uint32) error {
-	achievements, err := org.SelectAchievements(ctx, h.App, 0, projectID)
+	achievements, err := org.SelectAchievements(ctx, h.PG, 0, projectID)
 	if err != nil {
 		return err
 	}
@@ -189,18 +209,18 @@ func (h *MetricHandler) createSystemMetrics(ctx context.Context, projectID uint3
 		return nil
 	}
 
-	return UpsertMetrics(ctx, h.App, metrics)
+	return UpsertMetrics(ctx, h.Logger, h.PG, h.MainQueue, metrics)
 }
 
-func selectMetrics(ctx context.Context, app *bunapp.App, f *MetricFilter) ([]*Metric, error) {
+func selectMetrics(ctx context.Context, pg *bun.DB, ch *ch.DB, f *MetricFilter) ([]*Metric, error) {
 	if f.Query != "" {
-		metrics, _, err := selectMetricsFromCH(ctx, app, f)
+		metrics, _, err := selectMetricsFromCH(ctx, pg, ch, f)
 		return metrics, err
 	}
 
 	var metrics []*Metric
 
-	q := app.PG.NewSelect().
+	q := pg.NewSelect().
 		Model(&metrics).
 		Where("project_id = ?", f.ProjectID).
 		Where("updated_at IS NULL OR updated_at >= ?", time.Now().Add(-24*time.Hour)).
@@ -224,12 +244,12 @@ func selectMetrics(ctx context.Context, app *bunapp.App, f *MetricFilter) ([]*Me
 }
 
 func selectMetricsFromCH(
-	ctx context.Context, app *bunapp.App, f *MetricFilter,
+	ctx context.Context, pg *bun.DB, chdb *ch.DB, f *MetricFilter,
 ) ([]*Metric, bool, error) {
 	const limit = 1000
 
 	tableName := DatapointTableForWhere(&f.TimeFilter)
-	q := app.CH.NewSelect().
+	q := chdb.NewSelect().
 		ColumnExpr("m.metric AS name").
 		ColumnExpr("anyLast(m.instrument) AS instrument").
 		ColumnExpr("uniqCombined64(m.attrs_hash) AS num_timeseries").
@@ -282,8 +302,8 @@ func selectMetricsFromCH(
 		return metrics, false, nil
 	}
 
-	if err := app.PG.NewSelect().
-		With("data", app.PG.NewValues(&metrics).Column("name", "num_timeseries").WithOrder()).
+	if err := pg.NewSelect().
+		With("data", pg.NewValues(&metrics).Column("name", "num_timeseries").WithOrder()).
 		ColumnExpr("m.*, data.num_timeseries").
 		Model(&metrics).
 		TableExpr("data").
@@ -332,7 +352,7 @@ func (h *MetricHandler) Stats(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	metrics, hasMore, err := selectMetricsFromCH(ctx, h.App, f)
+	metrics, hasMore, err := selectMetricsFromCH(ctx, h.PG, h.CH, f)
 	if err != nil {
 		return err
 	}

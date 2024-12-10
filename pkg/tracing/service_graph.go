@@ -9,10 +9,12 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/zyedidia/generic/list"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
 
@@ -118,18 +120,30 @@ func (e *ServiceGraphEdge) setServerDuration(span *SpanIndex) {
 	}
 }
 
+type ServiceGraphProcessorParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	Conf   *bunconf.Config
+	CH     *ch.DB
+}
+
 type ServiceGraphProcessor struct {
-	app *bunapp.App
+	*ServiceGraphProcessorParams
 
 	storeShards []*ServiceGraphStore
 	edgeCh      chan *ServiceGraphEdge
 }
 
-func NewServiceGraphProcessor(app *bunapp.App) *ServiceGraphProcessor {
-	conf := app.Config().ServiceGraph
+func NewServiceGraphProcessor(params ServiceGraphProcessorParams) *ServiceGraphProcessor {
+	conf := params.Conf.ServiceGraph
+	if conf.Disabled {
+		return nil
+	}
+
 	p := &ServiceGraphProcessor{
-		app:    app,
-		edgeCh: make(chan *ServiceGraphEdge, batchSize),
+		ServiceGraphProcessorParams: &params,
+		edgeCh:                      make(chan *ServiceGraphEdge, batchSize),
 	}
 
 	n := runtime.GOMAXPROCS(0)
@@ -318,7 +332,7 @@ func (p *ServiceGraphProcessor) onCompleteEdge(ctx context.Context, edge *Servic
 	select {
 	case p.edgeCh <- edge:
 	default:
-		p.app.Zap(ctx).Error("edge chan is full (edge is dropped)",
+		p.Logger.Error("edge chan is full (edge is dropped)",
 			zap.Int("chan_len", len(p.edgeCh)))
 	}
 }
@@ -346,10 +360,10 @@ loop:
 		case <-timer.C:
 		}
 
-		if _, err := p.app.CH.NewInsert().
+		if _, err := p.CH.NewInsert().
 			Model(&edges).
 			Exec(ctx); err != nil {
-			p.app.Zap(ctx).Error("can't insert service graph edges", zap.Error(err))
+			p.Logger.Error("can't insert service graph edges", zap.Error(err))
 		}
 
 		edges = edges[:0]

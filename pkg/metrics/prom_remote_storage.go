@@ -11,24 +11,38 @@ import (
 	promlabels "github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/prometheus/prometheus/storage/remote"
+	"go.uber.org/fx"
+
+	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
-type PrometheusHandler struct {
-	*bunapp.App
+type PrometheusHandlerParams struct {
+	fx.In
 
-	mp *DatapointProcessor
+	Logger *otelzap.Logger
+	PG     *bun.DB
+	CH     *ch.DB
+	MP     *DatapointProcessor
 }
 
-func NewPrometheusHandler(app *bunapp.App, mp *DatapointProcessor) *PrometheusHandler {
-	return &PrometheusHandler{
-		App: app,
+type PrometheusHandler struct {
+	*PrometheusHandlerParams
+}
 
-		mp: mp,
-	}
+func NewPrometheusHandler(p PrometheusHandlerParams) *PrometheusHandler {
+	return &PrometheusHandler{&p}
+}
+
+func registerPrometheusHandler(h *PrometheusHandler, p bunapp.RouterParams) {
+	p.Router.WithGroup("/api/v1/prometheus", func(g *bunrouter.Group) {
+		g.POST("/write", h.Write)
+		g.POST("/read", h.Read)
+	})
 }
 
 func (h *PrometheusHandler) Write(
@@ -41,7 +55,7 @@ func (h *PrometheusHandler) Write(
 		return err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, h.App, dsn)
+	project, err := org.SelectProjectByDSN(ctx, h.PG, dsn)
 	if err != nil {
 		return err
 	}
@@ -63,8 +77,8 @@ func (h *PrometheusHandler) handleTimeseries(
 	ctx context.Context, project *org.Project, tss []prompb.TimeSeries,
 ) error {
 	p := otlpProcessor{
-		App:     h.App,
-		mp:      h.mp,
+		logger:  h.Logger,
+		mp:      h.MP,
 		project: project,
 	}
 	defer p.close(ctx)
@@ -108,7 +122,7 @@ func (h *PrometheusHandler) handleTimeseries(
 		}
 
 		if len(ts.Histograms) > 0 {
-			h.Zap(ctx).Error("histograms are unsupported")
+			h.Logger.Error("histograms are unsupported")
 		}
 	}
 
@@ -158,7 +172,7 @@ func (h *PrometheusHandler) Read(
 		return err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, h.App, dsn)
+	project, err := org.SelectProjectByDSN(ctx, h.PG, dsn)
 	if err != nil {
 		return err
 	}

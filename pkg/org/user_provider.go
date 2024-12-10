@@ -10,7 +10,6 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 )
 
@@ -21,15 +20,11 @@ type UserProvider interface {
 }
 
 type JWTProvider struct {
-	app       *bunapp.App
 	secretKey string
 }
 
-func NewJWTProvider(app *bunapp.App, secretKey string) *JWTProvider {
-	return &JWTProvider{
-		app:       app,
-		secretKey: secretKey,
-	}
+func NewJWTProvider(secretKey string) *JWTProvider {
+	return &JWTProvider{secretKey: secretKey}
 }
 
 var _ UserProvider = (*JWTProvider)(nil)

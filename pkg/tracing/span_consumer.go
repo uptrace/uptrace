@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
 
@@ -12,21 +12,19 @@ type SpanConsumer struct {
 	*BaseConsumer[SpanIndex, SpanData]
 }
 
-func NewSpanConsumer(p *ModuleParams) *SpanConsumer {
+type SpanConsumerParams struct {
+	fx.In
+	BaseConsumerParams
+
+	SGP *ServiceGraphProcessor `optional:"true"`
+}
+
+func NewSpanConsumer(p SpanConsumerParams) *SpanConsumer {
 	batchSize := p.Conf.Spans.BatchSize
 	bufferSize := p.Conf.Spans.BufferSize
 	maxWorkers := p.Conf.Spans.MaxWorkers
 
-	fakeApp := &bunapp.App{
-		Conf:   p.Conf,
-		Logger: p.Logger,
-		CH:     p.CH,
-	}
-	var sgp *ServiceGraphProcessor
-	if !p.Conf.ServiceGraph.Disabled {
-		sgp = NewServiceGraphProcessor(fakeApp)
-	}
-	transformer := &spanTransformer{sgp: sgp, logger: p.Logger}
+	transformer := &spanTransformer{sgp: p.SGP, logger: p.Logger}
 
 	c := &SpanConsumer{
 		BaseConsumer: NewBaseConsumer[SpanIndex, SpanData](

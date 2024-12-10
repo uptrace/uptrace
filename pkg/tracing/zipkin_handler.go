@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
+	"go.uber.org/fx"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
@@ -20,18 +21,27 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
-type ZipkinHandler struct {
-	logger   *otelzap.Logger
-	pg       *bun.DB
-	consumer *SpanConsumer
+type ZipkinHandlerParams struct {
+	fx.In
+
+	Logger   *otelzap.Logger
+	PG       *bun.DB
+	Consumer *SpanConsumer
 }
 
-func NewZipkinHandler(logger *otelzap.Logger, pg *bun.DB, consumer *SpanConsumer) *ZipkinHandler {
-	return &ZipkinHandler{
-		logger:   logger,
-		pg:       pg,
-		consumer: consumer,
-	}
+type ZipkinHandler struct {
+	*ZipkinHandlerParams
+}
+
+func NewZipkinHandler(p ZipkinHandlerParams) *ZipkinHandler {
+	return &ZipkinHandler{&p}
+}
+
+func registerZipkinHandler(h *ZipkinHandler, p bunapp.RouterParams) {
+	// https://zipkin.io/zipkin-api/#/default/post_spans
+	p.Router.WithGroup("/api/v2", func(g *bunrouter.Group) {
+		g.POST("/spans", h.PostSpans)
+	})
 }
 
 type ZipkinSpan struct {
@@ -68,8 +78,7 @@ func (h *ZipkinHandler) PostSpans(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	fakeApp := &bunapp.App{PG: h.pg}
-	project, err := org.SelectProjectByDSN(ctx, fakeApp, dsn)
+	project, err := org.SelectProjectByDSN(ctx, h.PG, dsn)
 	if err != nil {
 		return err
 	}
@@ -91,7 +100,7 @@ func (h *ZipkinHandler) PostSpans(w http.ResponseWriter, req bunrouter.Request) 
 			return err
 		}
 
-		h.consumer.AddSpan(ctx, span)
+		h.Consumer.AddSpan(ctx, span)
 	}
 
 	w.WriteHeader(http.StatusAccepted)

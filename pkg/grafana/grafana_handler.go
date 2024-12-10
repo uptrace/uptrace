@@ -7,16 +7,19 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
+type BaseGrafanaHandlerParams struct {
+	Logger *otelzap.Logger
+	Conf   *bunconf.Config
+	PG     *bun.DB
+	CH     *ch.DB
+}
+
 type BaseGrafanaHandler struct {
-	logger *otelzap.Logger
-	conf   *bunconf.Config
-	pg     *bun.DB
-	ch     *ch.DB
+	*BaseGrafanaHandlerParams
 }
 
 func (h *BaseGrafanaHandler) Ready(w http.ResponseWriter, req bunrouter.Request) error {
@@ -38,8 +41,7 @@ func (h *BaseGrafanaHandler) CheckProjectAccess(next bunrouter.HandlerFunc) bunr
 			return err
 		}
 
-		fakeApp := &bunapp.App{PG: h.pg}
-		project, err := org.SelectProjectByDSN(ctx, fakeApp, dsn)
+		project, err := org.SelectProjectByDSN(ctx, h.PG, dsn)
 		if err != nil {
 			return err
 		}

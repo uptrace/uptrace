@@ -7,24 +7,36 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/httputil"
+	"go.uber.org/fx"
 	"golang.org/x/exp/constraints"
 )
 
-type UsageHandler struct {
-	conf   *bunconf.Config
-	logger *otelzap.Logger
-	ch     *ch.DB
+type UsageHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	Conf   *bunconf.Config
+	CH     *ch.DB
 }
 
-func NewUsageHandler(conf *bunconf.Config, logger *otelzap.Logger, ch *ch.DB) *UsageHandler {
-	return &UsageHandler{
-		conf:   conf,
-		logger: logger,
-		ch:     ch,
-	}
+type UsageHandler struct {
+	*UsageHandlerParams
+}
+
+func NewUsageHandler(p UsageHandlerParams) *UsageHandler {
+	return &UsageHandler{&p}
+}
+
+func registerUsageHandler(h *UsageHandler, p bunapp.RouterParams, m *Middleware) {
+	p.RouterInternalV1.
+		Use(m.User).
+		WithGroup("", func(g *bunrouter.Group) {
+			g.GET("/data-usage", h.Show)
+		})
 }
 
 type Usage struct {
@@ -48,12 +60,12 @@ func (h *UsageHandler) Show(w http.ResponseWriter, req bunrouter.Request) error 
 	timeGTE := timeLT.AddDate(0, -1, 0)
 
 	usage := new(Usage)
-	if err := h.ch.NewSelect().
+	if err := h.CH.NewSelect().
 		ColumnExpr("sum(rows) AS spans").
 		ColumnExpr("sum(data_uncompressed_bytes) AS bytes").
 		ColumnExpr("parseDateTime(partition, '%Y-%m-%d') AS time").
 		TableExpr("system.parts").
-		Where("database = ?", h.ch.Config().Database).
+		Where("database = ?", h.CH.Config().Database).
 		Where("table = ?", "spans_data").
 		Where("min_time >= ?", timeGTE).
 		Where("active").
@@ -67,7 +79,7 @@ func (h *UsageHandler) Show(w http.ResponseWriter, req bunrouter.Request) error 
 	usage.Bytes = bunutil.Fill(usage.Bytes, usage.Time, 0, timeGTE, timeLT, interval)
 	usage.Time = bunutil.FillTime(usage.Time, timeGTE, timeLT, interval)
 
-	subq := h.ch.NewSelect().
+	subq := h.CH.NewSelect().
 		ColumnExpr("60 * uniqCombined64(15)(d.attrs_hash) AS datapoints").
 		ColumnExpr("d.time").
 		ColumnExpr("60 AS minutes").
@@ -77,7 +89,7 @@ func (h *UsageHandler) Show(w http.ResponseWriter, req bunrouter.Request) error 
 		GroupExpr("d.project_id, d.time")
 
 	usage2 := new(Usage2)
-	if err := h.ch.NewSelect().
+	if err := h.CH.NewSelect().
 		ColumnExpr("sum(d.datapoints) AS datapoints").
 		ColumnExpr("toStartOfDay(d.time) AS time").
 		ColumnExpr("sum(d.minutes) AS minutes").

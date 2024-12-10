@@ -7,10 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/uptrace/bun"
+	"github.com/vmihailenco/taskq/v4"
 	"go.uber.org/zap"
 
-	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 )
@@ -58,11 +59,11 @@ func newDeletedMetric(projectID uint32, metricName string) *Metric {
 }
 
 func SelectMetricMap(
-	ctx context.Context, app *bunapp.App, projectID uint32,
+	ctx context.Context, pg *bun.DB, projectID uint32,
 ) (map[string]*Metric, error) {
 	var metrics []*Metric
 
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(&metrics).
 		Where("project_id = ?", projectID).
 		Where("updated_at >= ?", time.Now().Add(-72*time.Hour)).
@@ -81,9 +82,9 @@ func SelectMetricMap(
 	return m, nil
 }
 
-func SelectMetric(ctx context.Context, app *bunapp.App, id uint64) (*Metric, error) {
+func SelectMetric(ctx context.Context, pg *bun.DB, id uint64) (*Metric, error) {
 	metric := new(Metric)
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(metric).
 		Where("id = ?", id).
 		Scan(ctx); err != nil {
@@ -93,10 +94,10 @@ func SelectMetric(ctx context.Context, app *bunapp.App, id uint64) (*Metric, err
 }
 
 func SelectMetricByName(
-	ctx context.Context, app *bunapp.App, projectID uint32, name string,
+	ctx context.Context, pg *bun.DB, projectID uint32, name string,
 ) (*Metric, error) {
 	metric := new(Metric)
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(metric).
 		Where("name = ?", name).
 		Where("project_id = ?", projectID).
@@ -107,11 +108,11 @@ func SelectMetricByName(
 	return metric, nil
 }
 
-func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) error {
+func UpsertMetric(ctx context.Context, pg *bun.DB, m *Metric) error {
 	if m.CreatedAt.IsZero() {
 		m.CreatedAt = time.Now()
 	}
-	if _, err := app.PG.NewInsert().
+	if _, err := pg.NewInsert().
 		Model(m).
 		On("CONFLICT (project_id, name) DO UPDATE").
 		Set("description = EXCLUDED.description").
@@ -125,8 +126,14 @@ func UpsertMetric(ctx context.Context, app *bunapp.App, m *Metric) error {
 	return nil
 }
 
-func UpsertMetrics(ctx context.Context, app *bunapp.App, metrics []Metric) error {
-	if _, err := app.PG.NewInsert().
+func UpsertMetrics(
+	ctx context.Context,
+	logger *otelzap.Logger,
+	pg *bun.DB,
+	mainQueue taskq.Queue,
+	metrics []Metric,
+) error {
+	if _, err := pg.NewInsert().
 		Model(&metrics).
 		On("CONFLICT (project_id, name) DO UPDATE").
 		Set("description = EXCLUDED.description").
@@ -150,8 +157,8 @@ func UpsertMetrics(ctx context.Context, app *bunapp.App, metrics []Metric) error
 
 		job := createDashboardsTask.NewJob(metric.ProjectID)
 		job.OnceInPeriod(30 * time.Second)
-		if err := app.MainQueue.AddJob(ctx, job); err != nil {
-			app.Zap(ctx).Error("DefaultQueue.Add failed", zap.Error(err))
+		if err := mainQueue.AddJob(ctx, job); err != nil {
+			logger.Error("DefaultQueue.Add failed", zap.Error(err))
 		}
 	}
 

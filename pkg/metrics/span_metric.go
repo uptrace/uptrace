@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/uptrace/bun"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/ch/chschema"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/tracing"
@@ -18,8 +18,7 @@ import (
 
 const spanMetricDur = time.Minute
 
-func initSpanMetrics(ctx context.Context, app *bunapp.App) error {
-	conf := app.Config()
+func initSpanMetrics(ctx context.Context, conf *bunconf.Config, pg *bun.DB, ch *ch.DB) error {
 	for i := range conf.MetricsFromSpans {
 		metric := &conf.MetricsFromSpans[i]
 
@@ -27,29 +26,35 @@ func initSpanMetrics(ctx context.Context, app *bunapp.App) error {
 			return fmt.Errorf("metric name can't be empty")
 		}
 
-		if err := createSpanMetric(ctx, app, metric); err != nil {
+		if err := createSpanMetric(ctx, conf, pg, ch, metric); err != nil {
 			return fmt.Errorf("createSpanMetric %q failed: %w", metric.Name, err)
 		}
 	}
 	return nil
 }
 
-func createSpanMetric(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMetric) error {
+func createSpanMetric(
+	ctx context.Context,
+	conf *bunconf.Config,
+	pg *bun.DB,
+	ch *ch.DB,
+	metric *bunconf.SpanMetric,
+) error {
 	if metric.Instrument == "" {
 		return fmt.Errorf("metric instrument can't be empty")
 	}
 
-	if err := createSpanMetricMeta(ctx, app, metric); err != nil {
+	if err := createSpanMetricMeta(ctx, conf, pg, metric); err != nil {
 		return fmt.Errorf("createSpanMetricMeta failed: %w", err)
 	}
-	if err := createMatView(ctx, app, metric); err != nil {
+	if err := createMatView(ctx, conf, ch, metric); err != nil {
 		return fmt.Errorf("createMatView failed: %w", err)
 	}
 	return nil
 }
 
-func createSpanMetricMeta(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMetric) error {
-	projects := app.Config().Projects
+func createSpanMetricMeta(ctx context.Context, conf *bunconf.Config, pg *bun.DB, metric *bunconf.SpanMetric) error {
+	projects := conf.Projects
 	for i := range projects {
 		project := &projects[i]
 
@@ -58,7 +63,7 @@ func createSpanMetricMeta(ctx context.Context, app *bunapp.App, metric *bunconf.
 			attrKeys[i], _ = splitNameAlias(attr)
 		}
 
-		if err := UpsertMetric(ctx, app, &Metric{
+		if err := UpsertMetric(ctx, pg, &Metric{
 			ProjectID:   project.ID,
 			Name:        metric.Name,
 			Description: metric.Description,
@@ -72,11 +77,10 @@ func createSpanMetricMeta(ctx context.Context, app *bunapp.App, metric *bunconf.
 	return nil
 }
 
-func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMetric) error {
-	conf := app.Config()
+func createMatView(ctx context.Context, conf *bunconf.Config, chdb *ch.DB, metric *bunconf.SpanMetric) error {
 	viewName := metric.ViewName()
 
-	if _, err := app.CH.NewDropView().
+	if _, err := chdb.NewDropView().
 		IfExists().
 		View(viewName).
 		OnCluster(conf.CHSchema.Cluster).
@@ -89,7 +93,7 @@ func createMatView(ctx context.Context, app *bunapp.App, metric *bunconf.SpanMet
 		return err
 	}
 
-	q := app.CH.NewCreateView().
+	q := chdb.NewCreateView().
 		Materialized().
 		View(viewName).
 		OnCluster(conf.CHSchema.Cluster).

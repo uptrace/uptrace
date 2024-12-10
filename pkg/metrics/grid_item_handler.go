@@ -7,22 +7,45 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/fx"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 )
 
-type GridItemHandler struct {
-	*bunapp.App
+type GridItemHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	PG     *bun.DB
 }
 
-func NewGridItemHandler(app *bunapp.App) *GridItemHandler {
-	return &GridItemHandler{
-		App: app,
-	}
+type GridItemHandler struct {
+	*GridItemHandlerParams
+}
+
+func NewGridItemHandler(p GridItemHandlerParams) *GridItemHandler {
+	return &GridItemHandler{&p}
+}
+
+func registerGridItemHandler(h *GridItemHandler, p bunapp.RouterParams, m *Middleware) {
+	p.RouterInternalV1.
+		Use(m.UserAndProject).
+		Use(m.Dashboard).
+		WithGroup("/metrics/:project_id/dashboards/:dash_id/grid", func(g *bunrouter.Group) {
+			g.POST("", h.Create)
+			g.PUT("/layout", h.UpdateLayout)
+
+			g = g.Use(h.GridItemMiddleware)
+
+			g.PUT("/:row_id", h.Update)
+			g.DELETE("/:row_id", h.Delete)
+		})
 }
 
 type GridItemPos struct {
@@ -129,7 +152,7 @@ func (h *GridItemHandler) Create(w http.ResponseWriter, req bunrouter.Request) e
 	ctx := req.Context()
 	dash := dashFromContext(ctx)
 
-	grid, err := SelectBaseGridItems(ctx, h.App, dash.ID)
+	grid, err := SelectBaseGridItems(ctx, h.PG, dash.ID)
 	if err != nil {
 		return err
 	}
@@ -149,7 +172,7 @@ func (h *GridItemHandler) Create(w http.ResponseWriter, req bunrouter.Request) e
 
 	gridItem.DashID = dash.ID
 	if gridItem.DashKind == DashKindGrid {
-		gridRow, err := SelectOrCreateGridRow(ctx, h.App, dash.ID)
+		gridRow, err := SelectOrCreateGridRow(ctx, h.PG, dash.ID)
 		if err != nil {
 			return err
 		}
@@ -250,7 +273,7 @@ func (h *GridItemHandler) GridItemMiddleware(next bunrouter.HandlerFunc) bunrout
 			return err
 		}
 
-		item, err := SelectGridItem(ctx, h.App, itemID)
+		item, err := SelectGridItem(ctx, h.PG, itemID)
 		if err != nil {
 			return err
 		}

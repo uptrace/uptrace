@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/madalarm"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
@@ -189,17 +188,17 @@ func InsertMonitor(ctx context.Context, db bun.IDB, monitor Monitor) error {
 	return nil
 }
 
-func SelectMonitor(ctx context.Context, app *bunapp.App, id uint64) (Monitor, error) {
-	monitor, err := SelectBaseMonitor(ctx, app, id)
+func SelectMonitor(ctx context.Context, pg *bun.DB, id uint64) (Monitor, error) {
+	monitor, err := SelectBaseMonitor(ctx, pg, id)
 	if err != nil {
 		return nil, err
 	}
 	return DecodeMonitor(monitor)
 }
 
-func SelectBaseMonitor(ctx context.Context, app *bunapp.App, id uint64) (*BaseMonitor, error) {
+func SelectBaseMonitor(ctx context.Context, pg *bun.DB, id uint64) (*BaseMonitor, error) {
 	monitor := new(BaseMonitor)
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(monitor).
 		Where("id = ?", id).
 		Scan(ctx); err != nil {
@@ -231,14 +230,14 @@ func DecodeMonitor(base *BaseMonitor) (Monitor, error) {
 	}
 }
 
-func PauseMonitor(ctx context.Context, app *bunapp.App, monitorID uint64) error {
-	return UpdateMonitorState(ctx, app, monitorID, MonitorActive, MonitorPaused)
+func PauseMonitor(ctx context.Context, pg *bun.DB, monitorID uint64) error {
+	return UpdateMonitorState(ctx, pg, monitorID, MonitorActive, MonitorPaused)
 }
 
 func UpdateMonitorState(
-	ctx context.Context, app *bunapp.App, monitorID uint64, fromState, toState MonitorState,
+	ctx context.Context, pg *bun.DB, monitorID uint64, fromState, toState MonitorState,
 ) error {
-	if _, err := app.PG.NewUpdate().
+	if _, err := pg.NewUpdate().
 		Model((*BaseMonitor)(nil)).
 		Set("state = ?", toState).
 		Where("id = ?", monitorID).

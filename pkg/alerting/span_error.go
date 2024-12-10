@@ -5,29 +5,48 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/vmihailenco/taskq/v4"
+	"go.uber.org/fx"
+
 	"github.com/uptrace/bun"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
 )
 
-func createErrorAlertHandler(
+type AlertNotifierParams struct {
+	fx.In
+
+	Logger    *otelzap.Logger
+	PG        *bun.DB
+	CH        *ch.DB
+	MainQueue taskq.Queue
+}
+
+type AlertNotifier struct {
+	*AlertNotifierParams
+}
+
+func NewAlertNotifier(p AlertNotifierParams) *AlertNotifier {
+	return &AlertNotifier{&p}
+}
+
+func (n *AlertNotifier) ErrorHandler(
 	ctx context.Context,
 	projectID uint32,
 	groupID uint64,
 	traceID idgen.TraceID,
 	spanID idgen.SpanID,
 ) error {
-	app := bunapp.AppFromContext(ctx)
-
-	project, err := org.SelectProject(ctx, app, projectID)
+	project, err := org.SelectProject(ctx, n.PG, projectID)
 	if err != nil {
 		return err
 	}
 
-	span, err := tracing.SelectSpan(ctx, app, projectID, traceID, spanID)
+	span, err := tracing.SelectSpan(ctx, n.CH, projectID, traceID, spanID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil
@@ -45,7 +64,7 @@ func createErrorAlertHandler(
 		SpanGroupID: groupID,
 	}
 
-	alert, err := selectErrorAlert(ctx, app, baseAlert)
+	alert, err := selectErrorAlert(ctx, n.PG, baseAlert)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
@@ -63,10 +82,10 @@ func createErrorAlertHandler(
 		alert.Event.Params.SpanID = spanID
 		alert.Event.Params.SpanCount = 1
 
-		return createAlert(ctx, app, alert)
+		return createAlert(ctx, n.Logger, n.PG, n.CH, n.MainQueue, alert)
 	}
 
-	spanCount, err := countAlertSpans(ctx, app, alert, span)
+	spanCount, err := countAlertSpans(ctx, n.CH, alert, span)
 	if err != nil {
 		return err
 	}
@@ -80,7 +99,7 @@ func createErrorAlertHandler(
 	alert.Event.Params.SpanCount = spanCount
 
 	if !shouldNotifyOnError(alert, spanCountThreshold) {
-		if _, err := app.PG.NewUpdate().
+		if _, err := n.PG.NewUpdate().
 			Model(alert.Event).
 			Set("params = ?", alert.Event.Params).
 			Set("time = ?", alert.Event.Time).
@@ -91,7 +110,7 @@ func createErrorAlertHandler(
 		return nil
 	}
 
-	return tryAlertInTx(ctx, app, alert, func(tx bun.Tx) error {
+	return tryAlertInTx(ctx, n.Logger, n.PG, n.CH, n.MainQueue, alert, func(tx bun.Tx) error {
 		event := alert.Event.Clone()
 		baseEvent := event.Base()
 		baseEvent.Name = org.AlertEventRecurring
@@ -194,14 +213,14 @@ func addSpanAttrs(attrs map[string]string, span *tracing.Span, keys ...string) {
 }
 
 func countAlertSpans(
-	ctx context.Context, app *bunapp.App, alert *ErrorAlert, span *tracing.Span,
+	ctx context.Context, ch *ch.DB, alert *ErrorAlert, span *tracing.Span,
 ) (int64, error) {
 	timeGTE := alert.CreatedAt
 	timeLT := time.Now().Add(-time.Minute).Truncate(time.Minute)
 
 	var spanCount int64
 
-	if err := tracing.NewSpanIndexQuery(app.CH).
+	if err := tracing.NewSpanIndexQuery(ch).
 		ColumnExpr("toUInt64(sum(s.count))").
 		Where("s.project_id = ?", span.ProjectID).
 		Where("s.type = ?", span.Type).
@@ -217,10 +236,10 @@ func countAlertSpans(
 }
 
 func selectErrorAlert(
-	ctx context.Context, app *bunapp.App, alert *org.BaseAlert,
+	ctx context.Context, pg *bun.DB, alert *org.BaseAlert,
 ) (*ErrorAlert, error) {
 	dest := NewErrorAlert()
-	if err := selectMatchingAlert(ctx, app, alert, dest); err != nil {
+	if err := selectMatchingAlert(ctx, pg, alert, dest); err != nil {
 		return nil, err
 	}
 	return dest, nil

@@ -11,15 +11,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/zeebo/xxh3"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/go-clickhouse/ch/bfloat16"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/bunutil"
@@ -31,14 +34,31 @@ import (
 	"github.com/uptrace/uptrace/pkg/unixtime"
 )
 
-type QueryHandler struct {
-	*bunapp.App
+type QueryHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	PG     *bun.DB
+	CH     *ch.DB
 }
 
-func NewQueryHandler(app *bunapp.App) *QueryHandler {
-	return &QueryHandler{
-		App: app,
-	}
+type QueryHandler struct {
+	*QueryHandlerParams
+}
+
+func NewQueryHandler(p QueryHandlerParams) *QueryHandler {
+	return &QueryHandler{&p}
+}
+
+func registerQueryHandler(h *QueryHandler, p bunapp.RouterParams, m *Middleware) {
+	p.RouterInternalV1.
+		Use(m.UserAndProject).
+		WithGroup("/metrics/:project_id", func(g *bunrouter.Group) {
+			g.GET("/table", h.Table)
+			g.GET("/timeseries", h.Timeseries)
+			g.GET("/gauge", h.Gauge)
+			g.GET("/heatmap", h.Heatmap)
+		})
 }
 
 func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error {
@@ -68,7 +88,7 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 		}
 	}
 
-	metricMap, err := f.MetricMap(ctx, h.App)
+	metricMap, err := f.MetricMap(ctx, h.PG)
 	if err != nil {
 		return err
 	}
@@ -90,7 +110,7 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 	result := engine.Run(f.allParts)
 
 	columns, table := convertToTable(result.Timeseries, result.Metrics, f.TableAgg)
-	sortTable(ctx, h.App, columns, table, f)
+	sortTable(ctx, h.Logger, columns, table, f)
 
 	if span := trace.SpanFromContext(ctx); span.IsRecording() {
 		span.SetAttributes(
@@ -237,7 +257,7 @@ func convertToTable(
 
 func sortTable(
 	ctx context.Context,
-	app *bunapp.App,
+	logger *otelzap.Logger,
 	columns []*ColumnInfo,
 	table []map[string]any,
 	f *QueryFilter,
@@ -274,7 +294,7 @@ func sortTable(
 			return strings.Compare(v1, v2)
 		})
 	default:
-		app.Zap(ctx).Error("unsupported table value type",
+		logger.Error("unsupported table value type",
 			zap.String("column", f.SortBy),
 			zap.String("type", fmt.Sprintf("%T", v)))
 	}
@@ -310,7 +330,7 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 		})
 	}
 
-	metricMap, err := f.MetricMap(ctx, h.App)
+	metricMap, err := f.MetricMap(ctx, h.PG)
 	if err != nil {
 		return err
 	}
@@ -409,7 +429,7 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 		}
 	}
 
-	metricMap, err := f.MetricMap(ctx, h.App)
+	metricMap, err := f.MetricMap(ctx, h.PG)
 	if err != nil {
 		return err
 	}

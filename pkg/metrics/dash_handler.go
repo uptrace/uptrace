@@ -7,25 +7,58 @@ import (
 	"net/http"
 	"time"
 
+	"go.uber.org/fx"
+	"gopkg.in/yaml.v3"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/unixtime"
-	"gopkg.in/yaml.v3"
 )
 
+type DashHandlerParams struct {
+	fx.In
+
+	Logger *otelzap.Logger
+	Conf   *bunconf.Config
+	PG     *bun.DB
+}
 type DashHandler struct {
-	*bunapp.App
+	*DashHandlerParams
 }
 
-func NewDashHandler(app *bunapp.App) *DashHandler {
-	return &DashHandler{
-		App: app,
-	}
+func NewDashHandler(p DashHandlerParams) *DashHandler {
+	return &DashHandler{&p}
+}
+
+func registerDashHandler(h *DashHandler, p bunapp.RouterParams, m *Middleware) {
+	p.RouterInternalV1.
+		Use(m.UserAndProject).
+		WithGroup("/metrics/:project_id/dashboards", func(g *bunrouter.Group) {
+			g.POST("", h.Create)
+			g.GET("", h.List)
+			g.POST("/yaml", h.CreateFromYAML)
+
+			g = g.NewGroup("/:dash_id").Use(m.Dashboard)
+
+			g.GET("", h.Show)
+			g.GET("/yaml", h.ShowYAML)
+			g.POST("", h.Clone)
+			g.PUT("", h.Update)
+			g.PUT("/yaml", h.UpdateYAML)
+			g.PUT("/table", h.UpdateTable)
+			g.PUT("/grid", h.UpdateGrid)
+			g.PUT("/reset", h.Reset)
+			g.DELETE("", h.Delete)
+			g.PUT("/pinned", h.Pin)
+			g.PUT("/unpinned", h.Unpin)
+		})
 }
 
 type DashboardIn struct {
@@ -62,7 +95,7 @@ func (h *DashHandler) Create(w http.ResponseWriter, req bunrouter.Request) error
 		return err
 	}
 
-	if err := InsertDashboard(ctx, h.App.PG, dash); err != nil {
+	if err := InsertDashboard(ctx, h.PG, dash); err != nil {
 		return err
 	}
 
@@ -338,7 +371,7 @@ func (h *DashHandler) resetFromTemplate(ctx context.Context, dash *Dashboard) er
 		return httperror.NotFound("can't find dashboard template %q", dash.TemplateID)
 	}
 
-	metricMap, err := SelectMetricMap(ctx, h.App, dash.ProjectID)
+	metricMap, err := SelectMetricMap(ctx, h.PG, dash.ProjectID)
 	if err != nil {
 		return err
 	}
@@ -362,7 +395,7 @@ func (h *DashHandler) Delete(w http.ResponseWriter, req bunrouter.Request) error
 	ctx := req.Context()
 	dash := dashFromContext(ctx)
 
-	if err := DeleteDashboard(ctx, h.App.PG, dash.ID); err != nil {
+	if err := DeleteDashboard(ctx, h.PG, dash.ID); err != nil {
 		return err
 	}
 
@@ -436,14 +469,14 @@ func (h *DashHandler) Show(w http.ResponseWriter, req bunrouter.Request) error {
 		"tableItems":  tableItems,
 		"gridRows":    gridRows,
 		"gridMetrics": gridMetrics,
-		"yamlUrl":     h.SiteURL("/api/v1/metrics/%d/dashboards/%d/yaml", dash.ProjectID, dash.ID),
+		"yamlUrl":     h.Conf.SiteURL("/api/v1/metrics/%d/dashboards/%d/yaml", dash.ProjectID, dash.ID),
 	})
 }
 
 func (h *DashHandler) selectDashItems(
 	ctx context.Context, dash *Dashboard,
 ) ([]GridItem, []*GridRow, error) {
-	gridItems, err := SelectGridItems(ctx, h.App, dash.ID)
+	gridItems, err := SelectGridItems(ctx, h.PG, dash.ID)
 	if err != nil {
 		return nil, nil, err
 	}
