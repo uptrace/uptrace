@@ -8,9 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
+
+	"github.com/uptrace/uptrace/pkg/metrics"
 )
 
 func NewTemplateCommand() *cli.Command {

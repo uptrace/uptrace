@@ -1,11 +1,15 @@
 package command
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/uptrace/uptrace/pkg/uptracebundle"
 	"github.com/urfave/cli/v2"
 	"github.com/wneessen/go-mail"
+	"go.uber.org/fx"
+
+	"github.com/uptrace/uptrace/pkg/bunapp"
+	"github.com/uptrace/uptrace/pkg/bunconf"
 )
 
 func NewEmailCommand() *cli.Command {
@@ -20,31 +24,31 @@ func NewEmailCommand() *cli.Command {
 			},
 		},
 		Action: func(c *cli.Context) error {
-			_, app, err := uptracebundle.StartCLI(c)
-			if err != nil {
-				return fmt.Errorf("failed to start app: %w", err)
-			}
-			defer app.Stop()
-
-			client, err := app.NewMailer()
-			if err != nil {
-				return fmt.Errorf("failed to initialize mailer: %w", err)
-			}
-
-			msg := mail.NewMsg()
-			msg.Subject("[Uptrace] Test email")
-			msg.SetBodyString(mail.TypeTextPlain, "This is a test email")
-
-			msg.From(app.Config().SMTPMailer.From)
-			msg.AddTo(c.String("to"))
-
-			err = client.DialAndSend(msg)
-			if err != nil {
-				return fmt.Errorf("failed to send email: %w", err)
-			}
-
-			fmt.Println("Test email sent successfully to", c.String("to"))
-			return nil
+			return runSubcommand(c, chEmailTest)
 		},
 	}
+}
+
+func chEmailTest(lc fx.Lifecycle, c *cli.Context, conf *bunconf.Config) {
+	lc.Append(fx.StartHook(func(_ context.Context) error {
+		client, err := bunapp.NewMailer(conf)
+		if err != nil {
+			return fmt.Errorf("failed to initialize mailer: %w", err)
+		}
+
+		msg := mail.NewMsg()
+		msg.Subject("[Uptrace] Test email")
+		msg.SetBodyString(mail.TypeTextPlain, "This is a test email")
+
+		_ = msg.From(conf.SMTPMailer.From)
+		_ = msg.AddTo(c.String("to"))
+
+		err = client.DialAndSend(msg)
+		if err != nil {
+			return fmt.Errorf("failed to send email: %w", err)
+		}
+
+		fmt.Println("Test email sent successfully to", c.String("to"))
+		return nil
+	}))
 }

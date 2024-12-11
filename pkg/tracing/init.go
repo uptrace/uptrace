@@ -82,16 +82,16 @@ func initOTLP(p OTLPParams, router bunapp.RouterParams) {
 	router.Router.POST("/v1/logs", p.LogsServer.ExportHTTP)
 }
 
-func runConsumers(fxlc fx.Lifecycle, sc *SpanConsumer, lc *LogConsumer) {
-	fxlc.Append(fx.Hook{
+func runConsumers(lc fx.Lifecycle, spanConsumer *SpanConsumer, logConsumer *LogConsumer) {
+	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			sc.Run(ctx)
-			lc.Run(ctx)
+			spanConsumer.Run(ctx)
+			logConsumer.Run(ctx)
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			sc.Stop()
-			lc.Stop()
+			spanConsumer.Stop()
+			logConsumer.Stop()
 			return nil
 		},
 	})

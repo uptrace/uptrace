@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -108,9 +107,9 @@ func SelectUser(ctx context.Context, pg *bun.DB, id uint64) (*User, error) {
 	return user, nil
 }
 
-func SelectUserByEmail(ctx context.Context, app *bunapp.App, email string) (*User, error) {
+func SelectUserByEmail(ctx context.Context, pg *bun.DB, email string) (*User, error) {
 	user := new(User)
-	if err := app.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model(user).
 		Where("email = ?", email).
 		Scan(ctx); err != nil {

@@ -5,36 +5,34 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"net/http/pprof"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/go-logr/zapr"
+	"github.com/vmihailenco/taskq/pgq/v4"
+	"github.com/vmihailenco/taskq/v4"
+	"github.com/wneessen/go-mail"
+	"github.com/zyedidia/generic/cache"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.uber.org/fx"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bundebug"
 	"github.com/uptrace/bun/extra/bunotel"
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/bunrouter/extra/bunrouterotel"
-	"github.com/uptrace/bunrouter/extra/reqlog"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/chdebug"
 	"github.com/uptrace/go-clickhouse/chotel"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunconf"
-	"github.com/uptrace/uptrace/pkg/httperror"
-	"github.com/vmihailenco/taskq/pgq/v4"
-	"github.com/vmihailenco/taskq/v4"
-	"github.com/wneessen/go-mail"
-	"github.com/zyedidia/generic/cache"
-	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
-	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 type appCtxKey struct{}
@@ -93,14 +91,14 @@ func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
 	app.undoneCtx = ContextWithApp(ctx, app)
 	app.ctx, app.ctxCancel = context.WithCancel(app.undoneCtx)
 
-	app.initZap()
-	app.initRouter()
-	if err := app.initGRPC(); err != nil {
-		return nil, err
-	}
-	app.PG = app.newPG()
-	app.CH = app.newCH()
-	app.initTaskq()
+	//app.initZap()
+	//app.initRouter()
+	//if err := app.initGRPC(); err != nil {
+	//	return nil, err
+	//}
+	//app.PG = app.newPG()
+	//app.CH = app.newCH()
+	//app.initTaskq()
 
 	return app, nil
 }
@@ -142,9 +140,76 @@ func (app *App) Config() *bunconf.Config {
 	return app.Conf
 }
 
+func (app *App) GRPCServer() *grpc.Server {
+	return app.grpcServer
+}
+
+func (app *App) RegisterQueue(conf *taskq.QueueConfig) taskq.Queue {
+	queue := app.QueueFactory.RegisterQueue(conf)
+	return queue
+}
+
+func (app *App) RegisterTask(name string, conf *taskq.TaskConfig) *taskq.Task {
+	if conf.RetryLimit == 0 {
+		conf.RetryLimit = 16
+	}
+	return taskq.RegisterTask(name, conf)
+}
+
+func (app *App) SiteURL(path string, args ...any) string {
+	return app.Conf.SiteURL(path, args...)
+}
+
 //------------------------------------------------------------------------------
 
-func (app *App) initZap() {
+func NewApp(configPath string, opts ...fx.Option) (*fx.App, error) {
+	conf, err := initConfig(configPath)
+	if err != nil {
+		return nil, err
+	}
+
+	options := []fx.Option{
+		fx.Supply(conf),
+		fx.Provide(initZap),
+		fx.Provide(newPG),
+		fx.Provide(newCH),
+		fx.Provide(initRouter),
+		fx.Provide(initGRPC),
+		fx.Provide(fx.Annotate(initTaskq, fx.As(new(taskq.Queue)))),
+		fx.Provide(newHTTPClient),
+	}
+	options = append(options, opts...)
+
+	return fx.New(options...), nil
+}
+
+func initConfig(path string) (*bunconf.Config, error) {
+	if path == "" {
+		var err error
+		path, err = findConfigPath()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return bunconf.ReadConfig(path, "serve")
+}
+
+func findConfigPath() (string, error) {
+	files := []string{
+		"uptrace.yml",
+		"config/uptrace.yml",
+		"/etc/uptrace/uptrace.yml",
+	}
+	for _, confPath := range files {
+		if _, err := os.Stat(confPath); err == nil {
+			return confPath, nil
+		}
+	}
+	return "", fmt.Errorf("can't find uptrace.yml in usual locations")
+}
+
+func initZap(conf *bunconf.Config) *otelzap.Logger {
 	zapConf := zap.NewProductionConfig()
 	zapConf.Encoding = "console"
 	zapConf.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
@@ -155,133 +220,26 @@ func (app *App) initZap() {
 	}
 
 	level := zap.InfoLevel
-	if app.Conf.Logging.Level != "" {
-		level, err = zapcore.ParseLevel(app.Conf.Logging.Level)
+	if conf.Logging.Level != "" {
+		level, err = zapcore.ParseLevel(conf.Logging.Level)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	app.Logger = otelzap.New(logger, otelzap.WithMinLevel(level))
+	otelzapLogger := otelzap.New(logger, otelzap.WithMinLevel(level))
 	zap.ReplaceGlobals(logger)
-	otelzap.ReplaceGlobals(app.Logger)
+	otelzap.ReplaceGlobals(otelzapLogger)
 
 	zaprLogger := zapr.NewLogger(logger)
 	taskq.SetLogger(zaprLogger)
 
-	app.OnStopped("zap", func(ctx context.Context, _ *App) error {
-		_ = app.Logger.Sync()
-		return nil
-	})
-}
-
-func (app *App) Zap(ctx context.Context) otelzap.LoggerWithCtx {
-	return app.Logger.Ctx(ctx)
+	return otelzapLogger
 }
 
 //------------------------------------------------------------------------------
 
-func (app *App) initRouter() {
-	app.router = app.newRouter()
-	if app.Conf.Site.URL.Path != "/" {
-		app.routerGroup = app.router.NewGroup(app.Conf.Site.URL.Path)
-	} else {
-		app.routerGroup = app.router.NewGroup("")
-	}
-
-	if app.Debug() {
-		adapter := bunrouter.HTTPHandlerFunc
-
-		app.routerGroup.GET("/debug/pprof/", adapter(pprof.Index))
-		app.routerGroup.GET("/debug/pprof/cmdline", adapter(pprof.Cmdline))
-		app.routerGroup.GET("/debug/pprof/profile", adapter(pprof.Profile))
-		app.routerGroup.GET("/debug/pprof/symbol", adapter(pprof.Symbol))
-		app.routerGroup.GET(
-			"/debug/pprof/:name", func(w http.ResponseWriter, req bunrouter.Request) error {
-				h := pprof.Handler(req.Param("name"))
-				h.ServeHTTP(w, req.Request)
-				return nil
-			})
-	}
-
-	app.internalAPIV1 = app.routerGroup.NewGroup("/internal/v1")
-	app.publicAPIV1 = app.routerGroup.NewGroup("/api/v1")
-}
-
-func (app *App) newRouter(opts ...bunrouter.Option) *bunrouter.Router {
-	opts = append(opts,
-		bunrouter.WithMiddleware(reqlog.NewMiddleware(
-			reqlog.WithVerbose(app.Debug()),
-			reqlog.FromEnv("HTTPDEBUG", "DEBUG"),
-		)),
-	)
-
-	opts = append(opts,
-		bunrouter.WithMiddleware(app.httpErrorHandler),
-		bunrouter.WithMiddleware(bunrouterotel.NewMiddleware(
-			bunrouterotel.WithClientIP(),
-		)),
-	)
-
-	router := bunrouter.New(opts...)
-	return router
-}
-
-func (app *App) httpErrorHandler(next bunrouter.HandlerFunc) bunrouter.HandlerFunc {
-	return func(w http.ResponseWriter, req bunrouter.Request) error {
-		err := next(w, req)
-		if err == nil {
-			return nil
-		}
-
-		ctx := req.Context()
-		httpErr := httperror.From(err)
-		statusCode := httpErr.HTTPStatusCode()
-
-		data := map[string]any{
-			"statusCode": statusCode,
-			"error":      httpErr,
-		}
-
-		if span := trace.SpanFromContext(ctx); span.IsRecording() {
-			if statusCode >= 400 {
-				trace.SpanFromContext(ctx).RecordError(err)
-			}
-
-			traceID := span.SpanContext().TraceID()
-			data["traceId"] = traceID
-		}
-
-		w.WriteHeader(statusCode)
-		_ = bunrouter.JSON(w, data)
-
-		return err
-	}
-}
-
-func (app *App) Router() *bunrouter.Router {
-	return app.router
-}
-
-func (app *App) RouterGroup() *bunrouter.Group {
-	return app.routerGroup
-}
-
-func (app *App) PublicAPIV1() *bunrouter.Group {
-	return app.publicAPIV1
-}
-
-func (app *App) InternalAPIV1() *bunrouter.Group {
-	return app.internalAPIV1
-}
-
-func (app *App) HTTPHandler() http.Handler {
-	return app.router
-}
-
-//------------------------------------------------------------------------------
-
-func (app *App) initGRPC() error {
+func initGRPC(conf *bunconf.Config) (*grpc.Server, error) {
 	var opts []grpc.ServerOption
 
 	opts = append(opts,
@@ -291,27 +249,21 @@ func (app *App) initGRPC() error {
 		grpc.ReadBufferSize(512<<10),
 	)
 
-	if app.Conf.Listen.GRPC.TLS != nil {
-		tlsConf, err := app.Conf.Listen.GRPC.TLS.TLSConfig()
+	if conf.Listen.GRPC.TLS != nil {
+		tlsConf, err := conf.Listen.GRPC.TLS.TLSConfig()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		opts = append(opts, grpc.Creds(credentials.NewTLS(tlsConf)))
 	}
 
-	app.grpcServer = grpc.NewServer(opts...)
-
-	return nil
-}
-
-func (app *App) GRPCServer() *grpc.Server {
-	return app.grpcServer
+	return grpc.NewServer(opts...), nil
 }
 
 //------------------------------------------------------------------------------
 
-func (app *App) newPG() *bun.DB {
-	conf := app.Conf.PG
+func newPG(cfg *bunconf.Config) *bun.DB {
+	conf := cfg.PG
 
 	var options []pgdriver.Option
 
@@ -347,7 +299,7 @@ func (app *App) newPG() *bun.DB {
 	db := bun.NewDB(pgdb, pgdialect.New())
 
 	db.AddQueryHook(bundebug.NewQueryHook(
-		bundebug.WithEnabled(app.Debug()),
+		bundebug.WithEnabled(cfg.Debug),
 		bundebug.FromEnv("PGDEBUG", "DEBUG"),
 	))
 	db.AddQueryHook(bunotel.NewQueryHook(bunotel.WithFormattedQueries(true)))
@@ -357,8 +309,8 @@ func (app *App) newPG() *bun.DB {
 
 //------------------------------------------------------------------------------
 
-func (app *App) newCH() *ch.DB {
-	chConf := app.Conf.CH
+func newCH(conf *bunconf.Config) *ch.DB {
+	chConf := conf.CH
 
 	settings := chConf.QuerySettings
 	if settings == nil {
@@ -388,8 +340,8 @@ func (app *App) newCH() *ch.DB {
 	if chConf.Database != "" {
 		opts = append(opts, ch.WithDatabase(chConf.Database))
 	}
-	if app.Conf.CHSchema.Cluster != "" {
-		opts = append(opts, ch.WithCluster(app.Conf.CHSchema.Cluster))
+	if conf.CHSchema.Cluster != "" {
+		opts = append(opts, ch.WithCluster(conf.CHSchema.Cluster))
 	}
 	if chConf.TLS != nil {
 		tlsConf, err := chConf.TLS.TLSConfig()
@@ -408,7 +360,7 @@ func (app *App) newCH() *ch.DB {
 	db = db.WithFormatter(fmter)
 
 	db.AddQueryHook(chdebug.NewQueryHook(
-		chdebug.WithVerbose(app.Debug()),
+		chdebug.WithVerbose(conf.Debug),
 		chdebug.FromEnv("CHDEBUG", "DEBUG"),
 	))
 	db.AddQueryHook(chotel.NewQueryHook())
@@ -416,32 +368,17 @@ func (app *App) newCH() *ch.DB {
 	return db
 }
 
-func (app *App) initTaskq() {
-	app.QueueFactory = pgq.NewFactory(app.PG)
-	app.MainQueue = app.RegisterQueue(&taskq.QueueConfig{
-		Name:    "main",
-		Storage: newLocalStorage(),
-	})
+func initTaskq(pg *bun.DB) taskq.Queue {
+	return pgq.NewFactory(pg).RegisterQueue(
+		&taskq.QueueConfig{
+			Name:    "main",
+			Storage: newLocalStorage(),
+		},
+	)
 }
 
-func (app *App) RegisterQueue(conf *taskq.QueueConfig) taskq.Queue {
-	queue := app.QueueFactory.RegisterQueue(conf)
-	return queue
-}
-
-func (app *App) RegisterTask(name string, conf *taskq.TaskConfig) *taskq.Task {
-	if conf.RetryLimit == 0 {
-		conf.RetryLimit = 16
-	}
-	return taskq.RegisterTask(name, conf)
-}
-
-func (app *App) SiteURL(path string, args ...any) string {
-	return app.Conf.SiteURL(path, args...)
-}
-
-func (app *App) WithGlobalLock(ctx context.Context, fn func() error) error {
-	return app.PG.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+func WithGlobalLock(ctx context.Context, pg *bun.DB, fn func() error) error {
+	return pg.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		if _, err := tx.ExecContext(ctx, "SELECT pg_advisory_xact_lock(?)", 0); err != nil {
 			return err
 		}
@@ -477,10 +414,6 @@ func (s *localStorage) Exists(ctx context.Context, key string) bool {
 }
 
 //------------------------------------------------------------------------------
-
-func (app *App) NewMailer() (*mail.Client, error) {
-	return NewMailer(app.Conf)
-}
 
 func NewMailer(conf *bunconf.Config) (*mail.Client, error) {
 	cfg := conf.SMTPMailer
@@ -534,4 +467,10 @@ func RegisterTaskHandler(name string, handler any) *taskq.Task {
 		RetryLimit: 16,
 		Handler:    handler,
 	})
+}
+
+func newHTTPClient() *http.Client {
+	return &http.Client{
+		Timeout: 5 * time.Second,
+	}
 }

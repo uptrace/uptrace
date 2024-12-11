@@ -31,7 +31,6 @@ import (
 )
 
 type MonitorFilter struct {
-	*bunapp.App
 	urlstruct.Pager
 	org.OrderByMixin
 
@@ -42,11 +41,10 @@ type MonitorFilter struct {
 	State     string
 }
 
-func decodeMonitorFilter(app *bunapp.App, req bunrouter.Request) (*MonitorFilter, error) {
+func decodeMonitorFilter(req bunrouter.Request) (*MonitorFilter, error) {
 	ctx := req.Context()
 
 	f := new(MonitorFilter)
-	f.App = app
 	f.ProjectID = org.ProjectFromContext(ctx).ID
 
 	if err := bunapp.UnmarshalValues(req, f); err != nil {
@@ -137,7 +135,6 @@ func (f *MonitorFilter) extractParamsFromQuery() error {
 
 type MonitorHandlerParams struct {
 	fx.In
-	App    *bunapp.App
 	Logger *otelzap.Logger
 	Conf   *bunconf.Config
 	PG     *bun.DB
@@ -186,7 +183,7 @@ type MonitorOut struct {
 func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
 
-	f, err := decodeMonitorFilter(h.App, req)
+	f, err := decodeMonitorFilter(req)
 	if err != nil {
 		return err
 	}
@@ -204,7 +201,7 @@ func (h *MonitorHandler) List(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	states, err := SelectMonitorStatesCount(ctx, f)
+	states, err := SelectMonitorStatesCount(ctx, h.PG, f)
 	if err != nil {
 		return err
 	}
@@ -249,9 +246,9 @@ type StateCount struct {
 	Count int    `json:"count"`
 }
 
-func SelectMonitorStatesCount(ctx context.Context, f *MonitorFilter) ([]StateCount, error) {
+func SelectMonitorStatesCount(ctx context.Context, pg *bun.DB, f *MonitorFilter) ([]StateCount, error) {
 	var states []StateCount
-	if err := f.App.PG.NewSelect().
+	if err := pg.NewSelect().
 		Model((*org.BaseMonitor)(nil)).
 		ColumnExpr("state").
 		ColumnExpr("count(*)").
@@ -461,9 +458,7 @@ type ErrorMonitorIn struct {
 	ChannelIDs []uint64 `json:"channelIds"`
 }
 
-func (in *ErrorMonitorIn) Validate(
-	ctx context.Context, app *bunapp.App, monitor *org.ErrorMonitor,
-) error {
+func (in *ErrorMonitorIn) Validate(ctx context.Context, monitor *org.ErrorMonitor) error {
 	if in.Name == "" {
 		return errors.New("monitor name can't be empty")
 	}
@@ -494,7 +489,7 @@ func (h *MonitorHandler) CreateErrorMonitor(w http.ResponseWriter, req bunrouter
 	monitor.State = org.MonitorActive
 	monitor.Type = org.MonitorError
 
-	if err := in.Validate(ctx, h.App, monitor); err != nil {
+	if err := in.Validate(ctx, monitor); err != nil {
 		return err
 	}
 
@@ -526,7 +521,7 @@ func (h *MonitorHandler) UpdateErrorMonitor(w http.ResponseWriter, req bunrouter
 	if err := httputil.UnmarshalJSON(w, req, &in, 10<<10); err != nil {
 		return err
 	}
-	if err := in.Validate(ctx, h.App, monitor); err != nil {
+	if err := in.Validate(ctx, monitor); err != nil {
 		return err
 	}
 	monitor.UpdatedAt = bun.NullTime{Time: time.Now()}

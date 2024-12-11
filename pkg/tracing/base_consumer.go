@@ -76,6 +76,7 @@ func NewBaseConsumer[IT IndexRecord, DT DataRecord](
 		logger:      logger,
 		pg:          pg,
 		ch:          ch,
+		mainQueue:   mainQueue,
 		batchSize:   batchSize,
 		queue:       make(chan *Span, bufferSize),
 		transformer: transformer,
@@ -98,7 +99,9 @@ func NewBaseConsumer[IT IndexRecord, DT DataRecord](
 }
 
 func (p *BaseConsumer[IT, DT]) Run(ctx context.Context) {
-	ctx, cancel := context.WithCancel(ctx)
+	// Strip cancelation from the parent context
+	// because it comes with 15 second deadline
+	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
 	p.cancel = cancel
 
 	go func() {
