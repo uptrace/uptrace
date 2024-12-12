@@ -58,9 +58,6 @@ type App struct {
 	startTime time.Time
 	Conf      *bunconf.Config
 
-	onStop    appHooks
-	onStopped appHooks
-
 	Logger *otelzap.Logger
 
 	router        *bunrouter.Router
@@ -109,16 +106,6 @@ func (app *App) Stop() {
 		return
 	}
 	app.ctxCancel()
-	_ = app.onStop.Run(app.undoneCtx, app)
-	_ = app.onStopped.Run(app.undoneCtx, app)
-}
-
-func (app *App) OnStop(name string, fn HookFunc) {
-	app.onStop.Add(newHook(name, fn))
-}
-
-func (app *App) OnStopped(name string, fn HookFunc) {
-	app.onStopped.Add(newHook(name, fn))
 }
 
 func (app *App) Debug() bool {
