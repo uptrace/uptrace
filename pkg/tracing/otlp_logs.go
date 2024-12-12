@@ -3,7 +3,7 @@ package tracing
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"slices"
 	"strconv"
@@ -11,14 +11,6 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
-	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunutil"
-	"github.com/uptrace/uptrace/pkg/idgen"
-	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/otlpconv"
-	"github.com/uptrace/uptrace/pkg/tracing/norm"
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
@@ -27,23 +19,28 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/uptrace/pkg/attrkey"
+	"github.com/uptrace/uptrace/pkg/bunutil"
+	"github.com/uptrace/uptrace/pkg/idgen"
+	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/otlpconv"
+	"github.com/uptrace/uptrace/pkg/tracing/norm"
 )
 
 type LogsServiceServer struct {
 	collectorlogspb.UnimplementedLogsServiceServer
 
-	*bunapp.App
-
+	PG *bun.DB
 	sp *SpanConsumer
 }
 
 var _ collectorlogspb.LogsServiceServer = (*LogsServiceServer)(nil)
 
-func NewLogsServiceServer(app *bunapp.App, sp *SpanConsumer) *LogsServiceServer {
-	return &LogsServiceServer{
-		App: app,
-		sp:  sp,
-	}
+func NewLogsServiceServer(pg *bun.DB, sp *SpanConsumer) *LogsServiceServer {
+	return &LogsServiceServer{PG: pg, sp: sp}
 }
 
 func (s *LogsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Request) error {
@@ -61,7 +58,7 @@ func (s *LogsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Requ
 
 	switch contentType := req.Header.Get("content-type"); contentType {
 	case jsonContentType:
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		if err != nil {
 			return err
 		}
@@ -87,7 +84,7 @@ func (s *LogsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Requ
 
 		return nil
 	case xprotobufContentType, protobufContentType:
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		if err != nil {
 			return err
 		}

@@ -20,7 +20,7 @@ type TypeFilter struct {
 	GroupID uint64
 }
 
-func DecodeTypeFilter(app *bunapp.App, req bunrouter.Request) (*TypeFilter, error) {
+func DecodeTypeFilter(req bunrouter.Request) (*TypeFilter, error) {
 	project := org.ProjectFromContext(req.Context())
 
 	f := &TypeFilter{

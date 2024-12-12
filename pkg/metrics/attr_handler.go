@@ -24,7 +24,6 @@ import (
 
 type AttrFilter struct {
 	org.TimeFilter
-	App *bunapp.App
 
 	ProjectID uint32
 	Metric    []string
