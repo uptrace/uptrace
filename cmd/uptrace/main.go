@@ -47,6 +47,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/run"
 	"github.com/uptrace/uptrace/pkg/tracing"
 )
 
@@ -183,34 +184,28 @@ func runHTTPServer(
 }
 
 func runGRPCServer(
-	lc fx.Lifecycle,
-	logger *otelzap.Logger,
+	group *run.Group,
 	conf *bunconf.Config,
 	srv *grpc.Server,
-) (*grpc.Server, error) {
-	lc.Append(fx.Hook{
-		OnStart: func(_ context.Context) error {
-			l, err := net.Listen("tcp", conf.Listen.GRPC.Addr)
-			if err != nil {
-				logger.Error("net.Listen failed (edit listen.grpc YAML option)",
-					zap.String("addr", conf.Listen.GRPC.Addr),
-					zap.Error(err))
-				return err
-			}
+	logger *otelzap.Logger,
+) error {
+	ln, err := net.Listen("tcp", conf.Listen.GRPC.Addr)
+	if err != nil {
+		logger.Error("net.Listen failed (edit listen.grpc YAML option)",
+			zap.String("addr", conf.Listen.GRPC.Addr),
+			zap.Error(err))
+		return err
+	}
 
-			go func() {
-				_ = srv.Serve(l)
-			}()
-
-			return nil
-		},
-		OnStop: func(_ context.Context) error {
-			srv.Stop()
-			return nil
-		},
+	group.Add("grpc.Serve", func() error {
+		return srv.Serve(ln)
+	})
+	group.OnStop(func(context.Context, error) error {
+		srv.Stop()
+		return nil
 	})
 
-	return srv, nil
+	return nil
 }
 
 func runMainQueue(lc fx.Lifecycle, logger *otelzap.Logger, mainQueue taskq.Queue) error {
