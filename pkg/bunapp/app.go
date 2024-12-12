@@ -33,6 +33,7 @@ import (
 	"github.com/uptrace/go-clickhouse/chotel"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunconf"
+	"github.com/uptrace/uptrace/pkg/run"
 )
 
 type appCtxKey struct{}
@@ -168,8 +169,12 @@ func NewApp(configPath string, opts ...fx.Option) (*fx.App, error) {
 		return nil, err
 	}
 
+	group := run.NewGroup()
+
 	options := []fx.Option{
 		fx.Supply(conf),
+		fx.Supply(group),
+
 		fx.Provide(initZap),
 		fx.Provide(newPG),
 		fx.Provide(newCH),
@@ -177,10 +182,18 @@ func NewApp(configPath string, opts ...fx.Option) (*fx.App, error) {
 		fx.Provide(initGRPC),
 		fx.Provide(fx.Annotate(initTaskq, fx.As(new(taskq.Queue)))),
 		fx.Provide(newHTTPClient),
+
+		fx.Invoke(runGroup),
 	}
 	options = append(options, opts...)
+	app := fx.New(options...)
 
-	return fx.New(options...), nil
+	group.Add("app.Done", func() error {
+		sig := <-app.Done()
+		return run.SignalError{Signal: sig}
+	})
+
+	return app, nil
 }
 
 func initConfig(path string) (*bunconf.Config, error) {
@@ -207,6 +220,23 @@ func findConfigPath() (string, error) {
 		}
 	}
 	return "", fmt.Errorf("can't find uptrace.yml in usual locations")
+}
+
+func runGroup(
+	lc fx.Lifecycle, shutdowner fx.Shutdowner, group *run.Group, logger *otelzap.Logger,
+) {
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			go func() {
+				if err := group.Run(); err != nil {
+					if err := shutdowner.Shutdown(); err != nil {
+						logger.Error("shutdowner.Shutdown failed", zap.Error(err))
+					}
+				}
+			}()
+			return nil
+		},
+	})
 }
 
 func initZap(conf *bunconf.Config) *otelzap.Logger {
