@@ -228,16 +228,15 @@ func runMainQueue(lc fx.Lifecycle, logger *otelzap.Logger, mainQueue taskq.Queue
 	return nil
 }
 
-func initPostgres(lc fx.Lifecycle, logger *otelzap.Logger, pg *bun.DB) {
-	lc.Append(fx.StartHook(func(ctx context.Context) error {
-		if err := pg.Ping(); err != nil {
-			return fmt.Errorf("PostgreSQL Ping failed: %w", err)
-		}
+func initPostgres(logger *otelzap.Logger, pg *bun.DB) error {
+	if err := pg.Ping(); err != nil {
+		return fmt.Errorf("PostgreSQL Ping failed: %w", err)
+	}
 
-		return bunapp.WithGlobalLock(ctx, pg, func() error {
-			return runPGMigrations(ctx, logger, pg)
-		})
-	}))
+	ctx := context.Background()
+	return bunapp.WithGlobalLock(ctx, pg, func() error {
+		return runPGMigrations(ctx, logger, pg)
+	})
 }
 
 func runPGMigrations(ctx context.Context, logger *otelzap.Logger, pg *bun.DB) error {
@@ -260,26 +259,26 @@ func runPGMigrations(ctx context.Context, logger *otelzap.Logger, pg *bun.DB) er
 	return nil
 }
 
-func initClickhouse(lc fx.Lifecycle, logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB, ch *ch.DB) {
-	lc.Append(fx.StartHook(func(ctx context.Context) error {
-		if err := ch.Ping(ctx); err != nil {
-			return fmt.Errorf("ClickHouse Ping failed: %w", err)
-		}
+func initClickhouse(logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB, ch *ch.DB) error {
+	ctx := context.Background()
 
-		if err := bunapp.WithGlobalLock(ctx, pg, func() error {
-			return runCHMigrations(ctx, logger, conf, ch)
-		}); err != nil {
+	if err := ch.Ping(ctx); err != nil {
+		return fmt.Errorf("ClickHouse Ping failed: %w", err)
+	}
+
+	if err := bunapp.WithGlobalLock(ctx, pg, func() error {
+		return runCHMigrations(ctx, logger, conf, ch)
+	}); err != nil {
+		return err
+	}
+
+	if chSchema := conf.CHSchema; chSchema.Cluster != "" {
+		if err := validateCHCluster(ctx, conf, ch); err != nil {
 			return err
 		}
+	}
 
-		if chSchema := conf.CHSchema; chSchema.Cluster != "" {
-			if err := validateCHCluster(ctx, conf, ch); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}))
+	return nil
 }
 
 func runCHMigrations(ctx context.Context, logger *otelzap.Logger, conf *bunconf.Config, ch *ch.DB) error {
