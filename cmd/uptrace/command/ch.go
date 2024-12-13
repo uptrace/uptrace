@@ -172,6 +172,7 @@ func chMigrate(lc fx.Lifecycle, migrations *chmigrate.Migrations, conf *bunconf.
 	lc.Append(fx.StartHook(func(ctx context.Context) error {
 		migrator := NewCHMigrator(conf, ch, migrations)
 
+		ctx = bunconf.ContextWithConfig(ctx, conf)
 		group, err := migrator.Migrate(ctx)
 		if err != nil {
 			return err
@@ -191,6 +192,7 @@ func chRollback(lc fx.Lifecycle, migrations *chmigrate.Migrations, conf *bunconf
 	lc.Append(fx.StartHook(func(ctx context.Context) error {
 		migrator := NewCHMigrator(conf, ch, migrations)
 
+		ctx = bunconf.ContextWithConfig(ctx, conf)
 		group, err := migrator.Rollback(ctx)
 		if err != nil {
 			return err
@@ -209,6 +211,7 @@ func chRollback(lc fx.Lifecycle, migrations *chmigrate.Migrations, conf *bunconf
 func chReset(lc fx.Lifecycle, migrations *chmigrate.Migrations, conf *bunconf.Config, ch *ch.DB) {
 	lc.Append(fx.StartHook(func(ctx context.Context) error {
 		migrator := NewCHMigrator(conf, ch, migrations)
+		ctx = bunconf.ContextWithConfig(ctx, conf)
 
 		if err := migrator.Init(ctx); err != nil {
 			return err

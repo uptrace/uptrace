@@ -127,10 +127,11 @@ func pgInit(lc fx.Lifecycle, migrations *migrate.Migrations, pg *bun.DB) {
 	}))
 }
 
-func pgMigrate(lc fx.Lifecycle, migrations *migrate.Migrations, pg *bun.DB) {
+func pgMigrate(lc fx.Lifecycle, migrations *migrate.Migrations, conf *bunconf.Config, pg *bun.DB) {
 	lc.Append(fx.StartHook(func(ctx context.Context) error {
 		migrator := migrate.NewMigrator(pg, migrations)
 
+		ctx = bunconf.ContextWithConfig(ctx, conf)
 		group, err := migrator.Migrate(ctx)
 		if err != nil {
 			return err
@@ -144,10 +145,11 @@ func pgMigrate(lc fx.Lifecycle, migrations *migrate.Migrations, pg *bun.DB) {
 	}))
 }
 
-func pgRollback(lc fx.Lifecycle, migrations *migrate.Migrations, pg *bun.DB) {
+func pgRollback(lc fx.Lifecycle, migrations *migrate.Migrations, conf *bunconf.Config, pg *bun.DB) {
 	lc.Append(fx.StartHook(func(ctx context.Context) error {
 		migrator := migrate.NewMigrator(pg, migrations)
 
+		ctx = bunconf.ContextWithConfig(ctx, conf)
 		group, err := migrator.Rollback(ctx)
 		if err != nil {
 			return err
@@ -161,9 +163,10 @@ func pgRollback(lc fx.Lifecycle, migrations *migrate.Migrations, pg *bun.DB) {
 	}))
 }
 
-func pgReset(lc fx.Lifecycle, migrations *migrate.Migrations, pg *bun.DB) {
+func pgReset(lc fx.Lifecycle, migrations *migrate.Migrations, conf *bunconf.Config, pg *bun.DB) {
 	lc.Append(fx.StartHook(func(ctx context.Context) error {
 		migrator := migrate.NewMigrator(pg, migrations)
+		ctx = bunconf.ContextWithConfig(ctx, conf)
 
 		if err := migrator.Init(ctx); err != nil {
 			return err
@@ -258,10 +261,11 @@ func pgStatus(lc fx.Lifecycle, migrations *migrate.Migrations, pg *bun.DB) {
 	}))
 }
 
-func pgMarkApplied(lc fx.Lifecycle, migrations *migrate.Migrations, pg *bun.DB) {
+func pgMarkApplied(lc fx.Lifecycle, migrations *migrate.Migrations, conf *bunconf.Config, pg *bun.DB) {
 	lc.Append(fx.StartHook(func(ctx context.Context) error {
 		migrator := migrate.NewMigrator(pg, migrations)
 
+		ctx = bunconf.ContextWithConfig(ctx, conf)
 		group, err := migrator.Migrate(ctx, migrate.WithNopMigration())
 		if err != nil {
 			return err

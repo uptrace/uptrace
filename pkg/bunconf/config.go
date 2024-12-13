@@ -1,6 +1,7 @@
 package bunconf
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -18,6 +19,17 @@ import (
 	"github.com/wneessen/go-mail"
 	"gopkg.in/yaml.v3"
 )
+
+type configCtxKey struct{}
+
+func ConfigFromContext(ctx context.Context) *Config {
+	return ctx.Value(configCtxKey{}).(*Config)
+}
+
+func ContextWithConfig(ctx context.Context, config *Config) context.Context {
+	ctx = context.WithValue(ctx, configCtxKey{}, config)
+	return ctx
+}
 
 func ReadConfig(confPath, service string) (*Config, error) {
 	confPath, err := filepath.Abs(confPath)
