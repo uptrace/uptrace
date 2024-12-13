@@ -12,6 +12,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/run"
 )
 
 const (
@@ -49,9 +50,6 @@ var Module = fx.Module("tracing",
 		NewPublicHandler,
 	),
 	fx.Invoke(
-		initOTLP,
-		runConsumers,
-
 		registerZipkinHandler,
 		registerSentryHandler,
 		registerVectorHandler,
@@ -63,6 +61,9 @@ var Module = fx.Module("tracing",
 		registerGroupHandler,
 		registerServiceGraphHandler,
 		registerPublicHandler,
+
+		initOTLP,
+		runConsumers,
 	),
 )
 
@@ -82,17 +83,21 @@ func initOTLP(p OTLPParams, router bunapp.RouterParams) {
 	router.Router.POST("/v1/logs", p.LogsServer.ExportHTTP)
 }
 
-func runConsumers(lc fx.Lifecycle, spanConsumer *SpanConsumer, logConsumer *LogConsumer) {
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			spanConsumer.Run(ctx)
-			logConsumer.Run(ctx)
-			return nil
-		},
-		OnStop: func(ctx context.Context) error {
-			spanConsumer.Stop()
-			logConsumer.Stop()
-			return nil
-		},
+func runConsumers(group *run.Group, spanConsumer *SpanConsumer, logConsumer *LogConsumer) {
+	group.Add("tracing.spanConsumer.Run", func() error {
+		spanConsumer.Run()
+		return nil
+	})
+	group.OnStop(func(context.Context, error) error {
+		spanConsumer.Stop()
+		return nil
+	})
+	group.Add("tracing.logConsumer.Run", func() error {
+		logConsumer.Run()
+		return nil
+	})
+	group.OnStop(func(context.Context, error) error {
+		logConsumer.Stop()
+		return nil
 	})
 }

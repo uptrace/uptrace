@@ -96,7 +96,7 @@ var serveCommand = &cli.Command{
 	Name:  "serve",
 	Usage: "run HTTP and gRPC APIs",
 	Action: func(c *cli.Context) error {
-		fxApp, err := bunapp.NewApp(c.String("config"),
+		fxApp, err := bunapp.New(c.String("config"),
 			org.Module,
 			alerting.Module,
 			metrics.Module,
@@ -113,10 +113,10 @@ var serveCommand = &cli.Command{
 			fx.Invoke(func() {
 				go genSampleTrace()
 			}),
-			fx.Invoke(func(lc fx.Lifecycle, logger *otelzap.Logger) {
-				lc.Append(fx.StopHook(func() {
-					_ = logger.Sync()
-				}))
+			fx.Invoke(func(group *run.Group, logger *otelzap.Logger) {
+				group.OnStop(func(context.Context, error) error {
+					return logger.Sync()
+				})
 			}),
 			fx.Invoke(showInfo),
 		)
@@ -130,11 +130,11 @@ var serveCommand = &cli.Command{
 }
 
 func runHTTPServer(
-	lc fx.Lifecycle,
+	group *run.Group,
 	conf *bunconf.Config,
 	logger *otelzap.Logger,
 	router bunapp.RouterParams,
-) {
+) error {
 	handleStaticFiles(conf, router.RouterGroup, uptrace.DistFS())
 	handler := http.Handler(router.Router)
 	handler = gzhttp.GzipHandler(handler)
@@ -151,36 +151,32 @@ func runHTTPServer(
 		Handler:      handler,
 	}
 
-	lc.Append(fx.Hook{
-		OnStart: func(_ context.Context) error {
-			l, err := net.Listen("tcp", conf.Listen.HTTP.Addr)
-			if err != nil {
-				logger.Error(
-					"net.Listen failed (edit listen.http YAML option)",
-					zap.Error(err), zap.String("addr", conf.Listen.HTTP.Addr),
-				)
-				return err
-			}
+	ln, err := net.Listen("tcp", conf.Listen.HTTP.Addr)
+	if err != nil {
+		logger.Error(
+			"net.Listen failed (edit listen.http YAML option)",
+			zap.Error(err), zap.String("addr", conf.Listen.HTTP.Addr),
+		)
+		return err
+	}
 
-			if conf.Listen.HTTP.TLS != nil {
-				tlsConf, err := conf.Listen.HTTP.TLS.TLSConfig()
-				if err != nil {
-					return err
-				}
-				tlsConf.NextProtos = []string{http2.NextProtoTLS, "http/1.1"}
-				l = tls.NewListener(l, tlsConf)
-			}
+	if conf.Listen.HTTP.TLS != nil {
+		tlsConf, err := conf.Listen.HTTP.TLS.TLSConfig()
+		if err != nil {
+			return err
+		}
+		tlsConf.NextProtos = []string{http2.NextProtoTLS, "http/1.1"}
+		ln = tls.NewListener(ln, tlsConf)
+	}
 
-			go func() {
-				_ = srv.Serve(l)
-			}()
-
-			return nil
-		},
-		OnStop: func(ctx context.Context) error {
-			return srv.Shutdown(ctx)
-		},
+	group.Add("http.Serve", func() error {
+		return srv.Serve(ln)
 	})
+	group.OnStop(func(ctx context.Context, err error) error {
+		return srv.Shutdown(ctx)
+	})
+
+	return nil
 }
 
 func runGRPCServer(
@@ -232,33 +228,16 @@ func runMainQueue(lc fx.Lifecycle, logger *otelzap.Logger, mainQueue taskq.Queue
 	return nil
 }
 
-func showInfo(conf *bunconf.Config, logger *otelzap.Logger) {
-	fmt.Printf("read the docs at            https://uptrace.dev/get/\n")
-	fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
-	fmt.Printf("Telegram chat               https://t.me/uptrace\n")
-	fmt.Printf("Slack chat                  https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw\n")
-	fmt.Println()
-
-	fmt.Printf("Open UI (site.addr)         %s\n", conf.SiteURL("/"))
-	fmt.Println()
-
-	logger.Info("starting Uptrace...",
-		zap.String("version", pkg.Version()),
-		zap.String("config", conf.Path))
-}
-
 func initPostgres(lc fx.Lifecycle, logger *otelzap.Logger, pg *bun.DB) {
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			if err := pg.Ping(); err != nil {
-				return fmt.Errorf("PostgreSQL Ping failed: %w", err)
-			}
+	lc.Append(fx.StartHook(func(ctx context.Context) error {
+		if err := pg.Ping(); err != nil {
+			return fmt.Errorf("PostgreSQL Ping failed: %w", err)
+		}
 
-			return bunapp.WithGlobalLock(ctx, pg, func() error {
-				return runPGMigrations(ctx, logger, pg)
-			})
-		},
-	})
+		return bunapp.WithGlobalLock(ctx, pg, func() error {
+			return runPGMigrations(ctx, logger, pg)
+		})
+	}))
 }
 
 func runPGMigrations(ctx context.Context, logger *otelzap.Logger, pg *bun.DB) error {
@@ -282,26 +261,25 @@ func runPGMigrations(ctx context.Context, logger *otelzap.Logger, pg *bun.DB) er
 }
 
 func initClickhouse(lc fx.Lifecycle, logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB, ch *ch.DB) {
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			if err := ch.Ping(ctx); err != nil {
-				return fmt.Errorf("ClickHouse Ping failed: %w", err)
-			}
+	lc.Append(fx.StartHook(func(ctx context.Context) error {
+		if err := ch.Ping(ctx); err != nil {
+			return fmt.Errorf("ClickHouse Ping failed: %w", err)
+		}
 
-			if err := bunapp.WithGlobalLock(ctx, pg, func() error {
-				return runCHMigrations(ctx, logger, conf, ch)
-			}); err != nil {
+		if err := bunapp.WithGlobalLock(ctx, pg, func() error {
+			return runCHMigrations(ctx, logger, conf, ch)
+		}); err != nil {
+			return err
+		}
+
+		if chSchema := conf.CHSchema; chSchema.Cluster != "" {
+			if err := validateCHCluster(ctx, conf, ch); err != nil {
 				return err
 			}
+		}
 
-			if chSchema := conf.CHSchema; chSchema.Cluster != "" {
-				if err := validateCHCluster(ctx, conf, ch); err != nil {
-					return err
-				}
-			}
-			return nil
-		},
-	})
+		return nil
+	}))
 }
 
 func runCHMigrations(ctx context.Context, logger *otelzap.Logger, conf *bunconf.Config, ch *ch.DB) error {
@@ -357,102 +335,114 @@ func validateCHCluster(ctx context.Context, conf *bunconf.Config, ch *ch.DB) err
 }
 
 func loadInitialData(lc fx.Lifecycle, conf *bunconf.Config, pg *bun.DB) {
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			for i := range conf.Auth.Users {
-				src := &conf.Auth.Users[i]
+	lc.Append(fx.StartHook(func(ctx context.Context) error {
+		for i := range conf.Auth.Users {
+			src := &conf.Auth.Users[i]
 
-				user, err := org.NewUserFromConfig(src)
-				if err != nil {
-					return err
-				}
-
-				if err := user.Validate(); err != nil {
-					return err
-				}
-
-				if _, err := pg.NewInsert().
-					Model(user).
-					On("CONFLICT (email) DO UPDATE").
-					Set("name = coalesce(EXCLUDED.name, u.name)").
-					Set("avatar = EXCLUDED.avatar").
-					Set("notify_by_email = EXCLUDED.notify_by_email").
-					Set("auth_token = EXCLUDED.auth_token").
-					Set("updated_at = now()").
-					Returning("*").
-					Exec(ctx); err != nil {
-					return err
-				}
+			user, err := org.NewUserFromConfig(src)
+			if err != nil {
+				return err
 			}
 
-			for i := range conf.Projects {
-				src := &conf.Projects[i]
-
-				dest := &org.Project{
-					ID:                  src.ID,
-					Name:                src.Name,
-					Token:               src.Token,
-					PinnedAttrs:         src.PinnedAttrs,
-					GroupByEnv:          src.GroupByEnv,
-					GroupFuncsByService: src.GroupFuncsByService,
-					PromCompat:          src.PromCompat,
-					ForceSpanName:       src.ForceSpanName,
-				}
-				if err := dest.Init(); err != nil {
-					return err
-				}
-
-				if err := createProject(ctx, pg, dest); err != nil {
-					return err
-				}
+			if err := user.Validate(); err != nil {
+				return err
 			}
 
-			return nil
-		},
-	})
+			if _, err := pg.NewInsert().
+				Model(user).
+				On("CONFLICT (email) DO UPDATE").
+				Set("name = coalesce(EXCLUDED.name, u.name)").
+				Set("avatar = EXCLUDED.avatar").
+				Set("notify_by_email = EXCLUDED.notify_by_email").
+				Set("auth_token = EXCLUDED.auth_token").
+				Set("updated_at = now()").
+				Returning("*").
+				Exec(ctx); err != nil {
+				return err
+			}
+		}
+
+		for i := range conf.Projects {
+			src := &conf.Projects[i]
+
+			dest := &org.Project{
+				ID:                  src.ID,
+				Name:                src.Name,
+				Token:               src.Token,
+				PinnedAttrs:         src.PinnedAttrs,
+				GroupByEnv:          src.GroupByEnv,
+				GroupFuncsByService: src.GroupFuncsByService,
+				PromCompat:          src.PromCompat,
+				ForceSpanName:       src.ForceSpanName,
+			}
+			if err := dest.Init(); err != nil {
+				return err
+			}
+
+			if err := createProject(ctx, pg, dest); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}))
 }
 
 func initOpentelemetry(lc fx.Lifecycle, conf *bunconf.Config) {
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			project := &conf.Projects[0]
+	lc.Append(fx.StartHook(func() error {
+		project := &conf.Projects[0]
 
-			if conf.UptraceGo.Disabled {
-				return nil
-			}
-
-			var options []uptracego.Option
-
-			options = append(options,
-				uptracego.WithServiceName(conf.Service),
-				uptracego.WithDeploymentEnvironment("self-hosted"))
-
-			if conf.UptraceGo.DSN == "" {
-				dsn := org.BuildDSN(conf, project.Token)
-				options = append(options, uptracego.WithDSN(dsn))
-			} else {
-				options = append(options, uptracego.WithDSN(conf.UptraceGo.DSN))
-			}
-
-			if conf.UptraceGo.TLS != nil {
-				tlsConf, err := conf.UptraceGo.TLS.TLSConfig()
-				if err != nil {
-					return err
-				}
-				options = append(options, uptracego.WithTLSConfig(tlsConf))
-			}
-
-			uptracego.ConfigureOpentelemetry(options...)
-
+		if conf.UptraceGo.Disabled {
 			return nil
-		},
-		OnStop: func(ctx context.Context) error {
-			if false {
-				return uptracego.Shutdown(ctx)
+		}
+
+		var options []uptracego.Option
+
+		options = append(options,
+			uptracego.WithServiceName(conf.Service),
+			uptracego.WithDeploymentEnvironment("self-hosted"))
+
+		if conf.UptraceGo.DSN == "" {
+			dsn := org.BuildDSN(conf, project.Token)
+			options = append(options, uptracego.WithDSN(dsn))
+		} else {
+			options = append(options, uptracego.WithDSN(conf.UptraceGo.DSN))
+		}
+
+		if conf.UptraceGo.TLS != nil {
+			tlsConf, err := conf.UptraceGo.TLS.TLSConfig()
+			if err != nil {
+				return err
 			}
-			return nil
-		},
-	})
+			options = append(options, uptracego.WithTLSConfig(tlsConf))
+		}
+
+		uptracego.ConfigureOpentelemetry(options...)
+
+		return nil
+	}))
+
+	lc.Append(fx.StopHook(func() error {
+		if false {
+			return uptracego.Shutdown(context.Background())
+		}
+		return nil
+	}))
+}
+
+func showInfo(conf *bunconf.Config, logger *otelzap.Logger) {
+	fmt.Printf("read the docs at            https://uptrace.dev/get/\n")
+	fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
+	fmt.Printf("Telegram chat               https://t.me/uptrace\n")
+	fmt.Printf("Slack chat                  https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw\n")
+	fmt.Println()
+
+	fmt.Printf("Open UI (site.addr)         %s\n", conf.SiteURL("/"))
+	fmt.Println()
+
+	logger.Info("starting Uptrace...",
+		zap.String("version", pkg.Version()),
+		zap.String("config", conf.Path))
 }
 
 func createProject(ctx context.Context, pg *bun.DB, project *org.Project) error {

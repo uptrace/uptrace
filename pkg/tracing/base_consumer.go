@@ -98,15 +98,11 @@ func NewBaseConsumer[IT IndexRecord, DT DataRecord](
 	return c
 }
 
-func (p *BaseConsumer[IT, DT]) Run(ctx context.Context) {
-	// Strip cancelation from the parent context
-	// because it comes with 15 second deadline
-	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+func (p *BaseConsumer[IT, DT]) Run() {
+	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 
-	go func() {
-		p.processLoop(ctx)
-	}()
+	p.processLoop(ctx)
 }
 
 func (p *BaseConsumer[IT, DT]) Stop() {

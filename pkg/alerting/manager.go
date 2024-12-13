@@ -20,6 +20,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/run"
 	"github.com/uptrace/uptrace/pkg/unixtime"
 )
 
@@ -53,16 +54,14 @@ func NewManager(p ManagerParams) *Manager {
 	return &Manager{ManagerParams: &p}
 }
 
-func runManager(lc fx.Lifecycle, man *Manager) {
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			go man.Run()
-			return nil
-		},
-		OnStop: func(ctx context.Context) error {
-			man.Stop()
-			return nil
-		},
+func runManager(group *run.Group, man *Manager) {
+	group.Add("manager.Run", func() error {
+		man.Run()
+		return nil
+	})
+	group.OnStop(func(context.Context, error) error {
+		man.Stop()
+		return nil
 	})
 }
 
