@@ -18,6 +18,7 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/org"
+	"github.com/uptrace/uptrace/pkg/run"
 )
 
 const (
@@ -49,11 +50,6 @@ var Module = fx.Module("metrics",
 		NewPrometheusHandler,
 	),
 	fx.Invoke(
-		initOTLP,
-		initTasks,
-		runSpanMetrics,
-		runDatapointProcessor,
-
 		registerMetricHandler,
 		registerAttrHandler,
 		registerQueryHandler,
@@ -62,6 +58,11 @@ var Module = fx.Module("metrics",
 		registerGridRowHandler,
 		registerKinesisHandler,
 		registerPrometheusHandler,
+
+		initOTLP,
+		initTasks,
+		runSpanMetrics,
+		runDatapointProcessor,
 	),
 )
 
@@ -78,25 +79,21 @@ func initOTLP(p OTLPParams, router bunapp.RouterParams) {
 	router.Router.POST("/v1/metrics", p.MetricsServer.ExportHTTP)
 }
 
-func runDatapointProcessor(lc fx.Lifecycle, dp *DatapointProcessor) {
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			dp.Run(ctx)
-			return nil
-		},
-		OnStop: func(ctx context.Context) error {
-			dp.Stop()
-			return nil
-		},
+func runDatapointProcessor(group *run.Group, dp *DatapointProcessor) {
+	group.Add("metrics.DatapointProcessor.Run", func() error {
+		dp.Run()
+		return nil
+	})
+	group.OnStop(func(context.Context, error) error {
+		dp.Stop()
+		return nil
 	})
 }
 
 func runSpanMetrics(lc fx.Lifecycle, conf *bunconf.Config, pg *bun.DB, ch *ch.DB) {
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			return initSpanMetrics(ctx, conf, pg, ch)
-		},
-	})
+	lc.Append(fx.StartHook(func(ctx context.Context) error {
+		return initSpanMetrics(ctx, conf, pg, ch)
+	}))
 }
 
 //------------------------------------------------------------------------------

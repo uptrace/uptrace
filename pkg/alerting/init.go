@@ -31,12 +31,12 @@ var Module = fx.Module("alerting",
 		NewNotifChannelHandler,
 	),
 	fx.Invoke(
-		initTasks,
-		runManager,
-
 		registerAlertHandler,
 		registerMonitorHandler,
 		registerNotifChannelHandler,
+
+		initTasks,
+		runManager,
 	),
 )
 

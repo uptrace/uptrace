@@ -103,15 +103,11 @@ func NewDatapointProcessor(p DatapointProcessorParams) *DatapointProcessor {
 	return dp
 }
 
-func (p *DatapointProcessor) Run(ctx context.Context) {
-	// Strip cancelation from the parent context
-	// because it comes with 15 second deadline
-	ctx, cancel := context.WithCancel(context.WithoutCancel(ctx))
+func (p *DatapointProcessor) Run() {
+	ctx, cancel := context.WithCancel(context.Background())
 	p.cancel = cancel
 
-	go func() {
-		p.processLoop(ctx)
-	}()
+	p.processLoop(ctx)
 }
 
 func (p *DatapointProcessor) Stop() {

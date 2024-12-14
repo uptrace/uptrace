@@ -9,7 +9,7 @@ import (
 
 func runSubcommand(c *cli.Context, f any, opts ...fx.Option) error {
 	opts = append(opts, fx.Supply(c), fx.NopLogger, fx.Invoke(f))
-	app, err := bunapp.NewApp(
+	app, err := bunapp.New(
 		c.String("config"),
 		opts...,
 	)

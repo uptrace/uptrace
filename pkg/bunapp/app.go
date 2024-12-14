@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/go-logr/zapr"
@@ -27,7 +26,6 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bundebug"
 	"github.com/uptrace/bun/extra/bunotel"
-	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/go-clickhouse/chdebug"
 	"github.com/uptrace/go-clickhouse/chotel"
@@ -36,121 +34,9 @@ import (
 	"github.com/uptrace/uptrace/pkg/run"
 )
 
-type appCtxKey struct{}
-
-func AppFromContext(ctx context.Context) *App {
-	return ctx.Value(appCtxKey{}).(*App)
-}
-
-func ContextWithApp(ctx context.Context, app *App) context.Context {
-	ctx = context.WithValue(ctx, appCtxKey{}, app)
-	return ctx
-}
-
-type App struct {
-	undoneCtx context.Context
-	ctx       context.Context
-	ctxCancel func()
-
-	wg      sync.WaitGroup
-	stopped uint32
-
-	startTime time.Time
-	Conf      *bunconf.Config
-
-	Logger *otelzap.Logger
-
-	router        *bunrouter.Router
-	routerGroup   *bunrouter.Group
-	publicAPIV1   *bunrouter.Group
-	internalAPIV1 *bunrouter.Group
-
-	grpcServer *grpc.Server
-
-	PG *bun.DB
-	CH *ch.DB
-
-	QueueFactory taskq.Factory
-	MainQueue    taskq.Queue
-
-	HTTPClient *http.Client
-}
-
-func New(ctx context.Context, conf *bunconf.Config) (*App, error) {
-	app := &App{
-		startTime: time.Now(),
-		Conf:      conf,
-
-		HTTPClient: &http.Client{
-			Timeout: 5 * time.Second,
-		},
-	}
-
-	app.undoneCtx = ContextWithApp(ctx, app)
-	app.ctx, app.ctxCancel = context.WithCancel(app.undoneCtx)
-
-	//app.initZap()
-	//app.initRouter()
-	//if err := app.initGRPC(); err != nil {
-	//	return nil, err
-	//}
-	//app.PG = app.newPG()
-	//app.CH = app.newCH()
-	//app.initTaskq()
-
-	return app, nil
-}
-
-func (app *App) Stop() {
-	if !atomic.CompareAndSwapUint32(&app.stopped, 0, 1) {
-		return
-	}
-	app.ctxCancel()
-}
-
-func (app *App) Debug() bool {
-	return app.Conf.Debug
-}
-
-func (app *App) Context() context.Context {
-	return app.ctx
-}
-
-func (app *App) Done() <-chan struct{} {
-	return app.ctx.Done()
-}
-
-func (app *App) WaitGroup() *sync.WaitGroup {
-	return &app.wg
-}
-
-func (app *App) Config() *bunconf.Config {
-	return app.Conf
-}
-
-func (app *App) GRPCServer() *grpc.Server {
-	return app.grpcServer
-}
-
-func (app *App) RegisterQueue(conf *taskq.QueueConfig) taskq.Queue {
-	queue := app.QueueFactory.RegisterQueue(conf)
-	return queue
-}
-
-func (app *App) RegisterTask(name string, conf *taskq.TaskConfig) *taskq.Task {
-	if conf.RetryLimit == 0 {
-		conf.RetryLimit = 16
-	}
-	return taskq.RegisterTask(name, conf)
-}
-
-func (app *App) SiteURL(path string, args ...any) string {
-	return app.Conf.SiteURL(path, args...)
-}
-
 //------------------------------------------------------------------------------
 
-func NewApp(configPath string, opts ...fx.Option) (*fx.App, error) {
+func New(configPath string, opts ...fx.Option) (*fx.App, error) {
 	conf, err := initConfig(configPath)
 	if err != nil {
 		return nil, err
@@ -169,10 +55,9 @@ func NewApp(configPath string, opts ...fx.Option) (*fx.App, error) {
 		fx.Provide(initGRPC),
 		fx.Provide(fx.Annotate(initTaskq, fx.As(new(taskq.Queue)))),
 		fx.Provide(newHTTPClient),
-
-		fx.Invoke(runGroup),
 	}
 	options = append(options, opts...)
+	options = append(options, fx.Invoke(runGroup))
 	app := fx.New(options...)
 
 	group.Add("app.Done", func() error {
