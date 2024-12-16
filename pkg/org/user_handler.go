@@ -49,7 +49,7 @@ func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) erro
 	ctx := req.Context()
 	user := UserFromContext(ctx)
 
-	projects, err := h.PS.SelectProjects(ctx)
+	projects, err := h.PS.SelectAll(ctx)
 	if err != nil {
 		return err
 	}

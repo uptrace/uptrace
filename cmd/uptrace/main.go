@@ -361,8 +361,8 @@ func loadInitialData(lc fx.Lifecycle, conf *bunconf.Config, pg *bun.DB) {
 			}
 		}
 
-		for i := range conf.Projects {
-			src := &conf.Projects[i]
+		for i := range conf.ProjectGateway {
+			src := &conf.ProjectGateway[i]
 
 			dest := &org.Project{
 				ID:                  src.ID,
@@ -389,7 +389,7 @@ func loadInitialData(lc fx.Lifecycle, conf *bunconf.Config, pg *bun.DB) {
 
 func initOpentelemetry(lc fx.Lifecycle, conf *bunconf.Config) {
 	lc.Append(fx.StartHook(func() error {
-		project := &conf.Projects[0]
+		project := &conf.ProjectGateway[0]
 
 		if conf.UptraceGo.Disabled {
 			return nil
@@ -517,7 +517,7 @@ func handleStaticFiles(conf *bunconf.Config, routerGroup *bunrouter.Group, fsys 
 func syncDashboards(lc fx.Lifecycle, logger *otelzap.Logger, pg *bun.DB, ps *org.ProjectGateway) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			projects, err := ps.SelectProjects(ctx)
+			projects, err := ps.SelectAll(ctx)
 			if err != nil {
 				return err
 			}

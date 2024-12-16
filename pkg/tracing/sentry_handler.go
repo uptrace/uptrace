@@ -481,7 +481,7 @@ func (h *SentryHandler) projectFromRequest(req bunrouter.Request) (*org.Project,
 		return nil, err
 	}
 
-	return h.PS.SelectProjectByToken(ctx, sentryKey)
+	return h.PS.SelectByToken(ctx, sentryKey)
 }
 
 func (h *SentryHandler) sentryKey(req bunrouter.Request) (string, error) {

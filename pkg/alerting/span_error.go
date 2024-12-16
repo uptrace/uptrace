@@ -42,7 +42,7 @@ func (n *AlertNotifier) ErrorHandler(
 	traceID idgen.TraceID,
 	spanID idgen.SpanID,
 ) error {
-	project, err := n.PS.SelectProject(ctx, projectID)
+	project, err := n.PS.SelectByID(ctx, projectID)
 	if err != nil {
 		return err
 	}

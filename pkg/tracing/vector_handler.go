@@ -56,7 +56,7 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 		return err
 	}
 
-	project, err := h.PS.SelectProjectByDSN(ctx, dsn)
+	project, err := h.PS.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}

@@ -42,7 +42,7 @@ func (h *BaseGrafanaHandler) CheckProjectAccess(next bunrouter.HandlerFunc) bunr
 			return err
 		}
 
-		project, err := h.PS.SelectProjectByDSN(ctx, dsn)
+		project, err := h.PS.SelectByDSN(ctx, dsn)
 		if err != nil {
 			return err
 		}

@@ -75,7 +75,7 @@ func (h *KinesisHandler) Logs(w http.ResponseWriter, req bunrouter.Request) erro
 		return errors.New("X-Amz-Firehose-Access-Key header is empty or missing")
 	}
 
-	project, err := h.PS.SelectProjectByDSN(ctx, dsn)
+	project, err := h.PS.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}

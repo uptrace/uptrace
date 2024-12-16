@@ -52,7 +52,7 @@ func (s *LogsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Requ
 		return err
 	}
 
-	project, err := s.PS.SelectProjectByDSN(ctx, dsn)
+	project, err := s.PS.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func (s *LogsServiceServer) Export(
 		return nil, err
 	}
 
-	project, err := s.PS.SelectProjectByDSN(ctx, dsn)
+	project, err := s.PS.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return nil, err
 	}

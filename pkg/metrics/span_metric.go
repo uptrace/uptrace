@@ -54,7 +54,7 @@ func createSpanMetric(
 }
 
 func createSpanMetricMeta(ctx context.Context, conf *bunconf.Config, pg *bun.DB, metric *bunconf.SpanMetric) error {
-	projects := conf.Projects
+	projects := conf.ProjectGateway
 	for i := range projects {
 		project := &projects[i]
 

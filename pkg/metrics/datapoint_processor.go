@@ -490,7 +490,7 @@ func (c *datapointContext) Project(logger *otelzap.Logger, pg *bun.DB, projectID
 		return p
 	}
 
-	project, err := c.ps.SelectProject(c.Context, projectID)
+	project, err := c.ps.SelectByID(c.Context, projectID)
 	if err != nil {
 		logger.Error("SelectProject failed", zap.Error(err))
 		return nil

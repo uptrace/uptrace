@@ -360,7 +360,7 @@ func (p *consumerWorker[IT, DT]) project(ctx context.Context, projectID uint32) 
 		return project, true
 	}
 
-	project, err := p.ps.SelectProject(ctx, projectID)
+	project, err := p.ps.SelectByID(ctx, projectID)
 	if err != nil {
 		p.logger.Error("SelectProject failed", zap.Error(err))
 		return nil, false

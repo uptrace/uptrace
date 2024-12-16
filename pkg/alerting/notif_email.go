@@ -98,7 +98,7 @@ func (n *EmailNotifier) NotifyHandler(ctx context.Context, eventID uint64, recip
 	}
 	baseAlert := alert.Base()
 
-	project, err := n.PS.SelectProject(ctx, baseAlert.ProjectID)
+	project, err := n.PS.SelectByID(ctx, baseAlert.ProjectID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil

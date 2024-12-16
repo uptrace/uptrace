@@ -24,7 +24,7 @@ func (h *NotifChannelHandler) notifyBySlackHandler(ctx context.Context, eventID,
 	}
 	baseAlert := alert.Base()
 
-	project, err := h.PS.SelectProject(ctx, baseAlert.ProjectID)
+	project, err := h.PS.SelectByID(ctx, baseAlert.ProjectID)
 	if err != nil {
 		return err
 	}

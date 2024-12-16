@@ -60,7 +60,7 @@ func (s *TraceServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Req
 		span.SetAttributes(attribute.String("dsn", dsn))
 	}
 
-	project, err := s.PS.SelectProjectByDSN(ctx, dsn)
+	project, err := s.PS.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (s *TraceServiceServer) Export(
 		return nil, err
 	}
 
-	project, err := s.PS.SelectProjectByDSN(ctx, dsn)
+	project, err := s.PS.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return nil, err
 	}

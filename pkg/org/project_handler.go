@@ -45,7 +45,7 @@ func (h *ProjectHandler) Show(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	project, err := h.PS.SelectProject(ctx, projectID)
+	project, err := h.PS.SelectByID(ctx, projectID)
 	if err != nil {
 		return err
 	}

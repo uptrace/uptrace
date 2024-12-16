@@ -176,7 +176,7 @@ func (m *Middleware) projectFromRequest(req bunrouter.Request) (*Project, error)
 		return nil, err
 	}
 
-	project, err := m.PS.SelectProject(ctx, projectID)
+	project, err := m.PS.SelectByID(ctx, projectID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrProjectNotFound

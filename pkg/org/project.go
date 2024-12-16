@@ -62,7 +62,7 @@ func NewProjectGateway(p bunapp.PostgresParams) *ProjectGateway {
 	return &ProjectGateway{&p}
 }
 
-func (ps *ProjectGateway) SelectProject(ctx context.Context, projectID uint32) (*Project, error) {
+func (ps *ProjectGateway) SelectByID(ctx context.Context, projectID uint32) (*Project, error) {
 	project := new(Project)
 	if err := ps.PG.NewSelect().
 		Model(project).
@@ -74,7 +74,7 @@ func (ps *ProjectGateway) SelectProject(ctx context.Context, projectID uint32) (
 	return project, nil
 }
 
-func (ps *ProjectGateway) SelectProjectByDSN(ctx context.Context, dsnStr string) (*Project, error) {
+func (ps *ProjectGateway) SelectByDSN(ctx context.Context, dsnStr string) (*Project, error) {
 	dsn, err := ParseDSN(dsnStr)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (ps *ProjectGateway) SelectProjectByDSN(ctx context.Context, dsnStr string)
 		return nil, fmt.Errorf("dsn %q does not have a token", dsnStr)
 	}
 
-	project, err := ps.SelectProjectByToken(ctx, dsn.Token)
+	project, err := ps.SelectByToken(ctx, dsn.Token)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("can't find project with token=%q", dsn.Token)
@@ -95,7 +95,7 @@ func (ps *ProjectGateway) SelectProjectByDSN(ctx context.Context, dsnStr string)
 	return project, nil
 }
 
-func (ps *ProjectGateway) SelectProjectByToken(ctx context.Context, token string) (*Project, error) {
+func (ps *ProjectGateway) SelectByToken(ctx context.Context, token string) (*Project, error) {
 	project := new(Project)
 	if err := ps.PG.NewSelect().
 		Model(project).
@@ -107,7 +107,7 @@ func (ps *ProjectGateway) SelectProjectByToken(ctx context.Context, token string
 	return project, nil
 }
 
-func (ps *ProjectGateway) SelectProjects(ctx context.Context) ([]*Project, error) {
+func (ps *ProjectGateway) SelectAll(ctx context.Context) ([]*Project, error) {
 	projects := make([]*Project, 0)
 	if err := ps.PG.NewSelect().
 		Model(&projects).

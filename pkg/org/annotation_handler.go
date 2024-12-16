@@ -129,7 +129,7 @@ func (h *AnnotationHandler) CreatePublic(w http.ResponseWriter, req bunrouter.Re
 		return err
 	}
 
-	project, err := h.PS.SelectProjectByDSN(ctx, dsn)
+	project, err := h.PS.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}

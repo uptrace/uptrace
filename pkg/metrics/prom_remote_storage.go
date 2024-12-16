@@ -56,7 +56,7 @@ func (h *PrometheusHandler) Write(
 		return err
 	}
 
-	project, err := h.PS.SelectProjectByDSN(ctx, dsn)
+	project, err := h.PS.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func (h *PrometheusHandler) Read(
 		return err
 	}
 
-	project, err := h.PS.SelectProjectByDSN(ctx, dsn)
+	project, err := h.PS.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}
