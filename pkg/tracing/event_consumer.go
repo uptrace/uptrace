@@ -44,6 +44,7 @@ func NewEventConsumer(p BaseConsumerParams) *EventConsumer {
 			p.Logger,
 			p.PG,
 			p.CH,
+			p.PS,
 			p.MainQueue,
 			"uptrace.tracing.events_queue_length",
 			batchSize, bufferSize, maxWorkers,

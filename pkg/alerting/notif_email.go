@@ -34,6 +34,7 @@ type EmailNotifierParams struct {
 	Conf   *bunconf.Config
 	PG     *bun.DB
 	CH     *ch.DB
+	PS     *org.ProjectStore
 }
 
 type EmailNotifier struct {
@@ -97,7 +98,7 @@ func (n *EmailNotifier) NotifyHandler(ctx context.Context, eventID uint64, recip
 	}
 	baseAlert := alert.Base()
 
-	project, err := org.SelectProject(ctx, n.PG, baseAlert.ProjectID)
+	project, err := n.PS.SelectProject(ctx, baseAlert.ProjectID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil

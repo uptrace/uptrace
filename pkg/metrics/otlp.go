@@ -42,6 +42,7 @@ type MetricsServiceServerParams struct {
 	Logger *otelzap.Logger
 	PG     *bun.DB
 	MP     *DatapointProcessor
+	PS     *org.ProjectStore
 }
 
 type MetricsServiceServer struct {
@@ -65,7 +66,7 @@ func (s *MetricsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.R
 		return err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, s.PG, dsn)
+	project, err := s.PS.SelectProjectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}
@@ -142,7 +143,7 @@ func (s *MetricsServiceServer) Export(
 		return nil, err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, s.PG, dsn)
+	project, err := s.PS.SelectProjectByDSN(ctx, dsn)
 	if err != nil {
 		return nil, err
 	}

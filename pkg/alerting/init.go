@@ -9,11 +9,8 @@ import (
 	"github.com/vmihailenco/taskq/v4"
 	"go.uber.org/fx"
 
-	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/org"
 )
@@ -44,9 +41,9 @@ type Middleware struct {
 	*org.Middleware
 }
 
-func NewMiddleware(logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB) *Middleware {
+func NewMiddleware(p org.MiddlewareParams) *Middleware {
 	return &Middleware{
-		Middleware: org.NewMiddleware(logger, conf, pg),
+		Middleware: org.NewMiddleware(p),
 	}
 }
 

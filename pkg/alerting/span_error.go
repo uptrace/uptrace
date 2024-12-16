@@ -23,6 +23,7 @@ type AlertNotifierParams struct {
 	Logger    *otelzap.Logger
 	PG        *bun.DB
 	CH        *ch.DB
+	PS        *org.ProjectStore
 	MainQueue taskq.Queue
 }
 
@@ -41,7 +42,7 @@ func (n *AlertNotifier) ErrorHandler(
 	traceID idgen.TraceID,
 	spanID idgen.SpanID,
 ) error {
-	project, err := org.SelectProject(ctx, n.PG, projectID)
+	project, err := n.PS.SelectProject(ctx, projectID)
 	if err != nil {
 		return err
 	}

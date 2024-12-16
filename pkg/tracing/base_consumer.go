@@ -42,6 +42,7 @@ type BaseConsumer[IT IndexRecord, DT DataRecord] struct {
 	logger      *otelzap.Logger
 	pg          *bun.DB
 	ch          *ch.DB
+	ps          *org.ProjectStore
 	mainQueue   taskq.Queue
 	batchSize   int
 	transformer transformer[IT, DT]
@@ -60,6 +61,7 @@ type BaseConsumerParams struct {
 	Conf      *bunconf.Config
 	PG        *bun.DB
 	CH        *ch.DB
+	PS        *org.ProjectStore
 	MainQueue taskq.Queue
 }
 
@@ -67,6 +69,7 @@ func NewBaseConsumer[IT IndexRecord, DT DataRecord](
 	logger *otelzap.Logger,
 	pg *bun.DB,
 	ch *ch.DB,
+	ps *org.ProjectStore,
 	mainQueue taskq.Queue,
 	signalName string,
 	batchSize, bufferSize, maxWorkers int,
@@ -76,6 +79,7 @@ func NewBaseConsumer[IT IndexRecord, DT DataRecord](
 		logger:      logger,
 		pg:          pg,
 		ch:          ch,
+		ps:          ps,
 		mainQueue:   mainQueue,
 		batchSize:   batchSize,
 		queue:       make(chan *Span, bufferSize),
@@ -185,7 +189,7 @@ func (p *BaseConsumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 			p.workerCount++
 			worker = newConsumerWorker(
 				p.logger,
-				p.pg, p.ch,
+				p.pg, p.ch, p.ps,
 				p.transformer,
 				cap(p.queue),
 				p.spanErrorHandler,
@@ -228,6 +232,7 @@ type consumerWorker[IT IndexRecord, DT DataRecord] struct {
 	logger           *otelzap.Logger
 	pg               *bun.DB
 	ch               *ch.DB
+	ps               *org.ProjectStore
 	transformer      transformer[IT, DT]
 	spanErrorHandler func(context.Context, *Span)
 
@@ -241,6 +246,7 @@ func newConsumerWorker[IT IndexRecord, DT DataRecord](
 	logger *otelzap.Logger,
 	pg *bun.DB,
 	ch *ch.DB,
+	ps *org.ProjectStore,
 	transformer transformer[IT, DT],
 	bufSize int,
 	spanErrorHandler func(context.Context, *Span),
@@ -249,6 +255,7 @@ func newConsumerWorker[IT IndexRecord, DT DataRecord](
 		logger:           logger,
 		pg:               pg,
 		ch:               ch,
+		ps:               ps,
 		transformer:      transformer,
 		spanErrorHandler: spanErrorHandler,
 		projects:         make(map[uint32]*org.Project),
@@ -353,7 +360,7 @@ func (p *consumerWorker[IT, DT]) project(ctx context.Context, projectID uint32) 
 		return project, true
 	}
 
-	project, err := org.SelectProject(ctx, p.pg, projectID)
+	project, err := p.ps.SelectProject(ctx, projectID)
 	if err != nil {
 		p.logger.Error("SelectProject failed", zap.Error(err))
 		return nil, false

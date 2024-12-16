@@ -28,6 +28,7 @@ type PrometheusHandlerParams struct {
 	PG     *bun.DB
 	CH     *ch.DB
 	MP     *DatapointProcessor
+	PS     *org.ProjectStore
 }
 
 type PrometheusHandler struct {
@@ -55,7 +56,7 @@ func (h *PrometheusHandler) Write(
 		return err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, h.PG, dsn)
+	project, err := h.PS.SelectProjectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}
@@ -172,7 +173,7 @@ func (h *PrometheusHandler) Read(
 		return err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, h.PG, dsn)
+	project, err := h.PS.SelectProjectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}

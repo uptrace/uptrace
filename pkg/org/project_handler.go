@@ -18,6 +18,7 @@ type ProjectHandlerParams struct {
 	Logger *otelzap.Logger
 	Conf   *bunconf.Config
 	PG     *bun.DB
+	PS     *ProjectStore
 }
 
 type ProjectHandler struct {
@@ -44,7 +45,7 @@ func (h *ProjectHandler) Show(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	project, err := SelectProject(ctx, h.PG, projectID)
+	project, err := h.PS.SelectProject(ctx, projectID)
 	if err != nil {
 		return err
 	}

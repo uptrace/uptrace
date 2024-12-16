@@ -34,6 +34,7 @@ type LogsServiceServer struct {
 	collectorlogspb.UnimplementedLogsServiceServer
 
 	PG *bun.DB
+	PS *org.ProjectStore
 	sp *SpanConsumer
 }
 
@@ -51,7 +52,7 @@ func (s *LogsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Requ
 		return err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, s.PG, dsn)
+	project, err := s.PS.SelectProjectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}
@@ -126,7 +127,7 @@ func (s *LogsServiceServer) Export(
 		return nil, err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, s.PG, dsn)
+	project, err := s.PS.SelectProjectByDSN(ctx, dsn)
 	if err != nil {
 		return nil, err
 	}

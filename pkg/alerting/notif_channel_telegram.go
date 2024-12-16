@@ -88,7 +88,7 @@ func (h *NotifChannelHandler) notifyByTelegramHandler(ctx context.Context, event
 	}
 	baseAlert := alert.Base()
 
-	project, err := org.SelectProject(ctx, h.PG, baseAlert.ProjectID)
+	project, err := h.PS.SelectProject(ctx, baseAlert.ProjectID)
 	if err != nil {
 		return err
 	}

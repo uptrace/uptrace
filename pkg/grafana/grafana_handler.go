@@ -16,6 +16,7 @@ type BaseGrafanaHandlerParams struct {
 	Conf   *bunconf.Config
 	PG     *bun.DB
 	CH     *ch.DB
+	PS     *org.ProjectStore
 }
 
 type BaseGrafanaHandler struct {
@@ -41,7 +42,7 @@ func (h *BaseGrafanaHandler) CheckProjectAccess(next bunrouter.HandlerFunc) bunr
 			return err
 		}
 
-		project, err := org.SelectProjectByDSN(ctx, h.PG, dsn)
+		project, err := h.PS.SelectProjectByDSN(ctx, dsn)
 		if err != nil {
 			return err
 		}

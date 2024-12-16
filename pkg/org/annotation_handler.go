@@ -22,13 +22,14 @@ type AnnotationHandlerParams struct {
 
 	Logger *otelzap.Logger
 	PG     *bun.DB
+	PS     *ProjectStore
 }
 
 type AnnotationHandler struct {
-	*AchievementHandlerParams
+	*AnnotationHandlerParams
 }
 
-func NewAnnotationHandler(p AchievementHandlerParams) *AnnotationHandler {
+func NewAnnotationHandler(p AnnotationHandlerParams) *AnnotationHandler {
 	return &AnnotationHandler{&p}
 }
 
@@ -128,7 +129,7 @@ func (h *AnnotationHandler) CreatePublic(w http.ResponseWriter, req bunrouter.Re
 		return err
 	}
 
-	project, err := SelectProjectByDSN(ctx, h.PG, dsn)
+	project, err := h.PS.SelectProjectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}

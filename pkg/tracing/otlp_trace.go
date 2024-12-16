@@ -30,6 +30,7 @@ type TraceServiceServerParams struct {
 
 	Logger   *otelzap.Logger
 	PG       *bun.DB
+	PS       *org.ProjectStore
 	Consumer *SpanConsumer
 }
 
@@ -59,7 +60,7 @@ func (s *TraceServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Req
 		span.SetAttributes(attribute.String("dsn", dsn))
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, s.PG, dsn)
+	project, err := s.PS.SelectProjectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}
@@ -134,7 +135,7 @@ func (s *TraceServiceServer) Export(
 		return nil, err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, s.PG, dsn)
+	project, err := s.PS.SelectProjectByDSN(ctx, dsn)
 	if err != nil {
 		return nil, err
 	}
