@@ -102,9 +102,9 @@ type Middleware struct {
 	*org.Middleware
 }
 
-func NewMiddleware(logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB) *Middleware {
+func NewMiddleware(p org.MiddlewareParams) *Middleware {
 	return &Middleware{
-		Middleware: org.NewMiddleware(logger, conf, pg),
+		Middleware: org.NewMiddleware(p),
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 )
 
@@ -53,9 +54,17 @@ func (p *Project) DSN(conf *bunconf.Config) string {
 	return BuildDSN(conf, p.Token)
 }
 
-func SelectProject(ctx context.Context, pg *bun.DB, projectID uint32) (*Project, error) {
+type ProjectGateway struct {
+	*bunapp.PostgresParams
+}
+
+func NewProjectGateway(p bunapp.PostgresParams) *ProjectGateway {
+	return &ProjectGateway{&p}
+}
+
+func (g *ProjectGateway) SelectByID(ctx context.Context, projectID uint32) (*Project, error) {
 	project := new(Project)
-	if err := pg.NewSelect().
+	if err := g.PG.NewSelect().
 		Model(project).
 		Where("id = ?", projectID).
 		Limit(1).
@@ -65,7 +74,7 @@ func SelectProject(ctx context.Context, pg *bun.DB, projectID uint32) (*Project,
 	return project, nil
 }
 
-func SelectProjectByDSN(ctx context.Context, pg *bun.DB, dsnStr string) (*Project, error) {
+func (g *ProjectGateway) SelectByDSN(ctx context.Context, dsnStr string) (*Project, error) {
 	dsn, err := ParseDSN(dsnStr)
 	if err != nil {
 		return nil, err
@@ -75,7 +84,7 @@ func SelectProjectByDSN(ctx context.Context, pg *bun.DB, dsnStr string) (*Projec
 		return nil, fmt.Errorf("dsn %q does not have a token", dsnStr)
 	}
 
-	project, err := SelectProjectByToken(ctx, pg, dsn.Token)
+	project, err := g.SelectByToken(ctx, dsn.Token)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("can't find project with token=%q", dsn.Token)
@@ -86,9 +95,9 @@ func SelectProjectByDSN(ctx context.Context, pg *bun.DB, dsnStr string) (*Projec
 	return project, nil
 }
 
-func SelectProjectByToken(ctx context.Context, pg *bun.DB, token string) (*Project, error) {
+func (g *ProjectGateway) SelectByToken(ctx context.Context, token string) (*Project, error) {
 	project := new(Project)
-	if err := pg.NewSelect().
+	if err := g.PG.NewSelect().
 		Model(project).
 		Where("token = ?", token).
 		Limit(1).
@@ -98,9 +107,9 @@ func SelectProjectByToken(ctx context.Context, pg *bun.DB, token string) (*Proje
 	return project, nil
 }
 
-func SelectProjects(ctx context.Context, pg *bun.DB) ([]*Project, error) {
+func (g *ProjectGateway) SelectAll(ctx context.Context) ([]*Project, error) {
 	projects := make([]*Project, 0)
-	if err := pg.NewSelect().
+	if err := g.PG.NewSelect().
 		Model(&projects).
 		Scan(ctx); err != nil {
 		return nil, err

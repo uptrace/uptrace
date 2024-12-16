@@ -34,6 +34,7 @@ type DatapointProcessorParams struct {
 	Conf      *bunconf.Config
 	PG        *bun.DB
 	CH        *ch.DB
+	Projects  *org.ProjectGateway
 	MainQueue taskq.Queue
 }
 
@@ -192,7 +193,7 @@ func (p *DatapointProcessor) processDatapoints(ctx context.Context, src []*Datap
 		defer p.gate.Done()
 		defer p.wg.Done()
 
-		mctx := newDatapointContext(ctx)
+		mctx := newDatapointContext(ctx, p.Projects)
 		p._processDatapoints(mctx, datapoints)
 	}()
 }
@@ -468,14 +469,17 @@ func (p *DatapointProcessor) upsertMetric(ctx *datapointContext, datapoint *Data
 type datapointContext struct {
 	context.Context
 
+	ps *org.ProjectGateway
+
 	projects map[uint32]*org.Project
 	digest   *xxhash.Digest
 	metrics  []Metric
 }
 
-func newDatapointContext(ctx context.Context) *datapointContext {
+func newDatapointContext(ctx context.Context, ps *org.ProjectGateway) *datapointContext {
 	return &datapointContext{
 		Context:  ctx,
+		ps:       ps,
 		projects: make(map[uint32]*org.Project),
 		digest:   xxhash.New(),
 	}
@@ -486,7 +490,7 @@ func (c *datapointContext) Project(logger *otelzap.Logger, pg *bun.DB, projectID
 		return p
 	}
 
-	project, err := org.SelectProject(c.Context, pg, projectID)
+	project, err := c.ps.SelectByID(c.Context, projectID)
 	if err != nil {
 		logger.Error("SelectProject failed", zap.Error(err))
 		return nil

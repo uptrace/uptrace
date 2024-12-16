@@ -25,6 +25,7 @@ type KinesisHandlerParams struct {
 
 	Logger   *otelzap.Logger
 	PG       *bun.DB
+	Projects *org.ProjectGateway
 	Consumer *SpanConsumer
 }
 
@@ -74,7 +75,7 @@ func (h *KinesisHandler) Logs(w http.ResponseWriter, req bunrouter.Request) erro
 		return errors.New("X-Amz-Firehose-Access-Key header is empty or missing")
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, h.PG, dsn)
+	project, err := h.Projects.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}

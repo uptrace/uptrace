@@ -5,7 +5,6 @@ import (
 	"net/http/pprof"
 
 	"go.opentelemetry.io/otel/trace"
-	"go.uber.org/fx"
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/bunrouter/extra/bunrouterotel"
@@ -13,23 +12,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
 )
-
-type RouterBundle struct {
-	Router           *bunrouter.Router
-	RouterGroup      *bunrouter.Group `name:"router_group"`
-	RouterInternalV1 *bunrouter.Group `name:"router_internal_apiv1"`
-	RouterPublicV1   *bunrouter.Group `name:"router_public_apiv1"`
-}
-
-type RouterParams struct {
-	fx.In
-	RouterBundle
-}
-
-type RouterResults struct {
-	fx.Out
-	RouterBundle
-}
 
 func initRouter(conf *bunconf.Config) RouterResults {
 	router := newRouter(conf)

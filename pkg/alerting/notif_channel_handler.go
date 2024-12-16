@@ -33,6 +33,7 @@ type NotifChannelHandlerParams struct {
 	Logger     *otelzap.Logger
 	Conf       *bunconf.Config
 	PG         *bun.DB
+	Projects   *org.ProjectGateway
 	HTTPClient *http.Client
 }
 

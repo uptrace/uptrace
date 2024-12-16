@@ -34,8 +34,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/run"
 )
 
-//------------------------------------------------------------------------------
-
 func New(configPath string, opts ...fx.Option) (*fx.App, error) {
 	conf, err := initConfig(configPath)
 	if err != nil {

@@ -24,10 +24,11 @@ import (
 type PrometheusHandlerParams struct {
 	fx.In
 
-	Logger *otelzap.Logger
-	PG     *bun.DB
-	CH     *ch.DB
-	MP     *DatapointProcessor
+	Logger   *otelzap.Logger
+	PG       *bun.DB
+	CH       *ch.DB
+	MP       *DatapointProcessor
+	Projects *org.ProjectGateway
 }
 
 type PrometheusHandler struct {
@@ -55,7 +56,7 @@ func (h *PrometheusHandler) Write(
 		return err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, h.PG, dsn)
+	project, err := h.Projects.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}
@@ -172,7 +173,7 @@ func (h *PrometheusHandler) Read(
 		return err
 	}
 
-	project, err := org.SelectProjectByDSN(ctx, h.PG, dsn)
+	project, err := h.Projects.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}

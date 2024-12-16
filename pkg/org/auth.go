@@ -17,6 +17,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/metadata"
 
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
 
@@ -50,28 +51,34 @@ func ContextWithProject(ctx context.Context, project *Project) context.Context {
 	return context.WithValue(ctx, projectCtxKey{}, project)
 }
 
+type MiddlewareParams struct {
+	fx.In
+
+	Logger   *otelzap.Logger
+	Conf     *bunconf.Config
+	PG       *bun.DB
+	Projects *ProjectGateway
+}
+
 type Middleware struct {
-	Logger        *otelzap.Logger
-	Conf          *bunconf.Config
-	PG            *bun.DB
+	*MiddlewareParams
+
 	userProviders []UserProvider
 }
 
-func NewMiddleware(logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB) *Middleware {
+func NewMiddleware(p MiddlewareParams) *Middleware {
 	var userProviders []UserProvider
 
-	if len(conf.Auth.Users) > 0 || len(conf.Auth.OIDC) > 0 {
-		userProviders = append(userProviders, NewJWTProvider(conf.SecretKey))
+	if len(p.Conf.Auth.Users) > 0 || len(p.Conf.Auth.OIDC) > 0 {
+		userProviders = append(userProviders, NewJWTProvider(p.Conf.SecretKey))
 	}
-	for _, cloudflare := range conf.Auth.Cloudflare {
+	for _, cloudflare := range p.Conf.Auth.Cloudflare {
 		userProviders = append(userProviders, NewCloudflareProvider(cloudflare))
 	}
 
 	return &Middleware{
-		Conf:          conf,
-		Logger:        logger,
-		PG:            pg,
-		userProviders: userProviders,
+		MiddlewareParams: &p,
+		userProviders:    userProviders,
 	}
 }
 
@@ -99,7 +106,7 @@ func (m *Middleware) UserAndProject(next bunrouter.HandlerFunc) bunrouter.Handle
 		}
 		ctx = ContextWithUser(ctx, user)
 
-		project, err := ProjectFromRequest(m.PG, req)
+		project, err := m.projectFromRequest(req)
 		if err != nil {
 			return err
 		}
@@ -161,7 +168,7 @@ func tokenFromRequest(req bunrouter.Request) (string, error) {
 	return "", errTokenEmpty
 }
 
-func ProjectFromRequest(pg *bun.DB, req bunrouter.Request) (*Project, error) {
+func (m *Middleware) projectFromRequest(req bunrouter.Request) (*Project, error) {
 	ctx := req.Context()
 
 	projectID, err := req.Params().Uint32("project_id")
@@ -169,7 +176,7 @@ func ProjectFromRequest(pg *bun.DB, req bunrouter.Request) (*Project, error) {
 		return nil, err
 	}
 
-	project, err := SelectProject(ctx, pg, projectID)
+	project, err := m.Projects.SelectByID(ctx, projectID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrProjectNotFound

@@ -32,6 +32,7 @@ type SentryHandlerParams struct {
 
 	Logger   *otelzap.Logger
 	PG       *bun.DB
+	Projects *org.ProjectGateway
 	Consumer *SpanConsumer
 }
 
@@ -480,7 +481,7 @@ func (h *SentryHandler) projectFromRequest(req bunrouter.Request) (*org.Project,
 		return nil, err
 	}
 
-	return org.SelectProjectByToken(ctx, h.PG, sentryKey)
+	return h.Projects.SelectByToken(ctx, sentryKey)
 }
 
 func (h *SentryHandler) sentryKey(req bunrouter.Request) (string, error) {
