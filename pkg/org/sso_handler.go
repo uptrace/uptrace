@@ -28,6 +28,7 @@ type SSOHandlerParams struct {
 	Logger *otelzap.Logger
 	Conf   *bunconf.Config
 	PG     *bun.DB
+	Users  *UserGateway
 }
 
 type SSOHandler struct {
@@ -51,7 +52,7 @@ func NewSSOHandler(p SSOHandlerParams) *SSOHandler {
 				"/internal/v1/sso/%s/callback", oidcConf.ID))
 		}
 
-		handler, err := NewSSOMethodHandler(p.Logger, p.Conf, p.PG, oidcConf)
+		handler, err := NewSSOMethodHandler(p.Logger, p.Conf, p.Users, oidcConf)
 		if err != nil {
 			p.Logger.Error("failed to initialize OIDC user provider", zap.Error(err))
 			continue
@@ -93,7 +94,7 @@ func (h *SSOHandler) ListMethods(w http.ResponseWriter, req bunrouter.Request) e
 type SSOMethodHandler struct {
 	Logger *otelzap.Logger
 	Conf   *bunconf.Config
-	PG     *bun.DB
+	Users *UserGateway
 
 	oidcConf *bunconf.OIDCProvider
 	provider *oidc.Provider
@@ -105,7 +106,7 @@ const stateCookieName = "oidc-state"
 func NewSSOMethodHandler(
 	logger *otelzap.Logger,
 	conf *bunconf.Config,
-	pg *bun.DB,
+	users *UserGateway,
 	oidcConf *bunconf.OIDCProvider,
 ) (*SSOMethodHandler, error) {
 	provider, err := oidc.NewProvider(context.Background(), oidcConf.IssuerURL)
@@ -132,7 +133,7 @@ func NewSSOMethodHandler(
 	return &SSOMethodHandler{
 		Logger:   logger,
 		Conf:     conf,
-		PG:       pg,
+		Users:    users,
 		oidcConf: oidcConf,
 		provider: provider,
 		oauth:    oauth,
@@ -166,7 +167,7 @@ func (h *SSOMethodHandler) Callback(w http.ResponseWriter, req bunrouter.Request
 		return err
 	}
 
-	if err := GetOrCreateUser(ctx, h.PG, user); err != nil {
+	if err := h.Users.GetOrCreate(ctx, user); err != nil {
 		return err
 	}
 

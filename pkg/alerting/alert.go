@@ -216,7 +216,12 @@ func (params *MetricAlertParams) UpdateCheckResult(checkRes *madalarm.CheckResul
 	params.Bounds = checkRes.Bounds
 }
 
-func selectAlertWithEvent(ctx context.Context, pg *bun.DB, eventID uint64) (org.Alert, error) {
+func selectAlertWithEvent(
+	ctx context.Context,
+	pg *bun.DB,
+	users *org.UserGateway,
+	eventID uint64,
+) (org.Alert, error) {
 	event := new(org.BaseAlertEvent)
 
 	if err := pg.NewSelect().
@@ -232,7 +237,7 @@ func selectAlertWithEvent(ctx context.Context, pg *bun.DB, eventID uint64) (org.
 	alert.Event = event
 
 	if event.UserID != 0 {
-		user, err := org.SelectUser(ctx, pg, event.UserID)
+		user, err := users.SelectByID(ctx, event.UserID)
 		if err != nil {
 			return nil, err
 		}

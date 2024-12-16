@@ -469,34 +469,34 @@ func (p *DatapointProcessor) upsertMetric(ctx *datapointContext, datapoint *Data
 type datapointContext struct {
 	context.Context
 
-	ps *org.ProjectGateway
+	projects *org.ProjectGateway
 
-	projects map[uint32]*org.Project
-	digest   *xxhash.Digest
-	metrics  []Metric
+	projectsCache map[uint32]*org.Project
+	digest        *xxhash.Digest
+	metrics       []Metric
 }
 
-func newDatapointContext(ctx context.Context, ps *org.ProjectGateway) *datapointContext {
+func newDatapointContext(ctx context.Context, projects *org.ProjectGateway) *datapointContext {
 	return &datapointContext{
-		Context:  ctx,
-		ps:       ps,
-		projects: make(map[uint32]*org.Project),
-		digest:   xxhash.New(),
+		Context:       ctx,
+		projects:      projects,
+		projectsCache: make(map[uint32]*org.Project),
+		digest:        xxhash.New(),
 	}
 }
 
 func (c *datapointContext) Project(logger *otelzap.Logger, pg *bun.DB, projectID uint32) *org.Project {
-	if p, ok := c.projects[projectID]; ok {
+	if p, ok := c.projectsCache[projectID]; ok {
 		return p
 	}
 
-	project, err := c.ps.SelectByID(c.Context, projectID)
+	project, err := c.projects.SelectByID(c.Context, projectID)
 	if err != nil {
-		logger.Error("SelectProject failed", zap.Error(err))
+		logger.Error("projects.SelectByID failed", zap.Error(err))
 		return nil
 	}
 
-	c.projects[projectID] = project
+	c.projectsCache[projectID] = project
 	return project
 }
 

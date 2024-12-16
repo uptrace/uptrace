@@ -15,7 +15,7 @@ import (
 )
 
 func (h *NotifChannelHandler) notifyBySlackHandler(ctx context.Context, eventID, channelID uint64) error {
-	alert, err := selectAlertWithEvent(ctx, h.PG, eventID)
+	alert, err := selectAlertWithEvent(ctx, h.PG, h.Users, eventID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil
