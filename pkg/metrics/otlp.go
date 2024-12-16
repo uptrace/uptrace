@@ -42,7 +42,7 @@ type MetricsServiceServerParams struct {
 	Logger *otelzap.Logger
 	PG     *bun.DB
 	MP     *DatapointProcessor
-	PS     *org.ProjectStore
+	PS     *org.ProjectGateway
 }
 
 type MetricsServiceServer struct {

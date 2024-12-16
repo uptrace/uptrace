@@ -28,7 +28,7 @@ type PrometheusHandlerParams struct {
 	PG     *bun.DB
 	CH     *ch.DB
 	MP     *DatapointProcessor
-	PS     *org.ProjectStore
+	PS     *org.ProjectGateway
 }
 
 type PrometheusHandler struct {

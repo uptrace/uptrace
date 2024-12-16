@@ -34,7 +34,7 @@ type EmailNotifierParams struct {
 	Conf   *bunconf.Config
 	PG     *bun.DB
 	CH     *ch.DB
-	PS     *org.ProjectStore
+	PS     *org.ProjectGateway
 }
 
 type EmailNotifier struct {

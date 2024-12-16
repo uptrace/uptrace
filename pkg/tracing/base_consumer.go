@@ -42,7 +42,7 @@ type BaseConsumer[IT IndexRecord, DT DataRecord] struct {
 	logger      *otelzap.Logger
 	pg          *bun.DB
 	ch          *ch.DB
-	ps          *org.ProjectStore
+	ps          *org.ProjectGateway
 	mainQueue   taskq.Queue
 	batchSize   int
 	transformer transformer[IT, DT]
@@ -61,7 +61,7 @@ type BaseConsumerParams struct {
 	Conf      *bunconf.Config
 	PG        *bun.DB
 	CH        *ch.DB
-	PS        *org.ProjectStore
+	PS        *org.ProjectGateway
 	MainQueue taskq.Queue
 }
 
@@ -69,7 +69,7 @@ func NewBaseConsumer[IT IndexRecord, DT DataRecord](
 	logger *otelzap.Logger,
 	pg *bun.DB,
 	ch *ch.DB,
-	ps *org.ProjectStore,
+	ps *org.ProjectGateway,
 	mainQueue taskq.Queue,
 	signalName string,
 	batchSize, bufferSize, maxWorkers int,
@@ -232,7 +232,7 @@ type consumerWorker[IT IndexRecord, DT DataRecord] struct {
 	logger           *otelzap.Logger
 	pg               *bun.DB
 	ch               *ch.DB
-	ps               *org.ProjectStore
+	ps               *org.ProjectGateway
 	transformer      transformer[IT, DT]
 	spanErrorHandler func(context.Context, *Span)
 
@@ -246,7 +246,7 @@ func newConsumerWorker[IT IndexRecord, DT DataRecord](
 	logger *otelzap.Logger,
 	pg *bun.DB,
 	ch *ch.DB,
-	ps *org.ProjectStore,
+	ps *org.ProjectGateway,
 	transformer transformer[IT, DT],
 	bufSize int,
 	spanErrorHandler func(context.Context, *Span),

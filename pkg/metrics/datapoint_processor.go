@@ -34,7 +34,7 @@ type DatapointProcessorParams struct {
 	Conf      *bunconf.Config
 	PG        *bun.DB
 	CH        *ch.DB
-	PS        *org.ProjectStore
+	PS        *org.ProjectGateway
 	MainQueue taskq.Queue
 }
 
@@ -469,14 +469,14 @@ func (p *DatapointProcessor) upsertMetric(ctx *datapointContext, datapoint *Data
 type datapointContext struct {
 	context.Context
 
-	ps *org.ProjectStore
+	ps *org.ProjectGateway
 
 	projects map[uint32]*org.Project
 	digest   *xxhash.Digest
 	metrics  []Metric
 }
 
-func newDatapointContext(ctx context.Context, ps *org.ProjectStore) *datapointContext {
+func newDatapointContext(ctx context.Context, ps *org.ProjectGateway) *datapointContext {
 	return &datapointContext{
 		Context:  ctx,
 		ps:       ps,

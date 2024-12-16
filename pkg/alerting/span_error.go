@@ -23,7 +23,7 @@ type AlertNotifierParams struct {
 	Logger    *otelzap.Logger
 	PG        *bun.DB
 	CH        *ch.DB
-	PS        *org.ProjectStore
+	PS        *org.ProjectGateway
 	MainQueue taskq.Queue
 }
 

@@ -22,7 +22,7 @@ type AnnotationHandlerParams struct {
 
 	Logger *otelzap.Logger
 	PG     *bun.DB
-	PS     *ProjectStore
+	PS     *ProjectGateway
 }
 
 type AnnotationHandler struct {

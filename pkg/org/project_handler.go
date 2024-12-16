@@ -18,7 +18,7 @@ type ProjectHandlerParams struct {
 	Logger *otelzap.Logger
 	Conf   *bunconf.Config
 	PG     *bun.DB
-	PS     *ProjectStore
+	PS     *ProjectGateway
 }
 
 type ProjectHandler struct {

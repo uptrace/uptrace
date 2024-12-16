@@ -34,7 +34,7 @@ type LogsServiceServer struct {
 	collectorlogspb.UnimplementedLogsServiceServer
 
 	PG *bun.DB
-	PS *org.ProjectStore
+	PS *org.ProjectGateway
 	sp *SpanConsumer
 }
 

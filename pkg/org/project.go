@@ -54,15 +54,15 @@ func (p *Project) DSN(conf *bunconf.Config) string {
 	return BuildDSN(conf, p.Token)
 }
 
-type ProjectStore struct {
+type ProjectGateway struct {
 	*bunapp.PostgresParams
 }
 
-func NewProjectStore(p bunapp.PostgresParams) *ProjectStore {
-	return &ProjectStore{&p}
+func NewProjectGateway(p bunapp.PostgresParams) *ProjectGateway {
+	return &ProjectGateway{&p}
 }
 
-func (ps *ProjectStore) SelectProject(ctx context.Context, projectID uint32) (*Project, error) {
+func (ps *ProjectGateway) SelectProject(ctx context.Context, projectID uint32) (*Project, error) {
 	project := new(Project)
 	if err := ps.PG.NewSelect().
 		Model(project).
@@ -74,7 +74,7 @@ func (ps *ProjectStore) SelectProject(ctx context.Context, projectID uint32) (*P
 	return project, nil
 }
 
-func (ps *ProjectStore) SelectProjectByDSN(ctx context.Context, dsnStr string) (*Project, error) {
+func (ps *ProjectGateway) SelectProjectByDSN(ctx context.Context, dsnStr string) (*Project, error) {
 	dsn, err := ParseDSN(dsnStr)
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (ps *ProjectStore) SelectProjectByDSN(ctx context.Context, dsnStr string) (
 	return project, nil
 }
 
-func (ps *ProjectStore) SelectProjectByToken(ctx context.Context, token string) (*Project, error) {
+func (ps *ProjectGateway) SelectProjectByToken(ctx context.Context, token string) (*Project, error) {
 	project := new(Project)
 	if err := ps.PG.NewSelect().
 		Model(project).
@@ -107,7 +107,7 @@ func (ps *ProjectStore) SelectProjectByToken(ctx context.Context, token string) 
 	return project, nil
 }
 
-func (ps *ProjectStore) SelectProjects(ctx context.Context) ([]*Project, error) {
+func (ps *ProjectGateway) SelectProjects(ctx context.Context) ([]*Project, error) {
 	projects := make([]*Project, 0)
 	if err := ps.PG.NewSelect().
 		Model(&projects).

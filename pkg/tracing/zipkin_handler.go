@@ -26,7 +26,7 @@ type ZipkinHandlerParams struct {
 
 	Logger   *otelzap.Logger
 	PG       *bun.DB
-	PS       *org.ProjectStore
+	PS       *org.ProjectGateway
 	Consumer *SpanConsumer
 }
 
