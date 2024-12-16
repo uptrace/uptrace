@@ -514,10 +514,10 @@ func handleStaticFiles(conf *bunconf.Config, routerGroup *bunrouter.Group, fsys 
 	})
 }
 
-func syncDashboards(lc fx.Lifecycle, logger *otelzap.Logger, pg *bun.DB, ps *org.ProjectGateway) {
+func syncDashboards(lc fx.Lifecycle, logger *otelzap.Logger, pg *bun.DB, projects *org.ProjectGateway) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			projects, err := ps.SelectAll(ctx)
+			projects, err := projects.SelectAll(ctx)
 			if err != nil {
 				return err
 			}

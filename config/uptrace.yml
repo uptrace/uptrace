@@ -217,10 +217,10 @@ metrics:
 
   # The size of the Go chan used to buffer incoming measures.
   # If the buffer is full, Uptrace starts to drop measures.
-  buffer_size: 100000
+  #buffer_size: 100000
 
   # The number of measures to insert in a single query.
-  batch_size: 10000
+  #batch_size: 10000
 
   # The size of the buffer for converting cumulative metrics to delta.
   #cum_to_delta_size: 100000
