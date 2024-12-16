@@ -28,7 +28,7 @@ type OIDCProvider struct {
 	NameClaim    string   `yaml:"name_claim"`
 }
 
-type ProjectGateway struct {
+type Project struct {
 	ID                  uint32   `yaml:"id"`
 	Name                string   `yaml:"name"`
 	Token               string   `yaml:"token"`

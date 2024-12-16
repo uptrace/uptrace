@@ -62,9 +62,9 @@ func NewProjectGateway(p bunapp.PostgresParams) *ProjectGateway {
 	return &ProjectGateway{&p}
 }
 
-func (ps *ProjectGateway) SelectByID(ctx context.Context, projectID uint32) (*Project, error) {
+func (g *ProjectGateway) SelectByID(ctx context.Context, projectID uint32) (*Project, error) {
 	project := new(Project)
-	if err := ps.PG.NewSelect().
+	if err := g.PG.NewSelect().
 		Model(project).
 		Where("id = ?", projectID).
 		Limit(1).
@@ -74,7 +74,7 @@ func (ps *ProjectGateway) SelectByID(ctx context.Context, projectID uint32) (*Pr
 	return project, nil
 }
 
-func (ps *ProjectGateway) SelectByDSN(ctx context.Context, dsnStr string) (*Project, error) {
+func (g *ProjectGateway) SelectByDSN(ctx context.Context, dsnStr string) (*Project, error) {
 	dsn, err := ParseDSN(dsnStr)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (ps *ProjectGateway) SelectByDSN(ctx context.Context, dsnStr string) (*Proj
 		return nil, fmt.Errorf("dsn %q does not have a token", dsnStr)
 	}
 
-	project, err := ps.SelectByToken(ctx, dsn.Token)
+	project, err := g.SelectByToken(ctx, dsn.Token)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("can't find project with token=%q", dsn.Token)
@@ -95,9 +95,9 @@ func (ps *ProjectGateway) SelectByDSN(ctx context.Context, dsnStr string) (*Proj
 	return project, nil
 }
 
-func (ps *ProjectGateway) SelectByToken(ctx context.Context, token string) (*Project, error) {
+func (g *ProjectGateway) SelectByToken(ctx context.Context, token string) (*Project, error) {
 	project := new(Project)
-	if err := ps.PG.NewSelect().
+	if err := g.PG.NewSelect().
 		Model(project).
 		Where("token = ?", token).
 		Limit(1).
@@ -107,9 +107,9 @@ func (ps *ProjectGateway) SelectByToken(ctx context.Context, token string) (*Pro
 	return project, nil
 }
 
-func (ps *ProjectGateway) SelectAll(ctx context.Context) ([]*Project, error) {
+func (g *ProjectGateway) SelectAll(ctx context.Context) ([]*Project, error) {
 	projects := make([]*Project, 0)
-	if err := ps.PG.NewSelect().
+	if err := g.PG.NewSelect().
 		Model(&projects).
 		Scan(ctx); err != nil {
 		return nil, err

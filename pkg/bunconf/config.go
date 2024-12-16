@@ -74,7 +74,7 @@ func defaultConfig() *Config {
 	conf.PG.Password = "uptrace"
 	conf.PG.Database = "uptrace"
 
-	conf.ProjectGateway = []ProjectGateway{
+	conf.Projects = []Project{
 		{
 			ID:    1,
 			Name:  "Uptrace",
@@ -165,7 +165,7 @@ func validateConfig(conf *Config) error {
 	if err := validateUsers(conf.Auth.Users); err != nil {
 		return err
 	}
-	if err := validateProjects(conf.ProjectGateway); err != nil {
+	if err := validateProjects(conf.Projects); err != nil {
 		return err
 	}
 
@@ -287,7 +287,7 @@ func validateUsers(users []User) error {
 	return nil
 }
 
-func validateProjects(projects []ProjectGateway) error {
+func validateProjects(projects []Project) error {
 	if len(projects) == 0 {
 		return fmt.Errorf("config must contain at least one project")
 	}
@@ -311,7 +311,7 @@ type Config struct {
 	CH CHConfig  `yaml:"ch"`
 	PG BunConfig `yaml:"pg"`
 
-	ProjectGateway []ProjectGateway `yaml:"projects"`
+	Projects []Project `yaml:"projects"`
 
 	Auth struct {
 		Users      []User                `yaml:"users" json:"users"`

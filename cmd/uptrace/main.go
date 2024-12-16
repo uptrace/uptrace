@@ -361,8 +361,8 @@ func loadInitialData(lc fx.Lifecycle, conf *bunconf.Config, pg *bun.DB) {
 			}
 		}
 
-		for i := range conf.ProjectGateway {
-			src := &conf.ProjectGateway[i]
+		for i := range conf.Projects {
+			src := &conf.Projects[i]
 
 			dest := &org.Project{
 				ID:                  src.ID,
@@ -389,7 +389,7 @@ func loadInitialData(lc fx.Lifecycle, conf *bunconf.Config, pg *bun.DB) {
 
 func initOpentelemetry(lc fx.Lifecycle, conf *bunconf.Config) {
 	lc.Append(fx.StartHook(func() error {
-		project := &conf.ProjectGateway[0]
+		project := &conf.Projects[0]
 
 		if conf.UptraceGo.Disabled {
 			return nil
