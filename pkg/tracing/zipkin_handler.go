@@ -26,7 +26,7 @@ type ZipkinHandlerParams struct {
 
 	Logger   *otelzap.Logger
 	PG       *bun.DB
-	PS       *org.ProjectGateway
+	Projects *org.ProjectGateway
 	Consumer *SpanConsumer
 }
 
@@ -79,7 +79,7 @@ func (h *ZipkinHandler) PostSpans(w http.ResponseWriter, req bunrouter.Request) 
 		return err
 	}
 
-	project, err := h.PS.SelectByDSN(ctx, dsn)
+	project, err := h.Projects.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}

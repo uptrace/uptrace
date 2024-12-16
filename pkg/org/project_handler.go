@@ -15,10 +15,10 @@ import (
 type ProjectHandlerParams struct {
 	fx.In
 
-	Logger *otelzap.Logger
-	Conf   *bunconf.Config
-	PG     *bun.DB
-	PS     *ProjectGateway
+	Logger   *otelzap.Logger
+	Conf     *bunconf.Config
+	PG       *bun.DB
+	Projects *ProjectGateway
 }
 
 type ProjectHandler struct {
@@ -45,7 +45,7 @@ func (h *ProjectHandler) Show(w http.ResponseWriter, req bunrouter.Request) erro
 		return err
 	}
 
-	project, err := h.PS.SelectByID(ctx, projectID)
+	project, err := h.Projects.SelectByID(ctx, projectID)
 	if err != nil {
 		return err
 	}

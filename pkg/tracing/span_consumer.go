@@ -31,7 +31,7 @@ func NewSpanConsumer(p SpanConsumerParams) *SpanConsumer {
 			p.Logger,
 			p.PG,
 			p.CH,
-			p.PS,
+			p.Projects,
 			p.MainQueue,
 			"uptrace.tracing.queue_length",
 			batchSize, bufferSize, maxWorkers,

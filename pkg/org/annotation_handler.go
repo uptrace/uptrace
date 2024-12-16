@@ -20,9 +20,9 @@ import (
 type AnnotationHandlerParams struct {
 	fx.In
 
-	Logger *otelzap.Logger
-	PG     *bun.DB
-	PS     *ProjectGateway
+	Logger   *otelzap.Logger
+	PG       *bun.DB
+	Projects *ProjectGateway
 }
 
 type AnnotationHandler struct {
@@ -129,7 +129,7 @@ func (h *AnnotationHandler) CreatePublic(w http.ResponseWriter, req bunrouter.Re
 		return err
 	}
 
-	project, err := h.PS.SelectByDSN(ctx, dsn)
+	project, err := h.Projects.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}

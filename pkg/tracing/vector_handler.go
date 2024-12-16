@@ -29,7 +29,7 @@ type VectorHandlerParams struct {
 
 	Logger   *otelzap.Logger
 	PG       *bun.DB
-	PS       *org.ProjectGateway
+	Projects *org.ProjectGateway
 	Consumer *LogConsumer
 }
 
@@ -56,7 +56,7 @@ func (h *VectorHandler) Create(w http.ResponseWriter, req bunrouter.Request) err
 		return err
 	}
 
-	project, err := h.PS.SelectByDSN(ctx, dsn)
+	project, err := h.Projects.SelectByDSN(ctx, dsn)
 	if err != nil {
 		return err
 	}

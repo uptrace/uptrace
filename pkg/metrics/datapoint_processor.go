@@ -34,7 +34,7 @@ type DatapointProcessorParams struct {
 	Conf      *bunconf.Config
 	PG        *bun.DB
 	CH        *ch.DB
-	PS        *org.ProjectGateway
+	Projects  *org.ProjectGateway
 	MainQueue taskq.Queue
 }
 
@@ -193,7 +193,7 @@ func (p *DatapointProcessor) processDatapoints(ctx context.Context, src []*Datap
 		defer p.gate.Done()
 		defer p.wg.Done()
 
-		mctx := newDatapointContext(ctx, p.PS)
+		mctx := newDatapointContext(ctx, p.Projects)
 		p._processDatapoints(mctx, datapoints)
 	}()
 }

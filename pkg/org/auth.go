@@ -54,10 +54,10 @@ func ContextWithProject(ctx context.Context, project *Project) context.Context {
 type MiddlewareParams struct {
 	fx.In
 
-	Logger *otelzap.Logger
-	Conf   *bunconf.Config
-	PG     *bun.DB
-	PS     *ProjectGateway
+	Logger   *otelzap.Logger
+	Conf     *bunconf.Config
+	PG       *bun.DB
+	Projects *ProjectGateway
 }
 
 type Middleware struct {
@@ -176,7 +176,7 @@ func (m *Middleware) projectFromRequest(req bunrouter.Request) (*Project, error)
 		return nil, err
 	}
 
-	project, err := m.PS.SelectByID(ctx, projectID)
+	project, err := m.Projects.SelectByID(ctx, projectID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrProjectNotFound

@@ -23,7 +23,7 @@ type UserHandlerParams struct {
 	Logger *otelzap.Logger
 	Conf   *bunconf.Config
 	PG     *bun.DB
-	PS     *ProjectGateway
+	Projects     *ProjectGateway
 }
 
 type UserHandler struct {
@@ -49,7 +49,7 @@ func (h *UserHandler) Current(w http.ResponseWriter, req bunrouter.Request) erro
 	ctx := req.Context()
 	user := UserFromContext(ctx)
 
-	projects, err := h.PS.SelectAll(ctx)
+	projects, err := h.Projects.SelectAll(ctx)
 	if err != nil {
 		return err
 	}

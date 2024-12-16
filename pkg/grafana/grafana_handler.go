@@ -12,11 +12,11 @@ import (
 )
 
 type BaseGrafanaHandlerParams struct {
-	Logger *otelzap.Logger
-	Conf   *bunconf.Config
-	PG     *bun.DB
-	CH     *ch.DB
-	PS     *org.ProjectGateway
+	Logger   *otelzap.Logger
+	Conf     *bunconf.Config
+	PG       *bun.DB
+	CH       *ch.DB
+	Projects *org.ProjectGateway
 }
 
 type BaseGrafanaHandler struct {
@@ -42,7 +42,7 @@ func (h *BaseGrafanaHandler) CheckProjectAccess(next bunrouter.HandlerFunc) bunr
 			return err
 		}
 
-		project, err := h.PS.SelectByDSN(ctx, dsn)
+		project, err := h.Projects.SelectByDSN(ctx, dsn)
 		if err != nil {
 			return err
 		}

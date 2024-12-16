@@ -30,11 +30,11 @@ const fromName = "Uptrace"
 type EmailNotifierParams struct {
 	fx.In
 
-	Logger *otelzap.Logger
-	Conf   *bunconf.Config
-	PG     *bun.DB
-	CH     *ch.DB
-	PS     *org.ProjectGateway
+	Logger   *otelzap.Logger
+	Conf     *bunconf.Config
+	PG       *bun.DB
+	CH       *ch.DB
+	Projects *org.ProjectGateway
 }
 
 type EmailNotifier struct {
@@ -98,7 +98,7 @@ func (n *EmailNotifier) NotifyHandler(ctx context.Context, eventID uint64, recip
 	}
 	baseAlert := alert.Base()
 
-	project, err := n.PS.SelectByID(ctx, baseAlert.ProjectID)
+	project, err := n.Projects.SelectByID(ctx, baseAlert.ProjectID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil

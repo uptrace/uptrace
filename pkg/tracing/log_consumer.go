@@ -44,7 +44,7 @@ func NewLogConsumer(p BaseConsumerParams) *LogConsumer {
 			p.Logger,
 			p.PG,
 			p.CH,
-			p.PS,
+			p.Projects,
 			p.MainQueue,
 			"uptrace.tracing.logs_queue_length",
 			batchSize, bufferSize, maxWorkers,
