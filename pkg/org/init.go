@@ -27,6 +27,7 @@ const (
 var Module = fx.Module("org",
 	fx.Provide(
 		NewProjectGateway,
+		NewUserGateway,
 	),
 	fx.Provide(
 		fx.Private,

@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/uptrace/bun"
+	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
+	"go.uber.org/fx"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -96,9 +98,23 @@ func md5s(s string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func SelectUser(ctx context.Context, pg *bun.DB, id uint64) (*User, error) {
+type UserGatewayParams struct {
+	fx.In
+
+	bunapp.PostgresParams
+}
+
+type UserGateway struct {
+	*UserGatewayParams
+}
+
+func NewUserGateway(p UserGatewayParams) *UserGateway {
+	return &UserGateway{&p}
+}
+
+func (g *UserGateway) SelectByID(ctx context.Context, id uint64) (*User, error) {
 	user := new(User)
-	if err := pg.NewSelect().
+	if err := g.PG.NewSelect().
 		Model(user).
 		Where("id = ?", id).
 		Scan(ctx); err != nil {
@@ -107,9 +123,9 @@ func SelectUser(ctx context.Context, pg *bun.DB, id uint64) (*User, error) {
 	return user, nil
 }
 
-func SelectUserByEmail(ctx context.Context, pg *bun.DB, email string) (*User, error) {
+func (g *UserGateway) SelectByEmail(ctx context.Context, email string) (*User, error) {
 	user := new(User)
-	if err := pg.NewSelect().
+	if err := g.PG.NewSelect().
 		Model(user).
 		Where("email = ?", email).
 		Scan(ctx); err != nil {
@@ -118,9 +134,9 @@ func SelectUserByEmail(ctx context.Context, pg *bun.DB, email string) (*User, er
 	return user, nil
 }
 
-func SelectUserByToken(ctx context.Context, pg *bun.DB, token string) (*User, error) {
+func (g *UserGateway) SelectByToken(ctx context.Context, token string) (*User, error) {
 	user := new(User)
-	if err := pg.NewSelect().
+	if err := g.PG.NewSelect().
 		Model(user).
 		Where("auth_token = ?", token).
 		Scan(ctx); err != nil {
@@ -129,12 +145,12 @@ func SelectUserByToken(ctx context.Context, pg *bun.DB, token string) (*User, er
 	return user, nil
 }
 
-func GetOrCreateUser(ctx context.Context, pg *bun.DB, user *User) error {
+func (g *UserGateway) GetOrCreate(ctx context.Context, user *User) error {
 	if err := user.Validate(); err != nil {
 		return err
 	}
 
-	if _, err := pg.NewInsert().
+	if _, err := g.PG.NewInsert().
 		Model(user).
 		On("CONFLICT (email) DO UPDATE").
 		Set("name = coalesce(EXCLUDED.name, u.name)").

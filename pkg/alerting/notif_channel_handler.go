@@ -34,6 +34,7 @@ type NotifChannelHandlerParams struct {
 	Conf       *bunconf.Config
 	PG         *bun.DB
 	Projects   *org.ProjectGateway
+	Users      *org.UserGateway
 	HTTPClient *http.Client
 }
 

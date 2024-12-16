@@ -58,6 +58,7 @@ type MiddlewareParams struct {
 	Conf     *bunconf.Config
 	PG       *bun.DB
 	Projects *ProjectGateway
+	Users    *UserGateway
 }
 
 type Middleware struct {
@@ -134,8 +135,8 @@ func (m *Middleware) userFromRequest(req bunrouter.Request) (*User, error) {
 			)
 		}
 
-		if err := GetOrCreateUser(ctx, m.PG, user); err != nil {
-			m.Logger.Error("GetOrCreateUser failed", zap.Error(err))
+		if err := m.Users.GetOrCreate(ctx, user); err != nil {
+			m.Logger.Error("Users.GetOrCreate failed", zap.Error(err))
 			continue
 		}
 
@@ -147,7 +148,7 @@ func (m *Middleware) userFromRequest(req bunrouter.Request) (*User, error) {
 		return nil, httperror.Unauthorized(err.Error())
 	}
 
-	user, err := SelectUserByToken(ctx, m.PG, token)
+	user, err := m.Users.SelectByToken(ctx, token)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, httperror.Unauthorized(err.Error())

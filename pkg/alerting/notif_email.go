@@ -35,6 +35,7 @@ type EmailNotifierParams struct {
 	PG       *bun.DB
 	CH       *ch.DB
 	Projects *org.ProjectGateway
+	Users    *org.UserGateway
 }
 
 type EmailNotifier struct {
@@ -89,7 +90,7 @@ func (n *EmailNotifier) NotifyHandler(ctx context.Context, eventID uint64, recip
 		return nil
 	}
 
-	alert, err := selectAlertWithEvent(ctx, n.PG, eventID)
+	alert, err := selectAlertWithEvent(ctx, n.PG, n.Users, eventID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil
