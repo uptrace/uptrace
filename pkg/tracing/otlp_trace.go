@@ -11,6 +11,7 @@ import (
 	collectortrace "go.opentelemetry.io/proto/otlp/collector/trace/v1"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 	"go.uber.org/fx"
+	"go.uber.org/zap"
 	"golang.org/x/exp/maps"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -188,7 +189,11 @@ func (s *TraceServiceServer) process(
 					} else if eventSpan.IsEvent() {
 						s.EventConsumer.AddSpan(ctx, eventSpan)
 					} else {
-						s.SpanConsumer.AddSpan(ctx, eventSpan)
+						s.Logger.Error(
+							"Span is neither log nor event",
+							zap.String("name", span.Name),
+							zap.String("eventName", span.EventName),
+						)
 					}
 				}
 
