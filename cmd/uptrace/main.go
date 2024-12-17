@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -19,8 +20,6 @@ import (
 	_ "github.com/mostynb/go-grpc-compression/snappy"
 	_ "github.com/mostynb/go-grpc-compression/zstd"
 	"github.com/rs/cors"
-	"github.com/uptrace/go-clickhouse/ch"
-	uptracego "github.com/uptrace/uptrace-go/uptrace"
 	"github.com/urfave/cli/v2"
 	"github.com/vmihailenco/taskq/extra/oteltaskq/v4"
 	"github.com/vmihailenco/taskq/v4"
@@ -28,15 +27,16 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 	"golang.org/x/net/http2"
 	"google.golang.org/grpc"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/migrate"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace"
+	uptracego "github.com/uptrace/uptrace-go/uptrace"
 	"github.com/uptrace/uptrace/cmd/uptrace/command"
 	"github.com/uptrace/uptrace/pkg"
 	"github.com/uptrace/uptrace/pkg/alerting"
@@ -132,7 +132,7 @@ var serveCommand = &cli.Command{
 func runHTTPServer(
 	group *run.Group,
 	conf *bunconf.Config,
-	logger *otelzap.Logger,
+	logger *slog.Logger,
 	router bunapp.RouterParams,
 ) error {
 	handleStaticFiles(conf, router.RouterGroup, uptrace.DistFS())
@@ -155,7 +155,7 @@ func runHTTPServer(
 	if err != nil {
 		logger.Error(
 			"net.Listen failed (edit listen.http YAML option)",
-			zap.Error(err), zap.String("addr", conf.Listen.HTTP.Addr),
+			slog.Any("error", err), slog.String("addr", conf.Listen.HTTP.Addr),
 		)
 		return err
 	}
@@ -183,13 +183,15 @@ func runGRPCServer(
 	group *run.Group,
 	conf *bunconf.Config,
 	srv *grpc.Server,
-	logger *otelzap.Logger,
+	logger *slog.Logger,
 ) error {
 	ln, err := net.Listen("tcp", conf.Listen.GRPC.Addr)
 	if err != nil {
-		logger.Error("net.Listen failed (edit listen.grpc YAML option)",
-			zap.String("addr", conf.Listen.GRPC.Addr),
-			zap.Error(err))
+		logger.Error(
+			"net.Listen failed (edit listen.grpc YAML option)",
+			slog.Any("error", err),
+			slog.String("addr", conf.Listen.GRPC.Addr),
+		)
 		return err
 	}
 
@@ -204,7 +206,7 @@ func runGRPCServer(
 	return nil
 }
 
-func runMainQueue(lc fx.Lifecycle, logger *otelzap.Logger, mainQueue taskq.Queue) error {
+func runMainQueue(lc fx.Lifecycle, logger *slog.Logger, mainQueue taskq.Queue) error {
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
 			go func() {
@@ -213,7 +215,7 @@ func runMainQueue(lc fx.Lifecycle, logger *otelzap.Logger, mainQueue taskq.Queue
 				consumer.AddHook(oteltaskq.NewHook())
 
 				if err := consumer.Start(ctx); err != nil {
-					logger.Error("consumer.Start() failed", zap.Error(err))
+					logger.Error("consumer.Start() failed", slog.Any("error", err))
 				}
 			}()
 
@@ -228,7 +230,7 @@ func runMainQueue(lc fx.Lifecycle, logger *otelzap.Logger, mainQueue taskq.Queue
 	return nil
 }
 
-func initPostgres(logger *otelzap.Logger, pg *bun.DB) error {
+func initPostgres(logger *slog.Logger, pg *bun.DB) error {
 	if err := pg.Ping(); err != nil {
 		return fmt.Errorf("PostgreSQL Ping failed: %w", err)
 	}
@@ -239,7 +241,7 @@ func initPostgres(logger *otelzap.Logger, pg *bun.DB) error {
 	})
 }
 
-func runPGMigrations(ctx context.Context, logger *otelzap.Logger, pg *bun.DB) error {
+func runPGMigrations(ctx context.Context, logger *slog.Logger, pg *bun.DB) error {
 	migrator := migrate.NewMigrator(pg, pgmigrations.Migrations)
 
 	if err := migrator.Init(ctx); err != nil {
@@ -255,11 +257,11 @@ func runPGMigrations(ctx context.Context, logger *otelzap.Logger, pg *bun.DB) er
 		return nil
 	}
 
-	logger.Info("migrated PostgreSQL database", zap.String("migrations", group.String()))
+	logger.Info("migrated PostgreSQL database", slog.String("migrations", group.String()))
 	return nil
 }
 
-func initClickhouse(logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB, ch *ch.DB) error {
+func initClickhouse(logger *slog.Logger, conf *bunconf.Config, pg *bun.DB, ch *ch.DB) error {
 	ctx := context.Background()
 
 	if err := ch.Ping(ctx); err != nil {
@@ -281,7 +283,7 @@ func initClickhouse(logger *otelzap.Logger, conf *bunconf.Config, pg *bun.DB, ch
 	return nil
 }
 
-func runCHMigrations(ctx context.Context, logger *otelzap.Logger, conf *bunconf.Config, ch *ch.DB) error {
+func runCHMigrations(ctx context.Context, logger *slog.Logger, conf *bunconf.Config, ch *ch.DB) error {
 	migrator := command.NewCHMigrator(conf, ch, chmigrations.Migrations)
 
 	if err := migrator.Init(ctx); err != nil {
@@ -297,7 +299,7 @@ func runCHMigrations(ctx context.Context, logger *otelzap.Logger, conf *bunconf.
 		return nil
 	}
 
-	logger.Info("migrated ClickHouse database", zap.String("migrations", group.String()))
+	logger.Info("migrated ClickHouse database", slog.String("migrations", group.String()))
 	return nil
 }
 
@@ -429,7 +431,7 @@ func initOpentelemetry(lc fx.Lifecycle, conf *bunconf.Config) {
 	}))
 }
 
-func showInfo(conf *bunconf.Config, logger *otelzap.Logger) {
+func showInfo(conf *bunconf.Config, logger *slog.Logger) {
 	fmt.Printf("read the docs at            https://uptrace.dev/get/\n")
 	fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
 	fmt.Printf("Telegram chat               https://t.me/uptrace\n")
@@ -439,9 +441,11 @@ func showInfo(conf *bunconf.Config, logger *otelzap.Logger) {
 	fmt.Printf("Open UI (site.addr)         %s\n", conf.SiteURL("/"))
 	fmt.Println()
 
-	logger.Info("starting Uptrace...",
-		zap.String("version", pkg.Version()),
-		zap.String("config", conf.Path))
+	logger.Info(
+		"starting Uptrace...",
+		slog.String("version", pkg.Version()),
+		slog.String("config", conf.Path),
+	)
 }
 
 func createProject(ctx context.Context, pg *bun.DB, project *org.Project) error {

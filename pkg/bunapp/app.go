@@ -4,8 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -46,6 +48,7 @@ func New(configPath string, opts ...fx.Option) (*fx.App, error) {
 		fx.Supply(conf),
 		fx.Supply(group),
 
+		fx.Provide(initSlog),
 		fx.Provide(initZap),
 		fx.Provide(newPG),
 		fx.Provide(newCH),
@@ -56,6 +59,10 @@ func New(configPath string, opts ...fx.Option) (*fx.App, error) {
 	}
 	options = append(options, opts...)
 	options = append(options, fx.Invoke(runGroup))
+	if !conf.Debug {
+		options = append(options, fx.NopLogger)
+	}
+
 	app := fx.New(options...)
 
 	group.Add("app.Done", func() error {
@@ -64,6 +71,24 @@ func New(configPath string, opts ...fx.Option) (*fx.App, error) {
 	})
 
 	return app, nil
+}
+
+func initSlog(conf *bunconf.Config) *slog.Logger {
+	var logLevel = new(slog.LevelVar)
+	switch strings.ToLower(conf.Logging.Level) {
+	case "debug":
+		logLevel.Set(slog.LevelDebug)
+	case "info":
+		logLevel.Set(slog.LevelInfo)
+	case "warn":
+		logLevel.Set(slog.LevelWarn)
+	case "error":
+		logLevel.Set(slog.LevelError)
+	default:
+		logLevel.Set(slog.LevelInfo)
+	}
+
+	return slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
 }
 
 func initConfig(path string) (*bunconf.Config, error) {
