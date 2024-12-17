@@ -34,6 +34,7 @@ var Module = fx.Module("tracing",
 		NewServiceGraphProcessor,
 		NewSpanConsumer,
 		NewLogConsumer,
+		NewEventConsumer,
 		NewTraceServiceServer,
 		NewLogsServiceServer,
 
@@ -85,7 +86,12 @@ func initOTLP(p OTLPParams, router bunapp.RouterParams) {
 	router.Router.POST("/v1/logs", p.LogsServer.ExportHTTP)
 }
 
-func runConsumers(group *run.Group, spanConsumer *SpanConsumer, logConsumer *LogConsumer) {
+func runConsumers(
+	group *run.Group,
+	spanConsumer *SpanConsumer,
+	logConsumer *LogConsumer,
+	eventConsumer *EventConsumer,
+) {
 	group.Add("tracing.spanConsumer.Run", func() error {
 		spanConsumer.Run()
 		return nil
@@ -100,6 +106,14 @@ func runConsumers(group *run.Group, spanConsumer *SpanConsumer, logConsumer *Log
 	})
 	group.OnStop(func(context.Context, error) error {
 		logConsumer.Stop()
+		return nil
+	})
+	group.Add("tracing.eventConsumer.Run", func() error {
+		eventConsumer.Run()
+		return nil
+	})
+	group.OnStop(func(context.Context, error) error {
+		eventConsumer.Stop()
 		return nil
 	})
 }
