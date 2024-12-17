@@ -28,10 +28,12 @@ import (
 type TraceServiceServerParams struct {
 	fx.In
 
-	Logger   *otelzap.Logger
-	PG       *bun.DB
-	Projects *org.ProjectGateway
-	Consumer *SpanConsumer
+	Logger        *otelzap.Logger
+	PG            *bun.DB
+	Projects      *org.ProjectGateway
+	SpanConsumer  *SpanConsumer
+	LogConsumer   *LogConsumer
+	EventConsumer *EventConsumer
 }
 
 type TraceServiceServer struct {
@@ -174,7 +176,24 @@ func (s *TraceServiceServer) process(
 				span := &mem[i]
 				initSpanFromOTLP(span, scope, otlpSpan)
 				span.ProjectID = project.ID
-				s.Consumer.AddSpan(ctx, span)
+
+				for _, event := range span.Events {
+					eventSpan := &Span{
+						Attrs: NewAttrMap(),
+					}
+					initEventFromHostSpan(eventSpan, event, span)
+
+					if eventSpan.IsLog() {
+						s.LogConsumer.AddSpan(ctx, eventSpan)
+					} else if eventSpan.IsEvent() {
+						s.EventConsumer.AddSpan(ctx, eventSpan)
+					} else {
+						s.SpanConsumer.AddSpan(ctx, eventSpan)
+					}
+				}
+
+				span.Events = nil
+				s.SpanConsumer.AddSpan(ctx, span)
 			}
 		}
 	}
