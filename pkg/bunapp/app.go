@@ -73,22 +73,36 @@ func New(configPath string, opts ...fx.Option) (*fx.App, error) {
 	return app, nil
 }
 
-func initSlog(conf *bunconf.Config) *slog.Logger {
-	var logLevel = new(slog.LevelVar)
+type LoggerResults struct {
+	fx.Out
+
+	Logger *slog.Logger
+	Level  *slog.LevelVar
+}
+
+func initSlog(conf *bunconf.Config) LoggerResults {
+	var level = new(slog.LevelVar)
+
 	switch strings.ToLower(conf.Logging.Level) {
 	case "debug":
-		logLevel.Set(slog.LevelDebug)
+		level.Set(slog.LevelDebug)
 	case "info":
-		logLevel.Set(slog.LevelInfo)
+		level.Set(slog.LevelInfo)
 	case "warn":
-		logLevel.Set(slog.LevelWarn)
+		level.Set(slog.LevelWarn)
 	case "error":
-		logLevel.Set(slog.LevelError)
+		level.Set(slog.LevelError)
 	default:
-		logLevel.Set(slog.LevelInfo)
+		level.Set(slog.LevelInfo)
 	}
 
-	return slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))
+	return LoggerResults{
+		Logger: slog.New(slog.NewTextHandler(
+			os.Stdout,
+			&slog.HandlerOptions{Level: level}),
+		),
+		Level: level,
+	}
 }
 
 func initConfig(path string) (*bunconf.Config, error) {
