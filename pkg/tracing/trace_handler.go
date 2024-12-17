@@ -56,8 +56,8 @@ func (h *TraceHandler) FindTrace(w http.ResponseWriter, req bunrouter.Request) e
 	var projectID uint32
 	var spanID idgen.SpanID
 	if err := h.CH.NewSelect().
-		Model((*SpanData)(nil)).
 		ColumnExpr("project_id, id").
+		TableExpr("tracing_data").
 		Where("trace_id = ?", traceID).
 		OrderExpr("id DESC").
 		Limit(1).
