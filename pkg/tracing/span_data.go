@@ -12,7 +12,7 @@ import (
 )
 
 type SpanData struct {
-	ch.CHModel `ch:"table:spans_data_buffer,insert:spans_data_buffer,alias:s"`
+	ch.CHModel `ch:"table:spans_data,alias:s"`
 
 	BaseData
 }

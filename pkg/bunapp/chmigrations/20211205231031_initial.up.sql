@@ -88,32 +88,6 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-DROP TABLE IF EXISTS spans_index_buffer ?ON_CLUSTER
-
---migration:split
-
-CREATE TABLE spans_index_buffer ?ON_CLUSTER AS spans_index
-ENGINE = Buffer(currentDatabase(), spans_index,
-  5,
-  5, 45,
-  1_000_000, 1_000_000,
-  500_000_000, 500_000_000)
-
---migration:split
-
-DROP TABLE IF EXISTS spans_data_buffer ?ON_CLUSTER
-
---migration:split
-
-CREATE TABLE spans_data_buffer ?ON_CLUSTER AS spans_data
-ENGINE = Buffer(currentDatabase(), spans_data,
-  3,
-  5, 45,
-  1_000_000, 1_000_000,
-  500_000_000, 500_000_000)
-
---migration:split
-
 CREATE TABLE datapoint_minutes ?ON_CLUSTER (
   project_id UInt32 Codec(DoubleDelta, ?CODEC),
   metric LowCardinality(String) Codec(?CODEC),
@@ -138,19 +112,6 @@ ORDER BY (project_id, metric, time, attrs_hash)
 TTL toDate(time) + INTERVAL ?METRICS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          storage_policy = ?METRICS_STORAGE
-
---migration:split
-
-DROP TABLE IF EXISTS datapoint_minutes_buffer ?ON_CLUSTER
-
---migration:split
-
-CREATE TABLE datapoint_minutes_buffer ?ON_CLUSTER AS datapoint_minutes
-ENGINE = Buffer(currentDatabase(), datapoint_minutes,
-  5,
-  5, 45,
-  1_000_000, 1_000_000,
-  500_000_000, 500_000_000)
 
 --migration:split
 
@@ -236,19 +197,6 @@ PRIMARY KEY (project_id, time, type, client_name, server_name)
 TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
   storage_policy = ?SPANS_STORAGE
-
---migration:split
-
-DROP TABLE IF EXISTS service_graph_edges_buffer ?ON_CLUSTER
-
---migration:split
-
-CREATE TABLE service_graph_edges_buffer ?ON_CLUSTER AS service_graph_edges
-ENGINE = Buffer(currentDatabase(), service_graph_edges,
-  2,
-  5, 45,
-  1_000_000, 1_000_000,
-  500_000_000, 500_000_000)
 
 --migration:split
 
