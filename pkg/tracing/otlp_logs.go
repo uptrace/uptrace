@@ -14,6 +14,7 @@ import (
 	collectorlogspb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
+	"go.uber.org/fx"
 	"golang.org/x/exp/maps"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -30,18 +31,24 @@ import (
 	"github.com/uptrace/uptrace/pkg/tracing/norm"
 )
 
-type LogsServiceServer struct {
-	collectorlogspb.UnimplementedLogsServiceServer
+type LogsServiceServerParams struct {
+	fx.In
 
 	PG       *bun.DB
 	Projects *org.ProjectGateway
-	sp       *SpanConsumer
+	Consumer *LogConsumer
+}
+
+type LogsServiceServer struct {
+	collectorlogspb.UnimplementedLogsServiceServer
+
+	*LogsServiceServerParams
 }
 
 var _ collectorlogspb.LogsServiceServer = (*LogsServiceServer)(nil)
 
-func NewLogsServiceServer(pg *bun.DB, sp *SpanConsumer) *LogsServiceServer {
-	return &LogsServiceServer{PG: pg, sp: sp}
+func NewLogsServiceServer(p LogsServiceServerParams) *LogsServiceServer {
+	return &LogsServiceServer{LogsServiceServerParams: &p}
 }
 
 func (s *LogsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Request) error {
@@ -165,7 +172,7 @@ func (s *LogsServiceServer) export(
 			for _, lr := range sl.LogRecords {
 				span := p.processLogRecord(scope, lr)
 				span.ProjectID = project.ID
-				s.sp.AddSpan(ctx, span)
+				s.Consumer.AddSpan(ctx, span)
 			}
 		}
 	}

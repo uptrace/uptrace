@@ -3,10 +3,12 @@ package tracing
 import (
 	"time"
 
+	"go.uber.org/fx"
+	"go.uber.org/zap"
+
 	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"go.uber.org/zap"
 )
 
 type LogIndex struct {
@@ -28,11 +30,17 @@ type LogData struct {
 	BaseData
 }
 
+type LogConsumerParams struct {
+	fx.In
+
+	BaseConsumerParams
+}
+
 type LogConsumer struct {
 	*BaseConsumer[LogIndex, LogData]
 }
 
-func NewLogConsumer(p BaseConsumerParams) *LogConsumer {
+func NewLogConsumer(p LogConsumerParams) *LogConsumer {
 	batchSize := p.Conf.Logs.BatchSize
 	bufferSize := p.Conf.Logs.BufferSize
 	maxWorkers := p.Conf.Logs.MaxWorkers
