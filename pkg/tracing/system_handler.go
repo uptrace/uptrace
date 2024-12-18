@@ -73,20 +73,37 @@ func (h *SystemHandler) selectSystems(
 	ctx context.Context, f *SpanFilter,
 ) ([]map[string]any, error) {
 	systems := make([]map[string]any, 0)
+	tmp := make([]map[string]any, 0)
 
-	if err := NewSpanIndexQuery(h.CH).
-		ColumnExpr("s.project_id AS projectId").
-		ColumnExpr("s.system").
-		ColumnExpr("sum(s.count) AS count").
-		ColumnExpr("sumIf(s.count, s.status_code = 'error') AS errorCount").
-		ColumnExpr("sum(s.count) / ? AS rate", f.TimeFilter.Duration().Minutes()).
-		ColumnExpr("sumIf(s.count, s.status_code = 'error') / sum(s.count) AS errorRate").
-		ColumnExpr("uniqCombined64(s.group_id) AS groupCount").
-		GroupExpr("project_id, system").
-		OrderExpr("system ASC").
-		Limit(1000).
-		Scan(ctx, &systems); err != nil {
-		return nil, err
+	for _, table := range []string{"spans_index", "logs_index", "events_index"} {
+		query := h.CH.NewSelect().
+			TableExpr(table).
+			ColumnExpr("s.project_id AS projectId").
+			ColumnExpr("s.system").
+			ColumnExpr("sum(s.count) AS count").
+			ColumnExpr("sum(s.count) / ? AS rate", f.TimeFilter.Duration().Minutes()).
+			ColumnExpr("uniqCombined64(s.group_id) AS groupCount").
+			GroupExpr("project_id, system").
+			OrderExpr("system ASC").
+			Limit(1000)
+
+		if table == "spans_index" {
+			query.
+				ColumnExpr("sumIf(s.count, s.status_code = 'error') AS errorCount").
+				ColumnExpr("sumIf(s.count, s.status_code = 'error') / sum(s.count) AS errorRate")
+		} else {
+			query.
+				ColumnExpr("0 AS errorCount").
+				ColumnExpr("0 AS errorRate")
+		}
+
+		if err := query.Scan(ctx, &tmp); err != nil {
+			return nil, err
+		}
+
+		systems = append(systems, tmp...)
+		clear(tmp)
+		tmp = tmp[:0]
 	}
 
 	return systems, nil
