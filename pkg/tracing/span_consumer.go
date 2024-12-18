@@ -1,18 +1,20 @@
 package tracing
 
 import (
-	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
-)
 
-type SpanConsumer struct {
-	*BaseConsumer[SpanIndex, SpanData]
-}
+	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+)
 
 type SpanConsumerParams struct {
 	fx.In
+
 	BaseConsumerParams
+}
+
+type SpanConsumer struct {
+	*BaseConsumer[SpanIndex, SpanData]
 }
 
 func NewSpanConsumer(p SpanConsumerParams) *SpanConsumer {
