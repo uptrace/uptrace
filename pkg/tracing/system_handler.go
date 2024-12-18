@@ -91,41 +91,26 @@ func (h *SystemHandler) selectSystems(
 	}
 
 	tmp := make([]map[string]any, 0)
-	if err := h.CH.NewSelect().
-		TableExpr("logs_index").
-		ColumnExpr("s.project_id AS projectId").
-		ColumnExpr("s.system").
-		ColumnExpr("sum(s.count) AS count").
-		ColumnExpr("0 AS errorCount").
-		ColumnExpr("sum(s.count) / ? AS rate", f.TimeFilter.Duration().Minutes()).
-		ColumnExpr("0 AS errorRate").
-		ColumnExpr("uniqCombined64(s.group_id) AS groupCount").
-		GroupExpr("project_id, system").
-		OrderExpr("system ASC").
-		Limit(1000).
-		Scan(ctx, &tmp); err != nil {
-		return nil, err
+	for _, table := range []string{"logs_index", "events_index"} {
+		if err := h.CH.NewSelect().
+			TableExpr(table).
+			ColumnExpr("s.project_id AS projectId").
+			ColumnExpr("s.system").
+			ColumnExpr("sum(s.count) AS count").
+			ColumnExpr("0 AS errorCount").
+			ColumnExpr("sum(s.count) / ? AS rate", f.TimeFilter.Duration().Minutes()).
+			ColumnExpr("0 AS errorRate").
+			ColumnExpr("uniqCombined64(s.group_id) AS groupCount").
+			GroupExpr("project_id, system").
+			OrderExpr("system ASC").
+			Limit(1000).
+			Scan(ctx, &tmp); err != nil {
+			return nil, err
+		}
+		systems = append(systems, tmp...)
+		clear(tmp)
+		tmp = tmp[:0]
 	}
-	systems = append(systems, tmp...)
-
-	clear(tmp)
-	tmp = tmp[:0]
-	if err := h.CH.NewSelect().
-		TableExpr("events_index").
-		ColumnExpr("s.project_id AS projectId").
-		ColumnExpr("s.system").
-		ColumnExpr("sum(s.count) AS count").
-		ColumnExpr("0 AS errorCount").
-		ColumnExpr("sum(s.count) / ? AS rate", f.TimeFilter.Duration().Minutes()).
-		ColumnExpr("0 AS errorRate").
-		ColumnExpr("uniqCombined64(s.group_id) AS groupCount").
-		GroupExpr("project_id, system").
-		OrderExpr("system ASC").
-		Limit(1000).
-		Scan(ctx, &tmp); err != nil {
-		return nil, err
-	}
-	systems = append(systems, tmp...)
 
 	return systems, nil
 }
