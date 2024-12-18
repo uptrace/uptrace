@@ -92,28 +92,6 @@ DROP TABLE IF EXISTS spans_index_buffer ?ON_CLUSTER
 
 --migration:split
 
-CREATE TABLE spans_index_buffer ?ON_CLUSTER AS spans_index
-ENGINE = Buffer(currentDatabase(), spans_index,
-  5,
-  5, 45,
-  1_000_000, 1_000_000,
-  500_000_000, 500_000_000)
-
---migration:split
-
-DROP TABLE IF EXISTS spans_data_buffer ?ON_CLUSTER
-
---migration:split
-
-CREATE TABLE spans_data_buffer ?ON_CLUSTER AS spans_data
-ENGINE = Buffer(currentDatabase(), spans_data,
-  3,
-  5, 45,
-  1_000_000, 1_000_000,
-  500_000_000, 500_000_000)
-
---migration:split
-
 CREATE TABLE datapoint_minutes ?ON_CLUSTER (
   project_id UInt32 Codec(DoubleDelta, ?CODEC),
   metric LowCardinality(String) Codec(?CODEC),
