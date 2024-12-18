@@ -15,7 +15,7 @@ const (
 )
 
 type Datapoint struct {
-	ch.CHModel `ch:"datapoint_minutes,insert:datapoint_minutes_buffer,alias:m"`
+	ch.CHModel `ch:"datapoint_minutes,alias:m"`
 
 	ProjectID   uint32
 	Metric      string     `ch:"metric,lc"`

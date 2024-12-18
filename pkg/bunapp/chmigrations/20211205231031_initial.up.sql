@@ -123,15 +123,6 @@ DROP TABLE IF EXISTS datapoint_minutes_buffer ?ON_CLUSTER
 
 --migration:split
 
-CREATE TABLE datapoint_minutes_buffer ?ON_CLUSTER AS datapoint_minutes
-ENGINE = Buffer(currentDatabase(), datapoint_minutes,
-  5,
-  5, 45,
-  1_000_000, 1_000_000,
-  500_000_000, 500_000_000)
-
---migration:split
-
 CREATE TABLE datapoint_hours ?ON_CLUSTER (
   project_id UInt32 Codec(DoubleDelta, ?CODEC),
   metric LowCardinality(String) Codec(?CODEC),
@@ -218,15 +209,6 @@ SETTINGS ttl_only_drop_parts = 1,
 --migration:split
 
 DROP TABLE IF EXISTS service_graph_edges_buffer ?ON_CLUSTER
-
---migration:split
-
-CREATE TABLE service_graph_edges_buffer ?ON_CLUSTER AS service_graph_edges
-ENGINE = Buffer(currentDatabase(), service_graph_edges,
-  2,
-  5, 45,
-  1_000_000, 1_000_000,
-  500_000_000, 500_000_000)
 
 --migration:split
 
