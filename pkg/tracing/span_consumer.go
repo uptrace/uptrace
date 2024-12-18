@@ -1,8 +1,6 @@
 package tracing
 
 import (
-	"context"
-
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -15,8 +13,6 @@ type SpanConsumer struct {
 type SpanConsumerParams struct {
 	fx.In
 	BaseConsumerParams
-
-	SGP *ServiceGraphProcessor `optional:"true"`
 }
 
 func NewSpanConsumer(p SpanConsumerParams) *SpanConsumer {
@@ -24,7 +20,7 @@ func NewSpanConsumer(p SpanConsumerParams) *SpanConsumer {
 	bufferSize := p.Conf.Spans.BufferSize
 	maxWorkers := p.Conf.Spans.MaxWorkers
 
-	transformer := &spanTransformer{sgp: p.SGP, logger: p.Logger}
+	transformer := &spanTransformer{logger: p.Logger}
 
 	c := &SpanConsumer{
 		BaseConsumer: NewBaseConsumer[SpanIndex, SpanData](
@@ -49,7 +45,6 @@ func NewSpanConsumer(p SpanConsumerParams) *SpanConsumer {
 }
 
 type spanTransformer struct {
-	sgp    *ServiceGraphProcessor
 	logger *otelzap.Logger
 }
 
@@ -59,12 +54,4 @@ func (c *spanTransformer) initIndexFromSpan(index *SpanIndex, span *Span) {
 
 func (c *spanTransformer) initDataFromSpan(data *SpanData, span *Span) {
 	initSpanData(data, span)
-}
-
-func (c *spanTransformer) postprocessIndex(ctx context.Context, index *SpanIndex) {
-	if c.sgp != nil {
-		if err := c.sgp.ProcessSpan(ctx, index); err != nil {
-			c.logger.Error("service graph failed", zap.Error(err))
-		}
-	}
 }
