@@ -88,10 +88,6 @@ SETTINGS ttl_only_drop_parts = 1,
 
 --migration:split
 
-DROP TABLE IF EXISTS spans_index_buffer ?ON_CLUSTER
-
---migration:split
-
 CREATE TABLE datapoint_minutes ?ON_CLUSTER (
   project_id UInt32 Codec(DoubleDelta, ?CODEC),
   metric LowCardinality(String) Codec(?CODEC),
@@ -116,10 +112,6 @@ ORDER BY (project_id, metric, time, attrs_hash)
 TTL toDate(time) + INTERVAL ?METRICS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
          storage_policy = ?METRICS_STORAGE
-
---migration:split
-
-DROP TABLE IF EXISTS datapoint_minutes_buffer ?ON_CLUSTER
 
 --migration:split
 
@@ -205,10 +197,6 @@ PRIMARY KEY (project_id, time, type, client_name, server_name)
 TTL toDate(time) + INTERVAL ?SPANS_TTL DELETE
 SETTINGS ttl_only_drop_parts = 1,
   storage_policy = ?SPANS_STORAGE
-
---migration:split
-
-DROP TABLE IF EXISTS service_graph_edges_buffer ?ON_CLUSTER
 
 --migration:split
 
