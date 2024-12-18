@@ -35,7 +35,6 @@ type DataRecord interface {
 type transformer[IT IndexRecord, DT DataRecord] interface {
 	initIndexFromSpan(*IT, *Span)
 	initDataFromSpan(*DT, *Span)
-	postprocessIndex(context.Context, *IT)
 }
 
 type BaseConsumer[IT IndexRecord, DT DataRecord] struct {
@@ -301,9 +300,6 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 				attribute.String("type", "inserted"),
 			),
 		)
-
-		index := p.appendIndexed(span)
-		p.transformer.postprocessIndex(ctx, index)
 
 		if span.IsEvent() || span.IsLog() {
 			_ = p.appendData(span)

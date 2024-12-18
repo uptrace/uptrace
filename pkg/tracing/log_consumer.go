@@ -1,7 +1,6 @@
 package tracing
 
 import (
-	"context"
 	"time"
 
 	"github.com/uptrace/go-clickhouse/ch"
@@ -72,8 +71,6 @@ func (c *logTransformer) initIndexFromSpan(index *LogIndex, span *Span) {
 func (c *logTransformer) initDataFromSpan(data *LogData, span *Span) {
 	initLogData(data, span)
 }
-
-func (c *logTransformer) postprocessIndex(ctx context.Context, index *LogIndex) {}
 
 func initLogIndex(index *LogIndex, span *Span) {
 	index.InitFromSpan(span)
