@@ -74,7 +74,8 @@ func (h *SystemHandler) selectSystems(
 ) ([]map[string]any, error) {
 	systems := make([]map[string]any, 0)
 
-	if err := NewSpanIndexQuery(h.CH).
+	if err := h.CH.NewSelect().
+		TableExpr("spans_index").
 		ColumnExpr("s.project_id AS projectId").
 		ColumnExpr("s.system").
 		ColumnExpr("sum(s.count) AS count").
@@ -88,6 +89,43 @@ func (h *SystemHandler) selectSystems(
 		Scan(ctx, &systems); err != nil {
 		return nil, err
 	}
+
+	tmp := make([]map[string]any, 0)
+	if err := h.CH.NewSelect().
+		TableExpr("logs_index").
+		ColumnExpr("s.project_id AS projectId").
+		ColumnExpr("s.system").
+		ColumnExpr("sum(s.count) AS count").
+		ColumnExpr("0 AS errorCount").
+		ColumnExpr("sum(s.count) / ? AS rate", f.TimeFilter.Duration().Minutes()).
+		ColumnExpr("0 AS errorRate").
+		ColumnExpr("uniqCombined64(s.group_id) AS groupCount").
+		GroupExpr("project_id, system").
+		OrderExpr("system ASC").
+		Limit(1000).
+		Scan(ctx, &tmp); err != nil {
+		return nil, err
+	}
+	systems = append(systems, tmp...)
+
+	clear(tmp)
+	tmp = tmp[:0]
+	if err := h.CH.NewSelect().
+		TableExpr("events_index").
+		ColumnExpr("s.project_id AS projectId").
+		ColumnExpr("s.system").
+		ColumnExpr("sum(s.count) AS count").
+		ColumnExpr("0 AS errorCount").
+		ColumnExpr("sum(s.count) / ? AS rate", f.TimeFilter.Duration().Minutes()).
+		ColumnExpr("0 AS errorRate").
+		ColumnExpr("uniqCombined64(s.group_id) AS groupCount").
+		GroupExpr("project_id, system").
+		OrderExpr("system ASC").
+		Limit(1000).
+		Scan(ctx, &tmp); err != nil {
+		return nil, err
+	}
+	systems = append(systems, tmp...)
 
 	return systems, nil
 }
