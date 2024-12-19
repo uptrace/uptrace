@@ -214,7 +214,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		ColumnExpr("sum(s.count) / ? AS rate", minutes).
 		ColumnExpr("toStartOfInterval(s.time, INTERVAL ? minute) AS time_", minutes).
 		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
-			if f.isEventSystem() {
+			if !isSpanSystem(f.System...) {
 				return q
 			}
 			return q.
@@ -238,7 +238,7 @@ func (h *SpanHandler) Percentiles(w http.ResponseWriter, req bunrouter.Request) 
 		ColumnExpr("groupArray(rate) AS rate").
 		ColumnExpr("groupArray(time_) AS time").
 		Apply(func(q *ch.SelectQuery) *ch.SelectQuery {
-			if f.isEventSystem() {
+			if !isSpanSystem(f.System...) {
 				return q
 			}
 			return q.ColumnExpr("groupArray(errorCount) AS errorCount").

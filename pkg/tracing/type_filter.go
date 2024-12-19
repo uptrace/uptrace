@@ -81,12 +81,7 @@ func (f *TypeFilter) systemFilter(q *ch.SelectQuery) *ch.SelectQuery {
 }
 
 func (f *TypeFilter) isEventSystem() bool {
-	for _, system := range f.System {
-		if !isEventSystem(system) {
-			return false
-		}
-	}
-	return true
+	return isEventSystem(f.System...)
 }
 
 func SplitTypeSystem(s string) (string, string) {
