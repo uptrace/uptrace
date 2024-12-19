@@ -244,27 +244,6 @@ func newFakeRoot(sample *Span) *Span {
 
 //------------------------------------------------------------------------------
 
-func isEventSystem(s string) bool {
-	if s == SystemEventsAll {
-		return true
-	}
-	if idx := strings.IndexByte(s, ':'); idx >= 0 {
-		s = s[:idx]
-	}
-	switch s {
-	case TypeEventOther,
-		TypeLog,
-		TypeEventMessage:
-		return true
-	default:
-		return false
-	}
-}
-
-func isLogSystem(s string) bool {
-	return strings.HasPrefix(s, "log:")
-}
-
 func isErrorSystem(s string) bool {
 	switch s {
 	case "log:error", "log:fatal", "log:panic":
@@ -272,4 +251,32 @@ func isErrorSystem(s string) bool {
 	default:
 		return false
 	}
+}
+
+func isSpanSystem(systems ...string) bool {
+	return !isLogSystem(systems...) && !isEventSystem(systems...)
+}
+
+func isLogSystem(systems ...string) bool {
+	if len(systems) == 0 {
+		return false
+	}
+	for _, system := range systems {
+		if !strings.HasPrefix(system, "log:") {
+			return false
+		}
+	}
+	return true
+}
+
+func isEventSystem(systems ...string) bool {
+	if len(systems) == 0 {
+		return false
+	}
+	for _, system := range systems {
+		if !strings.HasPrefix(system, "events") {
+			return false
+		}
+	}
+	return true
 }

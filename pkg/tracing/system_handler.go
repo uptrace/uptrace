@@ -3,6 +3,7 @@ package tracing
 import (
 	"context"
 	"net/http"
+	"slices"
 	"time"
 
 	"go.uber.org/fx"
@@ -13,6 +14,12 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
+)
+
+const (
+	SpansTable  = "spans_index"
+	LogsTable   = "logs_index"
+	EventsTable = "events_index"
 )
 
 type SystemHandlerParams struct {
@@ -72,12 +79,30 @@ func (h *SystemHandler) ListSystems(w http.ResponseWriter, req bunrouter.Request
 func (h *SystemHandler) selectSystems(
 	ctx context.Context, f *SpanFilter,
 ) ([]map[string]any, error) {
+	tables := []string{}
+	for _, system := range f.System {
+		if slices.Contains(tables, system) {
+			continue
+		}
+		if isSpanSystem(system) {
+			tables = append(tables, SpansTable)
+		} else if isLogSystem(system) {
+			tables = append(tables, LogsTable)
+		} else if isEventSystem(system) {
+			tables = append(tables, EventsTable)
+		}
+	}
+
+	if len(tables) == 0 {
+		tables = []string{SpansTable, LogsTable, EventsTable}
+	}
+
 	systems := make([]map[string]any, 0)
 	tmp := make([]map[string]any, 0)
 
-	for _, table := range []string{"spans_index", "logs_index", "events_index"} {
+	for _, table := range tables {
 		query := h.CH.NewSelect().
-			TableExpr(table).
+			TableExpr("? AS s", table).
 			ColumnExpr("s.project_id AS projectId").
 			ColumnExpr("s.system").
 			ColumnExpr("sum(s.count) AS count").
@@ -87,7 +112,7 @@ func (h *SystemHandler) selectSystems(
 			OrderExpr("system ASC").
 			Limit(1000)
 
-		if table == "spans_index" {
+		if table == SpansTable {
 			query.
 				ColumnExpr("sumIf(s.count, s.status_code = 'error') AS errorCount").
 				ColumnExpr("sumIf(s.count, s.status_code = 'error') / sum(s.count) AS errorRate")
