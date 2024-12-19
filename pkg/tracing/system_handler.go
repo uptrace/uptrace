@@ -77,7 +77,7 @@ func (h *SystemHandler) selectSystems(
 
 	for _, table := range []string{"spans_index", "logs_index", "events_index"} {
 		query := h.CH.NewSelect().
-			TableExpr(" AS s", ch.Name(table)).
+			TableExpr("? AS s", ch.Name(table)).
 			ColumnExpr("s.project_id AS projectId").
 			ColumnExpr("s.system").
 			ColumnExpr("sum(s.count) AS count").
