@@ -136,7 +136,16 @@ func NewSpanIndexQuery(db *ch.DB) *ch.SelectQuery {
 func BuildSpanIndexQuery(
 	db *ch.DB, f *SpanFilter, dur time.Duration,
 ) (*ch.SelectQuery, *orderedmap.OrderedMap[string, *ColumnInfo]) {
-	q := NewSpanIndexQuery(db).Apply(f.whereClause)
+	table := TableSpansIndex
+	if isLogSystem(f.System...) {
+		table = TableLogsIndex
+	} else if isEventSystem(f.System...) {
+		table = TableEventsIndex
+	}
+
+	q := db.NewSelect().
+		TableExpr("? AS s", ch.Name(table)).
+		Apply(f.whereClause)
 	return compileUQL(q, f.QueryParts, dur)
 }
 
