@@ -301,6 +301,8 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 			),
 		)
 
+		_ = p.appendIndexed(span)
+
 		if span.IsEvent() || span.IsLog() {
 			_ = p.appendData(span)
 			continue
