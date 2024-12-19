@@ -13,9 +13,9 @@ const (
 	TypeSpanMessaging  = "messaging"
 	TypeSpanFAAS       = "faas"
 
-	TypeLog          = "log"
-	TypeEventMessage = "message"
-	TypeEventOther   = "other-events"
+	TypeLog           = "log"
+	TypeEventsMessage = "events_message"
+	TypeEventsOther   = "events_other"
 )
 
 const (
@@ -28,7 +28,6 @@ const (
 	SystemLogAll   = "log:all"
 	SystemLogError = "log:error"
 	SystemLogFatal = "log:fatal"
-	SystemLogPanic = "log:panic"
 )
 
 const (
@@ -48,8 +47,8 @@ var spanTypeEnum = []string{
 	TypeSpanHTTPClient,
 
 	TypeLog,
-	TypeEventMessage,
-	TypeEventOther,
+	TypeEventsMessage,
+	TypeEventsOther,
 }
 
 var (
