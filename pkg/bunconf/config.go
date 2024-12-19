@@ -224,6 +224,16 @@ func validateConfig(conf *Config) error {
 		conf.Logs.MaxWorkers = runtime.GOMAXPROCS(0)
 	}
 
+	if conf.Events.BatchSize == 0 {
+		conf.Events.BatchSize = ScaleWithCPU(1000, 32000)
+	}
+	if conf.Events.BufferSize == 0 {
+		conf.Events.BufferSize = runtime.GOMAXPROCS(0) * conf.Logs.BatchSize
+	}
+	if conf.Events.MaxWorkers == 0 {
+		conf.Events.MaxWorkers = runtime.GOMAXPROCS(0)
+	}
+
 	if conf.Metrics.BatchSize == 0 {
 		conf.Metrics.BatchSize = ScaleWithCPU(1000, 32000)
 	}
