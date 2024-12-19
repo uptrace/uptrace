@@ -75,7 +75,7 @@ func (h *SystemHandler) selectSystems(
 	systems := make([]map[string]any, 0)
 	tmp := make([]map[string]any, 0)
 
-	for _, table := range []string{"spans_index", "logs_index", "events_index"} {
+	for _, table := range []string{TableSpansIndex, TableLogsIndex, TableEventsIndex} {
 		query := h.CH.NewSelect().
 			TableExpr("? AS s", ch.Name(table)).
 			ColumnExpr("s.project_id AS projectId").
@@ -87,7 +87,7 @@ func (h *SystemHandler) selectSystems(
 			OrderExpr("system ASC").
 			Limit(1000)
 
-		if table == "spans_index" {
+		if table == TableSpansIndex {
 			query.
 				ColumnExpr("sumIf(s.count, s.status_code = 'error') AS errorCount").
 				ColumnExpr("sumIf(s.count, s.status_code = 'error') / sum(s.count) AS errorRate")
