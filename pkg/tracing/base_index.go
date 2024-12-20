@@ -55,7 +55,7 @@ type BaseIndex struct {
 	DBSqlTable  string `ch:",lc"`
 }
 
-func (index *BaseIndex) InitFromSpan(span *Span) {
+func (index *BaseIndex) InitFromSpan(table *Table, span *Span) {
 	index.Span = span
 
 	index.DisplayName = utf8util.TruncLarge(span.DisplayName)
@@ -100,5 +100,5 @@ func (index *BaseIndex) InitFromSpan(span *Span) {
 	index.AllKeys = mapKeys(span.Attrs)
 	slices.Sort(index.AllKeys)
 
-	index.StringKeys, index.StringValues = attrKeysAndValues(span.Attrs, index.AllKeys)
+	index.StringKeys, index.StringValues = attrKeysAndValues(table, span.Attrs, index.AllKeys)
 }

@@ -72,9 +72,9 @@ const (
 )
 
 const (
-	TableSpansIndex  = "spans_index"
-	TableLogsIndex   = "logs_index"
-	TableEventsIndex = "events_index"
+	TableSpansIndexName  = "spans_index"
+	TableLogsIndexName   = "logs_index"
+	TableEventsIndexName = "events_index"
 )
 
 func init() {

@@ -13,20 +13,39 @@ import (
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 )
 
-func AppendCHColumn(b []byte, expr *tql.Column, dur time.Duration) ([]byte, error) {
-	return appendCHColumn(b, expr, dur)
+type QueryBuilder struct {
+	Filter *SpanFilter
+	Table  *Table
 }
 
-func AppendCHExpr(b []byte, expr tql.Expr, dur time.Duration) ([]byte, error) {
-	return appendCHExpr(b, expr, dur)
+func NewQueryBuilder(f *SpanFilter) *QueryBuilder {
+	table := TableSpans
+	if isLogSystem(f.System...) {
+		table = TableLogs
+	} else if isEventSystem(f.System...) {
+		table = TableEvents
+	}
+
+	return &QueryBuilder{
+		Filter: f,
+		Table:  table,
+	}
 }
 
-func AppendCHAttr(b []byte, attr tql.Attr) []byte {
-	return appendCHAttr(b, attr)
+func (qb *QueryBuilder) AppendCHColumn(b []byte, expr *tql.Column, dur time.Duration) ([]byte, error) {
+	return qb.appendCHColumn(b, expr, dur)
 }
 
-func appendCHColumn(b []byte, expr *tql.Column, dur time.Duration) ([]byte, error) {
-	b, err := appendCHExpr(b, expr.Value, dur)
+func (qb *QueryBuilder) AppendCHExpr(b []byte, expr tql.Expr, dur time.Duration) ([]byte, error) {
+	return qb.appendCHExpr(b, expr, dur)
+}
+
+func (qb *QueryBuilder) AppendCHAttr(b []byte, attr tql.Attr) []byte {
+	return qb.appendCHAttr(b, attr)
+}
+
+func (qb *QueryBuilder) appendCHColumn(b []byte, expr *tql.Column, dur time.Duration) ([]byte, error) {
+	b, err := qb.appendCHExpr(b, expr.Value, dur)
 	if err != nil {
 		return nil, err
 	}
@@ -39,14 +58,14 @@ func appendCHColumn(b []byte, expr *tql.Column, dur time.Duration) ([]byte, erro
 	return b, nil
 }
 
-func appendCHExpr(b []byte, expr tql.Expr, dur time.Duration) ([]byte, error) {
+func (qb *QueryBuilder) appendCHExpr(b []byte, expr tql.Expr, dur time.Duration) ([]byte, error) {
 	switch expr := expr.(type) {
 	case tql.Attr:
-		return appendCHAttr(b, expr), nil
+		return qb.appendCHAttr(b, expr), nil
 	case *tql.FuncCall:
-		return appendCHFuncCall(b, expr, dur)
+		return qb.appendCHFuncCall(b, expr, dur)
 	case *tql.BinaryExpr:
-		b, err := appendCHExpr(b, expr.LHS, dur)
+		b, err := qb.appendCHExpr(b, expr.LHS, dur)
 		if err != nil {
 			return nil, err
 		}
@@ -55,7 +74,7 @@ func appendCHExpr(b []byte, expr tql.Expr, dur time.Duration) ([]byte, error) {
 		b = append(b, expr.Op...)
 		b = append(b, ' ')
 
-		b, err = appendCHExpr(b, expr.RHS, dur)
+		b, err = qb.appendCHExpr(b, expr.RHS, dur)
 		if err != nil {
 			return nil, err
 		}
@@ -63,7 +82,7 @@ func appendCHExpr(b []byte, expr tql.Expr, dur time.Duration) ([]byte, error) {
 		return b, nil
 	case tql.ParenExpr:
 		b = append(b, '(')
-		b, err := appendCHExpr(b, expr, dur)
+		b, err := qb.appendCHExpr(b, expr, dur)
 		if err != nil {
 			return nil, err
 		}
@@ -77,7 +96,7 @@ func appendCHExpr(b []byte, expr tql.Expr, dur time.Duration) ([]byte, error) {
 	}
 }
 
-func appendCHAttr(b []byte, attr tql.Attr) []byte {
+func (qb *QueryBuilder) appendCHAttr(b []byte, attr tql.Attr) []byte {
 	switch attr.Name {
 	case attrkey.SpanErrorCount:
 		return chschema.AppendQuery(b, "if(s.status_code = 'error', s.count, 0)")
@@ -92,7 +111,7 @@ func appendCHAttr(b []byte, attr tql.Attr) []byte {
 			return chschema.AppendIdent(b, ident)
 		}
 
-		if IsIndexedAttr(attr.Name) {
+		if IsIndexedAttr(qb.Table, attr.Name) {
 			b = append(b, "s."...)
 			return chschema.AppendIdent(b, attr.Name)
 		}
@@ -101,8 +120,8 @@ func appendCHAttr(b []byte, attr tql.Attr) []byte {
 	}
 }
 
-func appendCHFuncCall(b []byte, fn *tql.FuncCall, dur time.Duration) ([]byte, error) {
-	tmp, err := appendCHFuncArg(nil, fn, dur)
+func (qb *QueryBuilder) appendCHFuncCall(b []byte, fn *tql.FuncCall, dur time.Duration) ([]byte, error) {
+	tmp, err := qb.appendCHFuncArg(nil, fn, dur)
 	if err != nil {
 		return nil, err
 	}
@@ -142,13 +161,13 @@ func appendCHFuncCall(b []byte, fn *tql.FuncCall, dur time.Duration) ([]byte, er
 	}
 }
 
-func appendCHFuncArg(b []byte, fn *tql.FuncCall, dur time.Duration) ([]byte, error) {
+func (qb *QueryBuilder) appendCHFuncArg(b []byte, fn *tql.FuncCall, dur time.Duration) ([]byte, error) {
 	convNum := isNumFunc(fn.Func) && !isNumExpr(fn.Arg)
 	if convNum {
 		b = append(b, "toFloat64OrDefault("...)
 	}
 
-	b, err := appendCHExpr(b, fn.Arg, dur)
+	b, err := qb.appendCHExpr(b, fn.Arg, dur)
 	if err != nil {
 		return nil, err
 	}
@@ -162,13 +181,13 @@ func appendCHFuncArg(b []byte, fn *tql.FuncCall, dur time.Duration) ([]byte, err
 
 //------------------------------------------------------------------------------
 
-func AppendWhereHaving(ast *tql.Where, dur time.Duration) ([]byte, []byte, error) {
+func (qb *QueryBuilder) AppendWhereHaving(ast *tql.Where, dur time.Duration) ([]byte, []byte, error) {
 	var where []byte
 	var having []byte
 	var firstErr error
 
 	for _, filter := range ast.Filters {
-		bb, err := AppendFilter(filter, dur)
+		bb, err := qb.AppendFilter(filter, dur)
 		if err != nil {
 			if firstErr == nil {
 				firstErr = err
@@ -186,7 +205,7 @@ func AppendWhereHaving(ast *tql.Where, dur time.Duration) ([]byte, []byte, error
 	return where, having, firstErr
 }
 
-func AppendFilter(filter tql.Filter, dur time.Duration) ([]byte, error) {
+func (qb *QueryBuilder) AppendFilter(filter tql.Filter, dur time.Duration) ([]byte, error) {
 	var b []byte
 
 	switch filter.Op {
@@ -212,7 +231,7 @@ func AppendFilter(filter tql.Filter, dur time.Duration) ([]byte, error) {
 			b = append(b, "NOT "...)
 		}
 
-		b, err := appendCHExpr(b, filter.LHS, dur)
+		b, err := qb.appendCHExpr(b, filter.LHS, dur)
 		if err != nil {
 			return nil, err
 		}
@@ -227,7 +246,7 @@ func AppendFilter(filter tql.Filter, dur time.Duration) ([]byte, error) {
 
 		values := strings.Split(filter.RHS.String(), "|")
 		b = append(b, "multiSearchAnyCaseInsensitiveUTF8("...)
-		b, err := appendCHExpr(b, filter.LHS, dur)
+		b, err := qb.appendCHExpr(b, filter.LHS, dur)
 		if err != nil {
 			return nil, err
 		}
@@ -246,7 +265,7 @@ func AppendFilter(filter tql.Filter, dur time.Duration) ([]byte, error) {
 	if convToNum {
 		b = append(b, "toFloat64OrDefault("...)
 	}
-	b, err := appendCHExpr(b, filter.LHS, dur)
+	b, err := qb.appendCHExpr(b, filter.LHS, dur)
 	if err != nil {
 		return nil, err
 	}

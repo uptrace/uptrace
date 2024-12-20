@@ -15,7 +15,7 @@ type SpanIndex struct {
 }
 
 func initSpanIndex(index *SpanIndex, span *Span) {
-	index.InitFromSpan(span)
+	index.InitFromSpan(TableSpans, span)
 }
 
 func mapKeys(m AttrMap) []string {
@@ -26,16 +26,19 @@ func mapKeys(m AttrMap) []string {
 	return keys
 }
 
-func attrKeysAndValues(m AttrMap, sortedKeys []string) ([]string, []string) {
+func attrKeysAndValues(table *Table, m AttrMap, sortedKeys []string) ([]string, []string) {
 	keys := make([]string, 0, len(m))
 	values := make([]string, 0, len(m))
 	for _, key := range sortedKeys {
-		if strings.HasPrefix(key, "_") {
+		if table.IsIndexedAttr(key) {
 			continue
 		}
-		if IsIndexedAttr(key) {
-			continue
-		}
+		//if strings.HasPrefix(key, "_") {
+		//	continue
+		//}
+		//if IsIndexedAttr(key) {
+		//	continue
+		//}
 		keys = append(keys, key)
 		values = append(values, utf8util.TruncSmall(asString(m[key])))
 	}
@@ -92,11 +95,29 @@ func IsIndexedAttr(table *Table, attrKey string) bool {
 	if strings.HasPrefix(attrKey, "_") {
 		return true
 	}
-	_, ok := table.indexedAttrSet[attrKey]
-	return ok
+	return table.IsIndexedAttr(attrKey)
 }
 
 type Table struct {
 	Name           string          // spans_index
 	IndexedColumns map[string]bool //  _kind, _duration, log_severity
 }
+
+func (t *Table) IsIndexedAttr(attrKey string) bool {
+	return t.IndexedColumns[attrKey]
+}
+
+var (
+	TableSpans = &Table{
+		Name:           TableSpansIndexName,
+		IndexedColumns: map[string]bool{},
+	}
+	TableLogs = &Table{
+		Name:           TableLogsIndexName,
+		IndexedColumns: map[string]bool{},
+	}
+	TableEvents = &Table{
+		Name:           TableEventsIndexName,
+		IndexedColumns: map[string]bool{},
+	}
+)
