@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zeebo/xxh3"
+	"github.com/cespare/xxhash/v2"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/fx"
@@ -199,7 +199,7 @@ func convertToTable(
 		}
 
 		buf = ts.Attrs.Bytes(buf[:0], nil)
-		hash := xxh3.Hash(buf)
+		hash := xxhash.Sum64(buf)
 
 		row, ok := rowMap[hash]
 		if !ok {
@@ -210,7 +210,7 @@ func convertToTable(
 			row["_query"] = ts.WhereQuery()
 
 			buf = ts.Attrs.Bytes(buf[:0], nil)
-			row["_hash"] = strconv.FormatUint(xxh3.Hash(buf), 10)
+			row["_hash"] = strconv.FormatUint(xxhash.Sum64(buf), 10)
 
 			for _, kv := range ts.Attrs {
 				if _, ok := columnMap[kv.Key]; !ok {
@@ -350,7 +350,7 @@ func (h *QueryHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) 
 		dest := &jsonTimeseries[i]
 
 		name := src.Name()
-		dest.ID = xxh3.HashString(name)
+		dest.ID = xxhash.Sum64String(name)
 		dest.Name = name
 		dest.Metric = src.MetricName
 		dest.Unit = src.Unit

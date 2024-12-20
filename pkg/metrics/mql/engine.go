@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cespare/xxhash/v2"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"github.com/uptrace/uptrace/pkg/unixtime"
-	"github.com/zeebo/xxh3"
 	"go4.org/syncutil"
 )
 
@@ -339,7 +339,7 @@ func (e *Engine) fullJoin(
 	m := e.makeTimeseriesMap(joined, grouping)
 	for _, rhsTs := range rhs {
 		e.buf = rhsTs.Attrs.Bytes(e.buf[:0], grouping)
-		hash := xxh3.Hash(e.buf)
+		hash := xxhash.Sum64(e.buf)
 
 		lhsTs, ok := m[hash]
 		if !ok {
@@ -368,7 +368,7 @@ func (e *Engine) oneToManyJoin(
 	m := e.makeTimeseriesMap(lhs, grouping)
 	for _, rhsTs := range rhs {
 		e.buf = rhsTs.Attrs.Bytes(e.buf[:0], grouping)
-		hash := xxh3.Hash(e.buf)
+		hash := xxhash.Sum64(e.buf)
 
 		var lhsValue []float64
 		if lhsTs, ok := m[hash]; ok {
@@ -406,7 +406,7 @@ func (e *Engine) makeTimeseriesMap(
 	m := make(map[uint64]*Timeseries, len(timeseries))
 	for _, ts := range timeseries {
 		e.buf = ts.Attrs.Bytes(e.buf[:0], grouping)
-		hash := xxh3.Hash(e.buf)
+		hash := xxhash.Sum64(e.buf)
 		m[hash] = ts
 	}
 	return m
@@ -711,7 +711,7 @@ func (e *Engine) callAggFunc(fn *FuncCall, op aggFunc) ([]*Timeseries, error) {
 	grouping := makeSet(fn.Grouping...)
 	for _, ts := range timeseries {
 		e.buf = ts.Attrs.Bytes(e.buf[:0], grouping)
-		hash := xxh3.Hash(e.buf)
+		hash := xxhash.Sum64(e.buf)
 
 		if _, ok := m[hash]; !ok {
 			hashes = append(hashes, hash)
