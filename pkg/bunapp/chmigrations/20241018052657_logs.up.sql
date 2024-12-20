@@ -20,6 +20,12 @@ CREATE TABLE logs_index ?ON_CLUSTER (
   string_keys Array(LowCardinality(String)) Codec(?CODEC),
   string_values Array(String) Codec(?CODEC),
 
+  deployment_environment LowCardinality(String) Codec(?CODEC),
+  service_namespace LowCardinality(String) Codec(?CODEC),
+  service_name LowCardinality(String) Codec(?CODEC),
+  service_version LowCardinality(String) Codec(?CODEC),
+  host_name LowCardinality(String) Codec(?CODEC),
+
   telemetry_sdk_name LowCardinality(String) Codec(?CODEC),
   telemetry_sdk_language LowCardinality(String) Codec(?CODEC),
   telemetry_sdk_version LowCardinality(String) Codec(?CODEC),
@@ -28,39 +34,14 @@ CREATE TABLE logs_index ?ON_CLUSTER (
   otel_library_name LowCardinality(String) Codec(?CODEC),
   otel_library_version LowCardinality(String) Codec(?CODEC),
 
-  deployment_environment LowCardinality(String) Codec(?CODEC),
-
-  service_name LowCardinality(String) Codec(?CODEC),
-  service_version LowCardinality(String) Codec(?CODEC),
-  service_namespace LowCardinality(String) Codec(?CODEC),
-  host_name LowCardinality(String) Codec(?CODEC),
-
-  client_address LowCardinality(String) Codec(?CODEC),
-  client_socket_address LowCardinality(String) Codec(?CODEC),
-  client_socket_port Int32 Codec(?CODEC),
-
-  url_scheme LowCardinality(String) Codec(?CODEC),
-  url_full String Codec(?CODEC),
-  url_path LowCardinality(String) Codec(?CODEC),
-
-  http_request_method LowCardinality(String) Codec(?CODEC),
-  http_response_status_code UInt16 Codec(?CODEC),
-  http_route LowCardinality(String) Codec(?CODEC),
-
-  rpc_method LowCardinality(String) Codec(?CODEC),
-  rpc_service LowCardinality(String) Codec(?CODEC),
-
-  db_system LowCardinality(String) Codec(?CODEC),
-  db_name LowCardinality(String) Codec(?CODEC),
-  db_statement String Codec(?CODEC),
-  db_operation LowCardinality(String) Codec(?CODEC),
-  db_sql_table LowCardinality(String) Codec(?CODEC),
-
-  log_severity LowCardinality(String) Codec(?CODEC),
-  log_message String Codec(?CODEC),
+  log_severity Enum8('' = 0, 'TRACE' = 1, 'TRACE2' = 2, 'TRACE3' = 3, 'TRACE4' = 4, 'DEBUG' = 5, 'DEBUG2' = 6, 'DEBUG3' = 7, 'DEBUG4' = 8, 'INFO' = 9, 'INFO2' = 10, 'INFO3' = 11, 'INFO4' = 12, 'WARN' = 13, 'WARN2' = 14, 'WARN3' = 15, 'WARN4' = 16, 'ERROR' = 17, 'ERROR2' = 18, 'ERROR3' = 19, 'ERROR4' = 20, 'FATAL' = 21, 'FATAL2' = 22, 'FATAL3' = 23, 'FATAL4' = 24) Codec(?CODEC),
+  log_file_path LowCardinality(String) Codec(?CODEC),
+  log_file_name LowCardinality(String) Codec(?CODEC),
+  log_iostream LowCardinality(String) Codec(?CODEC),
+  log_source LowCardinality(String) Codec(?CODEC),
 
   exception_type LowCardinality(String) Codec(?CODEC),
-  exception_message String Codec(?CODEC)
+  exception_stacktrace String Codec(?CODEC)
 )
 ENGINE = ?(REPLICATED)MergeTree()
 ORDER BY (project_id, system, group_id, time)

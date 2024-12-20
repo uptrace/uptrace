@@ -88,10 +88,15 @@ var (
 	indexedAttrSet = listToSet(indexedAttrs)
 )
 
-func IsIndexedAttr(attrKey string) bool {
+func IsIndexedAttr(table *Table, attrKey string) bool {
 	if strings.HasPrefix(attrKey, "_") {
 		return true
 	}
-	_, ok := indexedAttrSet[attrKey]
+	_, ok := table.indexedAttrSet[attrKey]
 	return ok
+}
+
+type Table struct {
+	Name           string          // spans_index
+	IndexedColumns map[string]bool //  _kind, _duration, log_severity
 }
