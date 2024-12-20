@@ -535,8 +535,8 @@ func (p *consumerWorker[IT, DT]) assignEventSystemAndGroupID(project *org.Projec
 		return
 	case otelEventMessage:
 		system := eventMessageSystem(span)
-		span.Type = TypeEventMessage
-		span.System = TypeEventMessage + ":" + system
+		span.Type = TypeEventsMessage
+		span.System = TypeEventsMessage + ":" + system
 		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 			hashSpan(project, digest, span,
 				attrkey.RPCSystem,
@@ -559,8 +559,8 @@ func (p *consumerWorker[IT, DT]) assignEventSystemAndGroupID(project *org.Projec
 		return
 	}
 
-	span.Type = TypeEventOther
-	span.System = TypeEventOther
+	span.Type = TypeEventsOther
+	span.System = TypeEventsOther
 	span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
 		hashSpan(project, digest, span)
 	})

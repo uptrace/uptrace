@@ -53,7 +53,7 @@ var spanTypeEnum = []string{
 
 var (
 	LogTypes   = []string{TypeLog}
-	EventTypes = []string{TypeEventMessage, TypeEventOther}
+	EventTypes = []string{TypeEventsMessage, TypeEventsOther}
 	SpanTypes  []string // filled in init
 )
 
