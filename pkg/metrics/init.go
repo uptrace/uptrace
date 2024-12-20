@@ -12,10 +12,8 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/run"
@@ -61,7 +59,6 @@ var Module = fx.Module("metrics",
 
 		initOTLP,
 		initTasks,
-		runSpanMetrics,
 		runDatapointProcessor,
 	),
 )
@@ -88,12 +85,6 @@ func runDatapointProcessor(group *run.Group, dp *DatapointProcessor) {
 		dp.Stop()
 		return nil
 	})
-}
-
-func runSpanMetrics(lc fx.Lifecycle, conf *bunconf.Config, pg *bun.DB, ch *ch.DB) {
-	lc.Append(fx.StartHook(func(ctx context.Context) error {
-		return initSpanMetrics(ctx, conf, pg, ch)
-	}))
 }
 
 //------------------------------------------------------------------------------
