@@ -20,6 +20,12 @@ CREATE TABLE events_index ?ON_CLUSTER (
   string_keys Array(LowCardinality(String)) Codec(?CODEC),
   string_values Array(String) Codec(?CODEC),
 
+  deployment_environment LowCardinality(String) Codec(?CODEC),
+  service_namespace LowCardinality(String) Codec(?CODEC),
+  service_name LowCardinality(String) Codec(?CODEC),
+  service_version LowCardinality(String) Codec(?CODEC),
+  host_name LowCardinality(String) Codec(?CODEC),
+
   telemetry_sdk_name LowCardinality(String) Codec(?CODEC),
   telemetry_sdk_language LowCardinality(String) Codec(?CODEC),
   telemetry_sdk_version LowCardinality(String) Codec(?CODEC),
@@ -28,39 +34,15 @@ CREATE TABLE events_index ?ON_CLUSTER (
   otel_library_name LowCardinality(String) Codec(?CODEC),
   otel_library_version LowCardinality(String) Codec(?CODEC),
 
-  deployment_environment LowCardinality(String) Codec(?CODEC),
+  process_pid Int32 Codec(T64, ?CODEC),
+  process_command LowCardinality(String) Codec(?CODEC),
+  process_runtime_name LowCardinality(String) Codec(?CODEC),
+  process_runtime_version LowCardinality(String) Codec(?CODEC),
+  process_runtime_description LowCardinality(String) Codec(?CODEC),
 
-  service_name LowCardinality(String) Codec(?CODEC),
-  service_version LowCardinality(String) Codec(?CODEC),
-  service_namespace LowCardinality(String) Codec(?CODEC),
-  host_name LowCardinality(String) Codec(?CODEC),
-
-  client_address LowCardinality(String) Codec(?CODEC),
-  client_socket_address LowCardinality(String) Codec(?CODEC),
-  client_socket_port Int32 Codec(?CODEC),
-
-  url_scheme LowCardinality(String) Codec(?CODEC),
-  url_full String Codec(?CODEC),
-  url_path LowCardinality(String) Codec(?CODEC),
-
-  http_request_method LowCardinality(String) Codec(?CODEC),
-  http_response_status_code UInt16 Codec(?CODEC),
-  http_route LowCardinality(String) Codec(?CODEC),
-
-  rpc_method LowCardinality(String) Codec(?CODEC),
-  rpc_service LowCardinality(String) Codec(?CODEC),
-
-  db_system LowCardinality(String) Codec(?CODEC),
-  db_name LowCardinality(String) Codec(?CODEC),
-  db_statement String Codec(?CODEC),
-  db_operation LowCardinality(String) Codec(?CODEC),
-  db_sql_table LowCardinality(String) Codec(?CODEC),
-
-  log_severity LowCardinality(String) Codec(?CODEC),
-  log_message String Codec(?CODEC),
-
-  exception_type LowCardinality(String) Codec(?CODEC),
-  exception_message String Codec(?CODEC)
+  messaging_message_id String Codec(?CODEC),
+  messaging_message_type LowCardinality(String) Codec(?CODEC),
+  messaging_message_payload_size_bytes Int32 Codec(T64, ?CODEC)
 )
 ENGINE = ?(REPLICATED)MergeTree()
 ORDER BY (project_id, system, group_id, time)

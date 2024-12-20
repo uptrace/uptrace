@@ -72,6 +72,8 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 		f.OrderByMixin.Reset()
 	}
 
+	qb := NewQueryBuilder(f)
+
 	q, _ := BuildSpanIndexQuery(h.CH, f, f.TimeFilter.Duration())
 	q = q.
 		ColumnExpr("project_id, trace_id, id").
@@ -81,7 +83,7 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 				f.SortDesc = true
 			}
 
-			chExpr := appendCHAttr(nil, tql.Attr{Name: f.SortBy})
+			chExpr := qb.appendCHAttr(nil, tql.Attr{Name: f.SortBy})
 			order := string(chExpr) + " " + f.SortDir()
 			return q.OrderExpr(order)
 		}).
@@ -277,6 +279,7 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 	f.Pager.Limit = 1000
 
 	groupingInterval := f.GroupingInterval()
+	qb := NewQueryBuilder(f)
 
 	subq, _ := BuildSpanIndexQuery(h.CH, f, groupingInterval)
 	subq = subq.
@@ -289,7 +292,7 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 		if err != nil {
 			return err
 		}
-		chExpr, err := appendCHColumn(nil, col, groupingInterval)
+		chExpr, err := qb.appendCHColumn(nil, col, groupingInterval)
 		if err != nil {
 			return err
 		}
