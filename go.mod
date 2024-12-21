@@ -56,7 +56,6 @@ require (
 	github.com/wk8/go-ordered-map/v2 v2.1.8
 	github.com/wneessen/go-mail v0.4.3
 	github.com/xhit/go-str2duration/v2 v2.1.0
-	github.com/zeebo/xxh3 v1.0.2
 	github.com/zyedidia/generic v1.2.1
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.48.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.48.0
@@ -144,7 +143,6 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
