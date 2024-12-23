@@ -8,12 +8,12 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/urlstruct"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/chquery"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
-	"github.com/uptrace/uptrace/pkg/urlstruct"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 

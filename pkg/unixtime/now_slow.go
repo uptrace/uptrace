@@ -4,4 +4,4 @@ package unixtime
 
 import "time"
 
-func now() int64 { return time.Now().Unixtime() }
+func now() int64 { return time.Now().UnixNano() }

@@ -3,7 +3,7 @@ package tracing
 import (
 	"time"
 
-	"github.com/uptrace/uptrace/pkg/idgen"
+	"github.com/uptrace/pkg/idgen"
 	"github.com/vmihailenco/msgpack/v5"
 )
 

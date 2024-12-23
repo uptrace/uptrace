@@ -11,8 +11,8 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
 )

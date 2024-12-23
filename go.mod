@@ -16,6 +16,10 @@ replace github.com/uptrace/pkg/msgp => ./pkg/msgp
 
 replace github.com/uptrace/pkg/unixtime => ./pkg/unixtime
 
+replace github.com/uptrace/pkg/idgen => ./pkg/idgen
+
+replace github.com/uptrace/pkg/urlstruct => ./pkg/urlstruct
+
 replace github.com/vmihailenco/taskq/v4 => ./pkg/taskq
 
 replace github.com/vmihailenco/taskq/pgq/v4 => ./pkg/taskq/pgq
@@ -50,12 +54,13 @@ require (
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.22
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.2.3
 	github.com/uptrace/pkg/clickhouse v0.0.0-00010101000000-000000000000
+	github.com/uptrace/pkg/idgen v0.0.0-00010101000000-000000000000
 	github.com/uptrace/pkg/unixtime v0.0.0-00010101000000-000000000000
 	github.com/uptrace/pkg/unsafeconv v0.0.0-00010101000000-000000000000
+	github.com/uptrace/pkg/urlstruct v0.0.0-00010101000000-000000000000
 	github.com/uptrace/uptrace-go v1.28.0
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/vmihailenco/msgpack/v5 v5.4.1
-	github.com/vmihailenco/tagparser v0.1.2
 	github.com/vmihailenco/taskq/extra/oteltaskq/v4 v4.0.0-beta.4
 	github.com/vmihailenco/taskq/pgq/v4 v4.0.0-beta.4
 	github.com/vmihailenco/taskq/v4 v4.0.0-beta.4
@@ -138,6 +143,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -171,8 +177,10 @@ require (
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.2.3 // indirect
 	github.com/uptrace/pkg/msgp v0.0.0-00010101000000-000000000000 // indirect
 	github.com/uptrace/pkg/tagparser v0.0.0-00010101000000-000000000000 // indirect
+	github.com/vmihailenco/tagparser v0.1.2 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
+	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
 	go.opentelemetry.io/collector/featuregate v1.1.0 // indirect
 	go.opentelemetry.io/collector/pdata v1.1.0 // indirect

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/uptrace/uptrace/pkg/idgen"
+	"github.com/uptrace/pkg/idgen"
 )
 
 const (
