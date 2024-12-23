@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/uptrace/pkg/urlstruct"
+	"github.com/uptrace/pkg/urlstruct"
 )
 
 func UnmarshalValues(req bunrouter.Request, filter any) error {

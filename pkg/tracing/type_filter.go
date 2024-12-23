@@ -7,9 +7,9 @@ import (
 
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/urlstruct"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
 
 type TypeFilter struct {

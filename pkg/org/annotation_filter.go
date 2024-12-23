@@ -8,8 +8,8 @@ import (
 	"github.com/codemodus/kace"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
+	"github.com/uptrace/pkg/urlstruct"
 	"github.com/uptrace/uptrace/pkg/bunapp"
-	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
 
 type AnnotationFilter struct {

@@ -14,8 +14,8 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/urlstruct"
 	"github.com/uptrace/uptrace/pkg/pgquery"
-	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
 
 type OrderByMixin struct {

@@ -9,8 +9,8 @@ import (
 	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
+	"github.com/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/bunutil"
-	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/pgquery"
 	"github.com/uptrace/uptrace/pkg/utf8util"
 )

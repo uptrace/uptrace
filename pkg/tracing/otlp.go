@@ -3,7 +3,7 @@ package tracing
 import (
 	"time"
 
-	"github.com/uptrace/uptrace/pkg/idgen"
+	"github.com/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
