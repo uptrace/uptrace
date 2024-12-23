@@ -20,8 +20,14 @@ type LogIndex struct {
 	StatusCode    string        `ch:"-"`
 	StatusMessage string        `ch:"-"`
 
-	LogSeverity   string `ch:",lc"`
-	ExceptionType string `ch:",lc"`
+	LogSeverity uint8
+	LogFilePath string `ch:",lc"`
+	LogFileName string `ch:",lc"`
+	LogIOStream string `ch:",lc"`
+	LogSource   string `ch:",lc"`
+
+	ExceptionType       string `ch:",lc"`
+	ExceptionStacktrace string
 }
 
 type LogData struct {
@@ -83,8 +89,14 @@ func (c *logTransformer) initDataFromSpan(data *LogData, span *Span) {
 func initLogIndex(index *LogIndex, span *Span) {
 	index.InitFromSpan(TableLogsIndex, span)
 
-	index.LogSeverity = span.Attrs.Text(attrkey.LogSeverity)
+	index.LogSeverity = uint8(span.Attrs.Uint64(attrkey.LogSeverity))
+	index.LogFilePath = span.Attrs.Text(attrkey.LogFilePath)
+	index.LogFileName = span.Attrs.Text(attrkey.LogFileName)
+	index.LogIOStream = span.Attrs.Text(attrkey.LogIOStream)
+	index.LogSource = span.Attrs.Text(attrkey.LogSource)
+
 	index.ExceptionType = span.Attrs.Text(attrkey.ExceptionType)
+	index.ExceptionType = span.Attrs.Text(attrkey.ExceptionStacktrace)
 }
 
 func initLogData(data *LogData, span *Span) {

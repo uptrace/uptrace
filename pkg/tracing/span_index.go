@@ -13,10 +13,50 @@ type SpanIndex struct {
 	ch.CHModel `ch:"table:spans_index,alias:s"`
 
 	BaseIndex
+
+	ClientAddress       string `ch:",lc"`
+	ClientSocketAddress string `ch:",lc"`
+	ClientSocketPort    int32
+
+	DBSystem    string   `ch:",lc"`
+	DBName      string   `ch:",lc"`
+	DBSqlTables []string `ch:"type:Array(LowCardinality(String))"`
+	DBStatement string
+	DBOperation string `ch:",lc"`
+
+	ProcessPID                int32
+	ProcessCommand            string `ch:",lc"`
+	ProcessRuntimeName        string `ch:",lc"`
+	ProcessRuntimeVersion     string `ch:",lc"`
+	ProcessRuntimeDescription string `ch:",lc"`
 }
 
 func initSpanIndex(index *SpanIndex, span *Span) {
 	index.InitFromSpan(TableSpansIndex, span)
+
+	index.ClientAddress = span.Attrs.Text(attrkey.ClientAddress)
+	index.ClientSocketAddress = span.Attrs.Text(attrkey.ClientSocketAddress)
+	index.ClientSocketPort = int32(span.Attrs.Int64(attrkey.ClientSocketPort))
+
+	index.DBSystem = span.Attrs.Text(attrkey.DBSystem)
+	index.DBName = span.Attrs.Text(attrkey.DBName)
+	index.DBStatement = span.Attrs.Text(attrkey.DBStatement)
+	index.DBOperation = span.Attrs.Text(attrkey.DBOperation)
+
+	// Populate index.DBSqlTables
+	if val, ok := span.Attrs.Get(attrkey.DBSqlTables); ok {
+		if ss, ok := val.([]string); ok {
+			for _, s := range ss {
+				index.DBSqlTables = append(index.DBSqlTables, utf8util.TruncLC(s))
+			}
+		}
+	}
+
+	index.ProcessPID = int32(span.Attrs.Int64(attrkey.ProcessPID))
+	index.ProcessCommand = span.Attrs.Text(attrkey.ProcessCommand)
+	index.ProcessRuntimeName = span.Attrs.Text(attrkey.ProcessRuntimeName)
+	index.ProcessRuntimeVersion = span.Attrs.Text(attrkey.ProcessRuntimeVersion)
+	index.ProcessRuntimeDescription = span.Attrs.Text(attrkey.ProcessRuntimeDescription)
 }
 
 func mapKeys(m AttrMap) []string {
@@ -39,39 +79,6 @@ func attrKeysAndValues(table *Table, m AttrMap, sortedKeys []string) ([]string, 
 	}
 	return keys, values
 }
-
-var (
-	commonAttrs = []string{
-		attrkey.SpanID,
-		attrkey.SpanTraceID,
-		attrkey.SpanParentID,
-		attrkey.SpanType,
-		attrkey.SpanSystem,
-		attrkey.SpanGroupID,
-		attrkey.SpanKind,
-		attrkey.SpanName,
-		attrkey.SpanEventName,
-		attrkey.SpanTime,
-		attrkey.SpanCount,
-
-		attrkey.DisplayName,
-
-		attrkey.TelemetrySDKName,
-		attrkey.TelemetrySDKLanguage,
-		attrkey.TelemetrySDKVersion,
-		attrkey.TelemetryAutoVersion,
-
-		attrkey.OtelLibraryName,
-		attrkey.OtelLibraryVersion,
-
-		attrkey.DeploymentEnvironment,
-
-		attrkey.ServiceName,
-		attrkey.ServiceVersion,
-		attrkey.ServiceNamespace,
-		attrkey.HostName,
-	}
-)
 
 func IsIndexedAttr(table *Table, attrKey string) bool {
 	if strings.HasPrefix(attrKey, "_") {
@@ -97,9 +104,37 @@ var (
 )
 
 func init() {
-	commonAttrsSet := listToSet(commonAttrs)
+	commonAttrs := listToSet([]string{
+		attrkey.SpanID,
+		attrkey.SpanTraceID,
+		attrkey.SpanParentID,
+		attrkey.SpanType,
+		attrkey.SpanSystem,
+		attrkey.SpanGroupID,
+		attrkey.SpanKind,
+		attrkey.SpanName,
+		attrkey.SpanEventName,
+		attrkey.SpanTime,
+		attrkey.SpanCount,
 
-	TableSpansIndex.IndexedColumns = maps.Clone(commonAttrsSet)
+		attrkey.DisplayName,
+
+		attrkey.DeploymentEnvironment,
+		attrkey.ServiceName,
+		attrkey.ServiceVersion,
+		attrkey.ServiceNamespace,
+		attrkey.HostName,
+
+		attrkey.TelemetrySDKName,
+		attrkey.TelemetrySDKLanguage,
+		attrkey.TelemetrySDKVersion,
+		attrkey.TelemetryAutoVersion,
+
+		attrkey.OtelLibraryName,
+		attrkey.OtelLibraryVersion,
+	})
+
+	TableSpansIndex.IndexedColumns = maps.Clone(commonAttrs)
 	maps.Copy(TableSpansIndex.IndexedColumns, listToSet([]string{
 		attrkey.SpanDuration,
 		attrkey.SpanStatusCode,
@@ -111,7 +146,7 @@ func init() {
 
 		attrkey.DBSystem,
 		attrkey.DBName,
-		attrkey.DBSqlTable,
+		attrkey.DBSqlTables,
 		attrkey.DBStatement,
 		attrkey.DBOperation,
 
@@ -122,7 +157,7 @@ func init() {
 		attrkey.ProcessRuntimeDescription,
 	}))
 
-	TableLogsIndex.IndexedColumns = maps.Clone(commonAttrsSet)
+	TableLogsIndex.IndexedColumns = maps.Clone(commonAttrs)
 	maps.Copy(TableLogsIndex.IndexedColumns, listToSet([]string{
 		attrkey.LogSeverity,
 		attrkey.LogFilePath,
@@ -134,7 +169,7 @@ func init() {
 		attrkey.ExceptionStacktrace,
 	}))
 
-	TableEventsIndex.IndexedColumns = maps.Clone(commonAttrsSet)
+	TableEventsIndex.IndexedColumns = maps.Clone(commonAttrs)
 	maps.Copy(TableEventsIndex.IndexedColumns, listToSet([]string{
 		attrkey.ProcessPID,
 		attrkey.ProcessCommand,

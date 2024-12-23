@@ -103,7 +103,7 @@ const (
 	DBName      = "db_name"
 	DBStatement = "db_statement"
 	DBOperation = "db_operation"
-	DBSqlTable  = "db_sql_table"
+	DBSqlTables = "db_sql_tables"
 
 	EnduserID    = "enduser_id"
 	EnduserRole  = "enduser_role"
