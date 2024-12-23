@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/bunlex"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
 //go:generate stringer -type=TokenID

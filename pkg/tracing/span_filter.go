@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/urlstruct"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/chquery"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
-	"github.com/uptrace/uptrace/pkg/urlstruct"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
@@ -114,7 +114,8 @@ func (f *SpanFilter) spanqlWhere(q *ch.SelectQuery) *ch.SelectQuery {
 
 		switch ast := part.AST.(type) {
 		case *tql.Where:
-			where, _, err := AppendWhereHaving(ast, f.TimeFilter.Duration())
+			qb := NewQueryBuilder(f)
+			where, _, err := qb.AppendWhereHaving(ast, f.TimeFilter.Duration())
 			if err != nil {
 				part.Error.Wrapped = err
 			}
@@ -136,21 +137,17 @@ func NewSpanIndexQuery(db *ch.DB) *ch.SelectQuery {
 func BuildSpanIndexQuery(
 	db *ch.DB, f *SpanFilter, dur time.Duration,
 ) (*ch.SelectQuery, *orderedmap.OrderedMap[string, *ColumnInfo]) {
-	table := TableSpansIndex
-	if isLogSystem(f.System...) {
-		table = TableLogsIndex
-	} else if isEventSystem(f.System...) {
-		table = TableEventsIndex
-	}
+	qb := NewQueryBuilder(f)
 
 	q := db.NewSelect().
-		TableExpr("? AS s", ch.Name(table)).
+		TableExpr("? AS s", ch.Name(qb.Table.Name)).
 		Apply(f.whereClause)
-	return compileUQL(q, f.QueryParts, dur)
+
+	return compileUQL(qb, q, f.QueryParts, dur)
 }
 
 func compileUQL(
-	q *ch.SelectQuery, parts []*tql.QueryPart, dur time.Duration,
+	qb *QueryBuilder, q *ch.SelectQuery, parts []*tql.QueryPart, dur time.Duration,
 ) (*ch.SelectQuery, *orderedmap.OrderedMap[string, *ColumnInfo]) {
 	columnMap := orderedmap.New[string, *ColumnInfo]()
 	groupingSet := make(map[string]bool)
@@ -166,7 +163,7 @@ func compileUQL(
 				col := &ast.Columns[i]
 				colName := tql.String(col.Value)
 
-				chExpr, err := appendCHColumn(nil, col, dur)
+				chExpr, err := qb.AppendCHColumn(nil, col, dur)
 				if err != nil {
 					part.Error.Wrapped = err
 					continue
@@ -205,7 +202,7 @@ func compileUQL(
 					continue
 				}
 
-				chExpr, err := appendCHColumn(nil, col, dur)
+				chExpr, err := qb.AppendCHColumn(nil, col, dur)
 				if err != nil {
 					part.Error.Wrapped = err
 					continue
@@ -219,7 +216,7 @@ func compileUQL(
 				})
 			}
 		case *tql.Where:
-			where, having, err := AppendWhereHaving(ast, dur)
+			where, having, err := qb.AppendWhereHaving(ast, dur)
 			if err != nil {
 				part.Error.Wrapped = err
 			}
@@ -246,7 +243,7 @@ func compileUQL(
 				continue
 			}
 
-			chExpr, err := appendCHColumn(nil, col, dur)
+			chExpr, err := qb.AppendCHColumn(nil, col, dur)
 			if err != nil {
 				continue
 			}

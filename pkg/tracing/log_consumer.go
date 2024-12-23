@@ -6,8 +6,8 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 
-	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 )
 
@@ -20,8 +20,14 @@ type LogIndex struct {
 	StatusCode    string        `ch:"-"`
 	StatusMessage string        `ch:"-"`
 
-	LogSeverity   string `ch:",lc"`
-	ExceptionType string `ch:",lc"`
+	LogSeverity string `ch:"type:Enum8(log_severity)"`
+	LogFilePath string `ch:",lc"`
+	LogFileName string `ch:",lc"`
+	LogIOStream string `ch:"log_iostream,lc"`
+	LogSource   string `ch:",lc"`
+
+	ExceptionType       string `ch:",lc"`
+	ExceptionStacktrace string
 }
 
 type LogData struct {
@@ -81,10 +87,16 @@ func (c *logTransformer) initDataFromSpan(data *LogData, span *Span) {
 }
 
 func initLogIndex(index *LogIndex, span *Span) {
-	index.InitFromSpan(span)
+	index.InitFromSpan(TableLogsIndex, span)
 
 	index.LogSeverity = span.Attrs.Text(attrkey.LogSeverity)
+	index.LogFilePath = span.Attrs.Text(attrkey.LogFilePath)
+	index.LogFileName = span.Attrs.Text(attrkey.LogFileName)
+	index.LogIOStream = span.Attrs.Text(attrkey.LogIOStream)
+	index.LogSource = span.Attrs.Text(attrkey.LogSource)
+
 	index.ExceptionType = span.Attrs.Text(attrkey.ExceptionType)
+	index.ExceptionType = span.Attrs.Text(attrkey.ExceptionStacktrace)
 }
 
 func initLogData(data *LogData, span *Span) {

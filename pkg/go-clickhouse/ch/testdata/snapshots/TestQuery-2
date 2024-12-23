@@ -1,1 +1,0 @@
-SELECT "model"."id", "model"."string", "model"."bytes" FROM "models" AS "model"

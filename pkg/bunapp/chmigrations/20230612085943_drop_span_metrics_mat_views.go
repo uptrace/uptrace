@@ -3,7 +3,7 @@ package chmigrations
 import (
 	"context"
 
-	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 )
 

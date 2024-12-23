@@ -9,10 +9,10 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
 )
@@ -174,7 +174,7 @@ func alertAttrs(project *org.Project, span *tracing.Span) map[string]string {
 			attrkey.DBSystem,
 			attrkey.DBName,
 			attrkey.DBOperation,
-			attrkey.DBSqlTable)
+			attrkey.DBSqlTables)
 	case tracing.TypeSpanRPC:
 		addSpanAttrs(attrs, span, attrkey.RPCSystem, attrkey.RPCService, attrkey.RPCMethod)
 	case tracing.TypeSpanMessaging:

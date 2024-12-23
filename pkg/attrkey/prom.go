@@ -1,6 +1,6 @@
 package attrkey
 
-import "github.com/uptrace/uptrace/pkg/unsafeconv"
+import "github.com/uptrace/pkg/unsafeconv"
 
 var promTable = [256]uint8{
 	// digit+alpha

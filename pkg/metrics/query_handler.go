@@ -20,9 +20,10 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/pkg/clickhouse/bfloat16"
+	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/unixtime"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/bunutil"
@@ -31,7 +32,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/unixtime"
 )
 
 type QueryHandlerParams struct {
@@ -103,8 +103,8 @@ func (h *QueryHandler) Table(w http.ResponseWriter, req bunrouter.Request) error
 	})
 	engine := mql.NewEngine(
 		storage,
-		unixtime.ToSeconds(f.TimeGTE),
-		unixtime.ToSeconds(f.TimeLT),
+		unixtime.ToNano(f.TimeGTE),
+		unixtime.ToNano(f.TimeLT),
 		groupingInterval,
 	)
 	result := engine.Run(f.allParts)
@@ -399,8 +399,8 @@ func (h *QueryHandler) selectTimeseries(
 	})
 	engine := mql.NewEngine(
 		storage,
-		unixtime.ToSeconds(f.TimeGTE),
-		unixtime.ToSeconds(f.TimeLT),
+		unixtime.ToNano(f.TimeGTE),
+		unixtime.ToNano(f.TimeLT),
 		groupingInterval,
 	)
 	result := engine.Run(f.allParts)
@@ -443,8 +443,8 @@ func (h *QueryHandler) Gauge(w http.ResponseWriter, req bunrouter.Request) error
 	})
 	engine := mql.NewEngine(
 		storage,
-		unixtime.ToSeconds(f.TimeGTE),
-		unixtime.ToSeconds(f.TimeLT),
+		unixtime.ToNano(f.TimeGTE),
+		unixtime.ToNano(f.TimeLT),
 		groupingInterval,
 	)
 	result := engine.Run(f.allParts)

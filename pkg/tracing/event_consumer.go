@@ -3,8 +3,8 @@ package tracing
 import (
 	"time"
 
-	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"go.uber.org/zap"
 )
@@ -18,8 +18,15 @@ type EventIndex struct {
 	StatusCode    string        `ch:"-"`
 	StatusMessage string        `ch:"-"`
 
-	LogSeverity   string `ch:",lc"`
-	ExceptionType string `ch:",lc"`
+	ProcessPID                int32
+	ProcessCommand            string `ch:",lc"`
+	ProcessRuntimeName        string `ch:",lc"`
+	ProcessRuntimeVersion     string `ch:",lc"`
+	ProcessRuntimeDescription string `ch:",lc"`
+
+	MessagingMessageID               string
+	MessagingMessageType             string `ch:",lc"`
+	MessagingMessagePayloadSizeBytes int32
 }
 
 type EventData struct {
@@ -73,10 +80,17 @@ func (c *eventTransformer) initDataFromSpan(data *EventData, span *Span) {
 }
 
 func initEventIndex(index *EventIndex, span *Span) {
-	index.InitFromSpan(span)
+	index.InitFromSpan(TableEventsIndex, span)
 
-	index.LogSeverity = span.Attrs.Text(attrkey.LogSeverity)
-	index.ExceptionType = span.Attrs.Text(attrkey.ExceptionType)
+	index.ProcessPID = int32(span.Attrs.Int64(attrkey.ProcessPID))
+	index.ProcessCommand = span.Attrs.Text(attrkey.ProcessCommand)
+	index.ProcessRuntimeName = span.Attrs.Text(attrkey.ProcessRuntimeName)
+	index.ProcessRuntimeVersion = span.Attrs.Text(attrkey.ProcessRuntimeVersion)
+	index.ProcessRuntimeDescription = span.Attrs.Text(attrkey.ProcessRuntimeDescription)
+
+	index.MessagingMessageID = span.Attrs.Text(attrkey.MessagingMessageID)
+	index.MessagingMessageType = span.Attrs.Text(attrkey.MessagingMessageType)
+	index.MessagingMessagePayloadSizeBytes = int32(span.Attrs.Int64(attrkey.MessagingMessagePayloadSizeBytes))
 }
 
 func initEventData(data *EventData, span *Span) {

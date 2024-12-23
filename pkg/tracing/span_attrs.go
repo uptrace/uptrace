@@ -12,15 +12,15 @@ import (
 	"github.com/cespare/xxhash/v2"
 	ua "github.com/mileusna/useragent"
 	"github.com/segmentio/encoding/json"
+	"github.com/uptrace/pkg/idgen"
+	"github.com/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/logparser"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/otlpconv"
 	"github.com/uptrace/uptrace/pkg/sqlparser"
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
 	"github.com/uptrace/uptrace/pkg/tracing/norm"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/utf8util"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )
@@ -372,7 +372,7 @@ func (p *consumerWorker[IT, DT]) assignSpanSystemAndGroupID(project *org.Project
 		stmt, _ := span.Attrs[attrkey.DBStatement].(string)
 
 		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
-			hashSpan(project, digest, span, attrkey.DBName, attrkey.DBOperation, attrkey.DBSqlTable)
+			hashSpan(project, digest, span, attrkey.DBName, attrkey.DBOperation, attrkey.DBSqlTables)
 			if stmt != "" {
 				hashDBStmt(digest, stmt)
 			}

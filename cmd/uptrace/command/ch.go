@@ -10,10 +10,10 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 
-	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/go-clickhouse/ch/chschema"
-	"github.com/uptrace/go-clickhouse/chmigrate"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/clickhouse/ch/chschema"
+	"github.com/uptrace/pkg/clickhouse/chmigrate"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 )
 

@@ -2,12 +2,12 @@ package pgmigrations
 
 import (
 	"context"
+	"time"
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/unixtime"
 )
 
 type MetricMonitor struct {
@@ -23,8 +23,8 @@ type MetricMonitorParams struct {
 
 	// Common params
 
-	CheckNumPoint int             `json:"checkNumPoint"`
-	TimeOffset    unixtime.Millis `json:"timeOffset"`
+	CheckNumPoint int           `json:"checkNumPoint"`
+	TimeOffset    time.Duration `json:"timeOffset"`
 
 	MinValue bunutil.NullFloat64 `json:"minValue"`
 	MaxValue bunutil.NullFloat64 `json:"maxValue"`

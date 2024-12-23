@@ -3,8 +3,8 @@ package mql
 import (
 	"time"
 
+	"github.com/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
 type NamedExpr struct {

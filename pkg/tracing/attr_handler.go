@@ -11,8 +11,8 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/httputil"
@@ -73,7 +73,13 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 	if err != nil {
 		return err
 	}
-	attrKeys = append(attrKeys, spanKeys...)
+
+	qb := NewQueryBuilder(f)
+	for _, key := range spanKeys {
+		if _, ok := qb.Table.IndexedColumns[key]; ok {
+			attrKeys = append(attrKeys, key)
+		}
+	}
 
 	pinnedAttrMap, err := org.SelectPinnedFacetMap(ctx, h.PG, user.ID)
 	if err != nil {
@@ -165,8 +171,12 @@ func SelectAttrValues(
 		}
 	}
 
+	qb := NewQueryBuilder(f)
 	q, _ := BuildSpanIndexQuery(chdb, f, 0)
-	chExpr := appendCHAttr(nil, attr)
+	chExpr, err := qb.AppendCHAttr(nil, attr)
+	if err != nil {
+		return nil, false, err
+	}
 
 	q = q.ColumnExpr("? AS value", ch.Safe(chExpr)).
 		GroupExpr("value").

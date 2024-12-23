@@ -6,18 +6,12 @@ import (
 )
 
 type Pager struct {
-	Limit  int
-	Offset int
-
-	// Default is 100.
+	Limit        int
+	Offset       int
 	DefaultLimit int `urlstruct:"-"`
-	// Default is 1000.
-	MaxLimit int `urlstruct:"-"`
-
-	// Default max offset is 1000000.
-	MaxOffset int `urlstruct:"-"`
-
-	stickyErr error
+	MaxLimit     int `urlstruct:"-"`
+	MaxOffset    int `urlstruct:"-"`
+	stickyErr    error
 }
 
 func NewPager(values url.Values) *Pager {
@@ -32,41 +26,33 @@ func (p *Pager) UnmarshalValues(ctx context.Context, values url.Values) error {
 	if values == nil {
 		return nil
 	}
-
 	vs := Values(values)
-
 	limit, err := vs.Int("limit")
 	if err != nil {
 		return err
 	}
 	p.Limit = limit
-
 	page, err := vs.Int("page")
 	if err != nil {
 		return err
 	}
 	p.SetPage(page)
-
 	return nil
 }
-
 func (p *Pager) maxLimit() int {
 	if p.MaxLimit > 0 {
 		return p.MaxLimit
 	}
 	return 1000
 }
-
 func (p *Pager) maxOffset() int {
 	if p.MaxOffset > 0 {
 		return p.MaxOffset
 	}
 	return 1000000
 }
-
 func (p *Pager) GetLimit() int {
 	const defaultLimit = 100
-
 	if p == nil {
 		return defaultLimit
 	}
@@ -84,7 +70,6 @@ func (p *Pager) GetLimit() int {
 	}
 	return p.Limit
 }
-
 func (p *Pager) GetOffset() int {
 	if p == nil {
 		return 0
@@ -94,14 +79,10 @@ func (p *Pager) GetOffset() int {
 	}
 	return p.Offset
 }
-
 func (p *Pager) SetPage(page int) {
 	if page < 1 {
 		page = 1
 	}
 	p.Offset = (page - 1) * p.GetLimit()
 }
-
-func (p *Pager) GetPage() int {
-	return (p.GetOffset() / p.GetLimit()) + 1
-}
+func (p *Pager) GetPage() int { return (p.GetOffset() / p.GetLimit()) + 1 }

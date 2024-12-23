@@ -81,12 +81,12 @@ ON grid_items (dash_id);
 --bun:split
 
 alter table dashboards
-add column min_interval float8 NOT NULL DEFAULT 0;
+add column min_interval int8 NOT NULL DEFAULT 0;
 
 --bun:split
 
 alter table dashboards
-add column time_offset float8 NOT NULL DEFAULT 0;
+add column time_offset int8 NOT NULL DEFAULT 0;
 
 --bun:split
 

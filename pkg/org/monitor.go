@@ -10,7 +10,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/madalarm"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
-	"github.com/uptrace/uptrace/pkg/unixtime"
 )
 
 type Monitor interface {
@@ -87,8 +86,8 @@ type MetricMonitorParams struct {
 	Column     string            `json:"column"`
 	ColumnUnit string            `json:"columnUnit"`
 
-	CheckNumPoint int             `json:"checkNumPoint"`
-	TimeOffset    unixtime.Millis `json:"timeOffset"`
+	CheckNumPoint int           `json:"checkNumPoint"`
+	TimeOffset    time.Duration `json:"timeOffset"`
 
 	MinAllowedValue bunutil.NullFloat64 `json:"minAllowedValue"`
 	MaxAllowedValue bunutil.NullFloat64 `json:"maxAllowedValue"`
@@ -112,7 +111,7 @@ func (m *MetricMonitor) Validate() error {
 	if m.Params.Column == "" {
 		return errors.New("column can't be empty")
 	}
-	if m.Params.TimeOffset > 300*unixtime.MillisOf(time.Minute) {
+	if m.Params.TimeOffset > 300*time.Minute {
 		return errors.New("time offset can't can't be larger 300 minutes")
 	}
 

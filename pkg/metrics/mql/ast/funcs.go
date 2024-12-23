@@ -1,8 +1,8 @@
 package ast
 
 import (
-	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/go-clickhouse/ch/chschema"
+	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/clickhouse/ch/chschema"
 )
 
 var groupingFuncs = make(map[string]*Func)

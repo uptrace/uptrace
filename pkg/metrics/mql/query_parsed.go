@@ -5,8 +5,8 @@ import (
 
 	"github.com/segmentio/encoding/json"
 
+	"github.com/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
 const querySeparator = " | "

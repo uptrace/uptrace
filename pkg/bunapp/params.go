@@ -3,7 +3,7 @@ package bunapp
 import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"go.uber.org/fx"
 )

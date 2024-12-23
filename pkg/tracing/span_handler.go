@@ -15,13 +15,14 @@ import (
 	"go4.org/syncutil"
 
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/idgen"
+	"github.com/uptrace/pkg/unixtime"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/httputil"
-	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
 )
@@ -72,6 +73,8 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 		f.OrderByMixin.Reset()
 	}
 
+	qb := NewQueryBuilder(f)
+
 	q, _ := BuildSpanIndexQuery(h.CH, f, f.TimeFilter.Duration())
 	q = q.
 		ColumnExpr("project_id, trace_id, id").
@@ -81,7 +84,8 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 				f.SortDesc = true
 			}
 
-			chExpr := appendCHAttr(nil, tql.Attr{Name: f.SortBy})
+			// FIXME(yupi) not sure what to do with the error here
+			chExpr, _ := qb.AppendCHAttr(nil, tql.Attr{Name: f.SortBy})
 			order := string(chExpr) + " " + f.SortDir()
 			return q.OrderExpr(order)
 		}).
@@ -277,6 +281,7 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 	f.Pager.Limit = 1000
 
 	groupingInterval := f.GroupingInterval()
+	qb := NewQueryBuilder(f)
 
 	subq, _ := BuildSpanIndexQuery(h.CH, f, groupingInterval)
 	subq = subq.
@@ -289,7 +294,7 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 		if err != nil {
 			return err
 		}
-		chExpr, err := appendCHColumn(nil, col, groupingInterval)
+		chExpr, err := qb.AppendCHColumn(nil, col, groupingInterval)
 		if err != nil {
 			return err
 		}
@@ -386,14 +391,14 @@ func (h *SpanHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	var timeCol []time.Time
+	var timeCol []unixtime.Nano
 
 	digest := xxhash.New()
 	for _, group := range groups {
 		bunutil.FillHoles(group, f.TimeGTE, f.TimeLT, groupingInterval)
 
 		if timeCol == nil {
-			timeCol = group["_time"].([]time.Time)
+			timeCol = group["_time"].([]unixtime.Nano)
 		}
 		delete(group, "_time")
 
