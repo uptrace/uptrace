@@ -14,6 +14,7 @@ const (
 	SpanTraceID  = "_trace_id"
 
 	SpanName      = "_name"
+	SpanType      = "_type"
 	SpanEventName = "_event_name"
 	SpanIsEvent   = "_is_event"
 

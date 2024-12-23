@@ -42,6 +42,18 @@ func attrKeysAndValues(table *Table, m AttrMap, sortedKeys []string) ([]string, 
 
 var (
 	commonAttrs = []string{
+		attrkey.SpanID,
+		attrkey.SpanTraceID,
+		attrkey.SpanParentID,
+		attrkey.SpanType,
+		attrkey.SpanSystem,
+		attrkey.SpanGroupID,
+		attrkey.SpanKind,
+		attrkey.SpanName,
+		attrkey.SpanEventName,
+		attrkey.SpanTime,
+		attrkey.SpanCount,
+
 		attrkey.DisplayName,
 
 		attrkey.TelemetrySDKName,
@@ -89,6 +101,10 @@ func init() {
 
 	TableSpansIndex.IndexedColumns = maps.Clone(commonAttrsSet)
 	maps.Copy(TableSpansIndex.IndexedColumns, listToSet([]string{
+		attrkey.SpanDuration,
+		attrkey.SpanStatusCode,
+		attrkey.SpanStatusMessage,
+
 		attrkey.ClientAddress,
 		attrkey.ClientSocketAddress,
 		attrkey.ClientSocketPort,
