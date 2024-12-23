@@ -23,8 +23,8 @@ import (
 
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
-	"github.com/uptrace/go-clickhouse/ch/bfloat16"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/pkg/clickhouse/bfloat16"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/org"

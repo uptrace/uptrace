@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/uptrace/pkg/unixtime"
+	"github.com/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
-	"github.com/uptrace/uptrace/pkg/unixtime"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
 type Timeseries struct {
@@ -24,7 +24,7 @@ type Timeseries struct {
 	Annotations map[string]any
 
 	Value []float64
-	Time  []unixtime.Seconds
+	Time  []unixtime.Nano
 }
 
 func (ts *Timeseries) DeepClone() *Timeseries {

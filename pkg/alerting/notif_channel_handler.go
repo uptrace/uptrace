@@ -19,13 +19,13 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/bunlex"
 	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
 type NotifChannelHandlerParams struct {

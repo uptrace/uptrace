@@ -28,10 +28,10 @@ import (
 	"github.com/uptrace/bun/driver/pgdriver"
 	"github.com/uptrace/bun/extra/bundebug"
 	"github.com/uptrace/bun/extra/bunotel"
-	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/go-clickhouse/chdebug"
-	"github.com/uptrace/go-clickhouse/chotel"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/clickhouse/chdebug"
+	"github.com/uptrace/pkg/clickhouse/chotel"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/run"
 )
@@ -59,9 +59,6 @@ func New(configPath string, opts ...fx.Option) (*fx.App, error) {
 	}
 	options = append(options, opts...)
 	options = append(options, fx.Invoke(runGroup))
-	if !conf.Debug {
-		options = append(options, fx.NopLogger)
-	}
 
 	app := fx.New(options...)
 
@@ -261,7 +258,6 @@ func newCH(conf *bunconf.Config) *ch.DB {
 
 	opts := []ch.Option{
 		ch.WithQuerySettings(settings),
-		ch.WithAutoCreateDatabase(true),
 	}
 
 	if chConf.DSN != "" {

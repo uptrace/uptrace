@@ -3,7 +3,7 @@ package bunutil
 import (
 	"time"
 
-	"github.com/uptrace/uptrace/pkg/unixtime"
+	"github.com/uptrace/pkg/unixtime"
 	"golang.org/x/exp/constraints"
 )
 
@@ -78,7 +78,7 @@ func Fill[T any](
 
 func FillUnixNum[T constraints.Integer | constraints.Float](
 	values []T,
-	timeCol []unixtime.Seconds,
+	timeCol []unixtime.Nano,
 	value float64,
 	gte, lt time.Time,
 	interval time.Duration,
@@ -123,18 +123,18 @@ func FillTime(
 }
 
 func FillUnixTime(
-	timeCol []unixtime.Seconds,
+	timeCol []unixtime.Nano,
 	gte, lt time.Time,
 	interval time.Duration,
-) []unixtime.Seconds {
+) []unixtime.Nano {
 	numItem := numItem(gte, lt, interval)
 	if len(timeCol) == numItem {
 		return timeCol
 	}
 
-	filled := make([]unixtime.Seconds, numItem)
+	filled := make([]unixtime.Nano, numItem)
 	for i := range filled {
-		filled[i] = unixtime.Seconds(gte.Add(time.Duration(i) * interval).Unix())
+		filled[i] = unixtime.Nano(gte.Add(time.Duration(i) * interval).Unix())
 	}
 	return filled
 }

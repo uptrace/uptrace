@@ -1,1 +1,0 @@
-CREATE TABLE IF NOT EXISTS "my-table_dist" ON CLUSTER "my-cluster" AS "my-table" Engine = Distributed("my-cluster", currentDatabase(), "my-table", rand())

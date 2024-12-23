@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/bunconv"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"github.com/xhit/go-str2duration/v2"
 )
 

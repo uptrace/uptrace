@@ -10,17 +10,17 @@ import (
 	"time"
 
 	"github.com/cespare/xxhash/v2"
+	"github.com/uptrace/pkg/unixtime"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
-	"github.com/uptrace/uptrace/pkg/unixtime"
 	"go4.org/syncutil"
 )
 
 type Engine struct {
 	storage Storage
 
-	timeGTE  unixtime.Seconds
-	timeLT   unixtime.Seconds
+	timeGTE  unixtime.Nano
+	timeLT   unixtime.Nano
 	duration time.Duration
 	interval time.Duration
 
@@ -35,7 +35,7 @@ type Storage interface {
 
 func NewEngine(
 	storage Storage,
-	timeGTE, timeLT unixtime.Seconds,
+	timeGTE, timeLT unixtime.Nano,
 	interval time.Duration,
 ) *Engine {
 	return &Engine{
@@ -117,7 +117,7 @@ func (e *Engine) Run(parts []*QueryPart) *Result {
 			for _, ts := range timeseries {
 				offset := int64(expr.Offset.Seconds())
 				for i, t := range ts.Time {
-					ts.Time[i] = unixtime.Seconds(int64(t) + offset)
+					ts.Time[i] = unixtime.Nano(int64(t) + offset)
 				}
 			}
 		}()
@@ -756,11 +756,11 @@ func (e *Engine) makeTimeseries() *Timeseries {
 	period := float64(e.timeLT - e.timeGTE)
 	size := int(period/e.interval.Seconds()) + 1
 	ts.Value = make([]float64, size)
-	ts.Time = make([]unixtime.Seconds, size)
+	ts.Time = make([]unixtime.Nano, size)
 
-	interval := unixtime.Seconds(e.interval.Seconds())
+	interval := unixtime.Nano(e.interval.Seconds())
 	for i := range ts.Time {
-		ts.Time[i] = e.timeGTE + unixtime.Seconds(i)*interval
+		ts.Time[i] = e.timeGTE + unixtime.Nano(i)*interval
 	}
 
 	return &ts
@@ -778,9 +778,9 @@ func setTimeseriesName(timeseries []*Timeseries, metricName, nameTemplate string
 
 func pruneTimeseries(
 	valueSlice []float64,
-	timeSlice []unixtime.Seconds,
-	gte unixtime.Seconds,
-) ([]float64, []unixtime.Seconds) {
+	timeSlice []unixtime.Nano,
+	gte unixtime.Nano,
+) ([]float64, []unixtime.Nano) {
 	for i, t := range timeSlice {
 		if t >= gte {
 			return valueSlice[i:], timeSlice[i:]

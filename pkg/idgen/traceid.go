@@ -7,13 +7,15 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"sync"
 	"time"
 
+	"github.com/segmentio/encoding/json"
+
 	"github.com/uptrace/bun/schema"
+	"github.com/uptrace/pkg/clickhouse/ch/chschema"
 )
 
 const (
@@ -131,6 +133,8 @@ func (u *TraceID) Scan(src any) error {
 		uuid, err = ParseTraceIDBytes(src)
 	case string:
 		uuid, err = ParseTraceID(src)
+	case chschema.UUID:
+		uuid = TraceID(src)
 	}
 	if err != nil {
 		return err

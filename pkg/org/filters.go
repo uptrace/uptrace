@@ -13,9 +13,8 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/pgquery"
-	"github.com/uptrace/uptrace/pkg/unixtime"
 	"github.com/uptrace/uptrace/pkg/urlstruct"
 )
 
@@ -70,10 +69,10 @@ func (f OrderByMixin) SortDir() string {
 type TimeFilter struct {
 	TimeGTE    time.Time
 	TimeLT     time.Time
-	TimeOffset unixtime.Millis
+	TimeOffset time.Duration
 
-	Interval    unixtime.Millis
-	MinInterval unixtime.Millis
+	Interval    time.Duration
+	MinInterval time.Duration
 }
 
 var _ urlstruct.ValuesUnmarshaler = (*TimeFilter)(nil)
@@ -90,9 +89,8 @@ func (f *TimeFilter) UnmarshalValues(ctx context.Context, values url.Values) err
 	}
 
 	if f.TimeOffset != 0 {
-		offset := f.TimeOffset.Duration()
-		f.TimeGTE = f.TimeGTE.Add(-offset)
-		f.TimeLT = f.TimeLT.Add(-offset)
+		f.TimeGTE = f.TimeGTE.Add(-f.TimeOffset)
+		f.TimeLT = f.TimeLT.Add(-f.TimeOffset)
 	}
 
 	return nil
@@ -109,15 +107,14 @@ func (f *TimeFilter) Duration() time.Duration {
 func (f *TimeFilter) GroupingInterval() time.Duration {
 	if f.Interval > 0 {
 		dur := f.Duration()
-		interval := f.Interval.Duration()
-		if numPoint := dur / interval; numPoint < 1000 {
-			return interval
+		if numPoint := dur / f.Interval; numPoint < 1000 {
+			return f.Interval
 		}
 	}
 
 	interval := GroupingIntervalLarge(f.TimeGTE, f.TimeLT)
-	if minInterval := f.MinInterval.Duration(); minInterval != 0 && interval < minInterval {
-		interval = minInterval
+	if f.MinInterval != 0 && interval < f.MinInterval {
+		interval = f.MinInterval
 	}
 	f.Round(interval)
 	return interval

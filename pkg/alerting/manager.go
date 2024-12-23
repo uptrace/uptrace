@@ -13,15 +13,15 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/unixtime"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/madalarm"
 	"github.com/uptrace/uptrace/pkg/metrics"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/run"
-	"github.com/uptrace/uptrace/pkg/unixtime"
 )
 
 const noDataMinutesThreshold = 60
@@ -239,8 +239,8 @@ func (m *Manager) selectTimeseries(
 	})
 	engine := mql.NewEngine(
 		storage,
-		unixtime.ToSeconds(timeLT.Add(-noDataMinutesThreshold*time.Minute)),
-		unixtime.ToSeconds(timeLT),
+		unixtime.ToNano(timeLT.Add(-noDataMinutesThreshold*time.Minute)),
+		unixtime.ToNano(timeLT),
 		time.Minute,
 	)
 

@@ -12,6 +12,7 @@ import (
 	"github.com/cespare/xxhash/v2"
 	ua "github.com/mileusna/useragent"
 	"github.com/segmentio/encoding/json"
+	"github.com/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/logparser"
@@ -20,7 +21,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/sqlparser"
 	"github.com/uptrace/uptrace/pkg/tracing/anyconv"
 	"github.com/uptrace/uptrace/pkg/tracing/norm"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/utf8util"
 	tracepb "go.opentelemetry.io/proto/otlp/trace/v1"
 )

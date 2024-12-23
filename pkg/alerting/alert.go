@@ -12,14 +12,13 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/madalarm"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/unixtime"
 )
 
 var (
@@ -138,7 +137,7 @@ func (a *MetricAlert) LongSummary(sep string) string {
 
 	currentValue := bunconv.Format(a.Event.Params.CurrentValue, unit)
 	currentValueVerbose := bunconv.FormatFloatVerbose(a.Event.Params.CurrentValue)
-	groupingInterval := a.Event.Params.Monitor.GroupingInterval.Duration()
+	groupingInterval := a.Event.Params.Monitor.GroupingInterval
 	duration := str2duration.String(time.Duration(a.Event.Params.NumPointFiring) * groupingInterval)
 	msg = append(msg, fmt.Sprintf(
 		"The actual value of %s (%s) has been %s than this range for at least %s.",
@@ -188,7 +187,7 @@ type MetricAlertParams struct {
 		Query            string            `json:"query"`
 		Column           string            `json:"column"`
 		ColumnUnit       string            `json:"columnUnit"`
-		GroupingInterval unixtime.Millis   `json:"groupingInterval"`
+		GroupingInterval time.Duration     `json:"groupingInterval"`
 	} `json:"monitor"`
 }
 
