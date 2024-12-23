@@ -18,6 +18,7 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/pkg/idgen"
+	"github.com/uptrace/pkg/unixtime"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunutil"
@@ -389,14 +390,14 @@ func (h *SpanHandler) Timeseries(w http.ResponseWriter, req bunrouter.Request) e
 		return err
 	}
 
-	var timeCol []time.Time
+	var timeCol []unixtime.Nano
 
 	digest := xxhash.New()
 	for _, group := range groups {
 		bunutil.FillHoles(group, f.TimeGTE, f.TimeLT, groupingInterval)
 
 		if timeCol == nil {
-			timeCol = group["_time"].([]time.Time)
+			timeCol = group["_time"].([]unixtime.Nano)
 		}
 		delete(group, "_time")
 

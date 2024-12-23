@@ -23,7 +23,7 @@ type LogIndex struct {
 	LogSeverity string `ch:"type:Enum8(log_severity)"`
 	LogFilePath string `ch:",lc"`
 	LogFileName string `ch:",lc"`
-	LogIOStream string `ch:",lc"`
+	LogIOStream string `ch:"log_iostream,lc"`
 	LogSource   string `ch:",lc"`
 
 	ExceptionType       string `ch:",lc"`
