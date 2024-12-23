@@ -19,11 +19,11 @@ type QueryBuilder struct {
 }
 
 func NewQueryBuilder(f *SpanFilter) *QueryBuilder {
-	table := TableSpans
+	table := TableSpansIndex
 	if isLogSystem(f.System...) {
-		table = TableLogs
+		table = TableLogsIndex
 	} else if isEventSystem(f.System...) {
-		table = TableEvents
+		table = TableEventsIndex
 	}
 
 	return &QueryBuilder{

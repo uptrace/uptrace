@@ -73,7 +73,7 @@ func (c *eventTransformer) initDataFromSpan(data *EventData, span *Span) {
 }
 
 func initEventIndex(index *EventIndex, span *Span) {
-	index.InitFromSpan(TableEvents, span)
+	index.InitFromSpan(TableEventsIndex, span)
 
 	index.LogSeverity = span.Attrs.Text(attrkey.LogSeverity)
 	index.ExceptionType = span.Attrs.Text(attrkey.ExceptionType)

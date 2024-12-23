@@ -167,7 +167,7 @@ func SelectAttrValues(
 
 	qb := NewQueryBuilder(f)
 	q, _ := BuildSpanIndexQuery(chdb, f, 0)
-	chExpr := qb.appendCHAttr(nil, attr)
+	chExpr := qb.AppendCHAttr(nil, attr)
 
 	q = q.ColumnExpr("? AS value", ch.Safe(chExpr)).
 		GroupExpr("value").

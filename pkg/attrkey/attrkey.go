@@ -114,6 +114,7 @@ const (
 	LogSource         = "log_source"
 	LogFilePath       = "log_file_path"
 	LogFileName       = "log_file_name"
+	LogIOStream       = "log_iostream"
 
 	ExceptionType       = "exception_type"
 	ExceptionMessage    = "exception_message"
@@ -151,4 +152,10 @@ const (
 	K8SReplicasetName = "k8s_replicaset_name"
 	K8SDeploymentName = "k8s_deployment_name"
 	K8sDaemonsetName  = "k8s_daemonset_name"
+
+	ProcessPID                = "process_pid"
+	ProcessCommand            = "process_command"
+	ProcessRuntimeName        = "process_runtime_name"
+	ProcessRuntimeVersion     = "process_runtime_version"
+	ProcessRuntimeDescription = "process_runtime_description"
 )

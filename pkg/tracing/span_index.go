@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"maps"
 	"strings"
 
 	"github.com/uptrace/go-clickhouse/ch"
@@ -15,7 +16,7 @@ type SpanIndex struct {
 }
 
 func initSpanIndex(index *SpanIndex, span *Span) {
-	index.InitFromSpan(TableSpans, span)
+	index.InitFromSpan(TableSpansIndex, span)
 }
 
 func mapKeys(m AttrMap) []string {
@@ -33,12 +34,6 @@ func attrKeysAndValues(table *Table, m AttrMap, sortedKeys []string) ([]string, 
 		if table.IsIndexedAttr(key) {
 			continue
 		}
-		//if strings.HasPrefix(key, "_") {
-		//	continue
-		//}
-		//if IsIndexedAttr(key) {
-		//	continue
-		//}
 		keys = append(keys, key)
 		values = append(values, utf8util.TruncSmall(asString(m[key])))
 	}
@@ -46,7 +41,7 @@ func attrKeysAndValues(table *Table, m AttrMap, sortedKeys []string) ([]string, 
 }
 
 var (
-	indexedAttrs = []string{
+	commonAttrs = []string{
 		attrkey.DisplayName,
 
 		attrkey.TelemetrySDKName,
@@ -63,32 +58,7 @@ var (
 		attrkey.ServiceVersion,
 		attrkey.ServiceNamespace,
 		attrkey.HostName,
-
-		attrkey.ClientAddress,
-		attrkey.ClientSocketAddress,
-		attrkey.ClientSocketPort,
-
-		attrkey.URLScheme,
-		attrkey.URLFull,
-		attrkey.URLPath,
-
-		attrkey.HTTPRequestMethod,
-		attrkey.HTTPResponseStatusCode,
-		attrkey.HTTPRoute,
-
-		attrkey.RPCMethod,
-		attrkey.RPCService,
-
-		attrkey.DBSystem,
-		attrkey.DBName,
-		attrkey.DBStatement,
-		attrkey.DBOperation,
-		attrkey.DBSqlTable,
-
-		attrkey.LogSeverity,
-		attrkey.ExceptionType,
 	}
-	indexedAttrSet = listToSet(indexedAttrs)
 )
 
 func IsIndexedAttr(table *Table, attrKey string) bool {
@@ -99,25 +69,65 @@ func IsIndexedAttr(table *Table, attrKey string) bool {
 }
 
 type Table struct {
-	Name           string          // spans_index
-	IndexedColumns map[string]bool //  _kind, _duration, log_severity
+	Name           string              // spans_index
+	IndexedColumns map[string]struct{} //  _kind, _duration, log_severity
 }
 
 func (t *Table) IsIndexedAttr(attrKey string) bool {
-	return t.IndexedColumns[attrKey]
+	_, ok := t.IndexedColumns[attrKey]
+	return ok
 }
 
 var (
-	TableSpans = &Table{
-		Name:           TableSpansIndexName,
-		IndexedColumns: map[string]bool{},
-	}
-	TableLogs = &Table{
-		Name:           TableLogsIndexName,
-		IndexedColumns: map[string]bool{},
-	}
-	TableEvents = &Table{
-		Name:           TableEventsIndexName,
-		IndexedColumns: map[string]bool{},
-	}
+	TableSpansIndex  = &Table{Name: "spans_index"}
+	TableLogsIndex   = &Table{Name: "logs_index"}
+	TableEventsIndex = &Table{Name: "events_index"}
 )
+
+func init() {
+	commonAttrsSet := listToSet(commonAttrs)
+
+	TableSpansIndex.IndexedColumns = maps.Clone(commonAttrsSet)
+	maps.Copy(TableSpansIndex.IndexedColumns, listToSet([]string{
+		attrkey.ClientAddress,
+		attrkey.ClientSocketAddress,
+		attrkey.ClientSocketPort,
+
+		attrkey.DBSystem,
+		attrkey.DBName,
+		attrkey.DBSqlTable,
+		attrkey.DBStatement,
+		attrkey.DBOperation,
+
+		attrkey.ProcessPID,
+		attrkey.ProcessCommand,
+		attrkey.ProcessRuntimeName,
+		attrkey.ProcessRuntimeVersion,
+		attrkey.ProcessRuntimeDescription,
+	}))
+
+	TableLogsIndex.IndexedColumns = maps.Clone(commonAttrsSet)
+	maps.Copy(TableLogsIndex.IndexedColumns, listToSet([]string{
+		attrkey.LogSeverity,
+		attrkey.LogFilePath,
+		attrkey.LogFileName,
+		attrkey.LogIOStream,
+		attrkey.LogSource,
+
+		attrkey.ExceptionType,
+		attrkey.ExceptionStacktrace,
+	}))
+
+	TableEventsIndex.IndexedColumns = maps.Clone(commonAttrsSet)
+	maps.Copy(TableEventsIndex.IndexedColumns, listToSet([]string{
+		attrkey.ProcessPID,
+		attrkey.ProcessCommand,
+		attrkey.ProcessRuntimeName,
+		attrkey.ProcessRuntimeVersion,
+		attrkey.ProcessRuntimeDescription,
+
+		attrkey.MessagingMessageID,
+		attrkey.MessagingMessageType,
+		attrkey.MessagingMessagePayloadSizeBytes,
+	}))
+}

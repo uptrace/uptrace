@@ -163,7 +163,7 @@ func compileUQL(
 				col := &ast.Columns[i]
 				colName := tql.String(col.Value)
 
-				chExpr, err := qb.appendCHColumn(nil, col, dur)
+				chExpr, err := qb.AppendCHColumn(nil, col, dur)
 				if err != nil {
 					part.Error.Wrapped = err
 					continue
@@ -202,7 +202,7 @@ func compileUQL(
 					continue
 				}
 
-				chExpr, err := qb.appendCHColumn(nil, col, dur)
+				chExpr, err := qb.AppendCHColumn(nil, col, dur)
 				if err != nil {
 					part.Error.Wrapped = err
 					continue
@@ -243,7 +243,7 @@ func compileUQL(
 				continue
 			}
 
-			chExpr, err := qb.appendCHColumn(nil, col, dur)
+			chExpr, err := qb.AppendCHColumn(nil, col, dur)
 			if err != nil {
 				continue
 			}

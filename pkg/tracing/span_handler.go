@@ -83,7 +83,7 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 				f.SortDesc = true
 			}
 
-			chExpr := qb.appendCHAttr(nil, tql.Attr{Name: f.SortBy})
+			chExpr := qb.AppendCHAttr(nil, tql.Attr{Name: f.SortBy})
 			order := string(chExpr) + " " + f.SortDir()
 			return q.OrderExpr(order)
 		}).
@@ -292,7 +292,7 @@ func (h *SpanHandler) GroupStats(w http.ResponseWriter, req bunrouter.Request) e
 		if err != nil {
 			return err
 		}
-		chExpr, err := qb.appendCHColumn(nil, col, groupingInterval)
+		chExpr, err := qb.AppendCHColumn(nil, col, groupingInterval)
 		if err != nil {
 			return err
 		}
