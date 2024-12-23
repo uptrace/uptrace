@@ -60,6 +60,7 @@ func SelectSpan(
 	selq := ch.NewSelect().
 		ColumnExpr("project_id, trace_id, id, parent_id, time, data").
 		Model(&spans).
+		ModelTableExpr("tracing_data").
 		Where("project_id = ?", projectID).
 		Where("trace_id = ?", traceID)
 
