@@ -4,7 +4,7 @@ import (
 	"maps"
 	"strings"
 
-	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/utf8util"
 )

@@ -10,7 +10,6 @@ import (
 
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
-	"github.com/uptrace/uptrace/pkg/unixtime"
 )
 
 type DashKind string
@@ -30,9 +29,9 @@ type Dashboard struct {
 	Name   string `json:"name"`
 	Pinned bool   `json:"pinned"`
 
-	MinInterval       unixtime.Millis `json:"minInterval"`
-	TimeOffset        unixtime.Millis `json:"timeOffset"`
-	TooltipsConnected bool            `json:"tooltipsConnected"`
+	MinInterval       time.Duration `json:"minInterval"`
+	TimeOffset        time.Duration `json:"timeOffset"`
+	TooltipsConnected bool          `json:"tooltipsConnected"`
 
 	GridQuery    string `json:"gridQuery" bun:",nullzero"`
 	GridMaxWidth int    `json:"gridMaxWidth" bun:",nullzero"`

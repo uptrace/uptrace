@@ -1,9 +1,10 @@
 package tql
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/segmentio/encoding/json"
 )
 
 func ParseQueryError(query string) ([]*QueryPart, error) {

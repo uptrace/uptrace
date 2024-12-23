@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/uptrace/go-clickhouse/ch/bfloat16"
+	"github.com/uptrace/pkg/clickhouse/bfloat16"
 	"github.com/zyedidia/generic/cache"
 )
 

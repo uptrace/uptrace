@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"io/fs"
 	"strings"
+	"time"
 
 	"github.com/uptrace/uptrace"
 	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/unixtime"
 	"gopkg.in/yaml.v3"
 )
 
@@ -76,9 +76,9 @@ type DashboardTpl struct {
 	If   []MetricMatcher `yaml:"if,omitempty"`
 	Name string          `yaml:"name"`
 
-	MinInterval unixtime.Millis `yaml:"min_interval,omitempty"`
-	TimeOffset  unixtime.Millis `yaml:"time_offset,omitempty"`
-	GridQuery   string          `yaml:"grid_query,omitempty"`
+	MinInterval time.Duration `yaml:"min_interval,omitempty"`
+	TimeOffset  time.Duration `yaml:"time_offset,omitempty"`
+	GridQuery   string        `yaml:"grid_query,omitempty"`
 
 	TableGridItems []*GridItemTpl `yaml:"table_grid_items,omitempty"`
 	Table          []DashTableTpl `yaml:"table"`
@@ -553,8 +553,8 @@ type MetricMonitorTpl struct {
 	MinAllowedValue bunutil.NullFloat64 `yaml:"min_allowed_value,omitempty"`
 	MaxAllowedValue bunutil.NullFloat64 `yaml:"max_allowed_value,omitempty"`
 
-	CheckNumPoint int             `yaml:"check_num_point"`
-	TimeOffset    unixtime.Millis `yaml:"time_offset,omitempty"`
+	CheckNumPoint int           `yaml:"check_num_point"`
+	TimeOffset    time.Duration `yaml:"time_offset,omitempty"`
 }
 
 func NewMetricMonitorTpl(monitor *org.MetricMonitor) *MetricMonitorTpl {

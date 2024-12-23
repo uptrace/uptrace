@@ -11,7 +11,7 @@ import (
 
 	"github.com/segmentio/encoding/json"
 	"github.com/uptrace/bun/driver/pgdriver"
-	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/pkg/clickhouse/ch"
 )
 
 var ErrRequestTimeout = New(http.StatusRequestTimeout,

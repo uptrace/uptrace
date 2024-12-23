@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	"github.com/segmentio/encoding/json"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
+	"github.com/uptrace/pkg/unsafeconv"
 	"gopkg.in/yaml.v3"
 )
 

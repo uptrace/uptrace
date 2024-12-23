@@ -1,1 +1,0 @@
-INSERT INTO dest SELECT * FROM src WHERE (_part = 'part_name') SETTINGS max_threads = 1, max_insert_threads = 1, max_execution_time = 0

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/vmihailenco/msgpack/v5"
 )

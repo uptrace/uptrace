@@ -1,7 +1,7 @@
 package pgquery
 
 import (
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
+	"github.com/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/utf8util"
 )
 

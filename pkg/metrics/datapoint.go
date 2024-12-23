@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/go-clickhouse/ch/bfloat16"
+	"github.com/uptrace/pkg/clickhouse/bfloat16"
+	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/org"
 )
 

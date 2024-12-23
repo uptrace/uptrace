@@ -9,8 +9,10 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/go-clickhouse/ch/chschema"
+	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/clickhouse/ch/chschema"
+	"github.com/uptrace/pkg/unixtime"
+	"github.com/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/bunutil"
@@ -20,8 +22,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"
-	"github.com/uptrace/uptrace/pkg/unixtime"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
 )
 
 type CHStorage struct {
@@ -540,7 +540,7 @@ func (s *CHStorage) newTimeseries(
 		delete(m, "value")
 
 		timeCol := m["time"].([]uint32)
-		ts.Time = *(*[]unixtime.Seconds)(unsafe.Pointer(&timeCol))
+		ts.Time = *(*[]unixtime.Nano)(unsafe.Pointer(&timeCol))
 		delete(m, "time")
 
 		ts.Value = bunutil.FillUnixNum(

@@ -7,7 +7,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"go.uber.org/fx"
 
-	"github.com/uptrace/go-clickhouse/ch"
+	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 )
 

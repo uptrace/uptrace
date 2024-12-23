@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/uptrace/go-clickhouse/ch"
-	"github.com/uptrace/go-clickhouse/ch/chschema"
+	"github.com/uptrace/pkg/clickhouse/ch"
+	"github.com/uptrace/pkg/clickhouse/ch/chschema"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/bunconv"
 	"github.com/uptrace/uptrace/pkg/tracing/tql"

@@ -5,7 +5,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/uptrace/uptrace/pkg/unixtime"
+	"github.com/uptrace/pkg/unixtime"
 	"gonum.org/v1/gonum/stat"
 )
 
@@ -356,10 +356,10 @@ const (
 	RollupMedianOverTime = "median_over_time"
 )
 
-type rollupFunc func(dest, src []float64, tm []unixtime.Seconds, window time.Duration)
+type rollupFunc func(dest, src []float64, tm []unixtime.Nano, window time.Duration)
 
 func (e *Engine) increaseRollup(
-	dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration,
+	dest, src []float64, timeSlice []unixtime.Nano, windowDur time.Duration,
 ) {
 	rateWindow := max(windowDur, 5*e.interval, minRateWindow)
 	rateRollup(dest, src, timeSlice, rateWindow)
@@ -370,8 +370,8 @@ func (e *Engine) increaseRollup(
 	}
 }
 
-func rateRollup(dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration) {
-	windowSeconds := unixtime.Seconds(windowDur.Seconds())
+func rateRollup(dest, src []float64, timeSlice []unixtime.Nano, windowDur time.Duration) {
+	windowSeconds := unixtime.Nano(windowDur.Seconds())
 	for i, currValue := range src {
 		if math.IsNaN(currValue) {
 			dest[i] = math.NaN()
@@ -403,12 +403,12 @@ func rateRollup(dest, src []float64, timeSlice []unixtime.Seconds, windowDur tim
 
 func prevPoint(
 	src []float64,
-	timeSlice []unixtime.Seconds,
+	timeSlice []unixtime.Nano,
 	currValue float64,
-	before unixtime.Seconds,
-) (float64, unixtime.Seconds) {
+	before unixtime.Nano,
+) (float64, unixtime.Nano) {
 	lastValue := currValue
-	var lastTime unixtime.Seconds
+	var lastTime unixtime.Nano
 	for i := len(src) - 1; i >= 0; i-- {
 		pointValue := src[i]
 		pointTime := timeSlice[i]
@@ -429,12 +429,12 @@ func prevPoint(
 
 func nextPoint(
 	src []float64,
-	timeSlice []unixtime.Seconds,
+	timeSlice []unixtime.Nano,
 	currValue float64,
-	after unixtime.Seconds,
-) (float64, unixtime.Seconds) {
+	after unixtime.Nano,
+) (float64, unixtime.Nano) {
 	lastValue := currValue
-	var lastTime unixtime.Seconds
+	var lastTime unixtime.Nano
 	for i, pointValue := range src {
 		pointTime := timeSlice[i]
 
@@ -452,30 +452,30 @@ func nextPoint(
 	return lastValue, lastTime
 }
 
-func minRollup(dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration) {
+func minRollup(dest, src []float64, timeSlice []unixtime.Nano, windowDur time.Duration) {
 	overTime(dest, src, timeSlice, windowDur, minAgg)
 }
 
-func maxRollup(dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration) {
+func maxRollup(dest, src []float64, timeSlice []unixtime.Nano, windowDur time.Duration) {
 	overTime(dest, src, timeSlice, windowDur, maxAgg)
 }
 
-func sumRollup(dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration) {
+func sumRollup(dest, src []float64, timeSlice []unixtime.Nano, windowDur time.Duration) {
 	overTime(dest, src, timeSlice, windowDur, sumAgg)
 }
 
-func avgRollup(dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration) {
+func avgRollup(dest, src []float64, timeSlice []unixtime.Nano, windowDur time.Duration) {
 	overTime(dest, src, timeSlice, windowDur, avgAgg)
 }
 
-func medianRollup(dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration) {
+func medianRollup(dest, src []float64, timeSlice []unixtime.Nano, windowDur time.Duration) {
 	overTime(dest, src, timeSlice, windowDur, Median)
 }
 
 func overTime(
-	dest, src []float64, timeSlice []unixtime.Seconds, windowDur time.Duration, fn aggFunc,
+	dest, src []float64, timeSlice []unixtime.Nano, windowDur time.Duration, fn aggFunc,
 ) {
-	windowSeconds := unixtime.Seconds(windowDur.Seconds())
+	windowSeconds := unixtime.Nano(windowDur.Seconds())
 	for i := len(timeSlice) - 1; i >= 0; i-- {
 		currTime := timeSlice[i]
 		window := window(src[:i+1], timeSlice[:i+1], currTime-windowSeconds)
@@ -484,7 +484,7 @@ func overTime(
 }
 
 func window(
-	src []float64, timeSlice []unixtime.Seconds, wantedTime unixtime.Seconds,
+	src []float64, timeSlice []unixtime.Nano, wantedTime unixtime.Nano,
 ) []float64 {
 	for i := len(timeSlice) - 2; i >= 0; i-- {
 		currTime := timeSlice[i]

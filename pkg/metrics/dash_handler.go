@@ -19,7 +19,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/org"
-	"github.com/uptrace/uptrace/pkg/unixtime"
 )
 
 type DashHandlerParams struct {
@@ -62,10 +61,10 @@ func registerDashHandler(h *DashHandler, p bunapp.RouterParams, m *Middleware) {
 }
 
 type DashboardIn struct {
-	Name         string          `json:"name"`
-	MinInterval  unixtime.Millis `json:"minInterval"`
-	TimeOffset   unixtime.Millis `json:"timeOffset"`
-	GridMaxWidth int             `json:"gridMaxWidth"`
+	Name         string        `json:"name"`
+	MinInterval  time.Duration `json:"minInterval"`
+	TimeOffset   time.Duration `json:"timeOffset"`
+	GridMaxWidth int           `json:"gridMaxWidth"`
 }
 
 func (in *DashboardIn) Populate(dash *Dashboard) error {

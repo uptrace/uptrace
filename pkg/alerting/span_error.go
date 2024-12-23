@@ -9,8 +9,8 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/go-clickhouse/ch"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
+	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/attrkey"
 	"github.com/uptrace/uptrace/pkg/idgen"
 	"github.com/uptrace/uptrace/pkg/org"

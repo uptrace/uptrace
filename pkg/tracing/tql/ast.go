@@ -1,13 +1,14 @@
 package tql
 
 import (
-	"encoding/json"
 	"fmt"
 	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
+	"github.com/segmentio/encoding/json"
+
+	"github.com/uptrace/pkg/unsafeconv"
 )
 
 type Expr interface {

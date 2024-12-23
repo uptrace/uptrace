@@ -1,12 +1,13 @@
 package otlpconv
 
 import (
-	"encoding/json"
 	"log"
 	"strconv"
 
+	"github.com/segmentio/encoding/json"
+
+	"github.com/uptrace/pkg/unsafeconv"
 	"github.com/uptrace/uptrace/pkg/attrkey"
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 )
 

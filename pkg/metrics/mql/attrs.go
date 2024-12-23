@@ -5,7 +5,7 @@ import (
 
 	"github.com/segmentio/encoding/json"
 
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
+	"github.com/uptrace/pkg/unsafeconv"
 	"golang.org/x/exp/slices"
 )
 

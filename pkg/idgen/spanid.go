@@ -6,12 +6,13 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"math/rand/v2"
 	"strconv"
 
-	"github.com/uptrace/uptrace/pkg/unsafeconv"
+	"github.com/segmentio/encoding/json"
+
+	"github.com/uptrace/pkg/unsafeconv"
 )
 
 func ParseSpanID(s string) (SpanID, error) {
