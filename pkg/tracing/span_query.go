@@ -61,6 +61,9 @@ func (qb *QueryBuilder) appendCHColumn(b []byte, expr *tql.Column, dur time.Dura
 func (qb *QueryBuilder) appendCHExpr(b []byte, expr tql.Expr, dur time.Duration) ([]byte, error) {
 	switch expr := expr.(type) {
 	case tql.Attr:
+		if _, ok := qb.Table.IndexedColumns[expr.Name]; !ok {
+			return nil, fmt.Errorf("unsupported attr: %s", expr.Name)
+		}
 		return qb.appendCHAttr(b, expr), nil
 	case *tql.FuncCall:
 		return qb.appendCHFuncCall(b, expr, dur)
