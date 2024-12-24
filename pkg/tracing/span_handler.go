@@ -84,7 +84,8 @@ func (h *SpanHandler) ListSpans(w http.ResponseWriter, req bunrouter.Request) er
 				f.SortDesc = true
 			}
 
-			chExpr := qb.AppendCHAttr(nil, tql.Attr{Name: f.SortBy})
+			// FIXME(yupi) not sure what to do with the error here
+			chExpr, _ := qb.AppendCHAttr(nil, tql.Attr{Name: f.SortBy})
 			order := string(chExpr) + " " + f.SortDir()
 			return q.OrderExpr(order)
 		}).

@@ -40,7 +40,7 @@ func (qb *QueryBuilder) AppendCHExpr(b []byte, expr tql.Expr, dur time.Duration)
 	return qb.appendCHExpr(b, expr, dur)
 }
 
-func (qb *QueryBuilder) AppendCHAttr(b []byte, attr tql.Attr) []byte {
+func (qb *QueryBuilder) AppendCHAttr(b []byte, attr tql.Attr) ([]byte, error) {
 	return qb.appendCHAttr(b, attr)
 }
 
@@ -61,10 +61,7 @@ func (qb *QueryBuilder) appendCHColumn(b []byte, expr *tql.Column, dur time.Dura
 func (qb *QueryBuilder) appendCHExpr(b []byte, expr tql.Expr, dur time.Duration) ([]byte, error) {
 	switch expr := expr.(type) {
 	case tql.Attr:
-		if _, ok := qb.Table.IndexedColumns[expr.Name]; !ok {
-			return nil, fmt.Errorf("unsupported attr: %s", expr.Name)
-		}
-		return qb.appendCHAttr(b, expr), nil
+		return qb.appendCHAttr(b, expr)
 	case *tql.FuncCall:
 		return qb.appendCHFuncCall(b, expr, dur)
 	case *tql.BinaryExpr:
@@ -99,27 +96,30 @@ func (qb *QueryBuilder) appendCHExpr(b []byte, expr tql.Expr, dur time.Duration)
 	}
 }
 
-func (qb *QueryBuilder) appendCHAttr(b []byte, attr tql.Attr) []byte {
+func (qb *QueryBuilder) appendCHAttr(b []byte, attr tql.Attr) ([]byte, error) {
 	switch attr.Name {
 	case attrkey.SpanErrorCount:
-		return chschema.AppendQuery(b, "if(s.status_code = 'error', s.count, 0)")
+		return chschema.AppendQuery(b, "if(s.status_code = 'error', s.count, 0)"), nil
 	case attrkey.SpanErrorRate:
-		return chschema.AppendQuery(b, "sumIf(s.count, s.status_code = 'error') / sum(s.count)")
+		return chschema.AppendQuery(b, "sumIf(s.count, s.status_code = 'error') / sum(s.count)"), nil
 	case attrkey.SpanIsEvent:
-		return chschema.AppendQuery(b, "s.type IN ?", ch.In(EventTypes))
+		return chschema.AppendQuery(b, "s.type IN ?", ch.In(EventTypes)), nil
 	default:
+		if _, ok := qb.Table.IndexedColumns[attr.Name]; !ok {
+			return nil, fmt.Errorf("unsupported attr: %s", attr.Name)
+		}
 		if strings.HasPrefix(attr.Name, "_") {
 			ident := strings.TrimPrefix(attr.Name, "_")
 			b = append(b, "s."...)
-			return chschema.AppendIdent(b, ident)
+			return chschema.AppendIdent(b, ident), nil
 		}
 
 		if IsIndexedAttr(qb.Table, attr.Name) {
 			b = append(b, "s."...)
-			return chschema.AppendIdent(b, attr.Name)
+			return chschema.AppendIdent(b, attr.Name), nil
 		}
 
-		return chschema.AppendQuery(b, "s.string_values[indexOf(s.string_keys, ?)]", attr.Name)
+		return chschema.AppendQuery(b, "s.string_values[indexOf(s.string_keys, ?)]", attr.Name), nil
 	}
 }
 
