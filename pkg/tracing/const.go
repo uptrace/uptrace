@@ -71,12 +71,6 @@ const (
 	SpanKindConsumer = "consumer"
 )
 
-const (
-	TableSpansIndex  = "spans_index"
-	TableLogsIndex   = "logs_index"
-	TableEventsIndex = "events_index"
-)
-
 func init() {
 	for _, typ := range spanTypeEnum {
 		if slices.Contains(LogTypes, typ) {

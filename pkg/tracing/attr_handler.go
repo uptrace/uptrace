@@ -73,7 +73,13 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 	if err != nil {
 		return err
 	}
-	attrKeys = append(attrKeys, spanKeys...)
+
+	qb := NewQueryBuilder(f)
+	for _, key := range spanKeys {
+		if _, ok := qb.Table.IndexedColumns[key]; ok {
+			attrKeys = append(attrKeys, key)
+		}
+	}
 
 	pinnedAttrMap, err := org.SelectPinnedFacetMap(ctx, h.PG, user.ID)
 	if err != nil {
@@ -165,8 +171,12 @@ func SelectAttrValues(
 		}
 	}
 
+	qb := NewQueryBuilder(f)
 	q, _ := BuildSpanIndexQuery(chdb, f, 0)
-	chExpr := appendCHAttr(nil, attr)
+	chExpr, err := qb.AppendCHAttr(nil, attr)
+	if err != nil {
+		return nil, false, err
+	}
 
 	q = q.ColumnExpr("? AS value", ch.Safe(chExpr)).
 		GroupExpr("value").

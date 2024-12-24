@@ -9,10 +9,12 @@ import (
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 
+	"github.com/uptrace/pkg/clickhouse/ch"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/run"
+	"github.com/uptrace/uptrace/pkg/tracing/norm"
 )
 
 const (
@@ -107,4 +109,36 @@ func runConsumers(
 		eventConsumer.Stop()
 		return nil
 	})
+}
+
+func init() {
+	ch.RegisterEnum("log_severity", logSeverityEnum)
+}
+
+var logSeverityEnum = []string{
+	"",
+	norm.SeverityTrace,
+	norm.SeverityTrace2,
+	norm.SeverityTrace3,
+	norm.SeverityTrace4,
+	norm.SeverityDebug,
+	norm.SeverityDebug2,
+	norm.SeverityDebug3,
+	norm.SeverityDebug4,
+	norm.SeverityInfo,
+	norm.SeverityInfo2,
+	norm.SeverityInfo3,
+	norm.SeverityInfo4,
+	norm.SeverityWarn,
+	norm.SeverityWarn2,
+	norm.SeverityWarn3,
+	norm.SeverityWarn4,
+	norm.SeverityError,
+	norm.SeverityError2,
+	norm.SeverityError3,
+	norm.SeverityError4,
+	norm.SeverityFatal,
+	norm.SeverityFatal2,
+	norm.SeverityFatal3,
+	norm.SeverityFatal4,
 }

@@ -23,7 +23,7 @@ var coreAttrs = []string{
 	attrkey.HTTPResponseStatusCode,
 	attrkey.DBName,
 	attrkey.DBOperation,
-	attrkey.DBSqlTable,
+	attrkey.DBSqlTables,
 	attrkey.LogSeverity,
 	attrkey.LogSource,
 	attrkey.LogFilePath,

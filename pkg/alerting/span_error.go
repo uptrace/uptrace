@@ -174,7 +174,7 @@ func alertAttrs(project *org.Project, span *tracing.Span) map[string]string {
 			attrkey.DBSystem,
 			attrkey.DBName,
 			attrkey.DBOperation,
-			attrkey.DBSqlTable)
+			attrkey.DBSqlTables)
 	case tracing.TypeSpanRPC:
 		addSpanAttrs(attrs, span, attrkey.RPCSystem, attrkey.RPCService, attrkey.RPCMethod)
 	case tracing.TypeSpanMessaging:

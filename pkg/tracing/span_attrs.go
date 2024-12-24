@@ -372,7 +372,7 @@ func (p *consumerWorker[IT, DT]) assignSpanSystemAndGroupID(project *org.Project
 		stmt, _ := span.Attrs[attrkey.DBStatement].(string)
 
 		span.GroupID = p.spanHash(func(digest *xxhash.Digest) {
-			hashSpan(project, digest, span, attrkey.DBName, attrkey.DBOperation, attrkey.DBSqlTable)
+			hashSpan(project, digest, span, attrkey.DBName, attrkey.DBOperation, attrkey.DBSqlTables)
 			if stmt != "" {
 				hashDBStmt(digest, stmt)
 			}
