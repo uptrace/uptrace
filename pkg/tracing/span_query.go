@@ -105,16 +105,17 @@ func (qb *QueryBuilder) appendCHAttr(b []byte, attr tql.Attr) ([]byte, error) {
 	case attrkey.SpanIsEvent:
 		return chschema.AppendQuery(b, "s.type IN ?", ch.In(EventTypes)), nil
 	default:
-		if _, ok := qb.Table.IndexedColumns[attr.Name]; !ok {
-			return nil, fmt.Errorf("unsupported attr: %s", attr.Name)
-		}
 		if strings.HasPrefix(attr.Name, "_") {
+			if !qb.Table.IsIndexedAttr(attr.Name) {
+				return nil, fmt.Errorf("unsupported attr: %s", attr.Name)
+			}
+
 			ident := strings.TrimPrefix(attr.Name, "_")
 			b = append(b, "s."...)
 			return chschema.AppendIdent(b, ident), nil
 		}
 
-		if IsIndexedAttr(qb.Table, attr.Name) {
+		if qb.Table.IsIndexedAttr(attr.Name) {
 			b = append(b, "s."...)
 			return chschema.AppendIdent(b, attr.Name), nil
 		}
