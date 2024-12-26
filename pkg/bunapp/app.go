@@ -18,6 +18,7 @@ import (
 	"github.com/zyedidia/generic/cache"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
@@ -56,6 +57,12 @@ func New(configPath string, opts ...fx.Option) (*fx.App, error) {
 		fx.Provide(initGRPC),
 		fx.Provide(fx.Annotate(initTaskq, fx.As(new(taskq.Queue)))),
 		fx.Provide(newHTTPClient),
+		fx.WithLogger(func() fxevent.Logger {
+			logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+				Level: slog.LevelWarn,
+			}))
+			return &fxevent.SlogLogger{Logger: logger}
+		}),
 	}
 	options = append(options, opts...)
 	options = append(options, fx.Invoke(runGroup))

@@ -125,7 +125,7 @@ var serveCommand = &cli.Command{
 		}
 
 		fxApp.Run()
-		return nil
+		return fxApp.Err()
 	},
 }
 
