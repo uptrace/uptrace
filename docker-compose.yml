@@ -1,6 +1,6 @@
 services:
   clickhouse-1:
-    image: clickhouse/clickhouse-server:24.11
+    image: clickhouse/clickhouse-server:24.12
     restart: on-failure
     environment:
       CLICKHOUSE_DB: uptrace
@@ -23,63 +23,6 @@ services:
       - '8123:8123'
       - '9000:9000'
       - '9440:9440'
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
-
-  clickhouse-2:
-    image: clickhouse/clickhouse-server:24.11
-    restart: on-failure
-    environment:
-      CLICKHOUSE_DB: uptrace
-      SHARD: shard1
-      REPLICA: replica2
-      KEEPER_ID: 2
-    volumes:
-      - ch2_data:/var/lib/clickhouse
-      - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/config.xml
-      - ./config/clickhouse/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml
-      - ./config/clickhouse/keeper.xml:/etc/clickhouse-server/config.d/keeper.xml
-      - ./config/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml
-    ports:
-      - '9001:9000'
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
-
-  clickhouse-3:
-    image: clickhouse/clickhouse-server:24.11
-    restart: on-failure
-    environment:
-      CLICKHOUSE_DB: uptrace
-      SHARD: shard2
-      REPLICA: replica1
-      KEEPER_ID: 3
-    volumes:
-      - ch3_data:/var/lib/clickhouse
-      - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/config.xml
-      - ./config/clickhouse/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml
-      - ./config/clickhouse/keeper.xml:/etc/clickhouse-server/config.d/keeper.xml
-      - ./config/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml
-    ports:
-      - '9002:9000'
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
-
-  clickhouse-4:
-    image: clickhouse/clickhouse-server:24.11
-    restart: on-failure
-    environment:
-      CLICKHOUSE_DB: uptrace
-      SHARD: shard2
-      REPLICA: replica2
-      KEEPER_ID: 4
-    volumes:
-      - ch4_data:/var/lib/clickhouse
-      - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/config.xml
-      - ./config/clickhouse/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml
-      - ./config/clickhouse/keeper.xml:/etc/clickhouse-server/config.d/keeper.xml
-      - ./config/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml
-    ports:
-      - '9003:9000'
     extra_hosts:
       - 'host.docker.internal:host-gateway'
 

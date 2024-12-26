@@ -21,8 +21,7 @@ CREATE TABLE spans_index ?ON_CLUSTER (
   status_message String Codec(?CODEC),
 
   all_keys Array(LowCardinality(String)) Codec(?CODEC),
-  string_keys Array(LowCardinality(String)) Codec(?CODEC),
-  string_values Array(String) Codec(?CODEC),
+  attrs JSON Codec(?CODEC),
 
   deployment_environment LowCardinality(String) Codec(?CODEC),
   service_namespace LowCardinality(String) Codec(?CODEC),
