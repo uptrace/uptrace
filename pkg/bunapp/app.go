@@ -57,10 +57,7 @@ func New(configPath string, opts ...fx.Option) (*fx.App, error) {
 		fx.Provide(initGRPC),
 		fx.Provide(fx.Annotate(initTaskq, fx.As(new(taskq.Queue)))),
 		fx.Provide(newHTTPClient),
-		fx.WithLogger(func() fxevent.Logger {
-			logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-				Level: slog.LevelWarn,
-			}))
+		fx.WithLogger(func(logger *slog.Logger) fxevent.Logger {
 			return &fxevent.SlogLogger{Logger: logger}
 		}),
 	}

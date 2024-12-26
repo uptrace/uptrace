@@ -290,7 +290,7 @@ telegram:
 logging:
   # Zap minimal logging level.
   # Valid values: DEBUG, INFO, WARN, ERROR, DPANIC, PANIC, FATAL.
-  level: INFO
+  level: WARN
 
 # Secret key that is used to sign JWT tokens, etc.
 secret_key: 102c1a557c314fc28198acd017960843
