@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"maps"
 	"slices"
 
 	"github.com/uptrace/uptrace/pkg/attrkey"
@@ -53,4 +54,8 @@ func (index *BaseIndex) InitFromSpan(table *Table, span *Span) {
 
 	index.AllKeys = mapKeys(span.Attrs)
 	slices.Sort(index.AllKeys)
+
+	maps.DeleteFunc(span.Attrs, func(k string, _ any) bool {
+		return table.IsIndexedAttr(k)
+	})
 }

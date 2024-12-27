@@ -80,8 +80,6 @@ func (c *eventTransformer) initDataFromSpan(data *EventData, span *Span) {
 }
 
 func initEventIndex(index *EventIndex, span *Span) {
-	index.InitFromSpan(TableEventsIndex, span)
-
 	index.ProcessPID = int32(span.Attrs.Int64(attrkey.ProcessPID))
 	index.ProcessCommand = span.Attrs.Text(attrkey.ProcessCommand)
 	index.ProcessRuntimeName = span.Attrs.Text(attrkey.ProcessRuntimeName)
@@ -91,6 +89,8 @@ func initEventIndex(index *EventIndex, span *Span) {
 	index.MessagingMessageID = span.Attrs.Text(attrkey.MessagingMessageID)
 	index.MessagingMessageType = span.Attrs.Text(attrkey.MessagingMessageType)
 	index.MessagingMessagePayloadSizeBytes = int32(span.Attrs.Int64(attrkey.MessagingMessagePayloadSizeBytes))
+
+	index.InitFromSpan(TableEventsIndex, span)
 }
 
 func initEventData(data *EventData, span *Span) {
