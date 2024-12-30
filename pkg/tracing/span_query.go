@@ -41,7 +41,7 @@ func (qb *QueryBuilder) AppendCHExpr(b []byte, expr tql.Expr, dur time.Duration)
 }
 
 func (qb *QueryBuilder) AppendCHAttr(b []byte, attr tql.Attr) ([]byte, error) {
-	return qb.appendCHAttr(b, attr)
+	return qb.appendCHAttr(b, attr, "")
 }
 
 func (qb *QueryBuilder) appendCHColumn(b []byte, expr *tql.Column, dur time.Duration) ([]byte, error) {
@@ -61,7 +61,7 @@ func (qb *QueryBuilder) appendCHColumn(b []byte, expr *tql.Column, dur time.Dura
 func (qb *QueryBuilder) appendCHExpr(b []byte, expr tql.Expr, dur time.Duration) ([]byte, error) {
 	switch expr := expr.(type) {
 	case tql.Attr:
-		return qb.appendCHAttr(b, expr)
+		return qb.appendCHAttr(b, expr, "")
 	case *tql.FuncCall:
 		return qb.appendCHFuncCall(b, expr, dur)
 	case *tql.BinaryExpr:
@@ -96,7 +96,7 @@ func (qb *QueryBuilder) appendCHExpr(b []byte, expr tql.Expr, dur time.Duration)
 	}
 }
 
-func (qb *QueryBuilder) appendCHAttr(b []byte, attr tql.Attr) ([]byte, error) {
+func (qb *QueryBuilder) appendCHAttr(b []byte, attr tql.Attr, typeHint string) ([]byte, error) {
 	switch attr.Name {
 	case attrkey.SpanErrorCount:
 		return chschema.AppendQuery(b, "if(s.status_code = 'error', s.count, 0)"), nil
@@ -120,7 +120,15 @@ func (qb *QueryBuilder) appendCHAttr(b []byte, attr tql.Attr) ([]byte, error) {
 			return chschema.AppendIdent(b, attr.Name), nil
 		}
 
-		return chschema.AppendQuery(b, "s.string_values[indexOf(s.string_keys, ?)]", attr.Name), nil
+		b = append(b, "s.attrs."...)
+		b = chschema.AppendIdent(b, attr.Name)
+
+		if typeHint != "" {
+			b = append(b, ".:"...)
+			b = append(b, typeHint...)
+		}
+
+		return b, nil
 	}
 }
 
@@ -258,6 +266,44 @@ func (qb *QueryBuilder) AppendFilter(filter tql.Filter, dur time.Duration) ([]by
 		b = chschema.AppendQuery(b, "?", ch.Array(values))
 		b = append(b, ")"...)
 
+		return b, nil
+
+	case tql.FilterEqual:
+		attr, ok := filter.LHS.(tql.Attr)
+		if !ok {
+			break
+		}
+
+		var typeHint = ""
+		var val any
+
+		switch rhs := filter.RHS.(type) {
+		case tql.StringValue:
+			typeHint = "String"
+			val = rhs.Text
+
+		case tql.NumberValue:
+			if num, ok := rhs.AsInt64(); ok {
+				typeHint = "Int64"
+				val = num
+			} else if num, ok := rhs.AsFloat64(); ok {
+				typeHint = "Float64"
+				val = num
+			}
+		}
+
+		if val == nil {
+			break
+		}
+
+		b, err := qb.appendCHAttr(b, attr, typeHint)
+		if err != nil {
+			return nil, err
+		}
+		b = append(b, ' ')
+		b = append(b, filter.Op...)
+		b = append(b, ' ')
+		b = chschema.Append(chschema.NopFmter, b, val)
 		return b, nil
 	}
 

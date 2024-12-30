@@ -32,8 +32,6 @@ type SpanIndex struct {
 }
 
 func initSpanIndex(index *SpanIndex, span *Span) {
-	index.InitFromSpan(TableSpansIndex, span)
-
 	index.ClientAddress = span.Attrs.Text(attrkey.ClientAddress)
 	index.ClientSocketAddress = span.Attrs.Text(attrkey.ClientSocketAddress)
 	index.ClientSocketPort = int32(span.Attrs.Int64(attrkey.ClientSocketPort))
@@ -45,8 +43,8 @@ func initSpanIndex(index *SpanIndex, span *Span) {
 
 	// Populate index.DBSqlTables
 	if val, ok := span.Attrs.Get(attrkey.DBSqlTables); ok {
-		if ss, ok := val.([]string); ok {
-			for _, s := range ss {
+		if tables, ok := val.([]string); ok {
+			for _, s := range tables {
 				index.DBSqlTables = append(index.DBSqlTables, utf8util.TruncLC(s))
 			}
 		}
@@ -57,6 +55,8 @@ func initSpanIndex(index *SpanIndex, span *Span) {
 	index.ProcessRuntimeName = span.Attrs.Text(attrkey.ProcessRuntimeName)
 	index.ProcessRuntimeVersion = span.Attrs.Text(attrkey.ProcessRuntimeVersion)
 	index.ProcessRuntimeDescription = span.Attrs.Text(attrkey.ProcessRuntimeDescription)
+
+	index.InitFromSpan(TableSpansIndex, span)
 }
 
 func mapKeys(m AttrMap) []string {

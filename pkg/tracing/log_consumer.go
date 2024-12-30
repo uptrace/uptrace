@@ -87,8 +87,6 @@ func (c *logTransformer) initDataFromSpan(data *LogData, span *Span) {
 }
 
 func initLogIndex(index *LogIndex, span *Span) {
-	index.InitFromSpan(TableLogsIndex, span)
-
 	index.LogSeverity = span.Attrs.Text(attrkey.LogSeverity)
 	index.LogFilePath = span.Attrs.Text(attrkey.LogFilePath)
 	index.LogFileName = span.Attrs.Text(attrkey.LogFileName)
@@ -97,6 +95,8 @@ func initLogIndex(index *LogIndex, span *Span) {
 
 	index.ExceptionType = span.Attrs.Text(attrkey.ExceptionType)
 	index.ExceptionType = span.Attrs.Text(attrkey.ExceptionStacktrace)
+
+	index.InitFromSpan(TableLogsIndex, span)
 }
 
 func initLogData(data *LogData, span *Span) {

@@ -47,7 +47,7 @@ type Span struct {
 	StatusCode    string `json:"statusCode" ch:",lc"`
 	StatusMessage string `json:"statusMessage"`
 
-	Attrs  AttrMap      `json:"attrs" ch:"-"`
+	Attrs  AttrMap      `json:"attrs" ch:"type:JSON"`
 	Events []*SpanEvent `json:"events,omitempty" ch:"-"`
 	Links  []*SpanLink  `json:"links,omitempty" ch:"-"`
 
