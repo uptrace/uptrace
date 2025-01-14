@@ -1,6 +1,7 @@
 package tracing
 
 import (
+	"maps"
 	"slices"
 
 	"github.com/uptrace/uptrace/pkg/attrkey"
@@ -13,9 +14,7 @@ type BaseIndex struct {
 	DisplayName string
 	Count       float32
 
-	AllKeys      []string `ch:"type:Array(LowCardinality(String))"`
-	StringKeys   []string `ch:"type:Array(LowCardinality(String))"`
-	StringValues []string
+	AllKeys []string `ch:"type:Array(LowCardinality(String))"`
 
 	DeploymentEnvironment string `ch:",lc"`
 	ServiceName           string `ch:",lc"`
@@ -56,5 +55,7 @@ func (index *BaseIndex) InitFromSpan(table *Table, span *Span) {
 	index.AllKeys = mapKeys(span.Attrs)
 	slices.Sort(index.AllKeys)
 
-	index.StringKeys, index.StringValues = attrKeysAndValues(table, span.Attrs, index.AllKeys)
+	maps.DeleteFunc(span.Attrs, func(k string, _ any) bool {
+		return table.IsIndexedAttr(k)
+	})
 }

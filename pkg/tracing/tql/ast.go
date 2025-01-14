@@ -302,6 +302,16 @@ func (n NumberValue) AppendString(b []byte) []byte {
 	return append(b, n.Text...)
 }
 
+func (n NumberValue) AsInt64() (int64, bool) {
+	v, err := strconv.ParseInt(n.Text, 0, 64)
+	return v, err == nil
+}
+
+func (n NumberValue) AsFloat64() (float64, bool) {
+	v, err := strconv.ParseFloat(n.Text, 64)
+	return v, err == nil
+}
+
 func clean(attrKey string) string {
 	if strings.HasPrefix(attrKey, "span.") {
 		return strings.TrimPrefix(attrKey, "span")

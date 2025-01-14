@@ -20,20 +20,6 @@
           <host>clickhouse-1</host>
           <port>9000</port>
         </replica>
-        <replica>
-          <host>clickhouse-2</host>
-          <port>9000</port>
-        </replica>
-      </shard>
-      <shard>
-        <replica>
-          <host>clickhouse-3</host>
-          <port>9000</port>
-        </replica>
-        <replica>
-          <host>clickhouse-4</host>
-          <port>9000</port>
-        </replica>
       </shard>
     </uptrace-cluster1>
   </remote_servers>
@@ -41,18 +27,6 @@
   <zookeeper>
     <node>
       <host>clickhouse-1</host>
-      <port>2181</port>
-    </node>
-    <node>
-      <host>clickhouse-2</host>
-      <port>2181</port>
-    </node>
-    <node>
-      <host>clickhouse-3</host>
-      <port>2181</port>
-    </node>
-    <node>
-      <host>clickhouse-4</host>
       <port>2181</port>
     </node>
   </zookeeper>

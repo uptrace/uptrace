@@ -2,7 +2,7 @@ module github.com/uptrace/uptrace
 
 go 1.23.3
 
-replace github.com/segmentio/encoding => github.com/vmihailenco/encoding v0.3.4-0.20241127110735-a56c3dcf50f3
+replace github.com/segmentio/encoding => github.com/vmihailenco/encoding v0.3.4-0.20241226104945-d6ad09eb6898
 
 replace github.com/grafana/tempo => ./pkg/tempo
 

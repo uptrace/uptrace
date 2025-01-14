@@ -11,6 +11,8 @@
   <!--   </server> -->
   <!-- </openSSL> -->
 
+  <default_database>uptrace</default_database>
+
   <prometheus>
     <endpoint>/metrics</endpoint>
     <port>9363</port>
@@ -24,10 +26,6 @@
       <default>
         <!-- <keep_free_space_bytes>2147483648</keep_free_space_bytes> -->
       </default>
-
-      <tmp>
-        <path>/tmp/ch-disk/</path>
-      </tmp>
     </disks>
 
     <policies>
@@ -38,10 +36,6 @@
           <default>
             <disk>default</disk>
           </default>
-
-          <s3>
-            <disk>tmp</disk>
-          </s3>
         </volumes>
       </tiered>
     </policies>
