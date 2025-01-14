@@ -14,7 +14,7 @@ services:
       retries: 30
     user: clickhouse
     volumes:
-      - ch1_data:/var/lib/clickhouse
+      - ch1_data1:/var/lib/clickhouse
       - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/config.xml
       - ./config/clickhouse/cluster.xml:/etc/clickhouse-server/config.d/cluster.xml
       - ./config/clickhouse/keeper.xml:/etc/clickhouse-server/config.d/keeper.xml
@@ -129,10 +129,7 @@ services:
       - mailpit_data:/data
 
 volumes:
-  ch1_data:
-  ch2_data:
-  ch3_data:
-  ch4_data:
+  ch1_data1:
   pg_data:
   alertmanager_data:
   prometheus_data:

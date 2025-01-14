@@ -184,16 +184,19 @@ func (p *BaseConsumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 	select {
 	case worker = <-p.workerPool:
 	default:
-		if p.workerCount < maxWorkers {
-			p.workerCount++
-			worker = newConsumerWorker(
-				p.logger,
-				p.pg, p.ch, p.projects,
-				p.transformer,
-				cap(p.queue),
-				p.spanErrorHandler,
-			)
+		if p.workerCount >= maxWorkers {
+			worker = <-p.workerPool
+			break
 		}
+
+		p.workerCount++
+		worker = newConsumerWorker(
+			p.logger,
+			p.pg, p.ch, p.projects,
+			p.transformer,
+			cap(p.queue),
+			p.spanErrorHandler,
+		)
 	}
 
 	spans := make([]*Span, len(src))
@@ -204,9 +207,6 @@ func (p *BaseConsumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 		defer span.End()
 		defer p.wg.Done()
 
-		if worker == nil {
-			worker = <-p.workerPool
-		}
 		worker._processSpans(ctx, spans)
 		p.workerPool <- worker
 	}(worker)
