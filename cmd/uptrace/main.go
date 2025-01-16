@@ -335,52 +335,14 @@ func validateCHCluster(ctx context.Context, conf *bunconf.Config, ch *ch.DB) err
 	return nil
 }
 
-func loadInitialData(lc fx.Lifecycle, conf *bunconf.Config, pg *bun.DB) {
+func loadInitialData(lc fx.Lifecycle, pg *bun.DB, projects *org.ProjectGateway) {
 	lc.Append(fx.StartHook(func(ctx context.Context) error {
-		for i := range conf.Auth.Users {
-			src := &conf.Auth.Users[i]
-
-			user, err := org.NewUserFromConfig(src)
-			if err != nil {
-				return err
-			}
-
-			if err := user.Validate(); err != nil {
-				return err
-			}
-
-			if _, err := pg.NewInsert().
-				Model(user).
-				On("CONFLICT (email) DO UPDATE").
-				Set("name = coalesce(EXCLUDED.name, u.name)").
-				Set("avatar = EXCLUDED.avatar").
-				Set("notify_by_email = EXCLUDED.notify_by_email").
-				Set("auth_token = EXCLUDED.auth_token").
-				Set("updated_at = now()").
-				Returning("*").
-				Exec(ctx); err != nil {
-				return err
-			}
+		ps, err := projects.SelectAll(ctx)
+		if err != nil {
+			return err
 		}
-
-		for i := range conf.Projects {
-			src := &conf.Projects[i]
-
-			dest := &org.Project{
-				ID:                  src.ID,
-				Name:                src.Name,
-				Token:               src.Token,
-				PinnedAttrs:         src.PinnedAttrs,
-				GroupByEnv:          src.GroupByEnv,
-				GroupFuncsByService: src.GroupFuncsByService,
-				PromCompat:          src.PromCompat,
-				ForceSpanName:       src.ForceSpanName,
-			}
-			if err := dest.Init(); err != nil {
-				return err
-			}
-
-			if err := createProject(ctx, pg, dest); err != nil {
+		for i := range ps {
+			if err := createProject(ctx, pg, ps[i]); err != nil {
 				return err
 			}
 		}
@@ -451,26 +413,6 @@ func showInfo(conf *bunconf.Config, logger *slog.Logger) {
 func createProject(ctx context.Context, pg *bun.DB, project *org.Project) error {
 	project.CreatedAt = time.Now()
 	project.UpdatedAt = project.CreatedAt
-
-	if _, err := pg.NewInsert().
-		Model(project).
-		On("CONFLICT (id) DO UPDATE").
-		Set("name = EXCLUDED.name").
-		Set("token = EXCLUDED.token").
-		Set("pinned_attrs = EXCLUDED.pinned_attrs").
-		Set("group_by_env = EXCLUDED.group_by_env").
-		Set("group_funcs_by_service = EXCLUDED.group_funcs_by_service").
-		Set("prom_compat = EXCLUDED.prom_compat").
-		Set("force_span_name = EXCLUDED.force_span_name").
-		Set("updated_at = EXCLUDED.updated_at").
-		Returning("*").
-		Exec(ctx); err != nil {
-		return err
-	}
-
-	if !project.UpdatedAt.Equal(project.CreatedAt) {
-		return nil
-	}
 
 	monitor := &org.ErrorMonitor{
 		BaseMonitor: &org.BaseMonitor{

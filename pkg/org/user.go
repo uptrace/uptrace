@@ -3,14 +3,15 @@ package org
 import (
 	"context"
 	"crypto/md5"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"go.uber.org/fx"
 	"golang.org/x/crypto/bcrypt"
@@ -41,7 +42,10 @@ func NewUserFromConfig(src *bunconf.User) (*User, error) {
 		Avatar:        src.Avatar,
 		NotifyByEmail: src.NotifyByEmail,
 		AuthToken:     src.AuthToken,
+		CreatedAt:     time.Now(),
 	}
+	dest.UpdatedAt = dest.CreatedAt
+
 	if err := dest.SetPassword(src.Password); err != nil {
 		return nil, err
 	}
@@ -101,64 +105,59 @@ func md5s(s string) string {
 type UserGatewayParams struct {
 	fx.In
 
-	bunapp.PostgresParams
+	Conf *bunconf.Config
 }
 
 type UserGateway struct {
 	*UserGatewayParams
+
+	users []*User
 }
 
-func NewUserGateway(p UserGatewayParams) *UserGateway {
-	return &UserGateway{&p}
+func NewUserGateway(p UserGatewayParams) (*UserGateway, error) {
+	var users []*User
+	for id, u := range p.Conf.Auth.Users {
+		user, err := NewUserFromConfig(&u)
+		if err != nil {
+			return nil, err
+		}
+		user.ID = uint64(id + 1)
+
+		if err := user.Validate(); err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	return &UserGateway{
+		UserGatewayParams: &p,
+		users:             users,
+	}, nil
+}
+
+func findUser(users []*User, f func(*User) bool) (*User, error) {
+	idx := slices.IndexFunc(users, f)
+	if idx == -1 {
+		return nil, sql.ErrNoRows
+	}
+	return users[idx], nil
 }
 
 func (g *UserGateway) SelectByID(ctx context.Context, id uint64) (*User, error) {
-	user := new(User)
-	if err := g.PG.NewSelect().
-		Model(user).
-		Where("id = ?", id).
-		Scan(ctx); err != nil {
-		return nil, err
-	}
-	return user, nil
+	return findUser(g.users, func(u *User) bool {
+		return u.ID == id
+	})
 }
 
 func (g *UserGateway) SelectByEmail(ctx context.Context, email string) (*User, error) {
-	user := new(User)
-	if err := g.PG.NewSelect().
-		Model(user).
-		Where("email = ?", email).
-		Scan(ctx); err != nil {
-		return nil, err
-	}
-	return user, nil
+	return findUser(g.users, func(u *User) bool {
+		return u.Email == email
+	})
 }
 
 func (g *UserGateway) SelectByToken(ctx context.Context, token string) (*User, error) {
-	user := new(User)
-	if err := g.PG.NewSelect().
-		Model(user).
-		Where("auth_token = ?", token).
-		Scan(ctx); err != nil {
-		return nil, err
-	}
-	return user, nil
-}
-
-func (g *UserGateway) GetOrCreate(ctx context.Context, user *User) error {
-	if err := user.Validate(); err != nil {
-		return err
-	}
-
-	if _, err := g.PG.NewInsert().
-		Model(user).
-		On("CONFLICT (email) DO UPDATE").
-		Set("name = coalesce(EXCLUDED.name, u.name)").
-		Set("avatar = EXCLUDED.avatar").
-		Set("updated_at = now()").
-		Returning("*").
-		Exec(ctx); err != nil {
-		return err
-	}
-	return nil
+	return findUser(g.users, func(u *User) bool {
+		return u.AuthToken == token
+	})
 }

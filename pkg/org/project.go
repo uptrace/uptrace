@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/uptrace/bun"
-	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunconf"
+	"go.uber.org/fx"
 )
 
 type Project struct {
@@ -27,6 +28,23 @@ type Project struct {
 
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+func NewProjectFromConfig(src *bunconf.Project) (*Project, error) {
+	p := &Project{
+		ID:                  src.ID,
+		Name:                src.Name,
+		Token:               src.Token,
+		PinnedAttrs:         src.PinnedAttrs,
+		GroupByEnv:          src.GroupByEnv,
+		GroupFuncsByService: src.GroupFuncsByService,
+		PromCompat:          src.PromCompat,
+		ForceSpanName:       src.ForceSpanName,
+		CreatedAt:           time.Now(),
+	}
+	p.UpdatedAt = p.CreatedAt
+
+	return p, nil
 }
 
 func (p *Project) Init() error {
@@ -54,24 +72,51 @@ func (p *Project) DSN(conf *bunconf.Config) string {
 	return BuildDSN(conf, p.Token)
 }
 
+type ProjectGatewayParams struct {
+	fx.In
+
+	Conf *bunconf.Config
+}
 type ProjectGateway struct {
-	*bunapp.PostgresParams
+	*ProjectGatewayParams
+
+	projects []*Project
 }
 
-func NewProjectGateway(p bunapp.PostgresParams) *ProjectGateway {
-	return &ProjectGateway{&p}
+func NewProjectGateway(p ProjectGatewayParams) (*ProjectGateway, error) {
+	var projects []*Project
+
+	for _, src := range p.Conf.Projects {
+		p, err := NewProjectFromConfig(&src)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := p.Init(); err != nil {
+			return nil, err
+		}
+
+		projects = append(projects, p)
+	}
+
+	return &ProjectGateway{
+		ProjectGatewayParams: &p,
+		projects:             projects,
+	}, nil
+}
+
+func findProject(projects []*Project, f func(*Project) bool) (*Project, error) {
+	idx := slices.IndexFunc(projects, f)
+	if idx == -1 {
+		return nil, sql.ErrNoRows
+	}
+	return projects[idx], nil
 }
 
 func (g *ProjectGateway) SelectByID(ctx context.Context, projectID uint32) (*Project, error) {
-	project := new(Project)
-	if err := g.PG.NewSelect().
-		Model(project).
-		Where("id = ?", projectID).
-		Limit(1).
-		Scan(ctx); err != nil {
-		return nil, err
-	}
-	return project, nil
+	return findProject(g.projects, func(p *Project) bool {
+		return p.ID == projectID
+	})
 }
 
 func (g *ProjectGateway) SelectByDSN(ctx context.Context, dsnStr string) (*Project, error) {
@@ -96,23 +141,11 @@ func (g *ProjectGateway) SelectByDSN(ctx context.Context, dsnStr string) (*Proje
 }
 
 func (g *ProjectGateway) SelectByToken(ctx context.Context, token string) (*Project, error) {
-	project := new(Project)
-	if err := g.PG.NewSelect().
-		Model(project).
-		Where("token = ?", token).
-		Limit(1).
-		Scan(ctx); err != nil {
-		return nil, err
-	}
-	return project, nil
+	return findProject(g.projects, func(p *Project) bool {
+		return p.Token == token
+	})
 }
 
 func (g *ProjectGateway) SelectAll(ctx context.Context) ([]*Project, error) {
-	projects := make([]*Project, 0)
-	if err := g.PG.NewSelect().
-		Model(&projects).
-		Scan(ctx); err != nil {
-		return nil, err
-	}
-	return projects, nil
+	return g.projects, nil
 }
