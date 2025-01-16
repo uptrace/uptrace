@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
-	"strings"
 	"time"
 
 	collectormetricspb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
@@ -185,14 +184,6 @@ func (s *MetricsServiceServer) process(
 				scopeAttrs = resource
 			}
 
-			if sm.Scope != nil && sm.Scope.Name != "" {
-				if strings.Contains(sm.Scope.Name, "otelcol") {
-					p.hasCollectorMetrics = true
-				} else {
-					p.hasAppMetrics = true
-				}
-			}
-
 			for _, metric := range sm.Metrics {
 				if metric == nil {
 					continue
@@ -227,25 +218,9 @@ type otlpProcessor struct {
 
 	project     *org.Project
 	metricIDMap map[MetricKey]struct{}
-
-	hasCollectorMetrics bool
-	hasAppMetrics       bool
 }
 
-func (p *otlpProcessor) close(ctx context.Context) {
-	if p.hasCollectorMetrics {
-		org.CreateAchievementOnce(ctx, p.logger, p.pg, &org.Achievement{
-			ProjectID: p.project.ID,
-			Name:      org.AchievInstallCollector,
-		})
-	}
-	if p.hasAppMetrics {
-		org.CreateAchievementOnce(ctx, p.logger, p.pg, &org.Achievement{
-			ProjectID: p.project.ID,
-			Name:      org.AchievConfigureMetrics,
-		})
-	}
-}
+func (p *otlpProcessor) close(ctx context.Context) {}
 
 func (p *otlpProcessor) otlpGauge(
 	ctx context.Context,

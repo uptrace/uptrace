@@ -1,7 +1,6 @@
 package org
 
 import (
-	"github.com/vmihailenco/taskq/v4"
 	"go.uber.org/fx"
 
 	"github.com/uptrace/uptrace/pkg/httperror"
@@ -13,15 +12,12 @@ var (
 	ErrProjectNotFound = httperror.NotFound("project not found")
 )
 
-var CreateErrorAlertTask = taskq.NewTask("create-error-alert")
-
 type TrackableModel string
 
 const (
-	ModelUser      TrackableModel = "User"
-	ModelProject   TrackableModel = "Project"
-	ModelSpan      TrackableModel = "Span"
-	ModelSpanGroup TrackableModel = "SpanGroup"
+	ModelUser    TrackableModel = "User"
+	ModelProject TrackableModel = "Project"
+	ModelSpan    TrackableModel = "Span"
 )
 
 var Module = fx.Module("org",
@@ -35,16 +31,10 @@ var Module = fx.Module("org",
 		NewUserHandler,
 		NewProjectHandler,
 		NewUsageHandler,
-		NewPinnedFacetHandler,
-		NewAchievementHandler,
-		NewAnnotationHandler,
 	),
 	fx.Invoke(
 		registerUserHandler,
 		registerProjectHandler,
 		registerUsageHandler,
-		registerPinnedFacetHandler,
-		registerAchievementHandler,
-		registerAnnotationHandler,
 	),
 )

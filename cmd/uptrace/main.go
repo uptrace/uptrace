@@ -39,7 +39,6 @@ import (
 	uptracego "github.com/uptrace/uptrace-go/uptrace"
 	"github.com/uptrace/uptrace/cmd/uptrace/command"
 	"github.com/uptrace/uptrace/pkg"
-	"github.com/uptrace/uptrace/pkg/alerting"
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunapp/chmigrations"
 	"github.com/uptrace/uptrace/pkg/bunapp/pgmigrations"
@@ -98,7 +97,6 @@ var serveCommand = &cli.Command{
 	Action: func(c *cli.Context) error {
 		fxApp, err := bunapp.New(c.String("config"),
 			org.Module,
-			alerting.Module,
 			metrics.Module,
 			tracing.Module,
 

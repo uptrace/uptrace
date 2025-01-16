@@ -117,7 +117,6 @@ type AttrKeyItem struct {
 
 func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
-	user := org.UserFromContext(ctx)
 
 	f := new(AttrFilter)
 	f.TimeLT = time.Now()
@@ -157,20 +156,11 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 		return err
 	}
 
-	var pinnedAttrMap map[string]bool
-	if user != nil {
-		pinnedAttrMap, err = org.SelectPinnedFacetMap(ctx, h.PG, user.ID)
-		if err != nil {
-			return err
-		}
-	}
-
 	items := make([]*AttrKeyItem, len(attrKeys))
 
 	for i, attrKey := range attrKeys {
 		items[i] = &AttrKeyItem{
-			Value:  attrKey,
-			Pinned: pinnedAttrMap[attrKey],
+			Value: attrKey,
 		}
 	}
 

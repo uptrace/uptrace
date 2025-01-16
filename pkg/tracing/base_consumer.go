@@ -191,7 +191,6 @@ func (p *BaseConsumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 				p.pg, p.ch, p.projects,
 				p.transformer,
 				cap(p.queue),
-				p.spanErrorHandler,
 			)
 		}
 	}
@@ -212,28 +211,12 @@ func (p *BaseConsumer[IT, DT]) processSpans(ctx context.Context, src []*Span) {
 	}(worker)
 }
 
-func (p *BaseConsumer[IT, DT]) spanErrorHandler(ctx context.Context, span *Span) {
-	job := org.CreateErrorAlertTask.NewJob(
-		span.ProjectID,
-		span.GroupID,
-		span.TraceID,
-		span.ID,
-	)
-	job.OnceInPeriod(15*time.Minute, span.GroupID)
-	job.SetDelay(time.Minute)
-
-	if err := p.mainQueue.AddJob(ctx, job); err != nil {
-		p.logger.Error("MainQueue.Add failed", zap.Error(err))
-	}
-}
-
 type consumerWorker[IT IndexRecord, DT DataRecord] struct {
-	logger           *otelzap.Logger
-	pg               *bun.DB
-	ch               *ch.DB
-	projectsGW       *org.ProjectGateway
-	transformer      transformer[IT, DT]
-	spanErrorHandler func(context.Context, *Span)
+	logger      *otelzap.Logger
+	pg          *bun.DB
+	ch          *ch.DB
+	projectsGW  *org.ProjectGateway
+	transformer transformer[IT, DT]
 
 	projects     map[uint32]*org.Project
 	digest       *xxhash.Digest
@@ -248,19 +231,17 @@ func newConsumerWorker[IT IndexRecord, DT DataRecord](
 	projects *org.ProjectGateway,
 	transformer transformer[IT, DT],
 	bufSize int,
-	spanErrorHandler func(context.Context, *Span),
 ) *consumerWorker[IT, DT] {
 	return &consumerWorker[IT, DT]{
-		logger:           logger,
-		pg:               pg,
-		ch:               ch,
-		projectsGW:       projects,
-		transformer:      transformer,
-		spanErrorHandler: spanErrorHandler,
-		projects:         make(map[uint32]*org.Project),
-		digest:           xxhash.New(),
-		indexedSpans:     make([]IT, 0, bufSize),
-		dataSpans:        make([]DT, 0, bufSize),
+		logger:       logger,
+		pg:           pg,
+		ch:           ch,
+		projectsGW:   projects,
+		transformer:  transformer,
+		projects:     make(map[uint32]*org.Project),
+		digest:       xxhash.New(),
+		indexedSpans: make([]IT, 0, bufSize),
+		dataSpans:    make([]DT, 0, bufSize),
 	}
 }
 
@@ -281,8 +262,6 @@ func (p *consumerWorker[IT, DT]) appendData(span *Span) *DT {
 }
 
 func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Span) {
-	seenErrors := make(map[uint64]bool) // basic deduplication
-
 	defer func() {
 		clear(p.indexedSpans)
 		p.indexedSpans = p.indexedSpans[:0]
@@ -326,11 +305,6 @@ func (p *consumerWorker[IT, DT]) _processSpans(ctx context.Context, spans []*Spa
 
 			_ = p.appendIndexed(eventSpan)
 			_ = p.appendData(eventSpan)
-
-			if isErrorSystem(eventSpan.System) && !seenErrors[eventSpan.GroupID] {
-				seenErrors[eventSpan.GroupID] = true
-				p.spanErrorHandler(ctx, eventSpan)
-			}
 		}
 
 		span.Events = nil

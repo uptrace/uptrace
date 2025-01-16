@@ -61,7 +61,6 @@ type AttrKeyItem struct {
 
 func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) error {
 	ctx := req.Context()
-	user := org.UserFromContext(ctx)
 
 	f := &SpanFilter{}
 	if err := DecodeSpanFilter(req, f); err != nil {
@@ -81,16 +80,10 @@ func (h *AttrHandler) AttrKeys(w http.ResponseWriter, req bunrouter.Request) err
 		}
 	}
 
-	pinnedAttrMap, err := org.SelectPinnedFacetMap(ctx, h.PG, user.ID)
-	if err != nil {
-		return err
-	}
-
 	items := make([]*AttrKeyItem, len(attrKeys))
 	for i, attrKey := range attrKeys {
 		items[i] = &AttrKeyItem{
-			Value:  attrKey,
-			Pinned: pinnedAttrMap[attrKey],
+			Value: attrKey,
 		}
 	}
 
