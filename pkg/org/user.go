@@ -161,31 +161,3 @@ func (g *UserGateway) SelectByToken(ctx context.Context, token string) (*User, e
 		return u.AuthToken == token
 	})
 }
-
-func (g *UserGateway) GetOrCreate(ctx context.Context, user *User) error {
-	if err := user.Validate(); err != nil {
-		return err
-	}
-
-	idx := slices.IndexFunc(g.users, func(u *User) bool {
-		return u.Email == user.Email
-	})
-	if idx == -1 {
-		user.ID = uint64(len(g.users))
-		user.CreatedAt = time.Now()
-		g.users = append(g.users, user)
-	} else {
-		old := g.users[idx]
-		user.ID = old.ID
-		user.Avatar = old.Avatar
-		user.UpdatedAt = time.Now()
-		if user.Name == "" {
-			user.Name = old.Name
-		}
-		g.users[idx] = user
-	}
-
-	// TODO save config?
-
-	return nil
-}

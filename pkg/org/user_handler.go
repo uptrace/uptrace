@@ -1,7 +1,6 @@
 package org
 
 import (
-	"database/sql"
 	"net/http"
 	"time"
 
@@ -20,10 +19,11 @@ import (
 type UserHandlerParams struct {
 	fx.In
 
-	Logger *otelzap.Logger
-	Conf   *bunconf.Config
-	PG     *bun.DB
-	Projects     *ProjectGateway
+	Logger   *otelzap.Logger
+	Conf     *bunconf.Config
+	PG       *bun.DB
+	Projects *ProjectGateway
+	Users    *UserGateway
 }
 
 type UserHandler struct {
@@ -69,7 +69,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 		return err
 	}
 
-	user, err := h.userByEmail(in.Email)
+	user, err := h.Users.SelectByEmail(req.Context(), in.Email)
 	if err != nil {
 		return err
 	}
@@ -90,16 +90,6 @@ func (h *UserHandler) Login(w http.ResponseWriter, req bunrouter.Request) error 
 	http.SetCookie(w, cookie)
 
 	return nil
-}
-
-func (h *UserHandler) userByEmail(email string) (*User, error) {
-	for i := range h.Conf.Auth.Users {
-		user := &h.Conf.Auth.Users[i]
-		if user.Email == email {
-			return NewUserFromConfig(user)
-		}
-	}
-	return nil, sql.ErrNoRows
 }
 
 func (h *UserHandler) Logout(w http.ResponseWriter, req bunrouter.Request) error {

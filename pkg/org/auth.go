@@ -13,7 +13,7 @@ import (
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/uptrace/pkg/bunconf"
 	"github.com/uptrace/uptrace/pkg/httperror"
-	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/metadata"
 
@@ -133,11 +133,6 @@ func (m *Middleware) userFromRequest(req bunrouter.Request) (*User, error) {
 			span.SetAttributes(
 				semconv.EnduserIDKey.String(user.Email),
 			)
-		}
-
-		if err := m.Users.GetOrCreate(ctx, user); err != nil {
-			m.Logger.Error("Users.GetOrCreate failed", zap.Error(err))
-			continue
 		}
 
 		return user, nil
