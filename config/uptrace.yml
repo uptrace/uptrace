@@ -79,7 +79,8 @@ projects:
 
 auth:
   users:
-    - name: John Doe
+    - id: 1
+      name: John Doe
       email: uptrace@localhost
       password: uptrace
       notify_by_email: true

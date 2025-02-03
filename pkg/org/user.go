@@ -37,6 +37,7 @@ type User struct {
 
 func NewUserFromConfig(src *bunconf.User) (*User, error) {
 	dest := &User{
+		ID:            src.ID,
 		Email:         src.Email,
 		Name:          src.Name,
 		Avatar:        src.Avatar,
@@ -102,26 +103,25 @@ func md5s(s string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-type UserGatewayParams struct {
-	fx.In
-
-	Conf *bunconf.Config
-}
-
 type UserGateway struct {
 	*UserGatewayParams
 
 	users []*User
 }
 
+type UserGatewayParams struct {
+	fx.In
+
+	Conf *bunconf.Config
+}
+
 func NewUserGateway(p UserGatewayParams) (*UserGateway, error) {
 	var users []*User
-	for id, u := range p.Conf.Auth.Users {
+	for _, u := range p.Conf.Auth.Users {
 		user, err := NewUserFromConfig(&u)
 		if err != nil {
 			return nil, err
 		}
-		user.ID = uint64(id + 1)
 
 		if err := user.Validate(); err != nil {
 			return nil, err

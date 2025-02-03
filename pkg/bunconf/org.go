@@ -1,6 +1,7 @@
 package bunconf
 
 type User struct {
+	ID       uint64 `json:"id"`
 	Email    string `yaml:"email"`
 	Password string `yaml:"password"`
 

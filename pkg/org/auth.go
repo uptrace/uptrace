@@ -70,11 +70,8 @@ type Middleware struct {
 func NewMiddleware(p MiddlewareParams) *Middleware {
 	var userProviders []UserProvider
 
-	if len(p.Conf.Auth.Users) > 0 || len(p.Conf.Auth.OIDC) > 0 {
+	if len(p.Conf.Auth.Users) > 0 {
 		userProviders = append(userProviders, NewJWTProvider(p.Conf.SecretKey))
-	}
-	for _, cloudflare := range p.Conf.Auth.Cloudflare {
-		userProviders = append(userProviders, NewCloudflareProvider(cloudflare))
 	}
 
 	return &Middleware{
