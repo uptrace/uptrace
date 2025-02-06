@@ -11,7 +11,6 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunotel"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
 	"github.com/uptrace/uptrace/pkg/metrics/mql/ast"
-	"github.com/uptrace/uptrace/pkg/org"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
@@ -170,7 +169,6 @@ type DashBuilder struct {
 	dash       *Dashboard
 	tableItems []GridItem
 	gridRows   []*GridRow
-	monitors   []*org.MetricMonitor
 }
 
 func NewDashBuilder(
@@ -207,16 +205,6 @@ func (b *DashBuilder) Build() error {
 		}
 		if len(gridRow.Items) > 0 {
 			b.gridRows = append(b.gridRows, gridRow)
-		}
-	}
-
-	for _, tpl := range b.tpl.Monitors {
-		monitor, err := b.monitor(tpl)
-		if err != nil {
-			return fmt.Errorf("invalid monitor: %w", err)
-		}
-		if b.hasMetrics(monitor.Params.Metrics) {
-			b.monitors = append(b.monitors, monitor)
 		}
 	}
 
@@ -397,22 +385,6 @@ func (b *DashBuilder) gridItem(tpl any) (GridItem, error) {
 	}
 }
 
-func (b *DashBuilder) monitor(tpl *MetricMonitorTpl) (*org.MetricMonitor, error) {
-	monitor := org.NewMetricMonitor()
-	if err := tpl.Populate(monitor); err != nil {
-		return nil, err
-	}
-
-	monitor.ProjectID = b.projectID
-	monitor.NotifyEveryoneByEmail = true
-
-	if err := monitor.Validate(); err != nil {
-		return nil, err
-	}
-
-	return monitor, nil
-}
-
 func (b *DashBuilder) hasGridItemMetrics(gridItem GridItem) bool {
 	switch gridItem := gridItem.(type) {
 	case *ChartGridItem:
@@ -533,16 +505,6 @@ func (b *DashBuilder) Save(
 		}
 		if err := InsertGridItems(ctx, tx, gridRow.Items); err != nil {
 			return err
-		}
-	}
-
-	if withMonitors && existingDash == nil {
-		for _, monitor := range b.monitors {
-			monitor.ProjectID = b.projectID
-
-			if err := org.InsertMonitor(ctx, tx, monitor); err != nil {
-				return err
-			}
 		}
 	}
 

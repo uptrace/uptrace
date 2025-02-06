@@ -41,6 +41,7 @@ func (p *JWTProvider) Auth(req bunrouter.Request) (*User, error) {
 	}
 
 	return &User{
+		ID:            123,
 		Email:         email,
 		NotifyByEmail: true,
 	}, nil

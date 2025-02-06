@@ -411,28 +411,6 @@ func showInfo(conf *bunconf.Config, logger *slog.Logger) {
 func createProject(ctx context.Context, pg *bun.DB, project *org.Project) error {
 	project.CreatedAt = time.Now()
 	project.UpdatedAt = project.CreatedAt
-
-	monitor := &org.ErrorMonitor{
-		BaseMonitor: &org.BaseMonitor{
-			ProjectID:             project.ID,
-			Name:                  "Notify on all errors",
-			State:                 org.MonitorActive,
-			NotifyEveryoneByEmail: true,
-
-			Type: org.MonitorError,
-		},
-		Params: org.ErrorMonitorParams{
-			NotifyOnNewErrors:       true,
-			NotifyOnRecurringErrors: true,
-			Matchers:                make([]org.AttrMatcher, 0),
-		},
-	}
-	if _, err := pg.NewInsert().
-		Model(monitor).
-		Exec(ctx); err != nil {
-		return err
-	}
-
 	return nil
 }
 

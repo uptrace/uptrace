@@ -8,9 +8,7 @@ import (
 	"time"
 
 	"github.com/uptrace/uptrace"
-	"github.com/uptrace/uptrace/pkg/bunutil"
 	"github.com/uptrace/uptrace/pkg/metrics/mql"
-	"github.com/uptrace/uptrace/pkg/org"
 	"gopkg.in/yaml.v3"
 )
 
@@ -83,9 +81,8 @@ type DashboardTpl struct {
 	TableGridItems []*GridItemTpl `yaml:"table_grid_items,omitempty"`
 	Table          []DashTableTpl `yaml:"table"`
 
-	IncludeGridRows []string            `yaml:"include_grid_rows,omitempty"`
-	GridRows        []*GridRowTpl       `yaml:"grid_rows"`
-	Monitors        []*MetricMonitorTpl `yaml:"monitors,omitempty"`
+	IncludeGridRows []string      `yaml:"include_grid_rows,omitempty"`
+	GridRows        []*GridRowTpl `yaml:"grid_rows"`
 }
 
 type DashTableTpl struct {
@@ -465,176 +462,6 @@ func (tpl *GaugeGridItemTpl) Populate(item *GaugeGridItem) error {
 
 	item.Params.Template = tpl.Template
 	item.Params.ValueMappings = tpl.ValueMappings
-
-	return nil
-}
-
-type MonitorTpl struct {
-	Value any // *MetricMonitorTpl | *ErrorMonitorTpl
-}
-
-func NewMonitorTpl(monitor org.Monitor) *MonitorTpl {
-	var tpl any
-	switch monitor := monitor.(type) {
-	case *org.MetricMonitor:
-		tpl = NewMetricMonitorTpl(monitor)
-	case *org.ErrorMonitor:
-		tpl = NewErrorMonitorTpl(monitor)
-	default:
-		panic(fmt.Errorf("unsupported grid monitor type: %T", monitor))
-	}
-	return &MonitorTpl{
-		Value: tpl,
-	}
-}
-
-var _ yaml.Marshaler = (*MonitorTpl)(nil)
-
-func (tpl *MonitorTpl) MarshalYAML() (interface{}, error) {
-	return tpl.Value, nil
-}
-
-var _ yaml.Unmarshaler = (*MonitorTpl)(nil)
-
-func (tpl *MonitorTpl) UnmarshalYAML(node *yaml.Node) error {
-	var in struct {
-		Type org.MonitorType `yaml:"type"`
-	}
-
-	if err := node.Decode(&in); err != nil {
-		return err
-	}
-
-	switch in.Type {
-	case "", org.MonitorMetric:
-		tpl.Value = new(MetricMonitorTpl)
-		if err := node.Decode(tpl.Value); err != nil {
-			return err
-		}
-		return nil
-	case org.MonitorError:
-		tpl.Value = new(ErrorMonitorTpl)
-		if err := node.Decode(tpl.Value); err != nil {
-			return err
-		}
-		return nil
-	default:
-		return fmt.Errorf("unsupported monitor type: %q", in.Type)
-	}
-}
-
-type BaseMonitorTpl struct {
-	Name string `yaml:"name"`
-
-	Type org.MonitorType `yaml:"type,omitempty"`
-
-	NotifyEveryoneByEmail bool `yaml:"notify_everyone_by_email"`
-}
-
-func (tpl *BaseMonitorTpl) initFrom(monitor *org.BaseMonitor) {
-	tpl.Name = monitor.Name
-	tpl.NotifyEveryoneByEmail = monitor.NotifyEveryoneByEmail
-}
-
-func (tpl *BaseMonitorTpl) Populate(monitor *org.BaseMonitor) error {
-	monitor.Name = tpl.Name
-	monitor.NotifyEveryoneByEmail = tpl.NotifyEveryoneByEmail
-	return nil
-}
-
-type MetricMonitorTpl struct {
-	BaseMonitorTpl `yaml:",inline"`
-
-	Metrics    []string `yaml:"metrics"`
-	Query      []string `yaml:"query"`
-	Column     string   `yaml:"column"`
-	ColumnUnit string   `yaml:"column_unit,omitempty"`
-
-	MinAllowedValue bunutil.NullFloat64 `yaml:"min_allowed_value,omitempty"`
-	MaxAllowedValue bunutil.NullFloat64 `yaml:"max_allowed_value,omitempty"`
-
-	CheckNumPoint int           `yaml:"check_num_point"`
-	TimeOffset    time.Duration `yaml:"time_offset,omitempty"`
-}
-
-func NewMetricMonitorTpl(monitor *org.MetricMonitor) *MetricMonitorTpl {
-	tpl := new(MetricMonitorTpl)
-	tpl.BaseMonitorTpl.initFrom(monitor.BaseMonitor)
-	tpl.BaseMonitorTpl.Type = org.MonitorMetric
-
-	tpl.Metrics = make([]string, len(monitor.Params.Metrics))
-	for i, metric := range monitor.Params.Metrics {
-		tpl.Metrics[i] = metric.String()
-	}
-
-	tpl.Query = mql.SplitQuery(monitor.Params.Query)
-	tpl.Column = monitor.Params.Column
-	tpl.ColumnUnit = monitor.Params.ColumnUnit
-
-	tpl.MinAllowedValue = monitor.Params.MinAllowedValue
-	tpl.MaxAllowedValue = monitor.Params.MaxAllowedValue
-
-	tpl.CheckNumPoint = monitor.Params.CheckNumPoint
-	tpl.TimeOffset = monitor.Params.TimeOffset
-
-	return tpl
-}
-
-func (tpl *MetricMonitorTpl) Populate(monitor *org.MetricMonitor) error {
-	if err := tpl.BaseMonitorTpl.Populate(monitor.BaseMonitor); err != nil {
-		return err
-	}
-
-	metrics, err := parseMetrics(tpl.Metrics)
-	if err != nil {
-		return err
-	}
-
-	monitor.State = org.MonitorActive
-
-	monitor.Params.Metrics = metrics
-	monitor.Params.Query = mql.JoinQuery(tpl.Query)
-	monitor.Params.Column = tpl.Column
-	monitor.Params.ColumnUnit = tpl.ColumnUnit
-
-	monitor.Params.CheckNumPoint = tpl.CheckNumPoint
-	monitor.Params.TimeOffset = tpl.TimeOffset
-
-	monitor.Params.MinAllowedValue = tpl.MinAllowedValue
-	monitor.Params.MaxAllowedValue = tpl.MaxAllowedValue
-
-	return nil
-}
-
-type ErrorMonitorTpl struct {
-	BaseMonitorTpl `yaml:",inline"`
-
-	NotifyOnNewErrors       bool              `yaml:"notify_on_new_errors"`
-	NotifyOnRecurringErrors bool              `yaml:"notify_on_recurring_errors"`
-	Matchers                []org.AttrMatcher `yaml:"matchers"`
-}
-
-func NewErrorMonitorTpl(monitor *org.ErrorMonitor) *ErrorMonitorTpl {
-	tpl := new(ErrorMonitorTpl)
-	tpl.BaseMonitorTpl.initFrom(monitor.BaseMonitor)
-
-	tpl.BaseMonitorTpl.Type = org.MonitorError
-
-	tpl.NotifyOnNewErrors = monitor.Params.NotifyOnNewErrors
-	tpl.NotifyOnRecurringErrors = monitor.Params.NotifyOnRecurringErrors
-	tpl.Matchers = monitor.Params.Matchers
-
-	return tpl
-}
-
-func (tpl *ErrorMonitorTpl) Populate(monitor *org.ErrorMonitor) error {
-	if err := tpl.BaseMonitorTpl.Populate(monitor.BaseMonitor); err != nil {
-		return err
-	}
-
-	monitor.Params.NotifyOnNewErrors = tpl.NotifyOnNewErrors
-	monitor.Params.NotifyOnRecurringErrors = tpl.NotifyOnRecurringErrors
-	monitor.Params.Matchers = tpl.Matchers
 
 	return nil
 }
