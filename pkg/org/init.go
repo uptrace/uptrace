@@ -24,6 +24,11 @@ var Module = fx.Module("org",
 	fx.Provide(
 		NewProjectGateway,
 		NewUserGateway,
+		fx.Annotate(
+			NewJWTProvider,
+			fx.As(new(UserProvider)),
+			fx.ResultTags(`group:"user_providers"`),
+		),
 	),
 	fx.Provide(
 		fx.Private,

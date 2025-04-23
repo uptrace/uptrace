@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.uber.org/fx"
 	"sync"
 	"time"
 
@@ -21,10 +22,21 @@ type UserProvider interface {
 
 type JWTProvider struct {
 	secretKey string
+	Users     *UserGateway
 }
 
-func NewJWTProvider(secretKey string) *JWTProvider {
-	return &JWTProvider{secretKey: secretKey}
+type JWTProviderParams struct {
+	fx.In
+
+	Conf  *bunconf.Config
+	Users *UserGateway
+}
+
+func NewJWTProvider(p JWTProviderParams) *JWTProvider {
+	return &JWTProvider{
+		secretKey: p.Conf.SecretKey,
+		Users:     p.Users,
+	}
 }
 
 var _ UserProvider = (*JWTProvider)(nil)
@@ -40,11 +52,12 @@ func (p *JWTProvider) Auth(req bunrouter.Request) (*User, error) {
 		return nil, err
 	}
 
-	return &User{
-		ID:            123,
-		Email:         email,
-		NotifyByEmail: true,
-	}, nil
+	user, err := p.Users.SelectByEmail(req.Context(), email)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 var jwtSigningMethod = jwt.SigningMethodHS256
