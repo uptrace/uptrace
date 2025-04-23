@@ -1,7 +1,12 @@
 <?xml version="1.0"?>
 <clickhouse>
   <profiles>
-    <default>
-    </default>
+    <uptrace>
+      <password>uptrace</password>
+
+      <networks>
+        <ip>::/0</ip>
+      </networks>
+    </uptrace>
   </profiles>
 </clickhouse>
