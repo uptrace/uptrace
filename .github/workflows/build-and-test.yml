@@ -15,31 +15,16 @@ jobs:
         with:
           submodules: true
       - name: Setup Go
-        uses: actions/setup-go@v2.1.4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      - name: Setup Go Environment
-        run: |
-          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-      - name: Cache Go
-        id: module-cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            /home/runner/go/pkg/mod
-          key: v1-go-pkg-mod-${{ runner.os }}-${{ hashFiles('**/go.mod', '**/go.sum') }}
-      - name: Cache Tools
-        id: tool-cache
-        uses: actions/cache@v2
-        with:
-          path: /home/runner/go/bin
-          key: v1-tools-${{ runner.os }}-${{ hashFiles('./pkg/internal/tools/go.mod') }}
+          check-latest: true
+          cache-dependency-path: |
+            go.sum
+            ./pkg/internal/tools/go.sum
       - name: Install dependencies
-        if: steps.module-cache.outputs.hit != 'true'
         run: make gomoddownload
       - name: Install Tools
-        if: steps.tool-cache.outputs.cache-hit != 'true'
         run: make install-tools
 
   build-vue:
@@ -61,7 +46,7 @@ jobs:
       - name: Compile Vue
         run: make uptrace-vue
       - name: Upload Vue Dist
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: uptrace-vue
           path: ./vue/dist/*
@@ -82,33 +67,26 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: true
-      - name: Setup Go Environment
-        run: |
-          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
       - name: Setup Go
-        uses: actions/setup-go@v2.1.4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      - name: Cache Go
-        id: module-cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            /home/runner/go/pkg/mod
-          key: v1-go-pkg-mod-${{ runner.os }}-${{ hashFiles('**/go.mod', '**/go.sum') }}
+          check-latest: true
+          cache-dependency-path: |
+            go.sum
       - name: Download Vue Dist
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: uptrace-vue
           path: ./vue/dist/
       - name: Build Binaries for ${{ matrix.binary }}
         run: make uptrace-${{ matrix.binary }}
       - name: Upload Binaries
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4.6.2
         with:
-          name: uptrace-binaries
+          name: uptrace_${{ matrix.binary }}
           path: ./bin/*
+          if-no-files-found: error
 
   build-package:
     runs-on: ubuntu-latest
@@ -127,9 +105,9 @@ jobs:
       - name: Install fpm
         run: gem install --no-document fpm -v 1.15.1
       - name: Download Binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
-          name: uptrace-binaries
+          pattern: uptrace_*
           path: bin/
       - run: chmod +x bin/*
       - name: Set Release Tag
@@ -144,10 +122,11 @@ jobs:
           ./internal/packaging/fpm/${{ matrix.package_type }}/build.sh "${{
           steps.github_tag.outputs.tag }}" "arm64" "./dist/"
       - name: Upload Packages
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4.6.2
         with:
-          name: uptrace-packages
+          name: uptrace-packages-${{ matrix.package_type }}
           path: ./dist/*
+          if-no-files-found: error
 
   publish-dev:
     runs-on: ubuntu-latest
@@ -163,9 +142,9 @@ jobs:
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v1
       - name: Download Binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
-          name: uptrace-binaries
+          pattern: uptrace_*
           path: ./bin/
       - name: Add Permissions to binaries
         run: chmod -R +x ./bin
@@ -191,31 +170,24 @@ jobs:
       - name: Set up Docker buildx
         uses: docker/setup-buildx-action@v1
       - name: Setup Go
-        uses: actions/setup-go@v2.1.4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-      - name: Setup Go Environment
-        run: |
-          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-          mkdir bin/
-      - name: Cache Tools
-        id: tool-cache
-        uses: actions/cache@v2
-        with:
-          path: /home/runner/go/bin
-          key: v1-tools-${{ runner.os }}-${{ hashFiles('./pkg/internal/tools/go.mod') }}
+          check-latest: true
+          cache-dependency-path: |
+            go.sum
+            ./pkg/internal/tools/go.sum
       - name: Download Binaries
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
-          name: uptrace-binaries
+          pattern: uptrace_*
           path: ./bin/
       - name: Add Permissions to binaries
         run: chmod -R +x ./bin
       - name: Download Packages
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
-          name: uptrace-packages
+          pattern: uptrace-packages-*
           path: ./dist/
       - name: Add Permissions to packages
         run: chmod -R +x ./dist
