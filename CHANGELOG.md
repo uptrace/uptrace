@@ -2,6 +2,36 @@
 
 To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 
+## v2.0.0 - Unreleased
+
+### Breaking
+
+- ClickHouse and PostgreSQL schemas have been completely rewritten.
+- Uptrace now requires Redis for in-memory caching.
+- Some configuration options have been changed.
+
+The recommended upgrade path is to run a separate Uptrace v2.x instance in parallel with v1.x, write
+data to both instances, and switch when you have enough data in the new instance. This is more more
+or less what we do when deploying major changes to Uptrace Cloud.
+
+### Features
+
+- You can now create multiple projects and users using UI.
+- Added support for data [transformations](https://uptrace.dev/features/transformations) without
+- Added support for Let's Encrypt certificates.
+- Uptrace now supports large trace visualization (10k-1m spans). using Otel Collector.
+- Uptrace now uses the ClickHouse
+  [JSON](https://clickhouse.com/docs/sql-reference/data-types/newjson) type to index span/log
+  attributes. ClickHouse v23.3 is the minimum supported version.
+- SSO and 2FA features are only available with a license.
+- Added ansible deployment guide.
+
+### Improvements
+
+- You can now set separate TTLs for spans, logs, and events data.
+- Metrics performance is improved and data storage requirements are reduced.
+- Some tracing data is pre-aggregated to improve query performance.
+
 ## v1.7.3 - May 8 2024
 
 - `_count` is no longer an alias for `sum(_count)`, but instead points to the column. Use
