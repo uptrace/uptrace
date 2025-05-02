@@ -54,11 +54,12 @@ func ContextWithProject(ctx context.Context, project *Project) context.Context {
 type MiddlewareParams struct {
 	fx.In
 
-	Logger   *otelzap.Logger
-	Conf     *bunconf.Config
-	PG       *bun.DB
-	Projects *ProjectGateway
-	Users    *UserGateway
+	Logger        *otelzap.Logger
+	Conf          *bunconf.Config
+	PG            *bun.DB
+	Projects      *ProjectGateway
+	Users         *UserGateway
+	UserProviders []UserProvider `group:"user_providers"`
 }
 
 type Middleware struct {
@@ -68,15 +69,9 @@ type Middleware struct {
 }
 
 func NewMiddleware(p MiddlewareParams) *Middleware {
-	var userProviders []UserProvider
-
-	if len(p.Conf.Auth.Users) > 0 {
-		userProviders = append(userProviders, NewJWTProvider(p.Conf.SecretKey))
-	}
-
 	return &Middleware{
 		MiddlewareParams: &p,
-		userProviders:    userProviders,
+		userProviders:    p.UserProviders,
 	}
 }
 
