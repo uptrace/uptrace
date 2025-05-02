@@ -24,7 +24,7 @@ or less what we do when deploying major changes to Uptrace Cloud.
   [JSON](https://clickhouse.com/docs/sql-reference/data-types/newjson) type to index span/log
   attributes. ClickHouse v23.3 is the minimum supported version.
 - SSO and 2FA features are only available with a license.
-- Added ansible deployment guide.
+- Added [Ansible](https://uptrace.dev/get/hosted/ansible) deployment guide.
 
 ### Improvements
 

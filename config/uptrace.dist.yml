@@ -31,6 +31,8 @@ service:
 ## Authentication configuration options.
 ##
 auth:
+  # Disable auth using login and password.
+  # SSO auth will still be available.
   #disabled: true
 
   # The following users will be created on the first startup.
@@ -55,7 +57,7 @@ ch_cluster:
   replicated: false
   # Whether to use ClickHouse distributed tables.
   distributed: false
-  weight: 1
+
   shards:
     - replicas:
         - addr: 'localhost:9000'
@@ -127,6 +129,16 @@ listen:
     # tls:
     #   cert_file: config/tls/uptrace.crt
     #   key_file: config/tls/uptrace.key
+
+##
+## TLS certificate issuance and renewal using Let's Encrypt.
+##
+certmagic:
+  # Use Let's Encrypt to obtain certificates.
+  enabled: false
+  # Use Let's Encrypt staging environment.
+  staging_ca: false
+  http_challenge_addr: ':80'
 
 ##
 ## To receive email notifications, configure a mailer.
