@@ -14,18 +14,17 @@
 ##
 
 ##
-## Logging configuration options.
-##
-logging:
-  # Valid values: DEBUG, INFO, WARN, ERROR.
-  level: INFO
-
-##
 ## Service configuration options.
 ##
 service:
   env: hosted
   secret: 'FIXME'
+
+##
+## Site configuration options.
+##
+site:
+  url: 'http://uptrace.local'
 
 ##
 ## Authentication configuration options.
@@ -38,14 +37,8 @@ auth:
   # The following users will be created on the first startup.
   users:
     - name: Admin
-      email: admin@localhost.xxx
+      email: admin@uptrace.local
       password: admin
-
-##
-## Site configuration options.
-##
-site:
-  url: 'http://localhost:80'
 
 ##
 ## ClickHouse database credentials.
@@ -70,9 +63,11 @@ ch_cluster:
           max_retries: 3
 
           max_execution_time: 15s
-          max_select_threads: 3
           query_settings:
-            timeout_before_checking_execution_speed: 5
+            async_insert: 1
+            query_cache_nondeterministic_function_handling: 'save'
+            allow_suspicious_types_in_group_by: 1
+            allow_suspicious_types_in_order_by: 1
 
 ##
 ## Various options to tweak ClickHouse schema.
@@ -80,7 +75,7 @@ ch_cluster:
 ##
 ch_schema:
   # Compression codec, for example, LZ4, ZSTD(1), or Default.
-  compression: Default
+  compression: ZSTD(1)
 
   spans:
     storage_policy: 'default'
@@ -222,7 +217,7 @@ redis_cache:
 uptrace_go:
   # Uncomment to disable.
   #disabled: false
-  dsn: http://project1_secret@localhost:80/2?grpc=4317
+  dsn: http://project1_secret@uptrace.local/2?grpc=4317
 
 ##
 ## Token for the Telegram bot that will be sending notifications to Telegram channels.
@@ -233,3 +228,10 @@ uptrace_go:
 ##
 telegram:
   bot_token: ''
+
+##
+## Logging configuration options.
+##
+logging:
+  # Valid values: DEBUG, INFO, WARN, ERROR.
+  level: INFO

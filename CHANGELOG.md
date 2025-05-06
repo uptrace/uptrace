@@ -7,6 +7,9 @@ To get started with Uptrace, see https://uptrace.dev/get/get-started.html
 ### Breaking
 
 - ClickHouse and PostgreSQL schemas have been completely rewritten.
+- Uptrace now uses the ClickHouse
+  [JSON](https://clickhouse.com/docs/sql-reference/data-types/newjson) type to index span/log
+  attributes. ClickHouse v25.3 is the minimum supported version.
 - Uptrace now requires Redis for in-memory caching.
 - Some configuration options have been changed.
 
@@ -14,23 +17,25 @@ The recommended upgrade path is to run a separate Uptrace v2.x instance in paral
 data to both instances, and switch when you have enough data in the new instance. This is more more
 or less what we do when deploying major changes to Uptrace Cloud.
 
+### Guides
+
+- Added [Ansible](https://uptrace.dev/get/hosted/ansible) deployment guide.
+- Added [Kubernetes](https://uptrace.dev/get/hosted/k8s) deployment guide.
+
 ### Features
 
 - You can now create multiple projects and users using UI.
-- Added support for data [transformations](https://uptrace.dev/features/transformations) without
+- Added support for data [transformations](https://uptrace.dev/features/transformations).
 - Added support for Let's Encrypt certificates.
-- Uptrace now supports large trace visualization (10k-1m spans). using Otel Collector.
-- Uptrace now uses the ClickHouse
-  [JSON](https://clickhouse.com/docs/sql-reference/data-types/newjson) type to index span/log
-  attributes. ClickHouse v23.3 is the minimum supported version.
+- Uptrace now supports large trace visualization (10k-1m spans).
 - SSO and 2FA features are only available with a license.
-- Added [Ansible](https://uptrace.dev/get/hosted/ansible) deployment guide.
 
 ### Improvements
 
-- You can now set separate TTLs for spans, logs, and events data.
+- You can now set separate TTLs for spans, logs, and events tables.
 - Metrics performance is improved and data storage requirements are reduced.
-- Some tracing data is pre-aggregated to improve query performance.
+- Filtering and aggregating custom attributes is 5-10x faster thanks to using JSON data type.
+- Some attributes in tracing section is pre-aggregated to further improve query performance.
 
 ## v1.7.3 - May 8 2024
 
