@@ -1,6 +1,6 @@
 # Changelog
 
-To get started with Uptrace, see https://uptrace.dev/get/get-started.html
+To get started with Uptrace, see https://uptrace.dev/get
 
 ## v2.0.0 - Unreleased
 
@@ -35,7 +35,7 @@ or less what we do when deploying major changes to Uptrace Cloud.
 - You can now set separate TTLs for spans, logs, and events tables.
 - Metrics performance is improved and data storage requirements are reduced.
 - Filtering and aggregating custom attributes is 5-10x faster thanks to using JSON data type.
-- Some attributes in tracing section is pre-aggregated to further improve query performance.
+- Some attributes in the tracing section are pre-aggregated to further improve query performance.
 
 ## v1.7.3 - May 8 2024
 
