@@ -105,8 +105,8 @@ pg:
   database: uptrace
 
   # TLS configuration. Uncomment to enable.
-  # tls:
-  #   insecure_skip_verify: true # only for self-signed certificates
+  #tls:
+  #  insecure_skip_verify: true # only for self-signed certificates
 
 ##
 ## Addresses on which Uptrace receives gRPC and HTTP requests.
@@ -115,16 +115,15 @@ listen:
   # OTLP/gRPC API.
   grpc:
     addr: ':4317'
-    # tls:
-    #   cert_file: config/tls/uptrace.crt
-    #   key_file: config/tls/uptrace.key
 
   # OTLP/HTTP API and Uptrace API with Vue UI.
   http:
     addr: ':80'
-    # tls:
-    #   cert_file: config/tls/uptrace.crt
-    #   key_file: config/tls/uptrace.key
+
+  # TLS configuration. Uncomment to enable.
+  #tls:
+  #  cert_file: config/tls/uptrace.crt
+  #  key_file: config/tls/uptrace.key
 
 ##
 ## TLS certificate issuance and renewal using Let's Encrypt.
