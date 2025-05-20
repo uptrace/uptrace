@@ -36,7 +36,7 @@ auth:
 ## Site configuration options.
 ##
 site:
-  url: 'http://localhost:14318'
+  url: 'https://localhost:14318'
 
 ##
 ## ClickHouse database credentials.
@@ -116,12 +116,12 @@ listen:
 
   # OTLP/HTTP API and Uptrace API with Vue UI.
   http:
-    addr: ':80'
+    addr: ':443'
 
   # TLS configuration. Uncomment to enable.
-  #tls:
-  #  cert_file: config/tls/uptrace.crt
-  #  key_file: config/tls/uptrace.key
+  tls:
+    cert_file: /etc/uptrace/server.crt
+    key_file: /etc/uptrace/server.key
 
 ##
 ## TLS certificate issuance and renewal using Let's Encrypt.
@@ -215,7 +215,9 @@ redis_cache:
 uptrace_go:
   # Uncomment to disable.
   #disabled: false
-  dsn: http://project1_secret@localhost:80/2?grpc=4317
+  dsn: https://project1_secret@localhost:443?grpc=4317
+  tls:
+    insecure_skip_verify: true
 
 ##
 ## Token for the Telegram bot that will be sending notifications to Telegram channels.

@@ -56,13 +56,13 @@ processors:
 
 exporters:
   otlp/uptrace:
-    endpoint: http://uptrace:4317
-    tls: { insecure: true }
-    headers: { 'uptrace-dsn': 'http://project1_secret@localhost:14318?grpc=14317' }
+    endpoint: https://uptrace:4317
+    tls: { insecure_skip_verify: true }
+    headers: { 'uptrace-dsn': 'https://project1_secret@localhost?grpc=14317' }
   prometheusremotewrite/uptrace:
-    endpoint: 'http://uptrace:80/api/v1/prometheus/write'
-    tls: { insecure: true }
-    headers: { 'uptrace-dsn': 'http://project1_secret@localhost:14318?grpc=14317' }
+    endpoint: 'https://uptrace:443/api/v1/prometheus/write'
+    tls: { insecure_skip_verify: true }
+    headers: { 'uptrace-dsn': 'https://project1_secret@localhost?grpc=14317' }
 
 service:
   telemetry:

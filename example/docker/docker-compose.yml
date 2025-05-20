@@ -45,11 +45,13 @@ services:
     restart: on-failure
     volumes:
       - ./uptrace.yml:/etc/uptrace/config.yml
+      - ./certs/server.crt:/etc/uptrace/server.crt
+      - ./certs/server.key:/etc/uptrace/server.key
     #environment:
     #  - DEBUG=2
     ports:
       - '14317:4317'
-      - '14318:80'
+      - '14318:443'
     depends_on:
       - clickhouse
       - postgres
@@ -101,7 +103,7 @@ services:
     image: prom/prometheus:v2.36.2
     restart: always
     volumes:
-      - ../../config/prometheus/:/etc/prometheus/
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
