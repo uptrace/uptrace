@@ -21,6 +21,31 @@ service:
   secret: 'FIXME'
 
 ##
+## Site configuration options.
+##
+site:
+  # HTTP endpoint for the UI and DSN.
+  # Unless you use a reverse proxy, the port here should match the port in the listen.http.addr.
+  url: 'https://localhost:14318'
+
+##
+## Addresses on which Uptrace receives gRPC and HTTP requests.
+##
+listen:
+  # OTLP/HTTP API and Uptrace API with Vue UI.
+  http:
+    addr: ':443'
+
+  # OTLP/gRPC API.
+  grpc:
+    addr: ':4317'
+
+  # TLS configuration for both HTTP and gRPC. Uncomment to enable.
+  tls:
+    cert_file: /etc/uptrace/server.crt
+    key_file: /etc/uptrace/server.key
+
+##
 ## Authentication configuration options.
 ##
 auth:
@@ -31,12 +56,7 @@ auth:
     - name: Admin
       email: admin@localhost.xxx
       password: admin
-
-##
-## Site configuration options.
-##
-site:
-  url: 'https://localhost:14318'
+      auth_tokens: ['user1_secret']
 
 ##
 ## ClickHouse database credentials.
@@ -105,23 +125,6 @@ pg:
   # TLS configuration. Uncomment to enable.
   #tls:
   #  insecure_skip_verify: true # only for self-signed certificates
-
-##
-## Addresses on which Uptrace receives gRPC and HTTP requests.
-##
-listen:
-  # OTLP/gRPC API.
-  grpc:
-    addr: ':4317'
-
-  # OTLP/HTTP API and Uptrace API with Vue UI.
-  http:
-    addr: ':443'
-
-  # TLS configuration. Uncomment to enable.
-  tls:
-    cert_file: /etc/uptrace/server.crt
-    key_file: /etc/uptrace/server.key
 
 ##
 ## TLS certificate issuance and renewal using Let's Encrypt.

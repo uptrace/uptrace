@@ -7,9 +7,10 @@ datasources:
     url: https://uptrace:443/api/tempo/1
     editable: true
     jsonData:
+      tlsSkipVerify: true
       httpHeaderName1: 'Authorization'
     secureJsonData:
-      httpHeaderValue1: 'secret_token'
+      httpHeaderValue1: '4q5mFJynx9M4vTlDm-kheQ'
 
   - name: Uptrace Prometheus Project 1
     type: prometheus
@@ -17,9 +18,11 @@ datasources:
     url: https://uptrace:443/api/prometheus/1
     editable: true
     jsonData:
+      tlsSkipVerify: true
       httpHeaderName1: 'Authorization'
     secureJsonData:
-      httpHeaderValue1: 'secret_token'
+      httpHeaderValue1: '4q5mFJynx9M4vTlDm-kheQ'
+
   - name: Prometheus
     type: prometheus
     access: proxy

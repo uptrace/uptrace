@@ -40,7 +40,7 @@ services:
     restart: on-failure
 
   uptrace:
-    image: 'uptrace/uptrace:2.0.0-beta.2'
+    image: 'uptrace/uptrace:2.0.0-beta.3'
     #image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:
@@ -89,11 +89,11 @@ services:
       - ./vector.toml:/etc/vector/vector.toml:ro
 
   grafana:
-    image: grafana/grafana:9.5.3
+    image: grafana/grafana:12.0.0
     restart: on-failure
     volumes:
-      - ../../config/grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
-      - ../../config/grafana/custom.ini:/etc/grafana/grafana.ini
+      - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./grafana/custom.ini:/etc/grafana/grafana.ini
     ports:
       - '3000:3000'
     extra_hosts:
