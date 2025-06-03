@@ -96,15 +96,24 @@ ch_schema:
   # Compression codec, for example, LZ4, ZSTD(1), or Default.
   compression: Default
 
-  spans:
+  spans_index:
+    storage_policy: 'default'
+    ttl_delete: 14 DAY
+  spans_data:
     storage_policy: 'default'
     ttl_delete: 14 DAY
 
-  logs:
+  logs_index:
+    storage_policy: 'default'
+    ttl_delete: 14 DAY
+  logs_data:
     storage_policy: 'default'
     ttl_delete: 14 DAY
 
-  events:
+  events_index:
+    storage_policy: 'default'
+    ttl_delete: 14 DAY
+  events_data:
     storage_policy: 'default'
     ttl_delete: 14 DAY
 
