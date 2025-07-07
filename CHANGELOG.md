@@ -4,38 +4,45 @@ To get started with Uptrace, see https://uptrace.dev/get
 
 ## v2.0.0 - Unreleased
 
-### Breaking
+### Breaking Changes
+- **Database Schema Rewrite**: ClickHouse and PostgreSQL schemas have been completely rewritten for improved performance and scalability.
+- **ClickHouse JSON Type**: Uptrace now uses the ClickHouse [JSON](https://clickhouse.com/docs/sql-reference/data-types/newjson) data type to index span and log attributes. This change requires ClickHouse v25.3 or later.
+- **Redis Dependency**: Redis is now required for in-memory caching operations.
+- **Configuration Changes**: Some configuration options have been modified. Please review the migration guide below.
 
-- ClickHouse and PostgreSQL schemas have been completely rewritten.
-- Uptrace now uses the ClickHouse
-  [JSON](https://clickhouse.com/docs/sql-reference/data-types/newjson) type to index span/log
-  attributes. ClickHouse v25.3 is the minimum supported version.
-- Uptrace now requires Redis for in-memory caching.
-- Some configuration options have been changed.
+### Migration Guide
+The recommended upgrade path is to run a separate Uptrace v2.x instance in parallel with your existing v1.x instance. This approach allows you to:
 
-The recommended upgrade path is to run a separate Uptrace v2.x instance in parallel with v1.x, write
-data to both instances, and switch when you have enough data in the new instance. This is more more
-or less what we do when deploying major changes to Uptrace Cloud.
+1. Write data to both instances simultaneously
+2. Validate data integrity and functionality in the new instance
+3. Switch over when sufficient data has been collected in the new instance
 
-### Guides
+This parallel deployment strategy mirrors our approach for deploying major changes to Uptrace Cloud, ensuring minimal downtime and data loss.
 
-- Added [Ansible](https://uptrace.dev/get/hosted/ansible) deployment guide.
-- Added [Kubernetes](https://uptrace.dev/get/hosted/k8s) deployment guide.
+### New Deployment Guides
+- [Ansible Deployment Guide](https://uptrace.dev/get/hosted/ansible) - Automated deployment using Ansible playbooks
+- [Kubernetes Deployment Guide](https://uptrace.dev/get/hosted/k8s) - Container orchestration deployment instructions
 
-### Features
+### New Features
+- **Multi-Project Support**: Create and manage multiple projects and users directly through the UI
+- **Data Transformations**: Support for custom [data transformations](https://uptrace.dev/features/transformations) to modify and enrich incoming telemetry data
+- **Let's Encrypt Integration**: Automatic SSL certificate provisioning and renewal using Let's Encrypt
+- **Large Trace Visualization**: Enhanced visualization capabilities for large traces containing 10,000 to 1,000,000 spans
+- **Bidirectional Span Links**: Automatic backlinks for target spans, providing improved trace navigation and context
 
-- You can now create multiple projects and users using UI.
-- Added support for data [transformations](https://uptrace.dev/features/transformations).
-- Added support for Let's Encrypt certificates.
-- Uptrace now supports large trace visualization (10k-1m spans).
-- SSO and 2FA features are only available with a license.
+### Licensing Changes
+- **SSO and 2FA**: Single Sign-On and Two-Factor Authentication features now require a commercial license
 
-### Improvements
+### Performance Improvements
+- **Flexible TTL Configuration**: Set separate Time-To-Live (TTL) values for spans, logs, and events tables
+- **Enhanced Metrics Performance**: Improved metrics processing with reduced data storage requirements
+- **Faster Attribute Operations**: Filtering and aggregating custom attributes is now 5-10x faster thanks to the new JSON data type implementation
+- **Pre-aggregated Attributes**: Selected attributes in the tracing section are now pre-aggregated to further enhance query performance
 
-- You can now set separate TTLs for spans, logs, and events tables.
-- Metrics performance is improved and data storage requirements are reduced.
-- Filtering and aggregating custom attributes is 5-10x faster thanks to using JSON data type.
-- Some attributes in the tracing section are pre-aggregated to further improve query performance.
+### System Requirements
+- **ClickHouse**: v25.3 or later (required for JSON data type support)
+- **Redis**: Required for caching operations
+- **PostgreSQL**: Compatible with rewritten schema
 
 ## v1.7.3 - May 8 2024
 

@@ -51,12 +51,36 @@ listen:
 auth:
   #disabled: true
 
-  # The following users will be created on the first startup.
+##
+## Initial data to create on first startup.
+##
+seed_data:
   users:
     - name: Admin
+      key: user1 # Unique user key for links below
       email: admin@localhost.xxx
       password: admin
       auth_tokens: ['user1_secret']
+
+  orgs:
+    - name: Org1
+      key: org1 # Unique org key for links below
+
+  org_users:
+    - org: org1 # Link to org key
+      user: user1 # Link to user key
+      role: owner
+
+  projects:
+    - name: Project1
+      key: project1 # Unique project key for links below
+      org: org1 # Link to org key
+      tokens: [project1_secret]
+
+  project_users:
+    - project: project1 # Link to project key
+      user: user1 # Link to user key
+      perm_level: admin
 
 ##
 ## ClickHouse database credentials.
@@ -81,12 +105,6 @@ ch_cluster:
           max_retries: 3
 
           max_execution_time: 15s
-          query_settings:
-            session_timezone: UTC
-            async_insert: 1
-            query_cache_nondeterministic_function_handling: 'save'
-            allow_suspicious_types_in_group_by: 1
-            allow_suspicious_types_in_order_by: 1
 
 ##
 ## Various options to tweak ClickHouse schema.
