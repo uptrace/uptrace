@@ -1,6 +1,6 @@
 services:
   clickhouse:
-    image: clickhouse/clickhouse-server:25.3.3
+    image: clickhouse/clickhouse-server:25.3.5
     restart: on-failure
     environment:
       CLICKHOUSE_USER: uptrace
@@ -40,7 +40,7 @@ services:
     restart: on-failure
 
   uptrace:
-    image: 'uptrace/uptrace:2.0.0-rc.1'
+    image: 'uptrace/uptrace:2.0.0-rc.2'
     #image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:
