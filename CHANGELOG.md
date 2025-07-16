@@ -2,44 +2,75 @@
 
 To get started with Uptrace, see https://uptrace.dev/get
 
+## v2.0.0-rc.3
+
+- `seed.data` option was reworked. Please update your config.
+- `uptrace_go` option was renamed to `monitoring`. Please update your config.
+- `license.data` option was renamed to `license.key`. Please update your config.
+
 ## v2.0.0 - Unreleased
 
 ### Breaking Changes
-- **Database Schema Rewrite**: ClickHouse and PostgreSQL schemas have been completely rewritten for improved performance and scalability.
-- **ClickHouse JSON Type**: Uptrace now uses the ClickHouse [JSON](https://clickhouse.com/docs/sql-reference/data-types/newjson) data type to index span and log attributes. This change requires ClickHouse v25.3 or later.
+
+- **Database Schema Rewrite**: ClickHouse and PostgreSQL schemas have been completely rewritten for
+  improved performance and scalability.
+- **ClickHouse JSON Type**: Uptrace now uses the ClickHouse
+  [JSON](https://clickhouse.com/docs/sql-reference/data-types/newjson) data type to index span and
+  log attributes. This change requires ClickHouse v25.3 or later.
 - **Redis Dependency**: Redis is now required for in-memory caching operations.
-- **Configuration Changes**: Some configuration options have been modified. Please review the migration guide below.
+- **Configuration Changes**: Some configuration options have been modified. Please review the
+  migration guide below.
 
 ### Migration Guide
-The recommended upgrade path is to run a separate Uptrace v2.x instance in parallel with your existing v1.x instance. This approach allows you to:
+
+The recommended upgrade path is to run a separate Uptrace v2.x instance in parallel with your
+existing v1.x instance. This approach allows you to:
 
 1. Write data to both instances simultaneously
 2. Validate data integrity and functionality in the new instance
 3. Switch over when sufficient data has been collected in the new instance
 
-This parallel deployment strategy mirrors our approach for deploying major changes to Uptrace Cloud, ensuring minimal downtime and data loss.
+This parallel deployment strategy mirrors our approach for deploying major changes to Uptrace Cloud,
+ensuring minimal downtime and data loss.
 
 ### New Deployment Guides
-- [Ansible Deployment Guide](https://uptrace.dev/get/hosted/ansible) - Automated deployment using Ansible playbooks
-- [Kubernetes Deployment Guide](https://uptrace.dev/get/hosted/k8s) - Container orchestration deployment instructions
+
+- [Ansible Deployment Guide](https://uptrace.dev/get/hosted/ansible) - Automated deployment using
+  Ansible playbooks
+- [Kubernetes Deployment Guide](https://uptrace.dev/get/hosted/k8s) - Container orchestration
+  deployment instructions
 
 ### New Features
+
 - **Multi-Project Support**: Create and manage multiple projects and users directly through the UI
-- **Data Transformations**: Support for custom [data transformations](https://uptrace.dev/features/transformations) to modify and enrich incoming telemetry data
-- **Let's Encrypt Integration**: Automatic SSL certificate provisioning and renewal using Let's Encrypt
-- **Large Trace Visualization**: Enhanced visualization capabilities for large traces containing 10,000 to 1,000,000 spans
-- **Bidirectional Span Links**: Automatic backlinks for target spans, providing improved trace navigation and context
+- **Data Transformations**: Support for custom
+  [data transformations](https://uptrace.dev/features/transformations) to modify and enrich incoming
+  telemetry data
+- **Let's Encrypt Integration**: Automatic SSL certificate provisioning and renewal using Let's
+  Encrypt
+- **Large Trace Visualization**: Enhanced visualization capabilities for large traces containing
+  10,000 to 1,000,000 spans
+- **Bidirectional Span Links**: Automatic backlinks for target spans, providing improved trace
+  navigation and context
 
 ### Licensing Changes
-- **SSO and 2FA**: Single Sign-On and Two-Factor Authentication features now require a commercial license
+
+- **SSO and 2FA**: Single Sign-On and Two-Factor Authentication features now require a commercial
+  license
 
 ### Performance Improvements
-- **Flexible TTL Configuration**: Set separate Time-To-Live (TTL) values for spans, logs, and events tables
-- **Enhanced Metrics Performance**: Improved metrics processing with reduced data storage requirements
-- **Faster Attribute Operations**: Filtering and aggregating custom attributes is now 5-10x faster thanks to the new JSON data type implementation
-- **Pre-aggregated Attributes**: Selected attributes in the tracing section are now pre-aggregated to further enhance query performance
+
+- **Flexible TTL Configuration**: Set separate Time-To-Live (TTL) values for spans, logs, and events
+  tables
+- **Enhanced Metrics Performance**: Improved metrics processing with reduced data storage
+  requirements
+- **Faster Attribute Operations**: Filtering and aggregating custom attributes is now 5-10x faster
+  thanks to the new JSON data type implementation
+- **Pre-aggregated Attributes**: Selected attributes in the tracing section are now pre-aggregated
+  to further enhance query performance
 
 ### System Requirements
+
 - **ClickHouse**: v25.3 or later (required for JSON data type support)
 - **Redis**: Required for caching operations
 - **PostgreSQL**: Compatible with rewritten schema

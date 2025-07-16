@@ -102,6 +102,7 @@ seed_data:
       name: Admin                # Display name in UI
       email: admin@uptrace.local # Login email (must be unique)
       password: admin            # Plain text password (CHANGE THIS IMMEDIATELY!)
+      email_confirmed: true
 
   # API tokens for user authentication
   # These tokens can be used for API access and programmatic operations
@@ -388,7 +389,7 @@ sourcemaps:
 
 # Internal telemetry collection
 # Uptrace monitors itself and sends telemetry to the configured DSN
-uptrace_go:
+monitoring:
   # Uncomment to disable self-monitoring
   # This prevents Uptrace from generating its own telemetry data
   #disabled: true

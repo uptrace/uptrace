@@ -31,7 +31,7 @@ services:
       timeout: 1s
       retries: 30
     volumes:
-      - 'pg_data1:/var/lib/postgresql/data/pgdata'
+      - 'pg_data2:/var/lib/postgresql/data/pgdata'
     ports:
       - '5432:5432'
 
@@ -40,7 +40,7 @@ services:
     restart: on-failure
 
   uptrace:
-    image: 'uptrace/uptrace:2.0.0-rc.2'
+    image: 'uptrace/uptrace:2.0.0-rc.3'
     #image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:
@@ -126,6 +126,6 @@ services:
 
 volumes:
   ch_data:
-  pg_data1:
+  pg_data2:
   prometheus_data:
   mailpit_data:
