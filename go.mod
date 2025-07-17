@@ -53,7 +53,7 @@ require (
 	github.com/uptrace/pkg/unsafeconv v0.0.0-00010101000000-000000000000
 	github.com/uptrace/pkg/urlstruct v0.0.0-00010101000000-000000000000
 	github.com/uptrace/uptrace-go v1.28.0
-	github.com/urfave/cli/v2 v2.27.1
+	github.com/urfave/cli/v2 v2.27.7
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	github.com/vmihailenco/taskq/extra/oteltaskq/v4 v4.0.0-beta.4
 	github.com/vmihailenco/taskq/pgq/v4 v4.0.0-beta.4
@@ -93,7 +93,7 @@ require (
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/codemodus/kace v0.5.1 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dennwc/varint v1.0.0 // indirect
 	github.com/dgryski/go-farm v0.0.0-20200201041132-a6ae2369ad13 // indirect
@@ -154,7 +154,7 @@ require (
 	github.com/uptrace/pkg/tagparser v0.0.0-00010101000000-000000000000 // indirect
 	github.com/vmihailenco/tagparser v0.1.2 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
+	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.opentelemetry.io/collector/featuregate v1.1.0 // indirect
 	go.opentelemetry.io/collector/pdata v1.1.0 // indirect
