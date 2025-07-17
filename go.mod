@@ -32,7 +32,7 @@ require (
 	github.com/go-logr/zapr v1.3.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/klauspost/compress v1.18.0
-	github.com/mileusna/useragent v1.3.4
+	github.com/mileusna/useragent v1.3.5
 	github.com/mostynb/go-grpc-compression v1.2.2
 	github.com/prometheus/prometheus v0.49.1
 	github.com/rs/cors v1.10.1
