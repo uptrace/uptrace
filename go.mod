@@ -43,8 +43,8 @@ require (
 	github.com/uptrace/bun/driver/pgdriver v1.2.7-0.20241126124946-928d0779110e
 	github.com/uptrace/bun/extra/bundebug v1.2.7-0.20241126124946-928d0779110e
 	github.com/uptrace/bun/extra/bunotel v1.2.7-0.20241126124946-928d0779110e
-	github.com/uptrace/bunrouter v1.0.22
-	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.22
+	github.com/uptrace/bunrouter v1.0.23
+	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.23
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.22
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.2.3
 	github.com/uptrace/pkg/clickhouse v0.0.0-00010101000000-000000000000
@@ -64,9 +64,9 @@ require (
 	github.com/zyedidia/generic v1.2.1
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.48.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.48.0
-	go.opentelemetry.io/otel v1.32.0
-	go.opentelemetry.io/otel/metric v1.32.0
-	go.opentelemetry.io/otel/trace v1.32.0
+	go.opentelemetry.io/otel v1.35.0
+	go.opentelemetry.io/otel/metric v1.35.0
+	go.opentelemetry.io/otel/trace v1.35.0
 	go.opentelemetry.io/proto/otlp v1.3.1
 	go.uber.org/fx v1.23.0
 	go.uber.org/zap v1.26.0
@@ -156,6 +156,7 @@ require (
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
+	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/collector/featuregate v1.1.0 // indirect
 	go.opentelemetry.io/collector/pdata v1.1.0 // indirect
 	go.opentelemetry.io/collector/semconv v0.94.1 // indirect
