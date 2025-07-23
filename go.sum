@@ -459,10 +459,10 @@ github.com/uptrace/bun/extra/bundebug v1.2.7-0.20241126124946-928d0779110e h1:EZ
 github.com/uptrace/bun/extra/bundebug v1.2.7-0.20241126124946-928d0779110e/go.mod h1:PuLzBfVDmtIg0uRFmgB2rbMRUQ7GwnBbOTwm1sBL+ho=
 github.com/uptrace/bun/extra/bunotel v1.2.7-0.20241126124946-928d0779110e h1:2J0mAAMRNwlo+AR/2pTiSmffxJdMeNFNsBtSZ+SLUT8=
 github.com/uptrace/bun/extra/bunotel v1.2.7-0.20241126124946-928d0779110e/go.mod h1:/f0Jmza6VwSJGMIFeBLy6R9wvCl2R6HYyjdSEittRxE=
-github.com/uptrace/bunrouter v1.0.22 h1:634bRGogHxjMaSqc5a3MjM/sisS/MkfXhWJ/WZXrktc=
-github.com/uptrace/bunrouter v1.0.22/go.mod h1:O3jAcl+5qgnF+ejhgkmbceEk0E/mqaK+ADOocdNpY8M=
-github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.22 h1:7qP9HrccAKEJpHp+RLXABAAZbGCcUW0Bb6DO8iDb/T8=
-github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.22/go.mod h1:W/octBgv5uOzTE+5arbU35aLgmTAOSkHVARqh5n8Fp8=
+github.com/uptrace/bunrouter v1.0.23 h1:Bi7NKw3uCQkcA/GUCtDNPq5LE5UdR9pe+UyWbjHB/wU=
+github.com/uptrace/bunrouter v1.0.23/go.mod h1:O3jAcl+5qgnF+ejhgkmbceEk0E/mqaK+ADOocdNpY8M=
+github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.23 h1:/7yjP4NxGrxjYqT7zjWS2A//YbPlmlPljZNRS+sI24M=
+github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.23/go.mod h1:etJxBwHjuJDiSlp0ftRzmfZ+JYyt+47TntALSewAGVI=
 github.com/uptrace/bunrouter/extra/reqlog v1.0.22 h1:/CZgsnD/tpzZXwyktn7eYNHKx+v1hMTRzNdSem4xil8=
 github.com/uptrace/bunrouter/extra/reqlog v1.0.22/go.mod h1:PW/UZ1NcrDv6xyRwDiU7/TcWNrNRsN01+6EKMB8j0Zo=
 github.com/uptrace/opentelemetry-go-extra/otelsql v0.3.2 h1:ZjUj9BLYf9PEqBn8W/OapxhPjVRdC6CsXTdULHsyk5c=
