@@ -43,8 +43,8 @@ require (
 	github.com/uptrace/bun/driver/pgdriver v1.2.7-0.20241126124946-928d0779110e
 	github.com/uptrace/bun/extra/bundebug v1.2.7-0.20241126124946-928d0779110e
 	github.com/uptrace/bun/extra/bunotel v1.2.7-0.20241126124946-928d0779110e
-	github.com/uptrace/bunrouter v1.0.22
-	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.22
+	github.com/uptrace/bunrouter v1.0.23
+	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.23
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.22
 	github.com/uptrace/opentelemetry-go-extra/otelzap v0.2.3
 	github.com/uptrace/pkg/clickhouse v0.0.0-00010101000000-000000000000
