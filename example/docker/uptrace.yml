@@ -15,16 +15,8 @@
 # -----------------------------------------------------------------------------
 # Core service settings that define the runtime environment and security
 service:
-  # Environment type - affects default settings and behavior
-  # - hosted: for cloud/hosted deployments with optimized defaults
-  # - development: for local development with debug features
-  # - production: for production deployments with performance optimization
-  env: hosted
-
-  # Cryptographic secret key for signing tokens, sessions, and other security operations
-  # CRITICAL: Change this to a strong, random value (minimum 32 characters)
-  # Generate with: openssl rand -hex 32
-  secret: FIXME
+  env: hosted           # Environment: hosted, development, production
+  secret: FIXME         # Secret key for cryptographic operations (CHANGE THIS!)
 
 # -----------------------------------------------------------------------------
 # Site Configuration
@@ -389,7 +381,7 @@ sourcemaps:
 
 # Internal telemetry collection
 # Uptrace monitors itself and sends telemetry to the configured DSN
-monitoring:
+self_monitoring:
   # Uncomment to disable self-monitoring
   # This prevents Uptrace from generating its own telemetry data
   #disabled: true

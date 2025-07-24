@@ -2,13 +2,9 @@
 
 To get started with Uptrace, see https://uptrace.dev/get
 
-## v2.0.0-rc.3
+## v2.0.0 - July 24 2025
 
-- `seed.data` option was reworked. Please update your config.
-- `uptrace_go` option was renamed to `monitoring`. Please update your config.
-- `license.data` option was renamed to `license.key`. Please update your config.
-
-## v2.0.0 - Unreleased
+[Release notes](https://uptrace.dev/blog/uptrace-v20)
 
 ### Breaking Changes
 
