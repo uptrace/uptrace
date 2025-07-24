@@ -35,7 +35,7 @@ require (
 	github.com/mileusna/useragent v1.3.5
 	github.com/mostynb/go-grpc-compression v1.2.2
 	github.com/prometheus/prometheus v0.49.1
-	github.com/rs/cors v1.10.1
+	github.com/rs/cors v1.11.1
 	github.com/segmentio/encoding v0.4.1
 	github.com/stretchr/testify v1.10.0
 	github.com/uptrace/bun v1.2.7-0.20241126124946-928d0779110e
