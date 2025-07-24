@@ -40,7 +40,7 @@ services:
     restart: on-failure
 
   uptrace:
-    image: 'uptrace/uptrace:2.0.0-rc.4'
+    image: 'uptrace/uptrace:2.0.0'
     #image: 'uptrace/uptrace-dev:latest'
     restart: on-failure
     volumes:

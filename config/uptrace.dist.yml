@@ -1,0 +1,253 @@
+##
+## Uptrace configuration file.
+## See https://uptrace.dev/get/hosted/config for details.
+##
+## You can use environment variables anywhere in this file, for example:
+##
+##   foo: $FOO
+##   bar: ${BAR}
+##   baz: ${BAZ:default}
+##
+## To escape `$`, use `$$`, for example:
+##
+##   foo: $$FOO_BAR
+##
+
+##
+## Service configuration options.
+##
+service:
+  env: hosted
+  secret: 'FIXME'
+
+##
+## Site configuration options.
+##
+site:
+  url: 'http://uptrace.local'
+
+##
+## Authentication configuration options.
+##
+auth:
+  # Disable auth using login and password.
+  # SSO auth will still be available.
+  #disabled: true
+
+  # The following users will be created on the first startup.
+  users:
+    - name: Admin
+      email: admin@uptrace.local
+      password: admin
+
+##
+## ClickHouse database credentials.
+##
+ch_cluster:
+  cluster: 'uptrace1'
+  # Whether to use ClickHouse replication.
+  # Cluster name is required when replication is enabled.
+  replicated: false
+  # Whether to use ClickHouse distributed tables.
+  distributed: false
+
+  shards:
+    - replicas:
+        - addr: 'localhost:9000'
+          database: uptrace
+          user: uptrace
+          password: uptrace
+
+          dial_timeout: 3s
+          write_timeout: 5s
+          max_retries: 3
+
+          max_execution_time: 15s
+          query_settings:
+            session_timezone: UTC
+            async_insert: 1
+            query_cache_nondeterministic_function_handling: 'save'
+            allow_suspicious_types_in_group_by: 1
+            allow_suspicious_types_in_order_by: 1
+
+##
+## Various options to tweak ClickHouse schema.
+## For changes to take effect, you need reset the ClickHouse database with `ch reset`.
+##
+ch_schema:
+  # Compression codec, for example, LZ4, ZSTD(1), or Default.
+  compression: ZSTD(1)
+
+  spans_index:
+    storage_policy: 'default'
+    ttl_delete: 14 DAY
+  spans_data:
+    storage_policy: 'default'
+    ttl_delete: 14 DAY
+
+  logs_index:
+    storage_policy: 'default'
+    ttl_delete: 14 DAY
+  logs_data:
+    storage_policy: 'default'
+    ttl_delete: 14 DAY
+
+  events_index:
+    storage_policy: 'default'
+    ttl_delete: 14 DAY
+  events_data:
+    storage_policy: 'default'
+    ttl_delete: 14 DAY
+
+  metrics:
+    storage_policy: 'default'
+    ttl_delete: 14 DAY
+
+##
+## PostgreSQL database credentials. The main database stores 99% of data
+## such as users, projects, dashboards, etc.
+##
+pg:
+  addr: 'localhost:5432'
+  user: uptrace
+  password: uptrace
+  database: uptrace
+
+  # TLS configuration. Uncomment to enable.
+  #tls:
+  #  insecure_skip_verify: true # only for self-signed certificates
+
+##
+## Addresses on which Uptrace receives gRPC and HTTP requests.
+##
+listen:
+  # OTLP/gRPC API.
+  grpc:
+    addr: ':4317'
+
+  # OTLP/HTTP API and Uptrace API with Vue UI.
+  http:
+    addr: ':80'
+
+  # TLS configuration. Uncomment to enable.
+  #tls:
+  #  cert_file: config/tls/uptrace.crt
+  #  key_file: config/tls/uptrace.key
+
+##
+## TLS certificate issuance and renewal using Let's Encrypt.
+##
+certmagic:
+  # Use Let's Encrypt to obtain certificates.
+  enabled: false
+  # Use Let's Encrypt staging environment.
+  staging_ca: false
+  http_challenge_addr: ':80'
+
+##
+## To receive email notifications, configure a mailer.
+## https://uptrace.dev/features/alerting
+##
+mailer:
+  smtp:
+    # Whether to use this mailer for sending emails.
+    enabled: false
+    # SMTP server host.
+    host: localhost
+    # SMTP server port.
+    port: 1025
+    # Username for authentication.
+    username: mailhog
+    # Password for authentication.
+    password: mailhog
+    # Uncomment to disable opportunistic TLS.
+    #tls: { disabled: true }
+    # Emails will be send from this address.
+    from: 'uptrace@localhost'
+
+##
+## Spans processing options.
+##
+spans:
+  max_buffered_records: 100e3
+  max_insert_size: 10000
+  #max_threads: 10
+
+##
+## Logs processing options.
+##
+logs:
+  max_buffered_records: 100e3
+  max_insert_size: 10000
+  #max_threads: 10
+
+##
+## Events processing options.
+##
+events:
+  max_buffered_records: 100e3
+  max_insert_size: 10000
+  #max_threads: 10
+
+##
+## Metrics processing options.
+##
+metrics:
+  max_buffered_records: 100e3
+  max_insert_size: 10000
+  cum_point_storage_size: 100000
+
+###
+### Service graph processing options.
+###
+service_graph:
+  # Uncomment to disable.
+  #disabled: true
+
+##
+## Sourcemaps processing options for JavaScript errors.
+## Sourcemaps require Internet access to download source maps.
+##
+sourcemaps:
+  # Uncomment to disable.
+  #disabled: true
+
+##
+## Redis database credentials for go-redis RedisRing client.
+##
+redis_cache:
+  addrs:
+    1: 'localhost:6379'
+
+##
+## uptrace-go client configuration.
+## Uptrace sends internal telemetry here.
+##
+uptrace_go:
+  # Uncomment to disable.
+  #disabled: false
+  dsn: http://project1_secret@uptrace.local/2?grpc=4317
+
+##
+## Token for the Telegram bot that will be sending notifications to Telegram channels.
+## Required if you are planning to use Telegram for notifications.
+##
+## To create a new bot, follow this guide:
+## https://sendpulse.com/knowledge-base/chatbot/telegram/create-telegram-chatbot
+##
+telegram:
+  bot_token: ''
+
+##
+## Logging configuration options.
+##
+logging:
+  # Valid values: DEBUG, INFO, WARN, ERROR.
+  level: INFO
+
+##
+## License information.
+##
+license:
+  data: ''
+  # path: /path/to/uptrace/license
