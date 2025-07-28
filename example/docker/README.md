@@ -26,7 +26,7 @@ docker compose up -d
 docker compose logs uptrace
 ```
 
-**Step 4**. Open Uptrace UI at [https://localhost:14318](https://localhost:14318). To log in, use
+**Step 4**. Open Uptrace UI at [http://localhost:14318](http://localhost:14318). To log in, use
 email `admin@uptrace.local` and password `admin`.
 
 Uptrace will monitor itself using [uptrace-go](https://github.com/uptrace/uptrace-go) OpenTelemetry

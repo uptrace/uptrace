@@ -29,7 +29,7 @@ site:
   # - CORS validation for browser requests
   # - Redirect URIs for authentication flows
   # IMPORTANT: Must be accessible from all clients and match your reverse proxy setup
-  url: https://localhost:14318
+  url: http://localhost:14318
 
   # Dedicated URL for telemetry data ingestion (OTLP endpoints)
   # Use this to separate data ingestion from UI traffic for:
@@ -37,7 +37,7 @@ site:
   # - Different security policies
   # - CDN/edge deployment scenarios
   # If empty, defaults to site.url
-  #ingest_url: http://ingest.uptrace.local
+  ingest_url: http://localhost:14318?grpc=14317
 
 # -----------------------------------------------------------------------------
 # Network Listeners
@@ -50,7 +50,7 @@ listen:
     # Network address and port to bind to
     # Format: [host]:port or :port (binds to all interfaces)
     # Common values: :80, :8080, localhost:8080
-    addr: :443
+    addr: :80
 
   # gRPC server configuration
   # Handles: OTLP/gRPC API for high-performance telemetry ingestion
@@ -60,9 +60,9 @@ listen:
 
   # TLS/SSL configuration for HTTPS and secure gRPC
   # Uncomment and configure for production deployments
-  tls:
-    cert_file: /etc/uptrace/server.crt
-    key_file: /etc/uptrace/server.key
+  #tls:
+  #  cert_file: /etc/uptrace/server.crt
+  #  key_file: /etc/uptrace/server.key
 
 # -----------------------------------------------------------------------------
 # Authentication & Authorization
@@ -389,10 +389,10 @@ self_monitoring:
   # DSN for internal telemetry
   # Format: http://project_token@host?grpc=port
   # This can point to a project in this Uptrace instance or to the Uptrace Cloud
-  dsn: https://project1_secret@localhost:443?grpc=4317
+  dsn: http://project1_secret@localhost:14318?grpc=14317
 
-  tls:
-    insecure_skip_verify: true
+  #tls:
+  #  insecure_skip_verify: true
 
 # Telegram bot for notifications
 # Enables sending alert notifications to Telegram channels/users

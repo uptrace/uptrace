@@ -51,7 +51,7 @@ services:
     #  - DEBUG=2
     ports:
       - '14317:4317'
-      - '14318:443'
+      - '14318:80'
     depends_on:
       - clickhouse
       - postgres
