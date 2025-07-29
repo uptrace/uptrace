@@ -38,7 +38,7 @@ require (
 	github.com/rs/cors v1.11.1
 	github.com/segmentio/encoding v0.4.1
 	github.com/stretchr/testify v1.10.0
-	github.com/uptrace/bun v1.2.7-0.20241126124946-928d0779110e
+	github.com/uptrace/bun v1.2.15
 	github.com/uptrace/bun/dialect/pgdialect v1.2.7-0.20241126124946-928d0779110e
 	github.com/uptrace/bun/driver/pgdriver v1.2.7-0.20241126124946-928d0779110e
 	github.com/uptrace/bun/extra/bundebug v1.2.7-0.20241126124946-928d0779110e
@@ -127,7 +127,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/mapstructure v1.5.1-0.20231216201459-8508981c8b6c // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -143,7 +143,7 @@ require (
 	github.com/prometheus/common v0.47.0 // indirect
 	github.com/prometheus/common/sigv4 v0.1.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
-	github.com/puzpuzpuz/xsync/v3 v3.4.0 // indirect
+	github.com/puzpuzpuz/xsync/v3 v3.5.1 // indirect
 	github.com/redis/go-redis/v9 v9.5.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
