@@ -269,7 +269,7 @@ mailer:
 
     # TLS configuration
     # Most production SMTP servers require TLS
-    #tls: { disabled: true }     # Uncomment to disable opportunistic TLS
+    #tls: { insecure: true }     # Uncomment to disable opportunistic TLS
 
 # -----------------------------------------------------------------------------
 # Telemetry Data Processing Configuration
