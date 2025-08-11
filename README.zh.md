@@ -1,68 +1,61 @@
-选择语言: [English](README.md) | **简体中文**
+Languages: [English](README.md) | **简体中文**
 
 # 开源 APM：OpenTelemetry 追踪、指标和日志
 
-[![build workflow](https://github.com/uptrace/uptrace/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/uptrace/uptrace/actions)
-[![Chat](https://img.shields.io/badge/-telegram-red?color=white&logo=telegram&logoColor=black)](https://t.me/uptrace)
+[![构建工作流](https://github.com/uptrace/uptrace/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/uptrace/uptrace/actions)
+[![聊天](https://img.shields.io/badge/-telegram-red?color=white&logo=telegram&logoColor=black)](https://t.me/uptrace)
 [![Slack](https://img.shields.io/badge/slack-uptrace.svg?logo=slack)](https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw)
 
-Uptrace 是一种开源的 APM 工具，支持分布式跟踪、指标和日志。您使用它可以监控应用程序并设置自动报警，
-可以通过电子邮件、Slack、Telegram 等方式接收通知。
+Uptrace 是一个[开源 APM](https://uptrace.dev/get/hosted/open-source-apm)，支持分布式追踪、指标和日志。您可以使用它来监控应用程序和排查问题。
 
-Uptrace 使用 OpenTelemetry 收集数据并使用 ClickHouse 数据库存储数据。ClickHouse 是 Uptrace 的唯一依
-赖。
+Uptrace 配备了直观的查询构建器、丰富的仪表板、告警规则、通知，以及对大多数语言和框架的集成支持。
 
-**功能**
+Uptrace 可以在单台服务器上处理数十亿的 span 和指标，让您以 10 倍更低的成本监控您的应用程序。
 
-- 跨度(span) / 日志分组。
-- 类似 SQL 风格的 span 统计。
-- 类似 Promql 风格的统计和监控指标。
-- 可以使用电子邮件、Slack、Telegram 等接收报警信息。
-- 预绘制指标图表。
-- 支持 YAML 配置多个用户和项目。
-- 支持 Keycloak、Cloudflare、Google Cloud 等方式单点登录(SSO)。
+Uptrace 使用 OpenTelemetry 框架收集数据，使用 ClickHouse 数据库存储数据。它还需要 PostgreSQL 数据库来存储元数据，如指标名称和告警。
 
-**亮点**
+**功能特性**：
 
-- 统一风格的用于跟踪、指标和日志的 UI 界面。
-- 高性能：单核每秒处理超过 10K span。
-- 使用 ZSTD 压缩算法进行磁盘压缩，1KB span 可以压缩到 40 字节以内。
-- 支持 S3 存储，能够自动将冷数据上传到 S3 或 HDD 等进行存储。
-- 通过电子邮件、Slack、Telegram 等方式自动发出报警信息。
+- 追踪、指标和日志的统一界面。
+- 50+ 个预构建仪表板，一旦指标开始传入就会自动创建。
+- 服务图和[图表注释](https://uptrace.dev/features/annotations)。
+- 通过 Email、Slack、WebHook 和 AlertManager 进行 Spans/日志/指标[监控](https://uptrace.dev/features/alerting)和通知。
+- 类似 SQL 的查询语言用于[聚合 spans](https://uptrace.dev/features/querying/spans)。
+- 类似 Promql 的语言用于[聚合指标](https://uptrace.dev/features/querying/metrics)。
+- 支持通过 [OpenTelemetry](https://uptrace.dev/ingest/opentelemetry)、[Prometheus](https://uptrace.dev/ingest/prometheus)、[Vector](https://uptrace.dev/ingest/vector)、[FluentBit](https://uptrace.dev/ingest/logs/fluentbit)、[CloudWatch](https://uptrace.dev/ingest/cloudwatch) 等进行数据摄取。
+- [Grafana](https://uptrace.dev/features/grafana) 兼容性。您可以配置 Grafana 使用 Uptrace 作为 Tempo/Prometheus 数据源。
+- 通过 YAML 配置管理用户/项目。
+- 使用 OpenID Connect 的单点登录 (SSO)：[Keycloak](https://uptrace.dev/features/sso/keycloak)、[Google Cloud](https://uptrace.dev/features/sso/google) 和 [Cloudflare](https://uptrace.dev/features/sso/cloudflare)。
+- 高效处理：单核每秒处理超过 10K spans。
+- 出色的磁盘压缩：1KB span 可以压缩到约 40 字节。
 
-**System overview**
+**系统概览**
 
-![System overview](./example/docker/images/home.png)
+![系统概览](./example/docker/images/home.png)
 
-**Faceted filters**
+**分面过滤器**
 
-![Faceted filters](./example/docker/images/facets.png)
+![分面过滤器](./example/docker/images/facets.png)
 
-**Metrics**
+**指标**
 
-![Metrics](./example/docker/images/metrics.png)
+![指标](./example/docker/images/metrics.png)
 
-**Alerts**
+**告警**
 
-![Alerts](./example/docker/images/alerts.png)
+![告警](./example/docker/images/alerts.png)
 
 ## 快速开始
 
-你可以通过 [docker-compose](example/docker) 示例来快速运行 Uptrace，也可以和大家一起体验
-[在线 Demo](https://app.uptrace.dev/play)（无需登录）。
+您可以通过访问[云端演示](https://app.uptrace.dev/play)（无需登录）或使用 Docker [本地运行](https://github.com/uptrace/uptrace/tree/master/example/docker)在几分钟内试用 Uptrace。
 
-在 [入门指南](https://uptrace.dev/get/get-started.html) 有详细安装步奏，可以下载 Go 二进制文件或
-DEB/RPM 包安装 Uptrace，额外仅需要安装 ClickHouse 数据库。
+然后按照[入门指南](https://uptrace.dev/get)操作。
 
 ## 帮助
 
-可以通过 [Telegram](https://t.me/uptrace),
-[Slack](https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw) 或
-GitHub [start a discussion](https://github.com/uptrace/uptrace/discussions) 寻求帮助。
+有疑问？通过 [Telegram](https://t.me/uptrace)、[Slack](https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw) 获取帮助，或在 GitHub 上[发起讨论](https://github.com/uptrace/uptrace/discussions)。
 
 ## 贡献
-
-请参阅 [为 Uptrace 做贡献](https://uptrace.dev/get/contributing.html)。
 
 <a href="https://github.com/uptrace/uptrace/graphs/contributors">
   <img src="https://contributors-img.web.app/image?repo=uptrace/uptrace" />
