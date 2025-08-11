@@ -88,6 +88,9 @@ auth:
 # Initial data created during first startup - defines default users, organizations, and projects
 # This data is only created once and can be modified through the UI afterward
 seed_data:
+  update: true # Whether to update existing resources by key
+  delete: true # Whether to delete disappeared resources by key
+
   # Default users created on first startup
   users:
     - key: user1                 # Internal reference key (used in relationships below)
@@ -389,7 +392,7 @@ self_monitoring:
   # DSN for internal telemetry
   # Format: http://project_token@host?grpc=port
   # This can point to a project in this Uptrace instance or to the Uptrace Cloud
-  dsn: http://project1_secret@localhost:14318?grpc=14317
+  dsn: http://project1_secret@uptrace:80?grpc=14317
 
   #tls:
   #  insecure_skip_verify: true
