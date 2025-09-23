@@ -35,6 +35,7 @@ import (
 	"github.com/uptrace/bunrouter"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"github.com/uptrace/pkg/clickhouse/ch"
+
 	"github.com/uptrace/uptrace"
 	uptracego "github.com/uptrace/uptrace-go/uptrace"
 	"github.com/uptrace/uptrace/cmd/uptrace/command"
@@ -395,7 +396,7 @@ func showInfo(conf *bunconf.Config, logger *slog.Logger) {
 	fmt.Printf("read the docs at            https://uptrace.dev/get/\n")
 	fmt.Printf("changelog                   https://github.com/uptrace/uptrace/blob/master/CHANGELOG.md\n")
 	fmt.Printf("Telegram chat               https://t.me/uptrace\n")
-	fmt.Printf("Slack chat                  https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw\n")
+	fmt.Printf("Slack chat                  https://join.slack.com/t/uptracedev/shared_invite/zt-3e35d4b0m-zfAew95ymE5Fv31LwvyuoQ\n")
 	fmt.Println()
 
 	fmt.Printf("Open UI (site.addr)         %s\n", conf.SiteURL("/"))

@@ -4,7 +4,7 @@ Languages: [English](README.md) | **简体中文**
 
 [![构建工作流](https://github.com/uptrace/uptrace/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/uptrace/uptrace/actions)
 [![聊天](https://img.shields.io/badge/-telegram-red?color=white&logo=telegram&logoColor=black)](https://t.me/uptrace)
-[![Slack](https://img.shields.io/badge/slack-uptrace.svg?logo=slack)](https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw)
+[![Slack](https://img.shields.io/badge/slack-uptrace.svg?logo=slack)](https://join.slack.com/t/uptracedev/shared_invite/zt-3e35d4b0m-zfAew95ymE5Fv31LwvyuoQ)
 
 Uptrace 是一个[开源 APM](https://uptrace.dev/get/hosted/open-source-apm)，支持分布式追踪、指标和日志。您可以使用它来监控应用程序和排查问题。
 
@@ -53,7 +53,7 @@ Uptrace 使用 OpenTelemetry 框架收集数据，使用 ClickHouse 数据库存
 
 ## 帮助
 
-有疑问？通过 [Telegram](https://t.me/uptrace)、[Slack](https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw) 获取帮助，或在 GitHub 上[发起讨论](https://github.com/uptrace/uptrace/discussions)。
+有疑问？通过 [Telegram](https://t.me/uptrace)、[Slack](https://join.slack.com/t/uptracedev/shared_invite/zt-3e35d4b0m-zfAew95ymE5Fv31LwvyuoQ) 获取帮助，或在 GitHub 上[发起讨论](https://github.com/uptrace/uptrace/discussions)。
 
 ## 贡献
 

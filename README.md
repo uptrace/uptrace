@@ -4,7 +4,7 @@ Languages: **English** | [简体中文](README.zh.md)
 
 [![build workflow](https://github.com/uptrace/uptrace/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/uptrace/uptrace/actions)
 [![Chat](https://img.shields.io/badge/-telegram-red?color=white&logo=telegram&logoColor=black)](https://t.me/uptrace)
-[![Slack](https://img.shields.io/badge/slack-uptrace.svg?logo=slack)](https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw)
+[![Slack](https://img.shields.io/badge/slack-uptrace.svg?logo=slack)](https://join.slack.com/t/uptracedev/shared_invite/zt-3e35d4b0m-zfAew95ymE5Fv31LwvyuoQ)
 
 Uptrace is an [open source APM](https://uptrace.dev/get/hosted/open-source-apm)
 that supports distributed tracing, metrics, and logs. You can use it to monitor
@@ -77,7 +77,7 @@ Then follow the [getting started](https://uptrace.dev/get) guide.
 ## Help
 
 Have questions? Get help via [Telegram](https://t.me/uptrace),
-[Slack](https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw),
+[Slack](https://join.slack.com/t/uptracedev/shared_invite/zt-3e35d4b0m-zfAew95ymE5Fv31LwvyuoQ),
 or [start a discussion](https://github.com/uptrace/uptrace/discussions) on
 GitHub.
 

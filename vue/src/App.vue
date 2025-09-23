@@ -71,7 +71,7 @@
               <span>OpenTelemetry</span>
             </v-btn>
             <v-btn
-              href="https://join.slack.com/t/uptracedev/shared_invite/zt-1xr19nhom-cEE3QKSVt172JdQLXgXGvw"
+              href="https://join.slack.com/t/uptracedev/shared_invite/zt-3e35d4b0m-zfAew95ymE5Fv31LwvyuoQ"
               target="_blank"
               text
               rounded
