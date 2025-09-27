@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"net/http/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -23,8 +22,6 @@ import (
 	"github.com/uptrace/go-clickhouse/chdebug"
 	"github.com/uptrace/go-clickhouse/chotel"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
-	"github.com/uptrace/uptrace/pkg/bunconf"
-	"github.com/uptrace/uptrace/pkg/httperror"
 	"github.com/vmihailenco/taskq/pgq/v4"
 	"github.com/vmihailenco/taskq/v4"
 	"github.com/zyedidia/generic/cache"
@@ -34,6 +31,9 @@ import (
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	"github.com/uptrace/uptrace/pkg/bunconf"
+	"github.com/uptrace/uptrace/pkg/httperror"
 )
 
 type appCtxKey struct{}
@@ -186,21 +186,6 @@ func (app *App) initRouter() {
 		app.routerGroup = app.router.NewGroup(app.conf.Site.URL.Path)
 	} else {
 		app.routerGroup = app.router.NewGroup("")
-	}
-
-	if app.Debug() {
-		adapter := bunrouter.HTTPHandlerFunc
-
-		app.routerGroup.GET("/debug/pprof/", adapter(pprof.Index))
-		app.routerGroup.GET("/debug/pprof/cmdline", adapter(pprof.Cmdline))
-		app.routerGroup.GET("/debug/pprof/profile", adapter(pprof.Profile))
-		app.routerGroup.GET("/debug/pprof/symbol", adapter(pprof.Symbol))
-		app.routerGroup.GET(
-			"/debug/pprof/:name", func(w http.ResponseWriter, req bunrouter.Request) error {
-				h := pprof.Handler(req.Param("name"))
-				h.ServeHTTP(w, req.Request)
-				return nil
-			})
 	}
 
 	app.internalAPIV1 = app.routerGroup.NewGroup("/internal/v1")

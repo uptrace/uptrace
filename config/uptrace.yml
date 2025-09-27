@@ -18,8 +18,8 @@
 ##
 ch:
   addr: localhost:9000
-  user: default
-  password:
+  user: uptrace
+  password: uptrace
   database: uptrace
 
   # Maximum query execution time.

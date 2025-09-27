@@ -23,6 +23,9 @@ import (
 	"github.com/rs/cors"
 	"github.com/uptrace/bun/migrate"
 	"github.com/uptrace/bunrouter"
+	"github.com/vmihailenco/taskq/extra/oteltaskq/v4"
+	"golang.org/x/net/http2"
+
 	"github.com/uptrace/uptrace"
 	"github.com/uptrace/uptrace/cmd/uptrace/command"
 	"github.com/uptrace/uptrace/pkg"
@@ -30,21 +33,19 @@ import (
 	"github.com/uptrace/uptrace/pkg/bunapp"
 	"github.com/uptrace/uptrace/pkg/bunapp/chmigrations"
 	"github.com/uptrace/uptrace/pkg/bunapp/pgmigrations"
-	"github.com/uptrace/uptrace/pkg/grafana"
 	"github.com/uptrace/uptrace/pkg/httputil"
 	"github.com/uptrace/uptrace/pkg/org"
 	"github.com/uptrace/uptrace/pkg/run"
 	"github.com/uptrace/uptrace/pkg/uptracebundle"
-	"github.com/vmihailenco/taskq/extra/oteltaskq/v4"
-	"golang.org/x/net/http2"
 
-	"github.com/uptrace/uptrace/pkg/metrics"
-	"github.com/uptrace/uptrace/pkg/tracing"
 	"github.com/urfave/cli/v2"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
+
+	"github.com/uptrace/uptrace/pkg/metrics"
+	"github.com/uptrace/uptrace/pkg/tracing"
 )
 
 func main() {
@@ -142,7 +143,7 @@ var serveCommand = &cli.Command{
 		tracing.Init(ctx, app)
 		metrics.Init(ctx, app)
 		alerting.Init(ctx, app)
-		grafana.Init(ctx, app)
+		//grafana.Init(ctx, app)
 
 		if err := syncDashboards(ctx, app); err != nil {
 			app.Zap(ctx).Error("syncDashboards failed", zap.Error(err))
