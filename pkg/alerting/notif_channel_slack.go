@@ -18,6 +18,9 @@ type SlackNotifChannel struct {
 
 type SlackParams struct {
 	WebhookURL string `json:"webhookUrl"`
+	Token      string `json:"token"`
+	Channel    string `json:"channel"`
+	AuthMethod string `json:"authMethod"`
 }
 
 func newSlackNotifChannel(src *BaseNotifChannel) (*SlackNotifChannel, error) {

@@ -49,6 +49,23 @@ func notifyBySlackChannel(
 		return nil
 	}
 
+	switch channel.Params.AuthMethod {
+	case "webhook", "":
+		return notifyBySlackWebhook(ctx, app, project, alert, channel)
+	case "token":
+		return notifyBySlackToken(ctx, app, project, alert, channel)
+	default:
+		return fmt.Errorf("unsupported authentication method: %q", channel.Params.AuthMethod)
+	}
+}
+
+func notifyBySlackWebhook(
+	ctx context.Context,
+	app *bunapp.App,
+	project *org.Project,
+	alert org.Alert,
+	channel *SlackNotifChannel,
+) error {
 	webhookURL := channel.Params.WebhookURL
 
 	if webhookURL == "" {
@@ -106,6 +123,66 @@ func notifyBySlackChannel(
 			zap.String("unwrap", fmt.Sprintf("%T", errors.Unwrap(err))))
 		return err
 	}
+}
+
+func notifyBySlackToken(
+	ctx context.Context,
+	app *bunapp.App,
+	project *org.Project,
+	alert org.Alert,
+	channel *SlackNotifChannel,
+) error {
+	token := channel.Params.Token
+	channelID := channel.Params.Channel
+
+	if token == "" || channelID == "" {
+		if err := UpdateNotifChannelState(
+			ctx, app, channel.Base(), NotifChannelDisabled,
+		); err != nil {
+			app.Zap(ctx).Error("UpdateNotifChannelState failed", zap.Error(err))
+			return err
+		}
+		return nil
+	}
+
+	client := slack.New(token)
+
+	block, err := slackAlertBlock(app, project, alert)
+	if err != nil {
+		return err
+	}
+
+	baseAlert := alert.Base()
+	text := fmt.Sprintf("[%s] %s", project.Name, baseAlert.Name)
+
+	_, _, err = client.PostMessage(
+		channelID,
+		slack.MsgOptionText(text, false),
+		slack.MsgOptionBlocks(block),
+	)
+
+	if err != nil {
+		slackErr, ok := err.(*slack.SlackErrorResponse)
+		if ok {
+			switch slackErr.Err {
+			case "channel_not_found", "not_in_channel", "account_inactive", "invalid_auth":
+				if err := UpdateNotifChannelState(
+					ctx, app, channel.Base(), NotifChannelDisabled,
+				); err != nil {
+					app.Zap(ctx).Error("UpdateNotifChannelState failed", zap.Error(err))
+					return err
+				}
+				return nil
+			}
+		}
+
+		app.Zap(ctx).Error("slack token message failed",
+			zap.String("channel", channelID),
+			zap.Error(err))
+		return err
+	}
+
+	return nil
 }
 
 func slackAlertBlock(
