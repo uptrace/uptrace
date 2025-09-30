@@ -121,22 +121,47 @@ func (in *SlackNotifChannelIn) Validate(channel *SlackNotifChannel) error {
 	if in.Name == "" {
 		return errors.New("channel name can't be empty")
 	}
-	if in.Params.WebhookURL == "" {
-		return errors.New("webhook URL can't be empty")
+
+	if in.Params.AuthMethod == "" {
+		in.Params.AuthMethod = "webhook"
 	}
 
-	u, err := url.Parse(in.Params.WebhookURL)
-	if err != nil {
-		return err
-	}
-	switch u.Scheme {
-	case "http", "https":
+	switch in.Params.AuthMethod {
+	case "webhook":
+		if in.Params.WebhookURL == "" {
+			return errors.New("webhook URL can't be empty")
+		}
+
+		u, err := url.Parse(in.Params.WebhookURL)
+		if err != nil {
+			return err
+		}
+		switch u.Scheme {
+		case "http", "https":
+		default:
+			return fmt.Errorf("unsupported URL protocol scheme: %q", u.Scheme)
+		}
+
+		channel.Name = in.Name
+		channel.Params.WebhookURL = in.Params.WebhookURL
+		channel.Params.AuthMethod = in.Params.AuthMethod
+
+	case "token":
+		if in.Params.Token == "" {
+			return errors.New("bot token can't be empty")
+		}
+		if in.Params.Channel == "" {
+			return errors.New("channel/user can't be empty")
+		}
+
+		channel.Name = in.Name
+		channel.Params.Token = in.Params.Token
+		channel.Params.Channel = in.Params.Channel
+		channel.Params.AuthMethod = in.Params.AuthMethod
+
 	default:
-		return fmt.Errorf("unsupported URL protocol scheme: %q", u.Scheme)
+		return fmt.Errorf("unsupported authentication method: %q", in.Params.AuthMethod)
 	}
-
-	channel.Name = in.Name
-	channel.Params.WebhookURL = in.Params.WebhookURL
 
 	return nil
 }
@@ -202,6 +227,17 @@ func (h *NotifChannelHandler) SlackUpdate(w http.ResponseWriter, req bunrouter.R
 }
 
 func (h *NotifChannelHandler) sendSlackTestMsg(channel *SlackNotifChannel) error {
+	switch channel.Params.AuthMethod {
+	case "webhook", "": // Default to webhook for backwards compatibility
+		return h.sendSlackTestMsgWebhook(channel)
+	case "token":
+		return h.sendSlackTestMsgToken(channel)
+	default:
+		return fmt.Errorf("unsupported authentication method: %q", channel.Params.AuthMethod)
+	}
+}
+
+func (h *NotifChannelHandler) sendSlackTestMsgWebhook(channel *SlackNotifChannel) error {
 	webhookURL := channel.Params.WebhookURL
 	if webhookURL == "" {
 		return errors.New("webhook URL can't be empty")
@@ -215,6 +251,27 @@ func (h *NotifChannelHandler) sendSlackTestMsg(channel *SlackNotifChannel) error
 	}
 
 	return nil
+}
+
+func (h *NotifChannelHandler) sendSlackTestMsgToken(channel *SlackNotifChannel) error {
+	token := channel.Params.Token
+	if token == "" {
+		return errors.New("bot token can't be empty")
+	}
+
+	channelID := channel.Params.Channel
+	if channelID == "" {
+		return errors.New("channel/user can't be empty")
+	}
+
+	client := slack.New(token)
+
+	_, _, err := client.PostMessage(
+		channelID,
+		slack.MsgOptionText("Test message from Uptrace", false),
+	)
+
+	return err
 }
 
 //------------------------------------------------------------------------------

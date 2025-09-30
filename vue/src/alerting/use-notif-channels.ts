@@ -39,6 +39,9 @@ export interface SlackNotifChannel extends BaseNotifChannel {
 
 export interface SlackNotifChannelParams {
   webhookUrl: string
+  token: string
+  channel: string
+  authMethod: string
 }
 
 export interface TelegramNotifChannel extends BaseNotifChannel {
@@ -97,6 +100,9 @@ export function emptySlackNotifChannel(): SlackNotifChannel {
     type: NotifChannelType.Slack,
     params: {
       webhookUrl: '',
+      token: '',
+      channel: '',
+      authMethod: 'webhook',
     },
   }
 }
