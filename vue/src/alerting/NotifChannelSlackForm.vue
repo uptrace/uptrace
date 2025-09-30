@@ -4,8 +4,8 @@
       <v-row>
         <v-col class="text-subtitle-1 text--primary">
           <p>
-            Slack notifications can be configured using either webhooks or bot tokens.
-            Choose the method that best fits your setup:
+            Slack notifications can be configured using either webhooks or bot tokens. Choose the
+            method that best fits your setup:
           </p>
           <ul>
             <li><strong>Webhook:</strong> Simple setup using incoming webhooks</li>
@@ -33,17 +33,17 @@
       <v-row>
         <v-col cols="12">
           <v-btn-toggle
-            v-model="authMethodIndex"
+            v-model="channel.params.authMethod"
             mandatory
             color="primary"
             group
             class="v-btn-group--horizontal"
           >
-            <v-btn value="0" class="text-none">
+            <v-btn value="webhook" class="text-none">
               <v-icon left>mdi-webhook</v-icon>
               Webhook
             </v-btn>
-            <v-btn value="1" class="text-none">
+            <v-btn value="token" class="text-none">
               <v-icon left>mdi-robot</v-icon>
               Bot Token
             </v-btn>
@@ -52,12 +52,14 @@
       </v-row>
 
       <!-- Webhook Configuration -->
-      <template v-if="currentAuthMethod === 'webhook'">
+      <template v-if="channel.params.authMethod === 'webhook' || !channel.params.authMethod">
         <v-row>
           <v-col class="text-subtitle-2 text--primary">
             <p>
               Create an
-              <a href="https://api.slack.com/messaging/webhooks" target="_blank">incoming webhook</a>
+              <a href="https://api.slack.com/messaging/webhooks" target="_blank"
+                >incoming webhook</a
+              >
               on Slack and paste the URL below.
             </p>
           </v-col>
@@ -79,14 +81,14 @@
       </template>
 
       <!-- Token Configuration -->
-      <template v-if="currentAuthMethod === 'token'">
+      <template v-if="channel.params.authMethod === 'token'">
         <v-row>
           <v-col class="text-subtitle-2 text--primary">
             <p>
               Create a
               <a href="https://api.slack.com/apps" target="_blank">Slack app</a>
-              and generate a bot token with the <code>chat:write</code> scope.
-              Then invite the bot to your desired channel.
+              and generate a bot token with the <code>chat:write</code> scope. Then invite the bot
+              to your desired channel.
             </p>
           </v-col>
         </v-row>
@@ -135,7 +137,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, shallowRef, computed, ref, watch, PropType } from 'vue'
+import { defineComponent, shallowRef, watch, PropType } from 'vue'
 
 // Composables
 import { useNotifChannelManager, SlackNotifChannel } from '@/alerting/use-notif-channels'
@@ -158,32 +160,18 @@ export default defineComponent({
 
     const form = shallowRef()
     const isValid = shallowRef(true)
-    
-    // Use a reactive ref to track the current auth method
-    const currentAuthMethod = ref(props.channel.params.authMethod || 'webhook')
-    
-    // Watch for external changes to the channel params and sync with our ref
-    watch(() => props.channel.params.authMethod, (newMethod) => {
-      if (newMethod && newMethod !== currentAuthMethod.value) {
-        currentAuthMethod.value = newMethod
-      }
-    })
-    
-    // Computed property for button toggle index
-    const authMethodIndex = computed({
-      get: () => {
-        return currentAuthMethod.value === 'token' ? "1" : "0"
-      },
-      set: (value: string) => {
-        const method = value === "1" ? 'token' : 'webhook'
-        const oldMethod = currentAuthMethod.value
-        
-        currentAuthMethod.value = method
-        props.channel.params.authMethod = method
-        
-        // Clear fields when switching methods
-        if (oldMethod !== method) {
-          if (method === 'webhook') {
+
+    // Set default auth method if not specified
+    if (!props.channel.params.authMethod) {
+      props.channel.params.authMethod = 'webhook'
+    }
+
+    // Watch for auth method changes to clear irrelevant fields
+    watch(
+      () => props.channel.params.authMethod,
+      (newMethod, oldMethod) => {
+        if (oldMethod && oldMethod !== newMethod) {
+          if (newMethod === 'webhook') {
             // Switched to webhook
             props.channel.params.token = ''
             props.channel.params.channel = ''
@@ -192,14 +180,14 @@ export default defineComponent({
             props.channel.params.webhookUrl = ''
           }
         }
-      }
-    })
+      },
+    )
 
     const rules = {
       name: [requiredRule],
       webhookUrl: [
         (v: any) => {
-          if (currentAuthMethod.value === 'webhook') {
+          if (props.channel.params.authMethod === 'webhook') {
             return v ? true : 'Webhook URL is required'
           }
           return true
@@ -207,7 +195,7 @@ export default defineComponent({
       ],
       token: [
         (v: any) => {
-          if (currentAuthMethod.value === 'token') {
+          if (props.channel.params.authMethod === 'token') {
             return v ? true : 'Bot token is required'
           }
           return true
@@ -215,7 +203,7 @@ export default defineComponent({
       ],
       channel: [
         (v: any) => {
-          if (currentAuthMethod.value === 'token') {
+          if (props.channel.params.authMethod === 'token') {
             return v ? true : 'Channel/user is required'
           }
           return true
@@ -247,8 +235,6 @@ export default defineComponent({
       form,
       isValid,
       rules,
-      authMethodIndex,
-      currentAuthMethod,
       submit,
     }
   },
