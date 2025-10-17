@@ -46,7 +46,7 @@ require (
 	github.com/uptrace/bunrouter v1.0.23
 	github.com/uptrace/bunrouter/extra/bunrouterotel v1.0.23
 	github.com/uptrace/bunrouter/extra/reqlog v1.0.22
-	github.com/uptrace/opentelemetry-go-extra/otelzap v0.2.3
+	github.com/uptrace/opentelemetry-go-extra/otelzap v0.3.2
 	github.com/uptrace/pkg/clickhouse v0.0.0-00010101000000-000000000000
 	github.com/uptrace/pkg/idgen v0.0.0-00010101000000-000000000000
 	github.com/uptrace/pkg/unixtime v0.0.0-00010101000000-000000000000
@@ -69,7 +69,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.36.0
 	go.opentelemetry.io/proto/otlp v1.7.0
 	go.uber.org/fx v1.23.0
-	go.uber.org/zap v1.26.0
+	go.uber.org/zap v1.27.0
 	go4.org v0.0.0-20230225012048-214862532bf5
 	golang.org/x/crypto v0.40.0
 	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d
@@ -149,7 +149,7 @@ require (
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelsql v0.3.2 // indirect
-	github.com/uptrace/opentelemetry-go-extra/otelutil v0.2.3 // indirect
+	github.com/uptrace/opentelemetry-go-extra/otelutil v0.3.2 // indirect
 	github.com/uptrace/pkg/msgp v0.0.0-00010101000000-000000000000 // indirect
 	github.com/uptrace/pkg/tagparser v0.0.0-00010101000000-000000000000 // indirect
 	github.com/vmihailenco/tagparser v0.1.2 // indirect
@@ -166,7 +166,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.28.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.28.0 // indirect
-	go.opentelemetry.io/otel/log v0.4.0 // indirect
+	go.opentelemetry.io/otel/log v0.6.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.36.0 // indirect
 	go.opentelemetry.io/otel/sdk/log v0.4.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.36.0 // indirect
