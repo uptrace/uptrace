@@ -3,7 +3,7 @@ package tracing
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -70,7 +70,7 @@ func (s *TraceServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Req
 
 	switch contentType := req.Header.Get("content-type"); contentType {
 	case jsonContentType:
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		if err != nil {
 			return err
 		}
@@ -96,7 +96,7 @@ func (s *TraceServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.Req
 
 		return nil
 	case xprotobufContentType, protobufContentType:
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		if err != nil {
 			return err
 		}

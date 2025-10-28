@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"time"
@@ -98,7 +97,7 @@ func (s *MetricsServiceServer) ExportHTTP(w http.ResponseWriter, req bunrouter.R
 
 		return nil
 	case xprotobufContentType, protobufContentType:
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		if err != nil {
 			return err
 		}
