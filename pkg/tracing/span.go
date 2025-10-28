@@ -135,13 +135,13 @@ func (s *Span) TreeEndTime() time.Time {
 }
 
 var (
-	walkBreak     = errors.New("BREAK")
-	walkNextChild = errors.New("NEXT-CHILD")
+	errWalkBreak     = errors.New("BREAK")
+	errWalkNextChild = errors.New("NEXT-CHILD")
 )
 
 func (s *Span) Walk(fn func(child, parent *Span) error) error {
 	if err := fn(s, nil); err != nil {
-		if err != walkBreak {
+		if err != errWalkBreak {
 			return err
 		}
 		return nil
@@ -152,7 +152,7 @@ func (s *Span) Walk(fn func(child, parent *Span) error) error {
 func (s *Span) walkChildren(fn func(child, parent *Span) error) error {
 	for _, child := range s.Children {
 		if err := fn(child, s); err != nil {
-			if err == walkNextChild {
+			if err == errWalkNextChild {
 				continue
 			}
 			return err

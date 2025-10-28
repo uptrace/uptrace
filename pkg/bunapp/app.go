@@ -183,8 +183,7 @@ func initGRPC(conf *bunconf.Config) (*grpc.Server, error) {
 	var opts []grpc.ServerOption
 
 	opts = append(opts,
-		grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
-		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.MaxRecvMsgSize(32<<20),
 		grpc.ReadBufferSize(512<<10),
 	)

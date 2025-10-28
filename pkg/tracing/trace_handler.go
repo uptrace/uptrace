@@ -104,7 +104,7 @@ func (h *TraceHandler) ShowTrace(w http.ResponseWriter, req bunrouter.Request) e
 			if span.ID == rootSpanID {
 				span.ParentID = 0
 				root = span
-				return walkBreak
+				return errWalkBreak
 			}
 			return nil
 		})
