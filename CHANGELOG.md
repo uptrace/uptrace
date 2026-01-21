@@ -2,6 +2,44 @@
 
 To get started with Uptrace, see https://uptrace.dev/get
 
+## v2.1.0-beta - Unreleased
+
+### Upgrading
+
+If you're already running an Uptrace installation, make sure to upgrade to v2.0.2 before upgrading
+to v2.1.0.
+
+### System Requirements
+
+- **ClickHouse**: v25.8 or later (required for JSON data type support)
+- **PostgreSQL**: v14 or later
+- **Redis**: v6 or later
+
+### Breaking Changes
+
+- `uptrace serve` no longer automatically runs database migrations. Migrations must now be executed
+  as a separate step before starting the server. Both the Dockerfile and Kubernetes Helm Charts have
+  been updated to run migrations in a dedicated init container.
+
+  To migrate manually, run the following commands in order:
+
+  ```shell
+  uptrace --config=/etc/uptrace/config.yml pg init
+  uptrace --config=/etc/uptrace/config.yml pg migrate
+  uptrace --config=/etc/uptrace/config.yml ch check
+  uptrace --config=/etc/uptrace/config.yml ch init
+  uptrace --config=/etc/uptrace/config.yml ch migrate
+  uptrace --config=/etc/uptrace/config.yml ch dist
+  uptrace --config=/etc/uptrace/config.yml db seed
+  ```
+
+  This change improves deployment reliability by ensuring migrations complete successfully before
+  the application starts, and allows for better error handling during upgrades.
+
+### Improvements
+
+TODO
+
 ## v2.0.0 - July 24 2025
 
 [Release notes](https://uptrace.dev/blog/uptrace-v20)
@@ -186,7 +224,6 @@ You can also check this [blog post](https://uptrace.dev/blog/uptrace-v16.html) f
   [v1.21](https://github.com/open-telemetry/opentelemetry-specification/blob/main/schemas/1.21.0)
   OpenTelemetry semantic conventions which introduced some breaking changes to attribute names. Most
   notably:
-
   - `http.method` is renamed to `http.request.method`.
   - `http.status_code` is renamed to `http.response.status_code`.
 
@@ -366,7 +403,6 @@ To migrate to v1.4.0:
 - Added support for Summary metrics type.
 
 - Zipkin ingestion API now requires an Uptrace DSN in one of the following locations:
-
   - `uptrace-dsn` HTTP header.
   - `Authorization` HTTP header.
   - `dsn` URL query, for example, `/api/v2/spans?dsn=[dsn]`.
@@ -447,12 +483,10 @@ alerting:
         - $fs_usage{state="used"} / $fs_usage >= 0.9
       for: 5m
       annotations:
-        summary:
-          'FS usage is {{ $values.fs_usage }} on {{ $labels.host_name }} and {{ $labels.device }}'
+        summary: 'FS usage is {{ $values.fs_usage }} on {{ $labels.host_name }} and {{ $labels.device }}'
 ```
 
 - Tweaked spans grouping and added 2 related options:
-
   - `project.group_by_env` - group spans by `deployment.environment` attribute.
   - `project.group_funcs_by_service` - group `funcs` spans by `service.name` attribute.
 
