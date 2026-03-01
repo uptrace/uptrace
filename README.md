@@ -86,3 +86,9 @@ GitHub.
 <a href="https://github.com/uptrace/uptrace/graphs/contributors">
   <img src="https://contributors-img.web.app/image?repo=uptrace/uptrace" />
 </a>
+
+### Infrastructure model
+![Infrastructure main model](.infragenie/infrastructure_main_model.svg)
+- [prometheus component model](.infragenie/prometheus_component_model.svg)
+
+---
