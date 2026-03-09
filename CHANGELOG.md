@@ -2,7 +2,21 @@
 
 To get started with Uptrace, see https://uptrace.dev/get
 
-## v2.1.0-beta - Unreleased
+## v2.1.0-beta.2 - March 09 2026
+
+No breaking changes.
+
+### New Features
+
+- Added [Traces](https://uptrace.dev/features/querying/traces) filtering.
+- Added MCP server — see your Project tab for details.
+- Added Incident.io notification channel.
+
+### Upgrading
+
+Make sure to run `pg init` and `ch init` commands during deployment.
+
+## v2.1.0-beta - January 21 2026
 
 ### Upgrading
 
