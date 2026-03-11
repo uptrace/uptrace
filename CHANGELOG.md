@@ -2,6 +2,10 @@
 
 To get started with Uptrace, see https://uptrace.dev/get
 
+## v2.1.0-beta.3 - March 11 2026
+
+- Restored `max_insert_size` configuration option.
+
 ## v2.1.0-beta.2 - March 09 2026
 
 No breaking changes.
