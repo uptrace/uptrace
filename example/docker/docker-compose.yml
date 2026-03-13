@@ -38,9 +38,14 @@ services:
   redis:
     image: redis:6.2.2-alpine
     restart: on-failure
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 1s
+      timeout: 1s
+      retries: 30
 
   uptrace:
-    image: 'uptrace/uptrace:2.1.0-beta'
+    image: 'uptrace/uptrace:2.1.0-beta.4'
     restart: on-failure
     volumes:
       - ./uptrace.yml:/etc/uptrace/config.yml
@@ -52,8 +57,12 @@ services:
       - '14317:4317'
       - '14318:80'
     depends_on:
-      - clickhouse
-      - postgres
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   otelcol:
     image: otel/opentelemetry-collector-contrib:0.123.0

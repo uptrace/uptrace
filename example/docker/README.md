@@ -2,9 +2,9 @@
 
 ## Getting started
 
-This example demonstrates how to quickly start Uptrace using Docker. To run Uptrace permanently, you
-can also use a DEB/RPM [package](https://uptrace.dev/get/hosted/install#packages) or a pre-compiled
-[binary](https://uptrace.dev/get/hosted/install#binaries).
+This example demonstrates how to quickly start Uptrace using Docker. For full instructions, see the
+[Docker guide](https://uptrace.dev/get/hosted/docker). You can also deploy Uptrace using
+[Ansible](https://uptrace.dev/get/hosted/ansible) or [Kubernetes](https://uptrace.dev/get/hosted/k8s).
 
 **Step 1**. Download the example using Git:
 
@@ -38,7 +38,7 @@ To configure OpenTelemetry for your programming language, see
 
 ## Alerting
 
-This example uses MailHog to test email notifications. Open
+This example uses Mailpit to test email notifications. Open
 [http://localhost:8025](http://localhost:8025) to view available email notifications.
 
 See [Alerting and Notifications](https://uptrace.dev/features/alerting) for more details.
