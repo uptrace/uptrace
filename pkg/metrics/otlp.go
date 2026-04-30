@@ -367,7 +367,7 @@ func (p *otlpProcessor) otlpExpHistogram(
 		if dp.ZeroCount > 0 {
 			hist[bfloat16.From(0)] += dp.ZeroCount
 		}
-		base := math.Pow(2, math.Pow(2, float64(dp.Scale)))
+		base := math.Pow(2, math.Pow(2, -float64(dp.Scale)))
 		buildBFloat16Hist(hist, base, int(dp.Positive.Offset), dp.Positive.BucketCounts, +1)
 		buildBFloat16Hist(hist, base, int(dp.Negative.Offset), dp.Negative.BucketCounts, -1)
 
