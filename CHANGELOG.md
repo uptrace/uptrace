@@ -2,6 +2,10 @@
 
 To get started with Uptrace, see https://uptrace.dev/get
 
+## v2.0.3 - May 13 2026
+
+Same as v2.0.2, but rebuilt on a fresh Alpine image to address recent CVEs.
+
 ## v2.1.0-beta.4 - March 13 2026
 
 - Restored deprecated `ch check` command. It does nothing.
