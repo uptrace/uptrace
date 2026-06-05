@@ -360,10 +360,53 @@ func (q *Queue) cleanZombieConsumers(ctx context.Context) (int, error) {
 		}
 
 		if time.Duration(consumer.Idle)*time.Millisecond > q.opt.ConsumerIdleTimeout {
+			// Claim and requeue pending messages before deleting the consumer,
+			// otherwise XGroupDelConsumer drops PEL entries and those messages
+			// become invisible (delivered but never processed).
+			q.reclaimConsumerPending(ctx, consumer.Name)
 			_ = q.redis.XGroupDelConsumer(ctx, q.stream, q.streamGroup, consumer.Name).Err()
 		}
 	}
 	return 0, nil
+}
+
+// reclaimConsumerPending claims all pending messages from a zombie consumer
+// and re-adds them to the stream so they can be processed by active consumers.
+func (q *Queue) reclaimConsumerPending(ctx context.Context, consumerName string) {
+	for {
+		pending, err := q.redis.XPendingExt(ctx, &redis.XPendingExtArgs{
+			Stream:   q.stream,
+			Group:    q.streamGroup,
+			Start:    "-",
+			End:      "+",
+			Count:    batchSize,
+			Consumer: consumerName,
+		}).Result()
+		if err != nil || len(pending) == 0 {
+			return
+		}
+
+		for _, p := range pending {
+			xmsgs, err := q.redis.XRangeN(ctx, q.stream, p.ID, p.ID, 1).Result()
+			if err != nil {
+				continue
+			}
+			if len(xmsgs) != 1 {
+				_ = q.redis.XAck(ctx, q.stream, q.streamGroup, p.ID).Err()
+				continue
+			}
+
+			msg := new(taskq.Job)
+			if err := unmarshalJob(msg, &xmsgs[0]); err != nil {
+				_ = q.redis.XAck(ctx, q.stream, q.streamGroup, p.ID).Err()
+				continue
+			}
+
+			if err := q.Release(ctx, msg); err != nil {
+				continue
+			}
+		}
+	}
 }
 
 // schedulePending schedules pending messages that are older than the `ReservationTimeout`.
@@ -398,9 +441,14 @@ func (q *Queue) schedulePending(ctx context.Context) (int, error) {
 		}
 
 		if len(xmsgs) != 1 {
-			err := fmt.Errorf("redisq: can't find pending message id=%q in stream=%q",
-				id, q.stream)
-			return 0, err
+			// Message body is gone (trimmed or lost) but PEL entry remains.
+			// ACK and skip to unblock processing of remaining pending messages.
+			backend.Error(
+				fmt.Errorf("redisq: can't find pending message id=%q in stream=%q (acking orphan)", id, q.stream),
+				"schedulePending: skipping orphaned pending entry",
+			)
+			_ = q.redis.XAck(ctx, q.stream, q.streamGroup, id).Err()
+			continue
 		}
 
 		xmsg := &xmsgs[0]
