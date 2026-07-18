@@ -1,51 +1,62 @@
 'use strict'
 
-const port = 9999
-
-const otel = require('@opentelemetry/api')
 const express = require('express')
+const otel = require('@opentelemetry/api')
+
 const app = express()
-const tracer = otel.trace.getTracer('express-example')
+const port = 9999
 
 app.get('/', indexHandler)
 app.get('/hello/:username', helloHandler)
 
-app.listen(9999, () => {
+app.listen(port, () => {
   console.log(`listening at http://localhost:${port}`)
 })
 
 function indexHandler(req, res) {
-  const traceUrl = getTraceUrl(otel.trace.getSpan(otel.context.active()))
-  res.send(
-    `<html>` +
-      `<p>Here are some routes for you:</p>` +
-      `<ul>` +
-      `<li><a href="/hello/world">Hello world</a></li>` +
-      `<li><a href="/hello/foo-bar">Hello foo-bar</a></li>` +
-      `</ul>` +
-      `<p><a href="${traceUrl}">${traceUrl}</a></p>` +
-      `</html>`,
-  )
+  const span = getActiveSpan()
+  const traceUrl = getTraceUrl(span)
+
+  res.send(`
+    <html>
+      <p>Available routes:</p>
+      <ul>
+        <li><a href="/hello/world">Hello world</a></li>
+        <li><a href="/hello/foo-bar">Hello foo-bar</a></li>
+      </ul>
+      <p>
+        <a href="${traceUrl}">${traceUrl}</a>
+      </p>
+    </html>
+  `)
 }
 
 function helloHandler(req, res) {
-  const span = trace.getSpan(otel.context.active())
-
-  const err = new Error('User not found')
-  span.recordException(err)
+  const span = getActiveSpan()
 
   const username = req.params.username
   const traceUrl = getTraceUrl(span)
-  res.send(
-    `<html>` +
-      `<h3>Hello ${username}</h3>` +
-      `<p><a href="${traceUrl}">${traceUrl}</a></p>` +
-      `</html>`,
-  )
+
+  res.send(`
+    <html>
+      <h3>Hello ${username}</h3>
+      <p>
+        <a href="${traceUrl}">${traceUrl}</a>
+      </p>
+    </html>
+  `)
+}
+
+function getActiveSpan() {
+  return otel.trace.getSpan(otel.context.active())
 }
 
 function getTraceUrl(span) {
-  const ctx = span.spanContext()
-  const traceId = ctx?.traceId ?? '<no span>'
+  if (!span) {
+    return 'No active trace'
+  }
+
+  const { traceId } = span.spanContext()
+
   return `http://localhost:14318/traces/${traceId}`
 }

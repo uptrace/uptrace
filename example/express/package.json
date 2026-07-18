@@ -4,6 +4,7 @@
   "description": "",
   "main": "main.js",
   "scripts": {
+    "start": "node --require ./otel.js main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

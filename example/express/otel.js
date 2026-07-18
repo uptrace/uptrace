@@ -9,7 +9,7 @@ const { AWSXRayIdGenerator } = require('@opentelemetry/id-generator-aws-xray')
 const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http')
 const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express')
 
-const dsn = process.env.UPTRACE_DSN || 'http://project2_secret_token@localhost:14318/2'
+const dsn = process.env.UPTRACE_DSN || 'http://project1_secret@localhost:14318'
 console.log('using dsn:', dsn)
 
 const exporter = new OTLPTraceExporter({
