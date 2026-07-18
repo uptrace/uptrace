@@ -2,7 +2,7 @@
 
 const otel = require('@opentelemetry/api')
 const { BatchSpanProcessor } = require('@opentelemetry/sdk-trace-base')
-const { Resource } = require('@opentelemetry/resources')
+const { resourceFromAttributes } = require('@opentelemetry/resources')
 const { NodeSDK } = require('@opentelemetry/sdk-node')
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http')
 const { AWSXRayIdGenerator } = require('@opentelemetry/id-generator-aws-xray')
@@ -24,7 +24,7 @@ const bsp = new BatchSpanProcessor(exporter, {
 
 const sdk = new NodeSDK({
   spanProcessor: bsp,
-  resource: new Resource({
+  resource: resourceFromAttributes({
     'service.name': 'myservice',
     'service.version': '1.0.0',
   }),
