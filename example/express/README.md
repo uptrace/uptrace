@@ -1,5 +1,9 @@
 # OpenTelemetry Express example for Uptrace
 
+This example demonstrates manual OpenTelemetry configuration.
+
+For a simpler Uptrace setup, see the [@uptrace/node](https://npmjs.com/package/@uptrace/node) SDK.
+
 Install dependencies:
 
 ```bash
@@ -9,7 +13,13 @@ npm install
 Start Express server:
 
 ```bash
-UPTRACE_DSN="https://token@uptrace.dev/project_id" node --require ./otel.js main.js
+npm start
+```
+
+To send traces to Uptrace, set the `UPTRACE_DSN` environment variable:
+
+```bash
+UPTRACE_DSN="http://project1_secret@localhost:14318" npm start
 ```
 
 Then open http://localhost:9999

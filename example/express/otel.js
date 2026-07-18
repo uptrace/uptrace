@@ -2,14 +2,14 @@
 
 const otel = require('@opentelemetry/api')
 const { BatchSpanProcessor } = require('@opentelemetry/sdk-trace-base')
-const { Resource } = require('@opentelemetry/resources')
+const { resourceFromAttributes } = require('@opentelemetry/resources')
 const { NodeSDK } = require('@opentelemetry/sdk-node')
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http')
 const { AWSXRayIdGenerator } = require('@opentelemetry/id-generator-aws-xray')
 const { HttpInstrumentation } = require('@opentelemetry/instrumentation-http')
 const { ExpressInstrumentation } = require('@opentelemetry/instrumentation-express')
 
-const dsn = process.env.UPTRACE_DSN || 'http://project2_secret_token@localhost:14318/2'
+const dsn = process.env.UPTRACE_DSN || 'http://project1_secret@localhost:14318'
 console.log('using dsn:', dsn)
 
 const exporter = new OTLPTraceExporter({
@@ -24,7 +24,7 @@ const bsp = new BatchSpanProcessor(exporter, {
 
 const sdk = new NodeSDK({
   spanProcessor: bsp,
-  resource: new Resource({
+  resource: resourceFromAttributes({
     'service.name': 'myservice',
     'service.version': '1.0.0',
   }),
