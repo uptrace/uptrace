@@ -90,6 +90,8 @@ func defaultConfig() *Config {
 	conf.CHSchema.Compression = "ZSTD(3)"
 	conf.CHSchema.Spans.TTLDelete = "30 DAY"
 	conf.CHSchema.Spans.StoragePolicy = "default"
+	conf.CHSchema.Logs.TTLDelete = "30 DAY"
+	conf.CHSchema.Logs.StoragePolicy = "default"
 	conf.CHSchema.Metrics.TTLDelete = "90 DAY"
 	conf.CHSchema.Metrics.StoragePolicy = "default"
 
@@ -340,6 +342,11 @@ type Config struct {
 			StoragePolicy string `yaml:"storage_policy"`
 			TTLDelete     string `yaml:"ttl_delete"`
 		} `yaml:"spans"`
+
+		Logs struct {
+			StoragePolicy string `yaml:"storage_policy"`
+			TTLDelete     string `yaml:"ttl_delete"`
+		} `yaml:"logs"`
 
 		Metrics struct {
 			StoragePolicy string `yaml:"storage_policy"`

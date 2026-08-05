@@ -219,6 +219,11 @@ ch_schema:
     # Delete spans data after 30 days.
     ttl_delete: 30 DAY
 
+  logs:
+    storage_policy: 'default'
+    # Delete logs data after 30 days.
+    ttl_delete: 30 DAY
+
   metrics:
     storage_policy: 'default'
     # Delete metrics data after 90 days.

@@ -67,6 +67,11 @@ func chSchemaTTLMove(lc fx.Lifecycle, c *cli.Context, conf *bunconf.Config, chdb
 			if storage == "" {
 				storage = chSchema.Spans.StoragePolicy
 			}
+		case "logs_data", "logs_index":
+			ttlDelete = chSchema.Logs.TTLDelete
+			if storage == "" {
+				storage = chSchema.Logs.StoragePolicy
+			}
 		case "datapoint_minutes", "datapoint_hours":
 			ttlDelete = chSchema.Metrics.TTLDelete
 			if storage == "" {
