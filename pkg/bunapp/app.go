@@ -371,7 +371,6 @@ func NewMailer(conf *bunconf.Config) (*mail.Client, error) {
 	case cfg.TLS == nil:
 		options = append(options,
 			mail.WithTLSPortPolicy(mail.TLSOpportunistic),
-			mail.WithSSLPort(false),
 			mail.WithPort(cfg.Port),
 		)
 	case cfg.TLS.Disabled:
@@ -382,7 +381,6 @@ func NewMailer(conf *bunconf.Config) (*mail.Client, error) {
 	default:
 		options = append(options,
 			mail.WithTLSPortPolicy(mail.TLSMandatory),
-			mail.WithSSLPort(false),
 			mail.WithPort(cfg.Port),
 		)
 
