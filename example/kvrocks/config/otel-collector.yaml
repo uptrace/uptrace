@@ -1,15 +1,13 @@
 extensions:
   health_check:
-  pprof:
-    endpoint: 0.0.0.0:1777
-  zpages:
-    endpoint: 0.0.0.0:55679
 
 receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: 0.0.0.0:4317
       http:
+        endpoint: 0.0.0.0:4318
   hostmetrics:
     collection_interval: 10s
     scrapers:
@@ -23,9 +21,6 @@ receivers:
   redis/kvrocks:
     endpoint: 'kvrocks:6666'
     collection_interval: 10s
-  jaeger:
-    protocols:
-      grpc:
 
 processors:
   resourcedetection:
@@ -35,34 +30,28 @@ processors:
     timeout: 10s
 
 exporters:
-  logging:
-    logLevel: debug
-  otlp:
-    endpoint: uptrace:14317
-    tls:
-      insecure: true
-    headers: { 'uptrace-dsn': 'http://project2_secret_token@localhost:14317/2' }
+  otlp/uptrace:
+    endpoint: http://uptrace:4317
+    tls: { insecure: true }
+    headers: { 'uptrace-dsn': 'http://project1_secret@localhost:14318?grpc=14317' }
 
 service:
-  # telemetry:
-  #   logs:
-  #     level: DEBUG
   pipelines:
     traces:
-      receivers: [otlp, jaeger]
+      receivers: [otlp]
       processors: [batch]
-      exporters: [otlp, logging]
+      exporters: [otlp/uptrace]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp]
+      exporters: [otlp/uptrace]
     metrics/hostmetrics:
       receivers: [hostmetrics, redis/kvrocks]
       processors: [batch, resourcedetection]
-      exporters: [otlp]
+      exporters: [otlp/uptrace]
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp]
+      exporters: [otlp/uptrace]
 
-  extensions: [health_check, pprof, zpages]
+  extensions: [health_check]

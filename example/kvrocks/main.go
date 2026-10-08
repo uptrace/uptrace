@@ -27,7 +27,7 @@ func main() {
 
 	uptrace.ConfigureOpentelemetry(
 		// copy your project DSN here or use UPTRACE_DSN env var
-		uptrace.WithDSN("http://project2_secret_token@localhost:14317/2"),
+		uptrace.WithDSN("http://project1_secret@localhost:14318?grpc=14317"),
 
 		uptrace.WithServiceName("myservice"),
 		uptrace.WithServiceVersion("v1.0.0"),
@@ -98,7 +98,7 @@ func handleRequest(ctx context.Context, rdb *redis.Client) error {
 	return nil
 }
 
-var re = regexp.MustCompile(`used_disk_percent:\s(\d+)%`)
+var re = regexp.MustCompile(`used_disk_percent:\s*([\d.]+)%`)
 
 func monitorKvrocks(ctx context.Context, rdb *redis.Client) error {
 	meter := otel.Meter("github.com/uptrace/uptrace/example/kvrocks")
@@ -117,7 +117,7 @@ func monitorKvrocks(ctx context.Context, rdb *redis.Client) error {
 			if err != nil {
 				return err
 			}
-			o.ObserveFloat64(usedDiskPct, pct, semconv.DBSystemKey.String("kvrocks"))
+			o.ObserveFloat64(usedDiskPct, pct, metric.WithAttributes(semconv.DBSystemKey.String("kvrocks")))
 			return nil
 		},
 		usedDiskPct,
@@ -139,10 +139,10 @@ func getUsedDiskPercent(ctx context.Context, rdb *redis.Client) (float64, error)
 		return 0, errors.New("can't find used_disk_percent metric")
 	}
 
-	n, err := strconv.ParseInt(m[1], 10, 64)
+	n, err := strconv.ParseFloat(m[1], 64)
 	if err != nil {
 		return 0, err
 	}
 
-	return float64(n) / 100, nil
+	return n / 100, nil
 }

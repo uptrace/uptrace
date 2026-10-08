@@ -9,7 +9,9 @@ receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: 0.0.0.0:4317
       http:
+        endpoint: 0.0.0.0:4318
   hostmetrics:
     collection_interval: 10s
     scrapers:
@@ -60,7 +62,7 @@ exporters:
     tls: { insecure_skip_verify: true }
     headers: { 'uptrace-dsn': 'http://project1_secret@localhost?grpc=14317' }
   prometheusremotewrite/uptrace:
-    endpoint: 'http://uptrace:8080/api/v1/prometheus/write'
+    endpoint: 'http://uptrace:80/api/v1/prometheus/write'
     tls: { insecure_skip_verify: true }
     headers: { 'uptrace-dsn': 'http://project1_secret@localhost?grpc=14317' }
 

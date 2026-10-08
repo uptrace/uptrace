@@ -23,8 +23,8 @@ scrape_configs:
       - targets: ['host.docker.internal:9323']
 
 remote_write:
-  - url: 'https://host.docker.internal:14318/api/v1/prometheus/write'
+  - url: 'http://host.docker.internal:14318/api/v1/prometheus/write'
     tls_config:
       insecure_skip_verify: true
     headers:
-      'uptrace-dsn': 'https://project1_secret@localhost:14318?grpc=14317'
+      'uptrace-dsn': 'http://project1_secret@localhost:14318?grpc=14317'

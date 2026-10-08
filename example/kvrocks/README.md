@@ -14,14 +14,21 @@ cd uptrace/example/kvrocks
 **Step 2**. Start the services using Docker:
 
 ```shell
-docker-compose pull
-docker-compose up -d
+docker compose pull
+docker compose up -d
 ```
 
 **Step 3**. Make sure Uptrace is running:
 
 ```shell
-docker-compose logs uptrace
+docker compose logs uptrace
 ```
 
-**Step 4**. Open Uptrace UI at [http://localhost:14318](http://localhost:14318)
+**Step 4**. Run the example to generate traces and metrics:
+
+```shell
+go run .
+```
+
+**Step 5**. Open Uptrace UI at [http://localhost:14318](http://localhost:14318). To log in, use
+email `admin@uptrace.local` and password `admin`.

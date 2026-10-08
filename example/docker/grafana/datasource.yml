@@ -4,24 +4,24 @@ datasources:
   - name: Uptrace Tempo Project 1
     type: tempo
     access: proxy
-    url: https://uptrace:443/api/tempo/1
+    url: http://uptrace:80/api/tempo/1
     editable: true
     jsonData:
       tlsSkipVerify: true
       httpHeaderName1: 'Authorization'
     secureJsonData:
-      httpHeaderValue1: '4q5mFJynx9M4vTlDm-kheQ'
+      httpHeaderValue1: 'Bearer user1_secret'
 
   - name: Uptrace Prometheus Project 1
     type: prometheus
     access: proxy
-    url: https://uptrace:443/api/prometheus/1
+    url: http://uptrace:80/api/prometheus/1
     editable: true
     jsonData:
       tlsSkipVerify: true
       httpHeaderName1: 'Authorization'
     secureJsonData:
-      httpHeaderValue1: '4q5mFJynx9M4vTlDm-kheQ'
+      httpHeaderValue1: 'Bearer user1_secret'
 
   - name: Prometheus
     type: prometheus

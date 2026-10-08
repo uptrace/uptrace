@@ -11,6 +11,7 @@ services:
       interval: 1s
       timeout: 1s
       retries: 30
+      start_period: 120s
     volumes:
       - ch_data:/var/lib/clickhouse
     ports:
@@ -45,7 +46,7 @@ services:
       retries: 30
 
   uptrace:
-    image: 'uptrace/uptrace:2.1.0-beta.5'
+    image: 'uptrace/uptrace:2.1.0-rc.1'
     restart: on-failure
     volumes:
       - ./uptrace.yml:/etc/uptrace/config.yml

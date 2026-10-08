@@ -15,8 +15,11 @@
 # -----------------------------------------------------------------------------
 # Core service settings that define the runtime environment and security
 service:
-  env: hosted           # Environment: hosted, development, production
-  secret: FIXME         # Secret key for cryptographic operations (CHANGE THIS!)
+  env: hosted           # Environment: hosted or dev
+  # Secret key for cryptographic operations (CHANGE THIS!)
+  # Generate a new value with: openssl rand -hex 32
+  # Uptrace refuses to start with the "FIXME" placeholder.
+  secret: 3f8a1c9e5b7d2f4a6c8e0b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a2c4e6b8d0f1a
 
 # -----------------------------------------------------------------------------
 # Site Configuration
@@ -85,8 +88,8 @@ auth:
 # -----------------------------------------------------------------------------
 # Bootstrap Data
 # -----------------------------------------------------------------------------
-# Initial data created during first startup - defines default users, organizations, and projects
-# This data is only created once and can be modified through the UI afterward
+# Initial data that the `uptrace db seed` command writes - defines default users, organizations, and projects
+# The Docker image runs `db seed` before it starts the server
 seed_data:
   update: true # Whether to update existing resources by key
   delete: true # Whether to delete disappeared resources by key
@@ -205,7 +208,7 @@ pg:
 # ClickHouse Schema Configuration
 # -----------------------------------------------------------------------------
 # Advanced schema settings for performance optimization
-# WARNING: Changes require 'ch reset' command and will delete all data
+# WARNING: Changes require 'migrate reset --database ch' and will delete all data
 ch_schema:
   # Data compression algorithm for storage efficiency
   # Options:
@@ -216,14 +219,16 @@ ch_schema:
 
   # Storage policies for different data types
   # Allows using different storage tiers (SSD, HDD, S3) for different data
-  spans_index: { storage_policy: default }   # Span search indexes
-  spans_data: { storage_policy: default }    # Raw span data
-  span_links: { storage_policy: default }    # Span relationship data
-  logs_index: { storage_policy: default }    # Log search indexes
-  logs_data: { storage_policy: default }     # Raw log data
-  events_index: { storage_policy: default }  # Event search indexes
-  events_data: { storage_policy: default }   # Raw event data
-  metrics: { storage_policy: default }       # Metrics time-series data
+  spans_index: { storage_policy: default }          # Span search indexes
+  spans_data: { storage_policy: default }           # Raw span data
+  span_links: { storage_policy: default }           # Span relationship data
+  service_graph_edges: { storage_policy: default }  # Service graph edges
+  logs_index: { storage_policy: default }           # Log search indexes
+  logs_data: { storage_policy: default }            # Raw log data
+  events_index: { storage_policy: default }         # Event search indexes
+  events_data: { storage_policy: default }          # Raw event data
+  timeseries: { storage_policy: default }           # Metric time series
+  datapoints: { storage_policy: default }           # Metric datapoints
 
 # -----------------------------------------------------------------------------
 # Redis Cache Configuration
@@ -263,11 +268,11 @@ certmagic:
 # Documentation: https://uptrace.dev/features/alerting
 mailer:
   smtp:
-    enabled: false                # Enable email notifications
-    host: localhost               # SMTP server hostname
+    enabled: true                 # Enable email notifications
+    host: mailpit                 # SMTP server hostname
     port: 1025                    # SMTP server port (25, 465, 587, 1025)
-    username: mailhog             # SMTP authentication username
-    password: mailhog             # SMTP authentication password
+    username: mailpit             # SMTP authentication username
+    password: mailpit             # SMTP authentication password
     from: no-reply@uptrace.local  # Sender email address (must be authorized)
 
     # TLS configuration
@@ -275,63 +280,67 @@ mailer:
     #tls: { insecure: true }     # Uncomment to disable opportunistic TLS
 
 # -----------------------------------------------------------------------------
-# Telemetry Data Processing Configuration
+# Data Pipelines
 # -----------------------------------------------------------------------------
-# Performance tuning for different types of telemetry data ingestion
+# Each pipeline takes records in, buffers them, and inserts them into ClickHouse
+# The same options apply to spans, span_links, logs, events, and metrics
+pipelines:
+  # Spans (distributed tracing data)
+  # Contains trace information showing request flow across services
+  spans:
+    # Number of parallel processing threads
+    # Default: GOMAXPROCS (number of CPU cores)
+    # Increase for high-volume tracing workloads
+    #max_threads: 10
 
-# Spans (distributed tracing data)
-# Contains trace information showing request flow across services
-spans:
-  # Number of parallel processing threads
-  # Default: GOMAXPROCS (number of CPU cores)
-  # Increase for high-volume tracing workloads
-  #max_threads: 10
+    # Batch size for ClickHouse insertions
+    # Larger batches improve throughput but increase memory usage
+    #ch_max_insert_size: 10000
 
-  # Batch size for database insertions
-  # Larger batches improve throughput but increase memory usage
-  # Tune based on your ingestion rate and memory constraints
-  #max_insert_size: 10000
+    # Memory cap for buffered records (in bytes)
+    # Records are dropped when the buffer is full (check metrics for drops)
+    # Default: max_threads x 64 MiB
+    #max_buffered_bytes: 1_000_000_000
 
-  # In-memory buffer capacity for incoming spans
-  # Spans are dropped when buffer is full (check metrics for drops)
-  # Default scales with max_threads
-  #max_buffered_records: 100e3
+    # Reject spans older than this or beyond this clock skew (0s disables)
+    #max_data_age: 0s
+    #max_clock_skew: 0s
 
-# Span links (relationships between spans)
-# Used for connecting spans across trace boundaries
-span_links:
-  # Uncomment to disable span link processing
-  # This saves resources if you don't use span links
-  #disabled: true
+  # Span links (relationships between spans)
+  # Used for connecting spans across trace boundaries
+  span_links:
+    # Uncomment to disable span link processing
+    # This saves resources if you don't use span links
+    #disabled: true
 
-  #max_threads: 10              # Processing parallelism
-  #max_insert_size: 10000       # Batch size for insertions
-  #max_buffered_records: 100e3  # Buffer capacity
+  # Application logs
+  # Structured and unstructured log data from applications
+  logs:
+    #max_threads: 10                # Processing parallelism
+    #ch_max_insert_size: 10000      # Batch size for insertions
 
-# Application logs
-# Structured and unstructured log data from applications
-logs:
-  #max_threads: 10              # Processing parallelism
-  #max_insert_size: 10000       # Batch size for insertions
-  #max_buffered_records: 100e3  # Buffer capacity
+  # Custom events
+  # Application-specific events and business metrics
+  events:
+    #max_threads: 10                # Processing parallelism
+    #ch_max_insert_size: 10000      # Batch size for insertions
 
-# Custom events
-# Application-specific events and business metrics
-events:
-  #max_threads: 10              # Processing parallelism
-  #max_insert_size: 10000       # Batch size for insertions
-  #max_buffered_records: 100e3  # Buffer capacity
+  # Metrics and time series data
+  # Numerical measurements over time (counters, gauges, histograms)
+  metrics:
+    #max_threads: 10                # Processing parallelism
+    #ch_max_insert_size: 30000      # Batch size for insertions
 
-# Metrics and time series data
-# Numerical measurements over time (counters, gauges, histograms)
-metrics:
-  #max_threads: 10              # Processing parallelism
-  #max_insert_size: 10000       # Batch size for insertions
-  #max_buffered_records: 100e3  # Buffer capacity
+    # Memory limit for cumulative to delta conversion
+    # Affects processing of cumulative counters from OpenTelemetry
+    #max_cumulative_timeseries: 1e6
 
-  # Memory limit for cumulative to delta conversion
-  # Affects processing of cumulative counters from OpenTelemetry
-  #max_cumulative_timeseries: 1e6
+  # Service dependency graph generation
+  # Automatically builds service topology from trace data
+  service_graph:
+    # Uncomment to disable service graph processing
+    # This saves CPU and memory if you don't use the service map
+    #disabled: true
 
 # -----------------------------------------------------------------------------
 # Query & Performance Limits
@@ -343,12 +352,12 @@ trace:
   # Maximum number of spans to return in a single query
   # Prevents UI timeouts and excessive memory usage
   # Users can adjust time ranges to stay within limits
-  #query_limit: 200_000
+  #query_limit: 500_000
 
   # Maximum memory usage per query (in bytes)
   # Prevents OOM errors from complex queries
   # Adjust based on available system memory
-  #max_memory_usage_bytes: 200_000_000
+  #max_memory_usage_bytes: 268_435_456
 
 # -----------------------------------------------------------------------------
 # Feature Modules
@@ -358,16 +367,13 @@ trace:
 # Monitoring and alerting system
 # Provides proactive monitoring with notifications
 alerting:
-  # Uncomment to disable the entire alerting system
-  # This saves resources if you don't use monitoring alerts
-  #disabled: true
+  # Uncomment to stop evaluating monitors
+  # Monitors, alerts, and incidents stay as they are
+  #monitors: false
 
-# Service dependency graph generation
-# Automatically builds service topology from trace data
-service_graph:
-  # Uncomment to disable service graph processing
-  # This saves CPU and memory if you don't use the service map
-  #disabled: true
+  # Uncomment to stop sending alert notifications
+  # Alerts still fire and resolve, and the UI still shows them
+  #notifications: false
 
 # JavaScript error sourcemap processing
 # Provides better error stack traces for frontend applications
@@ -392,7 +398,7 @@ self_monitoring:
   # DSN for internal telemetry
   # Format: http://project_token@host?grpc=port
   # This can point to a project in this Uptrace instance or to the Uptrace Cloud
-  dsn: http://project1_secret@uptrace:80?grpc=14317
+  dsn: http://project1_secret@uptrace:80?grpc=4317
 
   #tls:
   #  insecure_skip_verify: true

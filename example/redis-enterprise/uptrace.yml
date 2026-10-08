@@ -1,215 +1,94 @@
-##
-## Uptrace configuration file.
-## See https://uptrace.dev/get/config.html for details.
-##
-## You can use environment variables anywhere in this file, for example:
-##
-##   foo: $FOO
-##   bar: ${BAR}
-##   baz: ${BAZ:default}
-##
-## To escape `$`, use `$$`, for example:
-##
-##   foo: $$FOO_BAR
-##
+# Uptrace configuration for the Redis Enterprise example.
+# For all options with comments, see ../docker/uptrace.yml and
+# https://uptrace.dev/get/hosted/config
 
-##
-## A list of pre-configured projects. Each project is fully isolated.
-##
-projects:
-  # Conventionally, the first project is used to monitor Uptrace itself.
-  - id: 1
-    name: Uptrace
-    # Token grants write access to the project. Keep a secret.
-    token: project1_secret_token
-    pinned_attrs:
-      - service.name
-      - host.name
-      - deployment.environment
+service:
+  env: hosted
+  # Generate a new value with: openssl rand -hex 32
+  secret: 3f8a1c9e5b7d2f4a6c8e0b1d3f5a7c9e2b4d6f8a0c1e3b5d7f9a2c4e6b8d0f1a
 
-  # Other projects can be used to monitor your applications.
-  # To monitor micro-services or multiple related services, use a single project.
-  - id: 2
-    name: My project
-    token: project2_secret_token
-    pinned_attrs:
-      - service.name
-      - host.name
-      - deployment.environment
-
-##
-## To require authentication, uncomment the following section.
-##
-users:
-  - id: 1
-    username: uptrace
-    password: uptrace
-  - id: 2
-    username: admin
-    password: admin
-
-##
-## ClickHouse database credentials.
-##
-ch:
-  # Connection string for ClickHouse database. For example:
-  # clickhouse://<user>:<password>@<host>:<port>/<database>?sslmode=disable
-  #
-  # See https://clickhouse.uptrace.dev/guide/golang-clickhouse.html#options
-  dsn: 'clickhouse://default:@localhost:9000/uptrace?sslmode=disable'
-
-##
-## Alerting rules for monitoring metrics.
-##
-## See https://uptrace.dev/get/alerting.html for details.
-##
-alerting:
-  rules:
-    - name: Redis shard is down
-      metrics:
-        - redis_up as $redis_up
-      query:
-        - group by cluster
-        - group by bdb
-        - group by node
-        - $redis_up == 0
-      for: 5m
-      projects: [1]
-
-    - name: Memory fragmentation is too high
-      metrics:
-        - redis_used_memory as $mem_used
-        - redis_mem_fragmentation_ratio as $fragmentation
-      query:
-        - group by cluster
-        - group by bdb
-        - group by node
-        - $mem_used > 32mb and $fragmentation > 3
-      for: 5m
-      projects: [1]
-
-    - name: Redis read hit rate < 90%
-      metrics:
-        - redis_keyspace_read_hits as $hits
-        - redis_keyspace_read_misses as $misses
-      query:
-        - group by cluster
-        - group by bdb
-        - group by node
-        - delta($hits) as _hits
-        - delta($misses) as _misses
-        - _hits / (_hits + _misses) < 0.9
-      for: 5m
-      projects: [1]
-
-  # Create alerts from error logs and span events.
-  create_alerts_from_spans:
-    enabled: true
-    labels:
-      alert_kind: error
-
-##
-## AlertManager client configuration.
-## See https://uptrace.dev/get/alerting.html for details.
-##
-## Note that this is NOT an AlertManager config and you need to configure AlertManager separately.
-## See https://prometheus.io/docs/alerting/latest/configuration/ for details.
-##
-alertmanager_client:
-  # AlertManager API endpoints that Uptrace uses to manage alerts.
-  urls:
-    - 'http://localhost:9093/api/v2/alerts'
-
-##
-## Various options to tweak ClickHouse schema.
-## For changes to take effect, you need reset the ClickHouse database with `ch reset`.
-##
-ch_schema:
-  # Compression codec, for example, LZ4, ZSTD(3), or Default.
-  compression: ZSTD(3)
-
-  # Whether to use ReplicatedMergeTree instead of MergeTree.
-  replicated: false
-
-  # Cluster name for Distributed tables and ON CLUSTER clause.
-  #cluster: uptrace1
-
-  spans:
-    storage_policy: 'default'
-    # Delete spans data after 30 days.
-    ttl_delete: 30 DAY
-
-  metrics:
-    storage_policy: 'default'
-    # Delete metrics data after 90 days.
-    ttl_delete: 90 DAY
-
-##
-## Addresses on which Uptrace receives gRPC and HTTP requests.
-##
-listen:
-  # OTLP/gRPC API.
-  grpc:
-    addr: ':14317'
-    # tls:
-    #   cert_file: config/tls/uptrace.crt
-    #   key_file: config/tls/uptrace.key
-
-  # OTLP/HTTP API and Uptrace API with UI.
-  http:
-    addr: ':14318'
-    # tls:
-    #   cert_file: config/tls/uptrace.crt
-    #   key_file: config/tls/uptrace.key
-
-##
-## Various options for Uptrace UI.
-##
 site:
-  # Overrides public URL for Vue-powered UI in case you put Uptrace behind a proxy.
-  #addr: 'https://uptrace.mydomain.com'
+  url: http://localhost:14318
+  ingest_url: http://localhost:14318?grpc=14317
 
-##
-## Spans processing options.
-##
-spans:
-  # The size of the Go chan used to buffer incoming spans.
-  # If the buffer is full, Uptrace starts to drop spans.
-  #buffer_size: 100000
+listen:
+  http:
+    addr: :80
+  grpc:
+    addr: :4317
 
-  # The number of spans to insert in a single query.
-  #batch_size: 10000
+seed_data:
+  update: true
+  delete: true
 
-##
-## Metrics processing options.
-##
-metrics:
-  # List of attributes to drop for being noisy.
-  drop_attrs:
-    - telemetry.sdk.language
-    - telemetry.sdk.name
-    - telemetry.sdk.version
+  users:
+    - key: user1
+      name: Admin
+      email: admin@uptrace.local
+      password: admin
+      email_confirmed: true
 
-  # The size of the Go chan used to buffer incoming measures.
-  # If the buffer is full, Uptrace starts to drop measures.
-  #buffer_size: 100000
+  user_tokens:
+    - key: user_token1
+      user_key: user1
+      token: user1_secret
 
-  # The number of measures to insert in a single query.
-  #batch_size: 10000
+  orgs:
+    - key: org1
+      name: Org1
 
-##
-## SQLite database that is used to store metadata such us metric names, dashboards, alerts,
-## and so on.
-##
-db:
-  # SQLite connection string.
-  #
-  # Uptrace automatically creates SQLite database file in the current working directory.
-  # Make sure the directory is writable by Uptrace process.
-  dsn: 'file:${UPTRACE_DB_FILE:uptrace.sqlite3}?_foreign_keys=1&_busy_timeout=1000'
+  org_users:
+    - key: org_user1
+      org_key: org1
+      user_key: user1
+      role: owner
 
-# Secret key that is used to sign JWT tokens etc.
-secret_key: 102c1a557c314fc28198acd017960843
+  projects:
+    - key: project1
+      name: Project1
+      org_key: org1
 
-# Enable to log HTTP requests and database queries.
-debug: false
+  project_tokens:
+    - key: project_token1
+      project_key: project1
+      token: project1_secret
+
+  project_users:
+    - key: project_user1
+      project_key: project1
+      org_user_key: org_user1
+      perm_level: admin
+
+ch_cluster:
+  cluster: uptrace1
+  shards:
+    - replicas:
+        - addr: clickhouse:9000
+          database: uptrace
+          user: uptrace
+          password: uptrace
+
+pg:
+  addr: postgres:5432
+  user: uptrace
+  password: uptrace
+  database: uptrace
+
+redis_cache:
+  addrs:
+    1: redis:6379
+
+mailer:
+  smtp:
+    enabled: true
+    host: mailpit
+    port: 1025
+    username: mailpit
+    password: mailpit
+    from: no-reply@uptrace.local
+
+self_monitoring:
+  dsn: http://project1_secret@uptrace:80?grpc=4317
+
+logging:
+  level: INFO
