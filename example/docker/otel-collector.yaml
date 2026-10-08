@@ -59,7 +59,7 @@ processors:
 exporters:
   otlp/uptrace:
     endpoint: http://uptrace:4317
-    tls: { insecure_skip_verify: true }
+    tls: { insecure: true }
     headers: { 'uptrace-dsn': 'http://project1_secret@localhost?grpc=14317' }
   prometheusremotewrite/uptrace:
     endpoint: 'http://uptrace:80/api/v1/prometheus/write'
