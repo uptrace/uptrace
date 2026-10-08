@@ -4,7 +4,7 @@ To run this example, [start](https://github.com/uptrace/uptrace/tree/master/exam
 and run:
 
 ```shell
-UPTRACE_DSN=http://project2_secret_token@localhost:14317/2 go run .
+UPTRACE_DSN="http://project1_secret@localhost:14318?grpc=14317" go run .
 ```
 
 Then open the URL from the console output to view the trace.

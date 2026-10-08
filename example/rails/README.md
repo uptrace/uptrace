@@ -10,7 +10,7 @@ To run this example, [start](https://github.com/uptrace/uptrace/tree/master/exam
 and run:
 
 ```shell
-UPTRACE_DSN=http://project2_secret_token@localhost:14318/2 rackup main.ru
+UPTRACE_DSN="http://project1_secret@localhost:14318?grpc=14317" rackup main.ru
 ```
 
 And open http://localhost:9292

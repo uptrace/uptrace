@@ -3,7 +3,7 @@
 **Step 1**. [Start](https://github.com/uptrace/uptrace/tree/master/example/docker) Uptrace using
 Docker.
 
-**Step 2**. Update go-zero config at `api/etc/api-api.yaml` to start sending data to Uptrace:
+**Step 2**. Update go-zero config at `etc/api-api.yaml` to start sending data to Uptrace:
 
 ```yaml
 Telemetry:
@@ -12,7 +12,7 @@ Telemetry:
   Sampler: 1.0
   Batcher: otlpgrpc
   OtlpHeaders:
-    uptrace-dsn: http://project2_secret_token@localhost:14317/2
+    uptrace-dsn: http://project1_secret@localhost:14318?grpc=14317
 ```
 
 **Step 3**. Start the go-zero server:

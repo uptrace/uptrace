@@ -4,7 +4,7 @@ import os
 
 import sentry_sdk
 
-dsn = os.environ.get("UPTRACE_DSN", "http://project2_secret_token@localhost:14318/2")
+dsn = os.environ.get("UPTRACE_DSN", "http://project1_secret@localhost:14318/1")
 print("using DSN:", dsn)
 
 sentry_sdk.init(

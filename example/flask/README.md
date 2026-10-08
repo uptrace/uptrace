@@ -10,7 +10,7 @@ To run this example, [start](https://github.com/uptrace/uptrace/tree/master/exam
 and run:
 
 ```shell
-UPTRACE_DSN=http://project2_secret_token@localhost:14317/2 python3 main.py
+UPTRACE_DSN="http://project1_secret@localhost:14318?grpc=14317" python3 main.py
 ```
 
 And open http://localhost:8000

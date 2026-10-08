@@ -13,7 +13,7 @@ import (
 func main() {
 	dsn := os.Getenv("UPTRACE_DSN")
 	if dsn == "" {
-		dsn = "http://project2_secret_token@localhost:14318/2"
+		dsn = "http://project1_secret@localhost:14318/1"
 	}
 	fmt.Println("using DSN:", dsn)
 

@@ -1,7 +1,7 @@
 package svc
 
 import (
-	"github.com/uptrace/uptrace/example/go-zero/api/internal/config"
+	"github.com/uptrace/uptrace/example/go-zero/internal/config"
 )
 
 type ServiceContext struct {

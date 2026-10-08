@@ -29,7 +29,7 @@ function indexHandler(req, res) {
 }
 
 function helloHandler(req, res) {
-  const span = trace.getSpan(otel.context.active())
+  const span = otel.trace.getSpan(otel.context.active())
 
   const err = new Error('User not found')
   span.recordException(err)
