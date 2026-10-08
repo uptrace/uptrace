@@ -20,6 +20,7 @@ func main() {
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn:              dsn,
 		Debug:            true,
+		AttachStacktrace: true,
 		EnableTracing:    true,
 		TracesSampleRate: 1.0,
 	})
@@ -27,9 +28,6 @@ func main() {
 		panic(err)
 	}
 	defer sentry.Flush(3 * time.Second)
-
-	eventId := sentry.CaptureException(errors.New("Yeah, it works!"))
-	fmt.Println("exception id:", *eventId)
 
 	ctx := context.Background()
 	doWork(ctx)
@@ -63,7 +61,45 @@ func doWork(ctx context.Context) {
 	span.SetData("rpc.system", "grpc")
 	span.SetData("rpc.service", "AuthService.Auth")
 	span.SetData("rpc.method", "Auth")
+	eventID := captureExceptionOnSpan(span.Context(), span, errors.New("Yeah, it works!"))
+	if eventID != nil {
+		fmt.Println("exception id:", *eventID)
+	}
 	span.Finish()
 
 	fmt.Println("trace id:", span.TraceID)
+}
+
+func captureExceptionOnSpan(ctx context.Context, span *sentry.Span, err error) *sentry.EventID {
+	span.Status = sentry.SpanStatusInternalError
+	span.SetData("exception.type", fmt.Sprintf("%T", err))
+	span.SetData("exception.message", err.Error())
+
+	traceContext := sentry.Context{
+		"trace_id": span.TraceID,
+		"span_id":  span.SpanID,
+		"op":       span.Op,
+		"status":   span.Status,
+	}
+	if span.ParentSpanID != (sentry.SpanID{}) {
+		traceContext["parent_span_id"] = span.ParentSpanID
+	}
+	if span.Description != "" {
+		traceContext["description"] = span.Description
+	}
+
+	hub := sentry.GetHubFromContext(ctx)
+	if hub == nil {
+		hub = sentry.CurrentHub()
+	}
+
+	var eventID *sentry.EventID
+	hub.WithScope(func(scope *sentry.Scope) {
+		scope.SetContext("trace", traceContext)
+		eventID = hub.CaptureException(err)
+	})
+	if eventID != nil {
+		span.SetData("sentry.event_id", string(*eventID))
+	}
+	return eventID
 }

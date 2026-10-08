@@ -6,4 +6,5 @@ To run this example:
 python3 main.py
 ```
 
-Then search for `ZeroDivisionError` in your Uptrace project.
+Then search for `RuntimeError` in your Uptrace project. The reported event
+contains the full nested exception chain (`RuntimeError` caused by `KeyError`).
