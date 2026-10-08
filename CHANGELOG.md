@@ -2,6 +2,165 @@
 
 To get started with Uptrace, see https://uptrace.dev/get
 
+## v2.1.0-rc.1 - October 07 2026
+
+  ### Upgrading
+
+  You can upgrade directly from v2.0.0–v2.0.3 and from every v2.1.0 beta (beta to beta.8). You do not
+  need to install the releases in between. Upgrading from v2.0.0-beta.1, v2.0.0-beta.2, v2.0.0-rc.2,
+  and v1.x is not supported.
+
+  Read [Upgrading Uptrace](https://uptrace.dev/get/hosted/upgrade) before you start, especially
+  [Upgrading from v2.0 or a v2.1 beta](https://uptrace.dev/get/hosted/upgrade#upgrading-from-classic).
+  Back up PostgreSQL and ClickHouse first.
+
+  ### System Requirements
+
+  - **ClickHouse**: v26.3 or later (was v25.8). v2.0.x and the v2.1 betas keep working on ClickHouse
+    26.3, so upgrade ClickHouse first.
+  - **PostgreSQL**: v15 or later (was v14).
+  - **Redis**: v6 or later.
+
+  `uptrace preflight` checks both database versions before you upgrade.
+
+  ### Breaking Changes
+
+  - **New migration command.** `uptrace migrate up` replaces `pg init`, `pg migrate`, `ch init`,
+    `ch migrate`, `ch check`, and the other `pg`/`ch` migration commands. It migrates PostgreSQL and
+    ClickHouse together, in phases (expand, restart, backfill, finalize), so Uptrace keeps accepting
+    data during an upgrade. The old commands print the replacement and exit with an error. Update your
+    scripts, init containers, and entrypoints:
+
+    ```shell
+    uptrace --config=/etc/uptrace/config.yml migrate up
+    uptrace --config=/etc/uptrace/config.yml db seed
+    ```
+
+    On the first run, `migrate up` takes over the migration records of v2.0.x and the v2.1 betas and
+    does not run those migrations again.
+
+  - **`serve` refuses an unmigrated database.** `uptrace serve` and `uptrace worker` exit with an
+    error that names `uptrace migrate up` when the databases lack the schema of the release. The DEB
+    and RPM packages start or restart the service only when no migration is pending, so the old
+    version keeps serving until you migrate.
+
+  - **`service.secret` must be set.** Uptrace refuses to start when `service.secret` is the `FIXME`
+    placeholder that older example configs shipped with. Set it to a random value, for example the
+    output of `openssl rand -hex 32`. A new secret logs out every user once. The DEB and RPM packages
+    replace the placeholder for you.
+
+  - **Configuration changes.** Run `uptrace config fix --write` to rewrite the options that moved or
+    were renamed (for example top-level `spans` to `pipelines.spans`, and `ch_schema.metrics` to
+    `ch_schema.timeseries` and `ch_schema.datapoints`) and to delete the options that are no longer
+    used (for example `ch_schema.<table>.ttl_delete`). Until you do, Uptrace accepts the old options
+    and logs a warning for each one.
+
+    Several switches now have positive names and default to `true`: `auth.sign_up`,
+    `auth.sign_in`, `listen.http2`, `listen.http3`, `sourcemaps.upload`, and
+    `pipelines.*.kafka_consumer` replace the old `*_disabled` options, and `config fix` rewrites
+    them. `pipelines.*.fairshare_disabled` is replaced by `fairshare` and has no automatic rewrite:
+    Uptrace refuses to start while the old key is present.
+
+  - **Outbound requests to private addresses are blocked.** Notification channels, webhooks, and
+    source map downloads can no longer reach private, loopback, or link-local addresses by default.
+    If a channel must reach an internal host, set `outbound_http.ssrf_protection` to
+    `egress_proxy` or `off`.
+
+  - **Query language changes.**
+    - `count()` now always counts spans. Use `countDistinct()` to count distinct spans.
+    - A `search` clause in a pipe-joined query ends at the next pipe. Quotes no longer extend it.
+    - Trace search no longer supports the deprecated regular-expression matchers.
+    - Cross-join aggregate references follow one per-trace rule, so some trace queries can return
+      different values.
+
+  - **Saved filter links.** Alert, incident, and monitor filter URLs use named fields. Links and
+    bookmarks made with an older version open without a filter.
+
+  - **GitHub and Google sign-in require a verified email address** at the provider.
+
+  - **Per-project metric granularity is removed.** Metric datapoints keep the timestamp that the
+    client sends.
+
+  - **Renamed commands.** `sync_dashboards` is now `dashboard sync`, `ch move_partitions` is now
+    `ch move_parts`, and `retention check` is now `storage retention`.
+
+  ### First upgrade from v2.0.x or a v2.1 beta
+
+  Processes of v2.0.x and the v2.1 betas cannot receive the restart request of
+  `uptrace migrate up --restart`. While one is still connected, `migrate up` stops before the backfill
+  and names it. Restart the processes yourself between the two runs:
+
+  ```shell
+  uptrace migrate up --before-release-change
+  sudo systemctl restart uptrace
+  uptrace migrate up
+  ```
+
+  Later upgrades can use `uptrace migrate up --restart`.
+
+  **Docker:** pull the new `example/docker` files, set `service.secret` in `uptrace.yml`, then run
+  `docker compose pull` and `docker compose up -d`. The container runs `uptrace migrate up` and
+  `uptrace db seed` before it starts the server.
+
+  **Kubernetes:** the Helm chart runs `migrate up --before-release-change` in a pre-upgrade Job and
+  `migrate up` in a post-upgrade Job. Use `helm upgrade --wait`.
+
+  ### API Changes
+
+  - Incident settings moved from the project to `/incidents/{project_id}/settings`.
+  - The project field `incidentsEnabled` is replaced by `incidentAutoGrouping`.
+  - The incident membership response no longer has `attachedBy`; read `attachReason`.
+  - Alert, incident, and monitor list filters use named fields. Clients must send the new format.
+  - The MCP dashboard tools are now `create_dashboard` and `update_dashboard`.
+
+  ### New Features
+
+  - **Incidents.** Related alerts are grouped into incidents. Each incident has its own priority,
+    owners, status, timeline and notes. Grouping can be automatic or manual, and manual use needs
+    no model provider. You can also archive or merge incidents, file issues in external trackers,
+    and get AI analysis with recommendations to review.
+  - **SLOs.** Track reliability targets and error budgets over rolling windows. Burn-rate and
+    budget-spent rules can alert per group or for the whole SLO. SLOs have their own section and
+    can be imported and exported as YAML.
+  - **Anomaly, outlier and forecast monitors** for metrics. They support seasonality, sensitivity
+    presets, K-of-N confirmation and level-shift detection. You can preview and backtest them on
+    interactive charts, and alerts explain how each decision was made.
+  - **Alert policies** replace alert rules. A policy can set or remove attributes, set the
+    priority, or archive matching alerts. Monitors and notification channels can be paused for a
+    set time.
+  - **New notification channels:** Email, incident.io and Pushover. Opsgenie channels can target
+    Jira Service Management, and Alertmanager channels support authentication. Monitors can have
+    descriptions, such as runbook links, and these appear in notifications.
+  - **Traces and Explore.** A new [Traces](https://uptrace.dev/features/querying/traces) page
+    filters whole traces with cross-join queries. Trace queries support compound expressions,
+    `quantile()`, and arithmetic in `having`. The Tracing section is now Explore and includes
+    Metrics and Annotations.
+  - **Service graph** with server-side filters and per-node metrics.
+  - **Full-text search** over spans and logs.
+  - **Sentry SDK support.** Each project token has a Sentry DSN, so Sentry SDKs can send data to
+    Uptrace. Span details show breadcrumbs and structured stack traces with nested causes. You
+    can upload source maps to symbolicate JavaScript errors.
+  - **Issue trackers.** Create a GitHub or Forgejo issue from any span or error group. You can
+    edit the description before filing, and the issue links back to the span or group.
+  - **MCP server.** Connect AI assistants to your project data and dashboards. The Project tab
+    shows how to configure it.
+  - **Metrics.** Prometheus remote write 2.0 is supported, and native histograms are accepted over
+    remote write 1.0 and 2.0. Metric queries add PromQL-compatible rollup functions, `stddev`,
+    `stdvar` and `having`.
+  - **Global search.** Press ⌘K or Ctrl+K to move around the app and find project data.
+  - **Debuggers.** Test transformation pipelines on real spans, logs and events. Test log
+    grouping rules on sample or recent log lines.
+  - **Setup and onboarding.** Each project gets a setup checklist, an integration picker and
+    per-integration guides. Overview dashboards are suggested from the templates you can use.
+  - **Retention.** Each project can set retention per signal, within limits set by the
+    deployment.
+  - **Operations.** PostgreSQL read replicas can serve read traffic, and the OTel Arrow receiver
+    is now configurable. The `uptrace` binary adds the `kafka` (including `kafka rebalance`),
+    `storage` and `dashboard` command groups.
+  - **Authentication.** Members who must use two-factor authentication are guided through setup.
+    SSO providers can be disabled without deleting them, and SAML requests are signed with
+    SHA-256.
+
 ## v2.0.3 - May 13 2026
 
 Same as v2.0.2, but rebuilt on a fresh Alpine image to address recent CVEs.
