@@ -74,6 +74,10 @@ locally with Docker.
 
 Then follow the [getting started](https://uptrace.dev/get) guide.
 
+## ☁️ One-Click Deploy
+
+[![Deploy on RepoCloud](https://d16t0pc4846x52.cloudfront.net/deploylobe.svg)](https://repocloud.io/details/Uptrace/)
+
 ## Help
 
 Have questions? Get help via [Telegram](https://t.me/uptrace),
