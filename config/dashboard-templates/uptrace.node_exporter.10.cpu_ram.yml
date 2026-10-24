@@ -75,7 +75,7 @@ grid_rows:
           - node_filesystem_avail_bytes as $avail_bytes
           - node_filesystem_size_bytes as $size_bytes
         query:
-          - 1 - sum(avail_bytes{mountpoint="/",fstype!="rootfs"}) /
+          - 1 - sum($avail_bytes{mountpoint="/",fstype!="rootfs"}) /
             sum($size_bytes{mountpoint="/",fstype!="rootfs"}) as fs_used
         columns:
           fs_used: { unit: utilization }
