@@ -337,34 +337,42 @@ func (db *DB) readDataBlocks(cn *chpool.Conn, rd *chproto.Reader) (*Result, erro
 		}
 	}
 }
-func readInsertResult(cn *chpool.Conn, rd *chproto.Reader) (*Result, error) {
-	packet, err := rd.Uvarint()
-	if err != nil {
-		return nil, err
-	}
+
+// readInsertResult reads the server response to an INSERT until EndOfStream.
+// The server can send Progress, ProfileInfo, TableColumns or ProfileEvents
+// packets before EndOfStream, so stopping at the first packet would leave
+// unread data on the connection and break the next query that uses it.
+func (db *DB) readInsertResult(cn *chpool.Conn, rd *chproto.Reader) (*Result, error) {
 	res := NewResult()
-	switch packet {
-	case chproto.ServerException:
-		return nil, readException(rd, res)
-	case chproto.ServerProgress:
-		if err := res.progress.readFrom(cn, rd); err != nil {
+	for {
+		packet, err := rd.Uvarint()
+		if err != nil {
 			return nil, err
 		}
-		return res, nil
-	case chproto.ServerProfileInfo:
-		if err := readProfileInfo(rd); err != nil {
-			return nil, err
+		switch packet {
+		case chproto.ServerException:
+			return nil, readException(rd, res)
+		case chproto.ServerProgress:
+			if err := res.progress.readFrom(cn, rd); err != nil {
+				return nil, err
+			}
+		case chproto.ServerProfileInfo:
+			if err := readProfileInfo(rd); err != nil {
+				return nil, err
+			}
+		case chproto.ServerTableColumns:
+			if err := readServerTableColumns(rd); err != nil {
+				return nil, err
+			}
+		case chproto.ServerProfileEvents:
+			if err := withProfileEventsBlock(func(block *Block) error { return db.readBlock(rd, block, false) }); err != nil {
+				return nil, err
+			}
+		case chproto.ServerEndOfStream:
+			return res, nil
+		default:
+			return nil, fmt.Errorf("ch: readInsertResult: unexpected packet: %d", packet)
 		}
-		return res, nil
-	case chproto.ServerTableColumns:
-		if err := readServerTableColumns(rd); err != nil {
-			return nil, err
-		}
-		return res, nil
-	case chproto.ServerEndOfStream:
-		return res, nil
-	default:
-		return nil, fmt.Errorf("ch: readInsertResult: unexpected packet: %d", packet)
 	}
 }
 func (db *DB) readBlock(rd *chproto.Reader, block *Block, compressible bool) error {
