@@ -350,7 +350,7 @@ func (db *DB) _insert(ctx context.Context, model TableModel, query string, block
 		}
 		return cn.WithReader(ctx, db.conf.ReadTimeout, func(rd *chproto.Reader) error {
 			var err error
-			res, err = readInsertResult(cn, rd)
+			res, err = db.readInsertResult(cn, rd)
 			if err != nil {
 				return err
 			}
