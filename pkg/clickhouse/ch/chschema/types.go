@@ -185,6 +185,18 @@ func ColumnFactory(chType string, typ reflect.Type) NewColumnFunc {
 		if chType := chEnumType(chType); chType != "" {
 			return NewArrayEnumColumn
 		}
+		// ClickHouse >= 26 keeps the source timezone in CAST results, so a column that
+		// used to be reported as Array(DateTime) now arrives as Array(DateTime('UTC')).
+		// Handle timezone-tagged elements the same way the scalar DateTime path does.
+		if chDateTimeType(chType) != "" {
+			return NewArrayDateTimeColumn
+		}
+		if isDateTime64Type(chType) {
+			return NewArrayDateTime64Column
+		}
+		if chType := chArrayElemType(chType); chType != "" && chDateTimeType(chType) != "" {
+			return NewArrayArrayGoDateTimeColumn
+		}
 	}
 	if isDateTime64Type(chType) {
 		switch typ {
