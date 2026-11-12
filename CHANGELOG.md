@@ -2,6 +2,408 @@
 
 To get started with Uptrace, see https://uptrace.dev/get
 
+## v2.1.0-rc.3 - November 12 2026
+
+  ### Upgrading
+
+  Back up PostgreSQL and ClickHouse, then upgrade with `uptrace migrate up` as described in the
+  v2.1.0-rc.1 notes.
+
+  - **Indexes are built after the upgrade, not during it.** `migrate up` no longer builds
+    ClickHouse skip indexes or projections, so an upgrade no longer waits days on a large table.
+    A worker job checks every 10 minutes and builds each new index one partition at a time, newest
+    partition first. Failed partitions are retried after an hour. On the first check after the
+    upgrade, it goes through every partition once. That pass is cheap where a part already has
+    the index, and it builds the missing ones, such as the new `display_name_ngram` index. Use
+    `uptrace ch materialize_indexes status` to watch progress, `retry` to queue failed partitions
+    again, and `run` to build now (`--table`, `--index`, `--partitions`, `--dry-run`). To stop the
+    job, run `uptrace settings set index_build.enabled false`.
+  - **ClickHouse writes through Kafka.** If you set `ch_cluster.kafka`, upgrade from v2.1.0-rc.2 or
+    later. This release no longer reads the span, log and event data topics that older releases
+    wrote.
+
+  ### Breaking Changes
+
+  - **`contains` and `like` on `_display_name` are literal again**
+    ([#625](https://github.com/uptrace/uptrace/issues/625)). Since v2.1.0-rc.1, `contains` on
+    `_display_name` matched whole words in any order, so `contains "[ERROR]"` found every line with
+    the word "error". It is a case-insensitive substring match again, and `contains` and `like` mean
+    the same thing on every column. A `|` in a `contains` needle separates alternatives
+    (`contains "get|post"`). Use `search` to match whole words in any order. A new n-gram skip index,
+    `display_name_ngram`, speeds up both operators. Review monitors that filter on `_display_name`.
+  - **Negated compound filters skip records that lack the attribute.**
+    `where not (host = "h1" and region = "us")` no longer matches a span, log or metric series that
+    has no `host` or no `region`. This now matches how `!=` and `not in` already behaved. Queries
+    that relied on the old result return fewer rows.
+  - **Kafka 3.3 or newer** is required. Uptrace refuses to connect to an older broker.
+  - **Source map uploads need a user token.** `POST /api/v1/sourcemaps`, which took the project token
+    (DSN), is removed, because browser SDKs make the DSN public. Upload with
+    `POST /api/v1/sourcemaps/{project_id}` and a user token that can edit the project, kept as a CI
+    secret.
+  - **More than one ClickHouse host requires replication.** Uptrace refuses to start when
+    `ch_cluster` lists several hosts and `ch_cluster.replicated` is off, because migrations then
+    created tables on the first host only. Set `ch_cluster.replicated` or list one host.
+  - **The ClickHouse Kafka engine is no longer used.** With `ch_cluster.kafka.enabled`, the Uptrace
+    worker reads the `click_*` topics from `kafka.brokers` and inserts into ClickHouse itself.
+    `migrate up` drops the Kafka engine tables, and the `uptrace ch kafka_*` commands are removed.
+    Per-table settings move from the flat `ch_schema.<table>.kafka_*` keys to a
+    `ch_schema.<table>.kafka` block, and `ch_cluster.kafka.brokers` is ignored. See
+    [Writing ClickHouse through Kafka](https://uptrace.dev/get/hosted/scale#writing-clickhouse-through-kafka).
+  - **Configuration changes.** Run `uptrace config fix --write`. It moves the single model provider
+    (`genai.protocol`, `api_key`, `base_url`, `model`, `headers`, `session_header`) into the new
+    `genai.providers` list, `genai.assistant.data_notice` to `genai.data_notice`, and the ClickHouse
+    Kafka keys above. Until you run it, Uptrace accepts the old keys and logs a warning.
+  - **`uptrace ch init_replica` is now `uptrace ch clone_replica`.**
+
+  ### API Changes
+
+  - The assistant settings routes are replaced by `/internal/v1/genai/{project_id}` routes for
+    providers, features and data notices.
+  - The dashboard section and grid-layout routes are replaced by `/edit`, `/edit/preview`,
+    `/edit/yaml` and the `/revisions` routes.
+  - Attribute value listings no longer return `noData`.
+  - The incident list returns the sort it applied. `sort_by` is a plain string on the incident and
+    SLO subject lists.
+  - Alert responses include the state of the alert's monitor (`monitor`, and `monitorsById` on lists).
+  - The anomaly, outlier and forecast detail reads return an empty series, not 400, when the selected
+    series is not in the window.
+  - New MCP tools: `install_dashboard_templates` and `reset_dashboard_templates`.
+
+  ### New Features
+
+  - **Kafka ingestion no longer needs a license.** The Kafka pipeline runs in every build and with
+    every license when `kafka.brokers` is set. See
+    [Kafka-based ingestion](https://uptrace.dev/get/hosted/scale#kafka) for how to configure it.
+  - **Dashboard layouts.** A new grid editor supports groups, rows and tabs, drag and drop with undo,
+    and an automatic width that adapts to the screen. Table dashboards become linked layouts that each
+    table row opens. Edit mode has a side panel with a YAML editor and a history of revisions that you
+    can view and restore. `dashboard.max_revisions` (default 500) and
+    `dashboard.keep_all_revisions_window` (default 168h) control how many revisions are kept.
+    Dashboard YAML now uses a `layout` block. Documents in older formats still import.
+  - **Model providers.** `genai.providers` names several providers, and each AI feature tries its
+    chain of providers in order, moving to the next one when a provider fails. A project admin
+    accepts the data notice (`genai.data_notice`) once before a feature calls a provider. Existing
+    projects keep the features they had chosen. `genai.assistant.turn_limits` (default
+    `[60/h, 300/24h]` per person) limits assistant use.
+  - **AI features.** New alerts can be classified by symptom and affected part of the system, and you
+    can filter the alert list by `alert.symptom` or `alert.category`. Incident analysis reads spans,
+    logs, metrics and annotations through tools, then states each hypothesis with a confidence and its
+    sources. A query helper in Explore and a metric monitor guide draft queries and monitors for you.
+  - **SLO corrections UI.** You can schedule one-time, daily, weekly and monthly corrections, with a
+    preview of their effect. SLO charts shade the excluded periods.
+  - **Query text.** The query box also accepts SQL order, such as
+    `select count() where status >= 400 group by service_name`. You can copy and paste a query
+    between Spans and Traces. The new `_size` field is the stored size of each record in bytes, so
+    `sum(_size)` shows what a service stores. CSV exports call it `_size` (was `_bytes`).
+  - **Profiling** (`pipelines.profiling.enabled`): profiles over time, comparing two profiles, and
+    filtering by attribute.
+  - **Alerts from paused monitors are marked.** An open alert whose monitor is paused or disabled says
+    so in the alert list and on the alert card, so a stale "firing" no longer looks live.
+  - **ClickHouse operations.** `uptrace ch clone_progress` reports how far a cloned replica has got,
+    with an ETA. `uptrace ch match_locality` moves a clone's parts to the same disks as its source.
+    Replicas can name a `zone`, and `ch_cluster.zones` keeps the reads of each project in one zone.
+  - **Kafka operations.** `uptrace kafka rebalance` balances disk use across brokers, `--drain`
+    empties brokers, and `--partitions` adds partitions. `kafka.placement` limits which brokers may
+    hold which topics, and `uptrace kafka check-placement` checks the cluster against it.
+    `uptrace kafka lag --threshold` sets the lag it accepts. `kafka.replication_factor` sets the
+    replica count of the topics Uptrace creates.
+  - **Seed tools.** `uptrace db seed --dry-run` prints what a seed would change.
+    `uptrace db assign-key` links a `seed_data` key to an existing row.
+
+  ### Improvements
+
+  - **Faster trace and log queries.** Root-span filters read the smaller group tables. More filters
+    run in PREWHERE, and new key-set bloom filter and time min-max indexes skip more data.
+    Attribute and facet listings stop at a row budget (`trace.read_budgets`), not at a timeout, and
+    the UI says when a listing is partial.
+  - **Ingestion visibility.** New counters show data that was dropped silently before:
+    `uptrace.pipeline.consumer_dropped_records`, `uptrace.pipeline.cumtodelta_dropped_datapoints`,
+    `uptrace.pipeline.suspended_requests` and `uptrace.pipeline.fitted_records`. The processing
+    dashboard has a new Dropped data group. `uptrace.pipeline.insert_dropped_batches` is replaced by
+    `uptrace.pipeline.insert_skipped_batches` and `uptrace.pipeline.insert_dropped_rows`.
+  - **Operations.** `migrate status` shows the running migration and how long each step took.
+    `/status` reports whether a worker has joined its Kafka consumer group. `uptrace doctor` checks
+    that the ClickHouse cluster hosts match `ch_cluster.shards` and that the Kafka consumer group has
+    members. PostgreSQL reads fail over to another replica within the same request. A `$VAR` in the
+    config that names an unset variable logs a warning, and config errors no longer print values.
+  - **Source maps** are keyed by debug ID, and the newest three builds at a URL are kept, so a browser
+    still running an older build resolves against the right map.
+  - **License page** shows the ingestion allowances and the premium features a license grants.
+  - **Rate limits** count per account, not per IP address, and every 429 answer includes `Retry-After`.
+
+  ### Bug Fixes
+
+  - **Ingestion no longer acknowledges data it drops**
+    ([#630](https://github.com/uptrace/uptrace/issues/630)). When ClickHouse was slow or stalled,
+    Uptrace could answer 2xx for logs it then discarded. A request that cannot be buffered now gets a
+    retryable 429 with `Retry-After` (gRPC `RESOURCE_EXHAUSTED`). `ingest.produce_wait_timeout`
+    (default 5s) sets how long a request waits for room. With Kafka, a request succeeds only after the
+    broker acknowledges its records. Otherwise it answers 429 and the client sends it again. When
+    `kafka.delivery_timeout` is unset, ingest records expire after 2 × `ingest.produce_wait_timeout`
+    (10s by default) and other records never expire. `0` means no limit for every producer. The new
+    `uptrace.pipeline.delivery_failed_records` counts records that failed after the transport accepted
+    them. `uptrace.pipeline.buffer_full_dropped_records` now counts records answered with 429. The
+    ClickHouse setting `wait_for_async_insert` now defaults to 1, so a server restart loses no rows. It
+    costs about 10% of insert throughput; set it to 0 in a replica's `query_settings` to opt out.
+  - **Ingestion.** An over-long span name, status message or attribute is now cut instead of dropping
+    the whole record. A histogram whose bucket counts do not match its bounds is refused and counted,
+    not stored without buckets. A map under `message` in an OTLP log becomes a structured body. Clients
+    that disconnect mid-body get 408, not 5xx. OTel Arrow streams are no longer cut at
+    `listen.grpc.max_connection_age`. A worker no longer panics after `ch_max_insert_size` is
+    lowered.
+  - **Alerting.** Monitors with thousands of open alerts no longer fail with "max query size
+    exceeded" and leave alerts unresolved. Monitors over cross-series queries (`share`, `topk`, joins)
+    get the same value in every part of a check. `ignoring()` now matches labels the way PromQL does.
+    Checks during `service.warm_up_period` are postponed instead of dropped. After a rolling restart,
+    work spreads across processes again, and a backlog no longer runs stale monitor checks.
+  - **Notifications.** A channel gets a "Resolved" only for a firing it received. Status emails name
+    the event in the subject. Note and assignment emails thread under the alert. Alert emails show the
+    monitor description again. Test-send errors no longer show the stored URL.
+  - **Authentication.** `uptrace users change_password` refuses an empty password. A password reset
+    confirms an unconfirmed account. Confirming an email address ends earlier sign-in links. API tokens
+    cannot change an account's email. Token secrets are masked in SSO sessions.
+  - **UI.** Deleting a widget, a dashboard or a log-grouping rule asks for confirmation. Query
+    controls are readable in the dark theme. Lists return to the first page when their filter or sort
+    changes. The Settings panel can set the theme back to the system theme. The in-app changelog page
+    is removed.
+
+## v2.1.0-rc.2 - October 22 2026
+
+  ### Upgrading
+
+  From v2.1.0-rc.1, install the new binary and run `uptrace migrate up --restart` (systemd), or use
+  the Docker and Helm steps from the rc.1 notes. From v2.0.x or a v2.1 beta, follow
+  [First upgrade from v2.0.x or a v2.1 beta](#first-upgrade-from-v20x-or-a-v21-beta) in the rc.1
+  notes.
+
+  This upgrade moves the state of each alert onto the alert row. From the restart until
+  `migrate up` finishes the backfill, monitors are not checked, no alert notifications are sent, and
+  the incident screens do not read their member alerts. Run `migrate up` right after the restart (with
+  `--restart` it carries on by itself). Until the backfill finishes, `uptrace migrate status` prints a
+  `Release holds` line and `uptrace doctor` warns (`capability_holds`). The backfill deletes alerts
+  that have no events.
+
+  ### Breaking Changes
+
+  - **Ingest read slots are on by default.** All ingest receivers (OTLP over HTTP and gRPC, OTel
+    Arrow, Prometheus remote write, CloudWatch, Vector, Sentry) now share a limit on request bodies
+    read at the same time: `ingest.max_concurrent_reads`, by default 8 × GOMAXPROCS. A request waits
+    up to `ingest.read_queue_timeout` (5s) for a slot, then gets a retryable 429 (gRPC:
+    `ResourceExhausted`). Set `ingest.read_slots: false` to keep counting the slots without enforcing
+    them. One gRPC connection can now open at most `listen.grpc.max_concurrent_streams` (100) streams.
+
+  - **Metric attribute limits apply to every source.** A datapoint with more than
+    `pipelines.metrics.max_attrs` (128) attributes, or with a key longer than
+    `pipelines.metrics.max_attr_key_len` (256), is dropped and reported as rejected. Values longer
+    than `pipelines.metrics.max_attr_value_len` (1000) are cut. These limits now apply to OTLP, OTel
+    Arrow, Prometheus remote write and CloudWatch alike. `uptrace.pipeline.attr_limited_datapoints`
+    counts each case by reason.
+
+  - **Trace query (TQL) changes.**
+    - A bare name after `=`, `!=`, `<`, `<=`, `>` or `>=` is now a second attribute, not a string:
+      `where resp_size > req_size`. Quote strings: `where env = "prod"`. When no record carries such
+      an attribute, `=` and `!=` on a string are refused with a hint to quote the value.
+    - A duration or size literal now converts to the unit of the other side, so
+      `wait_seconds > 1s` compares with 1, not 1000.
+    - `sum`, `avg`, `median`, `quantile` and the `p50`–`p99` aggregates now weight each record by its
+      sampling count, so results on sampled data change.
+    - A filter on an array attribute no longer matches records without that attribute, including
+      under `!=` and `not`.
+
+  - **API tokens are created from a browser session only.** An API token can no longer create a
+    personal token or a service account token, so a deleted token leaves no working tokens behind.
+    Scripts that create tokens with a token get a 403.
+
+  - **`pipelines.<signal>.max_ingest_per_min` is removed.** It answered success while dropping
+    data. Overload is handled by the fair-share gate, which answers 429 with a retry hint. The old
+    key loads with a warning, and `uptrace config fix --write` removes it.
+
+  ### API Changes
+
+  - `PUT /internal/v1/alerts/{project_id}/{alert_id}/assignees` and
+    `PUT /internal/v1/incidents/{project_id}/{incident_id}/assignees` take
+    `{"add": [...], "remove": [...]}` instead of `{"assigneeIds": [...]}`. The MCP tool
+    `assign_incident` takes `add` and `remove`.
+  - A chart widget write must include `tooltip` (`mode`, `sortOrder`) and is refused with 400
+    without it. Chart legends are validated on write, and reads always return the full legend and
+    tooltip.
+  - The alert list takes `time_start` and `time_end`, so the MCP `list_alerts` tool returns exact
+    counts for a time window.
+  - Organization and project updates accept an optional `updatedAt`. When the record has changed
+    since that read, they answer 409 `record_changed`.
+  - Project responses no longer include `mfaRequired`. Read it from the organization.
+  - Trace reads refuse `max_spans`, `max_logs` and `max_events` outside 10–100000 and
+    `node_name_depth` outside 1–4 with 400, instead of clamping them.
+  - Incident titles and summaries written by a person are refused past 1000 characters instead of
+    being cut silently.
+
+  ### New Features
+
+  - **AI assistant.** Each project gets a chat that answers questions using the project's MCP tools
+    and links each read it makes. A project admin turns it on in the new Assistant tab of the project
+    settings, either by accepting the data notice of the deployment's provider or by configuring a
+    provider for the project. The deployment's provider needs a `genai.protocol` that supports tool
+    calls (`anthropic` or `openai`). New keys: `genai.assistant.model`, `genai.assistant.thinking`,
+    `genai.assistant.context_tokens`, `genai.assistant.data_notice`, `genai.incidents.model`,
+    `genai.incidents.thinking`, `genai.headers` and `genai.session_header`.
+  - **Pie chart widget**, with two rings when it has two groupings.
+  - **Chart tooltips.** Each chart widget can choose the tooltip mode (all, single or hidden) and
+    the sort order. Click a chart to pin its tooltip, and scroll the rows when there are many series.
+    A metric table or pie built from a capped read (10,000 groups) now says so.
+  - **Span details.** New Dashboards, Compare and Explore tabs, and breadcrumb filters. Stack frames
+    are now parsed from `exception.stacktrace` text for Go (including `pkg/errors`), browser
+    JavaScript and Node.js, and library frames are folded. JavaScript and Node errors without
+    `exception.type` regroup once by the type from the stack.
+  - **Trace queries (TQL):** compare two attributes; `ipInRange`, `length`, `bucket`, `ipv4Subnet`,
+    `timeOfDay` and `dayOfWeek` (with an optional IANA time zone); the `argMax`, `argMin`,
+    `uniqValues` and `stddev` aggregates; the `d` and `w` duration units; and a leading `not` in the
+    editor.
+  - **Metric queries:** `count_over_time`, `quantile_over_time`, `share_gt_over_time`,
+    `share_le_over_time`, `predict_linear`, `zscore_over_time`, `duration_over_time`,
+    `topk_*`/`bottomk_*` (`avg`, `max`, `min`, `median`), `quantile`, `share`, `zscore`, `limitk`,
+    `running_*`, `range_*`, `smooth_exponential`, and `label_set`, `label_del`, `label_keep`,
+    `label_replace`.
+  - **Prometheus HA pairs are deduplicated.** Labels in `prometheus.ha_replica_labels` (default
+    `__replica__`), or the project's Replica labels setting, identify the replica. Uptrace stores one
+    series and keeps one replica's samples, failing over after
+    `pipelines.metrics.ha_failover_timeout` (30s).
+  - **API token controls.** Tokens can have an expiration date, show when they were last used, and
+    record who created them. Owners get an email 7 days before a token expires. Organization admins
+    can list and block the tokens that reach their organization and cap the API token lifetime.
+    Organizations can require SSO and set the SSO session length. Accounts get an email when 2FA is
+    turned on or off and when recovery codes are regenerated or used.
+  - **Webhook channels** show their URL again. Turn on "hide URL" for URLs that carry a secret, and
+    add basic or bearer authentication.
+  - **Monitor emails.** Projects and users can turn off the emails sent when a monitor is paused or
+    resumed, or disabled. The person who made the change no longer gets the email.
+  - **Logs.** ANSI color codes are removed from log and exception messages, so colored and plain
+    lines group as one. A new project switch, "Extract attributes from messages", stops storing
+    `key=value` pairs from messages that no grouping rule matches.
+  - **Ingestion.** Prometheus remote write accepts zstd bodies and answers 415 for unsupported
+    encodings. CloudWatch metric streams in the OpenTelemetry 1.0.0 format are accepted.
+  - **Operations.**
+    - The Go memory limit follows the cgroup limit (`service.memory_limit_ratio`, default 0.9;
+      `GOMEMLIMIT` wins), and default buffer budgets are capped at a quarter of it.
+    - `service.shutdown.delay` keeps serving while `/health/ready` fails, so load balancers drain
+      first.
+    - Config values can be read from files with `${file:<path>}`.
+    - `uptrace migrate up` and `down` take `--batch-pause-ratio`.
+    - `uptrace license show` prints the license.
+    - `uptrace doctor` warns about leftover migration fences (`clickhouse_fence`) and active upgrade
+      holds.
+    - A new "Uptrace: Ingest Read Slots" dashboard and a monitor for long fair-share throttling help
+      size ingestion.
+  - **UI.**
+    - Pinned dashboards at the top of the navigation panel, and search in the panel.
+    - Duplicate in the query clause menu, and pinned filters in every filter builder.
+    - Bulk owner assignment for alerts.
+    - Reload and a conflict notice on settings forms: edits are kept when the record changes under
+      them.
+    - Respect for the system "reduce motion" setting.
+
+  ### Improvements
+
+  - **Incidents.** `genai.incidents.thinking` defaults to `medium`, which merged no unrelated alerts
+    in testing. Endpoints that refuse the reasoning field are retried without it. Set it to `""` for
+    the model's default.
+  - **Anomaly detection.** Fewer false alerts on daily-seasonal series, seasonality is kept after a
+    level shift, and previews and backtests match what the saved monitor does.
+  - **Performance.** Faster anomaly detectors (vector kernels on amd64 and arm64), JSON handling and
+    compression, and faster alert-state backfills during upgrades. New PostgreSQL indexes speed up
+    deleting users and projects, the monitor list, and notification logs. Email lookups at login use
+    the index and ignore letter case.
+
+  ### Bug Fixes
+
+  - **Alerting.**
+    - Resuming a firing monitor no longer resets it or sends a false email.
+    - The monitor list sorts by alert counts again.
+    - Weighted error counts no longer drop fractional points.
+    - Resolved SLO alerts keep their priority, and reminders no longer fire early.
+    - Calendar SLOs refuse rule windows longer than the period, and subjects from a wider grouping no
+      longer show the whole group's budget.
+    - An outlier hold can be turned off at 10s resolution.
+    - A crash in one SLO maintenance visit no longer stops the worker.
+    - Notification templates bound `js`, `html` and `urlquery` output.
+  - **Notifications.**
+    - Telegram group-to-supergroup migrations are treated as permanent errors.
+    - Google Chat links in status emails open the channel.
+    - Names are cut by characters, not bytes.
+    - A deleted user in an assignment no longer fails delivery.
+    - Vendor incidents reopened during a send are closed.
+  - **Traces and logs queries.**
+    - `x / max(_dur_ms)` and error-rate expressions are no longer wrong on the pre-aggregated
+      tables.
+    - `_count` filters and `top3`/`top10`, `avg` and `min` over `_count` return consistent results.
+    - The span histogram and the Compare tab show the same percentiles.
+    - Time zone arguments work on images without zoneinfo.
+    - Log timestamps in Go `time.String()`, PostgreSQL and `date(1)` formats with numeric zones are
+      recognized.
+    - Log grouping rules with certain captures or units load again.
+    - An empty CSV export keeps its header.
+  - **Metric queries.**
+    - `uptime > 1d` parses.
+    - `sort`, `topk` and `bottomk` rank on the visible range.
+    - `mad`, `topk` and similar functions group correctly.
+    - `deriv` and the count-like rollups report correct gaps and units.
+    - A result of exactly the series limit is not marked truncated.
+    - Exponential histograms whose bucket bounds overflow are rejected.
+  - **Dashboards.**
+    - Stat widget sparkline and bar follow the display mode.
+    - Widgets stored with values that newer validation refuses can be saved, cloned and exported
+      again.
+    - Overlapping widgets in .NET templates are fixed.
+    - Template sync continues past a failing project.
+    - Over-long names answer 400, not 500.
+    - Tags and overviews link only the project's own dashboards.
+  - **Ingestion.**
+    - A panic in an OTLP handler answers 500 or gRPC `Internal` instead of crashing the process.
+    - Requests whose gRPC deadline has passed are not stored twice.
+    - Corrupt compressed bodies answer 400.
+    - Remote write accepts gzipped snappy bodies again and reports accurate written counts.
+    - Sentry child spans follow the transaction's sampling, spans without a start time no longer get
+      a 55-year duration, and breadcrumbs keep their keys.
+    - Profiles honor `max_data_age` and `max_clock_skew`.
+  - **Auth.**
+    - Password reset links expire after one hour, as the email says.
+    - In organizations that require 2FA, tokens created from a session without 2FA are refused.
+      Older tokens keep working, and you can verify a token with a fresh 2FA.
+    - Owners must enroll in 2FA before they can require it.
+    - Users whose projects need SSO are sent to the SSO sign-in.
+  - **Operations.**
+    - TLS certificates load before the servers accept connections.
+    - Shutdown no longer waits on idle connections, and OTel Arrow streams end cleanly.
+    - The UI works under a `site.url` path named `internal` or `api`, and unknown API paths answer
+      404.
+    - An explicit `site.api_url` is kept when a license sets the site URL.
+    - `service.profiling` works on the hosted build.
+    - Prepaid licenses get their 3-day grace at startup.
+    - Config fixes: an empty config file no longer panics, `consumer_disabled` turns the consumer
+      off, `config fix` no longer empties a file, and commented-out `${file:}` references are
+      ignored.
+    - The DEB and RPM migration check reads variables from `/etc/uptrace/uptrace.conf`.
+    - `migrate up --restart` no longer fails when systemd restarts a worker early.
+    - ClickHouse steps on installs without distributed tables are fenced against concurrent
+      inserts, which caused `Missing columns` during the rc.1 upgrade.
+    - Kafka consumers no longer get stuck rejoining when heartbeats are slow.
+    - Releases include `checksums.txt` for every artifact.
+
+  ### Known Issues
+
+  Both are fixed in v2.1.0-rc.3.
+
+  - **`contains` on `_display_name` matches whole words in any order**
+    ([#625](https://github.com/uptrace/uptrace/issues/625)). Since rc.1,
+    `_display_name contains "[ERROR]"` matches any line with the word "error", and
+    `contains "Driver ODBC"` matches "ODBC Driver". Searches and monitors that use it can match too
+    much and fire on healthy systems.
+  - **Acknowledged data can be lost when ClickHouse stalls**
+    ([#630](https://github.com/uptrace/uptrace/issues/630)). When ClickHouse slowed down or paused
+    and the ingest buffer filled, Uptrace could answer HTTP 200 (or an OTLP partial success, which
+    clients do not retry) and drop the records. In testing, rc.2 lost most acknowledged logs during a
+    long ClickHouse pause. With Kafka, records could also expire after the default 2-minute
+    `kafka.delivery_timeout`.
+
 ## v2.1.0-rc.1 - October 07 2026
 
   ### Upgrading
