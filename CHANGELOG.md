@@ -2,6 +2,100 @@
 
 To get started with Uptrace, see https://uptrace.dev/get
 
+## v2.1.0 - November 14 2026
+
+  v2.1.0 is the first stable v2.1 release. It contains everything from v2.1.0-rc.1, rc.2 and rc.3
+  below, plus the changes listed here.
+
+  ### Upgrading
+
+  Follow [Upgrading to v2.1.0](https://uptrace.dev/get/hosted/upgrade#upgrading-to-v210). Back up
+  PostgreSQL and ClickHouse first, then run `uptrace preflight` and `uptrace migrate up` as the
+  [upgrade guide](https://uptrace.dev/get/hosted/upgrade) describes.
+
+  - **From v2.1.0-rc.1, rc.2 or rc.3**, install the new binary and run
+    `uptrace migrate up --restart` (systemd), or the Docker and Helm steps of the guide. If you set
+    `ch_cluster.kafka`, upgrade from rc.2 or later (see the rc.3 notes).
+  - **From v2.0.0-beta.3 to v2.0.3, or a v2.1 beta**, first read
+    [Upgrading from v2.0 or a v2.1 beta](https://uptrace.dev/get/hosted/upgrade#upgrading-from-classic):
+    ClickHouse 26.3+ and PostgreSQL 15+ are required, `service.secret` must be set, and
+    `uptrace migrate up` replaces the old `pg`/`ch` migration commands. Then read the breaking changes
+    of each v2.1.0 release candidate below.
+  - **v1.x and v2.0.0-beta.1, beta.2 and rc.2** cannot be upgraded. Install v2.1.0 on new databases.
+
+  This upgrade moves incident causes to hypotheses. From the restart until `migrate up` finishes
+  the backfill, the incident screens and routes wait (`read_alerts` hold). Run `migrate up` right
+  after the restart; with `--restart` it carries on by itself.
+
+  ### Breaking Changes
+
+  - **Incident hypotheses replace the suspected-cause mark.** An incident now stores its possible
+    causes as hypotheses. Each one cites the alerts, annotations or telemetry reads behind it and has
+    a status: supported, unverified or disproved. A person can confirm or refute a hypothesis, and
+    later analyses keep that ruling. The incident shows its origin alert from a confirmed hypothesis
+    instead of a "suspected" mark. `migrate up` clears the existing marks and drops
+    `incident_alerts.suspected`.
+  - **`ingest.request_timeout` replaces `ingest.produce_wait_timeout`.** One deadline (default 10s,
+    at most 10m) now covers the whole request from its arrival: the wait for a read slot, for room in
+    the buffer, and for the Kafka ack. A shorter client deadline (`grpc-timeout`, `Connect-Timeout-Ms`,
+    `X-Envoy-Expected-Rq-Timeout-Ms`) narrows it. `ingest.read_queue_timeout` now defaults to 1s, and
+    `kafka.linger` must be shorter than half of the request timeout. The old key still works and logs
+    a warning; `uptrace config fix --write` renames it.
+  - **Prometheus remote write answers overload with 503**, not 429, because Prometheus drops the data
+    of a 429 by default. Other receivers still answer a retryable 429 with `Retry-After`.
+
+  ### API Changes
+
+  In the beta `/internal/v1` API:
+
+  - The incident analysis response no longer has `hypotheses`, `suspectedCauseAlertIds` and
+    `alertsById`. `GET .../hypotheses` lists the hypotheses, and `PUT` / `DELETE
+    .../hypotheses/{hypothesis_id}/ruling` confirms or refutes one.
+  - `PUT .../alerts/{alert_id}/suspected` and `IncidentAlertGrouping.suspected` are removed in favor
+    of `IncidentAlertGrouping.origin`.
+  - The incident list returns `hypothesisCountsById`.
+  - New MCP tool: `list_incident_hypotheses`.
+
+  ### New Features
+
+  - **Kafka acks per pipeline.** `pipelines.<signal>.acks.required` (`all`, the default, or `leader`)
+    sets which replicas must hold a record before the broker acknowledges it, and
+    `pipelines.<signal>.acks.await: false` lets a pipeline answer once the producer accepts its
+    records, without waiting for the ack. Both trade durability for latency; see
+    [Kafka acknowledgements](https://uptrace.dev/get/hosted/scale#kafka-acks).
+  - **Single-zone Kafka topics.** A `kafka.placement` topic rule can keep each partition inside one
+    zone (a broker's zone is its `broker.rack` up to the first `-`), so a follower in another
+    datacenter no longer slows down every ack of its partition. Set `single_zone: true` on the rule;
+    `uptrace kafka rebalance` places the replicas, and `uptrace kafka check-placement` lists
+    partitions that span zones and prints the fix. See
+    [Kafka placement](https://uptrace.dev/get/hosted/scale#kafka-placement).
+  - **Self-monitoring per signal.** `self_monitoring.traces`, `metrics` and `logs` each take
+    `disabled: true`, so you can stop exporting one signal and keep the others.
+  - **Preflight checks ClickHouse migration blockers.** `uptrace preflight` fails on a failed
+    mutation, a stuck `ON CLUSTER` DDL entry, too little disk space for the pending mutations, and a
+    compact part that lacks a column its index reads. `uptrace migrate up --plan` names the rows and
+    bytes each pending ClickHouse mutation rewrites, per host and disk.
+  - **Threshold monitors with `in_total` and `on_average` window rules** now explain an alert by the
+    window's total or average ("3 in total over the last 1h"), not by its newest point.
+
+  ### Bug Fixes
+
+  - **Ingestion.** A trace or Sentry request no longer releases its buffer room before the ack of
+    its logs or events arrives, which let the buffer admit more than it could hold. A late Kafka ack
+    answers a 429 whose text names the broker.
+  - **gRPC.** The server pings idle connections every 30s, inside the 60s idle timeout of HAProxy and
+    most load balancers, so idle OTel Arrow streams are no longer dropped by the proxy.
+  - **Query editor.** A typed `order by` that names no column of the table is refused with an error,
+    instead of sorting by an attribute that no record has. Pasting a query on Traces keeps the root
+    `_parent_id` filter. The editor reads queries as the server does, so highlighting, completion and
+    the filter chips agree with the result. A key that starts with a dot and a digit is quoted.
+  - **Errors.** Client mistakes (4xx other than 401, 403 and 408) no longer record an exception on
+    the server span, so they no longer open error-log alerts in self-monitoring. A failed call to an
+    upstream service answers 5xx instead of 400.
+  - **UI.** Alert policy forms are locked for a viewer who cannot edit them, and the alert note form
+    and New monitor say why they are disabled. Facet drawers keep their row heights through a
+    rebuild.
+
 ## v2.1.0-rc.3 - November 12 2026
 
   ### Upgrading
