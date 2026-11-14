@@ -24,6 +24,9 @@ Uptrace 使用 OpenTelemetry 框架收集数据，使用 ClickHouse 数据库存
 - 类似 Promql 的语言用于[聚合指标](https://uptrace.dev/features/querying/metrics)。
 - 支持通过 [OpenTelemetry](https://uptrace.dev/ingest/opentelemetry)、[Prometheus](https://uptrace.dev/ingest/prometheus)、[Vector](https://uptrace.dev/ingest/vector)、[FluentBit](https://uptrace.dev/ingest/logs/fluentbit)、[CloudWatch](https://uptrace.dev/ingest/cloudwatch) 等进行数据摄取。
 - [Grafana](https://uptrace.dev/features/grafana) 兼容性。您可以配置 Grafana 使用 Uptrace 作为 Tempo/Prometheus 数据源。
+- 仪表板布局：支持分组、行和标签页，提供 YAML 编辑器和修订历史。
+- AI 辅助的事件分析：给出假设及其依据的数据，并可配置模型提供商。
+- 可选的[基于 Kafka 的数据摄取](https://uptrace.dev/get/hosted/scale#kafka)，适用于高吞吐量和多节点部署。
 - 通过 YAML 配置管理用户/项目。
 - 使用 OpenID Connect 的单点登录 (SSO)：[Keycloak](https://uptrace.dev/features/sso/keycloak)、[Google Cloud](https://uptrace.dev/features/sso/google) 和 [Cloudflare](https://uptrace.dev/features/sso/cloudflare)。
 - 高效处理：单核每秒处理超过 10K spans。
@@ -50,6 +53,18 @@ Uptrace 使用 OpenTelemetry 框架收集数据，使用 ClickHouse 数据库存
 您可以通过访问[云端演示](https://app.uptrace.dev/play)（无需登录）或使用 Docker [本地运行](https://github.com/uptrace/uptrace/tree/master/example/docker)在几分钟内试用 Uptrace。
 
 然后按照[入门指南](https://uptrace.dev/get)操作。
+
+## 系统要求
+
+最新版本为 [v2.1.0](https://github.com/uptrace/uptrace/releases/tag/v2.1.0)。它需要：
+
+- ClickHouse 26.3 或更高版本
+- PostgreSQL 15 或更高版本
+- Redis 6 或更高版本
+
+## 升级
+
+先备份 PostgreSQL 和 ClickHouse，然后按照[升级 Uptrace](https://uptrace.dev/get/hosted/upgrade) 操作。从 v2.0.x 或 v2.1 beta 升级需要几个额外步骤，详见[升级到 v2.1.0](https://uptrace.dev/get/hosted/upgrade#upgrading-to-v210)。每个版本的变更见[更新日志](CHANGELOG.md)。
 
 ## 帮助
 

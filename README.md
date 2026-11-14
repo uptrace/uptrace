@@ -41,6 +41,12 @@ names and alerts.
   [CloudWatch](https://uptrace.dev/ingest/cloudwatch), and more.
 - [Grafana](https://uptrace.dev/features/grafana) compatibility. You can
   configure Grafana to use Uptrace as a Tempo/Prometheus datasource.
+- Dashboard layouts with groups, rows and tabs, a YAML editor, and revision
+  history.
+- AI-assisted incident analysis that states hypotheses with the data behind
+  them, and model providers you configure.
+- Optional [Kafka-based ingestion](https://uptrace.dev/get/hosted/scale#kafka)
+  for high-volume and multi-node deployments.
 - Managing users/projects via YAML config.
 - Single sign-on (SSO) using OpenID Connect:
   [Keycloak](https://uptrace.dev/features/sso/keycloak),
@@ -73,6 +79,23 @@ You can try Uptrace in just a few minutes by visiting the
 locally with Docker.
 
 Then follow the [getting started](https://uptrace.dev/get) guide.
+
+## Requirements
+
+The latest release is
+[v2.1.0](https://github.com/uptrace/uptrace/releases/tag/v2.1.0). It needs:
+
+- ClickHouse 26.3 or later
+- PostgreSQL 15 or later
+- Redis 6 or later
+
+## Upgrading
+
+Back up PostgreSQL and ClickHouse, then follow
+[Upgrading Uptrace](https://uptrace.dev/get/hosted/upgrade). Upgrading from
+v2.0.x or a v2.1 beta takes a few extra steps, described in
+[Upgrading to v2.1.0](https://uptrace.dev/get/hosted/upgrade#upgrading-to-v210).
+See the [changelog](CHANGELOG.md) for the changes in each release.
 
 ## Help
 
